@@ -287,38 +287,106 @@ _ANOTHER_CITATION_AHEAD = (
     r"|U\.\s?S\.\s*\d|S\.\s?Ct\b|F\.?\s?(?:2d|3d|4th)\b|F\.?\s?Supp\b|Cl\.?\s?Ct\b))"
 )
 
-#: The sibling of the rule above, at the separator that rule cannot see: what
-#: follows a number when the number is the PART OF A CFR SECTION rather than a
-#: U.S.C. section of its own. A dot and more digits is the CFR's own compound
-#: spelling ("155.490" is part 155, section 490) and the U.S. Code has no such
-#: shape — a Code section's inner punctuation is a hyphen, never a dot.
+#: The truncation signature itself, spelled ONCE: a dot, a digit run, and no
+#: CFR marker leading away from them. Two readers need it in two forms — as
+#: the negative lookahead :data:`_A_DOTTED_NUMBER_IS_A_CFR_SECTION` that
+#: fences a section slot INSIDE a pattern, and as the positive
+#: :data:`_DOT_TRUNCATES_A_SECTION` that
+#: ``_usc_leading_section_is_untruncated`` applies to a match already made —
+#: and they were written out twice, 2,000 lines apart. Measured drift hazard,
+#: not a hypothetical one: with the carve-out deleted from either copy alone,
+#: the Privacy Act specimen below still parses, because the OTHER copy still
+#: carries it — so neither copy's own test can see its guard go missing.
 #:
-#: Only the LIST TAIL needs this. A dotted number reached anywhere else is
-#: either already anchored to a code name (where the dot stays an uncovered
-#: tail and the row reads "partial", which is visible) or read by the CFR
-#: grammar, which spells the dot itself. In a list tail it is invisible: the
-#: Coast Guard's own part-155 note, "Sections 155.480, 155.490, 155.750(e),
-#: and 155.775 are also issued under 46 U.S.C. 3703", follows "33 U.S.C.
-#: 1903(b)" and so published 33 U.S.C. 155 — a section of title 33 that the
-#: filer never wrote and that the citation's own dot refutes.
+#: The CFR marker here is matched case-sensitively where this signature is
+#: compiled alone (:data:`_DOT_TRUNCATES_A_SECTION`) and case-insensitively
+#: where the pattern embedding the lookahead carries ``re.IGNORECASE``. The
+#: difference is left standing rather than closed, because closing it would
+#: widen a carve-out no source asks for: measured 2026-09-01 over all 42,677
+#: distinct authority values and all 8,240 notes, exactly ONE text puts a
+#: dot-digit run in front of a CFR marker at all — the uppercase Privacy Act
+#: specimen named below — and a case-INSENSITIVE scan of the same corpus
+#: finds no second one.
+_DOT_TRUNCATION_SIGNATURE = rf"\.(?>\d+)(?!\s*C\.?\s*F\.?\s*R\.?{_RIGHT})"
+
+#: The sibling of :data:`_ANOTHER_CITATION_AHEAD`, at the separator that rule
+#: cannot see: what follows a number when the number is the PART OF A CFR
+#: SECTION rather than a U.S.C. section of its own. A dot and more digits is the CFR's own compound
+#: spelling ("155.490" is part 155, section 490) and the U.S. Code has no such
+#: shape — a Code section's inner punctuation is a hyphen, never a dot. No
+#: real U.S.C. identity contains one: checked against all 66,780 enumerated
+#: title/section pairs the section-existence oracle carries.
+#:
+#: CORRECTED 2026-09-01: this fence shipped scoped to the LIST TAIL alone, on
+#: the stated assumption that a dotted number reached ANCHORED to a code name
+#: stays visibly "partial" and so does no silent harm. Measured false. "26
+#: USC 1.104-1(c)" — an income-tax REGULATION, 26 CFR 1.104-1 — anchors
+#: :data:`_USC_STANDARD` at "1", leaves ".104-1(c)" as an uncovered tail, and
+#: the row does read ``parse_status`` "partial" exactly as predicted — but
+#: "partial" is not visible to a consumer that reads ``usc_title``/
+#: ``usc_section`` and the section-existence oracle without also checking
+#: ``parse_status``, and every consumer measured does exactly that (the
+#: builder's own by-status verdict census keys on ``parse_status`` but still
+#: computes and reports a verdict for "partial" rows; the inv-universe
+#: review's own crosstab script selected on ``authority_type`` alone). 26
+#: U.S.C. 1 exists — it is the income tax rate schedule, and has nothing to
+#: do with the regulation — so the row reads an affirmative, wrong "exists".
+#: 41 distinct authority values / 175 rows / 36 RINs measured this way
+#: (research/evidence/reg-dot-fence-2026-09-01/), 89 of them an affirmative
+#: wrong "exists" — a full old-vs-new replay of THIS module over every
+#: distinct authority value, which is the basis that directory's DELTAS.md
+#: and this module's tests both use. The mined ledger's own 155 rows / 31
+#: RINs / 90 came from a hand-written regex matching only the anchored
+#: "title USC part.section" spelling: it missed the appendix and
+#: transposed-label positions this fence also covers, and counted rows the
+#: replay does not. The fix widens the SAME refusal to every position that
+#: reads a single, bare section token as a complete citation on its own —
+#: the anchor (:data:`_USC_STANDARD`), the appendix and transposed-label
+#: forms, and the Internal Revenue Code self-name — so the citation is
+#: refused outright
+#: (``other``/``failed``, or read by nothing at this position) rather than
+#: minted on a truncated read. A RANGE END is deliberately NOT one of these
+#: positions; see below.
+#:
+#: The refusal carries one measured exception, found by reading the raw
+#: record rather than trusting the count: "5 USC 552a.45 CFR s 5b.11(b)
+#: (2)(ii)(H)" (RIN 0938-AO69, REGINFO_RIN_DATA_200610.xml line 82048) is
+#: NOT a truncated regulation number. "552a" is the Privacy Act, a complete,
+#: real, standalone U.S.C. section on its own (5 U.S.C. § 552a) — 552a is a
+#: real repeated-letter section token where the digits before the letter are
+#: not a truncated prefix. The dot is a missing separator, not a fused
+#: number: the filer ran a second citation, 45 CFR 5b.11(b)(2)(ii)(H) —
+#: corroborated by this RIN's own ``CFR_LIST``, "45 CFR 5b" — directly
+#: against the first with no space or semicolon between them. Refusing here
+#: would have deleted a real section for one that is not confused with
+#: anything. This is the ONLY value anywhere in the corpus (all 42,677
+#: distinct authority values) where a dotted number is immediately followed
+#: by an explicit CFR citation, so the guard names the exception rather than
+#: widening past it: the refusal does not fire when the digits after the dot
+#: lead straight into "CFR".
 #:
 #: It guards a SINGLE section token and not a hyphenated span, and that is a
-#: measured line rather than a cautious one. Every dotted list-tail item in
-#: the corpus was read: 187 in the 42,677 authority values and 1,140 in the
-#: 8,240 notes, and every single one is a bare number before the dot — a CFR
-#: part ("7 CFR 2.22, 2.80, and 371.4"), a delegation ("49 CFR 1.81 and
-#: 1.95"), a Farm Credit Act section ("Secs. 5.9, 5.10, 5.17"), an IRS
-#: regulation ("Sections 1.1362-1, ... and 1.1363-1"). Exactly ONE instance
-#: anywhere puts a hyphenated span before the dot, and it is not a compound at
-#: all: 12 CFR 326's note ends "31 U.S.C. 5311-5314, 5316-5332.2", where the
-#: "2" is a FOOTNOTE MARKER the publisher prints superscript and this cache
-#: flattens — the same part's own heading flattens the same footnote, "PART
-#: 326—MINIMUM SECURITY DEVICES AND PROCEDURES AND BANK SECRECY ACT 1
-#: COMPLIANCE". Guarding the span too would have deleted the Bank Secrecy
-#: Act's own range from the note that grants it, and taken two rows of 31
-#: U.S.C. 5318 (RIN 3064-AC19) from "present" to "near-miss" on the strength
-#: of a footnote.
-_A_DOTTED_NUMBER_IS_A_CFR_SECTION = r"(?!\.\d)"
+#: measured line rather than a cautious one, unchanged by the widening above:
+#: guarding the span too would refuse a RANGE rather than truncate it, which
+#: is worse. Every dotted list-tail item in the corpus was read: 187 in the
+#: 42,677 authority values and 1,140 in the 8,240 notes, and every single one
+#: is a bare number before the dot — a CFR part ("7 CFR 2.22, 2.80, and
+#: 371.4"), a delegation ("49 CFR 1.81 and 1.95"), a Farm Credit Act section
+#: ("Secs. 5.9, 5.10, 5.17"), an IRS regulation ("Sections 1.1362-1, ... and
+#: 1.1363-1"). Exactly ONE instance anywhere puts a hyphenated span before
+#: the dot, and it is not a compound at all: 12 CFR 326's note ends "31
+#: U.S.C. 5311-5314, 5316-5332.2", where the "2" is a FOOTNOTE MARKER the
+#: publisher prints superscript and this cache flattens — the same part's own
+#: heading flattens the same footnote, "PART 326—MINIMUM SECURITY DEVICES AND
+#: PROCEDURES AND BANK SECRECY ACT 1 COMPLIANCE". Guarding the span too would
+#: have deleted the Bank Secrecy Act's own range from the note that grants
+#: it, and taken two rows of 31 U.S.C. 5318 (RIN 3064-AC19) from "present" to
+#: "near-miss" on the strength of a footnote. The SAME range, spelled with
+#: "to" instead of a dash and standing alone rather than in a list ("31 USC
+#: 5316 to 5332.2"), reaches :data:`_USC_STANDARD`'s own range tail — also
+#: unguarded, for the identical reason: 2 further rows, measured in the same
+#: pass that widened the anchor above.
+_A_DOTTED_NUMBER_IS_A_CFR_SECTION = rf"(?!{_DOT_TRUNCATION_SIGNATURE})"
 
 #: A section marker, everywhere one is written. Accreted in three spellings
 #: that differed only in whether "section." kept its period; one expression
@@ -713,6 +781,66 @@ _USC_SECTION_TOKEN = rf"\d+(?:{_ONE_REPEATED_LETTER}(?![A-Za-z]))?"
 #: identically, so a widening in one was a silent divergence from five.
 _USC_SECTION_SPAN = rf"{_USC_SECTION_TOKEN}(?:-{_USC_SECTION_TOKEN})?"
 
+#: :data:`_USC_SECTION_SPAN` written out so the bare-token half alone carries
+#: :data:`_A_DOTTED_NUMBER_IS_A_CFR_SECTION` and the hyphenated-span half
+#: never does — spelling the alternation rather than appending the guard
+#: after the shared span, because a guard appended AFTER the span lets the
+#: engine backtrack into the span's first endpoint and publish it alone: for
+#: "5316-5332.2", the whole span "5316-5332" fails the guard (dot-digit
+#: follows), and backtracking to "5316" alone then satisfies it (a bare
+#: hyphen follows, not a dot) — matching a single section where a range was
+#: written and silently dropping its end. Spelled as an alternation, the span
+#: half is tried whole or not at all, so a range that reaches the dot is left
+#: intact with an uncovered footnote rather than corrupted to its start.
+#:
+#: The bare-token half is ALSO wrapped in an atomic group, and this one is
+#: not hypothetical: widening this fence to :data:`_USC_STANDARD` in
+#: 2026-09-01 first shipped without it and mis-published "40 U.S.C.
+#: 102.01, 322, 5331" as section "10" — the SAME backtrack, one level in.
+#: ``\d+`` refused at "102" (dot-digit follows) backtracks to "10", where
+#: the next character is "2", not a dot, and the guard is satisfied on a
+#: PREFIX of the very number it exists to refuse. :data:`_USC_LIST_TAIL`
+#: never showed this because a literal ``\b`` sits right after its own
+#: section group and a digit run has no internal word boundary to backtrack
+#: into — every position but the full run fails ``\b`` before the guard is
+#: even reached. Nothing downstream of this combinator can rely on that
+#: accident (the appendix form's section is optional and ends the pattern;
+#: the transposed label and Internal Revenue Code forms end there too), so
+#: the atomic group makes the protection explicit instead of borrowed.
+#:
+#: Which positions it actually holds up, measured by deleting it: with the
+#: atomic group gone, "46 app USC 1241.1" mints appendix section 124 and
+#: "40 UCS 102.01" mints 40 U.S.C. 10, and nothing else in the corpus or the
+#: fixtures moves. So the group is LOAD-BEARING at exactly two slots — the
+#: appendix form and the transposed label, the two that END at the section —
+#: and BORROWED at the other three, each already protected by something
+#: else: :data:`_USC_LIST_TAIL` has its own ``\b`` right after the section
+#: group, :data:`_USC_TITLE_FORM` requires "of title N" behind it (so a
+#: backtracked prefix fails the pattern rather than publishing), and the
+#: anchor's row is withheld by ``_usc_leading_section_is_untruncated``
+#: whatever the regex matched. A test meaning to pin this group therefore
+#: has to probe one of the first two; an assertion at the anchor, the list
+#: or the "of title" head passes either way.
+#:
+#: One combinator, in every position that reads a single section token as a
+#: COMPLETE citation on its own and where refusing it costs nothing further:
+#: a listed member, the appendix form (whose section is optional, so a
+#: refusal there degrades to a title-only appendix citation rather than
+#: losing the match), the transposed label, and the Internal Revenue Code
+#: self-name. :data:`_USC_STANDARD`'s own anchor does NOT use this
+#: combinator — its section is required, and a full refusal there would
+#: also drop the match that seeds the list-tail walk (:data:`_USC_LIST_TAIL`
+#: scans forward from wherever the anchor's OWN match ends), taking real
+#: listed members down with the fabricated anchor. It reaches the identical
+#: refusal a different way: see ``_usc_leading_section_is_untruncated``,
+#: applied where :data:`_USC_STANDARD` and :data:`_INTERNAL_REVENUE_CODE`
+#: matches become rows. A RANGE END is not one of these positions either —
+#: see :data:`_A_DOTTED_NUMBER_IS_A_CFR_SECTION` for why.
+_USC_SECTION_SPAN_UNTRUNCATED = (
+    rf"{_USC_SECTION_TOKEN}-{_USC_SECTION_TOKEN}"
+    rf"|(?>{_USC_SECTION_TOKEN}){_A_DOTTED_NUMBER_IS_A_CFR_SECTION}"
+)
+
 #: The WORDS that separate a range's endpoints, and the space around them that
 #: the publisher may have lost. "thru" was known to the compilation grammar
 #: and to no other, so "47 U.S.C. 151 thru 152" — properly spelled, properly
@@ -753,6 +881,18 @@ _USC_STANDARD = re.compile(
     # is presentation, like an act's; the sections are what is cited.
     r"(?:\s*subtitles?\s+[IVXLC]+\s*,?)?"
     rf"(?:\s*{_SECTION_MARKER})?\s*"
+    # The section slot stays the bare :data:`_USC_SECTION_SPAN`, NOT
+    # :data:`_USC_SECTION_SPAN_UNTRUNCATED`, though this is exactly the
+    # ANCHOR position a dot-truncated CFR regulation number reaches ("26 USC
+    # 1.104-1(c)" truncates to section "1", the wrong section, at a
+    # resolutely real one — 26 U.S.C. § 1 exists). Refusing the MATCH here
+    # would refuse the citation :data:`_USC_LIST_TAIL` anchors its own scan
+    # from, taking real listed members down with the fabricated section
+    # ("40 U.S.C. 102.01, 322, 5331" would lose 322 and 5331 along with the
+    # truncated 102). The refusal is applied instead where this match becomes
+    # a row — ``_usc_leading_section_is_untruncated``, just below the read
+    # loop — so the match still stands to seed the list walk and only the
+    # fabricated section is withheld.
     rf"(?P<section>{_USC_SECTION_SPAN})"
     # A spelled range tail: "7401 to 7671q". The hyphenated spelling is
     # already inside ``section`` (a hyphen is also part of the section
@@ -841,14 +981,13 @@ _USC_CHAPTER = re.compile(
 #: uscode.house.gov, 1999 edition), so the omission dropped citations rather
 #: than declining ambiguous ones. 15 distinct values, 37 source rows, 45 rows
 #: gained and none lost. A listed member inherits the appendix flag.
-#: The section slot here is :data:`_USC_SECTION_SPAN` written out, because this
-#: reader — alone among the six — guards the single-token half of it and not
-#: the span half; see :data:`_A_DOTTED_NUMBER_IS_A_CFR_SECTION` for the
-#: instance that decided where the line falls. Spelling the alternation rather
-#: than appending the guard also keeps the refusal WHOLE: a guard after the
-#: shared span lets the engine backtrack to the span's first endpoint and
-#: publish it alone, so "5316-5332.2" would have quietly become section 5316
-#: with its end dropped, which is a silent narrowing where a refusal was meant.
+#: The section slot here is :data:`_USC_SECTION_SPAN_UNTRUNCATED` — this
+#: reader's own bare-token guard was where the alternation was first spelled
+#: out (2026-08-24) and the widening of 2026-09-01 promoted it to the shared
+#: combinator every "single token is a complete citation" position now uses;
+#: see :data:`_A_DOTTED_NUMBER_IS_A_CFR_SECTION` for why the span half never
+#: carries the guard.
+#:
 #: A LISTED MEMBER MAY BE A RANGE, and this pattern had no tail for one until
 #: 2026-08-24: "20 U.S.C. 1406, 1431 through 1444" published 1406 and 1431 and
 #: dropped 1444, while the identical range standing alone kept it. 191 values /
@@ -859,10 +998,7 @@ _USC_CHAPTER = re.compile(
 #: two positions, and a tail that differed would be a second opinion about
 #: what a range is.
 _USC_LIST_TAIL = re.compile(
-    rf"(?:,|\band\b|\bor\b)\s*(?P<section>"
-    rf"{_USC_SECTION_TOKEN}-{_USC_SECTION_TOKEN}"
-    rf"|{_USC_SECTION_TOKEN}{_A_DOTTED_NUMBER_IS_A_CFR_SECTION}"
-    rf")\b"
+    rf"(?:,|\band\b|\bor\b)\s*(?P<section>{_USC_SECTION_SPAN_UNTRUNCATED})\b"
     rf"{_ANOTHER_CITATION_AHEAD}"
     rf"(?:(?:\s*\([0-9A-Za-z]{{1,4}}\))*(?:{_RANGE_SEPARATOR}|{_SPACED_DASH})"
     rf"(?P<range_end>(?>{_USC_SECTION_SPAN}))"
@@ -898,14 +1034,38 @@ _RIN_TOKEN = re.compile(r"(?<![0-9A-Za-z])\d{4}-[A-Z]{2}\d{2}(?![0-9A-Za-z])")
 #: plural-list variant ("sections 3501, 3502 and 3503 of title 44") from
 #: SpicySearch, whose gap here was found by a search-quality benchmark. A bare
 #: "section 553" with no "of title" tail stays undetected rather than guessed.
+#: The head and each listed item carry the same dot refusal as every other
+#: single-token reading (see :data:`_A_DOTTED_NUMBER_IS_A_CFR_SECTION`),
+#: unmeasured against a real specimen — no corpus value pairs "of title" with
+#: a dotted number — but the same shape reaches the same class of citation
+#: through this reader as through :data:`_USC_STANDARD`, and a rule that held
+#: only where a specimen happened to exist would be luck, not a rule.
+#:
+#: LATENT SHAPE, stated rather than built for. The refusal sits INSIDE the
+#: pattern at the ``first`` slot, so a dotted FIRST member drops the whole
+#: citation and every real member behind it: "sections 102.01, 322 of title
+#: 40" reads nothing, where the same damage at :data:`_USC_STANDARD`'s
+#: anchor withholds the fabricated row alone and keeps 322. That collateral
+#: loss is exactly what the anchor's out-of-regex refusal exists to avoid,
+#: and the same machinery is NOT built here, because the position is empty:
+#: replaying this reader with and without the guard over all 42,677 distinct
+#: authority values and all 8,240 notes changes 0 texts (measured
+#: 2026-09-01), and every one of the 41 values the widening does remove a
+#: pair from is a truncated prefix that loses nothing real. Structure earns
+#: its keep, so the refuse-the-whole-citation behaviour is PINNED by a
+#: fixture rather than fixed by machinery nothing asks for — the first real
+#: specimen fails that fixture and forces the conversation instead of
+#: landing silently.
 _USC_TITLE_FORM = re.compile(
     rf"{_LEFT}{_SECTION_MARKER}\s*"
-    rf"(?P<first>{_USC_SECTION_SPAN})"
-    rf"(?P<items>(?:{_LIST_SEPARATOR}{_USC_SECTION_TOKEN})*)"
+    rf"(?P<first>{_USC_SECTION_SPAN_UNTRUNCATED})"
+    rf"(?P<items>(?:{_LIST_SEPARATOR}{_USC_SECTION_TOKEN}{_A_DOTTED_NUMBER_IS_A_CFR_SECTION})*)"
     rf"\s+of\s+title\s+(?P<title>[1-9]\d*){_RIGHT}",
     re.IGNORECASE,
 )
-_USC_TITLE_FORM_ITEM = re.compile(rf"{_LIST_SEPARATOR}(?P<section>{_USC_SECTION_TOKEN})")
+_USC_TITLE_FORM_ITEM = re.compile(
+    rf"{_LIST_SEPARATOR}(?P<section>{_USC_SECTION_TOKEN}{_A_DOTTED_NUMBER_IS_A_CFR_SECTION})"
+)
 
 #: "50 U.S.C. app. 2401" — a section of a title's APPENDIX, which is a real
 #: place (the Export Administration Act lived in 50 U.S.C. app. for decades)
@@ -932,13 +1092,21 @@ _APPENDIX_MARKER = r"(?i:app(?:endix|x?\.?)?)"
 #: the same tail and the same ORDERING rule that decides whether a hyphen is a
 #: range — a change to what 3,870 appendix rows parse to, which is its own unit
 #: with its own diff, not a line added here.
+#: The section slot is optional, and where present carries the same dot
+#: refusal :data:`_USC_STANDARD` does: "46 app USC 1241.1" truncated to
+#: appendix section 1241 — a further Coast Guard/MARAD regulation number
+#: read as a Code section, measured with the anchor fix of 2026-09-01 (see
+#: :data:`_A_DOTTED_NUMBER_IS_A_CFR_SECTION`). Because the group is
+#: optional, a refused reading falls back to the title-only appendix
+#: citation rather than failing the whole match — the appendix is still
+#: real even when the section number offered for it is not.
 _USC_APPENDIX = re.compile(
     rf"{_LEFT}(?P<title>\d+)\s*"
     # The appendix marker appears on either side of the code name: "50 U.S.C.
     # app. 2401" and "50 app USC 2071" both occur in the Agenda.
     rf"(?:{_USC_CODE_NAME}\s*(?:§{{1,2}}\s*)?{_APPENDIX_MARKER}"
     rf"|{_APPENDIX_MARKER}\s*{_USC_CODE_NAME})\s*"
-    rf"(?P<section>{_USC_SECTION_SPAN})?",
+    rf"(?P<section>{_USC_SECTION_SPAN_UNTRUNCATED})?",
 )
 
 #: "123 F 3d 1460", "141 F.3d 662", "550 U.S. 544", "128 S. Ct. 2131" — case
@@ -1290,9 +1458,13 @@ _BARE_USC_TITLE_LONGHAND = re.compile(
 #: 26 U.S.C. 7805). Uppercase only — "UCS" is not an English word, but the
 #: case is still the evidence the bare-label rule demands — and the damage
 #: operator is the same adjacent transposition the corroborated corrections
-#: name. No other citation label is one transposition from "UCS".
+#: name. No other citation label is one transposition from "UCS". The section
+#: slot carries the same dot refusal as the standard label's own anchor (see
+#: :data:`_A_DOTTED_NUMBER_IS_A_CFR_SECTION`) — a transposed label is still a
+#: U.S.C. anchor, and unmeasured against a real specimen only because no
+#: corpus value happens to transpose the letters of a truncated one.
 _USC_TRANSPOSED_LABEL = re.compile(
-    rf"{_LEFT}(?P<title>\d{{1,2}})\s+UCS\s+(?P<section>{_USC_SECTION_SPAN})"
+    rf"{_LEFT}(?P<title>\d{{1,2}})\s+UCS\s+(?P<section>{_USC_SECTION_SPAN_UNTRUNCATED})"
 )
 
 #: A statutory note is LAW, printed under a section rather than as one —
@@ -1306,7 +1478,12 @@ _USC_NOTE_TAIL = re.compile(r"\s+notes?\b")
 #: identifier. The title comes from the expression that recognized the code —
 #: never from a shared "guess the code" rule — and the three-letter
 #: abbreviation publishes nothing without a section behind it, because naming
-#: a code is not citing one.
+#: a code is not citing one. The section slot stays the bare
+#: :data:`_USC_SECTION_SPAN`, matching :data:`_USC_STANDARD`'s own anchor:
+#: "I.R.C. 1.6103" would truncate to section 1 of a code that is entirely
+#: IRS regulations under this same title, and this pattern is read in the
+#: SAME loop as the anchor and refused the SAME way — see
+#: ``_usc_leading_section_is_untruncated``.
 _INTERNAL_REVENUE_CODE = re.compile(
     rf"\bI\.?\s*R\.?\s*C\.?(?:\s*{_SECTION_MARKER})?\s*"
     rf"(?P<section>{_USC_SECTION_SPAN})",
@@ -1824,6 +2001,23 @@ class AuthorityCitation:
     #: title-first spelling ("26 DC Code 102") reads to the same compound.
     #: None when the value names the Code without a readable section.
     dc_code_section: str | None = None
+    #: True when :data:`_USC_LIST_TAIL` reached this member by scanning PAST
+    #: a Statutes-at-Large citation ("12 U.S.C. 1701 et seq.; 101 Stat. 1568,
+    #: 1608" -- the second number is the SAME Public Law's own pinpoint page,
+    #: not a resumed section of title 12, and this module has no way to tell
+    #: the two apart by shape alone: "sec. 412, 126 Stat. 89, 44101,
+    #: 44701-44702, ..." (14 CFR 121's own authority note) is the identical
+    #: shape and genuinely DOES resume a real U.S.C. list. A LEXICAL FACT,
+    #: not a verdict — this module is deliberately oracle-free (the
+    #: section-existence oracle imports it, so the reverse is circular; see
+    #: the U.S.C. section-token doctrine above). A consumer that can reach the
+    #: oracle (or another witness) gates admission on it; one that cannot
+    #: should treat this exactly as ambiguous as it is. See
+    #: :func:`refspec.registry.cfr_authority_notes.read_note_citations` for
+    #: the note-side gate. Never True for the citation that is ITSELF the
+    #: Statutes-at-Large family, only for a U.S.C. list member reached after
+    #: one.
+    usc_section_after_statute: bool = False
 
 
 @dataclass(frozen=True)
@@ -2265,6 +2459,37 @@ def _status_for_span(text: str, start: int, end: int) -> str:
 
     remainder = f"{text[:start]} {text[end:]}"
     return "ok" if _IGNORABLE_TAIL.fullmatch(remainder) else "partial"
+
+
+#: :data:`_DOT_TRUNCATION_SIGNATURE` compiled as a POSITIVE match, where
+#: :data:`_A_DOTTED_NUMBER_IS_A_CFR_SECTION` is the same string as a refusal.
+#: Both derive from that one constant so a change to what truncation LOOKS
+#: like cannot reach one reader and miss the other. Used where a citation's
+#: own match must still stand — to seed :data:`_USC_LIST_TAIL`'s walk — but
+#: the section it carries must not be minted from a truncated read.
+_DOT_TRUNCATES_A_SECTION = re.compile(_DOT_TRUNCATION_SIGNATURE)
+
+
+def _usc_leading_section_is_untruncated(text: str, match: re.Match[str]) -> bool:
+    """Whether ``match``'s bare ``section`` group is a real section.
+
+    False only for a BARE token — a hyphenated span is a range or a compound
+    name and :data:`_A_DOTTED_NUMBER_IS_A_CFR_SECTION` never guards it,
+    whatever reads it — immediately followed by ".<digits>" that is not
+    itself the lead of an explicit CFR citation: the reg-shaped truncation
+    :data:`_USC_STANDARD` and :data:`_INTERNAL_REVENUE_CODE` both anchor on
+    ("26 USC 1.104-1(c)" truncates to section "1", a real but wrong section;
+    155 rows / 31 RINs measured in research/evidence/reg-dot-fence-2026-09-01/).
+
+    ``match`` itself is used regardless of what this returns — a list-tail
+    walk seeded from it must still run — only the row this match would
+    otherwise produce is withheld.
+    """
+
+    section = match.group("section")
+    if section is None or "-" in section:
+        return True
+    return _DOT_TRUNCATES_A_SECTION.match(text, match.end("section")) is None
 
 
 # --------------------------------------------------------------------------- #
@@ -2814,6 +3039,14 @@ def parse_authority_citation(text: str) -> tuple[AuthorityCitation, ...]:
         for match in matches:
             if any(start <= match.start() and match.end() <= end for start, end in appendix_spans):
                 continue
+            # The match still stands (it seeds :data:`_USC_LIST_TAIL`'s scan
+            # from wherever it ends) even when the section it carries is a
+            # CFR regulation number truncated at the dot rather than a real
+            # Code section — see ``_usc_leading_section_is_untruncated`` and
+            # :data:`_A_DOTTED_NUMBER_IS_A_CFR_SECTION`. Only the fabricated
+            # row is withheld.
+            if not _usc_leading_section_is_untruncated(normalized, match):
+                continue
             fields = _usc_section_fields(match.group("section"), match.groupdict().get("range_end"))
             covered_end = (
                 match.end("section")
@@ -3262,6 +3495,34 @@ def parse_authority_citation(text: str) -> tuple[AuthorityCitation, ...]:
     # the year, the abbreviated closing year, the span between them and the
     # page, because all four are numbers the locator owns.
     compilations = tuple(match.span() for match in _EO_COMPILATION.finditer(normalized))
+    # A FIFTH thing a bare number behind a comma can be, and the one this
+    # walk cannot settle by itself: the SAME Statutes-at-Large citation's own
+    # pinpoint page. "12 U.S.C. 2013, ...; sec. 301(a), Pub. L. 100-233, 101
+    # Stat. 1568, 1608, as amended by ..., 102 Stat 989, 993" (12 CFR 615's
+    # own authority note) publishes 12 U.S.C. 1608 and 12 U.S.C. 993 — both
+    # are the Act's own second page (Bluebook "volume Stat. start, pinpoint"),
+    # not sections of anything, and :data:`_STATUTE_AT_LARGE` has no tail of
+    # its own to claim them the way :data:`_STATUTE_LETTERED_PAGE` does for
+    # the lettered volumes. Measured 2026-09-01: 3 fabrications in this ONE
+    # note alone (research/investigations-mined-2026-08-31.md item 4).
+    #
+    # UNLIKE the other four, this is not skipped outright: the trap is real.
+    # 14 CFR 121's own note is IDENTICAL in shape — "... preceding note added
+    # by Pub. L. 112-95, sec. 412, 126 Stat. 89, 44101, 44701-44702, 44705,
+    # 44709-44711, 44713, ..." — and genuinely resumes a real 49 U.S.C. list
+    # (44101, 44701, 44702, ... are all real aviation-safety sections) after
+    # the Stat. citation. This module cannot tell the two apart by shape: it
+    # has no section-existence oracle to ask (the oracle imports this module,
+    # so the reverse is circular) and no way to know a Bluebook pinpoint page
+    # from a resumed list item. So the fact is MARKED
+    # (:attr:`AuthorityCitation.usc_section_after_statute`) rather than
+    # decided, and a consumer that CAN reach the oracle gates admission on
+    # it — see :func:`refspec.registry.cfr_authority_notes.read_note_citations`.
+    statutes = tuple(
+        match.span()
+        for pattern in (_STATUTE_LETTERED_PAGE, _STATUTE_LETTERED_VOLUME, _STATUTE_AT_LARGE)
+        for match in pattern.finditer(normalized)
+    )
     seeds = sorted(
         [(match, False) for match in usc_matches] + [(match, True) for match in appendix_matches],
         key=lambda seed: seed[0].start(),
@@ -3279,12 +3540,17 @@ def parse_authority_citation(text: str) -> tuple[AuthorityCitation, ...]:
                 continue
             fields = _usc_section_fields(tail.group("section"), tail.group("range_end"))
             if fields["usc_section"] is not None:
+                after_statute = any(
+                    statute_start >= window and statute_end <= window + tail.start()
+                    for statute_start, statute_end in statutes
+                )
                 _add(
                     AuthorityCitation(
                         authority_type="usc",
                         parse_status="partial",
                         usc_title=int(match.group("title")),
                         usc_appendix=in_appendix,
+                        usc_section_after_statute=after_statute,
                         **fields,
                     )
                 )

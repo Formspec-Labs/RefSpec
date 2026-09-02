@@ -2412,6 +2412,81 @@ def test_a_compilation_locators_year_and_page_are_never_listed_sections() -> Non
     assert [row.cfr_part for row in comp_less if row.authority_type == "cfr"] == ["1990"]
 
 
+def test_a_statutes_at_large_pinpoint_page_is_marked_not_refused_or_believed() -> None:
+    """"101 Stat. 1568, 1608" reads 12 U.S.C. 1608 -- the Act's own second
+    page (Bluebook "volume Stat. start, pinpoint"), not a section of
+    anything. A sibling of the RIN, compilation-locator and named-comma
+    fences above, in a class none of them covers: those three always REFUSE
+    (a number that belongs to another family is never a section); this one
+    cannot, because the identical shape is sometimes a genuinely resumed
+    U.S.C. list -- 14 CFR 121's own authority note continues a real 49
+    U.S.C. list after "126 Stat. 89" with 44101, 44701-44702, and more, all
+    real aviation-safety sections.
+
+    So :data:`AuthorityCitation.usc_section_after_statute` is a MARK, not a
+    verdict: this module has no section-existence oracle to ask (the oracle
+    imports it, so the reverse is circular) and cannot tell a pinpoint page
+    from a resumed section by shape alone. A consumer that CAN reach the
+    oracle decides -- see
+    :func:`refspec.registry.cfr_authority_notes.read_note_citations` for the
+    note-side gate this fence feeds -- and this test only proves the mark
+    lands on the right members and nowhere else.
+
+    Both specimens are pinned RAW: 12 CFR 615's own authority note (research/
+    evidence/ecfr-authority-notes-2026-08-24/notes.jsonl) and 14 CFR 121's
+    (same cache; the note also names 46105 after the resumed list, reached by
+    the SEPARATE title-carry mechanism and therefore never marked at all).
+    """
+
+    farm_credit = (
+        "Secs. 4.2, 4.9, 5.9, 5.17, 5.19 of the Farm Credit Act (12 U.S.C. 2153, 2160, 2243, 2252, 2254); "
+        "sec. 424, Pub. L. 100-233, 101 Stat. 1568, 1656 (12 U.S.C. 2252 note); "
+        "sec. 514, Pub. L. 102-552, 106 Stat. 4102, 4134."
+    )
+    marks = {
+        (row.usc_title, row.usc_section): row.usc_section_after_statute
+        for row in parse_authority_citation(farm_credit)
+        if row.authority_type == "usc"
+    }
+    # The list BEFORE any Stat. citation is untouched.
+    assert marks[(12, "2153")] is False
+    assert marks[(12, "2254")] is False
+    # "1656" is the pinpoint page of "101 Stat. 1568, 1656" -- marked, never
+    # emitted as a bare unmarked section.
+    assert marks[(12, "1656")] is True
+    # A SECOND Stat. citation further in the same value marks its own page
+    # too -- the fence is not a one-shot flag that stops firing.
+    assert marks[(12, "4134")] is True
+
+    faa = (
+        "49 U.S.C. 106(f), 40103, 40113, 40119, 41706, 42301 preceding note added by Pub. L. 112-95, "
+        "sec. 412, 126 Stat. 89, 44101, 44701-44702, 44705, 44709-44711, 44713, 44716-44717, 44722, "
+        "44729, 44732; 46105; Pub. L. 111-216, 124 Stat. 2348 (49 U.S.C. 44701 note); "
+        "Pub. L. 112-95, 126 Stat. 62 (49 U.S.C. 44732 note); "
+        "Pub. L. 115-254, 132 Stat. 3186 (49 U.S.C. 44701 note)."
+    )
+    faa_marks = {
+        (row.usc_title, row.usc_section): row.usc_section_after_statute
+        for row in parse_authority_citation(faa)
+        if row.authority_type == "usc"
+    }
+    # The stated head list is untouched, whichever spelling reached it.
+    assert faa_marks[(49, "106")] is False
+    assert faa_marks[(49, "42301")] is False
+    # The GENUINELY resumed list, reached only by scanning past "126 Stat.
+    # 89", is marked exactly like the fabrication above -- the module cannot
+    # and must not tell them apart.
+    assert faa_marks[(49, "44101")] is True
+    assert faa_marks[(49, "44701")] is True
+    assert faa_marks[(49, "44732")] is True
+    # "46105" stands behind a SEMICOLON, not a comma/and/or, so this reader
+    # never reaches it at all -- it is not a listed member of anything here.
+    # (``cfr_authority_notes.read_note_citations`` reaches it by its own
+    # separate title-carry mechanism, unmarked, because no Stat. citation
+    # sits in ITS OWN segment; that is a different reader's test.)
+    assert (49, "46105") not in faa_marks
+
+
 def test_a_dotted_number_behind_a_comma_is_a_cfr_section_not_a_listed_one() -> None:
     """"33 U.S.C. 1903(b) ... Sections 155.480, 155.490" published 33 U.S.C. 155.
 
@@ -2489,6 +2564,165 @@ def test_a_dotted_number_behind_a_comma_is_a_cfr_section_not_a_listed_one() -> N
     # And the refusal it replaces is WHOLE where it does fire: a fenced item
     # never publishes its own first endpoint with the far end dropped.
     assert "110" not in {row.usc_section for row in parse_authority_citation("46 U.S.C. 3703 and 110.25-1")}
+
+
+def test_a_dotted_number_anchoring_a_usc_citation_is_a_cfr_section_too() -> None:
+    """"26 USC 1.104-1(c)" is 26 CFR 1.104-1, and truncating at the dot mints
+    a real but WRONG U.S.C. section: 26 U.S.C. section 1 exists (the income
+    tax rate schedule) and has nothing to do with the regulation.
+
+    2026-09-01: the dotted fence above shipped scoped to the list tail on the
+    stated assumption that a dotted number reached ANCHORED to a code name
+    stays visibly "partial" and so does no silent harm -- measured false. A
+    consumer reading ``usc_title``/``usc_section`` and the section-existence
+    oracle without also checking ``parse_status`` sees an affirmative,
+    fabricated "exists": 155 rows / 31 RINs by the mined ledger's own regex,
+    41 distinct values / 175 rows / 36 RINs / 89 currently-``exists`` rows by
+    a full grammar replay (``research/evidence/reg-dot-fence-2026-09-01/``,
+    trusted over the narrower regex because it also catches truncation the
+    regex's anchored-only shape does not, e.g. the appendix form below).
+
+    The refusal REFUSES THE MATCH ENTIRELY here rather than narrowing it (no
+    "26 U.S.C. 1" row at all, not even a wrong one) -- but see the paired
+    list-continuation case: refusing the match must not cost real LISTED
+    members that follow the same anchor.
+    """
+
+    assert parse_authority_citation("26 USC 1.104-1(c)") == (
+        citation_grammar.AuthorityCitation(authority_type="other", parse_status="failed"),
+    )
+    assert parse_authority_citation("26 USC 1.1502") == (
+        citation_grammar.AuthorityCitation(authority_type="other", parse_status="failed"),
+    )
+
+    # PAIRED POSITIVE, the collateral-damage case a naive regex-level refusal
+    # at this position first shipped with in testing: "40 U.S.C. 102.01, 322,
+    # 5331" (RIN 2105-AE58) must refuse the fabricated anchor "102" (truncated
+    # from "102.01") while KEEPING the members listed behind it. A
+    # regex-level refusal on the required anchor slot would have taken
+    # usc_matches -- and so the whole list-tail scan -- down with the
+    # fabricated section.
+    #
+    # WHAT THE RAW RECORD SAYS, read AROUND the match rather than at it
+    # (output/registry-real-data-sources/unified-agenda-editions/
+    # REGINFO_RIN_DATA_201804.xml line ~141247): this RIN's CFR_LIST is "49
+    # CFR 40", and the repository's own pinned note for that part reads
+    # "Authority: 49 U.S.C. 102, 301, 322, 5331, 20140, 31306, and 54101 et
+    # seq." (research/evidence/ecfr-authority-notes-2026-08-24/notes.jsonl).
+    # The filer's TWO authority boxes together -- this one and "40 U.S.C.
+    # 31306 and 54101 et seq." beside it -- reproduce that publisher list
+    # member for member under the WRONG TITLE, 49 read as 40. So "102.01" is
+    # damage to a real title-49 list rather than a number invented from
+    # nothing, and 322 and 5331 are the real members standing behind it.
+    #
+    # WHICH LEAVES A RESIDUAL THIS FENCE DOES NOT REACH, named rather than
+    # implied: the surviving 40:322 is an affirmative "exists" under a title
+    # the filer got wrong (49 U.S.C. 322 is what the note grants), and
+    # 40:5331 is not a title-40 section at all -- it reads "absent", where 49
+    # U.S.C. 5331 is real. That is the same class as the 8 CFR 281 residual
+    # test_cfr_authority_notes documents: an oracle answers "does this
+    # identity exist", never "did the filer mean this identity". Repairing a
+    # stated TITLE is a different unit from refusing a truncated SECTION, and
+    # this fence is the second one.
+    gsa = parse_authority_citation("40 U.S.C. 102.01, 322, 5331")
+    assert [row.usc_section for row in gsa if row.authority_type == "usc"] == ["322", "5331"]
+    assert "102" not in {row.usc_section for row in gsa}
+
+    # The appendix form's OWN section slot truncates the same way, and is a
+    # separate reader (_USC_APPENDIX) from the anchor above: "46 app USC
+    # 1241.1" truncated to appendix section 1241. Its slot is OPTIONAL, so a
+    # refusal there degrades to a title-only appendix citation instead of
+    # losing the match -- no list-tail dependency to protect, unlike the
+    # anchor.
+    appendix = parse_authority_citation("46 app USC 1241.1")
+    assert appendix == (
+        citation_grammar.AuthorityCitation(
+            authority_type="usc", parse_status="partial", usc_title=46, usc_appendix=True
+        ),
+    )
+
+    # MUTATION-BATTERY FIND: an early version of this fence guarded the bare
+    # digit run without an atomic group, and the engine backtracked "102"
+    # (refused: dot-digit follows) down to "10" (accepted: "2" is not a dot)
+    # -- mis-narrowing to a DIFFERENT wrong section instead of refusing.
+    # "10" must never appear for this value under any future edit.
+    assert "10" not in {row.usc_section for row in gsa}
+    # That assertion is BORROWED protection, though, not load-bearing: at the
+    # anchor the row is withheld by _usc_leading_section_is_untruncated
+    # whatever the regex matched, so "10" stays out even with the atomic
+    # group deleted (measured by deleting it, 2026-09-01 -- only the appendix
+    # and transposed-label slots move, to appendix 124 and 40:10). The
+    # transposed label has no second line of defence -- its section slot IS
+    # the combinator and the pattern ends there -- so the direct probe goes
+    # here, and this is one of the two assertions that dies with the group.
+    # Constructed rather than measured: no corpus value transposes the
+    # letters of a truncated citation, which the pattern's own comment says.
+    assert parse_authority_citation("40 UCS 102.01") == (
+        citation_grammar.AuthorityCitation(authority_type="other", parse_status="failed"),
+    )
+
+    # PAIRED NEGATIVE, the one measured exception: a dot NOT owned by the
+    # anchor at all, corroborated by reading the raw record (RIN 0938-AO69,
+    # output/registry-real-data-sources/unified-agenda-editions/
+    # REGINFO_RIN_DATA_200610.xml line 82048; CFR_LIST there is "45 CFR 5b").
+    # "552a" is the Privacy Act, a complete real section on its own, and the
+    # filer ran a second citation directly against it with no separator --
+    # the dot leads straight into an explicit "CFR", so the fence must not
+    # fire.
+    privacy_act = parse_authority_citation("5 USC 552a.45 CFR s 5b.11(b) (2)(ii)(H)")
+    assert [(row.usc_title, row.usc_section) for row in privacy_act if row.authority_type == "usc"] == [
+        (5, "552a")
+    ]
+    # The carve-out is ONE string read two ways -- _DOT_TRUNCATION_SIGNATURE,
+    # compiled as _DOT_TRUNCATES_A_SECTION for the anchor above and embedded
+    # as the _A_DOTTED_NUMBER_IS_A_CFR_SECTION lookahead in every in-pattern
+    # section slot -- and the specimen above exercises only the first. This
+    # is the assertion that dies when the second one loses it: the same
+    # dot-into-CFR shape reached as a LISTED member. Constructed, not
+    # measured (the corpus's single specimen sits at the anchor), and here
+    # because a guard spelled once has to be provable at both of its readers.
+    # That was the whole hazard of the two copies: deleting the carve-out
+    # from either one alone left the other still covering the specimen, so
+    # neither copy's test could see its own guard go missing.
+    listed = parse_authority_citation("5 USC 551, 552a.45 CFR s 5b.11(b) (2)(ii)(H)")
+    assert [row.usc_section for row in listed if row.authority_type == "usc"] == ["551", "552a"]
+
+    # The Internal Revenue Code self-name is read in the SAME loop as the
+    # anchor and refused the same way.
+    assert parse_authority_citation("I.R.C. 1.6103") == (
+        citation_grammar.AuthorityCitation(authority_type="other", parse_status="failed"),
+    )
+    assert [row.usc_section for row in parse_authority_citation("I.R.C. 337(d)")] == ["337"]
+
+    # PAIRED NEGATIVE. A genuine, spelled range reaching a dotted endpoint
+    # stays untouched at this position too -- the SAME footnote-marker
+    # exception the list-tail test above proves, reached without a list at
+    # all ("31 USC 5316 to 5332.2" is the standalone form of the same 12 CFR
+    # 326 note range).
+    footnote_range = parse_authority_citation("31 USC 5316 to 5332.2")
+    assert [(row.usc_section, row.usc_section_end) for row in footnote_range] == [("5316", "5332")]
+
+    # THE LATENT SHAPE, pinned so that a real specimen cannot land quietly.
+    # _USC_TITLE_FORM spells its refusal INSIDE the pattern at the "first"
+    # slot, so a dotted FIRST member costs the WHOLE citation and every real
+    # member behind it -- the collateral loss the anchor above is built to
+    # avoid by withholding one row instead. The position is measured EMPTY:
+    # replaying that reader with and without the guard over all 42,677
+    # distinct authority values and all 8,240 notes changes 0 texts
+    # (2026-09-01), so no withhold-only-the-row machinery is built for it,
+    # per structure-earns-its-keep. The day a specimen appears, this is the
+    # assertion that fails and forces the conversation.
+    assert parse_authority_citation("sections 102.01, 322 of title 40") == (
+        citation_grammar.AuthorityCitation(
+            authority_type="other", parse_status="failed", stated_section="102.01"
+        ),
+    )
+    # ...and the undamaged spelling of the same citation reads in full, which
+    # is exactly what that refusal would cost.
+    assert [row.usc_section for row in parse_authority_citation("sections 322, 5331 of title 40")] == [
+        "322",
+        "5331",
+    ]
 
 
 def test_an_appendix_citation_seeds_a_section_list_like_any_other() -> None:

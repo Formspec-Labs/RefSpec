@@ -172,7 +172,7 @@ import json
 import re
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from functools import cached_property
+from functools import cache, cached_property
 from pathlib import Path
 
 from refspec.registry.citation_grammar import (
@@ -181,7 +181,11 @@ from refspec.registry.citation_grammar import (
     parse_authority_citation,
     stated_act_name,
 )
-from refspec.registry.usc_section_oracle import normalize_section
+from refspec.registry.usc_section_oracle import (
+    USC_SECTION_ORACLE_ARTIFACT,
+    UscSectionOracle,
+    normalize_section,
+)
 
 __all__ = [
     "CFR_AUTHORITY_NOTES_ARTIFACT",
@@ -469,7 +473,7 @@ def _carried_title_citations(segment: str, title: int) -> tuple[Citation, ...]:
     )
 
 
-def read_note_citations(note: str) -> tuple[Citation, ...]:
+def read_note_citations(note: str, *, oracle: UscSectionOracle | None = None) -> tuple[Citation, ...]:
     """Every citation of the four families a note names, in the note's order.
 
     One grammar: the note is read by
@@ -480,6 +484,51 @@ def read_note_citations(note: str) -> tuple[Citation, ...]:
     string and a note names as many acts as it has segments -- 10 CFR 50 names
     six. The same segments carry the elided title; see
     :func:`_carried_title_citations`.
+
+    **The Statutes-at-Large gate** (mined ledger item 4,
+    research/investigations-mined-2026-08-31.md ~lines 77-85). The grammar
+    marks (:attr:`AuthorityCitation.usc_section_after_statute`) every U.S.C.
+    list member it reaches by scanning PAST a Statutes-at-Large citation --
+    "12 U.S.C. 2013, ...; sec. 301(a), Pub. L. 100-233, 101 Stat. 1568,
+    1608" published 12 U.S.C. 1608, the Act's own pinpoint page, not a
+    section (12 CFR 615's own note, one of 129 notes / 403 marked citations
+    measured 2026-09-01). It cannot decide which are real -- 14 CFR 121's
+    note is the identical shape and genuinely resumes 49 U.S.C. 44101,
+    44701-44702, ... after "126 Stat. 89" -- so it marks rather than refuses,
+    and THIS is where the mark is spent: a marked citation is offered only
+    when ``oracle.section_is_enumerated`` says so -- the EXACT-list check
+    (:meth:`UscSectionOracle.section_is_enumerated`), not the broader
+    :meth:`UscSectionOracle.section_exists`, which also affirms a bare
+    printed RANGE stub and admitted every one of 12 CFR 615's own fabricated
+    pages ("993" among them) on that softer evidence alone, measured before
+    this method settled on the stricter one. ``oracle=None`` (no caller
+    supplied one, and :meth:`CfrAuthorityNotes.from_file` found no sealed
+    oracle directory in the tree the notes cache lives in) withholds every
+    marked citation -- refusing rather than reintroducing the fabrication
+    silently. A DRIFTED oracle is a different fact and is not degraded to
+    this one: see :func:`_oracle_for_root`.
+
+    The gate is not perfect and is not claimed to be, even at the stricter
+    check: 8 CFR 281's own note carries "Public Law 107-296, 116 Stat. 2135
+    (6 U.S.C. 101 et seq.); 66 Stat. 173, 195, 197, 201, 203, 212, 219,
+    221-223, 226, 227, 230" -- the Immigration and Nationality Act's own
+    page list, misattributed to title 6 because "6 U.S.C. 101" is the
+    nearest anchor a comma-list this reader has always walked from (a
+    PRE-EXISTING property of how a title governs a list, not something this
+    gate introduces or can fix within its own scope). "197", "219", "227"
+    and "230" are refused (title 6 has no such sections); "195", "201",
+    "203", "212" and "226" are each, coincidentally, real title-6 sections
+    (the Homeland Security Act's own numbering happens to fill that range)
+    and are admitted. Measured 2026-09-01: of 403 marked citations, 266 are
+    refused and roughly 111 admitted that a no-oracle default would have
+    withheld; a manual digit-length pass over the admitted set found this
+    same misattributed-title shape behind most of the short (1-3 digit)
+    survivors, concentrated in a handful of long, multi-Act notes (17 CFR
+    240 and 249 among them). This is the same shape of imperfection B8's
+    two-witness rule and the near-miss bucket already carry in this module;
+    it is not solved here, and is recorded rather than hidden -- see the
+    DELTAS.md beside the measurement in
+    ``research/evidence/stat-page-gate-2026-09-01/``.
     """
 
     body = note_body(note)
@@ -494,6 +543,13 @@ def read_note_citations(note: str) -> tuple[Citation, ...]:
 
     for parsed in parse_authority_citation(body):
         if parsed.authority_type == "usc":
+            if parsed.usc_section_after_statute and not (
+                oracle is not None
+                and parsed.usc_title is not None
+                and parsed.usc_section is not None
+                and oracle.section_is_enumerated(parsed.usc_title, parsed.usc_section, appendix=parsed.usc_appendix)
+            ):
+                continue
             offer(usc_citation(parsed.usc_title, parsed.usc_section, parsed.usc_section_end))
         elif parsed.authority_type == "public_law":
             offer(public_law_citation(parsed.public_law))
@@ -627,6 +683,58 @@ def _verify(path: Path) -> tuple[bytes, str]:
     return payload, digest
 
 
+#: How many path components :data:`CFR_AUTHORITY_NOTES_ARTIFACT` itself has
+#: ("research/evidence/ecfr-authority-notes-2026-08-24/notes.jsonl" = 4) --
+#: walking up that many parents from any concrete notes.jsonl path recovers
+#: the repository root without a caller having to state it twice. The
+#: production builder (``unified_agenda_parquet._cfr_authority_notes``) calls
+#: :meth:`CfrAuthorityNotes.from_file` with the bare path, not
+#: :meth:`from_repository`, and is not this lane's file to change to pass an
+#: oracle explicitly -- so :meth:`from_file` has to be able to find one on
+#: its own.
+_ARTIFACT_PATH_DEPTH = len(Path(CFR_AUTHORITY_NOTES_ARTIFACT).parts)
+
+
+@cache
+def _oracle_for_root(root: Path) -> UscSectionOracle | None:
+    """The section-existence oracle a repository root carries, or ``None``.
+
+    ``None`` for exactly ONE fact: the sealed oracle directory is not there
+    at all. That is a tree which never carried the artifact, the caller
+    (:meth:`CfrAuthorityNotes.from_file`) degrades to withholding every
+    Statutes-at-Large-gated citation, and withholding is the fail-closed
+    reading -- see :func:`read_note_citations`.
+
+    Every OTHER failure PROPAGATES, and the drifted pin is the one that
+    matters. :class:`UscSectionOracle` refuses drifted tables by raising and
+    this module refuses a drifted note cache by raising (:func:`_verify`);
+    catching the oracle's refusal here would make a corrupted artifact the
+    one quiet failure in a repository that has no other, silently costing
+    the 111 genuine citations the oracle admits (measured 2026-09-01:
+    34,777 citations with the oracle, 34,666 without) with no receipt saying
+    it was never asked.
+
+    Memoized on the root: the six tables are 9,229,092 bytes, and without
+    this every :meth:`CfrAuthorityNotes.from_file` call pays their load
+    again -- 7.5 s per construction against 5.4 s without the oracle,
+    measured 2026-09-01 on the machine the suite's budget was set on. One
+    root per process, in practice.
+    """
+
+    if not (root / USC_SECTION_ORACLE_ARTIFACT).is_dir():
+        return None
+    return UscSectionOracle.from_repository(root)
+
+
+def _default_oracle(notes_path: Path) -> UscSectionOracle | None:
+    """The oracle carried by the repository the notes cache itself lives in."""
+
+    root = notes_path.resolve()
+    for _ in range(_ARTIFACT_PATH_DEPTH):
+        root = root.parent
+    return _oracle_for_root(root)
+
+
 @dataclass(frozen=True)
 class CfrAuthorityNotes:
     """The 8,240 pinned notes, read once and asked many times.
@@ -636,27 +744,43 @@ class CfrAuthorityNotes:
     file here, so unlike the six-table section oracle there is no way to
     authenticate part of it.
 
-    **Construction reads every note through the grammar**: 35,043 citations
-    against generation 1's 4,488, which measures at ~4.8 s against ~1.35 s on
-    the machine the suite's budget was set on. The builder constructs one
-    reader per build and the test module constructs two, so the cost is paid a
+    **Construction reads every note through the grammar**: 34,777 citations
+    against generation 1's 4,488, which measures at ~5.4 s against ~1.35 s on
+    the machine the suite's budget was set on -- plus the section-existence
+    oracle's own load (:func:`_default_oracle`), ~2.1 s, paid once per
+    repository root per process rather than once per reader
+    (:func:`_oracle_for_root` memoizes it). The builder constructs one reader
+    per build and the test module constructs three, so the cost is paid a
     handful of times and never per row; the per-question cost is
     :attr:`_memo`'s.
 
-    **That count moved once, and by exactly one unit.** It read 36,325 until
-    the #46 list-tail fences landed on 2026-08-24, when 1,282 citations in 806
-    notes stopped being read because they were never citations: 793 of them
-    numbers belonging to a Title 3 COMPILATION LOCATOR ("E.O. 12234, 45 FR
-    58801, 3 CFR, 1980 Comp., p. 277" published sections 1980 of whatever title
-    the note last named), 467 DOTTED CFR SECTIONS ("7 CFR 2.22, 2.80, and
-    371.4" published 21 U.S.C. 2 and 21 U.S.C. 371, the second of which is
-    real), and 22 in 14 notes that were the VOLUME of a treaty series or a case
+    **That count moved twice.** It read 36,325 until the #46 list-tail
+    fences landed on 2026-08-24, when 1,282 citations in 806 notes stopped
+    being read because they were never citations: 793 of them numbers
+    belonging to a Title 3 COMPILATION LOCATOR ("E.O. 12234, 45 FR 58801, 3
+    CFR, 1980 Comp., p. 277" published sections 1980 of whatever title the
+    note last named), 467 DOTTED CFR SECTIONS ("7 CFR 2.22, 2.80, and 371.4"
+    published 21 U.S.C. 2 and 21 U.S.C. 371, the second of which is real),
+    and 22 in 14 notes that were the VOLUME of a treaty series or a case
     reporter standing behind a comma ("United States ex rel. Touhy v. Ragen,
     340 U.S. 462" behind "50 U.S.C. 403g" published 50 U.S.C. 340). None
-    arrived. The full list, note by note with each note's text, is
-    the unit's evidence; both rules and their measured populations are in
+    arrived. The full list, note by note with each note's text, is the
+    unit's evidence; both rules and their measured populations are in
     :data:`~refspec.registry.citation_grammar._A_DOTTED_NUMBER_IS_A_CFR_SECTION`
     and the compilation fence beside it.
+
+    **It moved again on 2026-09-01, from 35,043 to 34,777** — the Statutes-
+    at-Large gate (mined ledger item 4): a Public Law's own pinpoint page,
+    written "101 Stat. 1568, 1608", was read as a resumed U.S.C. list member
+    of whatever title the note last named ("12 U.S.C. 1608" from 12 CFR
+    615's own note, which never named that section). 266 citations in 107
+    notes were refused this way, gated by :func:`read_note_citations`'s own
+    exact-enumeration check rather than deleted outright -- 14 CFR 121's
+    note genuinely resumes a real 49 U.S.C. list after its own Stat.
+    citation, and roughly 111 marked citations across 40 notes are admitted
+    rather than refused for exactly that reason, or for the documented
+    residual: see ``research/evidence/stat-page-gate-2026-09-01/`` and
+    :func:`read_note_citations`'s own docstring for both.
     """
 
     path: Path
@@ -668,11 +792,26 @@ class CfrAuthorityNotes:
     records: tuple[AuthorityNote, ...]
 
     @classmethod
-    def from_file(cls, path: Path | str) -> CfrAuthorityNotes:
-        """Read and verify the cache. Refuses on digest, length or count drift."""
+    def from_file(cls, path: Path | str, *, oracle: UscSectionOracle | None = None) -> CfrAuthorityNotes:
+        """Read and verify the cache. Refuses on digest, length or count drift.
+
+        ``oracle`` is the section-existence oracle :func:`read_note_citations`
+        gates its Statutes-at-Large-resumed citations on. Omitted, this
+        method loads the default the notes cache's own repository carries
+        (:func:`_default_oracle`) -- so the production builder, which calls
+        this method with the bare path and not :meth:`from_repository`,
+        still gets a gated read without having to be changed to ask for one.
+        A caller that ALREADY holds an oracle should pass it: the auto-load
+        is a fallback for a bare reader, not an invitation to build the same
+        six tables twice in one process. A tree with no oracle directory
+        degrades to withholding every gated citation; a tree whose oracle
+        has DRIFTED refuses out loud rather than degrading.
+        """
 
         path = Path(path)
         payload, digest = _verify(path)
+        if oracle is None:
+            oracle = _default_oracle(path)
         records = tuple(
             AuthorityNote(
                 cfr_title=int(record["cfr_title"]),
@@ -684,7 +823,7 @@ class CfrAuthorityNotes:
                 raw_sha256=record["raw_sha256"],
                 raw_bytes=int(record["raw_bytes"]),
                 raw_truncated_at_128k=bool(record["raw_truncated_at_128k"]),
-                citations=read_note_citations(record["authority_note"]),
+                citations=read_note_citations(record["authority_note"], oracle=oracle),
                 authority_level=str(record.get("authority_level", "part")),
                 authority_scope=str(record.get("authority_scope", "part")),
             )
@@ -696,7 +835,12 @@ class CfrAuthorityNotes:
 
     @classmethod
     def from_repository(cls, root: Path | str) -> CfrAuthorityNotes:
-        """Read the copy this repository carries."""
+        """Read the copy this repository carries.
+
+        Delegates to :meth:`from_file`'s own oracle auto-detection --
+        ``root`` and the path :func:`_default_oracle` would recover from the
+        notes path it is given are the same directory either way.
+        """
 
         return cls.from_file(Path(root) / CFR_AUTHORITY_NOTES_ARTIFACT)
 

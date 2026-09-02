@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import os
 import re
+import shutil
 from pathlib import Path
 
 import pytest
@@ -19,6 +21,7 @@ from refspec.registry.cfr_authority_notes import (
     VERDICTS,
     CfrAuthorityNotes,
     Citation,
+    _default_oracle,
     _section_order,
     act_citation,
     cfr_citation,
@@ -28,6 +31,8 @@ from refspec.registry.cfr_authority_notes import (
     read_note_citations,
     usc_citation,
 )
+from refspec.registry.usc_disposition_tables import USC_DISPOSITION_TABLES_ARTIFACT
+from refspec.registry.usc_section_oracle import USC_SECTION_ORACLE_ARTIFACT
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 CACHE = REPOSITORY_ROOT / CFR_AUTHORITY_NOTES_ARTIFACT
@@ -288,20 +293,37 @@ def test_the_section_order_is_the_oracles_over_every_section_the_notes_name() ->
     ``usc_section_oracle._section_key`` is private, so the three-line rule is
     written out again rather than imported -- the same arrangement that module
     makes with the grammar's dash table. Run over every section the 8,240 notes
-    name, in both directions -- 5,820 of them, where generation 1's 287 notes
+    name, in both directions -- 5,755 of them, where generation 1's 287 notes
     named 2,241.
 
-    It moved twice on 2026-08-24 and in both directions. The #46 list-tail
-    fences took it from 5,847 to 5,802: 45 sections that were never sections --
-    compilation years and pages ("3 CFR, 1980 Comp., p. 277"), the bare part of
-    a dotted CFR reference ("7 CFR 2.22, 2.80, and 371.4"), and the VOLUME of a
-    treaty or a case reporter behind a comma ("340 U.S. 462", "19 U.S.T.
-    6223"); 1,282 note citations went with them, in 806 notes, and none
-    arrived. The range reader then took it to 5,820, and those 18 are ENDS:
-    a note's own spans reach their far endpoint now, so a section a note
-    covers is found where it was one edit away before. The citation COUNT does
-    not move with them -- a span is one citation whichever end it reaches --
-    and stands at 35,043; ``CfrAuthorityNotes``'s own docstring carries it.
+    It moved three times, twice on 2026-08-24 and once on 2026-09-01. The #46
+    list-tail fences took it from 5,847 to 5,802: 45 sections that were never
+    sections -- compilation years and pages ("3 CFR, 1980 Comp., p. 277"), the
+    bare part of a dotted CFR reference ("7 CFR 2.22, 2.80, and 371.4"), and
+    the VOLUME of a treaty or a case reporter behind a comma ("340 U.S. 462",
+    "19 U.S.T. 6223"); 1,282 note citations went with them, in 806 notes, and
+    none arrived. The range reader then took it to 5,820, and those 18 are
+    ENDS: a note's own spans reach their far endpoint now, so a section a note
+    covers is found where it was one edit away before.
+
+    The Statutes-at-Large gate (2026-09-01, mined ledger item 4) took it to
+    5,755: a section is a section, whether stated once or many times, so this
+    count does not track the citations removed one-for-one -- and every
+    number here is a citation the fence's own oracle gate refused, not a
+    truncation like the #46 fences'. See
+    ``test_the_statutes_at_large_gate_stops_a_pinpoint_page_from_reading_as_a_section``
+    below for the fence itself; ``research/evidence/stat-page-gate-2026-09-01/``
+    for the full measurement (a full old-vs-new diff against HEAD, not this
+    fix's own no-oracle conservative default, which a naive comparison could
+    mistake for the same question -- see that directory's DELTAS.md). The
+    citation COUNT DOES move this time -- unlike the #46 fences, which only
+    ever deleted a citation outright, this gate ADMITS some of what it marks
+    (14 CFR 121's own note genuinely resumes a real 49 U.S.C. list after a
+    Stat. citation) and refuses the rest, so the count is net rather than
+    one-directional: 35,043 to 34,777, 266 citations refused across 107
+    notes, 0 added anywhere. ``CfrAuthorityNotes``'s own docstring carries
+    the new total, and the gate's own residual (a coincidentally-real section
+    number the exact-enumeration check cannot see through).
     """
 
     from refspec.registry.usc_section_oracle import _section_key
@@ -313,7 +335,7 @@ def test_the_section_order_is_the_oracles_over_every_section_the_notes_name() ->
         for citation in note.citations
         if citation.family == "usc"
     } | {citation.span_end for note in notes.records for citation in note.citations if citation.span_end}
-    assert len(sections) == 5_820
+    assert len(sections) == 5_755
     assert all(_section_order(section) == _section_key(section) for section in sections)
 
 
@@ -605,6 +627,193 @@ def test_the_two_carried_titles_the_publishers_own_elision_gets_wrong(notes: Cfr
     # note names outright -- so no row in this corpus is judged by either false
     # span, and the defect is a candidate rather than a live error.
     assert notes.judge(usc_citation(5, "2951"), [(32, "634")]).verdict == "present"
+
+
+def test_the_statutes_at_large_gate_stops_a_pinpoint_page_from_reading_as_a_section(
+    notes: CfrAuthorityNotes,
+) -> None:
+    """"101 Stat. 1568, 1608" published 12 U.S.C. 1608, a Public Law's own
+    pinpoint page, not a section -- mined ledger item 4
+    (research/investigations-mined-2026-08-31.md ~lines 77-85), fixed by
+    gating :attr:`AuthorityCitation.usc_section_after_statute` on
+    ``UscSectionOracle.section_is_enumerated`` rather than refusing every
+    Stat.-resumed member outright, because 14 CFR 121's own note genuinely
+    resumes a real 49 U.S.C. list the same way.
+
+    ``notes`` (the module fixture) is built through
+    :meth:`CfrAuthorityNotes.from_repository`, which auto-loads the real
+    oracle -- the production default. This is the actual fix, exercised
+    against the actual pinned cache, not a synthetic string.
+    """
+
+    farm_credit = notes.note(12, "615")
+    assert "101 Stat. 1568, 1608" in farm_credit.authority_note
+    assert "102 Stat 989, 993" in farm_credit.authority_note
+    identities = {citation.identity for citation in farm_credit.citations if citation.family == "usc"}
+    # THE FABRICATIONS, refused: the Act's own pages, not sections of title
+    # 12 -- neither is even coincidentally a real title-12 section, so the
+    # exact-enumeration check (which caught the residual below in a
+    # DIFFERENT title) refuses both cleanly here.
+    assert "12:1608" not in identities
+    assert "12:993" not in identities
+    # The real list stated before either Stat. citation is untouched.
+    assert "12:2154" in identities
+    assert "12:2160" in identities
+
+    # THE TRAP, held: 14 CFR 121's note is the identical shape and genuinely
+    # resumes a real 49 U.S.C. list after "126 Stat. 89" -- the fix must not
+    # cost these.
+    faa = notes.note(14, "121")
+    assert "126 Stat. 89, 44101, 44701-44702" in faa.authority_note
+    faa_identities = {citation.identity for citation in faa.citations if citation.family == "usc"}
+    for real_section in ("49:44101", "49:44701", "49:44705", "49:44709", "49:44713", "49:44722", "49:44729", "49:44732"):
+        assert real_section in faa_identities, real_section
+
+    # THE DOCUMENTED RESIDUAL: 8 CFR 281's own note carries "Public Law
+    # 107-296, 116 Stat. 2135 (6 U.S.C. 101 et seq.); 66 Stat. 173, 195,
+    # 197, 201, 203, 212, 219, 221-223, 226, 227, 230" -- the Immigration
+    # and Nationality Act's own page list, misattributed to title 6 because
+    # "6 U.S.C. 101" is the nearest anchor (a PRE-EXISTING property of how a
+    # list's title is decided, not something this gate introduces). Some of
+    # these are refused ("197", "219", "227", "230" -- title 6 has no such
+    # sections) and some are ADMITTED because they are each, coincidentally,
+    # a REAL title-6 Homeland Security Act section ("195", "201", "203",
+    # "212", "226") -- the exact-enumeration check cannot see that the
+    # attribution to title 6 itself is wrong, only that the number names a
+    # real section of it. This is not solved, and is asserted here so a
+    # future change that silently starts refusing it (or every reader that
+    # widens the oracle) is forced to look at this test rather than drift
+    # past it.
+    homeland_page_list = notes.note(8, "281")
+    assert "66 Stat. 173, 195, 197, 201, 203, 212, 219, 221-223, 226, 227, 230" in homeland_page_list.authority_note
+    homeland_identities = {citation.identity for citation in homeland_page_list.citations if citation.family == "usc"}
+    for refused in ("6:197", "6:219", "6:227", "6:230"):
+        assert refused not in homeland_identities, refused
+    for admitted_residual in ("6:195", "6:201", "6:203", "6:212", "6:226"):
+        assert admitted_residual in homeland_identities, admitted_residual
+
+
+def test_read_note_citations_with_no_oracle_withholds_every_marked_citation() -> None:
+    """The conservative default: no oracle, no admission -- ever.
+
+    :func:`read_note_citations` called directly (bypassing
+    :class:`CfrAuthorityNotes`'s own auto-detection) is where ``oracle=None``
+    really means none. It must never reintroduce the fabrication silently:
+    every Statutes-at-Large-marked citation is withheld, real ones included.
+    """
+
+    from refspec.registry.cfr_authority_notes import read_note_citations
+
+    farm_credit_note = (
+        "Authority: Secs. 4.2, 4.9, 5.9, 5.17, 5.19 of the Farm Credit Act "
+        "(12 U.S.C. 2153, 2160, 2243, 2252, 2254); sec. 424, Pub. L. 100-233, "
+        "101 Stat. 1568, 1656 (12 U.S.C. 2252 note); sec. 514, Pub. L. 102-552, "
+        "106 Stat. 4102, 4134."
+    )
+    identities = {c.identity for c in read_note_citations(farm_credit_note) if c.family == "usc"}
+    assert "12:1656" not in identities, "no oracle means no admission, even for a real specimen"
+    assert "12:4134" not in identities
+    assert "12:2153" in identities, "the stated list before either Stat. citation is untouched"
+
+
+def _place(source: Path, destination: Path) -> None:
+    """The same bytes at a second path, without a symlink.
+
+    A hard link where the filesystem allows one and a copy where it does not.
+    Not a symlink: :func:`_default_oracle` walks up from ``notes_path``
+    RESOLVED, and a symlink resolves straight back into the real repository,
+    which is the one thing these fixtures must not reach.
+    """
+
+    try:
+        os.link(source, destination)
+    except OSError:  # a different filesystem: no link to make
+        shutil.copyfile(source, destination)
+
+
+def _repository_carrying_only_the_notes_cache(tmp_path: Path) -> Path:
+    """A repository root holding the pinned note cache and NO oracle.
+
+    The cache has to be the pinned BYTES -- :meth:`CfrAuthorityNotes.from_file`
+    verifies its digest before it looks for an oracle at all -- so this places
+    the real file rather than writing a stand-in.
+    """
+
+    notes_path = tmp_path / CFR_AUTHORITY_NOTES_ARTIFACT
+    notes_path.parent.mkdir(parents=True)
+    _place(CACHE, notes_path)
+    return notes_path
+
+
+def test_the_oracle_gate_is_pinned_by_the_count_it_moves(notes: CfrAuthorityNotes, tmp_path: Path) -> None:
+    """34,777 citations with the repository's own oracle, 34,666 without one.
+
+    The missing-oracle degradation is fail-CLOSED but SILENT: a tree with no
+    sealed oracle directory withholds every Statutes-at-Large-marked citation
+    and nothing in the reader, the receipt or the digest says so, which makes
+    "gated, and the marks were fine" and "never asked" read identically. Both
+    totals are pinned here so they cannot: the fixture is the production
+    default (:meth:`CfrAuthorityNotes.from_repository`, auto-loading the real
+    oracle) and the tmp tree is the same pinned cache with the oracle absent.
+
+    The 111 between them are the marked citations the oracle AFFIRMS, so an
+    accidentally oracle-less build loses real citations and not only
+    fabricated ones -- 14 CFR 121's genuine 49 U.S.C. resume after "126 Stat.
+    89" is in that 111, asserted below.
+    ``research/evidence/stat-page-gate-2026-09-01/`` carries the measurement.
+    """
+
+    gated = sum(len(note.citations) for note in notes.records)
+    assert gated == 34_777
+
+    notes_path = _repository_carrying_only_the_notes_cache(tmp_path)
+    assert _default_oracle(notes_path) is None
+    ungated_notes = CfrAuthorityNotes.from_file(notes_path)
+    ungated = sum(len(note.citations) for note in ungated_notes.records)
+    assert ungated == 34_666
+    assert gated - ungated == 111
+
+    faa = ungated_notes.note(14, "121")
+    withheld = {citation.identity for citation in faa.citations if citation.family == "usc"}
+    assert "49:44101" not in withheld, "a genuine resumed section, lost with no oracle to affirm it"
+    assert "49:44705" not in withheld
+    assert "49:40103" in withheld, "the list stated BEFORE the Stat. citation is never gated"
+
+
+def test_a_drifted_section_oracle_refuses_instead_of_quietly_withholding(tmp_path: Path) -> None:
+    """An ABSENT oracle degrades to withholding; a DRIFTED one is refused.
+
+    They are different facts and this module treats them differently on
+    purpose. Absence is a tree that never carried the artifact. Drift is a
+    corrupted artifact -- and every other pinned thing here refuses drift out
+    loud: :func:`~refspec.registry.cfr_authority_notes._verify` for the note
+    cache two lines earlier, :meth:`UscSectionOracle.verify` for the six
+    tables. Swallowing the oracle's own refusal would make a corrupted
+    artifact the single quiet failure in the repository, costing the 111
+    citations the test above pins with no receipt saying why.
+
+    The drift is built the way a real one arrives: every pinned table placed
+    genuinely, then ONE of them replaced with other bytes.
+    """
+
+    notes_path = _repository_carrying_only_the_notes_cache(tmp_path)
+    for artifact in (USC_SECTION_ORACLE_ARTIFACT, USC_DISPOSITION_TABLES_ARTIFACT):
+        source = REPOSITORY_ROOT / artifact
+        if not source.is_dir():
+            pytest.skip(f"the pinned {artifact} is not present")
+        destination = tmp_path / artifact
+        destination.mkdir(parents=True)
+        for table in source.iterdir():
+            if table.is_file():
+                _place(table, destination / table.name)
+
+    drifted = tmp_path / USC_SECTION_ORACLE_ARTIFACT / "usc-oracle-chapters.parquet"
+    # Unlinked before it is rewritten: a hard link shares the real artifact's
+    # inode, and writing through it would corrupt the repository's own copy.
+    drifted.unlink()
+    drifted.write_bytes(b"not the pinned table")
+    with pytest.raises(ValueError, match="pinned U.S.C. oracle drifted"):
+        CfrAuthorityNotes.from_file(notes_path)
 
 
 def test_the_note_body_is_the_publishers_words_with_its_entities_decoded() -> None:

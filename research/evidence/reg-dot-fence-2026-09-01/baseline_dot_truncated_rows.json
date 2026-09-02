@@ -1,0 +1,14 @@
+[
+  {
+    "rin": "0938-AO69",
+    "publication_id": "200610",
+    "authority_text": "5 USC 552a.45 CFR s 5b.11(b) (2)(ii)(H)",
+    "authority_type": "usc",
+    "parse_status": "partial",
+    "usc_title": 5,
+    "usc_section": "552a",
+    "usc_section_verdict": "exists",
+    "authority_in_own_cfr_note": "present",
+    "cfr_note_part": "45 CFR 5b"
+  }
+]
