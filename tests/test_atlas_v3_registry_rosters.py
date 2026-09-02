@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -26,11 +27,14 @@ def test_complete_roster_adapter_set_emits_native_relations_and_two_cross_ring_c
         "ecfr-agencies-roster-2026-08-15",
         "cfr-subject-index-parts-2026-08-20",
         "regulations-gov-agencies-roster-2026-08-16",
-        "gao-published-topics-index-2026-08-15",
+        "gao-published-topics-capture-subset-2026-09-01",
     ]
-    assert sum(len(release.resources) for release in releases) == 10_510
+    assert sum(len(release.resources) for release in releases) == 10_511
     assert sum(len(release.relations) for release in releases) == 86_748
-    assert all(release.scope == "completeCapture" for release in releases)
+    assert all(
+        release.scope == ("captureSubset" if release.resource_id == "gao-topics" else "completeCapture")
+        for release in releases
+    )
     # Two carriers now, one per admitted cross-ring cell that a publisher
     # actually writes down: eCFR's agency -> CFR title references, and the
     # OFR's CFR part -> subject index terms.
@@ -507,15 +511,20 @@ def test_gao_topics_release_is_a_subject_ring_concept_scheme() -> None:
     # documented successor of the removed observed unit.
     assert release.scheme_iri == "urn:ref:atlas-resource-scheme:gao-topics"
     assert (release.profile, release.ring) == ("conceptScheme", "subject")
-    assert release.scope == "completeCapture"
-    assert len(release.resources) == 30
+    assert release.scope == "captureSubset"
+    assert len(release.resources) == 31
     assert release.relations == ()
     assert not release.cross_ring_relations
-    assert release.metadata["topicCount"] == 30
+    assert release.metadata["topicCount"] == 31
+    assert release.metadata["browseListingTopicCount"] == 30
+    assert release.metadata["topicPageSupplementCount"] == 1
     assert release.metadata["listingTitle"] == "Browse Topics Alphabetically"
     assert release.metadata["excludedFeaturedEntryCount"] == 4
     assert "Akamai" in release.metadata["transportNote"]
     assert "zyte_transport" in release.metadata["transportNote"]
+    assert release.metadata["sourceCaptures"][1]["retrievedAt"] == (
+        "2026-09-01T23:33:02Z"
+    )
 
     by_iri = {resource.iri: resource for resource in release.resources}
     health = by_iri["urn:ref:gao-topic:health-care"]
@@ -531,6 +540,31 @@ def test_gao_topics_release_is_a_subject_ring_concept_scheme() -> None:
 
     mission = by_iri["urn:ref:gao-topic:gao-mission-and-operations"]
     assert mission.native_payload["term_id"] == "896"
+
+    science = by_iri["urn:ref:gao-topic:science-and-technology"]
+    assert science.labels[0].value == "Science and Technology"
+    assert science.notations == ("science-and-technology", "276")
+    assert science.native_payload["evidence_kind"] == "publisherTopicPage"
+    assert science.source_locator == "https://www.gao.gov/topics/science-and-technology"
+    assert science.labels[0].source_path.endswith(
+        "gao-science-and-technology-2026-09-01.html#block-gao-uswds-page-title h1.split-headings"
+    )
+
+
+def test_gao_topic_page_supplement_refuses_a_browse_term_id_collision(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Slug identity alone cannot detect a reused publisher taxonomy id."""
+
+    real_parse = adapters.gao.parse_gao_topic_page
+
+    def colliding_parse(*args: Any, **kwargs: Any) -> adapters.gao.GaoPublishedTopicPage:
+        return replace(real_parse(*args, **kwargs), term_id="151")
+
+    monkeypatch.setattr(adapters.gao, "parse_gao_topic_page", colliding_parse)
+
+    with pytest.raises(ValueError, match="taxonomy term id 151 duplicates"):
+        adapters._gao_releases(ROOT)
 
 
 def test_roster_releases_pass_the_generator_refusal_guards() -> None:
@@ -599,7 +633,11 @@ def test_roster_loader_parses_only_intersecting_groups(monkeypatch: pytest.Monke
         "_federal_hierarchy_releases",
         fake_group(("federal-hierarchy-orgs-complete-2026-08-15",)),
     )
-    monkeypatch.setattr(adapters, "_gao_releases", fake_group(("gao-published-topics-index-2026-08-15",)))
+    monkeypatch.setattr(
+        adapters,
+        "_gao_releases",
+        fake_group(("gao-published-topics-capture-subset-2026-09-01",)),
+    )
 
     releases = adapters.load_registry_roster_releases(
         Path("/pinned"),

@@ -38,14 +38,12 @@ land here, each captured from the publisher's own documented list:
   relations. The rolling endpoint requires a project-owned API key and is not
   documented in the public OpenAPI file, so the release carries both caveats
   and an explicit recapture-and-diff obligation;
-* GAO's published /topics browse index — the complete 30-term topic
-  vocabulary the publisher itself serves, each term carrying the publisher's
-  own /topics/<slug> path and numeric Drupal taxonomy term id. The documented
-  successor of the removed observed unit, which was one label observed on one
-  report page under RefSpec-minted identity. This lands on the subject ring:
-  the terms are general subject concepts with publisher-authored scope
-  descriptions, and the identity is publisher-claimed, which is exactly what
-  the deleted unit lacked.
+* GAO's 30-row published /topics browse index plus the independently published
+  Science and Technology taxonomy page that the browse page omits.  The
+  capture is explicitly partial: it keeps the old refusal to manufacture a
+  vocabulary from product-row observations, while admitting the missing term
+  from GAO's own canonical topic page, numeric Drupal term id, and
+  ``vocabulary-topic`` class.
 
 Every adapter consumes exact publisher bytes through its registry parser,
 verifies them against pinned digests, and states its capture scope. Publisher
@@ -1321,6 +1319,13 @@ def _regulations_gov_agency_releases(root: Path) -> tuple[RegistryRelease, ...]:
 
 
 def _gao_releases(root: Path) -> tuple[RegistryRelease, ...]:
+    """Load the exact GAO topic captures in ``O(B + T log T)`` time.
+
+    ``B`` is total captured HTML bytes and ``T`` is emitted topics.  Parser
+    memory is ``O(B)`` and the normalized resource set is ``O(T)``.  The sort
+    keeps deterministic alphabetical output; there is no corpus-sized state.
+    """
+
     page_pin = _pin(
         root,
         f"{_GAO_FIXTURES}/gao-topics-2026-08-15.html",
@@ -1330,6 +1335,27 @@ def _gao_releases(root: Path) -> tuple[RegistryRelease, ...]:
         role="publisherIndexPage",
     )
     index = gao.parse_gao_published_topics(page_pin.path.read_bytes())
+    science_pin = _pin(
+        root,
+        f"{_GAO_FIXTURES}/gao-science-and-technology-2026-09-01.html",
+        sha256=gao.GAO_SCIENCE_AND_TECHNOLOGY_2026_09_01.expected_sha256,
+        byte_length=gao.GAO_SCIENCE_AND_TECHNOLOGY_2026_09_01.expected_byte_length,
+        source_iri=gao.GAO_SCIENCE_AND_TECHNOLOGY_URL,
+        role="publisherTopicPageSupplement",
+    )
+    science = gao.parse_gao_topic_page(
+        science_pin.path.read_bytes(),
+        pin=gao.GAO_SCIENCE_AND_TECHNOLOGY_2026_09_01,
+    )
+    listed_slugs = {topic.slug for topic in index.topics}
+    listed_term_ids = {topic.term_id for topic in index.topics}
+    if science.slug in listed_slugs:
+        raise ValueError("GAO topic-page supplement duplicates the pinned browse listing")
+    if science.term_id in listed_term_ids:
+        raise ValueError(
+            "GAO topic-page supplement taxonomy term id "
+            f"{science.term_id} duplicates the pinned browse listing"
+        )
     # Identity here is publisher-claimed twice over: the /topics/<slug> path
     # is the publisher's operative URL identity and the numeric Drupal
     # taxonomy term id is the publisher's own vocabulary identity, both
@@ -1338,7 +1364,7 @@ def _gao_releases(root: Path) -> tuple[RegistryRelease, ...]:
     # are insufficient; the slug is the IRI basis and both publisher ids ride
     # as notations, never as identifier rows (gao-topics is not a declared
     # identifier authority).
-    resources = tuple(
+    listed_resources = tuple(
         RegistryResource(
             iri=f"urn:ref:gao-topic:{quote(topic.slug, safe='')}",
             labels=(_label(topic.name, f"{page_pin.logical_path}#taxonomy-term-{topic.term_id}"),),
@@ -1350,28 +1376,66 @@ def _gao_releases(root: Path) -> tuple[RegistryRelease, ...]:
         )
         for topic in index.topics
     )
+    science_resource = RegistryResource(
+        iri=f"urn:ref:gao-topic:{quote(science.slug, safe='')}",
+        labels=(
+            _label(
+                science.name,
+                (
+                    f"{science_pin.logical_path}"
+                    "#block-gao-uswds-page-title h1.split-headings"
+                ),
+            ),
+        ),
+        native_payload=_frozen(
+            {
+                "evidence_kind": "publisherTopicPage",
+                "name": science.name,
+                "page_url": science.page_url,
+                "slug": science.slug,
+                "term_id": science.term_id,
+            }
+        ),
+        source_locator=science_pin.source_iri,
+        source_digest=science_pin.sha256,
+        definition=None,
+        notations=(science.slug, science.term_id),
+    )
+    resources = tuple(
+        sorted(
+            (*listed_resources, science_resource),
+            key=lambda resource: resource.labels[0].value.casefold(),
+        )
+    )
     return (
         _release(
-            key="gao-published-topics-index-2026-08-15",
+            key="gao-published-topics-capture-subset-2026-09-01",
             resource_id="gao-topics",
             source_module="refspec.registry.gao_published_topics",
             profile="conceptScheme",
             ring="subject",
-            scope="completeCapture",
-            issued="2026-08-15",
-            inputs=(page_pin,),
+            scope="captureSubset",
+            issued="2026-09-01",
+            inputs=(page_pin, science_pin),
             resources=resources,
             metadata={
                 "topicCount": len(resources),
+                "browseListingTopicCount": len(index.topics),
+                "topicPageSupplementCount": 1,
                 "listingTitle": index.listing_title,
                 "publisherIdentityNote": (
-                    "Each topic carries two publisher-minted identifiers rendered in "
-                    "the publisher's own markup: its /topics/<slug> path and its "
-                    "numeric Drupal taxonomy term id (div id taxonomy-term-<id>, "
-                    "class vocabulary-topic). The REF-032-removed gao-topics unit "
-                    "was one label observed on one report page under RefSpec-minted "
-                    "UUIDv7 identity; this release is the publisher's complete "
-                    "published index under the publisher's own identity."
+                    "Each emitted topic carries two publisher-minted identifiers "
+                    "rendered in GAO's own markup: its /topics/<slug> path and its "
+                    "numeric Drupal taxonomy term id. Thirty come from the browse "
+                    "listing; Science and Technology comes from its canonical topic "
+                    "page, whose article states taxonomy-term-276 and class "
+                    "vocabulary-topic. Product assignments exposed the omission but "
+                    "do not supply the vocabulary authority."
+                ),
+                "captureScopeNote": (
+                    "This captureSubset contains the exact 30-row browse listing plus "
+                    "one independently published topic page the listing omits. It does "
+                    "not claim that GAO's vocabulary has exactly 31 members."
                 ),
                 "excludedFeaturedEntryHrefs": list(index.featured_entry_hrefs),
                 "excludedFeaturedEntryCount": len(index.featured_entry_hrefs),
@@ -1386,7 +1450,9 @@ def _gao_releases(root: Path) -> tuple[RegistryRelease, ...]:
                     "sitting behind that challenge with no pinned capture cleared. "
                     "This capture was fetched through the shared Zyte transport "
                     "(refspec.registry.infrastructure.zyte_transport), which "
-                    "returned the publisher's 200 response on 2026-08-15T13:56:14Z."
+                    "returned the publisher's 200 response on 2026-08-15T13:56:14Z. "
+                    "The same bounded raw transport captured the Science and "
+                    "Technology topic page on 2026-09-01."
                 ),
                 "identityStabilityNote": (
                     "The Internet Archive's 2022-12-31 snapshot of this page "
@@ -1399,6 +1465,24 @@ def _gao_releases(root: Path) -> tuple[RegistryRelease, ...]:
                 "publisherMarkupAnomalies": {
                     "misspelledDescriptionClass": "taxonomy-term-descripiton"
                 },
+                "sourceCaptures": [
+                    _source_capture_metadata(
+                        page_pin,
+                        retrieved_at=index.retrieved_at,
+                        source_version_note=(
+                            "GAO's topic browse page is rolling and unversioned; "
+                            "the pinned digest detects changed bytes."
+                        ),
+                    ),
+                    _source_capture_metadata(
+                        science_pin,
+                        retrieved_at=science.retrieved_at,
+                        source_version_note=(
+                            "The capture command completion time is retained to "
+                            "whole-second precision; GAO supplied no source version."
+                        ),
+                    ),
+                ],
             },
         ),
     )
@@ -1426,7 +1510,7 @@ REGISTRY_ROSTER_RELEASE_GROUPS = (
         "regulations-gov-agencies",
         frozenset({"regulations-gov-agencies-roster-2026-08-16"}),
     ),
-    ("gao", frozenset({"gao-published-topics-index-2026-08-15"})),
+    ("gao", frozenset({"gao-published-topics-capture-subset-2026-09-01"})),
 )
 REGISTRY_ROSTER_RELEASE_KEYS = frozenset(
     key

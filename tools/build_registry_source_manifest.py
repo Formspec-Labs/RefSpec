@@ -1133,6 +1133,11 @@ PINNED_FIXTURE_INPUTS: dict[str, tuple[dict[str, str], ...]] = {
             "constant": "GAO_TOPICS_2026_08_15",
             "localPath": "tests/fixtures/gao_published_topics/gao-topics-2026-08-15.html",
         },
+        {
+            "name": "gaoScienceAndTechnologyTopic20260901",
+            "constant": "GAO_SCIENCE_AND_TECHNOLOGY_2026_09_01",
+            "localPath": "tests/fixtures/gao_published_topics/gao-science-and-technology-2026-09-01.html",
+        },
     ),
     "govinfo_collections.py": (
         {

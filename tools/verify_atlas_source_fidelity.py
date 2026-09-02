@@ -6607,7 +6607,7 @@ def _read_fcc_bureaus_offices_capture(
     return _api_capture_view(records, spec, payloads)
 
 
-# --- GAO published /topics browse index ------------------------------------
+# --- GAO published topic capture subset ------------------------------------
 # Independent restatement of the publisher's rendered structure: each topic is
 # a Drupal taxonomy term div (id taxonomy-term-<id>, class vocabulary-topic)
 # carrying a name field, the publisher's misspelled description class
@@ -6615,6 +6615,24 @@ def _read_fcc_bureaus_offices_capture(
 _GAO_TOPIC_TERM_ID = re.compile(r"^taxonomy-term-([1-9]\d*)$")
 _GAO_TOPIC_HREF = re.compile(r"^/topics/[a-z0-9-]+$")
 _GAO_TOPICS_EXPECTED_COUNT = 30
+_GAO_TOPIC_PAGE_TITLE_BLOCK_ID = "block-gao-uswds-page-title"
+_GAO_VOID_ELEMENTS = frozenset(
+    {
+        "area",
+        "base",
+        "br",
+        "col",
+        "embed",
+        "hr",
+        "img",
+        "input",
+        "link",
+        "meta",
+        "source",
+        "track",
+        "wbr",
+    }
+)
 
 
 class _GaoTopicsHtmlParser(HTMLParser):
@@ -6663,11 +6681,67 @@ class _GaoTopicsHtmlParser(HTMLParser):
             self._buffer.append(data)
 
 
+class _GaoTopicPageIdentityParser(HTMLParser):
+    """Independent, minimal reading of a GAO taxonomy topic page."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.canonical_urls: list[str] = []
+        self.names: list[str] = []
+        self.og_names: list[str] = []
+        self.term_ids: list[str] = []
+        self.page_title_block_count = 0
+        self._heading: list[str] | None = None
+        self._heading_depth = 0
+        self._page_title_depth = 0
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attributes = dict(attrs)
+        classes = set((attributes.get("class") or "").split())
+        if tag == "section" and attributes.get("id") == _GAO_TOPIC_PAGE_TITLE_BLOCK_ID:
+            self.page_title_block_count += 1
+            if self._page_title_depth > 0:
+                raise ValueError("GAO topic page nests its page-title block")
+            self._page_title_depth = 1
+        elif self._page_title_depth > 0 and tag not in _GAO_VOID_ELEMENTS:
+            self._page_title_depth += 1
+        if self._heading is not None:
+            if tag not in _GAO_VOID_ELEMENTS:
+                self._heading_depth += 1
+            return
+        if tag == "link" and "canonical" in (attributes.get("rel") or "").split():
+            self.canonical_urls.append(attributes.get("href") or "")
+        elif tag == "meta" and attributes.get("property") == "og:title":
+            self.og_names.append(attributes.get("content") or "")
+        elif tag == "h1" and "split-headings" in classes and self._page_title_depth > 0:
+            self._heading = []
+            self._heading_depth = 0
+        elif tag == "article" and {"taxonomy-term", "vocabulary-topic"} <= classes:
+            matched = _GAO_TOPIC_TERM_ID.fullmatch(attributes.get("id") or "")
+            if matched is None:
+                raise ValueError(f"GAO topic page term id drifted: {attributes.get('id')!r}")
+            self.term_ids.append(matched.group(1))
+
+    def handle_endtag(self, tag: str) -> None:
+        if self._heading is not None:
+            if tag == "h1" and self._heading_depth == 0:
+                self.names.append(" ".join("".join(self._heading).split()))
+                self._heading = None
+            elif tag not in _GAO_VOID_ELEMENTS and self._heading_depth > 0:
+                self._heading_depth -= 1
+        if self._page_title_depth > 0 and tag not in _GAO_VOID_ELEMENTS:
+            self._page_title_depth -= 1
+
+    def handle_data(self, data: str) -> None:
+        if self._heading is not None and self._heading_depth == 0:
+            self._heading.append(data)
+
+
 def _read_gao_published_topics_capture(
     spec: SourceSpec,
     payloads: Mapping[SourcePin, bytes],
 ) -> PublisherView:
-    pin, payload = _single_pin(spec, payloads)
+    pin, payload = _pin_with_role(spec, payloads, "publisherIndexPage")
     parser = _GaoTopicsHtmlParser()
     parser.feed(payload.decode("utf-8"))
     parser.close()
@@ -6711,6 +6785,54 @@ def _read_gao_published_topics_capture(
         raise ValueError(f"{spec.name} listing is not alphabetical")
     if len({record.resource for record in records}) != len(records):
         raise ValueError(f"{spec.name} repeats a topic slug")
+
+    topic_pin, topic_payload = _pin_with_role(spec, payloads, "publisherTopicPageSupplement")
+    topic_parser = _GaoTopicPageIdentityParser()
+    topic_parser.feed(topic_payload.decode("utf-8"))
+    topic_parser.close()
+    if topic_parser.canonical_urls != [topic_pin.source_iri]:
+        raise ValueError(f"{spec.name} supplemental topic canonical URL drifted")
+    if topic_parser.page_title_block_count != 1:
+        raise ValueError(f"{spec.name} supplemental topic page-title block drifted")
+    if len(topic_parser.names) != 1 or not topic_parser.names[0].strip():
+        raise ValueError(f"{spec.name} supplemental topic page-title heading drifted")
+    if topic_parser.og_names != [topic_parser.names[0].strip()]:
+        raise ValueError(f"{spec.name} supplemental topic Open Graph name drifted")
+    if len(topic_parser.term_ids) != 1:
+        raise ValueError(f"{spec.name} supplemental topic taxonomy identity drifted")
+    topic_path = urllib.parse.urlsplit(topic_pin.source_iri or "").path
+    if _GAO_TOPIC_HREF.fullmatch(topic_path) is None:
+        raise ValueError(f"{spec.name} supplemental topic URL is unsupported")
+    topic_slug = topic_path.removeprefix("/topics/")
+    topic_name = topic_parser.names[0].strip()
+    topic_term_id = topic_parser.term_ids[0]
+    listed_term_ids = {str(entry["term_id"]) for entry in parser.entries}
+    if len(listed_term_ids) != len(parser.entries):
+        raise ValueError(f"{spec.name} browse listing repeats a taxonomy term id")
+    if topic_term_id in listed_term_ids:
+        raise ValueError(
+            f"{spec.name} supplemental taxonomy term id {topic_term_id} "
+            "duplicates the browse listing"
+        )
+    records.append(
+        _ApiCaptureRecord(
+            resource="urn:ref:gao-topic:" + urllib.parse.quote(topic_slug, safe=""),
+            preferred_label=topic_name,
+            notations=(topic_slug, topic_term_id),
+            source_locator=topic_pin.source_iri or "",
+            source_digest=topic_pin.sha256,
+            native_payload={
+                "evidence_kind": "publisherTopicPage",
+                "name": topic_name,
+                "page_url": topic_pin.source_iri,
+                "slug": topic_slug,
+                "term_id": topic_term_id,
+            },
+            definition=None,
+        )
+    )
+    if len({record.resource for record in records}) != len(records):
+        raise ValueError(f"{spec.name} supplemental topic duplicates the browse listing")
     return _api_capture_view(records, spec, payloads)
 
 
@@ -18981,9 +19103,9 @@ SOURCES: tuple[SourceSpec, ...] = (
         ),
     ),
     SourceSpec(
-        name="gao-published-topics-index-2026-08-15",
+        name="gao-published-topics-capture-subset-2026-09-01",
         kind="vocabulary",
-        release_keys=("gao-published-topics-index-2026-08-15",),
+        release_keys=("gao-published-topics-capture-subset-2026-09-01",),
         inputs=(
             SourcePin(
                 path="tests/fixtures/gao_published_topics/gao-topics-2026-08-15.html",
@@ -18993,6 +19115,14 @@ SOURCES: tuple[SourceSpec, ...] = (
                 role="publisherIndexPage",
                 source_iri="https://www.gao.gov/topics",
             ),
+            SourcePin(
+                path="tests/fixtures/gao_published_topics/gao-science-and-technology-2026-09-01.html",
+                sha256="sha256:98391cad16eba43e48017782765088d8720116ba988e1591d85215804906d0cd",
+                byte_length=148_620,
+                fmt="html",
+                role="publisherTopicPageSupplement",
+                source_iri="https://www.gao.gov/topics/science-and-technology",
+            ),
         ),
         reader=GAO_PUBLISHED_TOPICS_HTML_READER,
         identity_policy="source-key-derived",
@@ -19001,6 +19131,7 @@ SOURCES: tuple[SourceSpec, ...] = (
             frozenset(
                 {
                     "description",
+                    "evidence_kind",
                     "name",
                     "page_href",
                     "page_url",

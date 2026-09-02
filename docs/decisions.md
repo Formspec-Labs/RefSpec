@@ -4614,3 +4614,49 @@ point and the unbracketed 1994–2005 volumes); 3,085 rows are held at
 pinned by a test against the raw bytes
 (`test_a_bracketed_stub_is_printed_but_does_not_attest`), and the
 extractor's docstring now says both forms and both consequences.
+
+### REF-060: GAO's browse page is a list, not the vocabulary boundary
+
+- **Date:** 2026-09-01
+- **Status:** Accepted. Supersedes only REF-034's claim that GAO's 30-row
+  `/topics` browse page is the complete GAO topic vocabulary.
+
+The 30-row adapter existed for a good reason. REF-032 had deleted a topic
+inventory inferred from one product page under RefSpec-minted identity; the
+browse page replaced it with publisher-owned slugs, numeric Drupal taxonomy
+ids, names, descriptions, and a stable published list. That was not AI
+momentum. It was the right refusal to turn a moving product population into a
+reference vocabulary, and this decision keeps that refusal.
+
+The completeness claim was still false. A SpicySearch fidelity pass found two
+of 47 GAO products assigned to `/topics/science-and-technology`, while the
+browse page continued to omit that slug. Product assignments exposed the gap
+but did not authorize a concept. The missing authority now comes from GAO's
+own topic page, captured byte-exact through the bounded raw transport on
+2026-09-01. The capture command completed at `2026-09-01T23:33:02Z`
+(whole-second precision); the earlier midnight value had no evidence and was
+removed. The retained response is 148,620 bytes, SHA-256
+`98391cad16eba43e48017782765088d8720116ba988e1591d85215804906d0cd`.
+The page independently agrees on canonical URL
+`https://www.gao.gov/topics/science-and-technology`, visible and Open Graph
+name `Science and Technology`, Drupal path `taxonomy/term/276`, and article
+identity `taxonomy-term-276` with class `vocabulary-topic`.
+
+The `gao-topics` scheme therefore carries 31 concepts: the exact 30-row browse
+capture plus that one exact topic-page supplement. Its scope moves from
+`completeCapture` to `captureSubset`; **31 is measured coverage, not a new
+claim that GAO has exactly 31 topics.** The scheme IRI stays stable, while the
+construction key moves from `gao-published-topics-index-2026-08-15` to
+`gao-published-topics-capture-subset-2026-09-01`: this is no longer only the
+August index capture, so keeping the old dated name would hide a real behavior
+change for the sake of downstream familiarity. The source-release and
+Atlas-release digests also move because the inputs, members, and issued date
+changed. The independent source-fidelity reader re-parses both inputs and
+assigns the supplement's source digest only to the new resource.
+
+For total captured bytes `B` and topics `T`, the registry path is
+`O(B + T log T)` time and `O(B + T)` memory; the sort is only for deterministic
+topic order. No product corpus is loaded. GAO **product-page** acquisition
+belongs in SpicyDocs; this publisher topic page is RefSpec-owned vocabulary
+evidence. The committed capture does not license SpicySearch to own a live GAO
+crawler or either product to infer vocabulary membership from report rows.

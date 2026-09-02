@@ -10,6 +10,9 @@ from refspec.registry import gao_published_topics as gao
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = (ROOT / "tests" / "fixtures" / "gao_published_topics" / "gao-topics-2026-08-15.html").read_bytes()
+SCIENCE_PAGE = (
+    ROOT / "tests" / "fixtures" / "gao_published_topics" / "gao-science-and-technology-2026-09-01.html"
+).read_bytes()
 
 
 def test_index_carries_the_thirty_published_topics() -> None:
@@ -53,6 +56,53 @@ def test_topics_carry_publisher_identity_not_minted_identity() -> None:
     term_ids = {topic.term_id for topic in index.topics}
     assert len(term_ids) == 30
     assert all(topic.description for topic in index.topics)
+
+
+def test_topic_page_supplies_the_publisher_identity_missing_from_the_browse_listing() -> None:
+    """A publisher topic page is vocabulary evidence; product rows alone are not.
+
+    The old 30-row browse adapter existed to avoid turning observed product
+    assignments into a vocabulary.  Keep that reason.  This addition is
+    admissible because GAO's own topic page independently states the slug,
+    label, Drupal taxonomy-term id, and ``vocabulary-topic`` class.
+    """
+
+    topic = gao.parse_gao_topic_page(
+        SCIENCE_PAGE,
+        pin=gao.GAO_SCIENCE_AND_TECHNOLOGY_2026_09_01,
+    )
+
+    assert topic.slug == "science-and-technology"
+    assert topic.term_id == "276"
+    assert topic.name == "Science and Technology"
+    assert topic.page_url == "https://www.gao.gov/topics/science-and-technology"
+    assert topic.source_sha256 == gao.GAO_SCIENCE_AND_TECHNOLOGY_2026_09_01.expected_sha256
+    assert topic.source_byte_length == len(SCIENCE_PAGE)
+    assert topic.retrieved_at == "2026-09-01T23:33:02Z"
+
+
+def test_topic_page_identity_drift_is_refused() -> None:
+    text = SCIENCE_PAGE.decode("utf-8")
+    drifted = text.replace('id="taxonomy-term-276"', 'id="taxonomy-term-277"', 1).encode("utf-8")
+
+    with pytest.raises(gao.GaoSourceDriftError, match="taxonomy identity"):
+        gao.parse_gao_topic_page(drifted, pin=_repinned(drifted, source_url=gao.GAO_SCIENCE_AND_TECHNOLOGY_URL))
+
+
+def test_topic_page_label_must_come_from_the_declared_page_title_block() -> None:
+    """A matching H1 elsewhere cannot justify the retained CSS source path."""
+
+    moved = SCIENCE_PAGE.replace(
+        b'id="block-gao-uswds-page-title"',
+        b'id="moved-gao-page-title"',
+        1,
+    )
+
+    with pytest.raises(gao.GaoSourceDriftError, match="page-title block"):
+        gao.parse_gao_topic_page(
+            moved,
+            pin=_repinned(moved, source_url=gao.GAO_SCIENCE_AND_TECHNOLOGY_URL),
+        )
 
 
 def test_featured_content_nodes_are_reported_but_not_topics() -> None:
@@ -102,9 +152,9 @@ def test_structural_drift_is_refused_not_repaired() -> None:
         gao.parse_gao_published_topics(misordered, pin=_repinned(misordered))
 
 
-def _repinned(payload: bytes) -> gao.GaoPagePin:
+def _repinned(payload: bytes, *, source_url: str = gao.GAO_TOPICS_URL) -> gao.GaoPagePin:
     return gao.GaoPagePin(
-        source_url=gao.GAO_TOPICS_URL,
+        source_url=source_url,
         retrieved_at=gao.GAO_TOPICS_2026_08_15.retrieved_at,
         expected_sha256=gao.sha256_digest(payload),
         expected_byte_length=len(payload),

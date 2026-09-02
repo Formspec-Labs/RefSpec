@@ -2131,6 +2131,113 @@ def test_builtin_source_pins_never_wildcard_construction_metadata() -> None:
     assert all(pin.role and pin.source_iri for spec in SOURCES for pin in spec.inputs)
 
 
+def test_gao_source_oracle_unions_the_topic_page_the_browse_listing_omits() -> None:
+    """The oracle keeps observed product rows out of vocabulary authority.
+
+    It re-derives the 30 browse entries and the missing term from GAO's own
+    topic page. For total bytes ``B`` and topic count ``T``, this costs
+    ``O(B + T)`` time and ``O(B + T)`` memory in the fixture-scale oracle.
+    """
+
+    import tools.verify_atlas_source_fidelity as verifier
+
+    spec = next(
+        candidate
+        for candidate in verifier.SOURCES
+        if candidate.name == "gao-published-topics-capture-subset-2026-09-01"
+    )
+    view = verifier.read_publisher_inputs(Path(__file__).resolve().parents[1], spec)
+
+    science = "urn:ref:gao-topic:science-and-technology"
+    assert len(view.concepts) == 31
+    assert science in view.concepts
+    assert view.resource_input_digests[science] == frozenset(
+        {"sha256:98391cad16eba43e48017782765088d8720116ba988e1591d85215804906d0cd"}
+    )
+
+
+def test_gao_source_oracle_refuses_a_supplemental_taxonomy_id_collision(
+    tmp_path: Path,
+) -> None:
+    """The independent reader must reject a new slug that reuses an old id."""
+
+    import tools.verify_atlas_source_fidelity as verifier
+
+    spec = next(
+        candidate
+        for candidate in verifier.SOURCES
+        if candidate.name == "gao-published-topics-capture-subset-2026-09-01"
+    )
+    index_pin, supplement_pin = spec.inputs
+    index_payload = (Path(__file__).resolve().parents[1] / index_pin.path).read_bytes()
+    supplement_payload = (
+        Path(__file__).resolve().parents[1] / supplement_pin.path
+    ).read_bytes()
+    colliding_payload = supplement_payload.replace(
+        b'id="taxonomy-term-276"',
+        b'id="taxonomy-term-151"',
+        1,
+    )
+    (tmp_path / "index.html").write_bytes(index_payload)
+    (tmp_path / "supplement.html").write_bytes(colliding_payload)
+    colliding_spec = replace(
+        spec,
+        inputs=(
+            replace(index_pin, path="index.html"),
+            replace(
+                supplement_pin,
+                path="supplement.html",
+                sha256="sha256:" + hashlib.sha256(colliding_payload).hexdigest(),
+                byte_length=len(colliding_payload),
+            ),
+        ),
+    )
+
+    with pytest.raises(ValueError, match="taxonomy term id 151 duplicates"):
+        verifier.read_publisher_inputs(tmp_path, colliding_spec)
+
+
+def test_gao_source_oracle_requires_the_declared_page_title_block(
+    tmp_path: Path,
+) -> None:
+    """The independent label reader must enforce the Atlas CSS source path."""
+
+    import tools.verify_atlas_source_fidelity as verifier
+
+    spec = next(
+        candidate
+        for candidate in verifier.SOURCES
+        if candidate.name == "gao-published-topics-capture-subset-2026-09-01"
+    )
+    index_pin, supplement_pin = spec.inputs
+    index_payload = (Path(__file__).resolve().parents[1] / index_pin.path).read_bytes()
+    supplement_payload = (
+        Path(__file__).resolve().parents[1] / supplement_pin.path
+    ).read_bytes()
+    moved_payload = supplement_payload.replace(
+        b'id="block-gao-uswds-page-title"',
+        b'id="moved-gao-page-title"',
+        1,
+    )
+    (tmp_path / "index.html").write_bytes(index_payload)
+    (tmp_path / "supplement.html").write_bytes(moved_payload)
+    moved_spec = replace(
+        spec,
+        inputs=(
+            replace(index_pin, path="index.html"),
+            replace(
+                supplement_pin,
+                path="supplement.html",
+                sha256="sha256:" + hashlib.sha256(moved_payload).hexdigest(),
+                byte_length=len(moved_payload),
+            ),
+        ),
+    )
+
+    with pytest.raises(ValueError, match="page-title block drifted"):
+        verifier.read_publisher_inputs(tmp_path, moved_spec)
+
+
 def test_rdf_public_id_resolves_relative_publisher_identifiers() -> None:
     import rdflib
 
