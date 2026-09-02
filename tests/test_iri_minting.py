@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
@@ -638,17 +639,26 @@ def test_the_four_letter_opening_families_need_the_column_license_too() -> None:
 
     Unlicensed, every specimen below is exactly as unread as
     ``test_the_letter_opening_forms_keep_the_identity_the_shape_layer_reads``
-    already proved for two of them; licensed, all four mint through the
-    partner hatch, the same escape hatch the pre-existing correction,
-    republication and legacy forms already use.
+    already proved for two of them. Licensed, THREE of the four still mint
+    through the partner hatch; the X family left it at rulespec 0.2.0rc18,
+    which gave it a space of its own (REF-065), and that departure is the
+    whole delivery of that bump rather than a change in this fence. The column
+    license is what the four still share, and it is what this test pins.
     """
 
-    for value in ("E9-654", "Z9-9", "X10-11220", "X09-101207", "E3-2013-2261"):
+    for value in ("E9-654", "Z9-9", "E3-2013-2261"):
         assert mint_federal_register_document_iri(value) is None, value
         licensed = mint_federal_register_document_iri(value, column_licensed=True)
         assert licensed is not None, value
         assert licensed.scheme == "rkaf:partner-defined", value
         assert licensed.iri == f"urn:rkaf:partner:{PARTNER_NAMESPACE}:frdoc:{value}", value
+
+    # X still needs the license -- a date-free letter form is no more readable
+    # in prose than a bare legacy number -- but it now lands in its own space.
+    for value in ("X10-11220", "X09-101207"):
+        assert mint_federal_register_document_iri(value) is None, value
+        licensed = mint_federal_register_document_iri(value, column_licensed=True)
+        assert licensed is not None and licensed.scheme == "rkaf:us-frdoc-x", value
 
     # The 99 short-tail corrections and the fused-colophon values REF-054
     # keeps refused stay refused, licensed or not -- the four families do not
@@ -1201,3 +1211,248 @@ def test_every_docket_the_column_states_mints_or_refuses_cleanly() -> None:
         minted = mint_regulations_gov_docket_iri(reference)
         assert (docket is None) == (minted is None), reference
         assert docket is None or minted.iri == f"urn:rkaf:us:regsgov:{docket}", reference
+
+
+# --------------------------------------------------------------------------- #
+# The date-qualified legacy space (rulespec 0.2.0rc17, REF-064).
+
+
+def test_a_dated_legacy_number_mints_the_qualified_space() -> None:
+    """The whole delivery of rc17: 394,128 values stop taking the hatch.
+
+    The identity carries the publication date because rulespec's space does,
+    and it does because the bare number does not identify a document -- see
+    the collision fixture below. The spelling is rulespec's own fixture form
+    (``artifact-us-frdoc-legacy-tail-1-positive.jsonld`` states
+    ``urn:rkaf:us:frdoc-legacy:00-1:2000-01-20`` for the pinned corpus row
+    document_number=00-1, publication_date=2000-01-20).
+    """
+
+    minted = mint_federal_register_document_iri(
+        "00-1", column_licensed=True, publication_date="2000-01-20"
+    )
+    assert minted is not None
+    assert minted.scheme == "rkaf:us-frdoc-legacy"
+    assert minted.iri == "urn:rkaf:us:frdoc-legacy:00-1:2000-01-20"
+
+    # A date object and the date32 a PyArrow column yields spell the same day.
+    assert mint_federal_register_document_iri(
+        "00-1", column_licensed=True, publication_date=date(2000, 1, 20)
+    ) == minted
+
+    # Every tail width rulespec's space admits, one to six digits.
+    for value, day in (("09-19806", "2009-08-19"), ("94-10503", "1994-05-03")):
+        one = mint_federal_register_document_iri(
+            value, column_licensed=True, publication_date=day
+        )
+        assert one is not None and one.scheme == "rkaf:us-frdoc-legacy", value
+        assert one.iri == f"urn:rkaf:us:frdoc-legacy:{value}:{day}", value
+
+
+def test_the_same_legacy_number_on_two_days_is_two_identities() -> None:
+    """NEGATIVE FIXTURE, and the reason the space is qualified at all.
+
+    ``00-111`` names two different documents; the Federal Register API and the
+    pinned corpus each kept a different one, which is why a within-corpus
+    collision count could report zero while the world held two. Undated, both
+    would mint the same partner identity and one document would silently
+    become the other. Dated, they are two identities, which is the fix.
+    """
+
+    first = mint_federal_register_document_iri(
+        "00-111", column_licensed=True, publication_date="2000-01-03"
+    )
+    second = mint_federal_register_document_iri(
+        "00-111", column_licensed=True, publication_date="2000-06-15"
+    )
+    assert first is not None and second is not None
+    assert first.iri != second.iri
+    assert first.scheme == second.scheme == "rkaf:us-frdoc-legacy"
+
+
+def test_an_undated_legacy_number_keeps_the_hatch_and_never_half_qualifies() -> None:
+    """NEGATIVE FIXTURE: no date, no qualified identity -- and no invention.
+
+    A caller who cannot state the day gets exactly what it got before rc17,
+    the partner hatch, rather than an identity whose date slot was guessed
+    from the number's own year prefix. That guess is measurably wrong 1,661
+    times; see the minter's docstring.
+    """
+
+    undated = mint_federal_register_document_iri("09-19806", column_licensed=True)
+    assert undated is not None
+    assert undated.scheme == "rkaf:partner-defined"
+    assert undated.iri == "urn:rkaf:partner:refspec:frdoc:09-19806"
+
+    # The column license still governs: a date does not admit a value the
+    # prose reader refuses, because the date is not a license.
+    assert mint_federal_register_document_iri("09-19806", publication_date="2009-08-19") is None
+
+
+def test_a_year_prefix_that_disagrees_with_its_date_still_mints() -> None:
+    """The measured refusal to fence: 1,661 real documents disagree.
+
+    A legacy number's leading two digits usually restate its publication year,
+    and fencing on the disagreement is the obvious next thought. 07-6308 was
+    published 2008-01-15 -- a December number printed in January -- and it is
+    one of 1,661 (0.42% of 395,498) that spill across the year boundary. The
+    prefix is a spelling; the date is the caller's fact.
+    """
+
+    spilled = mint_federal_register_document_iri(
+        "07-6308", column_licensed=True, publication_date="2008-01-15"
+    )
+    assert spilled is not None
+    assert spilled.iri == "urn:rkaf:us:frdoc-legacy:07-6308:2008-01-15"
+
+
+def test_a_publication_date_that_is_not_a_day_is_loud() -> None:
+    """NEGATIVE FIXTURE: a caller's broken assertion raises, never downgrades.
+
+    Data gets a refusal (``None``); a caller who passes a non-date has stated
+    a fact that is not one, and silently falling back to the hatch would
+    publish an identity missing the qualifier the caller believed it supplied.
+    A datetime is refused too rather than truncated to its day.
+    """
+
+    for bad in ("not a date", "2009-13-45", "2009-08", "August 19, 2009", ""):
+        with pytest.raises(ValueError, match="does not state a day"):
+            mint_federal_register_document_iri("09-19806", column_licensed=True, publication_date=bad)
+
+    # But a real day in ISO's compact spelling is a real day, and it mints the
+    # SAME identity as the extended one. Deliberate, and the same doctrine as
+    # the padding rule above: a spelling variant of one fact must not become a
+    # second identifier.
+    assert mint_federal_register_document_iri(
+        "09-19806", column_licensed=True, publication_date="20090819"
+    ) == mint_federal_register_document_iri(
+        "09-19806", column_licensed=True, publication_date="2009-08-19"
+    )
+
+    with pytest.raises(ValueError, match="not an instant"):
+        mint_federal_register_document_iri(
+            "09-19806", column_licensed=True, publication_date=datetime(2009, 8, 19, 13, 45, tzinfo=UTC)
+        )
+
+
+def test_the_modern_space_is_untouched_by_a_date() -> None:
+    """A date changes nothing for a value rulespec can already spell.
+
+    ``rkaf:us-frdoc`` is tried first and answers whole, so a caller passing a
+    date for a modern number gets the same identity it always got -- the
+    legacy branch is unreachable for it, and no modern identity gains a
+    qualifier it never had.
+    """
+
+    assert mint_federal_register_document_iri(
+        "2024-00366", publication_date="2024-03-08"
+    ) == mint_federal_register_document_iri("2024-00366")
+
+
+# --------------------------------------------------------------------------- #
+# The self-dating X space (rulespec 0.2.0rc18, REF-065).
+
+
+def test_an_x_number_mints_without_a_date_because_it_carries_one() -> None:
+    """The X family needs no qualifier: the number states its own day.
+
+    Read right-anchored -- last four digits are the month and day, everything
+    before them is the sequence -- the encoding agrees with publication_date on
+    4,400 of 4,400 corpus rows. So unlike the legacy form, the bare number
+    identifies the document, and no date is asked for.
+    """
+
+    five = mint_federal_register_document_iri("X94-10503", column_licensed=True)
+    assert five is not None
+    assert five.scheme == "rkaf:us-frdoc-x"
+    assert five.iri == "urn:rkaf:us:frdoc-x:X94-10503"
+
+    # The six-digit tail a fixed-width space would have stranded: 206 real
+    # documents, of which this is one (74 FR 64213, 2009-12-07, the DHS
+    # Statement of Regulatory Priorities). Sequence 10, not sequence 1.
+    six = mint_federal_register_document_iri("X09-101207", column_licensed=True)
+    assert six is not None and six.scheme == "rkaf:us-frdoc-x"
+    assert six.iri == "urn:rkaf:us:frdoc-x:X09-101207"
+
+
+def test_an_x_number_and_its_bare_twin_are_different_identities() -> None:
+    """The prefix is part of the identity, and 54.1% of X numbers need it.
+
+    2,382 of the 4,400 X numbers have a bare twin in the corpus, and the pair
+    are different documents: X94-10503 is a 44,932-byte Semiannual Regulatory
+    Agenda correction (Part VIII, Department of Agriculture), while 94-10503 is
+    the 14,678-byte GE CF6 airworthiness NPRM, Docket 94-ANE-11 -- same
+    publication date, read from their own bodies. Stripping the prefix would
+    merge two publications into one identity.
+    """
+
+    x = mint_federal_register_document_iri("X94-10503", column_licensed=True)
+    bare = mint_federal_register_document_iri(
+        "94-10503", column_licensed=True, publication_date="1994-05-03"
+    )
+    assert x is not None and bare is not None
+    assert x.iri != bare.iri
+    assert x.scheme == "rkaf:us-frdoc-x"
+    assert bare.scheme == "rkaf:us-frdoc-legacy"
+
+
+def test_an_x_number_whose_own_day_contradicts_the_caller_is_loud() -> None:
+    """NEGATIVE FIXTURE: the self-dating property, made load-bearing.
+
+    A date is never part of an X identity, so stating one is optional -- but
+    stating a WRONG one is a detectable defect rather than an ambiguity,
+    because the number carries the answer. Across the corpus the two never
+    disagree, so a disagreement means either a caller pairing the wrong date
+    with the number or a publisher row whose own two statements diverge.
+    Minting quietly would hide both.
+    """
+
+    assert (
+        mint_federal_register_document_iri(
+            "X94-10503", column_licensed=True, publication_date="1994-05-03"
+        )
+        == mint_federal_register_document_iri("X94-10503", column_licensed=True)
+    )
+
+    for wrong in ("1994-05-04", "1994-06-03", "1995-05-03"):
+        with pytest.raises(ValueError, match="carries its own publication date"):
+            mint_federal_register_document_iri(
+                "X94-10503", column_licensed=True, publication_date=wrong
+            )
+
+
+def test_the_x_shape_layer_stops_where_the_corpus_does_and_the_space_does_not() -> None:
+    """A DELIBERATE gap between two bounds, and closing it either way is wrong.
+
+    rulespec's space admits a seven-digit tail as CAPACITY (its own fixture
+    ``X26-9991231`` exercises it). This repository's shape layer stops at six,
+    which is what the corpus contains. That is not a mismatch to reconcile:
+    **the two layers have opposite failure costs**, so they are bounded by
+    different things on purpose (ruled 2026-09-02, rulespec side).
+
+    A LEXICAL SPACE answers "is this string a well-formed identifier?" Its
+    failure mode is refusing a real identifier the publisher issued -- silent
+    data loss, discovered only when someone cannot cite a document, and
+    unrecoverable without a contract change. So it is bounded by CAPACITY and
+    never fitted to observed data: hence ``{5,7}``, and hence the capacity
+    fixture that exercises headroom no document has reached.
+
+    A SHAPE LAYER answers "does this string, found in data, look like an X
+    number?" Its failure mode is a FALSE POSITIVE -- a wrong identity, which is
+    worse than a refusal because it is silent and propagates into joins. So it
+    is bounded by MEASUREMENT: ``_FR_TWO_DIGIT_PREFIX`` and
+    ``_FR_SIX_DIGIT_TAIL`` are measured lines serving every letter family (E,
+    C, R and Z as well as X), and widening them on speculation would admit
+    unseen shapes for all of them to buy a shape none has.
+
+    The consequence lands in the safe direction, which is what settles it: a
+    seven-digit X, if ever published, is SPELLABLE BUT NOT AUTO-DETECTED. A
+    caller that knows what it holds can mint it under the column license; a
+    detector that does not know refuses, and the refusal is counted. A refusal
+    that appears in a census beats a wrong mint that does not. It is REF-052's
+    prose-reader/column-reader split -- "the column is the license" -- applied
+    one layer up.
+    """
+
+    assert mint_federal_register_document_iri("X26-9991231", column_licensed=True) is None
+    assert mint_federal_register_document_iri("X09-101207", column_licensed=True) is not None

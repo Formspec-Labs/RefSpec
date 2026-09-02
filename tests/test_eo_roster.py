@@ -722,3 +722,34 @@ def test_the_pinned_raw_captures_back_the_8284_claim() -> None:
     text = "".join(page.extract_text() or "" for page in reader.pages)
     assert "Librarian Emeritus" in text
     assert "November 13, 1939" in text
+
+
+def test_the_capture_pins_agree_with_the_evidence_manifest() -> None:
+    """The module restates two digests the evidence manifest also holds.
+
+    Two copies of one fact drift, so this is the tripwire that says when they
+    have. The captures are provenance rather than a runtime input -- the reader
+    consumes the derived roster -- but their URLs reach the audit manifest's
+    ``declaredUrls`` because this module states them, which is the whole reason
+    they live here rather than only in the evidence home.
+    """
+
+    import csv
+
+    from refspec.registry.eo_roster import (
+        GOVINFO_FR_1939_11_17_CAPTURE,
+        NARA_EO_1939_CAPTURE,
+    )
+
+    manifest = {
+        row["relative_path"]: row
+        for row in csv.DictReader((EVIDENCE_HOME / "MANIFEST-sha256.csv").read_text().splitlines())
+    }
+    for relative_path, pin in (
+        ("raw/nara-eo-1939.html", NARA_EO_1939_CAPTURE),
+        ("raw/govinfo-FR-1939-11-17.pdf", GOVINFO_FR_1939_11_17_CAPTURE),
+    ):
+        row = manifest[relative_path]
+        assert pin.expected_sha256 == f"sha256:{row['sha256']}", relative_path
+        assert pin.expected_byte_length == int(row["bytes"]), relative_path
+        assert pin.source_url.startswith("https://"), relative_path
