@@ -3985,6 +3985,23 @@ must be rebuilt to validate.
   `SourceCatalogRelease` publication to SpicyRegs and catalog consumption to
   DocSpec. All other REF-024 ownership rows remain in force.
 
+> **Ownership update (2026-09-02):** the 2026-08-24 platform-allocation ruling
+> moves source-native acquisition and publication out of SpicyRegs, which this
+> entry assigned it to, and into the platform, with SpicyDocs as the
+> incubator. SpicyDocs adopted the 2026-08-25 source-native release spec
+> verbatim on 2026-08-30
+> (`../spicy-docs/docs/superpowers/specs/2026-08-25-source-native-release-spec.md`)
+> and its reader declares `SUPPORTED_PRODUCER_PRODUCTS = {spicy-regs,
+> spicy-docs}` (`spicy_docs/source_native.py`); DocSpec's adapter
+> (`src/docspec/adapters/spicyregs_source_native.py`) is moving to resolve
+> `spicy_docs` first, `spicy_regs` only as fallback, and to refuse any reader
+> whose producer set is narrower than the spec's. The SpicyRegs copy
+> (`src/spicy_regs/{regulations_gov,federal_register}_source_native.py`,
+> `source_native_cli.py` on branch `integrate/payload-prereqs`) retires by one
+> small upstream PR once a SpicyDocs release verifies. See the deciding record
+> (`../spicysearch/docs/history/2026-09-01-script-product-disposition.md`,
+> "Decision record — 2026-09-02 addendum") rather than restating it here.
+
 The greenfield platform has one generic artifact container and one owner for
 document-catalog meaning.
 
