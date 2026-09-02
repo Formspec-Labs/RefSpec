@@ -4817,11 +4817,16 @@ number arriving from prose is still refused, because unlabeled `94-12345` is
 indistinguishable from a docket or a release number. Nothing about prose
 detection changes.
 
-Cost and scope. `mint_federal_register_document_iri` had zero production
-callers in this repository, so this change makes legacy identity EXPRESSIBLE
-and closes no gap in RefSpec's own outputs; the gap closes at the consumer
-boundary, where a catalog row carries `document_number` and `publication_date`
-together. That step is SpicySearch's and is not taken here. The minting path
+Cost and scope. `mint_federal_register_document_iri` has no SERVING caller
+anywhere on the platform — none in this repository, and SpicySearch's serving
+wheel cannot import it by construction (its metadata-package boundary test
+forbids the refspec distribution). It is not dead code, though: SpicySearch's
+`experiments/identifier_census.py` calls it with `column_licensed=True` as
+instrumentation, which is how the 39.2% figure was measured in the first
+place. So this change makes legacy identity EXPRESSIBLE and closes no gap in
+any served output; the gap closes at the consumer boundary, where a catalog
+row carries `document_number` and `publication_date` together. That step is
+SpicySearch's and is not taken here. The minting path
 is `O(1)` per value.
 
 rc17 is a PROVISIONAL PIN: it is built from an unmerged local branch
