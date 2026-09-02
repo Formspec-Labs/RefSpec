@@ -117,6 +117,61 @@ what hand-validation would assert:
   with GPO's internal granule id as a placeholder. The pile's only
   non-document, and even it is the publisher's.
 
+## A route can be ALIVE AND EMPTY, and a two-state census cannot say so
+
+Added 2026-09-02, found while reading X-family bodies for the legacy-identity
+sizing. The four-route census above scores a route dead or alive. There is a
+third state, and it is the one that silently costs a consumer everything:
+
+`X96-20828` (1996-08-28, 61 FR 44619-45318, type `Rule`) is the FDA's
+"Annex Nicotine in Cigarettes and Smokeless Tobacco Is a Drug ...
+Jurisdictional Determination" -- **700 pages**. Its text route returns HTTP
+200 and **770 bytes**, whose entire body after the header is `See PDF for
+text of Annex.` The route is alive, the document is real, and the content is
+somewhere else. A census scoring alive/dead marks this coverage and hands a
+linking implementer nothing.
+
+Two corollaries, both measured here:
+
+- **Byte size is not a proxy for substance, in either direction.** 770 bytes
+  is a pointer to 700 pages; `X94-10303`'s 1,122 bytes is a whole document (a
+  contents stub, complete as published). Neither a floor nor a ceiling on
+  length separates the cases.
+- **The pointer names its carrier.** `See PDF for text of Annex` says which
+  route holds the content, so this state is recoverable rather than merely
+  detectable -- but only if the census records the pointer instead of
+  recording a byte count that passes a threshold.
+
+The route model this inventory hands to a future linking implementer should
+therefore be three-valued -- dead, alive-with-content, alive-and-empty
+(pointer) -- and the third state should carry the carrier the pointer names.
+The `95-8641` row above is the dead case; this is its opposite number, and a
+linking pass that trusts `body_html_url` would meet both.
+
+**Is the remedy a better rung rather than the PDF? For this specimen, no --
+and the reason is the ERA, not the document.** Probed 2026-09-02 under the
+structured-sources-first doctrine: govinfo's FR package XML
+(`/content/pkg/FR-{date}/xml/FR-{date}.xml`) begins in 2000. FR-1999-12-30
+answers 302; FR-2000-01-20 answers 200, as do FR-2009-12-07 (4,283,586 bytes)
+and FR-2024-01-11 (3,177,346). X96-20828 is 1996, so no structured route
+exists for it at all: its MODS record is 8,035 bytes of metadata, its
+`body_html_url` 404s, and the PDF the pointer names is real (HTTP 200,
+29,343,375 bytes). The pointer told the truth. So the ladder is era-aware:
+**2000 and later, prefer the structured package XML; before 2000, the text
+route then the PDF, because there is no structured rung to stand on.**
+
+**A census must probe the publisher's OWN stated URL, never a constructed
+one.** Recorded because it was learned by making the mistake twice inside ten
+minutes while probing the above. A constructed per-granule XML path
+(`/content/pkg/FR-{date}/xml/{number}.xml`) answers 302 for EVERY era
+including 2024 -- govinfo serves FR XML per package, not per granule -- and
+constructed text URLs answered 404 for `2024-00366` and `2010-100` only
+because the publication dates in them were guessed wrong (they are 2024-03-08
+and 2010-01-08; each document's own stated `raw_text_url` answers 200, at
+3,152,452 and 5,117 bytes). Both readings would have entered a census as dead
+routes and been wrong. Take the URL from the record -- `raw_text_url`,
+`pdf_url`, `mods_url` are all in the API response -- and probe that.
+
 ## The rule for picking any of this up
 
 Mine the body-text layer when a consumer dead-ends, not speculatively — the
