@@ -5160,6 +5160,15 @@ run `git --no-replace-objects` through one `git_read` prefix so a later call
 cannot forget it, and use `cat-file --filters` so the comparison is against
 the bytes the producer actually hashes.
 
+**Operational note.** When this check goes red because a producer module
+moved, the path from there back to green is
+[the Unified Agenda rebuild runbook](unified-agenda-rebuild-runbook.md):
+establish state with `--verify` first, rebuild with
+`python -m refspec.registry.unified_agenda_parquet`, and re-pin only from the
+resulting delta. It is written down because on 2026-09-03 that path existed
+only in the session that had just used it, and both commits that day landed
+deliberately red with the rebuild deferred to its own step.
+
 The clean-flag guard is a real weakening and is named as one. A build
 reporting itself dirty is saying its bytes need not match any commit, so
 verifying them would be wrong -- but nothing outside this test reads
