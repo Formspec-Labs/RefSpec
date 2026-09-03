@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import shutil
+import subprocess
 from functools import cache
 from pathlib import Path
 
@@ -15,7 +17,25 @@ from refspec.registry.unified_agenda_parquet import (
 
 ARTIFACT = Path(__file__).resolve().parents[1] / "output" / "registry-real-data-sources" / "unified-agenda-parquet"
 
-pytestmark = pytest.mark.skipif(not ARTIFACT.is_dir(), reason="derived Parquet artifact is not built")
+@pytest.fixture(autouse=True)
+def _the_built_artifact(request) -> None:
+    """Skip a test that reads the gitignored built artifact when it is not
+    built -- but ONLY such a test. This was a file-wide `pytestmark`, which
+    also gated the producer-block unit tests below, none of which touches the
+    artifact: on a fresh checkout every one of them SKIPPED, so a regression
+    in the missing-module refusal or the repository guard passed that
+    environment silently. `@pytest.mark.no_artifact` opts a test out.
+
+    What this cannot see: a test that reads the artifact and forgets to say
+    so is gated correctly by default (the default is to skip), but a test
+    marked `no_artifact` that later grows a read of the artifact will fail
+    rather than skip on a checkout without one. That is the direction to
+    fail in, and it is the only way round this gate.
+    """
+
+    if ARTIFACT.is_dir() or request.node.get_closest_marker("no_artifact"):
+        return
+    pytest.skip("derived Parquet artifact is not built")
 
 
 @pytest.fixture(scope="module")
@@ -1112,9 +1132,15 @@ def test_receipt_payload_matches_the_receipt_on_disk() -> None:
 def test_the_receipt_names_the_code_that_wrote_it() -> None:
     """A receipt digest that names no code cannot be matched to a build:
     twenty commits landed between two builds on 2026-08-22 and a consumer's
-    receipt resolved to none of them. The producer block is content digests
-    of the modules and oracles a build reads — deterministic, no clock, no
-    git — so a receipt resolves to code by hashing blobs."""
+    receipt resolved to none of them. The producer block's DIGESTS are content
+    hashes of the modules and oracles a build reads — deterministic and
+    clockless, computed from bytes on disk and nothing else — so a receipt
+    resolves to code by hashing blobs, and that is the part this test pins.
+    The block also carries live git state (`commit`, `workingTreeClean`),
+    which is exactly NOT deterministic: it is a convenience beside the
+    digests, sampled per build, and it is why the equality against the
+    on-disk receipt at the end of this test is expected to be red between a
+    rebuild and the next."""
     import hashlib
     import json
     from pathlib import Path
@@ -1173,12 +1199,373 @@ def test_the_receipt_names_the_code_that_wrote_it() -> None:
         "eo-roster-2026-08-31/derived/roster.csv",
     }
     assert all(block["oracles"].values()), "every oracle is present in this checkout"
+    # The commit and clean flag are siblings of "modules" and "oracles", not
+    # members of either -- `describe_producer_drift` only walks those two
+    # groups on purpose (a commit changing while every digest holds is not
+    # the drift that function answers for; the digests already say "which
+    # code ran"). This checkout is a real git worktree with this module's own
+    # file under it, so both resolve rather than going None.
+    assert set(block) == {"modules", "oracles", "commit", "workingTreeClean"}
+    assert block["commit"] == subprocess.run(
+        ["git", "-C", str(Path(module.__file__).parent), "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    assert isinstance(block["workingTreeClean"], bool)
     # And the built artifact carries the block for the code that wrote it,
     # which is this code: drift here means rebuild and re-pin. It is therefore
     # RED between a change to any of these modules and the next rebuild, and
-    # `describe_producer_drift` names which digests moved.
+    # `describe_producer_drift` names which digests moved. It is ALSO red
+    # right now, on this branch, for a second reason: the recorded receipt
+    # predates the commit/workingTreeClean keys entirely, and a commit sha
+    # frozen at build time can never equal HEAD read fresh on every later
+    # checkout anyway -- this equality only turns green again at the next
+    # rebuild, and only for as long as nothing is re-committed after it.
     recorded = json.loads((module._DEFAULT_OUTPUT_ROOT / "receipt.json").read_text(encoding="utf-8"))
     assert recorded.get("producer") == block, module.describe_producer_drift(module._DEFAULT_OUTPUT_ROOT)
+
+
+def _git_or_skip() -> None:
+    """The three tests below are about WHICH repository git answers for, so a
+    machine with no git binary has no question to ask. Distinct from
+    `test_the_commit_and_the_clean_flag_answer_none_together`, which stubs
+    subprocess and therefore runs with or without one."""
+
+    if shutil.which("git") is None:
+        pytest.skip("no git on PATH")
+
+
+def _a_repository(root: Path, *, tracked: Path | None = None) -> str:
+    """A real git repository at ``root`` with one commit, and the HEAD sha it
+    is at. ``tracked``, when given, is the one file added to its index.
+
+    Its identity and signing are given on the command line rather than read
+    from the machine, so a runner with no global git config still answers.
+    """
+
+    root.mkdir(parents=True, exist_ok=True)
+
+    def git(*args: str) -> str:
+        return subprocess.run(
+            ["git", "-c", "user.email=lane@example.invalid", "-c", "user.name=lane", "-c", "commit.gpgsign=false", *args],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+
+    git("init", "-q", "-b", "main")
+    if tracked is not None:
+        git("add", "--", str(tracked))
+    git("commit", "-q", "--allow-empty", "-m", "one commit")
+    return git("rev-parse", "HEAD").strip()
+
+
+@pytest.mark.no_artifact
+def test_producer_block_refuses_when_a_producer_module_is_missing(monkeypatch) -> None:
+    """The fail-open this replaces: a producer module absent used to yield
+    None silently, and the build proceeded, writing a receipt with NULL
+    provenance for the grammar that produced the values -- indistinguishable
+    from "there was nothing to record". Append a name no ``.py`` file answers
+    to and require ``_producer_block`` to name it and refuse, not swallow it.
+
+    What this cannot see: a module file that EXISTS but is the wrong bytes
+    (truncated, corrupted) -- only absence is refused here; wrong-but-present
+    bytes still hash and still land in the receipt, for `describe_producer_drift`
+    to catch downstream against a prior receipt.
+    """
+    from refspec.registry import unified_agenda_parquet as module
+
+    monkeypatch.setattr(module, "_PRODUCER_MODULES", (*module._PRODUCER_MODULES, "no_such_producer_module"))
+    with pytest.raises(ValueError, match="no_such_producer_module"):
+        module._producer_block()
+
+
+@pytest.mark.no_artifact
+def test_a_missing_producer_module_refuses_before_one_table_is_written(tmp_path, monkeypatch) -> None:
+    """The refusal above used to fire from ``_producer_block()`` at RECEIPT
+    time, after all four Parquet files were already written. A build in a
+    checkout missing a producer module therefore overwrote the tables and
+    only then aborted, leaving new tables beside the PREVIOUS run's receipt:
+    bytes on disk that no receipt describes, which is worse than the null
+    provenance the refusal replaced, because null is at least visibly absent.
+
+    The source root named below deliberately does not exist. That is the
+    assertion, not an oversight: a refusal that reached the edition reader
+    would raise about the missing source instead of the missing module, so
+    an error naming ``no_such_producer_module`` is proof the check ran before
+    the build read or wrote anything at all.
+
+    What this cannot see: it proves ORDER, not that a completed build's
+    tables and receipt are written atomically. A crash between the last
+    Parquet write and the receipt still leaves the same inconsistency, from a
+    cause this check is not looking for.
+    """
+    from refspec.registry import unified_agenda_parquet as module
+
+    previous = tmp_path / "out"
+    previous.mkdir()
+    before = {}
+    for name in ("unified_agenda_actions", "unified_agenda_cfr_references", "unified_agenda_legal_authorities", "unified_agenda_timetables"):
+        path = previous / f"{name}.parquet"
+        path.write_bytes(f"the previous build's {name} bytes".encode())
+        before[path] = path.read_bytes()
+    receipt = previous / "receipt.json"
+    receipt.write_text('{"producer": "the previous build"}', encoding="utf-8")
+    before[receipt] = receipt.read_bytes()
+
+    monkeypatch.setattr(module, "_PRODUCER_MODULES", (*module._PRODUCER_MODULES, "no_such_producer_module"))
+    with pytest.raises(ValueError, match="no_such_producer_module"):
+        module.build_unified_agenda_parquet(tmp_path / "no-such-source", previous)
+    for path, payload in before.items():
+        assert path.read_bytes() == payload, f"{path.name} was rewritten by a build that refused"
+
+    # And into a directory that does not exist yet, the refusal beats even the
+    # `mkdir` on the build's first line.
+    fresh = tmp_path / "fresh"
+    with pytest.raises(ValueError, match="no_such_producer_module"):
+        module.build_unified_agenda_parquet(tmp_path / "no-such-source", fresh)
+    assert not fresh.exists(), "a refused build creates nothing"
+
+
+@pytest.mark.no_artifact
+def test_commit_is_none_when_the_toplevel_is_a_stranger_repository(monkeypatch, tmp_path) -> None:
+    """The hazard ``_repository_commit_and_cleanliness``'s docstring names: a
+    non-editable install's site-packages can sit inside some UNRELATED
+    checkout, and ``git -C <site-packages dir> rev-parse HEAD`` would answer
+    with that checkout's HEAD -- a stranger's commit recorded as this
+    artifact's provenance, worse than recording none. Simulate exactly that:
+    git SUCCEEDS and returns a real, existing directory as the toplevel that
+    is not this module's own repository, and require both keys go None
+    rather than trusting git's yes.
+
+    What this cannot see: a stranger toplevel that happens to be
+    `Path.samefile` with `_REPO_ROOT` (impossible for two distinct real
+    directories, but worth naming: this is a device+inode check, not a
+    content check).
+    """
+    from refspec.registry import unified_agenda_parquet as module
+
+    real_run = subprocess.run
+
+    def stranger_toplevel(cmd, **kwargs):
+        if "--show-toplevel" in cmd:
+            return subprocess.CompletedProcess(cmd, 0, stdout=f"{tmp_path}\ndeadbeefdeadbeefdeadbeefdeadbeefdeadbeef\n", stderr="")
+        return real_run(cmd, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", stranger_toplevel)
+    commit, clean = module._repository_commit_and_cleanliness(Path(module.__file__))
+    assert (commit, clean) == (None, None)
+
+
+@pytest.mark.no_artifact
+def test_gits_own_environment_cannot_redirect_which_repository_answers(monkeypatch, tmp_path) -> None:
+    """The BLOCKER the 2026-09-02 audit demonstrated, kept demonstrated.
+    ``GIT_DIR`` takes precedence over ``git -C``, so a leaked pair
+    (``GIT_DIR=<stranger>/.git`` with ``GIT_WORK_TREE=<this repo>``) makes
+    ``--show-toplevel`` print THIS repository while ``HEAD`` prints the
+    stranger's -- the toplevel guard validates one repository while the
+    commit comes from another. Measured before the fix, the helper returned
+    SpicySearch's ``2b1624ab`` while this checkout was at ``eb7e6458``.
+
+    A build launched from a git hook, a ``git rebase --exec`` or a CI runner
+    that exports these inherits exactly that environment, so the fix is to
+    scrub every ``GIT_*`` (bar ``GIT_EXEC_PATH``) rather than to refuse. The
+    assertion is therefore that the poisoned environment changes NOTHING:
+    the honest commit still comes back. ``GIT_INDEX_FILE`` is the second leg
+    because it redirects a DIFFERENT part of the answer -- unscrubbed it makes
+    ``ls-files`` exit 128 while ``rev-parse`` still succeeds (measured), the
+    partial redirect that turns into a wrong or missing answer.
+
+    What this cannot see: a redirection that does not travel through the
+    environment (a ``.git`` replaced on disk, a ``git`` binary replaced on
+    PATH), and a stranger that is a FORK of this repository, which tracks the
+    same paths and would satisfy every check here. Scrubbing is what closes
+    the environment class; nothing here closes the others.
+    """
+    from refspec.registry import unified_agenda_parquet as module
+
+    _git_or_skip()
+    # Asked directly rather than through the code under test, so this decides
+    # whether the question APPLIES here without letting the answer to it
+    # decide. A source export with no `.git` skips; a real worktree must
+    # produce an honest commit, and a regression that nulled every commit
+    # fails this rather than skipping past it.
+    probe = subprocess.run(
+        ["git", "-C", str(Path(module.__file__).parent), "rev-parse", "--show-toplevel"],
+        capture_output=True,
+        text=True,
+    )
+    if probe.returncode != 0 or Path(probe.stdout.strip()).resolve() != Path(module._REPO_ROOT).resolve():
+        pytest.skip("this package does not live in a git worktree of its own: no honest commit to protect")
+
+    honest_commit, honest_clean = module._repository_commit_and_cleanliness(Path(module.__file__))
+    assert honest_commit is not None and isinstance(honest_clean, bool), "a real worktree answers"
+
+    stranger = tmp_path / "stranger"
+    stranger_head = _a_repository(stranger)
+    assert stranger_head != honest_commit
+
+    monkeypatch.setenv("GIT_DIR", str(stranger / ".git"))
+    monkeypatch.setenv("GIT_WORK_TREE", str(module._REPO_ROOT))
+    hijacked = subprocess.run(
+        ["git", "-C", str(Path(module.__file__).parent), "rev-parse", "--show-toplevel", "HEAD"],
+        capture_output=True,
+        text=True,
+    )
+    assert hijacked.stdout.splitlines() == [str(module._REPO_ROOT), stranger_head], (
+        "the bypass itself must still work, or this test is proving nothing"
+    )
+    commit, clean = module._repository_commit_and_cleanliness(Path(module.__file__))
+    assert commit == honest_commit and commit != stranger_head
+    assert isinstance(clean, bool)
+
+    monkeypatch.delenv("GIT_DIR")
+    monkeypatch.delenv("GIT_WORK_TREE")
+    monkeypatch.setenv("GIT_INDEX_FILE", str(tmp_path / "not-an-index"))
+    (tmp_path / "not-an-index").write_bytes(b"")
+    commit, clean = module._repository_commit_and_cleanliness(Path(module.__file__))
+    assert commit == honest_commit and isinstance(clean, bool)
+
+
+@pytest.mark.no_artifact
+def test_commit_is_none_when_the_repository_does_not_track_this_module(monkeypatch, tmp_path) -> None:
+    """The second half of the same BLOCKER, and the reason a toplevel check
+    alone is not enough. ``_REPO_ROOT`` is derived structurally
+    (``parents[3]`` of this module's own file), so an install laid out as
+    ``<foreign>/site-packages/refspec/registry/...`` -- what ``pip install
+    --target`` produces -- puts ``_REPO_ROOT`` at ``<foreign>``. If
+    ``<foreign>`` is somebody's checkout, its toplevel IS ``_REPO_ROOT`` and
+    the samefile guard says yes to a stranger's commit.
+
+    Built here for real rather than stubbed: a foreign repository whose index
+    has never heard of the installed copy. The commit is refused because the
+    repository that answered HEAD does not track the file whose provenance is
+    being recorded. Then the same file is committed, and the same helper
+    records the commit -- the positive control that proves this refuses the
+    hazard rather than refusing everything.
+    """
+    from refspec.registry import unified_agenda_parquet as module
+
+    _git_or_skip()
+    foreign = tmp_path / "foreign"
+    installed = foreign / "site-packages" / "refspec" / "registry" / "unified_agenda_parquet.py"
+    installed.parent.mkdir(parents=True)
+    installed.write_text("# an installed copy, not a checkout\n", encoding="utf-8")
+    _a_repository(foreign)
+    assert installed.resolve().parents[3] == foreign.resolve(), "the layout that aligns _REPO_ROOT"
+    monkeypatch.setattr(module, "_REPO_ROOT", foreign)
+
+    assert module._repository_commit_and_cleanliness(installed) == (None, None)
+
+    tracked = _a_repository(foreign, tracked=installed)
+    assert module._repository_commit_and_cleanliness(installed) == (tracked, True)
+
+
+@pytest.mark.no_artifact
+def test_a_linked_worktree_still_answers_with_its_own_commit(monkeypatch, tmp_path) -> None:
+    """The guard that must NOT tighten into a path-containment rule. A linked
+    worktree's git directory lives inside the MAIN checkout
+    (``<main>/.git/worktrees/<name>``, asserted below), outside the worktree
+    root entirely, so a rule requiring ``rev-parse --absolute-git-dir`` to sit
+    under ``_REPO_ROOT`` would refuse the worktree builds this repository
+    actually uses. Asking instead whether that repository TRACKS this file
+    admits the worktree and still refuses the hijack in the two tests above.
+
+    What this cannot see: a worktree whose main checkout has since been
+    deleted -- git answers about a repository that is half gone, and this
+    records whatever it says.
+    """
+    from refspec.registry import unified_agenda_parquet as module
+
+    _git_or_skip()
+    main = tmp_path / "main"
+    installed = main / "src" / "refspec" / "registry" / "unified_agenda_parquet.py"
+    installed.parent.mkdir(parents=True)
+    installed.write_text("# tracked in the main checkout\n", encoding="utf-8")
+    head = _a_repository(main, tracked=installed)
+
+    linked = tmp_path / "linked"
+    subprocess.run(["git", "-C", str(main), "worktree", "add", "-q", "--detach", str(linked)], check=True, capture_output=True)
+    in_worktree = linked / "src" / "refspec" / "registry" / "unified_agenda_parquet.py"
+    git_dir = subprocess.run(
+        ["git", "-C", str(in_worktree.parent), "rev-parse", "--absolute-git-dir"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    assert Path(git_dir) == main / ".git" / "worktrees" / "linked", git_dir
+    assert not Path(git_dir).is_relative_to(linked), "which is why containment is the wrong rule"
+
+    monkeypatch.setattr(module, "_REPO_ROOT", linked)
+    assert module._repository_commit_and_cleanliness(in_worktree) == (head, True)
+
+
+@pytest.mark.no_artifact
+def test_the_commit_and_the_clean_flag_answer_none_together(monkeypatch) -> None:
+    """Three ways git fails to answer, and one rule for all of them: the pair
+    is atomic. ``OSError`` is no ``git`` on PATH at all (a minimal container
+    image); ``TimeoutExpired`` is a hung git, which used to ESCAPE this
+    helper entirely and abort the build, since only ``OSError`` was caught;
+    a non-zero ``status`` used to yield ``(commit, None)``, a half-answer
+    that contradicted REF-067's own account of the contract. All three now
+    answer ``(None, None)``, so a consumer reads one condition rather than
+    two. See REF-067.
+
+    What this cannot see: a git that exits 0 and lies. Every check here is
+    downstream of trusting git's own exit status.
+    """
+    from refspec.registry import unified_agenda_parquet as module
+
+    real_run = subprocess.run
+
+    def absent_git(cmd, **kwargs):
+        raise OSError("git: command not found")
+
+    monkeypatch.setattr(subprocess, "run", absent_git)
+    assert module._repository_commit_and_cleanliness(Path(module.__file__)) == (None, None)
+
+    def hung_git(cmd, **kwargs):
+        raise subprocess.TimeoutExpired(cmd, 5)
+
+    monkeypatch.setattr(subprocess, "run", hung_git)
+    assert module._repository_commit_and_cleanliness(Path(module.__file__)) == (None, None)
+
+    def status_fails(cmd, **kwargs):
+        if "status" in cmd:
+            return subprocess.CompletedProcess(cmd, 1, stdout="", stderr="fatal: unable to read index")
+        return real_run(cmd, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", status_fails)
+    assert module._repository_commit_and_cleanliness(Path(module.__file__)) == (None, None)
+
+
+@pytest.mark.no_artifact
+def test_a_commit_that_moves_while_the_bytes_are_hashed_is_not_recorded(monkeypatch) -> None:
+    """Git and the digests are two reads of a worktree that can move between
+    them: a checkout landing mid-block would file commit A's sha beside
+    commit B's digests, one receipt describing two states. The block asks git
+    the same question on both sides of the hashing and records the pair only
+    when the two answers agree.
+
+    What this cannot see: a worktree that moves to B and back to A around the
+    hashing, and the fact that the digests themselves are read one file at a
+    time, so they are not one atomic snapshot either. This narrows the
+    window; it does not abolish it.
+    """
+    from refspec.registry import unified_agenda_parquet as module
+
+    moved = iter([("a" * 40, True), ("b" * 40, True)])
+    monkeypatch.setattr(module, "_repository_commit_and_cleanliness", lambda path: next(moved))
+    block = module._producer_block()
+    assert (block["commit"], block["workingTreeClean"]) == (None, None)
+    assert block["modules"] and all(block["modules"].values()), "the digests are recorded either way"
+
+    steady = iter([("c" * 40, False), ("c" * 40, False)])
+    monkeypatch.setattr(module, "_repository_commit_and_cleanliness", lambda path: next(steady))
+    block = module._producer_block()
+    assert (block["commit"], block["workingTreeClean"]) == ("c" * 40, False)
 
 
 def test_the_abbreviation_shapes_read_the_measured_spellings() -> None:

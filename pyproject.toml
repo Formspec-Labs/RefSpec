@@ -82,6 +82,7 @@ build-backend = "uv_build"
 testpaths = ["tests"]
 markers = [
     "slow: reads or derives from a large pinned real source; runs in the audit tier, excluded from test-package",
+    "no_artifact: needs no built artifact, so it runs in a fresh checkout where its module's default is to skip",
 ]
 
 [tool.ruff]

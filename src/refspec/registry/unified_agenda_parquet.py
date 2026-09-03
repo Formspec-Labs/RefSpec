@@ -1380,27 +1380,217 @@ _PRODUCER_MODULES: tuple[str, ...] = (
 )
 
 
+def _producer_module_source(name: str) -> Path:
+    """The source file a producer module must have in this checkout, refusing
+    by name when it is absent.
+
+    A producer module lives beside this file in the installed package: its
+    absence means the checkout is missing code this build depends on, not
+    that there was nothing to hash. Answering ``None`` -- as the oracle-facing
+    digest does, where absence is a legitimate, already-handled state -- would
+    write a receipt with NULL provenance for the grammar that produced the
+    values, indistinguishable from "there was nothing to record". Refuse and
+    name it instead.
+
+    What this cannot see: a module file that EXISTS but is the wrong bytes
+    (truncated, corrupted, a stale copy). Only absence is refused here;
+    wrong-but-present bytes still hash and still land in the receipt, for
+    :func:`describe_producer_drift` to catch downstream against a prior
+    receipt.
+    """
+
+    path = Path(__file__).resolve().parent / f"{name}.py"
+    if not path.is_file():
+        raise ValueError(f"producer module missing from this checkout: {name} (expected at {path})")
+    return path
+
+
+def _repository_commit_and_cleanliness(module_path: Path) -> tuple[str | None, bool | None]:
+    """HEAD and dirty-or-clean for the repository that TRACKS this module's
+    own source file, or ``(None, None)`` when git cannot answer that honestly.
+
+    The pair is atomic on purpose: both values are answered, or both are
+    ``None``. There is no half-answer where a commit rides beside an unknown
+    cleanliness, so a consumer reads one condition, not two.
+
+    This is a convenience beside the byte digests above, never a
+    replacement: a commit sha answers "what was checked out", a different
+    question than "which code ran", which only the digests in
+    ``_PRODUCER_MODULES`` answer -- see that block's own comment for the
+    twenty-commits incident that makes the digests load-bearing. A wheel
+    install carries no ``.git`` at all, and this function is expected to say
+    so honestly rather than guess.
+
+    **The hazard, and why ``git -C`` is not a defence.** ``git rev-parse HEAD``
+    answers for whatever repository git DISCOVERS, and git reads its own
+    environment before it reads the filesystem. ``GIT_DIR`` takes precedence
+    over ``-C``: measured in this tree on 2026-09-02, ``GIT_DIR=<sibling>/.git
+    GIT_WORK_TREE=<this repo> git -C <this repo> rev-parse HEAD`` printed the
+    SIBLING's commit, while ``--show-toplevel`` printed THIS repository's
+    root. That pairing is the whole bypass: the toplevel and the HEAD come
+    from different sources, so a guard that validates the tree git is
+    REPORTING ON says yes about the wrong repository the commit is COMING
+    FROM. ``-C`` closes nothing; two readers reached for it before this
+    paragraph existed. Only two things close it, and both are here:
+
+    1. **The environment is scrubbed.** Every ``GIT_*`` variable is dropped
+       before git runs -- ``GIT_DIR``, ``GIT_WORK_TREE``, ``GIT_COMMON_DIR``,
+       ``GIT_INDEX_FILE``, ``GIT_OBJECT_DIRECTORY``,
+       ``GIT_ALTERNATE_OBJECT_DIRECTORIES``, ``GIT_CEILING_DIRECTORIES``,
+       ``GIT_DISCOVERY_ACROSS_FILESYSTEM`` and every ``GIT_CONFIG_*`` all
+       redirect discovery or the config that governs it. Dropped as a class
+       rather than enumerated, because the enumeration is what a future git
+       release invalidates. The allowlist is one name, ``GIT_EXEC_PATH``,
+       which says where git's own subcommands live -- a relocated or wrapped
+       install needs it to run at all -- and which cannot redirect which
+       repository is discovered. A build launched from inside a git hook, a
+       ``git rebase --exec``, or a CI runner that exports these inherits
+       exactly the poisoned environment this drops.
+
+    2. **The repository that answered HEAD must track this very file.**
+       ``git ls-files --error-unmatch`` is asked of the SAME repository, for
+       this module's own source path: under the hijack above it exits 1
+       (the sibling's index has never heard of ``src/refspec/registry/...``),
+       which catches the whole class without depending on knowing every
+       variable worth stripping. ``git rev-parse --absolute-git-dir`` was
+       considered for this role and rejected on measurement: a legitimate
+       LINKED WORKTREE's git dir lives inside the MAIN checkout
+       (``<main>/.git/worktrees/<name>``, measured), outside ``_REPO_ROOT``
+       entirely, so a path-containment rule would refuse the worktree builds
+       this repository actually uses, while the tracked-file question admits
+       them and still refuses the hijack.
+
+    The ``--show-toplevel`` check stays as the third: a commit is recorded
+    only when that toplevel is ``_REPO_ROOT``, this module's own belief,
+    computed once from its own path on disk, about which checkout it lives
+    under. Any other outcome -- git absent, a timeout, a non-zero exit from
+    any of the three calls, no repository, an untracked file, or a toplevel
+    that is not this one -- answers ``(None, None)`` rather than guessing.
+
+    **What ``workingTreeClean`` covers, exactly.** It is ``git status
+    --porcelain`` over the WHOLE worktree, not over the hashed files: staged
+    changes, unstaged changes, and untracked paths git does not ignore, in
+    any directory. So an unrelated untracked scratch file in the repository
+    reads DIRTY although every hashed byte is committed, and -- the direction
+    that matters -- a changed oracle under an IGNORED path reads CLEAN,
+    because ``--porcelain`` excludes ignored paths and several hashed oracles
+    live under the gitignored ``output/``. Clean therefore does NOT mean "the
+    hashed bytes are stable"; only the digests beside it say what was hashed.
+    It means "git saw nothing modified or newly untracked outside its own
+    ignore rules", which is the conventional reading of the word and is worth
+    exactly that much.
+
+    What this cannot see, beyond the above: a toplevel that coincidentally IS
+    ``_REPO_ROOT`` on disk but holds a different git history underneath (a
+    bind mount, a symlink farm reusing the path) -- the check below is a
+    device+inode comparison (``Path.samefile``), not a content or history
+    comparison. A FORK of this repository substituted wholesale would satisfy
+    both the toplevel and the tracked-file questions, since it tracks the same
+    paths; only the scrub above closes that, and only for redirections that
+    travel through the environment. And a repository whose ``git`` binary
+    itself has been replaced is outside every check here.
+    """
+
+    import os
+    import subprocess
+
+    source = module_path.resolve()
+    # See point 1 of the docstring: dropped as a class, one name kept.
+    environ = {key: value for key, value in os.environ.items() if not key.startswith("GIT_") or key == "GIT_EXEC_PATH"}
+
+    def answered(*args: str) -> str | None:
+        """git's stdout when it exits 0, else None -- which is also the answer
+        for no git binary (``OSError``) and for a hung one
+        (``subprocess.TimeoutExpired``, a ``SubprocessError``). Both used to
+        escape and abort the build."""
+
+        try:
+            result = subprocess.run(
+                ["git", "-C", str(source.parent), *args],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                env=environ,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return None
+        return result.stdout if result.returncode == 0 else None
+
+    # One call for both: `rev-parse` prints one line per argument, so the
+    # toplevel (checked below, first) and HEAD arrive together.
+    resolved = answered("rev-parse", "--show-toplevel", "HEAD")
+    if resolved is None:
+        return None, None
+    lines = resolved.splitlines()
+    if len(lines) != 2:
+        return None, None
+    toplevel, commit = lines
+    try:
+        owns_module = Path(toplevel).samefile(_REPO_ROOT)
+    except OSError:
+        owns_module = False
+    if not owns_module:
+        return None, None
+    # And the repository that just answered HEAD must be the one that tracks
+    # this file, not merely one pointed at a tree that contains it.
+    if answered("ls-files", "--error-unmatch", "--", str(source)) is None:
+        return None, None
+    status = answered("status", "--porcelain")
+    if status is None:
+        return None, None
+    return commit, status.strip() == ""
+
+
 def _producer_block() -> dict[str, object]:
-    """Content digests of the modules and oracles a build reads."""
+    """Content digests of the modules and oracles a build reads, plus the
+    commit and working-tree cleanliness of the repository that tracks them,
+    when git can answer that honestly.
+
+    ``commit`` and ``workingTreeClean`` move together: both are answered or
+    both are ``None``, and :func:`_repository_commit_and_cleanliness` carries
+    the reasons -- what defeats a naive HEAD read, what cleanliness does and
+    does not cover, and why the digests here stay authoritative for "which
+    code ran" whatever git says.
+
+    A missing producer module refuses here as well as in
+    :func:`build_unified_agenda_parquet`, which checks the same thing before
+    it writes anything; this one is the belt to that build's braces, and the
+    only guard when the block is asked for outside a build, which
+    :func:`describe_producer_drift` does on every ``--verify``."""
 
     import hashlib
-
-    here = Path(__file__).resolve().parent
 
     def digest(path: Path) -> str | None:
         return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
 
-    return {
-        "modules": {name: digest(here / f"{name}.py") for name in _PRODUCER_MODULES},
-        "oracles": {
-            "public-law-roster.csv": digest(_PL_ROSTER_CSV),
-            "part-subjects.csv": digest(_OFR_INDEX_CSV),
-            "ecfr-authority-notes-2026-08-24/notes.jsonl": digest(_CFR_AUTHORITY_NOTES_JSONL),
-            "unified-agenda-fr-document-roster/documents.csv": digest(_FR_DOCUMENT_ROSTER_CSV),
-            "initialism-roster-2026-08-24/roster.csv": digest(_INITIALISM_ROSTER_CSV),
-            "eo-roster-2026-08-31/derived/roster.csv": digest(_EO_ROSTER_DIR / "derived/roster.csv"),
-        },
+    # Sampled BEFORE the bytes below are hashed and asked again after, because
+    # git's answer and the digests are two reads of a moving worktree: a
+    # checkout landing between them would file commit A's sha beside commit
+    # B's digests, one receipt describing two states. Cheap enough to just do
+    # twice (three git calls, 51ms measured, against a build that reads every
+    # pinned edition), and a disagreement is answered honestly rather than
+    # arbitrated: the digests below are authoritative either way, so the pair
+    # that cannot be trusted as one snapshot is dropped, not guessed.
+    #
+    # What this cannot see: a worktree that moves to B and back to A around
+    # the hashing, and the fact that the digests are themselves read one file
+    # at a time, so they are not one atomic snapshot either. This closes the
+    # window that a single sample leaves wide open; it does not abolish it.
+    sampled = _repository_commit_and_cleanliness(Path(__file__))
+
+    modules = {name: digest(_producer_module_source(name)) for name in _PRODUCER_MODULES}
+    oracles = {
+        "public-law-roster.csv": digest(_PL_ROSTER_CSV),
+        "part-subjects.csv": digest(_OFR_INDEX_CSV),
+        "ecfr-authority-notes-2026-08-24/notes.jsonl": digest(_CFR_AUTHORITY_NOTES_JSONL),
+        "unified-agenda-fr-document-roster/documents.csv": digest(_FR_DOCUMENT_ROSTER_CSV),
+        "initialism-roster-2026-08-24/roster.csv": digest(_INITIALISM_ROSTER_CSV),
+        "eo-roster-2026-08-31/derived/roster.csv": digest(_EO_ROSTER_DIR / "derived/roster.csv"),
     }
+    # The same question again, now that every byte above is hashed.
+    commit, clean = sampled if _repository_commit_and_cleanliness(Path(__file__)) == sampled else (None, None)
+
+    return {"modules": modules, "oracles": oracles, "commit": commit, "workingTreeClean": clean}
 
 
 def describe_producer_drift(output_root: Path) -> str | None:
@@ -8216,6 +8406,17 @@ def build_unified_agenda_parquet(
     act_index_dir: Path | None = None,
 ) -> UnifiedAgendaParquetReceipt:
     """Read every pinned edition once and write the four tables."""
+
+    # Fail closed BEFORE a byte moves. `_producer_block()` refuses a missing
+    # producer module too, but it runs at receipt time, AFTER all four Parquet
+    # files are written: a build in a checkout missing one of these would
+    # overwrite the tables and only then abort, leaving new tables beside the
+    # previous run's receipt -- bytes on disk that no receipt describes, which
+    # is worse than the null provenance that refusal replaced, because null is
+    # at least visibly absent. The presence check is O(len(_PRODUCER_MODULES))
+    # stat calls, so it is free next to the read below. See REF-067.
+    for name in _PRODUCER_MODULES:
+        _producer_module_source(name)
 
     output_root.mkdir(parents=True, exist_ok=True)
     actions: list[dict[str, object]] = []

@@ -4900,3 +4900,349 @@ layer up, and
 `test_the_x_shape_layer_stops_where_the_corpus_does_and_the_space_does_not`
 carries the reasoning so the next reader does not close the gap in whichever
 direction they happen to be standing in.
+
+### REF-067: a producer module refuses before a table is written, and a commit sha rides beside the digests it cannot replace
+
+- **Date:** 2026-09-02
+- **Status:** Accepted. Amends `_producer_block()` and
+  `build_unified_agenda_parquet()` in
+  `src/refspec/registry/unified_agenda_parquet.py`. No schema version moves:
+  `contract.schemaVersion` names the artifact's table shape, and provenance is
+  not table shape.
+
+Two changes to the receipt's `producer` block, one a defect fix and one an
+addition. Both were reworked on the same day after an adversarial audit
+returned RECONSIDER; what the audit moved is recorded here rather than in a
+second record, because the decision is one decision.
+
+**The fail-open.** `_producer_block()`'s inner `digest()` returned `None` for
+a producer module (one of `_PRODUCER_MODULES`, hashed from a `.py` file that
+is supposed to live beside this one) whose file was absent, and the build
+proceeded, writing a receipt with NULL provenance for the grammar that
+produced the values -- indistinguishable from "there was nothing to record".
+A producer module's absence is not a legitimate "nothing to hash" the way an
+optional oracle's absence is (an oracle CSV genuinely may not exist in every
+checkout, and several loaders already answer `None` for that, correctly, and
+the build proceeds without it); a producer module missing from the package
+that is running this build means the checkout is broken. `_producer_module_source()`
+now refuses with the module's name when this happens, kept separate from the
+oracle-facing `digest()` so the legitimate oracle-absence path is untouched.
+
+**And it refuses before a byte moves.** The refusal above first ran only from
+`_producer_block()`, which is called at RECEIPT time -- after all four Parquet
+files are written. A build in a checkout missing a producer module therefore
+overwrote the four tables and only then aborted, leaving new tables beside the
+previous run's receipt: bytes on disk that no receipt describes, which is
+worse than the null provenance the refusal replaced, because null is at least
+visibly absent. `build_unified_agenda_parquet()` now proves every producer
+module present on its first line, before `mkdir` and before one edition is
+read; the receipt-time refusal stays as the belt to that build's braces, and
+is the only guard when the block is asked for outside a build, which
+`describe_producer_drift()` does on every `--verify`. The presence check is
+`len(_PRODUCER_MODULES)` stat calls, free next to the read it precedes.
+
+**The commit and clean flag.** `_producer_block()`'s dict gains two keys
+beside `modules` and `oracles`: `commit` (the repository HEAD sha, or `None`)
+and `workingTreeClean` (`True`/`False`, or `None`). The byte digests answer
+"which code ran" and stay authoritative for that question -- the block's own
+comment records the incident this repo built the digest approach to avoid:
+twenty commits landed between two builds on 2026-08-22 and a consumer's
+receipt matched none of them by commit. A commit sha answers a different,
+narrower question, "what was checked out", and is a convenience beside the
+digests, never a replacement: a wheel install carries no `.git` at all, and
+correctly answers `None` for both keys rather than a stale or synthetic
+commit.
+
+**The pair is atomic.** Both keys are answered, or both are `None`. Every way
+git fails to answer takes the same exit: no `git` on PATH (`OSError`), a hung
+git (`subprocess.TimeoutExpired` -- which used to escape the helper entirely
+and abort the build, since only `OSError` was caught), a non-zero exit from
+ANY of the three git calls, no repository, or a repository that is not this
+one. An earlier draft let a failed `git status` yield `(commit, None)`, a
+half-answer that contradicted this record; the code now matches the record
+rather than the record being widened, because a consumer that has to read two
+independent conditions to learn one thing will eventually read only the first.
+
+**The hazard, and why `git -C` is not a defence.** `git rev-parse HEAD`
+answers for whatever repository git DISCOVERS, and git reads its own
+environment before it reads the filesystem. `GIT_DIR` takes precedence over
+`-C`: measured in this tree on 2026-09-02, with `GIT_DIR=<sibling>/.git` and
+`GIT_WORK_TREE=<this repo>`, `git -C <this repo> rev-parse --show-toplevel
+HEAD` printed THIS repository's root and the SIBLING's commit `2b1624ab`,
+while this checkout was at `eb7e6458`. The first draft's guard compared only
+the toplevel, so it validated the tree git was REPORTING ON and recorded a
+commit that came from somewhere else -- exactly the stranger's-commit hazard
+it was written to prevent, reached through a door it did not know about. A
+build launched from a git hook, a `git rebase --exec`, or a CI runner that
+exports these inherits precisely that environment. Three things close it, and
+`-C` is none of them:
+
+1. **The environment is scrubbed.** Every `GIT_*` variable is dropped before
+   git runs -- `GIT_DIR`, `GIT_WORK_TREE`, `GIT_COMMON_DIR`, `GIT_INDEX_FILE`,
+   `GIT_OBJECT_DIRECTORY`, `GIT_ALTERNATE_OBJECT_DIRECTORIES`,
+   `GIT_CEILING_DIRECTORIES`, `GIT_DISCOVERY_ACROSS_FILESYSTEM` and every
+   `GIT_CONFIG_*` redirect discovery or the config that governs it. Dropped as
+   a class rather than enumerated, because an enumeration is what the next git
+   release invalidates. The allowlist is one name, `GIT_EXEC_PATH`, which says
+   where git's own subcommands live -- a relocated or wrapped install needs it
+   to run at all -- and which cannot redirect which repository is discovered.
+   `GIT_SSL*` is not kept: `rev-parse`, `ls-files` and `status` are local and
+   never open a connection.
+2. **The repository that answered HEAD must track this very file.**
+   `git ls-files --error-unmatch` is asked of that same repository for this
+   module's own source path. This is the belt to the scrub's braces: it
+   catches the class without depending on knowing every variable worth
+   stripping (under the hijack above it exits 1, measured, because the
+   sibling's index has never heard of `src/refspec/registry/...`). It also
+   closes the second half of the hazard, which no environment scrub reaches:
+   `_REPO_ROOT` is derived structurally as `parents[3]` of this module's own
+   file, so an install laid out as `<foreign>/site-packages/refspec/registry/...`
+   -- what `pip install --target` produces -- puts `_REPO_ROOT` at `<foreign>`,
+   and if `<foreign>` is somebody's checkout its toplevel IS `_REPO_ROOT`. The
+   installed copy is not in that repository's index, so the commit is refused.
+3. **The toplevel must still be `_REPO_ROOT`** (`Path.samefile`, a
+   device+inode check): this module's own belief, computed once from its own
+   path on disk, about which checkout it lives under.
+
+`git rev-parse --absolute-git-dir` was considered for role 2 and rejected on
+measurement, which is worth recording because it is the obvious next idea: a
+legitimate LINKED WORKTREE's git directory lives inside the MAIN checkout
+(`<main>/.git/worktrees/<name>`, measured), outside the worktree root
+entirely, so a path-containment rule would refuse the worktree builds this
+repository actually uses. The tracked-file question admits the worktree and
+still refuses the hijack, and
+`test_a_linked_worktree_still_answers_with_its_own_commit` is what breaks if
+someone tightens it back into containment.
+
+**Git is sampled twice, around the hashing.** Git's answer and the digests are
+two reads of a worktree that can move between them: a checkout landing
+mid-block would file commit A's sha beside commit B's digests, one receipt
+describing two states. The block asks git the same question before and after
+hashing and records the pair only when both answers agree, dropping it
+otherwise -- the digests are authoritative either way, so the pair that cannot
+be trusted as one snapshot is not guessed at. Six git invocations per build
+(102ms measured for the whole block, 51ms of it one sample) are irrelevant
+beside reading every pinned edition.
+
+**What `workingTreeClean` covers, exactly.** It is `git status --porcelain`
+over the WHOLE worktree, not over the hashed files: staged changes, unstaged
+changes, and untracked paths git does not ignore, in any directory. So an
+unrelated untracked scratch file reads DIRTY although every hashed byte is
+committed, and -- the direction that matters -- a changed oracle under an
+IGNORED path reads CLEAN, because `--porcelain` excludes ignored paths and
+several hashed oracles live under the gitignored `output/`. An earlier draft
+of this record said a clean tree means the hashed digests "will survive until
+the next commit". That was an overclaim and is withdrawn: clean means "git saw
+nothing modified or newly untracked outside its own ignore rules", the
+conventional reading of the word, and is worth exactly that much. Only the
+digests beside it say what was hashed.
+
+**What this cannot see.** `_producer_module_source()`'s refusal covers absence
+only: a producer module file that exists but is truncated or corrupted still
+hashes and still lands in the receipt, for `describe_producer_drift` to catch
+downstream against a prior receipt, not for this refusal to catch up front.
+The pre-write check proves ORDER, not that a completed build's tables and
+receipt are written atomically -- a crash between the last Parquet write and
+the receipt leaves the same inconsistency from a cause it is not looking for.
+The toplevel guard is a path-identity check, not a content check: a toplevel
+that coincidentally IS `_REPO_ROOT` on disk but holds a different git history
+underneath (a bind mount, a symlink farm reusing the path) would pass it, and
+a FORK of this repository substituted wholesale would satisfy both the
+toplevel and the tracked-file questions, since it tracks the same paths --
+only the scrub closes that, and only for redirections travelling through the
+environment. Nothing here survives a replaced `git` binary, and every check is
+downstream of trusting git's own exit status. The double sample narrows the
+sampling window rather than abolishing it: a worktree that moves to B and back
+to A around the hashing is invisible, and the digests are themselves read one
+file at a time, so they are not one atomic snapshot either. And
+`describe_producer_drift()` was deliberately left unchanged -- it still walks
+only `modules` and `oracles`, because a commit sha moving while every digest
+holds is not the drift that function answers for; the digests already say
+whether the code changed.
+
+**The file-wide test skip that hid all of this.** The tests above are unit
+tests of the refusal and the guard; none of them reads the built artifact. The
+module's `pytestmark` skipped every test in it when the gitignored artifact
+was absent, so on a fresh checkout all of this coverage skipped silently:
+measured, 150 skipped and 0 run. That gate is now a per-test autouse fixture
+with a `no_artifact` marker to opt out, and the same fresh checkout runs 8 and
+skips 142.
+
+One test goes red until the next rebuild and stays red on this branch for two
+compounding reasons: `test_the_receipt_names_the_code_that_wrote_it` in
+`tests/test_unified_agenda_parquet.py` compares a fresh `_producer_block()`
+against the on-disk receipt for byte-for-byte equality, and (1) editing
+`unified_agenda_parquet.py` to add this feature necessarily moves that
+module's own digest, and (2) the on-disk receipt predates the `commit` and
+`workingTreeClean` keys entirely. Left red on purpose, not weakened, per this
+repository's rule that a replaced check keeps proving itself rather than
+having its assertion loosened to match the code.
+
+### REF-066: a modern Federal Register document number can name two documents, and five of them do
+
+- **Date:** 2026-09-02
+- **Status:** Accepted, amended the same day after an adversarial audit.
+  `mint_federal_register_document_iri` refuses five specific modern-form
+  document numbers and mints the other two exactly as before;
+  `rkaf:us-frdoc`'s space is untouched. Every OTHER document number's mint
+  is untouched too -- a claim that was FALSE outside a source checkout in
+  the first cut of this decision, and is now proved in one: see "What the
+  audit changed" below.
+
+`mint_federal_register_document_iri` has minted `rkaf:us-frdoc` from the
+document number alone since REF-052, because rulespec's modern space carries
+no date qualifier. A 2026-09-02 full crawl of the published Federal Register
+(1,007,156 distinct numbers, brought home as
+`research/evidence/fr-collision-census-2026-09-02/fr-full-collision-census.json`,
+pinned by sha256) found **seven** modern-form numbers that each carry two
+different publication dates -- something that premise does not survive
+unexamined.
+
+**Reading the documents, not the metadata, is what this decision rests on.**
+The federalregister.gov API's own `correction_of` field -- built for exactly
+the question "is this a correction of an earlier document" -- answers `null`
+for all fourteen dated appearances of all seven, including the two that
+genuinely are self-corrections. Fetched 2026-09-02 and preserved as bytes,
+not as a paste, in that evidence home's `api/` (see "The API's own answer is
+preserved" below). So the adjudication below reads the
+fourteen dated full-text captures themselves
+(`research/evidence/fr-collision-census-2026-09-02/specimens/`), not a
+shortcut through metadata that turns out not to carry the answer.
+
+**Five are genuinely different documents (`refusal-to-interpret`).** Four
+share nothing but the accident of the publisher's own numbering: an EPA
+pesticide notice and an unrelated DOT/FAA airport-safety NPRM eleven months
+apart under `2010-31094`; Commerce/NTIA and DOT/FAA under `2010-31384`; EPA
+and DOT/Maritime Administration under `2010-31396`; the Postal Regulatory
+Commission and DOE/FERC under `2010-31415`. The fifth, `2010-517`, is the one
+that took a title-and-agency read to separate from the other two: its second
+appearance is captioned "Correction", the identical surface word the two
+`consulted` rows below carry, and only reading WHICH document it corrects
+(`E8-11863`, a Coast Guard rule -- not `2010-517` itself, a DOE/FERC gas-
+pipeline notice from an unrelated department) tells the two patterns apart.
+Minting one `rkaf:us-frdoc` identifier for any of these five pairs would
+silently merge two unrelated regulatory actions into one identity.
+
+**Two are one matter published twice (`consulted`).** `2015-17759` (an SEC
+filing notice, corrected in place: "In notice document 2015-17759 ... make
+the following correction") and `2015-25354` (a Department of Education
+notice, corrected the same way) are each explicitly, textually a correction
+*of their own document number*, same agency, same docket. A single
+identifier for both is the CORRECT reading here, not a tolerance: it is what
+a reader following either published copy would expect the number to resolve
+to. These are recorded rather than left silent so the record shows they were
+examined and deliberately left to mint, not overlooked -- the "consulted"
+disposition, new to `hand_validated_interpretations.py` for exactly this
+shape of finding (examined, and correctly NOT corrected or refused).
+
+**Where the check lives, and why it cannot poison every other mint.** All
+seven rows live in `hand_validated_interpretations._FR_COLLISION_TABLE`, a
+table deliberately separate from the module's founding `_TABLE`
+(E5-2394, EO 8284): `load_interpretations()` validates `_TABLE` as one
+atomic unit, which is right for a couple of rarely-changing, consulted-by-
+name rows and wrong for a population consulted on nearly every Federal
+Register document number minted anywhere on the platform. Coupling an
+ORDINARY document number's mint to the witness health of an unrelated
+Executive Order flag would make one broken witness anywhere refuse every
+mint everywhere. `is_a_refused_federal_register_collision(value)` checks
+membership FIRST against the seven rows themselves -- one dict lookup over
+Python literals that ship inside the package, no census file, no git,
+`O(1)` for the overwhelming majority of values that are not one of the
+seven -- and only for one of the seven does it re-read the pinned census
+and witness that single row. `mint_federal_register_document_iri` calls it
+before any other branch, including the `rkaf:partner-defined` escape hatch:
+minting anything for a genuine collision, even losslessly, would still be
+one identifier standing for two documents.
+
+**The isolation that buys, stated as two different cases.** A witness FILE
+going wrong -- deleted, edited away from HEAD, never committed, symlinked
+out of the tree -- is isolated: it refuses the one row that cites it, and
+an ordinary mint, EO 8284's flag and the other six collisions carry on
+(verified by the audit, which broke one collision's witness and watched the
+rest keep answering). A row SHAPE going wrong is NOT isolated: all seven
+`Interpretation` objects are constructed eagerly at import, so `witnesses=()`
+or a `consulted` row carrying an `interpreted_value` fails the module
+import and takes every consumer down at once. That is deliberate and the
+two are not the same fact: evidence can be momentarily unavailable in a
+deployment, but a row's shape is a defect in the module's own source and
+should stop everything loudly at import rather than lurk until the one
+value it describes is asked about.
+
+**What the audit changed.** An adversarial audit of the first cut simulated
+an installed-wheel layout and found `mint_federal_register_document_iri("2024-00366")`
+-- an ordinary, non-colliding number -- raising `HandValidatedRegistryError`,
+because the predicate read the census receipt out of `research/evidence/`
+before doing anything else and `_default_repository_root()` rejects a
+`site-packages` layout. A pure minting function had become dependent on a
+git checkout: runtime behaviour bound to a REPRESENTATION rather than to the
+fact it encodes. The fix separates them by what they are. The VERDICTS
+(seven `source_value` strings and their dispositions) are behavioural, tiny
+and already Python literals, so they travel in the wheel and answer
+anywhere. The CENSUS RECEIPT and the fourteen WITNESS files are audit data:
+they exist only in a checkout, they are still checked there exactly as
+before -- `_the_census_agrees_with_this_table` holds the rows true against
+the receipt in both directions, `_witnessed` holds each row to its own
+committed bytes -- and neither is now reachable by a value that is not one
+of the seven. `_repository_root_if_present` is the whole of the split: one
+`is_dir()` on the evidence anchor, no subprocess, answering `None` where
+`_default_repository_root` raises. Performed proof, 2026-09-02: the package
+copied into a `site-packages`-shaped directory outside any git work tree
+and imported from there, with git on `PATH` and again with `PATH` emptied
+-- `2024-00366`, `2010-31095`, `2015-17758` and `E8-24348` all mint, all
+five collisions refuse (hatch included), both `consulted` numbers mint and
+`lookup` returns their rows, while the founding `_TABLE` still refuses with
+its deployment sentence, which is correct: that table is repository
+tooling and says so.
+
+The audit also found `lookup()` unable to return the new `consulted` rows
+at all -- it read only `_TABLE`, so `lookup("2015-17759")` raised
+`NotReviewed`, which is documented to mean "nobody examined this value" and
+was the exact opposite of what two witnesses say about it. `lookup` now
+reads REF-066's table first (package data, no git) and `_TABLE` second; the
+two are proven disjoint, so the order changes nothing but cost. And the
+collision witness check was not mutation-killed: deleting the single
+`_witnessed` call left every scoped test green, because the others read
+dispositions, witness counts or anchors and never make a witness fail.
+`test_a_collision_row_with_a_dangling_witness_refuses_through_the_predicate`
+now exercises it through the public predicate; the deletion was performed
+and it is the one test that dies.
+
+**What this cannot see.** The census describes the crawled Federal Register
+from 1994 onward (its own `coverage.caveat`) and nothing about the printed
+Register before that; a collision the crawl did not observe would still mint
+as first-class today, and an eighth collision a future re-crawl finds ships
+as a new dated evidence home, a new pin AND the rows that adjudicate it, in
+one change -- never a silent edit to this one's rows.
+`_verify_pinned_collision_census` refuses to load on any drift of the census
+bytes, the same discipline `eo_roster._verify_pinned_roster` holds its own
+roster to. Two limits follow from the split above and are worth naming.
+First, the receipt-versus-rows drift check only runs where the receipt
+exists: in an installed layout there is nothing to disagree with the rows,
+so a re-crawl's eighth collision mints as first-class there until the new
+census and its rows ship together; in a checkout it raises on the first ask
+about any of the seven, and the test suite compares the two sets directly
+whether or not a member is ever asked about. Second, the census counted
+membership by its own `modernPattern` `^\d{4}-\d+$`, which is broader than
+rulespec's `[0-9]{4}-[0-9]{3,5}` at both ends; all seven have three- or
+five-digit tails and satisfy both, but a future short- or long-tailed
+collision would be refused by a different space than the one these seven
+live in, and the row adjudicating it has to say so (the evidence home's
+README carries this in full).
+
+**The API's own answer is preserved, not paraphrased.** The `correction_of`
+claim above is the strongest single fact here, so it replays from committed
+bytes: `research/evidence/fr-collision-census-2026-09-02/api/seven-numbers.correction_of.json`
+is the multi-document endpoint's answer for all fourteen dated appearances
+of the seven numbers (`"count":14`, every record `"correction_of":null` and
+`"corrections":[]`), with its response headers beside it, plus the narrow
+single-document request this record quotes. The same file corroborates the
+5/2 split from metadata independently of the document bodies: each REFUSE
+pair carries two different `title`s under two different `agency_names`,
+while each `consulted` pair carries the identical title under the identical
+agency on both dates.
+
+Measured cost: `test_the_document_number_column_is_accounted_for_exactly`'s
+pinned-column census moves exactly five values from `first-class` to
+`refused` (480,566 → 480,561; 360 → 365 of 1,004,233) and zero values
+anywhere else -- the two `consulted` numbers were already counted
+first-class and stay there.
