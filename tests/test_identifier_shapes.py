@@ -1497,6 +1497,69 @@ def test_the_corrector_answers_the_real_damaged_population() -> None:
 
 @pytest.mark.skipif(not AGENDA_RIN_PARQUET.is_file(), reason="the Unified Agenda RIN roster is not built")
 @pytest.mark.skipif(not FEDERAL_REGISTER_PARQUET.is_file(), reason="the Federal Register corpus is not present")
+def test_the_closed_segment_vocabulary_admits_only_its_five_tokens() -> None:
+    """The trailing token is a closed set of five, and a sixth is not one.
+
+    ``_DOCKET_SEGMENT`` exists because the fence that refuses a docket
+    ending on letters was refusing a real docket: the pinned column states
+    "Docket #GIPSA-2010-FGIS-0014-NONRULEMAKING" in the publisher's own
+    words, and the module's own comment named the same family as a
+    malformation. The vocabulary is spelled out rather than generalized to
+    ``[A-Za-z]+`` -- generalizing reopens the fence -- so the negative
+    fixture here is the whole point of the rule: an invented sixth token
+    must NOT be admitted, and the disaster numbers the fence was built for
+    must stay refused.
+    """
+
+    def one(value: str) -> IdentifierCandidate:
+        (candidate,) = [c for c in detect_identifier_shapes(value) if c.value == value]
+        return candidate
+
+    # Both slots in one identifier: office between year and docket sequence,
+    # segment between docket sequence and document sequence. Nothing else in
+    # the corpus exercises the two together.
+    both = one("GIPSA-2008-FGIS-0002-NONRULEMAKING-0001")
+    assert both.kind is IdentifierKind.REGULATIONS_GOV_DOCUMENT
+    assert both.components == {
+        "organization": "GIPSA",
+        "year": "2008",
+        "office": "FGIS",
+        "docket_sequence": "0002",
+        "segment": "NONRULEMAKING",
+        "document_sequence": "0001",
+    }
+
+    # The token terminating a docket, with no document sequence after it --
+    # the shape the fence used to refuse outright.
+    terminal = one("GIPSA-2010-FGIS-0014-NONRULEMAKING")
+    assert terminal.kind is IdentifierKind.DOCKET
+    assert terminal.components["segment"] == "NONRULEMAKING"
+
+    # DRAFT is the rarest member and the only one that generalizes across
+    # agencies: two instances, two agencies, seven years apart. Both are
+    # documents, and both used to read as a DOCKET whose "year" was the
+    # docket sequence -- two wrong answers on one value, not one.
+    for value, organization, year in (
+        ("EPA-HQ-OW-2025-0322-DRAFT-29781", "EPA-HQ-OW", "2025"),
+        ("FRA-2006-24216-DRAFT-0024", "FRA", "2006"),
+    ):
+        candidate = one(value)
+        assert candidate.kind is IdentifierKind.REGULATIONS_GOV_DOCUMENT
+        assert candidate.components["organization"] == organization
+        assert candidate.components["year"] == year
+        assert candidate.components["segment"] == "DRAFT"
+
+    # THE NEGATIVE FIXTURE. A token outside the five is not a segment, and
+    # the value falls back to whatever the grammar said before -- never to a
+    # document with an invented segment.
+    assert not any(
+        "segment" in c.components for c in detect_identifier_shapes("GIPSA-2008-FGIS-0002-WITHDRAWN-0001")
+    )
+    # And the fence still does the job it was built for.
+    assert detect_identifier_shapes("FEMA-1971-DR") == []
+    assert detect_identifier_shapes("Internal Agency Docket No. FEMA-1971-DR") == []
+
+
 @pytest.mark.slow
 def test_the_office_segment_is_measured_over_the_real_docket_column() -> None:
     """Before and after, over every distinct value of all four pinned columns.
