@@ -1138,11 +1138,14 @@ def test_the_receipt_names_the_code_that_wrote_it() -> None:
     resolves to code by hashing blobs, and that is the part this test pins.
     The block also carries live git state (`commit`, `workingTreeClean`),
     which is exactly NOT deterministic: it is a convenience beside the
-    digests, sampled per build, and it is why the equality against the
-    on-disk receipt at the end of this test is expected to be red between a
-    rebuild and the next."""
+    digests, sampled per build. The comparison against the on-disk receipt at
+    the end of this test therefore checks the recorded commit BY VALUE -- the
+    digests it records must equal the blobs at the commit it names -- rather
+    than by equality against HEAD, which said nothing about the artifact and
+    went red whenever HEAD moved or the tree held one untracked file."""
     import hashlib
     import json
+    import re
     from pathlib import Path
 
     from refspec.registry import unified_agenda_parquet as module
@@ -1214,16 +1217,159 @@ def test_the_receipt_names_the_code_that_wrote_it() -> None:
     ).stdout.strip()
     assert isinstance(block["workingTreeClean"], bool)
     # And the built artifact carries the block for the code that wrote it,
-    # which is this code: drift here means rebuild and re-pin. It is therefore
-    # RED between a change to any of these modules and the next rebuild, and
-    # `describe_producer_drift` names which digests moved. It is ALSO red
-    # right now, on this branch, for a second reason: the recorded receipt
-    # predates the commit/workingTreeClean keys entirely, and a commit sha
-    # frozen at build time can never equal HEAD read fresh on every later
-    # checkout anyway -- this equality only turns green again at the next
-    # rebuild, and only for as long as nothing is re-committed after it.
+    # which is this code: drift here means rebuild and re-pin, and
+    # `describe_producer_drift` names which digests moved. RED between a
+    # change to any of these modules and the next rebuild is the whole point.
+    #
+    # What changed on 2026-09-03, and why the earlier framing of it was wrong.
+    # The previous assertion compared the WHOLE block, and it was described --
+    # by me, in a briefing, and then in this comment -- as "unsatisfiable by
+    # construction, because committing the artifact moves HEAD past the
+    # recorded commit". That mechanism is false: `output/` is gitignored, so
+    # the artifact is never committed and cannot move HEAD. A blind review
+    # verified the real behaviour: the recorded commit resolves and all nine
+    # recorded module digests equal the blobs at it, so the full-block
+    # equality WAS green -- at that one commit, on a clean tree. The problem
+    # is narrower than "cannot pass": it goes red at any LATER commit, and on
+    # any dirt at all including one untracked scratch file, neither of which
+    # is evidence about the artifact.
+    #
+    # So the comparison below is split by what each half can actually know,
+    # and the git-value check replaces a commit EQUALITY rather than relaxing
+    # it into a shape test. An earlier revision of this test asserted only
+    # that the recorded commit was 40 lowercase hex; that admitted `"0" * 40`
+    # -- git's null object id -- and admitted a receipt rsynced from another
+    # worktree built at a different commit, with no git trace because the
+    # receipt is ignored. A shape check where a value check was available.
     recorded = json.loads((module._DEFAULT_OUTPUT_ROOT / "receipt.json").read_text(encoding="utf-8"))
-    assert recorded.get("producer") == block, module.describe_producer_drift(module._DEFAULT_OUTPUT_ROOT)
+    recorded_producer = recorded.get("producer") or {}
+    # The recorded block carries exactly these keys and no others. `set(block)`
+    # above constrains the LIVE block; without this line a recorded block
+    # could carry extra keys nothing reads.
+    assert set(recorded_producer) == {"modules", "oracles", "commit", "workingTreeClean"}
+    # Digest drift against the code in this checkout: the rebuild signal.
+    assert {k: recorded_producer[k] for k in ("modules", "oracles")} == {
+        k: block[k] for k in ("modules", "oracles")
+    }, module.describe_producer_drift(module._DEFAULT_OUTPUT_ROOT)
+    # And the recorded commit is checked BY VALUE against the bytes it claims
+    # to name: every recorded module digest must equal the sha256 of that
+    # module's blob AT that commit. A fabricated sha, a sha from a sibling
+    # repository, a blob sha, and a receipt copied from a worktree built at a
+    # commit with different module bytes all fail this. A TREE sha does not --
+    # it resolves through `git show` -- which is why the object type is
+    # asserted separately above rather than left to this loop.
+    #
+    # STATED LIMIT: this covers `modules` only. The six `oracles` are not
+    # verified against the commit, and one of them
+    # (`public-law-roster.csv`) lives under gitignored `output/`, so it has no
+    # blob to verify against. An artifact built from a mutated roster passes
+    # every assertion here with a genuine commit and a clean flag.
+    # It never goes red merely because HEAD moved, which is the whole reason
+    # the old equality was painful.
+    #
+    # Guarded on the clean flag, and that guard is a disclosure rather than a
+    # hole: a build that reports itself dirty is saying its module bytes need
+    # not match any commit, so verifying them against one would be wrong. A
+    # receipt that lies by marking itself dirty buys silence here at the cost
+    # of announcing it cannot be verified.
+    #
+    # `git show <rev>:<path>` accepts far more than a commit sha, and three of
+    # those spellings defeat the check outright -- measured, not reasoned:
+    # the EMPTY STRING is git's spelling for the INDEX, and since the
+    # assertion above already forces recorded == worktree, on a clean tree
+    # every iteration would then compare the worktree to itself, an assertion
+    # that cannot fail for any input. "HEAD" and a branch name resolve too and
+    # move with the repository. And a root TREE sha resolves AND is 40
+    # lowercase hex, so it would have passed a hex-shape test as well. An
+    # empty string is what a JSON writer emits for an unset string field, so
+    # none of this needs an actor. Hence both guards below: the shape, and
+    # `cat-file -t` proving the object is a COMMIT rather than a tree.
+    # Every git read below runs `--no-replace-objects` under the SAME scrubbed
+    # environment the production helper builds, and that sharing is the point:
+    # `_repository_commit_and_cleanliness()` closes the poisoned-environment
+    # hazard and documents it, and this test re-opened it by inheriting the
+    # ambient environment -- `GIT_ALTERNATE_OBJECT_DIRECTORIES` pointing at a
+    # sibling repository let a foreign-only commit pass a check whose whole
+    # claim is that it cannot. `--no-replace-objects` closes the other half:
+    # `git replace -f <tree> <commit>` makes `cat-file -t` report `commit` for
+    # a tree and makes every read return substituted bytes, defeating the type
+    # guard and the digest guard together.
+    registry = Path(module.__file__).parent
+    git_read = ["git", "--no-replace-objects", "-C", str(registry)]
+    recorded_commit = recorded_producer["commit"]
+    recorded_clean = recorded_producer["workingTreeClean"]
+    # `_producer_block()` answers (None, None) on purpose in four cases, and
+    # `test_the_commit_and_the_clean_flag_answer_none_together` pins all of
+    # them: no git on PATH, a hung git, a non-zero `git status`, AND a commit
+    # that MOVED between the two samples taken around the hashing, where the
+    # pair is dropped rather than guessed. So it is accepted here rather than
+    # failing an `isinstance` check, and the two must be None together: one
+    # without the other is a half-recorded provenance nothing produces.
+    #
+    # WHAT ACCEPTING IT COSTS, stated because it is a second off-switch beside
+    # the clean flag and neither is announced anywhere. The digest loop below
+    # is skipped when the tree is dirty, and skipped again when the pair is
+    # (None, None). Both are hand-writable into a gitignored `receipt.json`,
+    # and nothing outside this test reads either key, so a receipt buys the
+    # skip at no cost it has to disclose.
+    #
+    # The obvious close -- "git answers for this repository now, so a receipt
+    # claiming it could not is refutable" -- is WRONG, and the fourth case
+    # above is why: a checkout landing between the two samples produces an
+    # honest (None, None) on a machine where git works perfectly, in this very
+    # repository. Refusing the pair would reject a state a correct build
+    # emits. Closing this properly needs the flags to have a consumer that
+    # treats "unverifiable" as a result rather than a silence, which is the
+    # same missing consumer the clean-flag limit names, and it is not this
+    # test's to invent.
+    if recorded_commit is None or recorded_clean is None:
+        assert recorded_commit is None and recorded_clean is None, (
+            "the commit and the clean flag are recorded together or not at all: "
+            f"commit={recorded_commit!r} workingTreeClean={recorded_clean!r}"
+        )
+    else:
+        assert isinstance(recorded_clean, bool)
+        # 40 hex OR 64: a `git init --object-format=sha256` repository emits a
+        # 64-char commit and `_producer_block()` records it honestly, so a
+        # 40-only rule would reject a correct receipt -- the same defect class
+        # as the `isinstance` this file already corrected once.
+        assert isinstance(recorded_commit, str) and re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", recorded_commit), (
+            f"the recorded commit must be a full sha, not a rev expression: {recorded_commit!r}"
+        )
+        object_type = subprocess.run(
+            [*git_read, "cat-file", "-t", recorded_commit],
+            capture_output=True,
+            text=True,
+            check=False,
+            env=module._scrubbed_git_environment(),
+        )
+        assert object_type.stdout.strip() == "commit", (
+            f"the recorded commit {recorded_commit!r} is not a commit object in this repository: "
+            f"{object_type.stdout.strip() or object_type.stderr.strip()!r}"
+        )
+    if recorded_clean is True:
+        for name, digest in recorded_producer["modules"].items():
+            # A tracked SYMLINK stores its link text as the blob while
+            # `_producer_module_source()` follows it and hashes the target, so
+            # the two legitimately disagree and neither is wrong. Skipped with
+            # its reason rather than failed -- failing would reject a clean
+            # tree with an accurate receipt.
+            if (registry / f"{name}.py").is_symlink():
+                continue
+            blob = subprocess.run(
+                [*git_read, "cat-file", "--filters", f"--path=src/refspec/registry/{name}.py", f"{recorded_commit}:src/refspec/registry/{name}.py"],
+                capture_output=True,
+                check=False,
+                env=module._scrubbed_git_environment(),
+            )
+            assert blob.returncode == 0, (
+                f"the receipt records commit {recorded_commit!r}, which does not resolve to "
+                f"a {name}.py blob in this repository: {blob.stderr.decode(errors='replace').strip()}"
+            )
+            assert digest == "sha256:" + hashlib.sha256(blob.stdout).hexdigest(), (
+                f"the receipt records {name} as {digest} but the blob at its own recorded commit "
+                f"{recorded_commit} hashes differently -- the receipt names a build it did not have"
+            )
 
 
 def _git_or_skip() -> None:

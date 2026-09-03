@@ -1405,6 +1405,25 @@ def _producer_module_source(name: str) -> Path:
     return path
 
 
+def _scrubbed_git_environment() -> dict[str, str]:
+    """The environment every git read in this repository runs under.
+
+    See point 1 of :func:`_repository_commit_and_cleanliness`'s docstring:
+    every ``GIT_*`` name is dropped as a class, one name kept. Extracted
+    because a second caller wants it -- the receipt's provenance test verifies
+    recorded digests against blobs at the recorded commit, and inherits the
+    same poisoned-environment hazard this closes. A test that built its own
+    copy of this rule would drift from it silently, which is the defect this
+    package keeps producing; a review on 2026-09-03 found the test doing
+    exactly that, with ``GIT_ALTERNATE_OBJECT_DIRECTORIES`` letting a
+    sibling repository's commit pass a check that claims it cannot.
+    """
+
+    import os
+
+    return {key: value for key, value in os.environ.items() if not key.startswith("GIT_") or key == "GIT_EXEC_PATH"}
+
+
 def _repository_commit_and_cleanliness(module_path: Path) -> tuple[str | None, bool | None]:
     """HEAD and dirty-or-clean for the repository that TRACKS this module's
     own source file, or ``(None, None)`` when git cannot answer that honestly.
@@ -1491,12 +1510,10 @@ def _repository_commit_and_cleanliness(module_path: Path) -> tuple[str | None, b
     itself has been replaced is outside every check here.
     """
 
-    import os
     import subprocess
 
     source = module_path.resolve()
-    # See point 1 of the docstring: dropped as a class, one name kept.
-    environ = {key: value for key, value in os.environ.items() if not key.startswith("GIT_") or key == "GIT_EXEC_PATH"}
+    environ = _scrubbed_git_environment()
 
     def answered(*args: str) -> str | None:
         """git's stdout when it exits 0, else None -- which is also the answer

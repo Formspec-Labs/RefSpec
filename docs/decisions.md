@@ -5078,6 +5078,95 @@ module's own digest, and (2) the on-disk receipt predates the `commit` and
 repository's rule that a replaced check keeps proving itself rather than
 having its assertion loosened to match the code.
 
+**Amended 2026-09-03: both causes above have since cleared, a third was
+found, and the assertion is now a stronger check rather than a looser one.**
+The rebuild landed, so the receipt carries `commit` and `workingTreeClean`
+and its digests match this module. What remained red is a cause this record
+did not name: the full-block equality includes `commit`, so it goes red at
+any LATER commit and on any dirt at all -- one untracked scratch file is
+enough -- neither of which is evidence about the artifact. On 2026-09-03 an
+`identifier_shapes` change and an unrelated `evidence(...)` commit produced
+the identical red, and only one of them was ever going to clear; the real
+drift signal was buried under a failure everyone had learned to expect.
+
+One mechanism stated in the first draft of that fix was wrong and is
+corrected here: the red is **not** caused by "committing the artifact", which
+never happens, because `output/` is gitignored. A blind review also refuted
+the framing that the equality was unsatisfiable -- it verified that the
+recorded commit resolves and all nine recorded module digests equal the blobs
+at it, so the equality was genuinely green at that one commit on a clean
+tree. The window is narrow, not absent.
+
+The replacement keeps this record's rule rather than bending it. Digest drift
+against this checkout stays a strict equality, and the recorded block's key
+set is now asserted too, so an extra key cannot pass. The `commit` equality is
+replaced by a **value** check: each recorded module digest must equal the
+sha256 of that module's blob AT the recorded commit, guarded on
+`workingTreeClean is True`.
+
+**Two blind reviews, and each refuted the revision before it.** The first
+refuted the premise -- the equality was satisfiable, green at the recorded
+commit on a clean tree -- and rejected an intermediate revision that asserted
+only 40 lowercase hex, which admitted git's null object id. The second found
+that the value check ALONE was weaker still on one input class, because
+`git show <rev>:<path>` accepts far more than a commit sha:
+
+- the **empty string** is git's spelling for the INDEX, and since the
+  preceding assertion already forces recorded == worktree, on a clean tree
+  every iteration then compares the worktree to itself -- an assertion that
+  cannot fail for any input, reachable because `""` is what a JSON writer
+  emits for an unset string field;
+- `HEAD`, `HEAD~1` and branch names resolve and move with the repository;
+- a root **tree** sha resolves AND is 40 lowercase hex, so the shape check
+  would have admitted it too.
+
+The final form therefore asserts all three together -- 40-hex shape,
+`cat-file -t` proving a **commit** object, and the digest value at that commit.
+Recording this because the sequence is the lesson: one round of review changed
+the design and a second round found the design's own hole, and the count of
+rounds was what separated a stronger check from a weaker one.
+
+Two limits are stated in the test rather than papered over. `(None, None)` for
+commit and clean flag is ACCEPTED, because `_producer_block()` emits it on
+purpose where git cannot be asked and a sibling test pins it as correct -- an
+earlier revision failed it on `isinstance`, putting two tests in one file in
+contradiction. And the check covers `modules` only: the six `oracles` are not
+verified against the commit, and `public-law-roster.csv` lives under gitignored
+`output/`, so an artifact built from a mutated roster still passes.
+
+A third blind review, briefed to the NEW guards only, with the mutation
+battery withheld and the defect class named without its sites, found five more
+and is the reason the brief matters more than the round count. Two were
+bypasses: both git reads inherited the ambient environment, so
+`GIT_ALTERNATE_OBJECT_DIRECTORIES` pointed at a sibling repository let a
+foreign-only commit pass a check whose whole claim is that it cannot -- the
+test had re-opened the hazard `_repository_commit_and_cleanliness()` closes
+and documents; and `git replace -f <tree> <commit>` made `cat-file -t` report
+`commit` for a tree while every read returned substituted bytes, defeating the
+type guard and the digest guard together. Three were false REJECTIONS, all of
+them the class above, in code written specifically to stop producing it: a
+`--object-format=sha256` repository emits a 64-char commit the 40-hex rule
+refused; `core.autocrlf` makes the filesystem bytes `_producer_block()` hashes
+differ from the canonical blob, so a clean tree with an accurate receipt
+failed; and a tracked symlink stores link text as its blob while the producer
+follows it and hashes the target, so the two legitimately disagree.
+
+Closing the first of those extracted `_scrubbed_git_environment()` rather than
+copying the rule into the test, because a security invariant with two
+spellings is this package's own named recurring failure. **The test therefore
+depends on a private helper deliberately: `_scrubbed_git_environment` is not
+unused, and renaming it silently re-opens the bypass.** The remaining reads
+run `git --no-replace-objects` through one `git_read` prefix so a later call
+cannot forget it, and use `cat-file --filters` so the comparison is against
+the bytes the producer actually hashes.
+
+The clean-flag guard is a real weakening and is named as one. A build
+reporting itself dirty is saying its bytes need not match any commit, so
+verifying them would be wrong -- but nothing outside this test reads
+`workingTreeClean`, so the flag buys silence at no announced cost, and dirty
+is the normal state because one untracked file sets it. Closing that needs a
+consumer of the flag, which does not exist yet.
+
 ### REF-066: a modern Federal Register document number can name two documents, and five of them do
 
 - **Date:** 2026-09-02
