@@ -184,3 +184,17 @@ not a witness for any row. Consulted from
 `src/refspec/registry/iri_minting.py`'s `mint_federal_register_document_iri`,
 which refuses (`None`) for the five and mints normally for the two. See
 REF-066 in `docs/decisions.md`.
+
+## Addendum, 2026-09-03 — the cause of the seven
+
+This census counted the seven and did not ask what causes them. A later claim
+about the cause ("one publisher event reusing a block of numbers") was an
+inference from four shared dates, not a measurement, and it was wrong in its
+particulars. [`addendum/README.md`](addendum/README.md) retracts it and
+replaces it with the publisher's own day-issue listings: four of the seven are
+the **E-family → modern-form transition of 2010-01-06**, where the legacy tail
+counter and the fresh `2010-` sequence emitted the same four values inside one
+year, and cannot recur after 2010; `2010-517` is a genuine reuse inside the
+single modern sequence; the two 2015 pairs are one matter published twice.
+The addendum also states the reopen trigger the measurement supports, which is
+neither a count nor a shared date. REF-066's refusal set is unchanged.
