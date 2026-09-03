@@ -27,10 +27,29 @@ independent snapshots of the same publisher, not the same file, and nothing
 here assumes they agree row for row. `collisionCountingBasis` states the
 count is taken "over unnormalized document numbers, no prefix or case
 folding applied", and `modernFormCollisionsBasis` states that membership is
-the number's *form* (fullmatches `[0-9]{4}-[0-9]{3,5}`), not the year its
-dates fall in — legacy `NN-` numbers run 1994 through 2009, modern `YYYY-`
-numbers start 2010-01-06, so a modern-form collision can only ever pair
-dates from 2010 onward.
+the number's *form*, not the year its dates fall in — legacy `NN-` numbers
+run 1994 through 2009, modern `YYYY-` numbers start 2010-01-06, so a
+modern-form collision can only ever pair dates from 2010 onward.
+
+**The form the receipt actually used is its own `modernPattern`,
+`^\d{4}-\d+$` — which is not rulespec's modern space.** Rulespec mints
+`rkaf:us-frdoc` over `[0-9]{4}-[0-9]{3,5}`; the receipt's pattern is
+broader at both ends, admitting one- and two-digit tails (`2010-1`,
+`2010-10` — real numbers, and REF-056 keeps them out of the mintable space)
+and six-digit-and-longer ones. The census knows it: its
+`legacyFormAlsoParsesAsModern` is `true` over
+`legacyFormAlsoParsesAsModernCount` 29,148 numbers that satisfy both its
+`legacyPattern` (`^\d{2,4}-[0-9A-Za-z]{1,4}$`) and its modern one. Today
+the difference does not bite — all seven collisions below have three- or
+five-digit tails and so fullmatch rulespec's narrower space as well — but
+it is stated here rather than papered over, because a future crawl could
+count a short- or long-tailed collision that this repository's own
+`FEDERAL_REGISTER_DOCUMENT_NUMBER` cannot spell. Such a number would still
+be refused outright (`is_a_refused_federal_register_collision` is consulted
+before any shape is asked, so the `rkaf:partner-defined` hatch is closed to
+it too), which is the right answer — but it would be a refusal reached by a
+*different* space than the one this receipt's seven live in, and the row
+that adjudicated it would have to say so.
 
 The receipt's `modernFormCollisionCount` is **7**, out of a broader
 `sameNumberDifferentDateCount` of **474** across the *whole* crawled corpus
@@ -81,12 +100,35 @@ mint, not overlooked.
 
 The federalregister.gov document API carries a `correction_of` field built
 for exactly this relationship, and it would have made this an easy lookup —
-except it does not populate it here. Fetched directly:
+except it does not populate it here. **Both requests below are preserved in
+`api/`, response bytes and headers, so this claim replays from committed
+evidence rather than from a pasted line.** The narrow one first:
 
 ```
-$ curl .../api/v1/documents/2015-17759.json?fields[]=correction_of&fields[]=corrections
-{"correction_of":null,"corrections":[]}
+$ curl '.../api/v1/documents/2015-17759.json?fields[]=correction_of&fields[]=corrections&fields[]=publication_date'
+{"correction_of":null,"corrections":[],"publication_date":"2015-08-05"}
 ```
+
+(`publication_date` is asked for here, and was not in the first cut of this
+README, precisely so the next sentence is in the preserved bytes rather
+than in the prose around them.) That endpoint answers with a single record,
+not a list, so it speaks for one appearance only — the 2015-08-05 one, as
+its own response says. The claim "all seven" therefore rests on the second
+request: the multi-document form, keyed by document number and not by
+free-text search, asked for all seven at once. It returns `"count":14` —
+every dated appearance of every one of
+the seven — and **every one of the fourteen carries `"correction_of":null`
+and `"corrections":[]`** (`api/seven-numbers.correction_of.json`, fetched
+2026-09-02, 4,524 bytes). The same file is independent corroboration of the
+adjudication table above, from metadata rather than from the document
+bodies: the five REFUSE pairs carry two different `title`s under two
+different `agency_names` (`2010-31094`: "Exposure Modeling Public Meeting",
+Environmental Protection Agency — against "Safety Management System for
+Certificated Airports; Extension of Comment Period", Transportation
+Department / Federal Aviation Administration), while each MINT NORMALLY
+pair carries the *identical* title under the *identical* agency across both
+dates. What that file cannot do is make the call: `correction_of` is null
+on all fourteen alike, which is precisely the point.
 
 Both `2015-17759` and `2015-25354` answer `correction_of: null` — the same
 answer every one of the five REFUSE numbers gives, because the API's
@@ -117,6 +159,15 @@ them.
   `https://www.federalregister.gov/documents/full_text/html/{yyyy}/{mm}/{dd}/{recordId}.html`.
 - `specimens/*.headers.txt` — the matching response headers, carrying each
   capture's `date` (retrieved-at) and `content-length`.
+- `api/seven-numbers.correction_of.json` — the API's own answer for all
+  fourteen dated appearances of the seven numbers, fetched 2026-09-02 from
+  `https://www.federalregister.gov/api/v1/documents/2010-31094,2010-31384,2010-31396,2010-31415,2010-517,2015-17759,2015-25354.json`
+  with `fields[]` = `document_number`, `publication_date`, `correction_of`,
+  `corrections`, `citation`, `title`, `type`, `agency_names`. This is what
+  makes "the API's `correction_of` is null for all seven" replayable.
+- `api/2015-17759.correction_of.json` — the single-document request quoted
+  verbatim above, preserved so the quotation is bytes rather than prose.
+- `api/*.headers.txt` — the matching response headers for both requests.
 - `MANIFEST-sha256.csv` — every file above, its byte length, and its sha256,
   in the same shape as `research/evidence/eo-roster-2026-08-31/MANIFEST-sha256.csv`.
 
@@ -125,9 +176,11 @@ them.
 `src/refspec/registry/hand_validated_interpretations.py` restates this
 table's seven verdicts as typed `Interpretation` rows — five
 `refusal-to-interpret`, two `consulted` — each witnessed by its own two
-`specimens/` files, not by this README or the census file (a witness cited
-by seven different rows with seven different `shows` texts would defeat the
-anchor check that holds each row's prose to its own bytes). Consulted from
+`specimens/` files, not by this README, the census file or `api/` (a
+witness cited by seven different rows with seven different `shows` texts
+would defeat the anchor check that holds each row's prose to its own
+bytes). `api/` is corroboration for the claims in *this* README, deliberately
+not a witness for any row. Consulted from
 `src/refspec/registry/iri_minting.py`'s `mint_federal_register_document_iri`,
 which refuses (`None`) for the five and mints normally for the two. See
 REF-066 in `docs/decisions.md`.

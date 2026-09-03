@@ -169,6 +169,7 @@ from datetime import date, datetime
 from urllib.parse import quote
 
 from refspec.registry.citation_grammar import CFR_TITLE_COUNT, states_nothing
+from refspec.registry.hand_validated_interpretations import is_a_refused_federal_register_collision
 from refspec.registry.identifier_shapes import (
     _DASHES,  # the shape layer's own table, shared deliberately -- see its docstring
     BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER,
@@ -721,7 +722,37 @@ def mint_federal_register_document_iri(
       four-digit tail (2010-5997, 2011-237, 2012-00019 among them) when rc16
       widened ``rkaf:us-frdoc``, the bare-legacy numbers when rc17 gave them a
       space, and the 4,400 X numbers when rc18 did;
-    - ``None`` otherwise, which is a refusal and never a repair.
+    - ``None`` otherwise, which is a refusal and never a repair — including
+      for the **five** modern-form numbers a hand-validated collision census
+      names as naming two genuinely different documents (REF-066): checked
+      FIRST, before any shape is even asked, because minting anything for
+      one of these — even the partner hatch — would still be one identifier
+      standing for two documents.
+
+    **Five modern-form numbers refuse absolutely, and two mint exactly as
+    normal, because they name different things (REF-066).** A 2026-09-02
+    full crawl of the published Federal Register found seven modern-form
+    document numbers that each carry two different publication dates —
+    something the modern space, unlike the legacy space above, was never
+    built to expect. Reading the actual documents
+    (``research/evidence/fr-collision-census-2026-09-02/``) separated five
+    genuine collisions (different agencies, different subjects — an EPA
+    notice sharing ``2010-31094`` with an unrelated DOT/FAA rulemaking eleven
+    months later, among them) from two that are one matter published twice,
+    each explicitly a correction of its own document number ("In notice
+    document 2015-17759 … make the following correction"). The five are
+    refused outright by
+    :func:`~hand_validated_interpretations.is_a_refused_federal_register_collision`,
+    consulted before any other check and never hardcoded here: an O(1)
+    membership test against that table's own seven rows for the
+    overwhelming majority of values that are not one of the seven, and only
+    for one that is, the pinned census re-read and that single value's own
+    hand-validated row witnessed. Minting an ordinary number therefore
+    reaches no census file, no witness and no git — it is a pure function
+    of the value in every deployment, which an audit on 2026-09-02 found it
+    briefly was not (REF-066). The two mint ``rkaf:us-frdoc`` exactly as any
+    other modern number would, because one identifier for one matter
+    published twice is correct, not merely tolerated.
 
     ``column_licensed`` is the whole of the two-readers doctrine in this
     module, delegated whole to
@@ -757,6 +788,8 @@ def mint_federal_register_document_iri(
     """
 
     text = _stated(document_number).translate(_DASHES)
+    if is_a_refused_federal_register_collision(text):
+        return None
     if not (
         is_federal_register_document_number(text, column_licensed=column_licensed)
         or _states_a_federal_register_document(text)

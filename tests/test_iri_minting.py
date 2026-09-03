@@ -974,12 +974,18 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
     bare_short_shape = identifier_shapes._FR_BARE_LEGACY_SHORT_TAIL
     modern_short_shape = identifier_shapes._FR_MODERN_SHORT_TAIL
 
+    from refspec.registry import hand_validated_interpretations
+
     #: The seven shapes the leftover refusals really take, measured
     #: 2026-08-31 by ``research/evidence/fr-short-tails-2026-08-31/scratch/
-    #: classify_refused.py``. Every value is classified by exactly one of
+    #: classify_refused.py``, plus the eighth REF-066 opened: the five
+    #: modern-form collision numbers, membership-matched against the
+    #: hand-validated table rather than a shape (there is no shape -- they
+    #: are ordinary-looking modern numbers, refused for what they NAME, not
+    #: how they are spelled). Every value is classified by exactly one of
     #: them -- asserted below rather than arranged by ordering, so the list
     #: is a partition instead of a priority chain.
-    refusal_classes: tuple[tuple[str, re.Pattern[str]], ...] = (
+    refusal_classes: tuple[tuple[str, re.Pattern[str] | frozenset[str]], ...] = (
         ("collision -2 suffix", re.compile(r"\d{2}-\d{3,5}-2")),
         ("short-tail correction", re.compile(r"[Cc]\d-\d{4}-\d{2,4}")),
         ("colophon-fused", re.compile(r".*(?:Filed|Doc)")),
@@ -987,7 +993,11 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
         ("trailing letter", re.compile(r"(?:[A-Za-z]\d|\d{2}|\d{4})-\d+[A-Za-z]")),
         ("not the publisher's number", re.compile(r"\d{2}-S\d+")),
         ("granule293", re.compile(r"granule293")),
+        ("modern-form collision (REF-066)", hand_validated_interpretations.refused_federal_register_document_numbers()),
     )
+
+    def _refusal_class_matches(matcher: re.Pattern[str] | frozenset[str], text: str) -> bool:
+        return matcher.fullmatch(text) is not None if isinstance(matcher, re.Pattern) else text in matcher
 
     values: set[str] = set()
     for batch in pq.ParquetFile(FEDERAL_REGISTER_PARQUET).iter_batches(
@@ -1054,11 +1064,15 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
             census["letter-opening"] += 1
 
     assert census == {
-        # What rulespec can spell: 47.9% of the column, up from 45.0% before
-        # the rc16 widening moved 28,862 documents in from the partner hatch.
-        # Untouched by this cycle -- column licensing moves values between
+        # What rulespec can spell: 47.8% of the column. Down 5 from the
+        # 480,566 REF-054 widening left this at: REF-066's collision census
+        # names five of those five hundred-and-eighty-thousand-odd numbers
+        # as each naming TWO different documents, and mints NONE of them --
+        # not even through the partner hatch, since minting anything for a
+        # collision would still be one identifier standing for two
+        # documents. Column licensing otherwise still moves values between
         # the partner hatch and refused, never into or out of first-class.
-        "first-class": 480_566,
+        "first-class": 480_561,
         # §1.2: identity-less today, and the whole reason for the column
         # license. Unchanged since REF-052: this cycle widens through two new
         # sibling productions, never by rewriting this constant's own shape.
@@ -1080,10 +1094,10 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
         # 24-specimen sample this ruling rests on.
         "short-tail bare-legacy": 1_370,
         "short-tail modern": 286,
-        # Damage, real spellings nobody has ruled on, and one non-identifier:
-        # 0.036% of the column, down from 0.2% before this cycle moved 1,656
-        # short-tail values out. All 360 are partitioned below.
-        "refused": 360,
+        # Damage, real spellings nobody has ruled on, one non-identifier, and
+        # (new, REF-066) five modern-form collisions -- 0.036% of the
+        # column. All 365 are partitioned below.
+        "refused": 365,
     }
     assert sum(census.values()) == len(values)
     # The partner hatch, derived rather than pinned separately.
@@ -1111,7 +1125,7 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
     # thing preventing it. That test states the rule on four hand-picked
     # pairs; this states it on the whole column at once. The column already
     # walked above, so this costs a set() and no second pass.
-    assert len(minted_iris) == 1_003_873
+    assert len(minted_iris) == 1_003_868
     assert len(set(minted_iris)) == len(minted_iris)
 
     # THE REMAINING 360, PARTITIONED EXACTLY -- not summarised. Each class is
@@ -1144,14 +1158,17 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
     #   "[FR Doc. 94-00000 Filed 00-00-94; 8:45 am]". Both spellings are in
     #   this column; "94-00000" mints, this one does not.
     #
-    # None of the seven is ruled on here. REF-054 keeps the 99 short-tail
+    # None of those seven is ruled on here. REF-054 keeps the 99 short-tail
     # corrections refused by name, and the trailing-letter and extra-hyphen
     # families are real-but-unread shapes with their own budget, recorded so
-    # the decision can be made with a number.
+    # the decision can be made with a number. The eighth class IS ruled on,
+    # by REF-066: five modern-form numbers a hand-validated collision census
+    # names as naming two genuinely different documents each, refused
+    # outright rather than laundered into any other bucket.
     refusal_partition = dict.fromkeys((name for name, _ in refusal_classes), 0)
     for value in refused_values:
         text = value.strip()
-        matched = [name for name, pattern in refusal_classes if pattern.fullmatch(text)]
+        matched = [name for name, matcher in refusal_classes if _refusal_class_matches(matcher, text)]
         assert len(matched) == 1, (value, matched)  # a partition, not a chain
         refusal_partition[matched[0]] += 1
     assert refusal_partition == {
@@ -1162,8 +1179,9 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
         "trailing letter": 4,
         "not the publisher's number": 1,
         "granule293": 1,
+        "modern-form collision (REF-066)": 5,
     }
-    assert sum(refusal_partition.values()) == census["refused"] == 360
+    assert sum(refusal_partition.values()) == census["refused"] == 365
 
 
 @pytest.mark.skipif(not AGENDA_RIN_PARQUET.is_file(), reason="the Unified Agenda RIN roster is not built")
@@ -1456,3 +1474,97 @@ def test_the_x_shape_layer_stops_where_the_corpus_does_and_the_space_does_not() 
 
     assert mint_federal_register_document_iri("X26-9991231", column_licensed=True) is None
     assert mint_federal_register_document_iri("X09-101207", column_licensed=True) is not None
+
+
+# --------------------------------------------------------------------------- #
+# The modern-form collision refusal set (REF-066).
+
+
+#: The seven modern-form document numbers a 2026-09-02 full crawl found
+#: naming two documents each -- see
+#: research/evidence/fr-collision-census-2026-09-02/README.md. Five are
+#: genuinely different documents (refused); two are one matter published
+#: twice (mint normally). Both halves are asserted below: a refusal test
+#: alone would let a future reader "helpfully" refuse all seven.
+_FR_COLLISION_REFUSALS = ("2010-31094", "2010-31384", "2010-31396", "2010-31415", "2010-517")
+_FR_COLLISION_MINTS_NORMALLY = ("2015-17759", "2015-25354")
+
+
+def test_the_five_collision_numbers_refuse_and_the_two_still_mint() -> None:
+    """The negative fixture REF-066 demands: not all seven refuse.
+
+    Real values, real hand-validated table, no mocking -- this is the test
+    that would catch a future reader who "simplifies" the check into
+    refusing every number the census names, rather than only the five the
+    census AND the documents themselves say collide.
+    """
+
+    for value in _FR_COLLISION_REFUSALS:
+        assert mint_federal_register_document_iri(value) is None, value
+        assert mint_federal_register_document_iri(value, column_licensed=True) is None, value
+
+    for value in _FR_COLLISION_MINTS_NORMALLY:
+        minted = mint_federal_register_document_iri(value)
+        assert minted is not None, value
+        assert minted.scheme == "rkaf:us-frdoc"
+        assert minted.iri == f"urn:rkaf:us:frdoc:{value}"
+
+
+def test_a_refused_collision_number_never_falls_through_to_the_partner_hatch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The check is unconditional, not merely a guard on ``rkaf:us-frdoc``.
+
+    Minting ANYTHING for a genuine collision -- even the lossless
+    ``rkaf:partner-defined`` escape hatch -- would still be one identifier
+    standing for two documents, so the refusal has to come before every
+    other branch, not just before the first one. Monkeypatched rather than
+    using a real collision number, so this holds regardless of whether the
+    census evidence is committed: it pins the MECHANISM (refuse before
+    shape, refuse before the hatch), not today's seven-member population.
+    """
+
+    from refspec.registry import iri_minting as module
+
+    fake_refused = "1994-99999"  # an otherwise-mintable modern-form number
+    assert mint_federal_register_document_iri(fake_refused, column_licensed=True) is not None
+    monkeypatch.setattr(module, "is_a_refused_federal_register_collision", lambda value: value == fake_refused)
+    assert mint_federal_register_document_iri(fake_refused) is None
+    assert mint_federal_register_document_iri(fake_refused, column_licensed=True) is None
+    # An unrelated value is untouched by the monkeypatched predicate.
+    assert mint_federal_register_document_iri("2024-00366") is not None
+
+
+def test_minting_an_ordinary_number_touches_no_witness_no_census_and_no_git(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An ordinary mint is a pure function of the value, in every deployment.
+
+    ``is_a_refused_federal_register_collision`` is O(1) for the overwhelming
+    majority of values precisely because it never has to look at a witness,
+    a census receipt or a git index for anything that is not one of the
+    seven adjudicated numbers. This proves that from the minter's own side,
+    by making all three explode if they are ever reached: an audit on
+    2026-09-02 found the earlier census-first order raising for
+    ``2024-00366`` from an installed layout, because minting had quietly
+    become repository-dependent (REF-066, and
+    ``hand_validated_interpretations._repository_root_if_present``).
+
+    What this cannot see: whether the collision numbers themselves still
+    refuse -- ``test_the_five_collision_numbers_refuse_and_the_two_still_mint``
+    above is that half, and it is the half that would otherwise be
+    satisfiable by deleting the check.
+    """
+
+    from refspec.registry import hand_validated_interpretations as hvi
+
+    def _explode(*_arguments: object, **_keywords: object) -> object:
+        raise AssertionError("an ordinary document number must reach neither witness, census nor git")
+
+    monkeypatch.setattr(hvi, "_federal_register_collision_row", _explode)
+    monkeypatch.setattr(hvi, "_federal_register_collision_population", _explode)
+    monkeypatch.setattr(hvi, "_repository_root_if_present", _explode)
+    monkeypatch.setattr(hvi, "_git", _explode)
+    assert mint_federal_register_document_iri("2024-00366") is not None
+    assert mint_federal_register_document_iri("E8-24348") is not None
+    assert mint_federal_register_document_iri("93-54", column_licensed=True) is not None
