@@ -10,6 +10,7 @@ the path helper that matches their package contract.
 from __future__ import annotations
 
 import hashlib
+import re
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, Literal
@@ -105,3 +106,37 @@ __all__ = [
     "sha256_digest",
     "source_artifact_path",
 ]
+
+#: What a sealed artifact must never contain. Ported from `usc_act_index.py`,
+#: where it guarded every row table and the receipt before either was written.
+#: It lives here because a seal invariant with one copy per builder is an
+#: invariant only until the next port forgets it -- which is exactly what
+#: happened on 2026-08-31, when `build_usc_source_credits.py` and
+#: `build_usc_popular_names.py` were ported without it and sealed without a
+#: scan for four days.
+SECRET_LIKE = re.compile(r"\b(?:sk-(?:proj-)?[A-Za-z0-9_-]{20,}|api[_-]?key=[^\s&]{8,})\b", re.IGNORECASE)
+
+
+def scan_for_secrets(rows: Sequence[Mapping[str, Any]], where: str) -> None:
+    """Refuse to seal any row carrying a secret-like value.
+
+    Raises ``SystemExit`` naming the table and column, because a build that
+    would seal a credential must stop rather than report and continue.
+    """
+
+    for row in rows:
+        for key, value in row.items():
+            if value is not None and SECRET_LIKE.search(str(value)):
+                raise SystemExit(f"refusing to seal a secret-like value in {where}.{key}")
+
+
+def scan_text_for_secrets(text: str, where: str) -> None:
+    """The same refusal for serialized text -- a receipt, a manifest.
+
+    Separate from :func:`scan_for_secrets` because a receipt is scanned AFTER
+    canonicalization: a value assembled from parts is only visible as a secret
+    once it is one string.
+    """
+
+    if SECRET_LIKE.search(text):
+        raise SystemExit(f"refusing to seal a secret-like value in {where}")

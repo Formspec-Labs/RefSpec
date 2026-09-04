@@ -72,7 +72,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, BinaryIO
 
-from refspec.registry.infrastructure.artifact_serialization import file_sha256
+from refspec.registry.infrastructure.artifact_serialization import file_sha256, scan_for_secrets, scan_text_for_secrets
 from refspec.storage import canonical_json
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -159,7 +159,6 @@ _ACT_CLOSE = b"</act>"
 
 #: A build must not seal a secret. The scan is over what is written, not what
 #: was read, so a credential in an environment variable cannot reach the file.
-_SECRET_LIKE = re.compile(r"\b(?:sk-(?:proj-)?[A-Za-z0-9_-]{20,}|api[_-]?key=[^\s&]{8,})\b", re.IGNORECASE)
 
 #: Everything the reader sees on an ``<act>`` or a ``<record>`` that the sealed
 #: columns have nowhere to put. Named here, counted in the receipt: "the schema
@@ -333,13 +332,6 @@ def _write_parquet(path: Path, columns: tuple[str, ...], rows: list[dict[str, An
         {c: pa.array([None if r.get(c) is None else str(r[c]) for r in ordered], pa.string()) for c in columns}
     )
     pq.write_table(table, path, compression="zstd", sorting_columns=None)
-
-
-def _scan_for_secrets(rows: list[dict[str, Any]], where: str) -> None:
-    for row in rows:
-        for key, value in row.items():
-            if value is not None and _SECRET_LIKE.search(str(value)):
-                raise SystemExit(f"refusing to seal a secret-like value in {where}.{key}")
 
 
 def verify_source(zip_path: Path) -> list[str]:
@@ -532,8 +524,8 @@ def build(
     # normalized one ActIndex now keys by.
     index_keys = {row["table3_key"] for row in name_rows if row["content_type"] == "cite" and row["table3_key"]}
 
-    _scan_for_secrets(section_rows, "usc-act-sections")
-    _scan_for_secrets(quarantine, "quarantine")
+    scan_for_secrets(section_rows, "usc-act-sections")
+    scan_for_secrets(quarantine, "quarantine")
 
     names_path = output_dir / "usc-popular-names.parquet"
     sections_path = output_dir / "usc-act-sections.parquet"
@@ -680,8 +672,7 @@ def build(
     if compare_with is not None:
         receipt["reproduction"] = _compare_with(compare_with, section_rows)
     receipt_text = canonical_json(receipt)
-    if _SECRET_LIKE.search(receipt_text):
-        raise SystemExit("refusing to seal a secret-like value in receipt.json")
+    scan_text_for_secrets(receipt_text, "receipt.json")
     (output_dir / "receipt.json").write_text(receipt_text, encoding="utf-8")
     return receipt
 

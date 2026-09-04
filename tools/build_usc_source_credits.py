@@ -85,7 +85,11 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from refspec.registry.infrastructure.artifact_serialization import file_sha256
+from refspec.registry.infrastructure.artifact_serialization import (
+    file_sha256,
+    scan_for_secrets,
+    scan_text_for_secrets,
+)
 from refspec.storage import canonical_json
 
 #: The whole Code for one release point, one zip. There is no per-section
@@ -446,6 +450,12 @@ def canonical_key(row: dict[str, Any], columns: tuple[str, ...] = CREDIT_COLUMNS
 
 def write_parquet(path: Path, columns: tuple[str, ...], rows: list[dict[str, Any]]) -> None:
     """Write VARCHAR columns in a fixed order, sorted, so bytes are stable."""
+
+    # Every row table this builder seals passes through here, so the seal
+    # invariant lives at the choke point rather than at each call site --
+    # a later table added without a scan is then impossible rather than
+    # merely unlikely.
+    scan_for_secrets(rows, path.stem)
     ordered = sorted(rows, key=lambda row: canonical_key(row, columns))
     table = pa.table(
         {c: pa.array([None if r.get(c) is None else str(r[c]) for r in ordered], pa.string()) for c in columns}
@@ -571,7 +581,12 @@ def build(output_dir: Path, *, archive: Path, release_point: str) -> dict:
             for path in (credits_path, quarantine_path)
         },
     }
-    (output_dir / "receipt.json").write_text(canonical_json(receipt), encoding="utf-8")
+    # The seal invariant this builder was ported without on 2026-08-31: a
+    # receipt is scanned AFTER canonicalization, because a value assembled
+    # from parts is only visible as a secret once it is one string.
+    receipt_text = canonical_json(receipt)
+    scan_text_for_secrets(receipt_text, f"{output_dir.name}/receipt.json")
+    (output_dir / "receipt.json").write_text(receipt_text, encoding="utf-8")
     return receipt
 
 
