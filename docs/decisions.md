@@ -4901,6 +4901,57 @@ layer up, and
 carries the reasoning so the next reader does not close the gap in whichever
 direction they happen to be standing in.
 
+### REF-068: the Rulespec pin names a public tag, and posture does not move with a version
+
+- **Date:** 2026-09-04
+- **Status:** Accepted. Landed in `b4fba5d8`. Moves
+  `profiles/rulespec-dependency.json`, `pyproject.toml`, both vendored wheels
+  and `RULESPEC_DEPENDENCY_SHA256`. No schema version moves.
+
+rulespec published `v0.2.0-pre.18` (`a519d06b`) on 2026-09-04, its first tag
+since `v0.2.0-pre.7` left 114 commits behind it. Until then RefSpec ran a
+hand-built rc18 wheel that no tag named, and that is the mechanism worth
+recording rather than the bump: **with nothing public to check against, the
+profile claimed `0.2.0-pre.9` for nine pre-releases and every digest in the
+verification loop was computed over the pin file itself.** The pin was
+tamper-evident throughout and never once true. A check reporting agreement
+with itself reads exactly like a passing check.
+
+The wheel is now rebuilt from the tag and verified (`ed11ab4a…`) rather than
+copied, so the vendored bytes trace to a public ref instead of to a checkout.
+rc18 moved `rulespec-artifacts` from `==1.0.9` to `>=1.0.11`, so 1.0.11 is
+vendored too — copied from DocSpec rather than rebuilt, so RefSpec, DocSpec and
+SpicySearch carry byte-identical artifacts.
+
+**Two judgements in that seal, recorded because both are the kind of thing a
+later reader reverses without knowing there was a reason.**
+
+**`validator.identity` moved with the version, and had to.** It spelled
+`0.2.0-pre.9` TWICE beside a `rulespecVersion` that was equally stale, because
+`release_graph` validates that string's SHAPE — that the three component names
+are present — and never its version. Two stale fields agreeing is not
+corroboration; it is the same silence twice. Both now carry the tag's version
+and a test asserts they cannot diverge.
+
+**`releaseAvailability` and `productionConformanceEligible` did NOT move, and
+that is deliberate.** A tag exists now, so `localUnpublished` is arguably
+stale. But `releaseAvailability` flows into published release-graph and
+managed-release artifacts, and `productionConformanceEligible` is a claim about
+RefSpec's conformance POSTURE rather than a fact about which version is
+installed. Version bumps are mechanical; posture is a decision with an owner,
+and the two must not ride together. `test_the_profile_still_states_what_it_does
+_not_claim` fails if either moves, so making that decision stays deliberate
+rather than becoming a side effect of the next bump.
+
+The drift check that carried this fix is `tests/test_rulespec_dependency_pin_drift.py`.
+It landed in `f75b4c86` as a **strict xfail** rather than a red test, so the
+sealed fix could ride this seal without spending the suite's signal in the
+meantime; when the pin moved it failed "unexpectedly passing" and forced its
+own marker's deletion in the same commit as the fix. That property — the record
+cannot drift from the code because fixing one breaks the other — is why a
+strict xfail is preferred here to a deliberate red, and REF-067 is the record
+of what a deliberate red cost.
+
 ### REF-067: a producer module refuses before a table is written, and a commit sha rides beside the digests it cannot replace
 
 - **Date:** 2026-09-02
