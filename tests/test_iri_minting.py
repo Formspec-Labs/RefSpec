@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
@@ -638,17 +639,26 @@ def test_the_four_letter_opening_families_need_the_column_license_too() -> None:
 
     Unlicensed, every specimen below is exactly as unread as
     ``test_the_letter_opening_forms_keep_the_identity_the_shape_layer_reads``
-    already proved for two of them; licensed, all four mint through the
-    partner hatch, the same escape hatch the pre-existing correction,
-    republication and legacy forms already use.
+    already proved for two of them. Licensed, THREE of the four still mint
+    through the partner hatch; the X family left it at rulespec 0.2.0rc18,
+    which gave it a space of its own (REF-065), and that departure is the
+    whole delivery of that bump rather than a change in this fence. The column
+    license is what the four still share, and it is what this test pins.
     """
 
-    for value in ("E9-654", "Z9-9", "X10-11220", "X09-101207", "E3-2013-2261"):
+    for value in ("E9-654", "Z9-9", "E3-2013-2261"):
         assert mint_federal_register_document_iri(value) is None, value
         licensed = mint_federal_register_document_iri(value, column_licensed=True)
         assert licensed is not None, value
         assert licensed.scheme == "rkaf:partner-defined", value
         assert licensed.iri == f"urn:rkaf:partner:{PARTNER_NAMESPACE}:frdoc:{value}", value
+
+    # X still needs the license -- a date-free letter form is no more readable
+    # in prose than a bare legacy number -- but it now lands in its own space.
+    for value in ("X10-11220", "X09-101207"):
+        assert mint_federal_register_document_iri(value) is None, value
+        licensed = mint_federal_register_document_iri(value, column_licensed=True)
+        assert licensed is not None and licensed.scheme == "rkaf:us-frdoc-x", value
 
     # The 99 short-tail corrections and the fused-colophon values REF-054
     # keeps refused stay refused, licensed or not -- the four families do not
@@ -964,12 +974,18 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
     bare_short_shape = identifier_shapes._FR_BARE_LEGACY_SHORT_TAIL
     modern_short_shape = identifier_shapes._FR_MODERN_SHORT_TAIL
 
+    from refspec.registry import hand_validated_interpretations
+
     #: The seven shapes the leftover refusals really take, measured
     #: 2026-08-31 by ``research/evidence/fr-short-tails-2026-08-31/scratch/
-    #: classify_refused.py``. Every value is classified by exactly one of
+    #: classify_refused.py``, plus the eighth REF-066 opened: the five
+    #: modern-form collision numbers, membership-matched against the
+    #: hand-validated table rather than a shape (there is no shape -- they
+    #: are ordinary-looking modern numbers, refused for what they NAME, not
+    #: how they are spelled). Every value is classified by exactly one of
     #: them -- asserted below rather than arranged by ordering, so the list
     #: is a partition instead of a priority chain.
-    refusal_classes: tuple[tuple[str, re.Pattern[str]], ...] = (
+    refusal_classes: tuple[tuple[str, re.Pattern[str] | frozenset[str]], ...] = (
         ("collision -2 suffix", re.compile(r"\d{2}-\d{3,5}-2")),
         ("short-tail correction", re.compile(r"[Cc]\d-\d{4}-\d{2,4}")),
         ("colophon-fused", re.compile(r".*(?:Filed|Doc)")),
@@ -977,7 +993,11 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
         ("trailing letter", re.compile(r"(?:[A-Za-z]\d|\d{2}|\d{4})-\d+[A-Za-z]")),
         ("not the publisher's number", re.compile(r"\d{2}-S\d+")),
         ("granule293", re.compile(r"granule293")),
+        ("modern-form collision (REF-066)", hand_validated_interpretations.refused_federal_register_document_numbers()),
     )
+
+    def _refusal_class_matches(matcher: re.Pattern[str] | frozenset[str], text: str) -> bool:
+        return matcher.fullmatch(text) is not None if isinstance(matcher, re.Pattern) else text in matcher
 
     values: set[str] = set()
     for batch in pq.ParquetFile(FEDERAL_REGISTER_PARQUET).iter_batches(
@@ -1044,11 +1064,15 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
             census["letter-opening"] += 1
 
     assert census == {
-        # What rulespec can spell: 47.9% of the column, up from 45.0% before
-        # the rc16 widening moved 28,862 documents in from the partner hatch.
-        # Untouched by this cycle -- column licensing moves values between
+        # What rulespec can spell: 47.8% of the column. Down 5 from the
+        # 480,566 REF-054 widening left this at: REF-066's collision census
+        # names five of those five hundred-and-eighty-thousand-odd numbers
+        # as each naming TWO different documents, and mints NONE of them --
+        # not even through the partner hatch, since minting anything for a
+        # collision would still be one identifier standing for two
+        # documents. Column licensing otherwise still moves values between
         # the partner hatch and refused, never into or out of first-class.
-        "first-class": 480_566,
+        "first-class": 480_561,
         # §1.2: identity-less today, and the whole reason for the column
         # license. Unchanged since REF-052: this cycle widens through two new
         # sibling productions, never by rewriting this constant's own shape.
@@ -1070,10 +1094,10 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
         # 24-specimen sample this ruling rests on.
         "short-tail bare-legacy": 1_370,
         "short-tail modern": 286,
-        # Damage, real spellings nobody has ruled on, and one non-identifier:
-        # 0.036% of the column, down from 0.2% before this cycle moved 1,656
-        # short-tail values out. All 360 are partitioned below.
-        "refused": 360,
+        # Damage, real spellings nobody has ruled on, one non-identifier, and
+        # (new, REF-066) five modern-form collisions -- 0.036% of the
+        # column. All 365 are partitioned below.
+        "refused": 365,
     }
     assert sum(census.values()) == len(values)
     # The partner hatch, derived rather than pinned separately.
@@ -1101,7 +1125,7 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
     # thing preventing it. That test states the rule on four hand-picked
     # pairs; this states it on the whole column at once. The column already
     # walked above, so this costs a set() and no second pass.
-    assert len(minted_iris) == 1_003_873
+    assert len(minted_iris) == 1_003_868
     assert len(set(minted_iris)) == len(minted_iris)
 
     # THE REMAINING 360, PARTITIONED EXACTLY -- not summarised. Each class is
@@ -1134,14 +1158,17 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
     #   "[FR Doc. 94-00000 Filed 00-00-94; 8:45 am]". Both spellings are in
     #   this column; "94-00000" mints, this one does not.
     #
-    # None of the seven is ruled on here. REF-054 keeps the 99 short-tail
+    # None of those seven is ruled on here. REF-054 keeps the 99 short-tail
     # corrections refused by name, and the trailing-letter and extra-hyphen
     # families are real-but-unread shapes with their own budget, recorded so
-    # the decision can be made with a number.
+    # the decision can be made with a number. The eighth class IS ruled on,
+    # by REF-066: five modern-form numbers a hand-validated collision census
+    # names as naming two genuinely different documents each, refused
+    # outright rather than laundered into any other bucket.
     refusal_partition = dict.fromkeys((name for name, _ in refusal_classes), 0)
     for value in refused_values:
         text = value.strip()
-        matched = [name for name, pattern in refusal_classes if pattern.fullmatch(text)]
+        matched = [name for name, matcher in refusal_classes if _refusal_class_matches(matcher, text)]
         assert len(matched) == 1, (value, matched)  # a partition, not a chain
         refusal_partition[matched[0]] += 1
     assert refusal_partition == {
@@ -1152,8 +1179,9 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
         "trailing letter": 4,
         "not the publisher's number": 1,
         "granule293": 1,
+        "modern-form collision (REF-066)": 5,
     }
-    assert sum(refusal_partition.values()) == census["refused"] == 360
+    assert sum(refusal_partition.values()) == census["refused"] == 365
 
 
 @pytest.mark.skipif(not AGENDA_RIN_PARQUET.is_file(), reason="the Unified Agenda RIN roster is not built")
@@ -1201,3 +1229,342 @@ def test_every_docket_the_column_states_mints_or_refuses_cleanly() -> None:
         minted = mint_regulations_gov_docket_iri(reference)
         assert (docket is None) == (minted is None), reference
         assert docket is None or minted.iri == f"urn:rkaf:us:regsgov:{docket}", reference
+
+
+# --------------------------------------------------------------------------- #
+# The date-qualified legacy space (rulespec 0.2.0rc17, REF-064).
+
+
+def test_a_dated_legacy_number_mints_the_qualified_space() -> None:
+    """The whole delivery of rc17: 394,128 values stop taking the hatch.
+
+    The identity carries the publication date because rulespec's space does,
+    and it does because the bare number does not identify a document -- see
+    the collision fixture below. The spelling is rulespec's own fixture form
+    (``artifact-us-frdoc-legacy-tail-1-positive.jsonld`` states
+    ``urn:rkaf:us:frdoc-legacy:00-1:2000-01-20`` for the pinned corpus row
+    document_number=00-1, publication_date=2000-01-20).
+    """
+
+    minted = mint_federal_register_document_iri(
+        "00-1", column_licensed=True, publication_date="2000-01-20"
+    )
+    assert minted is not None
+    assert minted.scheme == "rkaf:us-frdoc-legacy"
+    assert minted.iri == "urn:rkaf:us:frdoc-legacy:00-1:2000-01-20"
+
+    # A date object and the date32 a PyArrow column yields spell the same day.
+    assert mint_federal_register_document_iri(
+        "00-1", column_licensed=True, publication_date=date(2000, 1, 20)
+    ) == minted
+
+    # Every tail width rulespec's space admits, one to six digits.
+    for value, day in (("09-19806", "2009-08-19"), ("94-10503", "1994-05-03")):
+        one = mint_federal_register_document_iri(
+            value, column_licensed=True, publication_date=day
+        )
+        assert one is not None and one.scheme == "rkaf:us-frdoc-legacy", value
+        assert one.iri == f"urn:rkaf:us:frdoc-legacy:{value}:{day}", value
+
+
+def test_the_same_legacy_number_on_two_days_is_two_identities() -> None:
+    """NEGATIVE FIXTURE, and the reason the space is qualified at all.
+
+    ``00-111`` names two different documents; the Federal Register API and the
+    pinned corpus each kept a different one, which is why a within-corpus
+    collision count could report zero while the world held two. Undated, both
+    would mint the same partner identity and one document would silently
+    become the other. Dated, they are two identities, which is the fix.
+    """
+
+    first = mint_federal_register_document_iri(
+        "00-111", column_licensed=True, publication_date="2000-01-03"
+    )
+    second = mint_federal_register_document_iri(
+        "00-111", column_licensed=True, publication_date="2000-06-15"
+    )
+    assert first is not None and second is not None
+    assert first.iri != second.iri
+    assert first.scheme == second.scheme == "rkaf:us-frdoc-legacy"
+
+
+def test_an_undated_legacy_number_keeps_the_hatch_and_never_half_qualifies() -> None:
+    """NEGATIVE FIXTURE: no date, no qualified identity -- and no invention.
+
+    A caller who cannot state the day gets exactly what it got before rc17,
+    the partner hatch, rather than an identity whose date slot was guessed
+    from the number's own year prefix. That guess is measurably wrong 1,661
+    times; see the minter's docstring.
+    """
+
+    undated = mint_federal_register_document_iri("09-19806", column_licensed=True)
+    assert undated is not None
+    assert undated.scheme == "rkaf:partner-defined"
+    assert undated.iri == "urn:rkaf:partner:refspec:frdoc:09-19806"
+
+    # The column license still governs: a date does not admit a value the
+    # prose reader refuses, because the date is not a license.
+    assert mint_federal_register_document_iri("09-19806", publication_date="2009-08-19") is None
+
+
+def test_a_year_prefix_that_disagrees_with_its_date_still_mints() -> None:
+    """The measured refusal to fence: 1,661 real documents disagree.
+
+    A legacy number's leading two digits usually restate its publication year,
+    and fencing on the disagreement is the obvious next thought. 07-6308 was
+    published 2008-01-15 -- a December number printed in January -- and it is
+    one of 1,661 (0.42% of 395,498) that spill across the year boundary. The
+    prefix is a spelling; the date is the caller's fact.
+    """
+
+    spilled = mint_federal_register_document_iri(
+        "07-6308", column_licensed=True, publication_date="2008-01-15"
+    )
+    assert spilled is not None
+    assert spilled.iri == "urn:rkaf:us:frdoc-legacy:07-6308:2008-01-15"
+
+
+def test_a_publication_date_that_is_not_a_day_is_loud() -> None:
+    """NEGATIVE FIXTURE: a caller's broken assertion raises, never downgrades.
+
+    Data gets a refusal (``None``); a caller who passes a non-date has stated
+    a fact that is not one, and silently falling back to the hatch would
+    publish an identity missing the qualifier the caller believed it supplied.
+    A datetime is refused too rather than truncated to its day.
+    """
+
+    for bad in ("not a date", "2009-13-45", "2009-08", "August 19, 2009", ""):
+        with pytest.raises(ValueError, match="does not state a day"):
+            mint_federal_register_document_iri("09-19806", column_licensed=True, publication_date=bad)
+
+    # But a real day in ISO's compact spelling is a real day, and it mints the
+    # SAME identity as the extended one. Deliberate, and the same doctrine as
+    # the padding rule above: a spelling variant of one fact must not become a
+    # second identifier.
+    assert mint_federal_register_document_iri(
+        "09-19806", column_licensed=True, publication_date="20090819"
+    ) == mint_federal_register_document_iri(
+        "09-19806", column_licensed=True, publication_date="2009-08-19"
+    )
+
+    with pytest.raises(ValueError, match="not an instant"):
+        mint_federal_register_document_iri(
+            "09-19806", column_licensed=True, publication_date=datetime(2009, 8, 19, 13, 45, tzinfo=UTC)
+        )
+
+
+def test_the_modern_space_is_untouched_by_a_date() -> None:
+    """A date changes nothing for a value rulespec can already spell.
+
+    ``rkaf:us-frdoc`` is tried first and answers whole, so a caller passing a
+    date for a modern number gets the same identity it always got -- the
+    legacy branch is unreachable for it, and no modern identity gains a
+    qualifier it never had.
+    """
+
+    assert mint_federal_register_document_iri(
+        "2024-00366", publication_date="2024-03-08"
+    ) == mint_federal_register_document_iri("2024-00366")
+
+
+# --------------------------------------------------------------------------- #
+# The self-dating X space (rulespec 0.2.0rc18, REF-065).
+
+
+def test_an_x_number_mints_without_a_date_because_it_carries_one() -> None:
+    """The X family needs no qualifier: the number states its own day.
+
+    Read right-anchored -- last four digits are the month and day, everything
+    before them is the sequence -- the encoding agrees with publication_date on
+    4,400 of 4,400 corpus rows. So unlike the legacy form, the bare number
+    identifies the document, and no date is asked for.
+    """
+
+    five = mint_federal_register_document_iri("X94-10503", column_licensed=True)
+    assert five is not None
+    assert five.scheme == "rkaf:us-frdoc-x"
+    assert five.iri == "urn:rkaf:us:frdoc-x:X94-10503"
+
+    # The six-digit tail a fixed-width space would have stranded: 206 real
+    # documents, of which this is one (74 FR 64213, 2009-12-07, the DHS
+    # Statement of Regulatory Priorities). Sequence 10, not sequence 1.
+    six = mint_federal_register_document_iri("X09-101207", column_licensed=True)
+    assert six is not None and six.scheme == "rkaf:us-frdoc-x"
+    assert six.iri == "urn:rkaf:us:frdoc-x:X09-101207"
+
+
+def test_an_x_number_and_its_bare_twin_are_different_identities() -> None:
+    """The prefix is part of the identity, and 54.1% of X numbers need it.
+
+    2,382 of the 4,400 X numbers have a bare twin in the corpus, and the pair
+    are different documents: X94-10503 is a 44,932-byte Semiannual Regulatory
+    Agenda correction (Part VIII, Department of Agriculture), while 94-10503 is
+    the 14,678-byte GE CF6 airworthiness NPRM, Docket 94-ANE-11 -- same
+    publication date, read from their own bodies. Stripping the prefix would
+    merge two publications into one identity.
+    """
+
+    x = mint_federal_register_document_iri("X94-10503", column_licensed=True)
+    bare = mint_federal_register_document_iri(
+        "94-10503", column_licensed=True, publication_date="1994-05-03"
+    )
+    assert x is not None and bare is not None
+    assert x.iri != bare.iri
+    assert x.scheme == "rkaf:us-frdoc-x"
+    assert bare.scheme == "rkaf:us-frdoc-legacy"
+
+
+def test_an_x_number_whose_own_day_contradicts_the_caller_is_loud() -> None:
+    """NEGATIVE FIXTURE: the self-dating property, made load-bearing.
+
+    A date is never part of an X identity, so stating one is optional -- but
+    stating a WRONG one is a detectable defect rather than an ambiguity,
+    because the number carries the answer. Across the corpus the two never
+    disagree, so a disagreement means either a caller pairing the wrong date
+    with the number or a publisher row whose own two statements diverge.
+    Minting quietly would hide both.
+    """
+
+    assert (
+        mint_federal_register_document_iri(
+            "X94-10503", column_licensed=True, publication_date="1994-05-03"
+        )
+        == mint_federal_register_document_iri("X94-10503", column_licensed=True)
+    )
+
+    for wrong in ("1994-05-04", "1994-06-03", "1995-05-03"):
+        with pytest.raises(ValueError, match="carries its own publication date"):
+            mint_federal_register_document_iri(
+                "X94-10503", column_licensed=True, publication_date=wrong
+            )
+
+
+def test_the_x_shape_layer_stops_where_the_corpus_does_and_the_space_does_not() -> None:
+    """A DELIBERATE gap between two bounds, and closing it either way is wrong.
+
+    rulespec's space admits a seven-digit tail as CAPACITY (its own fixture
+    ``X26-9991231`` exercises it). This repository's shape layer stops at six,
+    which is what the corpus contains. That is not a mismatch to reconcile:
+    **the two layers have opposite failure costs**, so they are bounded by
+    different things on purpose (ruled 2026-09-02, rulespec side).
+
+    A LEXICAL SPACE answers "is this string a well-formed identifier?" Its
+    failure mode is refusing a real identifier the publisher issued -- silent
+    data loss, discovered only when someone cannot cite a document, and
+    unrecoverable without a contract change. So it is bounded by CAPACITY and
+    never fitted to observed data: hence ``{5,7}``, and hence the capacity
+    fixture that exercises headroom no document has reached.
+
+    A SHAPE LAYER answers "does this string, found in data, look like an X
+    number?" Its failure mode is a FALSE POSITIVE -- a wrong identity, which is
+    worse than a refusal because it is silent and propagates into joins. So it
+    is bounded by MEASUREMENT: ``_FR_TWO_DIGIT_PREFIX`` and
+    ``_FR_SIX_DIGIT_TAIL`` are measured lines serving every letter family (E,
+    C, R and Z as well as X), and widening them on speculation would admit
+    unseen shapes for all of them to buy a shape none has.
+
+    The consequence lands in the safe direction, which is what settles it: a
+    seven-digit X, if ever published, is SPELLABLE BUT NOT AUTO-DETECTED. A
+    caller that knows what it holds can mint it under the column license; a
+    detector that does not know refuses, and the refusal is counted. A refusal
+    that appears in a census beats a wrong mint that does not. It is REF-052's
+    prose-reader/column-reader split -- "the column is the license" -- applied
+    one layer up.
+    """
+
+    assert mint_federal_register_document_iri("X26-9991231", column_licensed=True) is None
+    assert mint_federal_register_document_iri("X09-101207", column_licensed=True) is not None
+
+
+# --------------------------------------------------------------------------- #
+# The modern-form collision refusal set (REF-066).
+
+
+#: The seven modern-form document numbers a 2026-09-02 full crawl found
+#: naming two documents each -- see
+#: research/evidence/fr-collision-census-2026-09-02/README.md. Five are
+#: genuinely different documents (refused); two are one matter published
+#: twice (mint normally). Both halves are asserted below: a refusal test
+#: alone would let a future reader "helpfully" refuse all seven.
+_FR_COLLISION_REFUSALS = ("2010-31094", "2010-31384", "2010-31396", "2010-31415", "2010-517")
+_FR_COLLISION_MINTS_NORMALLY = ("2015-17759", "2015-25354")
+
+
+def test_the_five_collision_numbers_refuse_and_the_two_still_mint() -> None:
+    """The negative fixture REF-066 demands: not all seven refuse.
+
+    Real values, real hand-validated table, no mocking -- this is the test
+    that would catch a future reader who "simplifies" the check into
+    refusing every number the census names, rather than only the five the
+    census AND the documents themselves say collide.
+    """
+
+    for value in _FR_COLLISION_REFUSALS:
+        assert mint_federal_register_document_iri(value) is None, value
+        assert mint_federal_register_document_iri(value, column_licensed=True) is None, value
+
+    for value in _FR_COLLISION_MINTS_NORMALLY:
+        minted = mint_federal_register_document_iri(value)
+        assert minted is not None, value
+        assert minted.scheme == "rkaf:us-frdoc"
+        assert minted.iri == f"urn:rkaf:us:frdoc:{value}"
+
+
+def test_a_refused_collision_number_never_falls_through_to_the_partner_hatch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The check is unconditional, not merely a guard on ``rkaf:us-frdoc``.
+
+    Minting ANYTHING for a genuine collision -- even the lossless
+    ``rkaf:partner-defined`` escape hatch -- would still be one identifier
+    standing for two documents, so the refusal has to come before every
+    other branch, not just before the first one. Monkeypatched rather than
+    using a real collision number, so this holds regardless of whether the
+    census evidence is committed: it pins the MECHANISM (refuse before
+    shape, refuse before the hatch), not today's seven-member population.
+    """
+
+    from refspec.registry import iri_minting as module
+
+    fake_refused = "1994-99999"  # an otherwise-mintable modern-form number
+    assert mint_federal_register_document_iri(fake_refused, column_licensed=True) is not None
+    monkeypatch.setattr(module, "is_a_refused_federal_register_collision", lambda value: value == fake_refused)
+    assert mint_federal_register_document_iri(fake_refused) is None
+    assert mint_federal_register_document_iri(fake_refused, column_licensed=True) is None
+    # An unrelated value is untouched by the monkeypatched predicate.
+    assert mint_federal_register_document_iri("2024-00366") is not None
+
+
+def test_minting_an_ordinary_number_touches_no_witness_no_census_and_no_git(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An ordinary mint is a pure function of the value, in every deployment.
+
+    ``is_a_refused_federal_register_collision`` is O(1) for the overwhelming
+    majority of values precisely because it never has to look at a witness,
+    a census receipt or a git index for anything that is not one of the
+    seven adjudicated numbers. This proves that from the minter's own side,
+    by making all three explode if they are ever reached: an audit on
+    2026-09-02 found the earlier census-first order raising for
+    ``2024-00366`` from an installed layout, because minting had quietly
+    become repository-dependent (REF-066, and
+    ``hand_validated_interpretations._repository_root_if_present``).
+
+    What this cannot see: whether the collision numbers themselves still
+    refuse -- ``test_the_five_collision_numbers_refuse_and_the_two_still_mint``
+    above is that half, and it is the half that would otherwise be
+    satisfiable by deleting the check.
+    """
+
+    from refspec.registry import hand_validated_interpretations as hvi
+
+    def _explode(*_arguments: object, **_keywords: object) -> object:
+        raise AssertionError("an ordinary document number must reach neither witness, census nor git")
+
+    monkeypatch.setattr(hvi, "_federal_register_collision_row", _explode)
+    monkeypatch.setattr(hvi, "_federal_register_collision_population", _explode)
+    monkeypatch.setattr(hvi, "_repository_root_if_present", _explode)
+    monkeypatch.setattr(hvi, "_git", _explode)
+    assert mint_federal_register_document_iri("2024-00366") is not None
+    assert mint_federal_register_document_iri("E8-24348") is not None
+    assert mint_federal_register_document_iri("93-54", column_licensed=True) is not None

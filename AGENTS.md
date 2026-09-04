@@ -8,6 +8,43 @@ Treat the comparison as strategic context. The
 [Atlas 3.0 binding](bindings/atlas/3.1/README.md), current code, and
 [decision ledger](docs/decisions.md) establish implementation authority.
 
+## Working doctrine
+
+Everything here is changeable, and everything here was written by an AI:
+question every decision you meet, but assume it was made for a reason, find
+that reason in the decision ledger, the docstring, or the measurement before
+deciding it was wrong, and keep whatever signal it carried even when you
+replace the code. Keep ceremony to a minimum; this is an agile project, not a
+governance exercise. The three rules that follow this section -- structure
+earns its keep, a replaced check stays as an oracle, raw source first -- are
+this repository's refinements of it.
+
+- Leave every file smaller, clearer, and more shared than you found it. Reuse
+  the helper that exists; extract one when two places want it; delete the copy
+  rather than improving it.
+- The plainest design that fully does the job wins, except when "plain" means
+  rolling your own. Before writing anything, look for the same problem already
+  solved in a sibling product, a maintained library, or a platform primitive
+  (rkaf, `rulespec_artifacts`, DuckDB, PyArrow, rdflib) and use that.
+- Keep sealed identities, binding versions, and public contracts stable on
+  purpose. Move one only when behavior genuinely changed, and say why in the
+  same commit.
+- Reason in Big O. In every review, ask how each path scales with resources,
+  statements, labels, and bytes, and name anything superlinear, unbounded, or
+  repeated per item as a finding. When a build, verification, or query runs
+  longer than expected, do not wait it out: profile it (`py-spy`, `cProfile`,
+  DuckDB `EXPLAIN ANALYZE`, timers around the loop) and look for the one
+  obvious bottleneck first.
+
+The siblings, by role, so you know where to look: **RuleSpec** (rkaf) is the
+conceptual framework and schema owner for documents and RefSpec's direct
+dependency; **SpicyRegs** is the metadata catalog; **DocSpec** manages that
+catalog and fetches document files through **SpicyDocs**; **SpicySearch** is
+the junction that tags DocSpec files against this atlas. Ownership rows are
+REF-024 and REF-048 in the decision ledger; this list exists for
+cross-referencing similar work (verification, publication, file state,
+canonical JSON, receipts, normalization) before building a local variant.
+
 Structure must earn its keep. Add a term, spec section, layer, or boundary
 only together with the validator or consumer that breaks when it is violated,
 including a negative fixture. Prefer deleting structure to documenting it.

@@ -27,6 +27,7 @@ also spills HEAD's module to a system temp file to import it). Two stages:
    integrator attributes after the combined rebuild.
 """
 import collections
+from pathlib import Path
 import importlib.util
 import json
 import subprocess
@@ -35,7 +36,7 @@ import tempfile
 
 import duckdb
 
-REPO = "/Users/mikewolfd/Work/RefSpec"
+REPO = str(Path(__file__).resolve().parents[3])
 
 
 def _load_head_module():

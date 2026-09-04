@@ -25,11 +25,12 @@ secretly "old").
 """
 import importlib.util
 import json
+from pathlib import Path
 import subprocess
 import sys
 import tempfile
 
-REPO = "/Users/mikewolfd/Work/RefSpec"
+REPO = str(Path(__file__).resolve().parents[3])
 
 # NEW first, while sys.modules still holds the real (fixed) package.
 from refspec.registry.cfr_authority_notes import CfrAuthorityNotes as NewCfrAuthorityNotes  # noqa: E402

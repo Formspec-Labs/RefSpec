@@ -14,12 +14,13 @@ Confirms two things this lane's report claims:
 """
 import importlib.util
 import subprocess
+from pathlib import Path
 import sys
 import tempfile
 
 import duckdb
 
-REPO = "/Users/mikewolfd/Work/RefSpec"
+REPO = str(Path(__file__).resolve().parents[3])
 ART = "output/registry-real-data-sources/unified-agenda-parquet/unified_agenda_legal_authorities.parquet"
 
 

@@ -693,6 +693,92 @@ _DOCKET_YEAR_LICENSED = r"(?:\d{4}|\d{2})"
 #: optional, so a docket that states no office reports none.
 _DOCKET_OFFICE = r"(?:(?P<office>[A-Za-z]+(?:[-_][A-Za-z]+)*)[-_])?"
 
+#: The trailing token a Regulations.gov docket id may END on, and the whole
+#: of it — a CLOSED vocabulary of five, not an "ends on letters" licence.
+#:
+#: The fence above refuses a docket that ends on letters, and it is right to:
+#: that fence is what keeps "Internal Agency Docket No. FEMA-1971-DR" and the
+#: disaster numbers out. But it also refused a real docket. The pinned
+#: docket column states one in the publisher's own words — "Docket
+#: #GIPSA-2010-FGIS-0014-NONRULEMAKING", labelled a docket and ending on the
+#: token — and the module's own comment named
+#: "GIPSA-2008-FGIS-0002-NONRULEMAKING" as something the fence refuses,
+#: without noticing it was refusing a docket rather than a malformation.
+#:
+#: Measured over the 1,943,108 Regulations.gov document ids in spicy-docs'
+#: sealed corpus (receipt: ``supply-2026-09-02/receipts/
+#: document-id-segment-census.json``), exactly five distinct tokens ever
+#: appear here, across 134 ids: NONRULEMAKING 98, RULEMAKING 28, NONRULE 4,
+#: DRAFT 2, RULE 2. The vocabulary is spelled out rather than generalized to
+#: ``[A-Za-z]+`` because generalizing reopens the fence this closes.
+#:
+#: TWO no-regression measurements, because one is scoped narrowly and saying
+#: so is the point. Over this repository's four pinned columns (1,665,260
+#: distinct values) exactly ONE answer changes and it gains a claim -- but
+#: those columns hold only 179 document-kind values in total, so that result
+#: shows no regression IN THIS CORPUS and is not evidence about the population
+#: at risk. Over the population that actually carries these ids -- 371 GIPSA
+#: document ids and 105 publisher-stated docket ids -- 199 answers change and
+#: ZERO lose a claim. The corrections are the point:
+#: GIPSA-2008-FGIS-0002-NONRULEMAKING-0003 read as a DOCKET with year "0002"
+#: and organization "GIPSA-2008-FGIS"; it now reads as a document, year 2008.
+#:
+#: The token is POSITIONAL here, not semantic, and the group's name says so.
+#: Four of the five classify the proceeding; DRAFT classifies the document's
+#: state. A component named for either meaning would be wrong for the other,
+#: so the grammar reports WHERE the token sat and declines to say what it
+#: means. The vocabulary is deliberately HETEROGENEOUS -- four of the five
+#: name a proceeding kind, DRAFT names a document state -- so membership here
+#: says nothing about meaning, and nobody should later infer that DRAFT is a
+#: proceeding because it shares this group with RULEMAKING.
+#:
+#: The token belongs to the DOCKET, and that is measured rather than assumed.
+#: Regulations.gov's own ``docketId`` attribute states it: across the 371
+#: GIPSA document records in spicy-docs' sealed corpus, 132 carry the token
+#: and every one satisfies ``documentId startswith docketId + "-"`` with ZERO
+#: violations, over 67 distinct docket ids that themselves end on a token.
+#: The rule is PREFIX CONTAINMENT and not "docket plus one numeric segment":
+#: stated the narrow way it survives this 917-record sample and fails at
+#: scale, where spicy-regs measured 40,485 documents of 1,797,201 whose tail
+#: is TWO segments ("DOT-OST-1995-125-0050-0001" in docket
+#: "DOT-OST-1995-125"). The narrow phrasing is what this sample happened to
+#: license, which is why it is corrected here rather than left to be
+#: rediscovered. That is why the group lives in ``_docket_body`` -- shared by the
+#: docket grammars AND inherited by the document grammar -- rather than being
+#: wedged into the document grammar alone. An earlier reading rested on a
+#: single free-text reference in the pinned column and would have been
+#: generalizing from one filled-in form field; the publisher's own attribute
+#: replaced it.
+#:
+#: Two cautions the evidence forces. The docket RELEASE for this agency holds
+#: 38 dockets, NONE with an office segment or a token, carrying the type in a
+#: ``docketType`` ATTRIBUTE instead. The obvious explanation -- that the
+#: release predates the token-bearing form -- was checked and does NOT hold:
+#: its records carry modifyDates in 2006, 2008, 2011 and 2021, so it is not
+#: era-bound, and ``GIPSA-2006-FGIS-0030-RULE`` is absent from it even though
+#: 2006 is squarely inside its span. Its ``GIPSA-2006-NNNN`` run is 1..27 with
+#: no gaps, so it is complete for the family it does carry. Two docket-id
+#: FAMILIES therefore coexist, and this release mirrors only the one without a
+#: token; the token-bearing form is evidenced by the documents' ``docketId``
+#: field instead. A consumer joining on docket id across both sees two shapes
+#: for one concept and only one of them is visible to this grammar, so a
+#: token-aware reader will look more complete than the data is.
+#:
+#: And DRAFT is evidenced differently from the other four: two instances, two
+#: agencies, with no docket record in hand for either.
+#:
+#: The alternation is written longest-first for reading, and that ordering is
+#: NOT load-bearing -- stated because the opposite is the natural assumption
+#: and a future reader may otherwise "fix" an order that never mattered.
+#: Every one of the six orderings returns the identical segment for all five
+#: tokens, because the group is followed by an anchor (a document sequence,
+#: or end-of-value) that no short branch can satisfy: matching RULE out of
+#: NONRULEMAKING strands MAKING in front of the anchor, the match fails, and
+#: the engine backtracks to the only branch that completes. A mutation
+#: reversing the order leaves the suite green, which is the measurement
+#: behind this comment rather than a reassurance about it.
+_DOCKET_SEGMENT = r"(?:[-_](?P<segment>NONRULEMAKING|RULEMAKING|NONRULE|RULE|DRAFT))?"
+
 
 def _docket_body(year: str, sequence_group: str = "sequence", office: str = "") -> str:
     """Organization, year, sequence — the shape all three docket grammars share.
@@ -722,6 +808,7 @@ def _docket_body(year: str, sequence_group: str = "sequence", office: str = "") 
     return (
         rf"(?P<organization>{_DOCKET_ORGANIZATION})"
         rf"[-_](?P<year>{year})[-_]{office}(?P<{sequence_group}>\d{{3,5}})"
+        rf"{_DOCKET_SEGMENT}"
     )
 
 
@@ -1070,10 +1157,10 @@ _DETECTORS: tuple[tuple[IdentifierKind, re.Pattern[str], tuple[str, ...]], ...] 
     (
         IdentifierKind.REGULATIONS_GOV_DOCUMENT,
         _REGULATIONS_GOV_DOCUMENT,
-        ("organization", "year", "office", "docket_sequence", "document_sequence"),
+        ("organization", "year", "office", "docket_sequence", "segment", "document_sequence"),
     ),
-    (IdentifierKind.DOCKET, _DOCKET_BARE, ("organization", "year", "office", "sequence")),
-    (IdentifierKind.DOCKET, _DOCKET_LABELED, ("organization", "year", "office", "sequence")),
+    (IdentifierKind.DOCKET, _DOCKET_BARE, ("organization", "year", "office", "sequence", "segment")),
+    (IdentifierKind.DOCKET, _DOCKET_LABELED, ("organization", "year", "office", "sequence", "segment")),
 )
 
 

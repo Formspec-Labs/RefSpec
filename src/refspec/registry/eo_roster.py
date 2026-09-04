@@ -164,12 +164,17 @@ _ROSTER_PIN = "sha256:967ad595326ea37bb368357f7da6253fe292123e305c95c346bf152254
 class EoCapturePin:
     """One raw publisher capture in the sealed evidence home, pinned immutably.
 
-    The audit manifest (``tools/build_registry_source_manifest.py``,
-    ``PINNED_FIXTURE_INPUTS``) resolves these attributes by name: the capture
-    is the publisher's own bytes, retained in the evidence home beside the
-    roster derived from them, and
-    ``tests/test_eo_roster.py::test_the_pinned_raw_captures_back_the_8284_claim``
-    reads both captures for content, not just digest.
+    These are provenance, not a runtime input: this module reads the DERIVED
+    roster, so no execution consumes the captures and the audit manifest names
+    that honestly as a blocker rather than declaring them as testInputs (it was
+    tried the other way on 2026-09-02 and the real-data gate correctly refused
+    it -- a declared publisher input whose digest no execution ever sees).
+    What they DO earn: the two publisher URLs below reach the manifest's
+    ``declaredUrls`` because this module states them, so the acquisition is
+    recorded where a reader will find it, and
+    ``test_the_capture_pins_agree_with_the_evidence_manifest`` holds these
+    digests to the ones ``MANIFEST-sha256.csv`` states so the two copies
+    cannot drift apart.
     """
 
     source_url: str

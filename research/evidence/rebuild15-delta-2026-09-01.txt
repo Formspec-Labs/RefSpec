@@ -57,6 +57,14 @@ marked members alone — verified 31 surviving sibling rows + 9 refused
 New receipt key cfrNotesStatGateOracleBound = true (the declared R2
 item). New tally field stat_page_filer_refusals.
 
+LOUD-TIER SLOT READING. uscSlotReadingRows chapter-in-slot 1,685 -> 1,625
+(-60), reg-suffix unchanged at 190: the reg-dot fence (REF-062) refused the
+60 rows whose authority_text carried a dotted number and had been reading a
+truncated section as a chapter-in-slot. Zero dotted-text rows remain in that
+reading, and the declared receipt agrees with a recount of the column. Missed
+in the first re-pin pass, which only covered test_unified_agenda_parquet.py --
+tests/test_unified_agenda_loud_tier.py pins this key and was not in that file.
+
 DISPOSITION LAYER. The reg-dot fence removes 53 title-49-appendix rows
 (dotted regulation numbers): population 2,543 -> 2,490, verdict census
 exists-as-recodified (2,233,219,306,116) -> (2,181,213,301,116),

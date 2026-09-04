@@ -165,9 +165,11 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import date, datetime
 from urllib.parse import quote
 
 from refspec.registry.citation_grammar import CFR_TITLE_COUNT, states_nothing
+from refspec.registry.hand_validated_interpretations import is_a_refused_federal_register_collision
 from refspec.registry.identifier_shapes import (
     _DASHES,  # the shape layer's own table, shared deliberately -- see its docstring
     BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER,
@@ -212,6 +214,24 @@ __all__ = [
 _US_CFR = re.compile(r"^urn:rkaf:us:cfr:[1-9][0-9]*:[0-9]+(?:[a-z]|-[0-9]+)?(?:\.[0-9]+[a-z]{0,3}(?:-[0-9a-z]+)*)?$")
 _US_EO = re.compile(r"^urn:rkaf:us:eo:[1-9][0-9]*$")
 _US_FRDOC = re.compile(r"^urn:rkaf:us:frdoc:[0-9]{4}-[0-9]{3,5}$")
+#: The pre-2010 form, and the only space here whose identity is not the
+#: number alone: rulespec qualifies it with the publication date because
+#: the bare number does not identify a document -- "00-111" names two, and
+#: the parquet reported zero collisions only because it had already dropped
+#: one of them. New in rc17; see REF-064.
+_US_FRDOC_LEGACY = re.compile(
+    r"^urn:rkaf:us:frdoc-legacy:[0-9]{2}-[0-9]{1,6}:[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+)
+#: The X family, and the only Federal Register space that needs no date
+#: qualifier because the number already carries one: read RIGHT-ANCHORED,
+#: the last four digits are the month and day and everything before them is
+#: the sequence, which agrees with the publication date on 4,400 of 4,400
+#: corpus rows. That makes a disagreement a DETECTABLE DEFECT rather than
+#: the ambiguity the legacy form has. The tail is ``{5,7}`` as capacity, not
+#: data fit: a fixed-width ``{5}`` would have refused ``X09-101207`` on its
+#: first day, one of 206 six-digit numbers that a five-digit shape had been
+#: silently filtering out of its own census. New in rc18; see REF-065.
+_US_FRDOC_X = re.compile(r"^urn:rkaf:us:frdoc-x:X[0-9]{2}-[0-9]{5,7}$")
 _US_PL = re.compile(r"^urn:rkaf:us:pl:[1-9][0-9]*-[1-9][0-9]*$")
 _US_REGSGOV = re.compile(r"^urn:rkaf:us:regsgov:[A-Z0-9]+(?:[-_][A-Z0-9]+)*$")
 _US_RIN = re.compile(r"^urn:rkaf:us:rin:[0-9]{4}-[A-Z]{2}[0-9]{2}$")
@@ -254,6 +274,8 @@ IDENTIFIER_SPACES: Mapping[str, re.Pattern[str]] = {
     "rkaf:us-cfr": _US_CFR,
     "rkaf:us-eo": _US_EO,
     "rkaf:us-frdoc": _US_FRDOC,
+    "rkaf:us-frdoc-legacy": _US_FRDOC_LEGACY,
+    "rkaf:us-frdoc-x": _US_FRDOC_X,
     "rkaf:us-pl": _US_PL,
     "rkaf:us-regsgov": _US_REGSGOV,
     "rkaf:us-rin": _US_RIN,
@@ -593,8 +615,78 @@ def mint_public_law_iri(public_law: object) -> MintedIdentifier | None:
     return _mint("rkaf:us-pl", f"urn:rkaf:us:pl:{congress}-{number}")
 
 
+def _publication_day(publication_date: object) -> str:
+    """``YYYY-MM-DD`` for a date a caller ASSERTED, or a raised error.
+
+    The one place this module raises on a parameter rather than answering
+    ``None`` about data, and the distinction is the module's own: a value that
+    is not a Federal Register document number is DATA and gets a refusal, while
+    a caller who passes ``publication_date="not a date"`` has asserted a fact
+    that is not one, which is a broken invariant of the call. Downgrading it
+    silently to ``rkaf:partner-defined`` would publish an identity missing
+    exactly the qualifier the caller believed it supplied -- the failure a
+    date-qualified space exists to prevent. So it is loud, the same way
+    :class:`MintedIdentifier` is loud about a space violation.
+
+    Accepts anything that spells an ISO day: ``datetime.date``,
+    ``"2009-08-19"``, and the ``date32`` a PyArrow column yields, which is what
+    the corpus actually hands a caller. A datetime is refused rather than
+    truncated -- an identity is not the place to drop a time silently.
+    """
+
+    if isinstance(publication_date, datetime):
+        raise ValueError(f"publication_date must name a day, not an instant: {publication_date!r}")
+    if isinstance(publication_date, date):
+        return publication_date.isoformat()
+    stated = _stated(publication_date)
+    try:
+        return date.fromisoformat(stated).isoformat()
+    except ValueError as error:
+        raise ValueError(f"publication_date does not state a day: {publication_date!r}") from error
+
+
+#: The X family's own spelling, split right-anchored: a two-digit year, then a
+#: sequence of any width, then the month and day as the LAST FOUR digits. The
+#: anchor is the point -- reading left-to-right with a fixed-width sequence is
+#: exactly the mistake that hid 206 documents.
+_FRDOC_X_SPELLING = re.compile(r"\AX(?P<yy>[0-9]{2})-(?P<seq>[0-9]+)(?P<mm>[0-9]{2})(?P<dd>[0-9]{2})\Z")
+
+
+def _frdoc_x_states_its_day(text: str, publication_date: object) -> None:
+    """Raise where an X number's OWN encoded day contradicts the caller's.
+
+    The X form carries its publication date, and across the whole pinned
+    column it carries it correctly: 4,400 of 4,400 agree. That is what makes a
+    disagreement worth raising on rather than ignoring -- it is a DETECTABLE
+    DEFECT, not the ambiguity the legacy form has, and the only two ways to
+    reach one are a caller pairing the wrong date with the number or a corpus
+    row where the publisher's own two statements diverge. Both are worth
+    stopping for; neither should mint quietly.
+
+    The date is never part of an X identity, so a caller that states nothing
+    is asking a smaller question and gets an answer, not a complaint.
+    """
+
+    if publication_date is None:
+        return
+    match = _FRDOC_X_SPELLING.fullmatch(text)
+    if match is None:  # not this family; nothing of its own to contradict
+        return
+    stated = _publication_day(publication_date)
+    encoded = f"{match['mm']}-{match['dd']}"
+    if stated[5:] != encoded or stated[2:4] != match["yy"]:
+        raise ValueError(
+            f"{text} encodes {match['yy']}-{encoded} and the caller states {stated}: "
+            "an X number carries its own publication date, so a disagreement is a "
+            "defect in one of them rather than a spelling to choose between"
+        )
+
+
 def mint_federal_register_document_iri(
-    document_number: object, *, column_licensed: bool = False
+    document_number: object,
+    *,
+    column_licensed: bool = False,
+    publication_date: object = None,
 ) -> MintedIdentifier | None:
     """Mint an identifier for a Federal Register document number.
 
@@ -603,18 +695,64 @@ def mint_federal_register_document_iri(
     - ``rkaf:us-frdoc`` when rulespec's space can spell it —
       ``[0-9]{4}-[0-9]{3,5}``, which is **480,566 of the 1,004,233** distinct
       values in the pinned column (47.9%);
+    - ``rkaf:us-frdoc-legacy`` when the value is a pre-2010 bare-legacy number
+      AND the caller states its ``publication_date``. This space is
+      DATE-QUALIFIED by construction, and that is rulespec's design rather
+      than a convenience: the bare number does not identify a document, since
+      "00-111" names two of them, and the corpus reported zero collisions only
+      because it had already dropped one. So the date is part of the identity,
+      not metadata beside it — which is why this outcome is unreachable
+      without one, and why the same value with no date still takes the hatch
+      below rather than minting a half-qualified identity. **394,128** values
+      (39.2% of the column) can reach it. New with rulespec 0.2.0rc17; see
+      REF-064;
+    - ``rkaf:us-frdoc-x`` when the value is an X-family number, with or without
+      a date, because that form carries its own: read right-anchored the last
+      four digits are the month and day, and they agree with the publication
+      date on **4,400 of 4,400** corpus rows. Stating a date is therefore
+      optional and stating a WRONG one raises, which is a property the legacy
+      space cannot have. New with rulespec 0.2.0rc18; see REF-065;
     - ``rkaf:partner-defined`` when the shape layer recognises the value and
-      rulespec cannot spell it. Two populations arrive here unconditionally,
-      through the prose reader: the correction, republication and legacy
-      forms, and — behind ``column_licensed`` — three more REF-052/REF-054
-      admit: the **394,128** bare-legacy numbers and, as of this cycle, the
-      four letter-opening families
-      (:data:`~identifier_shapes._FR_COLUMN_LETTER_FORMS`) totalling **10,231**
-      more. A sixth used to arrive here: the 28,862 modern-form numbers with a
-      three- or four-digit tail (2010-5997, 2011-237, 2012-00019 among them)
-      took the hatch until rulespec 0.2.0rc16 widened the space, and they are
-      first-class now;
-    - ``None`` otherwise, which is a refusal and never a repair.
+      rulespec cannot spell it. It is reached through the prose reader by the
+      correction and republication forms, by a legacy number nobody dated, and
+      — behind ``column_licensed`` — by the letter-opening families that still
+      have no space (E, C, R and Z:
+      :data:`~identifier_shapes._FR_COLUMN_LETTER_FORMS`). Three populations
+      have LEFT the hatch: the 28,862 modern-form numbers with a three- or
+      four-digit tail (2010-5997, 2011-237, 2012-00019 among them) when rc16
+      widened ``rkaf:us-frdoc``, the bare-legacy numbers when rc17 gave them a
+      space, and the 4,400 X numbers when rc18 did;
+    - ``None`` otherwise, which is a refusal and never a repair — including
+      for the **five** modern-form numbers a hand-validated collision census
+      names as naming two genuinely different documents (REF-066): checked
+      FIRST, before any shape is even asked, because minting anything for
+      one of these — even the partner hatch — would still be one identifier
+      standing for two documents.
+
+    **Five modern-form numbers refuse absolutely, and two mint exactly as
+    normal, because they name different things (REF-066).** A 2026-09-02
+    full crawl of the published Federal Register found seven modern-form
+    document numbers that each carry two different publication dates —
+    something the modern space, unlike the legacy space above, was never
+    built to expect. Reading the actual documents
+    (``research/evidence/fr-collision-census-2026-09-02/``) separated five
+    genuine collisions (different agencies, different subjects — an EPA
+    notice sharing ``2010-31094`` with an unrelated DOT/FAA rulemaking eleven
+    months later, among them) from two that are one matter published twice,
+    each explicitly a correction of its own document number ("In notice
+    document 2015-17759 … make the following correction"). The five are
+    refused outright by
+    :func:`~hand_validated_interpretations.is_a_refused_federal_register_collision`,
+    consulted before any other check and never hardcoded here: an O(1)
+    membership test against that table's own seven rows for the
+    overwhelming majority of values that are not one of the seven, and only
+    for one that is, the pinned census re-read and that single value's own
+    hand-validated row witnessed. Minting an ordinary number therefore
+    reaches no census file, no witness and no git — it is a pure function
+    of the value in every deployment, which an audit on 2026-09-02 found it
+    briefly was not (REF-066). The two mint ``rkaf:us-frdoc`` exactly as any
+    other modern number would, because one identifier for one matter
+    published twice is correct, not merely tolerated.
 
     ``column_licensed`` is the whole of the two-readers doctrine in this
     module, delegated whole to
@@ -628,6 +766,18 @@ def mint_federal_register_document_iri(
     :data:`~identifier_shapes.BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER`
     and :data:`~identifier_shapes._FR_COLUMN_LETTER_FORMS`.
 
+    **The year prefix is never checked against the date, and that refusal is
+    measured.** A legacy number's leading two digits usually restate its
+    publication year, and a fence on the disagreement is the obvious next
+    thought — but 1,661 of the 395,498 bare-legacy values (0.42%) genuinely
+    disagree, systematic year-boundary spillover where a number issued in late
+    December is published in early January (07-6308 on 2008-01-15, 94-* into
+    1995, 01-* into 2002). The sibling letter families do the same thing at
+    larger scale (E8 spills 318 documents into 2009). So the prefix is a
+    spelling, the date is the caller's fact, and this function refuses to
+    adjudicate between them: adding that check would silently refuse 1,661
+    real documents.
+
     The padding is never normalized, and after the widening that rule is the
     only thing standing between a document and a second identifier. The Office
     of the Federal Register pads some years and not others; across all 480,566
@@ -638,12 +788,28 @@ def mint_federal_register_document_iri(
     """
 
     text = _stated(document_number).translate(_DASHES)
-    if is_federal_register_document_number(
-        text, column_licensed=column_licensed
-    ) or _states_a_federal_register_document(text):
-        minted = _mint("rkaf:us-frdoc", f"urn:rkaf:us:frdoc:{text}")
-        return minted if minted is not None else mint_partner_iri("frdoc", text)
-    return None
+    if is_a_refused_federal_register_collision(text):
+        return None
+    if not (
+        is_federal_register_document_number(text, column_licensed=column_licensed)
+        or _states_a_federal_register_document(text)
+    ):
+        return None
+    minted = _mint("rkaf:us-frdoc", f"urn:rkaf:us:frdoc:{text}")
+    if minted is not None:
+        return minted
+    _frdoc_x_states_its_day(text, publication_date)
+    self_dating = _mint("rkaf:us-frdoc-x", f"urn:rkaf:us:frdoc-x:{text}")
+    if self_dating is not None:
+        return self_dating
+    if publication_date is not None:
+        dated = _mint(
+            "rkaf:us-frdoc-legacy",
+            f"urn:rkaf:us:frdoc-legacy:{text}:{_publication_day(publication_date)}",
+        )
+        if dated is not None:
+            return dated
+    return mint_partner_iri("frdoc", text)
 
 
 def mint_partner_iri(kind: str, value: object) -> MintedIdentifier | None:

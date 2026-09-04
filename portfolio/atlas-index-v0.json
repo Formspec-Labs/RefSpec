@@ -13,11 +13,14 @@
     "refspec.registry.citation_grammar",
     "refspec.registry.claim_release_exports",
     "refspec.registry.entity_registry_release",
+    "refspec.registry.eo_roster",
     "refspec.registry.gcmd_science_keywords_hierarchy",
+    "refspec.registry.hand_validated_interpretations",
     "refspec.registry.identifier_shapes",
     "refspec.registry.infrastructure.artifact_serialization",
     "refspec.registry.infrastructure.controlled_identifier",
     "refspec.registry.infrastructure.identifier_validation",
+    "refspec.registry.infrastructure.invariants",
     "refspec.registry.infrastructure.managed_vocabulary_bundle",
     "refspec.registry.infrastructure.pinned_acquisition",
     "refspec.registry.infrastructure.rdf_claim_export",
@@ -40,8 +43,8 @@
     "refspec.registry.usc_disposition_tables",
     "refspec.registry.usc_section_oracle"
   ],
-  "indexDigest": "sha256:538c29c9d24dc9fa7411d50ee210f7730fd9034ddd7d350953dc163d246484e0",
-  "indexId": "urn:ref:atlas-index:538c29c9d24dc9fa7411d50ee210f7730fd9034ddd7d350953dc163d246484e0",
+  "indexDigest": "sha256:fa52f2837ed225b2ed302c50795a609c250afc1bcd5871e08baa8fa56259ff60",
+  "indexId": "urn:ref:atlas-index:fa52f2837ed225b2ed302c50795a609c250afc1bcd5871e08baa8fa56259ff60",
   "nonAuthorizing": true,
   "recordedAt": "2026-08-06T18:42:39Z",
   "resourceCatalogDigest": "sha256:13911c5bda7183e68aa08398ea02d90533337d80e4b4c67180210ad1bfb65798",
@@ -369,7 +372,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_rosters.py",
-          "sha256": "sha256:e383dcf3e61f68e6f34f1d0ca4f5a3a0ab42b33a136bf338bbca78b2ba039457"
+          "sha256": "sha256:c144cdf7651cdc4ccfbfa5c1605769b955cda0cb54005038f1aa692b818d1728"
         },
         {
           "kind": "parserTest",
@@ -379,7 +382,7 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_rosters.py",
-          "sha256": "sha256:2f5de4b8eed50cde6cf3c1343919341067f391aabdc0d26bd547213af98362bf"
+          "sha256": "sha256:80f737ff918f259f07e32e19a68d423b3f33bd73796c7bb42583c34ccb35351b"
         },
         {
           "kind": "sourceImplementation",
@@ -389,8 +392,8 @@
       ],
       "release": null,
       "resourceId": "cfr-subject-index",
-      "rowDigest": "sha256:3efb29b268c4c4290e1625c9403710128262657efdfd2dcd2161d822202a1c4c",
-      "rowId": "urn:ref:atlas-index-row:3efb29b268c4c4290e1625c9403710128262657efdfd2dcd2161d822202a1c4c",
+      "rowDigest": "sha256:371e80492536883468552af34fe97d4f7ccbbf6f0d600701acade175fbd413a9",
+      "rowId": "urn:ref:atlas-index-row:371e80492536883468552af34fe97d4f7ccbbf6f0d600701acade175fbd413a9",
       "semanticRing": "legalIdentity",
       "sourceModule": "refspec.registry.cfr_list_of_subjects"
     },
@@ -408,7 +411,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_rosters.py",
-          "sha256": "sha256:e383dcf3e61f68e6f34f1d0ca4f5a3a0ab42b33a136bf338bbca78b2ba039457"
+          "sha256": "sha256:c144cdf7651cdc4ccfbfa5c1605769b955cda0cb54005038f1aa692b818d1728"
         },
         {
           "kind": "parserTest",
@@ -418,7 +421,7 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_rosters.py",
-          "sha256": "sha256:2f5de4b8eed50cde6cf3c1343919341067f391aabdc0d26bd547213af98362bf"
+          "sha256": "sha256:80f737ff918f259f07e32e19a68d423b3f33bd73796c7bb42583c34ccb35351b"
         },
         {
           "kind": "sourceImplementation",
@@ -428,8 +431,8 @@
       ],
       "release": null,
       "resourceId": "ecfr-agencies",
-      "rowDigest": "sha256:f4ed190a237b422bb483927f80915cc46f5ef98203d69d2bc2ead3d0a63fe0a6",
-      "rowId": "urn:ref:atlas-index-row:f4ed190a237b422bb483927f80915cc46f5ef98203d69d2bc2ead3d0a63fe0a6",
+      "rowDigest": "sha256:a44017cf062847436ceab1f42003098f8a6e8eebb567d5dbdfe8c34004664211",
+      "rowId": "urn:ref:atlas-index-row:a44017cf062847436ceab1f42003098f8a6e8eebb567d5dbdfe8c34004664211",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.cfr_list_of_subjects"
     },
@@ -1427,18 +1430,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_gao_published_topics.py",
-          "sha256": "sha256:050a2d6cbf1aa7d759e3b0a393c9950652a1a1a611cdac25d57208a749d15762"
+          "sha256": "sha256:011383b2c3629e5a55d11a0209814347a85737e993b280f55a614eb6b450c0e3"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/gao_published_topics.py",
-          "sha256": "sha256:a246214cb58716f707b40164dc396bfe0eaab512884ba6a702ce7f7737acf33b"
+          "sha256": "sha256:e99403772aff598f389c02ae603d10e0d84110834cb4c48d9f208b92647a7fc2"
         }
       ],
       "release": null,
       "resourceId": "gao-topics",
-      "rowDigest": "sha256:9d942e54bf2dd16437f4e086c982d9c8798c900e3a3d978dd630506d743e7e22",
-      "rowId": "urn:ref:atlas-index-row:9d942e54bf2dd16437f4e086c982d9c8798c900e3a3d978dd630506d743e7e22",
+      "rowDigest": "sha256:45a9fa5599c9d6b4bc1b1fb0dd75f44a7c78ab457a8bfde2efcf73f8d39adb13",
+      "rowId": "urn:ref:atlas-index-row:45a9fa5599c9d6b4bc1b1fb0dd75f44a7c78ab457a8bfde2efcf73f8d39adb13",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.gao_published_topics"
     },
@@ -3143,7 +3146,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_rosters.py",
-          "sha256": "sha256:e383dcf3e61f68e6f34f1d0ca4f5a3a0ab42b33a136bf338bbca78b2ba039457"
+          "sha256": "sha256:c144cdf7651cdc4ccfbfa5c1605769b955cda0cb54005038f1aa692b818d1728"
         },
         {
           "kind": "parserTest",
@@ -3153,7 +3156,7 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_rosters.py",
-          "sha256": "sha256:2f5de4b8eed50cde6cf3c1343919341067f391aabdc0d26bd547213af98362bf"
+          "sha256": "sha256:80f737ff918f259f07e32e19a68d423b3f33bd73796c7bb42583c34ccb35351b"
         },
         {
           "kind": "sourceImplementation",
@@ -3163,8 +3166,8 @@
       ],
       "release": null,
       "resourceId": "regulations-gov-native-controls",
-      "rowDigest": "sha256:012c8715556fa5129318a0483a7d4e5adf6b356c96f5a3b9f8b21a3a6785030e",
-      "rowId": "urn:ref:atlas-index-row:012c8715556fa5129318a0483a7d4e5adf6b356c96f5a3b9f8b21a3a6785030e",
+      "rowDigest": "sha256:10abe7aaf3e84de32c9ca57672f41ab5b7215d48f9cb485d07531c2540bbd8a9",
+      "rowId": "urn:ref:atlas-index-row:10abe7aaf3e84de32c9ca57672f41ab5b7215d48f9cb485d07531c2540bbd8a9",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.regulations_gov_agencies"
     },
@@ -3619,7 +3622,7 @@
   ],
   "summary": {
     "exactReleaseCount": 6,
-    "implementationModuleCount": 37,
+    "implementationModuleCount": 40,
     "participationCounts": {
       "bridge": 34,
       "core": 1,
