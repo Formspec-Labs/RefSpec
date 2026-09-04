@@ -20,6 +20,31 @@
 > - **§5 item 3 is wrong.** SpicySearch has neither `ann_index` nor
 >   `candidate_channels`; both greps return zero files under `src/`.
 >
+> **Two later intake items, ruled 2026-09-04** (spicy-regs PR #193), recorded
+> here so the ledger stays the place intake questions are closed:
+>
+> - **`canonical_usc_chapter_iri` — RETIRED, not ported.** It is the one of
+>   eight minters the 08-31 port left behind, and it stays behind: nothing in
+>   RefSpec references it, it exists only in spicy-regs'
+>   `ontology/citations.py`, and USC IRI minting already lives here in
+>   `act_resolution.py:304` with the other seven covered by
+>   `iri_minting.py`'s `mint_*` functions. Porting it would add an eighth
+>   minter nothing calls, which this repository's own rule forbids: structure
+>   arrives with the consumer that breaks without it.
+> - **spicy-regs' `ontology/rulespec_release.py` publish gate — NOT ported,
+>   and the reason is upstream of RefSpec.** Those 178 lines recompute the L0
+>   contract digest from a tagged rulespec archive, which is the right design
+>   and is currently *refusing rather than verifying*: spicy-regs'
+>   declaration carries `rulespec_release: null` and fails publication closed
+>   while the contract is an unreleased candidate. RefSpec says the same thing
+>   in `profiles/rulespec-dependency.json` with `localUnpublished` and
+>   `productionConformanceEligible: false`. Both are downstream of rulespec
+>   having published exactly one tag, `v0.2.0-pre.7`, 114 commits behind its
+>   own HEAD at `0.2.0-pre.18`, while RefSpec and SpicySearch both pin
+>   `==0.2.0rc18` from hand-copied vendored wheels. Porting the gate before
+>   there is a release to verify buys a more elaborate way of saying what the
+>   profile already says honestly. Reopens if rulespec tags a release.
+>
 > Kept rather than deleted because the reasoning behind each intake decision is
 > still worth reading, and because a plan that was executed is evidence of how
 > the work was scoped. Every claim above was verified against this checkout
