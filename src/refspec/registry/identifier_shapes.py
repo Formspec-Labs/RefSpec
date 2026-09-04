@@ -10,10 +10,17 @@ claim the same characters.
 
 Provenance: ported from SpicySearch ``identifiers.py`` and the ``citations.py``
 lineage's normalizers, each rule carrying the measurement that bought it. What
-is deliberately NOT here: IRI minting (``urn:rkaf:...``) stays with consumers
-until the minting layer is its own port, and SpicySearch's exact-catalog query
-policy stays in SpicySearch — "is this string a query for an identifier" is a
-search decision, not a shape fact.
+is deliberately NOT here: SpicySearch's exact-catalog query policy stays in
+SpicySearch — "is this string a query for an identifier" is a search decision,
+not a shape fact.
+
+IRI minting is no longer among them. This header said minting "stays with
+consumers until the minting layer is its own port" until 2026-09-04; that port
+landed on 2026-08-31 in `582461fe`, and :mod:`refspec.registry.iri_minting`
+quotes this very sentence as the hole it fills. Two modules asserting opposite
+things about the same boundary is worse than either being wrong alone, so the
+claim is retired here rather than softened. Minting reads this module's shapes
+and lives next door.
 
 Two readers, two questions
 --------------------------

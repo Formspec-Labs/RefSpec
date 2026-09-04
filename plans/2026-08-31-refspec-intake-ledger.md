@@ -1,5 +1,31 @@
 # RefSpec intake ledger — 2026-08-31
 
+> **Superseded 2026-09-04.** Read
+> [spicy-regs `docs/disposition.md`](https://github.com/civictechdc/spicy-regs/pull/193)
+> instead. This page records what was PLANNED on 2026-08-31; it is no longer a
+> record of what exists, and three of its claims are now false in a way that
+> would cost a reader real work:
+>
+> - **§1's six ports all landed, on the day this was compiled.** `5b8f4d8b`
+>   (the last two frozen USC artifacts get their builders back), `582461fe`
+>   (the minting layer arrives, and the agency crosswalk beside it) and
+>   `2b4960e1` (assert_acyclic is asserted, not narrated) — four of them before
+>   this file's own last edit at 17:14. §1.1 in particular still says RefSpec
+>   "mints USC only" and quotes `identifier_shapes.py`'s header as declaring
+>   the gap; `iri_minting.py` has carried all seven minters since `582461fe`.
+> - **§2.2 was ruled the same day** by REF-053 in
+>   [the decision ledger](../docs/decisions.md) — open-vocabulary concept
+>   lifecycle stays unported, no owner, no consumer, no check. It is not
+>   awaiting a ruling.
+> - **§5 item 3 is wrong.** SpicySearch has neither `ann_index` nor
+>   `candidate_channels`; both greps return zero files under `src/`.
+>
+> Kept rather than deleted because the reasoning behind each intake decision is
+> still worth reading, and because a plan that was executed is evidence of how
+> the work was scoped. Every claim above was verified against this checkout
+> before it was written here, not carried across from the report that raised
+> them.
+
 Everything that should be ported, salvaged, diverted, or merged **into RefSpec**,
 from the corpora archives (`~/Work/corpora/`), the nugget extraction
 (`~/Work/corpora/_nuggets-2026-08-27/`), spicy-regs, and SpicySearch. Compiled
