@@ -45,9 +45,16 @@ editions under `output/registry-real-data-sources/unified-agenda-editions`
 input is authenticated and no path is guessed; `--source-root`,
 `--output-root` and `--act-index` exist but the defaults are the pinned ones.
 
-**Duration is unmeasured.** Nobody has timed it in this repository's records,
-so budget for the input scale above rather than for a number someone
-remembers. Watch it rather than backgrounding it.
+**Duration: 2m32s**, measured 2026-09-03 on an Apple M4 Pro rebuilding from
+`dbcd445f` (22:34:48 to 22:37:20). One measurement, not a budget — but it is
+short enough to watch rather than background, which is what you should do
+anyway.
+
+**A successful rebuild leaves NOTHING to commit.** `output/` is gitignored, so
+the receipt and tables never enter git; if the tables do not move, no digest
+pin moves either, and `git status` is empty at the end. Do not go looking for
+a diff to commit, and do not treat its absence as the rebuild having failed —
+`--verify` is the check, not `git status`.
 
 ## What "done" looks like
 
@@ -76,10 +83,23 @@ producer modules include `identifier_shapes` and `citation_grammar`, so a
 grammar change alters what the tables parse out of the same source bytes. That
 is the whole reason those modules are hashed into the receipt.
 
-Scale it before you run it. For the 2026-09-03 segment-vocabulary change
-(`ae8f90c5`), the measured effect across the four pinned columns was **one
-value** — so the expectation was a receipt refresh with a one-row content
-delta, and a delta larger than that would itself have been the finding.
+Scale it before you run it — and be careful WHICH corpus you scale from. For
+the 2026-09-03 segment-vocabulary change (`ae8f90c5`) the prediction was **one
+value**, and the measured delta was **zero**: all four tables came back
+byte-identical and only `receipt.json` moved.
+
+The prediction was wrong, and the reason is worth more than the number. That
+"one value" was measured over the **Federal Register** parquet's four pinned
+columns, and then quoted as a prediction about the **Unified Agenda** tables —
+a different corpus with different columns. The right prediction for these
+tables was never taken, and zero is what the grammar change actually does to
+them, because the five-token vocabulary is regulations.gov-shaped and these
+tables carry RIN, CFR and timetable data.
+
+So: predict from the corpus the rebuild actually writes, name that corpus when
+you state the number, and treat a delta ABOVE the prediction as the finding.
+A delta below it means the prediction was drawn from the wrong population,
+which is a finding about the predictor rather than about the build.
 
 **And do not regenerate partially.** On 2026-09-03 a partial regeneration of a
 sibling artifact chain took the suite from 42 failures to 65: the index and
