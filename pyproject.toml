@@ -16,10 +16,13 @@ dependencies = [
     "typing-extensions>=4.12,<5",
     "pymarc>=5.1,<6",
     "rulespec-conformance==0.2.0rc18",
-    # Not imported anywhere in RefSpec. rulespec-conformance rc16/rc17 require it,
-    # and a [tool.uv.sources] entry only binds a DIRECT dependency, so the
-    # vendored wheel is unreachable unless it is named here. See vendor/README.md.
-    "rulespec-artifacts==1.0.9",
+    # Not imported anywhere in RefSpec. rulespec-conformance requires it, and a
+    # [tool.uv.sources] entry only binds a DIRECT dependency, so the vendored
+    # wheel is unreachable unless it is named here. See vendor/README.md.
+    # Pinned exactly rather than to the `>=1.0.11` floor rc18 declares: this
+    # tree carries one artifacts wheel and resolves from it, so the pin should
+    # name the bytes in `vendor/` rather than a range nothing here can satisfy.
+    "rulespec-artifacts==1.0.11",
 ]
 
 [project.scripts]
@@ -36,13 +39,17 @@ refspec-release-graph-gate = "refspec.release_graph:main"
 # relative so `uv lock`/`uv sync --frozen` are hermetic on CI runners,
 # which have no ~/Work/rulespec checkout.
 rulespec-conformance = { path = "vendor/rulespec_conformance-0.2.0rc18-py3-none-any.whl" }
-# rc16 declared a hard `rulespec-artifacts==1.0.9` dependency that rc15 did not
-# (it arrived with the shared platform-artifact protocol, not with this
-# contract change). Nothing in RefSpec imports it — rulespec_conformance only
-# reaches for it lazily, inside three platform-artifact helpers we never call —
-# but a declared dependency still has to resolve, and it is on no index either.
-# So it is vendored on the same terms and dies with the same index.
-rulespec-artifacts = { path = "vendor/rulespec_artifacts-1.0.9-py3-none-any.whl" }
+# rc16 declared a HARD `rulespec-artifacts==1.0.9` where rc15 declared none; at
+# rc18 (tag `v0.2.0-pre.18`) that became a FLOOR, `>=1.0.11`, so 1.0.9 no longer
+# satisfies it and staying was not an option. Nothing in RefSpec imports it —
+# rulespec_conformance only reaches for it lazily, inside three platform-artifact
+# helpers we never call — but a declared dependency still has to resolve, and it
+# is on no index either. So it is vendored on the same terms and dies with the
+# same index. The 1.0.9 -> 1.0.11 diff was measured 2026-09-01: additive,
+# dependency closure identical, `LocalFileState` unchanged. These are the same
+# bytes DocSpec and SpicySearch vendor (sha256 `bedd8ee4...`), copied rather
+# than rebuilt so all three consumers carry one artifact.
+rulespec-artifacts = { path = "vendor/rulespec_artifacts-1.0.11-py3-none-any.whl" }
 
 [dependency-groups]
 dev = [

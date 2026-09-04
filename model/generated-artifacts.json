@@ -25,7 +25,7 @@
     "bindings/json/1.0/schemas/sealed-gold-manifest.schema.json": "sha256:65cadc330f519447f4a5bc1c92a8a50038f38bc4fabe8ae773a1bc17440303c5",
     "bindings/json/1.0/schemas/source-identifier-set.schema.json": "sha256:097b3b05402c488e5c8005f6717a815cb904eff1294ba574e72147daead05be5",
     "src/refspec/generated_conformance_assets.py": "sha256:6d06ce4d87d35b8bcb452da46da173d22cf206c98fb49cab16f01736e88645f7",
-    "src/refspec/generated_rulespec_dependency.py": "sha256:0a2d8d639094181fa73c1602c7460e2129d771392cd9595710bdab831876aaab",
+    "src/refspec/generated_rulespec_dependency.py": "sha256:d3602dee6a9010448f11afac555921668b2d24d4b01206b6053d56c1c1a9c476",
     "src/refspec/generated_schemas.py": "sha256:c615c003f2053d2b337807922f05ddeae813ebcc96baff57ce3cca32ed7ef4da",
     "src/refspec/generated_types.py": "sha256:a988133dee99076443bd13e16fbbcf0bdc5ad97ac9066cee98696b7992fdfdd3"
   }

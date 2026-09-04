@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "rulespecVersion": "0.2.0-pre.9",
+  "rulespecVersion": "0.2.0-pre.18",
   "releaseAvailability": "localUnpublished",
   "productionConformanceEligible": false,
   "constraintDigestScope": "globalRulespecContract",
@@ -10,8 +10,8 @@
     "constraints/profiles/refspec/open-label.cue"
   ],
   "validator": {
-    "identity": "rkaf-validate@0.2.0-pre.9 + tools/ci_validate.py + rkaf-behavior-validate@0.2.0-pre.9",
-    "sourceRevision": "9be401b6e1bcda60219984bd815f9eaae42de2f8",
+    "identity": "rkaf-validate@0.2.0-pre.18 + tools/ci_validate.py + rkaf-behavior-validate@0.2.0-pre.18",
+    "sourceRevision": "a519d06b2c8931965b4ceda94692a96fe8b5b71e",
     "completeGateCommand": "make test",
     "claimedLevels": [
       "L1",

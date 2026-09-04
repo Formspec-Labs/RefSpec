@@ -526,7 +526,7 @@ requires-dist = [
     { name = "pypdf", specifier = ">=6,<7" },
     { name = "rdflib", specifier = ">=7.1,<8" },
     { name = "referencing", specifier = ">=0.37,<1" },
-    { name = "rulespec-artifacts", path = "vendor/rulespec_artifacts-1.0.9-py3-none-any.whl" },
+    { name = "rulespec-artifacts", path = "vendor/rulespec_artifacts-1.0.11-py3-none-any.whl" },
     { name = "rulespec-conformance", path = "vendor/rulespec_conformance-0.2.0rc18-py3-none-any.whl" },
     { name = "typing-extensions", specifier = ">=4.12,<5" },
 ]
@@ -666,10 +666,10 @@ wheels = [
 
 [[package]]
 name = "rulespec-artifacts"
-version = "1.0.9"
-source = { path = "vendor/rulespec_artifacts-1.0.9-py3-none-any.whl" }
+version = "1.0.11"
+source = { path = "vendor/rulespec_artifacts-1.0.11-py3-none-any.whl" }
 wheels = [
-    { filename = "rulespec_artifacts-1.0.9-py3-none-any.whl", hash = "sha256:67cb33bf63c11bc6812ad0e8f0a8b73e89501fa6d4242acf75a7cc6612f5d6c6" },
+    { filename = "rulespec_artifacts-1.0.11-py3-none-any.whl", hash = "sha256:bedd8ee4799d9633963272714a30258f505404155732480ad5cb1dde2d7cbf4f" },
 ]
 
 [[package]]
@@ -683,7 +683,7 @@ dependencies = [
     { name = "rulespec-artifacts" },
 ]
 wheels = [
-    { filename = "rulespec_conformance-0.2.0rc18-py3-none-any.whl", hash = "sha256:bd4816dac509ed0a9686fc94104d8463d6e05c53b8e2ce74e9d1ea9a67b76977" },
+    { filename = "rulespec_conformance-0.2.0rc18-py3-none-any.whl", hash = "sha256:ed11ab4a4709fd36b36ad445dd17ac0e14c10ec0d1f605f662f1a68a6ab662fb" },
 ]
 
 [package.metadata]
@@ -691,7 +691,7 @@ requires-dist = [
     { name = "pyshacl", specifier = ">=0.31.0" },
     { name = "rdfcanon", specifier = "==1.0.0" },
     { name = "rdflib", specifier = ">=7.0.0" },
-    { name = "rulespec-artifacts", specifier = "==1.0.9" },
+    { name = "rulespec-artifacts", specifier = ">=1.0.11" },
 ]
 
 [[package]]
