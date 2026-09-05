@@ -5041,6 +5041,37 @@ that changes the number has to say so. It was 115 until 2026-08-22, when two
 bounded spelling fixes took eight; the remaining 107 are source-side absences
 that no spelling closure moves.
 
+**What publishing it actually costs, measured 2026-09-05.** The step above was
+described as "cut it as a distribution in the shape 0008 verifies", and that
+shape does not exist for this artifact. RefSpec has exactly two distribution
+kinds and both are concept/observation packages with fixed member filenames:
+`refspec-source-controlled-resource-2.0` wants `bundle-manifest.json`,
+`resource-manifest.json`, `coverage-report.json`, `observations.jsonl` and
+`sources/*.bin`, and its verifier additionally requires a
+`completed-resource-packages-v2.json` row of `packageClass`
+`sourceControlledResource` whose `packageDigest` equals the reopened bundle's
+logical digest; `refspec-source-concept-release-1.0` wants `concepts.jsonl`,
+`lifecycle.jsonl`, `release-manifest.json` and `rights.jsonl`. The act index
+is three Parquet tables and a receipt — neither a concept scheme nor a set of
+observations — so admitting it under either kind means describing a derived
+crosswalk as something it is not, which is the mislabel this whole entry
+exists to stop.
+
+**The shape that fits, and it reuses rather than invents.** A third kind whose
+verification is the artifact's OWN verifier: `usc_act_index.verify_artifact`
+already checks every declared member, its column names and types, its row
+counts and its digests, cross-checks coverage, and since 2026-09-05 compares
+the producing modules' bytes to the ones recorded at build. That is 0008
+condition 3 line for line, written and mutation-proven already, so the kind
+costs a registration and a negative fixture rather than a new verifier. What
+it also costs is real and belongs in the decision rather than in a commit
+message: the three tables are 3.2 MB and would enter git permanently, since
+`output/` is not carried and the bulk source cannot be re-fetched (see the
+missing publisher URL above). That is in line with what the repository already
+carries — the two `crs-legislative-subject-terms` distributions are 2.5 MB
+each — but it is a permanent addition and it is the owner's call, not a
+consequence of writing this entry.
+
 **How a consumer admits it.** Decision 0008 requires five conditions and
 fewer than five is refusal, not a partial pass. This record supplies the
 ownership half of condition 1 and the stated coverage condition 3 verifies
