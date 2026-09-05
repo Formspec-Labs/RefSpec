@@ -45,6 +45,7 @@ from refspec.registry.act_resolution import (
     USC_SOURCE_CREDIT_ARTIFACT,
     ActIndex,
     SourceCreditIndex,
+    act_name_absence_reason,
     resolve_act_name,
     resolve_act_relative_citation,
 )
@@ -1186,7 +1187,22 @@ ACT_RESOLUTION_REASONS: tuple[str, ...] = (
 #: The reasons that say THE ACT is unknown, which is the only thing that leaves
 #: an act-relative row's parse_status "failed". Every other reason keeps a right
 #: reading of the act and its section, so the row is "partial".
-_ACT_UNKNOWN_REASONS = frozenset({"act_not_in_index", "act_key_refused_by_edition_calendar"})
+#:
+#: ``act_listed_without_classification`` and ``act_alias_target_not_listed``
+#: join on purpose, and the membership is the point: the 2026-09-05 split of
+#: ``act_not_in_index`` changed what a row SAYS and deliberately not how it is
+#: CLASSIFIED. All three still leave the act unresolved -- knowing the source
+#: lists a name is not a reading of which act it is, since no Table III key
+#: follows -- so every row that was "failed" stays "failed". Had they been left
+#: out, an honesty fix to a reason string would silently have re-graded rows.
+_ACT_UNKNOWN_REASONS = frozenset(
+    {
+        "act_not_in_index",
+        "act_listed_without_classification",
+        "act_alias_target_not_listed",
+        "act_key_refused_by_edition_calendar",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -5443,7 +5459,7 @@ def _resolve_one_act_citation(
 
     resolved = resolve_act_name(act_key, index)
     if resolved is None:
-        return (None, None, None, "act_not_in_index")
+        return (None, None, None, act_name_absence_reason(act_key, index))
     table3_key = index.table3_key_by_name[resolved]
     if section is None:
         # Nothing to look up. Which of the two silences this is -- "the filer

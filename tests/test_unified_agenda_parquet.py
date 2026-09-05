@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 from refspec.registry.unified_agenda_parquet import (
+    _ACT_UNKNOWN_REASONS,
     ACTIONS_SCHEMA,
     CFR_REFERENCES_SCHEMA,
     LEGAL_AUTHORITIES_SCHEMA,
@@ -6258,10 +6259,17 @@ def test_the_act_relative_rows_carry_the_section_they_name(con) -> None:
         "corroborated": 4_541,
         "failed": 461,
     }
+    # Taken from the module constant rather than restated. The literal list
+    # here said `('act_not_in_index', 'act_key_refused_by_edition_calendar')`
+    # and the 2026-09-05 reason split broke it — correctly, since the three
+    # OBRA rows are still failed and now carry `act_alias_target_not_listed`.
+    # Two independent spellings of one invariant is how a test starts
+    # disagreeing with the code it guards; this one now cannot.
+    _unknown = ", ".join(f"'{reason}'" for reason in sorted(_ACT_UNKNOWN_REASONS))
     assert _one(
         con,
         f"select count(*) from {A} and parse_status = 'failed' "
-        "and act_resolution_reason not in ('act_not_in_index', 'act_key_refused_by_edition_calendar')",
+        f"and act_resolution_reason not in ({_unknown})",
     ) == 0, "only an unknown ACT leaves an act-relative row failed"
     # 2,101 of the rows RIN history had already corroborated resolve as well.
     # They keep "corroborated": that corroboration is a different fact, and it
@@ -8630,7 +8638,13 @@ def test_the_stated_act_census_is_the_receipts(con) -> None:
     # editions), corroborated under pinned-roster-initialism:pinned-quote --
     # #44/45's; the pre-existing "OBRA" pair (RIN 0938-AM24 x2, 0985-AA11) is
     # untouched at act_key='obra' on both builds. -20 + 6 = -14.
-    assert declared["actRelativeRowsByResolutionReason"]["act_not_in_index"] == 460
+    # 460 -> 457 at the 2026-09-05 reason split: the three OBRA rows moved to
+    # `act_alias_target_not_listed`, which is the same rows saying something
+    # truer, not fewer rows. The three codes still sum to 460, and
+    # parse_status is byte-identical across the rebuild — the split changed
+    # what a row SAYS and deliberately not how it is graded.
+    assert declared["actRelativeRowsByResolutionReason"]["act_not_in_index"] == 457
+    assert declared["actRelativeRowsByResolutionReason"]["act_alias_target_not_listed"] == 3
     # 481 -> 461 at rebuild #11: -20, entirely #56's (test_the_act_relative_
     # rows_carry_the_section_they_name's own parse_status-dict note).
     assert declared["actRelativeRowsByStatus"]["failed"] == 461

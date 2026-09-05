@@ -92,6 +92,7 @@ __all__ = [
     "SourceCreditAnswer",
     "SourceCreditIndex",
     "SourceCreditTarget",
+    "act_name_absence_reason",
     "canonical_usc_iri",
     "resolve_act_name",
     "resolve_act_relative_citation",
@@ -142,7 +143,7 @@ _ARTIFACT_PINS: Mapping[str, Mapping[str, str]] = {
     },
     "usc-act-index-2026-08-22": {
         "usc-popular-names.parquet": "sha256:603d5b072133d8fe6802736aeaa70b9fb9832e4fb996158a083fae3ce1026a9a",
-        "usc-act-sections.parquet": "sha256:56300ec89101bd8d90f2efddb3ce456257214b3d9b8fab243ac924631054a4d4",
+        "usc-act-sections.parquet": "sha256:9040d4460e90704aef911b4d4f704e9f432cebd7b58717f31f090a3008ca6159",
     },
     "usc-source-credit-index-2026-08-02": {
         "usc-source-credits.parquet": "sha256:d377545fe60d592a120bda30dffba665380cf82f826ae06cb327a581f0af9d8a",
@@ -279,7 +280,20 @@ _PAGE_RANGE_OPEN_END = 1 << 30
 #: Every way this module declines to publish an identifier. Codes are data: a
 #: consumer counts them, and an artifact records them per citation.
 UNRESOLVED_REASONS = (
+    #: The source does not LIST this name at all. On the pinned index this is
+    #: true of 19 of the 107 unanswerable names -- each reachable only as some
+    #: other entry's ``see also`` target, never as an entry of its own.
     "act_not_in_index",
+    #: The source lists the name and publishes no Table III key under it: 63 of
+    #: the 107, the Congressional Review Act, the Anti-Deficiency Act and the
+    #: Paperwork Reduction Act among them. Reporting these as
+    #: ``act_not_in_index`` told a reader the act was absent from a source that
+    #: names it, which is a different and wronger statement than "nothing is
+    #: classified here".
+    "act_listed_without_classification",
+    #: The source lists the name only as a cross-reference and the reference
+    #: dead-ends: 25 of the 107. The name is present, the trail is not.
+    "act_alias_target_not_listed",
     "source_incomplete",
     "act_section_not_classified",
     "classification_not_current",
@@ -420,6 +434,14 @@ class ActIndex:
     #: which is not a citation rule.
     classifications: Mapping[str, Mapping[str, tuple[Classification, ...]]] = field(default_factory=dict)
     incomplete_sources: frozenset[str] = frozenset()
+    #: Every name the Popular Name Tool LISTS -- its ``cite`` rows -- whether
+    #: or not it publishes a Table III key for one. Without it the three ways
+    #: a name can fail are indistinguishable at resolution time, and all three
+    #: were reported as ``act_not_in_index``: see
+    #: :func:`act_name_absence_reason`. Empty on a hand-built index, which
+    #: makes that index's refusals fall back to ``act_not_in_index`` exactly as
+    #: before.
+    cited_names: frozenset[str] = frozenset()
     #: Absent for an act that states no division, which is how "spans the
     #: whole public law" is represented rather than asserted. The page beside
     #: the division is the act's own start; the range arithmetic never reads
@@ -486,6 +508,7 @@ class ActIndex:
         receipt = json.loads((directory / "receipt.json").read_text(encoding="utf-8"))
         table3_key_by_name: dict[str, str] = {}
         alias_by_name: dict[str, str] = {}
+        cited_names: set[str] = set()
         division_by_name: dict[str, tuple[str, int]] = {}
         starts: dict[str, dict[str, int]] = {}
         for row in _read_pinned_parquet(directory, "usc-popular-names.parquet"):
@@ -502,6 +525,7 @@ class ActIndex:
                 alias_by_name.setdefault(name, normalize_popular_name(row["see_also_key"]))
             if row["content_type"] != "cite":
                 continue
+            cited_names.add(name)
             if row["table3_key"]:
                 table3_key_by_name.setdefault(name, row["table3_key"])
             if not (row["division"] and row["statutes_at_large_page"]):
@@ -527,6 +551,7 @@ class ActIndex:
             alias_by_name=alias_by_name,
             classifications=classifications,
             incomplete_sources=frozenset(hole["table3_key"] for hole in receipt.get("source_incomplete", ())),
+            cited_names=frozenset(cited_names),
             division_by_name=division_by_name,
             division_starts={
                 key: tuple(sorted(by_division.items(), key=lambda item: item[1]))
@@ -776,6 +801,46 @@ def _verdict_from_credits(credit: SourceCreditAnswer) -> _Verdict:
         return _Verdict(reason="usc_section_not_expressible", **provenance)
 
 
+def act_name_absence_reason(name: str, index: ActIndex) -> str:
+    """Which of the three absences :func:`resolve_act_name` met, in the source's terms.
+
+    All three were reported as ``act_not_in_index``, which is true of one of
+    them. Asked for the Congressional Review Act, a reader was told the act is
+    absent from an index that lists it by name and simply classifies nothing
+    under it -- a statement about the source that the source contradicts.
+
+    The split is derivable rather than descriptive, which is why it is here and
+    not in a comment. Measured against the pinned index over the 13,648 names
+    it reaches -- its 13,626 ``name_key`` values plus the ``see also`` targets
+    that appear as nothing else -- these three predicates partition the 107
+    unanswerable names **67 / 21 / 19**.
+
+    That is NOT the 63 / 25 / 19 :func:`resolve_act_name` notes, and the four
+    names between them are the reason this walks the chain instead of testing
+    the asked name alone. ``articles of war`` is a ``see`` row pointing at
+    ``uniform code of military justice``, which the source LISTS as a ``cite``
+    row and publishes no Table III key for; the reference does not dead-end,
+    it lands on a listed act with nothing filed under it. Saying "the trail
+    stops" there would be false, and the raw rows say so:
+    ``articles for the government of the navy``,
+    ``admiralty jurisdiction act (extension`` and
+    ``interstate commerce commission dangerous article act`` are the same
+    shape. The older counts describe the name SETS; these describe what a
+    caller is told, which is what a reason code is for.
+
+    Order matters: a name the source cites is answered by the first branch even
+    when it also carries a ``see also``, because "listed here, nothing filed
+    under it" is the more specific statement.
+    """
+
+    chain = stated_name_chain(name, index)
+    if any(step in index.cited_names for step in chain):
+        return "act_listed_without_classification"
+    if len(chain) > 1:
+        return "act_alias_target_not_listed"
+    return "act_not_in_index"
+
+
 def resolve_act_relative_citation(
     citation: ActRelativeCitation,
     *,
@@ -786,7 +851,7 @@ def resolve_act_relative_citation(
 
     act_key = resolve_act_name(citation.act_key, index)
     if act_key is None:
-        return ActResolution(citation, unresolved_reason="act_not_in_index")
+        return ActResolution(citation, unresolved_reason=act_name_absence_reason(citation.act_key, index))
     table3_key = index.table3_key_by_name[act_key]
     stated = index.division_by_name.get(act_key)
     common = {"act_key": act_key, "table3_key": table3_key}

@@ -72,6 +72,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, BinaryIO
 
+from refspec.registry.act_resolution import UNRESOLVED_REASONS
 from refspec.registry.infrastructure.artifact_serialization import file_sha256, scan_for_secrets, scan_text_for_secrets
 from refspec.storage import canonical_json
 
@@ -627,8 +628,31 @@ def build(
             # these, and a consumer is owed the count rather than the silence.
             "stated_but_not_carried": dict(sorted(not_carried.items())),
         },
+        #: The bytes of the two modules that decide what these tables contain:
+        #: this builder, and the resolver whose vocabulary the rules block now
+        #: states. Copied from the Unified Agenda's producer block (REF-067)
+        #: because the same gap was open here and nobody could see it: on
+        #: 2026-09-05 the sealed artifact turned out to have been written by
+        #: code three commits stale, and `--verify` had passed throughout,
+        #: because it compares the tables to the receipt and both were built
+        #: together. Nothing compared the receipt to the code that would
+        #: produce it today.
+        "producers": {
+            name: file_sha256(_producer_module_path(name)) for name in PRODUCER_MODULES
+        },
         "rules": {
             **carried_receipt["rules"],
+            # DERIVED, not carried. Everything else in this block is inherited
+            # from the per-page receipt, and this field inherited itself into a
+            # fossil: the resolver's vocabulary grew to nine codes while the
+            # sealed receipt still stated the seven it had on 2026-08-02, and
+            # nothing compared the two. A consumer told to read the taxonomy
+            # from the artifact -- which is the right instruction -- was handed
+            # a list missing `act_division_conflict` and `sources_disagree`.
+            # Taking it from the resolver at build time makes the receipt true
+            # by construction and makes any future code appear here without
+            # anyone remembering to add it.
+            "unresolved_reasons": list(UNRESOLVED_REASONS),
             "coverage_selection": "every-act-the-bulk-release-states-v1",
             "coverage_selection_derivation": (
                 "the per-page ancestor asked for the acts one corpus cited, so `acts_requested` "
@@ -675,6 +699,51 @@ def build(
     scan_text_for_secrets(receipt_text, "receipt.json")
     (output_dir / "receipt.json").write_text(receipt_text, encoding="utf-8")
     return receipt
+
+
+#: The modules whose bytes decide these tables. `usc_act_index` parses and
+#: writes them; `act_resolution` supplies the refusal vocabulary the receipt
+#: states, so a code the resolver adds must reach the artifact.
+PRODUCER_MODULES: tuple[str, ...] = ("usc_act_index", "act_resolution")
+
+
+def _producer_module_path(name: str) -> Path:
+    """The source file a producer module must have here, refused by name if absent.
+
+    Absence means the checkout is missing code this build depends on, not that
+    there was nothing to hash — writing NULL provenance would be
+    indistinguishable from "nothing to record". The same argument as the
+    Unified Agenda's `_producer_module_source`, and the same refusal.
+    """
+
+    path = Path(__file__).resolve().parent / f"{name}.py"
+    if not path.is_file():
+        raise SystemExit(f"refusing to seal: producer module {name} is not in this checkout ({path})")
+    return path
+
+
+def stale_producers(output_dir: Path) -> list[str]:
+    """Producer modules whose bytes differ from those that wrote this artifact.
+
+    A NOTE rather than a failure, exactly as the Unified Agenda treats it: the
+    tables can be intact and still have been written by code the tree no longer
+    holds, which is a rebuild to schedule, not a corruption to refuse. An
+    artifact sealed before this block existed carries no `producers` key and is
+    reported as such rather than silently passing — the 2026-09-05 case, where
+    a three-commit-stale build verified clean for two weeks.
+    """
+
+    receipt_path = Path(output_dir) / "receipt.json"
+    if not receipt_path.is_file():
+        return []
+    recorded = json.loads(receipt_path.read_text(encoding="utf-8")).get("producers")
+    if recorded is None:
+        return [f"{name} (the receipt predates the producer block)" for name in PRODUCER_MODULES]
+    return sorted(
+        name
+        for name in PRODUCER_MODULES
+        if recorded.get(name) != file_sha256(_producer_module_path(name))
+    )
 
 
 def verify_artifact(output_dir: Path, *, zip_path: Path | None = None) -> list[str]:
@@ -777,6 +846,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"FAIL  {problem}")
         if not problems:
             print(f"PASS  artifact at {args.output} matches its receipt")
+        stale = stale_producers(args.output)
+        if stale:
+            print(f"NOTE  the artifact was written by other code than these: {', '.join(stale)}")
         return 1 if problems else 0
 
     receipt = build(

@@ -4999,13 +4999,26 @@ key; 302,156 classification rows written, 289,095 of them with a Statutes at
 Large page. 20,865 popular-name rows over 13,626 distinct names. 35,805 rows
 quarantined: 20,371 whose Statutes at Large page span was narrowed to its
 first page and 15,434 records stating no act section. Of the 8,391 Table III
-keys the Popular Name Tool's index names, 7,546 are covered and 845 are not.
+keys the Popular Name Tool CITES, 7,553 are covered and 846 are not.
 
 Three of those figures cross-check inside the receipt rather than being read
 once: 23,147 − 15,189 = 7,958, the stated count of keys classifying no
 keyable record; 20,371 + 15,434 = 35,805, the quarantine total; and
-7,546 + 845 = 8,391. A number that only appears once is a number nothing
+7,553 + 846 = 8,399. A number that only appears once is a number nothing
 checked.
+
+**Corrected 2026-09-05, and the correction is the interesting part.** The
+figures above were read from the sealed receipt, and the popular-name line
+first said "845 of 8,391", quoting `popular_name_index_table3_keys*`. Those
+fields no longer exist: `2e968378` consolidated the index-keyed measures into
+the cite-keyed ones during the silent-misreads campaign, and the sealed
+artifact — built 2026-08-22 and never rebuilt since — went on carrying the
+retired fields. Rebuilding on 2026-09-05 with the module actually in the tree
+also moved `usc-act-sections.parquet` and `quarantine.parquet`, proven by
+building the pre-edit module to a scratch directory and getting bytes
+identical to the rebuild, so none of the movement is this cycle's. Every
+`coverage` figure above survived the rebuild unchanged; it is the `measured`
+block that had drifted.
 
 **The refusal taxonomy.** Seven codes, enumerated in the receipt so a consumer
 reads the vocabulary from the artifact rather than from the module:

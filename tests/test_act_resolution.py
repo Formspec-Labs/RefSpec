@@ -40,6 +40,7 @@ from refspec.registry.act_resolution import (
     _read_pinned_parquet,
     _resolve_through_table3,
     _Verdict,
+    act_name_absence_reason,
     canonical_usc_iri,
     resolve_act_name,
     resolve_act_relative_citation,
@@ -1347,7 +1348,11 @@ DOWNSTREAM_SPECIMENS = (
     (13, "faa reauthorization act of 2018", "427", None, "usc_section_not_expressible"),
     (6, "secure 2.0 act of 2022", "120", None, "act_section_outside_act"),
     (2, "one big beautiful bill act", "70204", None, "source_incomplete"),
-    (2, "obra", "13622", None, "act_not_in_index"),
+    # 2026-09-05: was `act_not_in_index`, and the split made it exact. "obra"
+    # is a `see` row pointing at "omnibus budget reconciliation acts", which
+    # appears in no row of the table at all -- so the reference really does
+    # dead-end, and now says so instead of claiming the act is unknown.
+    (2, "obra", "13622", None, "act_alias_target_not_listed"),
 )
 
 
@@ -1500,3 +1505,50 @@ def test_a_cross_reference_naming_two_acts_is_not_one_act(index) -> None:
     assert len({index.table3_key_by_name[half] for half in halves}) == 1, "one law"
     assert len(set(halves)) == 2, "two acts"
     assert resolve_act_name("Lea-Wagner Act", index) is None
+
+
+@artifact
+def test_the_three_absences_are_told_apart_and_the_source_is_quoted_right(index, every_name) -> None:
+    """`act_not_in_index` was published for 107 names and true of 19.
+
+    A reader asking for the Congressional Review Act was told the act is
+    absent from an index that lists it by name and classifies nothing under
+    it. That is not a narrower truth than the right answer; it is a different
+    and false statement about the source. REF-069 recorded the mislabel and
+    deferred the split to a rebuild; this is the split.
+
+    The counts here are 67 / 21 / 19, NOT the 63 / 25 / 19 this module's older
+    notes state, and the difference is load-bearing rather than drift. Four
+    names -- `articles of war` among them -- are `see` rows whose target IS a
+    listed `cite` row with no Table III key, so their cross-reference does not
+    dead-end, it lands on a listed act with nothing filed under it. The older
+    counts describe the raw name sets; these describe what a caller is told.
+    """
+
+    census: collections.Counter[str] = collections.Counter()
+    for name in every_name:
+        if resolve_act_name(name, index) is None:
+            census[act_name_absence_reason(name, index)] += 1
+
+    assert sum(census.values()) == 107
+    assert census == {
+        "act_listed_without_classification": 67,
+        "act_alias_target_not_listed": 21,
+        "act_not_in_index": 19,
+    }
+    for cited_but_unclassified in ("congressional review act", "anti-deficiency act", "paperwork reduction act"):
+        assert act_name_absence_reason(cited_but_unclassified, index) == "act_listed_without_classification"
+
+
+def test_an_index_that_states_no_cited_names_still_answers() -> None:
+    """The hand-built index keeps the old code, so a fixture is never reclassified.
+
+    `cited_names` is empty on any index built in a test rather than loaded from
+    the artifact, and an empty set must not turn every refusal into the new
+    codes. This is the negative fixture for the split.
+    """
+
+    assert act_name_absence_reason("whatever", ActIndex()) == "act_not_in_index"
+    aliased = ActIndex(alias_by_name={"a": "b"})
+    assert act_name_absence_reason("a", aliased) == "act_alias_target_not_listed"
+    assert act_name_absence_reason("b", ActIndex(cited_names=frozenset({"b"}))) == "act_listed_without_classification"
