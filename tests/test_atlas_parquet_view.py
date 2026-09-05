@@ -53,6 +53,7 @@ from refspec.atlas.parquet_artifact import (
     file_sha256,
 )
 from refspec.atlas.parquet_search_view import (
+    SEARCH_VIEW_ID_PREFIX,
     SEARCH_VIEW_SCHEMA_VERSION,
     AtlasParquetSearchViewError,
     build_atlas_parquet_search_view,
@@ -861,6 +862,62 @@ def test_compact_search_view_preserves_graph_and_omits_native_payload(tmp_path: 
     assert statement_row["subject"] == "urn:test:resource"
     compact_pin = sha256_digest((compact / "search-view-manifest.json").read_bytes())
     assert verify_atlas_parquet_search_view(compact, expected_manifest_digest=compact_pin) == manifest
+
+
+def test_the_search_view_publishes_its_provenance_surface_under_stable_names(tmp_path: Path) -> None:
+    """SpicySearch resolves served labels through this view and pins what produced them.
+
+    Agreed 2026-09-05 with SpicySearch's decision 0007 amendment: a served
+    value whose label was resolved through a RefSpec atlas release carries
+    `refspecViewIdentity`, and that value is THIS manifest's `viewId`. Nothing
+    pinned the surface it reads, so this does.
+
+    `viewId` is the name to build against and `identity` is not: the identity
+    is computed as a local, published only as `viewId`'s suffix, and a
+    consumer coding `manifest["identity"]` gets a KeyError. That mistake was
+    made in the adjudication itself and caught by reading a built manifest
+    rather than the source, which is why the assertion below recomputes the
+    digest instead of trusting the name.
+
+    The sensitivity is the point of choosing `viewId` over
+    `canonicalPayloadDigest`: the latter covers `counts` and `members` too, so
+    it moves when a row count moves. A provenance pin should move when the
+    ATLAS RELEASE or the construction moves, and not otherwise.
+    """
+
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source)
+    full = tmp_path / "full"
+    _seal_view(source, full, expected_manifest_digest=source_pin)
+    full_pin = sha256_digest((full / "view-manifest.json").read_bytes())
+    compact = tmp_path / "compact"
+    manifest = build_atlas_parquet_search_view(full, compact, expected_manifest_digest=full_pin)
+
+    assert set(manifest) == {
+        "canonicalPayloadDigest",
+        "construction",
+        "counts",
+        "input",
+        "members",
+        "recordType",
+        "schemaVersion",
+        "status",
+        "viewId",
+    }
+    assert "identity" not in manifest
+    assert set(manifest["input"]) == {
+        "atlas",
+        "fullViewId",
+        "fullViewManifestSha256",
+        "fullViewPayloadDigest",
+    }
+
+    identity = canonical_payload_sha256(
+        {"construction": manifest["construction"], "input": manifest["input"]}
+    )
+    assert manifest["viewId"] == SEARCH_VIEW_ID_PREFIX + identity.removeprefix("sha256:")
+    assert manifest["viewId"] != manifest["canonicalPayloadDigest"]
 
 
 def test_search_view_refuses_a_label_member_without_canonical_label_id(tmp_path: Path) -> None:
