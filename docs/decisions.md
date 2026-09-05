@@ -5072,6 +5072,31 @@ carries — the two `crs-legislative-subject-terms` distributions are 2.5 MB
 each — but it is a permanent addition and it is the owner's call, not a
 consequence of writing this entry.
 
+**Where the irreplaceable bytes actually live, measured 2026-09-05, and it is
+worse than the 3.2 MB question.** Two inputs cannot be re-fetched: the bulk
+zip (14,966,992 bytes, `93e1f233…`, no recorded URL and no live path) and the
+2026-08-02 popular-names table (563,299 bytes, `603d5b07…`), whose source page
+has moved past its pinned digest. Both exist twice on this machine — the
+working copy and a 2026-08-28 salvage copy, byte-identical — and `df` puts
+both on `/dev/disk3s5`, one volume. Neither is in any git repository: the
+RefSpec copies sit under gitignored `output/`, and `~/Work/corpora` is not a
+repository at all. **So the surviving-a-disk-failure count for both is zero.**
+
+That reframes the cost. Committing the derived artifact rescues one of the two
+by itself, because its `usc-popular-names.parquet` IS the 2026-08-02 table,
+carried byte-identically — same digest, same 563,299 bytes. What that leaves
+on a single volume is the 14.9 MB zip, and it is the input everything else is
+derived from: with it, all three tables rebuild deterministically (proven
+today by two rebuilds landing on identical bytes); without it, a future schema
+change has nothing to rebuild from and the tables become the only surviving
+form of a source nobody can fetch again.
+
+The full set is 18,123,315 bytes — 3,153,240 for the artifact and 14,966,992
+for the zip, with no double-count for the popular-names table. Cheaper than
+the loss it insures against, but it is an owner's call and both halves should
+be decided together rather than the small one now and the large one after a
+disk fails.
+
 **How a consumer admits it.** Decision 0008 requires five conditions and
 fewer than five is refusal, not a partial pass. This record supplies the
 ownership half of condition 1 and the stated coverage condition 3 verifies
