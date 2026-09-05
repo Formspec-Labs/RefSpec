@@ -54,6 +54,12 @@ SOURCE_AVAILABILITY_STATES = {
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 _SOURCE_CONCEPT_RELEASE_DISTRIBUTION_KIND = "refspec-source-concept-release-1.0"
 _SOURCE_CONTROLLED_RESOURCE_DISTRIBUTION_KIND = "refspec-source-controlled-resource-2.0"
+#: REF-069. The two kinds above are concept/observation packages with fixed
+#: member filenames; a sealed registry artifact is derived tables plus the
+#: receipt that seals them, and filing one under either would describe a
+#: crosswalk as a concept scheme. Its verification is the artifact's OWN
+#: verifier rather than a second implementation of one.
+_SEALED_REGISTRY_ARTIFACT_DISTRIBUTION_KIND = "refspec-sealed-registry-artifact-1.0"
 
 
 class ResourceCatalogError(ValueError):
@@ -203,6 +209,66 @@ def _verify_source_controlled_resource_distribution(
         raise ResourceCatalogError(f"{location} logical digest differs from completed evidence")
 
 
+def _verify_sealed_registry_artifact_distribution(
+    *,
+    manifest_file: Path,
+    inventory_paths: set[str],
+    inventory_digests: Mapping[str, str],
+    completed_row: Mapping[str, Any],
+    location: str,
+) -> None:
+    """A sealed registry artifact, verified by the receipt it was sealed with.
+
+    REF-069. The distribution declares `receipt.json` as its manifest, and the
+    receipt's own `outputs` block already states every table, its digest and
+    its row count. This checks that the declared file inventory and the receipt
+    agree in BOTH directions -- every output the receipt names is distributed
+    at the digest it names, and the distribution carries no table the receipt
+    disowns -- which is what stops a package from shipping a file its own seal
+    never saw.
+
+    It deliberately does NOT reimplement the artifact's schema and coverage
+    checks. `usc_act_index.verify_artifact` performs those against the built
+    directory, including column names and types, row counts, coverage
+    cross-checks and, since 2026-09-05, the producing modules' bytes. Writing a
+    second implementation here would be a second thing to keep in step, and the
+    first divergence between them would present as a passing check.
+    """
+
+    if manifest_file.name != "receipt.json":
+        raise ResourceCatalogError(f"{location} must name receipt.json")
+    if completed_row.get("packageClass") != "sealedRegistryArtifact":
+        raise ResourceCatalogError(f"{location} completed evidence must describe a sealedRegistryArtifact")
+    digest = _file_digest(manifest_file)
+    if digest != completed_row.get("packageDigest"):
+        raise ResourceCatalogError(f"{location} receipt digest differs from completed evidence")
+    try:
+        receipt = json.loads(manifest_file.read_text(encoding="utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ResourceCatalogError(f"{location} receipt must be valid UTF-8 JSON") from error
+    outputs = receipt.get("outputs")
+    if not isinstance(outputs, Mapping) or not outputs:
+        raise ResourceCatalogError(f"{location} receipt states no outputs")
+    package_root = manifest_file.parent
+    sealed = {Path(stated).name: meta.get("digest") for stated, meta in outputs.items()}
+    distributed = {
+        Path(path).name: inventory_digests[path]
+        for path in inventory_paths
+        if Path(path).name != "receipt.json"
+    }
+    if set(sealed) != set(distributed):
+        missing = sorted(set(sealed) - set(distributed))
+        extra = sorted(set(distributed) - set(sealed))
+        raise ResourceCatalogError(f"{location} file set differs from the receipt: missing={missing}, extra={extra}")
+    for name, stated_digest in sorted(sealed.items()):
+        if distributed[name] != stated_digest:
+            raise ResourceCatalogError(
+                f"{location} {name} is distributed at {distributed[name]}, sealed at {stated_digest}"
+            )
+        if not (package_root / name).is_file():
+            raise ResourceCatalogError(f"{location} declares {name}, which is not in the package directory")
+
+
 def _verify_source_concept_release_distribution(
     *,
     manifest_file: Path,
@@ -291,6 +357,7 @@ def _validate_completed_inventory(value: Mapping[str, Any], repository_root: Pat
         "recordOrObservationCount",
         "releaseOrSnapshotCount",
         "resourceCount",
+        "sealedRegistryArtifactCount",
         "sourceConceptReleaseCount",
         "sourceControlledResourceCount",
     }
@@ -326,6 +393,7 @@ def _validate_completed_inventory(value: Mapping[str, Any], repository_root: Pat
         package_class = _string(raw.get("packageClass"), f"completed {resource_id}.packageClass")
         if package_class not in {
             "managedConceptRelease",
+            "sealedRegistryArtifact",
             "sourceConceptRelease",
             "sourceControlledResource",
         }:
@@ -359,6 +427,7 @@ def _validate_completed_inventory(value: Mapping[str, Any], repository_root: Pat
         "recordOrObservationCount": sum(row["recordOrObservationCount"] for row in resources),
         "releaseOrSnapshotCount": sum(row["releaseOrSnapshotCount"] for row in resources),
         "resourceCount": len(resources),
+        "sealedRegistryArtifactCount": sum(row["packageClass"] == "sealedRegistryArtifact" for row in resources),
         "sourceConceptReleaseCount": sum(row["packageClass"] == "sourceConceptRelease" for row in resources),
         "sourceControlledResourceCount": sum(row["packageClass"] == "sourceControlledResource" for row in resources),
     }
@@ -437,6 +506,14 @@ def _validate_distributions(
                 inventory_paths=seen_paths,
                 completed_row=completed_row,
                 repository_root=repository_root,
+                location=location,
+            )
+        elif distribution_kind == _SEALED_REGISTRY_ARTIFACT_DISTRIBUTION_KIND:
+            _verify_sealed_registry_artifact_distribution(
+                manifest_file=manifest_file,
+                inventory_paths=seen_paths,
+                inventory_digests=checked_digests,
+                completed_row=completed_row,
                 location=location,
             )
         elif distribution_kind == _SOURCE_CONCEPT_RELEASE_DISTRIBUTION_KIND:

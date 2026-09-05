@@ -1,180 +1,196 @@
 {
-  "schemaVersion": "2.0",
-  "recordedAt": "2026-08-04T18:00:00Z",
-  "summary": {
-    "resourceCount": 12,
-    "releaseOrSnapshotCount": 13,
-    "managedConceptResourceCount": 4,
-    "sourceConceptReleaseCount": 3,
-    "sourceControlledResourceCount": 5,
-    "recordOrObservationCount": 22045
-  },
+  "recordedAt": "2026-09-05T00:00:00Z",
   "resources": [
     {
-      "resourceId": "federal-register-thesaurus-1995",
-      "title": "Federal Register Thesaurus of Indexing Terms, 1995",
-      "packageClass": "managedConceptRelease",
-      "releaseOrSnapshotCount": 1,
-      "recordOrObservationCount": 629,
+      "evidencePath": "research/evidence/federal-register-thesaurus-managed-release-2026-07-30/evidence.json",
+      "identityStatus": "projectManagedConceptIdentityFromExactPublisherSource",
       "intendedUses": [
         "historicalLookup",
         "regressionTesting",
         "vocabularyChangeAnalysis"
       ],
-      "identityStatus": "projectManagedConceptIdentityFromExactPublisherSource",
+      "packageClass": "managedConceptRelease",
       "packageDigest": "sha256:96352a29a6ebadc0221af604eebebb2fffb0069ff4367181fd4640671215df70",
-      "evidencePath": "research/evidence/federal-register-thesaurus-managed-release-2026-07-30/evidence.json"
+      "recordOrObservationCount": 629,
+      "releaseOrSnapshotCount": 1,
+      "resourceId": "federal-register-thesaurus-1995",
+      "title": "Federal Register Thesaurus of Indexing Terms, 1995"
     },
     {
-      "resourceId": "federal-register-thesaurus-2025",
-      "title": "Federal Register Thesaurus of Indexing Terms, April 1, 2025",
-      "packageClass": "managedConceptRelease",
-      "releaseOrSnapshotCount": 1,
-      "recordOrObservationCount": 705,
+      "evidencePath": "research/evidence/federal-register-thesaurus-2025-managed-release-2026-07-30/evidence.json",
+      "identityStatus": "projectManagedConceptIdentityFromExactPublisherSource",
       "intendedUses": [
         "federalRegisterDefaultSubjectCandidate",
         "mappingReference",
         "searchExpansion"
       ],
-      "identityStatus": "projectManagedConceptIdentityFromExactPublisherSource",
+      "packageClass": "managedConceptRelease",
       "packageDigest": "sha256:3491acfdb3c4b51fda6351fcc47c2ca13e63e9df99e30399e05f745c97bf9df6",
-      "evidencePath": "research/evidence/federal-register-thesaurus-2025-managed-release-2026-07-30/evidence.json"
+      "recordOrObservationCount": 705,
+      "releaseOrSnapshotCount": 1,
+      "resourceId": "federal-register-thesaurus-2025",
+      "title": "Federal Register Thesaurus of Indexing Terms, April 1, 2025"
     },
     {
-      "resourceId": "elsst",
-      "title": "European Language Social Science Thesaurus",
-      "packageClass": "managedConceptRelease",
-      "releaseOrSnapshotCount": 2,
-      "recordOrObservationCount": 6905,
+      "evidencePath": "research/evidence/elsst-r5-r6-managed-release-2026-07-29/evidence.json",
+      "identityStatus": "publisherConceptIdentitiesPreserved",
       "intendedUses": [
         "mappingReference",
         "searchExpansion"
       ],
-      "identityStatus": "publisherConceptIdentitiesPreserved",
+      "packageClass": "managedConceptRelease",
       "packageDigest": "sha256:8dd408effe1d57109460a01a9c6620107b4662cbb95eed829ef905f3bfe8b71e",
-      "evidencePath": "research/evidence/elsst-r5-r6-managed-release-2026-07-29/evidence.json"
+      "recordOrObservationCount": 6905,
+      "releaseOrSnapshotCount": 2,
+      "resourceId": "elsst",
+      "title": "European Language Social Science Thesaurus"
     },
     {
-      "resourceId": "federal-register-api-topics",
-      "title": "FederalRegister.gov Topics API source observations",
-      "packageClass": "sourceControlledResource",
-      "releaseOrSnapshotCount": 1,
-      "recordOrObservationCount": 7767,
+      "evidencePath": "research/evidence/federal-register-topics-source-package-2026-08-04/evidence.json",
+      "identityStatus": "captureLocalObservationsOnly",
       "intendedUses": [
         "sourceAssignedEvidence"
       ],
-      "identityStatus": "captureLocalObservationsOnly",
+      "packageClass": "sourceControlledResource",
       "packageDigest": "sha256:4a8da29052cf18ed20dc21ef75bd5800264c60865a0bbee914231e212f22ced4",
-      "evidencePath": "research/evidence/federal-register-topics-source-package-2026-08-04/evidence.json"
+      "recordOrObservationCount": 7767,
+      "releaseOrSnapshotCount": 1,
+      "resourceId": "federal-register-api-topics",
+      "title": "FederalRegister.gov Topics API source observations"
     },
     {
-      "resourceId": "icpsr-subject-thesaurus",
-      "title": "ICPSR Subject Thesaurus URI-verified subset",
-      "packageClass": "managedConceptRelease",
-      "releaseOrSnapshotCount": 1,
-      "recordOrObservationCount": 3760,
+      "evidencePath": "research/evidence/icpsr-managed-release-2026-07-30/evidence.json",
+      "identityStatus": "publisherConceptIdentitiesPreservedForVerifiedSubset",
       "intendedUses": [
         "mappingReference",
         "searchExpansion"
       ],
-      "identityStatus": "publisherConceptIdentitiesPreservedForVerifiedSubset",
+      "packageClass": "managedConceptRelease",
       "packageDigest": "sha256:28030c45eda86882483957b9c3689ad9631627770b28b1ba1bd809cba46e1cd7",
-      "evidencePath": "research/evidence/icpsr-managed-release-2026-07-30/evidence.json"
+      "recordOrObservationCount": 3760,
+      "releaseOrSnapshotCount": 1,
+      "resourceId": "icpsr-subject-thesaurus",
+      "title": "ICPSR Subject Thesaurus URI-verified subset"
     },
     {
-      "resourceId": "crs-legislative-subject-terms",
-      "title": "CRS Legislative Subject Terms source observations",
-      "packageClass": "sourceControlledResource",
-      "releaseOrSnapshotCount": 1,
-      "recordOrObservationCount": 1043,
+      "evidencePath": "research/evidence/crs-source-packages-2026-08-03/package-evidence.json",
+      "identityStatus": "captureLocalObservationsOnly",
       "intendedUses": [
         "sourceAssignedEvidence",
         "searchExpansion"
       ],
-      "identityStatus": "captureLocalObservationsOnly",
+      "packageClass": "sourceControlledResource",
       "packageDigest": "sha256:dd1cb881ecb0cb8ea82a6bbc97a37a9951649ac88c5ad2e11a61bba35e80a76c",
-      "evidencePath": "research/evidence/crs-source-packages-2026-08-03/package-evidence.json"
+      "recordOrObservationCount": 1043,
+      "releaseOrSnapshotCount": 1,
+      "resourceId": "crs-legislative-subject-terms",
+      "title": "CRS Legislative Subject Terms source observations"
     },
     {
-      "resourceId": "crs-policy-areas",
-      "title": "CRS Policy Areas source observations",
-      "packageClass": "sourceControlledResource",
-      "releaseOrSnapshotCount": 1,
-      "recordOrObservationCount": 32,
+      "evidencePath": "research/evidence/crs-source-packages-2026-08-03/package-evidence.json",
+      "identityStatus": "captureLocalObservationsOnly",
       "intendedUses": [
         "navigation"
       ],
-      "identityStatus": "captureLocalObservationsOnly",
+      "packageClass": "sourceControlledResource",
       "packageDigest": "sha256:8fb92868bcc9ceaf240bfbfd62594e9b50a8d50c0896d14ced70b9ff1337c60f",
-      "evidencePath": "research/evidence/crs-source-packages-2026-08-03/package-evidence.json"
-    },
-    {
-      "resourceId": "crs-legislative-subject-source-concepts",
-      "title": "CRS Legislative Subject Terms source-concept release",
-      "packageClass": "sourceConceptRelease",
-      "releaseOrSnapshotCount": 1,
-      "recordOrObservationCount": 565,
-      "intendedUses": [
-        "sourceAssignedEvidence",
-        "searchExpansion"
-      ],
-      "identityStatus": "refspecSourceScopedConceptIdentity",
-      "packageDigest": "sha256:39c876bd1b7b577c09248a47ba63fdba68543ebd18185c5f71e99871217a577b",
-      "evidencePath": "research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json"
-    },
-    {
-      "resourceId": "crs-legislative-entity-source-concepts",
-      "title": "CRS Legislative Entities source-concept release",
-      "packageClass": "sourceConceptRelease",
-      "releaseOrSnapshotCount": 1,
-      "recordOrObservationCount": 478,
-      "intendedUses": [
-        "sourceAssignedEvidence",
-        "searchExpansion"
-      ],
-      "identityStatus": "refspecSourceScopedConceptIdentity",
-      "packageDigest": "sha256:8437a64121d1608055bfe18df643f67e2f082170e3870b4f5f7e688ec873be7f",
-      "evidencePath": "research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json"
-    },
-    {
-      "resourceId": "crs-policy-area-source-concepts",
-      "title": "CRS Policy Areas source-concept release",
-      "packageClass": "sourceConceptRelease",
-      "releaseOrSnapshotCount": 1,
       "recordOrObservationCount": 32,
+      "releaseOrSnapshotCount": 1,
+      "resourceId": "crs-policy-areas",
+      "title": "CRS Policy Areas source observations"
+    },
+    {
+      "evidencePath": "research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json",
+      "identityStatus": "refspecSourceScopedConceptIdentity",
+      "intendedUses": [
+        "sourceAssignedEvidence",
+        "searchExpansion"
+      ],
+      "packageClass": "sourceConceptRelease",
+      "packageDigest": "sha256:39c876bd1b7b577c09248a47ba63fdba68543ebd18185c5f71e99871217a577b",
+      "recordOrObservationCount": 565,
+      "releaseOrSnapshotCount": 1,
+      "resourceId": "crs-legislative-subject-source-concepts",
+      "title": "CRS Legislative Subject Terms source-concept release"
+    },
+    {
+      "evidencePath": "research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json",
+      "identityStatus": "refspecSourceScopedConceptIdentity",
+      "intendedUses": [
+        "sourceAssignedEvidence",
+        "searchExpansion"
+      ],
+      "packageClass": "sourceConceptRelease",
+      "packageDigest": "sha256:8437a64121d1608055bfe18df643f67e2f082170e3870b4f5f7e688ec873be7f",
+      "recordOrObservationCount": 478,
+      "releaseOrSnapshotCount": 1,
+      "resourceId": "crs-legislative-entity-source-concepts",
+      "title": "CRS Legislative Entities source-concept release"
+    },
+    {
+      "evidencePath": "research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json",
+      "identityStatus": "refspecSourceScopedConceptIdentity",
       "intendedUses": [
         "navigation",
         "sourceAssignedEvidence"
       ],
-      "identityStatus": "refspecSourceScopedConceptIdentity",
+      "packageClass": "sourceConceptRelease",
       "packageDigest": "sha256:11eadd5a0c435f016e2e3230b625fcc4b5bce99090638daa635fb9995c6b9bf4",
-      "evidencePath": "research/evidence/crs-source-concept-releases-2026-08-04/release-evidence.json"
+      "recordOrObservationCount": 32,
+      "releaseOrSnapshotCount": 1,
+      "resourceId": "crs-policy-area-source-concepts",
+      "title": "CRS Policy Areas source-concept release"
     },
     {
-      "resourceId": "lda-general-issue-codes",
-      "title": "Lobbying Disclosure Act General Issue Codes",
-      "packageClass": "sourceControlledResource",
-      "releaseOrSnapshotCount": 1,
-      "recordOrObservationCount": 79,
+      "evidencePath": "research/evidence/lda-controlled-lists-2026-07-30/README.md",
+      "identityStatus": "publisherIdentifiersPreserved",
       "intendedUses": [
         "sourceAssignedEvidence"
       ],
-      "identityStatus": "publisherIdentifiersPreserved",
+      "packageClass": "sourceControlledResource",
       "packageDigest": "sha256:8a1c3e4db6fcec803463dd96a6d5231022841c291315ff624827db798cfdf40a",
-      "evidencePath": "research/evidence/lda-controlled-lists-2026-07-30/README.md"
+      "recordOrObservationCount": 79,
+      "releaseOrSnapshotCount": 1,
+      "resourceId": "lda-general-issue-codes",
+      "title": "Lobbying Disclosure Act General Issue Codes"
     },
     {
-      "resourceId": "lda-filing-types",
-      "title": "Lobbying Disclosure Act Filing Types",
-      "packageClass": "sourceControlledResource",
-      "releaseOrSnapshotCount": 1,
-      "recordOrObservationCount": 50,
+      "evidencePath": "research/evidence/lda-controlled-lists-2026-07-30/README.md",
+      "identityStatus": "publisherIdentifiersPreserved",
       "intendedUses": [
         "deterministicMetadata"
       ],
-      "identityStatus": "publisherIdentifiersPreserved",
+      "packageClass": "sourceControlledResource",
       "packageDigest": "sha256:6b05bd1ce95fcf2f62a9e627fb69233eb2fce48176bdd08011247c7384009ecc",
-      "evidencePath": "research/evidence/lda-controlled-lists-2026-07-30/README.md"
+      "recordOrObservationCount": 50,
+      "releaseOrSnapshotCount": 1,
+      "resourceId": "lda-filing-types",
+      "title": "Lobbying Disclosure Act Filing Types"
+    },
+    {
+      "evidencePath": "research/evidence/act-index-bulk-table3-2026-08-22.md",
+      "identityStatus": "publisherStatedTableIIIKeysAndPopularNames",
+      "intendedUses": [
+        "actRelativeCitationResolution",
+        "regressionTesting",
+        "sourceCoverageAnalysis"
+      ],
+      "packageClass": "sealedRegistryArtifact",
+      "packageDigest": "sha256:2c8ea5c31fb71a8cc15cafe8a0c5aa246ab058df8b18e912d2812c710ef5b7df",
+      "recordOrObservationCount": 323021,
+      "releaseOrSnapshotCount": 1,
+      "resourceId": "usc-act-index",
+      "title": "U.S. Code act index: OLRC Table III classifications and Popular Name Tool names"
     }
-  ]
+  ],
+  "schemaVersion": "2.0",
+  "summary": {
+    "managedConceptResourceCount": 4,
+    "recordOrObservationCount": 345066,
+    "releaseOrSnapshotCount": 14,
+    "resourceCount": 13,
+    "sealedRegistryArtifactCount": 1,
+    "sourceConceptReleaseCount": 3,
+    "sourceControlledResourceCount": 5
+  }
 }

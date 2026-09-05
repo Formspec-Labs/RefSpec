@@ -43,7 +43,7 @@
     "refspec.registry.usc_section_oracle"
   ],
   "recordedAt": "2026-09-05T00:00:00Z",
-  "resourceCatalogDigest": "sha256:8ac52340439f60a6c569c4df7391e93a08334f4b4c97435b5d5ac530353aaba5",
+  "resourceCatalogDigest": "sha256:51f9d1085b5eabc35713c5d10fb1c6c4c6da50b09bf31e51da97b2abce8cf2c8",
   "rows": [
     {
       "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",

@@ -78,6 +78,7 @@ def _completed_subset(
             "recordOrObservationCount": sum(row["recordOrObservationCount"] for row in rows),
             "releaseOrSnapshotCount": sum(row["releaseOrSnapshotCount"] for row in rows),
             "resourceCount": len(rows),
+            "sealedRegistryArtifactCount": sum(row["packageClass"] == "sealedRegistryArtifact" for row in rows),
             "sourceConceptReleaseCount": sum(row["packageClass"] == "sourceConceptRelease" for row in rows),
             "sourceControlledResourceCount": sum(row["packageClass"] == "sourceControlledResource" for row in rows),
         },
@@ -128,17 +129,23 @@ def test_checked_catalog_is_exact_and_two_tier() -> None:
     # purpose: the artifact is sealed and digest-pinned but written under
     # `output/`, which git does not carry, so it is not yet exchanged as an
     # immutable release and has no portable distribution to verify.
+    # REF-069 publishes the act index as a sealed registry artifact, so it
+    # leaves inventoryOnly for verifiedDistribution (107 -> 106, 5 -> 6, 3 -> 4).
+    # That is the tier SpicySearch's decision 0008 condition 1 needs: owned AND
+    # published through a product path rather than read out of a sibling's
+    # gitignored output/ directory.
     assert catalog["summary"] == {
         "evidenceOnlyCount": 7,
-        "inventoryOnlyCount": 107,
+        "inventoryOnlyCount": 106,
         "resourceCount": 117,
-        "verifiedDistributionCount": 5,
-        "verifiedResourceCount": 3,
+        "verifiedDistributionCount": 6,
+        "verifiedResourceCount": 4,
     }
     assert verified_distribution_ids(catalog) == {
         "crs-legislative-subject-terms",
         "crs-policy-areas",
         "lda-native-controls",
+        "usc-act-index",
     }
 
 
@@ -332,3 +339,66 @@ def test_source_concept_distribution_reader_rejects_reinventoried_payload_tamper
             minimal_distributions,
             repository_root=tmp_path,
         )
+
+
+def _sealed_row(distributions: dict[str, Any]) -> dict[str, Any]:
+    return next(
+        value
+        for value in distributions["distributions"]
+        if value["distributionKind"] == "refspec-sealed-registry-artifact-1.0"
+    )
+
+
+def test_sealed_registry_distribution_refuses_a_table_its_receipt_never_sealed() -> None:
+    """REF-069's negative fixture: a package may not carry what its seal disowns.
+
+    The receipt's `outputs` block IS the declared member list, so the check runs
+    in both directions. Dropping a table is the other half and has its own test
+    below; this one adds a file the seal never saw, which is the shape that
+    would let a package ship an unsealed table beside three sealed ones.
+    """
+
+    inventory, completed, distributions = _inputs()
+    extra = copy.deepcopy(distributions)
+    row = _sealed_row(extra)
+    strays = [f for f in row["files"] if f["path"].endswith("usc-act-sections.parquet")]
+    row["files"] = [*row["files"], {"path": strays[0]["path"] + ".bak", "sha256": strays[0]["sha256"]}]
+
+    with pytest.raises(ResourceCatalogError):
+        build_resource_catalog(inventory, completed, extra, repository_root=ROOT)
+
+
+def test_sealed_registry_distribution_refuses_a_missing_sealed_table() -> None:
+    """The receipt names four members; three is not a subset, it is a different artifact."""
+
+    inventory, completed, distributions = _inputs()
+    short = copy.deepcopy(distributions)
+    row = _sealed_row(short)
+    row["files"] = [f for f in row["files"] if not f["path"].endswith("quarantine.parquet")]
+
+    with pytest.raises(ResourceCatalogError, match="file set differs from the receipt"):
+        build_resource_catalog(inventory, completed, short, repository_root=ROOT)
+
+
+def test_sealed_registry_distribution_binds_the_completed_receipt_digest() -> None:
+    """The completed row's packageDigest is the receipt's, not a second opinion."""
+
+    inventory, completed, distributions = _inputs()
+    stale = copy.deepcopy(completed)
+    row = next(value for value in stale["resources"] if value["resourceId"] == "usc-act-index")
+    row["packageDigest"] = "sha256:" + "0" * 64
+
+    with pytest.raises(ResourceCatalogError, match="receipt digest differs from completed evidence"):
+        build_resource_catalog(inventory, stale, distributions, repository_root=ROOT)
+
+
+def test_sealed_registry_distribution_refuses_a_wrong_package_class() -> None:
+    """A sealed artifact filed as an observation package is the mislabel REF-069 exists to stop."""
+
+    inventory, completed, distributions = _inputs()
+    wrong = copy.deepcopy(completed)
+    row = next(value for value in wrong["resources"] if value["resourceId"] == "usc-act-index")
+    row["packageClass"] = "sourceControlledResource"
+
+    with pytest.raises(ResourceCatalogError):
+        build_resource_catalog(inventory, wrong, distributions, repository_root=ROOT)

@@ -239,6 +239,30 @@
       "manifestPath": "research/evidence/crs-source-concept-releases-2026-08-04/policy-areas/bundle-manifest.json",
       "packageResourceId": "crs-policy-area-source-concepts",
       "resourceId": "crs-policy-areas"
+    },
+    {
+      "distributionKind": "refspec-sealed-registry-artifact-1.0",
+      "files": [
+        {
+          "path": "portfolio/distributions/usc-act-index-2026-08-22/quarantine.parquet",
+          "sha256": "sha256:a89305172a27e682488e05e8fc82d8b0521d20a8fcee7d97a00331e8527acfac"
+        },
+        {
+          "path": "portfolio/distributions/usc-act-index-2026-08-22/receipt.json",
+          "sha256": "sha256:2c8ea5c31fb71a8cc15cafe8a0c5aa246ab058df8b18e912d2812c710ef5b7df"
+        },
+        {
+          "path": "portfolio/distributions/usc-act-index-2026-08-22/usc-act-sections.parquet",
+          "sha256": "sha256:9040d4460e90704aef911b4d4f704e9f432cebd7b58717f31f090a3008ca6159"
+        },
+        {
+          "path": "portfolio/distributions/usc-act-index-2026-08-22/usc-popular-names.parquet",
+          "sha256": "sha256:603d5b072133d8fe6802736aeaa70b9fb9832e4fb996158a083fae3ce1026a9a"
+        }
+      ],
+      "manifestPath": "portfolio/distributions/usc-act-index-2026-08-22/receipt.json",
+      "packageResourceId": "usc-act-index",
+      "resourceId": "usc-act-index"
     }
   ],
   "format": "refspec-portable-resource-distributions/experimental-v0"

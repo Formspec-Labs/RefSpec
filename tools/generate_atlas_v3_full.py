@@ -712,9 +712,16 @@ SOURCE_LANGUAGE_PROFILES = MappingProxyType(
 
 REGISTRY_DESCRIPTORS = BINDING_ROOT / "tests" / "registry-descriptors.nq"
 REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.nq"
-REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:a8e58fb2309f911236615b0f905d2e5472286201fb4ce5fc40661608a641cac6"
+REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:f4ca83a852748a90cf4f1cf67a5bb954b76f42ecc39ac9b6ec57d4934fbfb5a4"
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
+# 2026-09-05 (REF-069, second move the same day): the act index is PUBLISHED as
+# a sealed registry artifact, so its descriptor payload changes from
+# consumability inventoryOnly to verifiedDistribution and gains the
+# distribution and evidence blocks. Exactly ONE quad moves — no scheme, source,
+# placement or count does: 1,252 quads, 106 schemes, 117 sources, 112
+# placements, all unchanged. A payload-only move still moves both pins, which
+# is the whole reason they exist.
 # 2026-09-05 (REF-069): `usc-act-index` joins the resource inventory, and this
 # is the FIRST of these entries where the .nq graph itself moved rather than
 # only the proof. One mappingReference resource adds 11 quads (a ResourceScheme
@@ -743,7 +750,7 @@ REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/regi
 # edited that day, is NOT index evidence and moved nothing here). The
 # descriptors .nq graph is byte-identical both times; only the proof's
 # inputs.atlasIndexDigest moved, and this pin moves with it.
-REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:5948422bcd78a9bb95ac71eccadb893dd5c7c2dbf5d878c37c3873fc573e45dd"
+REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:c871368142b3b9d569d0069ad77c01dc87658eab80806ac2d852d0103d4efd08"
 
 
 def _load_validator() -> Any:

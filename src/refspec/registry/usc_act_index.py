@@ -565,6 +565,9 @@ def build(
             "bulk_member": BULK_MEMBER,
             "bulk_member_bytes": BULK_MEMBER_BYTES,
             "bulk_release_point": BULK_RELEASE_POINT,
+            "bulk_source_acquired": BULK_SOURCE_ACQUIRED,
+            "bulk_source_availability": BULK_SOURCE_AVAILABILITY,
+            "bulk_source_retained_at": BULK_SOURCE_RETAINED_AT,
             "popular_names_carried_from": _repo_relative(popular_names_from),
             "popular_names_digest": file_sha256(names_path),
             "popular_names_url": carried_receipt["inputs"]["popular_names_url"],
@@ -704,6 +707,30 @@ def build(
 #: The modules whose bytes decide these tables. `usc_act_index` parses and
 #: writes them; `act_resolution` supplies the refusal vocabulary the receipt
 #: states, so a code the resolver adds must reach the artifact.
+#: What a consumer holding only the distributed tables needs to know about the
+#: input they came from, because that input is not distributed with them.
+#:
+#: The acquisition date is what the record states, not what a filesystem says:
+#: the 2026-08-05 pass recorded "fetched by plain curl" and no address, and
+#: both retained copies carry an mtime of 2026-08-06 17:24. Consistent, and
+#: neither is proof of a fetch time, so the field says which is which.
+BULK_SOURCE_ACQUIRED = "2026-08-05 acquisition pass; both retained copies carry mtime 2026-08-06T17:24"
+
+#: Probed 2026-08-22: /table3/, /download/releasepoints/us/pl/119/73/ and
+#: /classification/ all answer OLRC's soft-404 for `fulldump@119-73` in either
+#: extension, and neither download.shtml nor classification/tables.shtml links
+#: a bulk Table III file. So this artifact cannot be rebuilt from the publisher
+#: — only verified against retained bytes.
+BULK_SOURCE_AVAILABILITY = "publisher no longer serves release point 119-73 at any probed path (2026-08-22)"
+
+#: A LOCATION, not an identity. The digest above is the identity; this says
+#: where a copy is kept, and it is deliberately outside this repository because
+#: a 14,966,992-byte source-native input is not an atlas product. Two copies on
+#: one volume plus a digest in a pushed repository is not durability, and the
+#: backup destination for the store is a separate, open question.
+BULK_SOURCE_RETAINED_AT = "corpora/supply-2026-09-02/blobs/sha256/<bulk_source_digest>"
+
+
 PRODUCER_MODULES: tuple[str, ...] = ("usc_act_index", "act_resolution")
 
 

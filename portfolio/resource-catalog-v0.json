@@ -1,6 +1,6 @@
 {
-  "catalogDigest": "sha256:8ac52340439f60a6c569c4df7391e93a08334f4b4c97435b5d5ac530353aaba5",
-  "catalogId": "urn:ref:resource-catalog:8ac52340439f60a6c569c4df7391e93a08334f4b4c97435b5d5ac530353aaba5",
+  "catalogDigest": "sha256:51f9d1085b5eabc35713c5d10fb1c6c4c6da50b09bf31e51da97b2abce8cf2c8",
+  "catalogId": "urn:ref:resource-catalog:51f9d1085b5eabc35713c5d10fb1c6c4c6da50b09bf31e51da97b2abce8cf2c8",
   "experimental": true,
   "format": "refspec-resource-catalog/experimental-v0",
   "recordedAt": "2026-09-05T00:00:00Z",
@@ -1877,17 +1877,54 @@
       "versionRepresentation": "Pin the exact endpoint response, capture time, digest, complete observed code count, referenced data-dictionary edition, and parser version."
     },
     {
-      "consumability": "inventoryOnly",
-      "distributions": [],
-      "evidence": [],
-      "gap": "The bulk bytes are retained and digest-pinned, but their acquisition URL was never recorded and OLRC no longer serves release point 119-73 at any probed path (/table3/, /download/releasepoints/us/pl/119/73/ and /classification/ all answered the soft-404 on 2026-08-22, and neither index page links a bulk Table III file), so no publisher URL can be stated for them without inventing one. The artifact is also written under output/, which git does not carry, so it is not yet exchanged as an immutable release or installed package under REF-024. act_not_in_index is published for 107 unresolvable popular names and is accurate for 19; the Popular Name Tool cites 63 of the rest and classifies nothing under them.",
+      "consumability": "verifiedDistribution",
+      "distributions": [
+        {
+          "distributionKind": "refspec-sealed-registry-artifact-1.0",
+          "files": [
+            {
+              "path": "portfolio/distributions/usc-act-index-2026-08-22/quarantine.parquet",
+              "sha256": "sha256:a89305172a27e682488e05e8fc82d8b0521d20a8fcee7d97a00331e8527acfac"
+            },
+            {
+              "path": "portfolio/distributions/usc-act-index-2026-08-22/receipt.json",
+              "sha256": "sha256:2c8ea5c31fb71a8cc15cafe8a0c5aa246ab058df8b18e912d2812c710ef5b7df"
+            },
+            {
+              "path": "portfolio/distributions/usc-act-index-2026-08-22/usc-act-sections.parquet",
+              "sha256": "sha256:9040d4460e90704aef911b4d4f704e9f432cebd7b58717f31f090a3008ca6159"
+            },
+            {
+              "path": "portfolio/distributions/usc-act-index-2026-08-22/usc-popular-names.parquet",
+              "sha256": "sha256:603d5b072133d8fe6802736aeaa70b9fb9832e4fb996158a083fae3ce1026a9a"
+            }
+          ],
+          "manifestDigest": "sha256:2c8ea5c31fb71a8cc15cafe8a0c5aa246ab058df8b18e912d2812c710ef5b7df",
+          "manifestPath": "portfolio/distributions/usc-act-index-2026-08-22/receipt.json",
+          "packageResourceId": "usc-act-index"
+        }
+      ],
+      "evidence": [
+        {
+          "evidencePath": "research/evidence/act-index-bulk-table3-2026-08-22.md",
+          "identityStatus": "publisherStatedTableIIIKeysAndPopularNames",
+          "intendedUses": [
+            "actRelativeCitationResolution",
+            "regressionTesting",
+            "sourceCoverageAnalysis"
+          ],
+          "packageClass": "sealedRegistryArtifact",
+          "packageDigest": "sha256:2c8ea5c31fb71a8cc15cafe8a0c5aa246ab058df8b18e912d2812c710ef5b7df"
+        }
+      ],
+      "gap": "The bulk bytes are retained and digest-pinned, but their acquisition URL was never recorded and OLRC no longer serves release point 119-73 at any probed path (/table3/, /download/releasepoints/us/pl/119/73/ and /classification/ all answered the soft-404 on 2026-08-22, and neither index page links a bulk Table III file), so no publisher URL can be stated for them without inventing one and re-acquisition from the publisher is not reproducible. The 14,966,992-byte source zip (sha256 93e1f233...) is NOT distributed here and exists only on one volume; the derived tables are, so a consumer needs no rebuild but a future schema change would need that zip. Refusals are exact as of 2026-09-05: of 107 names the index cannot answer, 67 are listed by the source with nothing classified under them, 21 are cross-references that dead-end, and 19 are genuinely absent.",
       "identifierRepresentation": "Acts are keyed by OLRC's own Table III search key, with a pre-1957 act's full enactment date narrowed to its year because that is the spelling the Popular Name Tool joins on. Classifications name U.S. Code title and section as OLRC states them; nothing here mints a concept identifier.",
       "officialLocator": "OLRC, U.S. Code Table III (Statutes at Large classification), whole-of-Table-III bulk release point 119-73; the Popular Name Tool half is https://uscode.house.gov/popularnames/popularnames.htm",
       "resourceId": "usc-act-index",
       "resourceKind": "mappingReference",
-      "sourceAvailability": "partial",
+      "sourceAvailability": "available",
       "title": "U.S. Code act index: OLRC Table III classifications and Popular Name Tool names",
-      "versionRepresentation": "Pinned to OLRC bulk release point 119-73 (zip sha256 93e1f233..., 14,966,992 bytes) with the popular-name table carried byte-identically from release point 119-102. The receipt states parser version, every rule and its derivation, the seven-code refusal vocabulary, and measured coverage: 302,156 classification rows over 15,189 of 23,147 stated Table III keys, 20,865 popular-name rows over 13,626 names, 35,805 quarantined. See REF-069."
+      "versionRepresentation": "Pinned to OLRC bulk release point 119-73 (zip sha256 93e1f233..., 14,966,992 bytes) with the popular-name table carried byte-identically from release point 119-102. The receipt states parser version, every rule and its derivation, the eleven-code refusal vocabulary derived from the resolver at build time, the producing modules' digests, and measured coverage: 302,156 classification rows over 15,189 of 23,147 stated Table III keys, 20,865 popular-name rows over 13,626 names, 35,805 quarantined. Distributed as refspec-sealed-registry-artifact-1.0 under portfolio/distributions/. See REF-069."
     },
     {
       "consumability": "inventoryOnly",
@@ -1918,9 +1955,9 @@
   ],
   "summary": {
     "evidenceOnlyCount": 7,
-    "inventoryOnlyCount": 107,
+    "inventoryOnlyCount": 106,
     "resourceCount": 117,
-    "verifiedDistributionCount": 5,
-    "verifiedResourceCount": 3
+    "verifiedDistributionCount": 6,
+    "verifiedResourceCount": 4
   }
 }
