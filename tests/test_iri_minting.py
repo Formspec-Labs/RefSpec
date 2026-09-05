@@ -84,7 +84,8 @@ EVERY_FAMILY: tuple[tuple[str, MintedIdentifier | None], ...] = (
     # 2011-237 was the "frdoc-partner" specimen until rulespec 0.2.0rc16
     # widened the space; it is first-class now, which is the whole delivery of
     # that widening. The partner specimen moved to a letter-opening value,
-    # which is a population the hatch still holds (117,292 of them).
+    # which is a population the hatch still holds (127,523 of them; 117,292
+    # is the PROSE reader's share of it, not the hatch's).
     ("frdoc-short-tail", mint_federal_register_document_iri("2011-237")),
     ("frdoc-partner", mint_federal_register_document_iri("E8-24348")),
     ("frdoc-bare-legacy", mint_federal_register_document_iri("09-19806", column_licensed=True)),

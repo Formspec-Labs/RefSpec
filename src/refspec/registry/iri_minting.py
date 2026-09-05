@@ -833,7 +833,7 @@ def mint_partner_iri(kind: str, value: object) -> MintedIdentifier | None:
     and refuses a ``kind`` outside ``[a-z][a-z0-9-]*`` so the five-segment
     layout always parses back unambiguously. Reusing a real family's word as
     the kind is deliberate, not a shadow: the FR minter itself hands the
-    394,128 bare-legacy and 117,292 letter-opening documents here as kind
+    394,128 bare-legacy and 127,523 letter-opening documents here as kind
     ``frdoc``, and the ``urn:rkaf:partner:refspec:`` prefix is what keeps
     them lexically apart from every ``urn:rkaf:us:...`` identifier.
 

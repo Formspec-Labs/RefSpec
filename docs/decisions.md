@@ -1442,6 +1442,24 @@ pinned by `tests/test_entity_registry_release.py`. The NPPES *layout*
 release (structural field definitions) stays in the Atlas: structure is
 reference even when the rows it describes are not.
 
+**Pointer added 2026-09-05: the population lives in SpicyRegs, and how big it
+actually is.** A reader arriving here from an "entities by identity" request
+should know where the registrants went rather than re-deriving it. SpicyRegs
+publishes `sam_entities` (`docs/tables/sam_entities.md`), one row per
+registered federal entity keyed by Unique Entity ID, carrying `cage_code`,
+`primary_naics` and `exclusion_status_flag` among 18 columns — which is the
+join surface an entity lane would want, and it is not here by design: the
+Atlas holds the exemplars, this registry holds the population.
+
+The row count wants stating carefully, because the obvious reading is wrong.
+Three independent corpus builds each hold EXACTLY 50,000 rows
+(`mixed-real-data-corpus-v1`, `-v2`, `-v2-rerun`, measured 2026-09-05), and an
+exact round number repeated across independent builds is a bound, not a
+population — the table's own documentation says the ingest is "bounded and
+incremental" and "list-level only". SAM's active registry is far larger. So
+50,000 is what has been ingested, and anyone scoping a lane against it should
+treat it as a sample ceiling rather than as coverage.
+
 ### REF-031: Document populations leave the Atlas for SpicyRegs
 
 - **Date:** 2026-08-14
