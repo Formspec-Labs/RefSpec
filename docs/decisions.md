@@ -1451,14 +1451,30 @@ registered federal entity keyed by Unique Entity ID, carrying `cage_code`,
 join surface an entity lane would want, and it is not here by design: the
 Atlas holds the exemplars, this registry holds the population.
 
-The row count wants stating carefully, because the obvious reading is wrong.
-Three independent corpus builds each hold EXACTLY 50,000 rows
-(`mixed-real-data-corpus-v1`, `-v2`, `-v2-rerun`, measured 2026-09-05), and an
-exact round number repeated across independent builds is a bound, not a
-population — the table's own documentation says the ingest is "bounded and
-incremental" and "list-level only". SAM's active registry is far larger. So
-50,000 is what has been ingested, and anyone scoping a lane against it should
-treat it as a sample ceiling rather than as coverage.
+The row count wants stating carefully, and I stated it wrong first. The
+published table covers the active public registry at **~885K rows**
+(`spicy-regs docs/index.md`; 885,266 measured against the published metadata
+over HTTPS on 2026-09-05, registration dates 1949-12-14 to 2026-07-04). That
+is the population an entity lane would work against.
+
+The 50,000 I originally recorded here as an "ingest bound" is neither the
+population nor a bound on ingest: it is the per-table cap of the EVALUATION
+CORPUS builds under `spicy-regs/output/mixed-real-data-corpus-*`, which is a
+different artifact from the published table. Three of those builds hold
+exactly 50,000 SAM rows each, and the cap pattern is visible across the whole
+build — 80,000 Federal Register rows, 50,000 each for SAM, USAspending
+recipients and comments, 40,000 for three more, 30,000 for two — beside
+uncapped tables that sail past it: `records.parquet` at 708,367 rows and
+`dockets.parquet` at 50,847.
+
+Those two uncapped tables also refute the tidier explanation, which is worth
+recording because it is the one that sounds right. `build_sam_entities.py`
+sets `ROW_GROUP_SIZE 50000`, so "a reader that stops after row group 0" would
+produce exactly 50,000 — except that the same build carries 708,367 rows
+across 14 row groups and a single row group of 50,847, and the counts here
+were read from Parquet file metadata rather than by iterating batches, so no
+read was truncated. The coincidence between the cap and the row-group size is
+a coincidence. Cite ~885K, and treat any 50,000 as the evaluation corpus.
 
 ### REF-031: Document populations leave the Atlas for SpicyRegs
 
