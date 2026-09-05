@@ -4943,6 +4943,26 @@ and the two must not ride together. `test_the_profile_still_states_what_it_does
 _not_claim` fails if either moves, so making that decision stays deliberate
 rather than becoming a side effect of the next bump.
 
+**Ruled 2026-09-05: neither field is stale, and both stay.** Asked to move
+them, the first step was to find what `releaseAvailability` asserts — and
+nothing defines it. It exists as a two-value enum (`localUnpublished`,
+`published`) plus one conditional in
+`publication-release-manifest.schema.json` holding a `localUnpublished`
+release to `deploymentClass: developmentOnly`. That conditional decides the
+reading. If the field meant "our pin came from a published ref", then a
+pushed tag would release the constraint and let RefSpec declare a production
+deployment class while `uv sync` still installs a wheel built by hand from
+`vendor/` — a claim the tree cannot back. If it means "a consumer can obtain
+this dependency from a publisher", the constraint stays correctly binding.
+Only the second reading makes the schema coherent, and `rulespec-conformance`
+is on no index: the tag changed where the bytes come from, not whether anyone
+else can get them. `productionConformanceEligible` was never in question; no
+conformance run has established production eligibility.
+
+The definition now lives in `vendor/README.md`, next to the wheels it
+governs, because the absence of one is what made a mechanical version bump
+look like it might carry a posture claim.
+
 The drift check that carried this fix is `tests/test_rulespec_dependency_pin_drift.py`.
 It landed in `f75b4c86` as a **strict xfail** rather than a red test, so the
 sealed fix could ride this seal without spending the suite's signal in the

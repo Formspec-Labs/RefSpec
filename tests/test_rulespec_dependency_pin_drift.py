@@ -102,13 +102,17 @@ def test_the_artifacts_floor_is_satisfied_by_the_vendored_wheel() -> None:
 def test_the_profile_still_states_what_it_does_not_claim() -> None:
     """`localUnpublished` outlived the tag on purpose, and this pins that.
 
-    rulespec published `v0.2.0-pre.18` on 2026-09-04, so a release now exists.
-    These two fields were NOT moved in that seal: `releaseAvailability` flows
-    into published release-graph and managed-release artifacts, and
-    `productionConformanceEligible` is a claim about RefSpec's conformance
-    posture rather than a fact about which version is installed. Moving them is
-    a separate decision with an owner, and this assertion fails if someone
-    makes it silently as part of a version bump.
+    rulespec published `v0.2.0-pre.18` on 2026-09-04, so a release now exists,
+    and these two fields were not moved in that seal. Ruled 2026-09-05 (REF-068)
+    that neither is stale. `releaseAvailability` is defined only by its enum and
+    by the schema conditional holding a `localUnpublished` release to
+    `deploymentClass: developmentOnly`, and that conditional only makes sense if
+    the field means a consumer can OBTAIN the dependency from a publisher.
+    `rulespec-conformance` is on no index; the wheel in `vendor/` was built here
+    from the tag. The tag moved the provenance, not the availability.
+
+    So this stays as the guard it was: the fields are correct today, and moving
+    either is a posture decision that must not ride a mechanical version bump.
     """
 
     profile = _profile()
