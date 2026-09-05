@@ -11,38 +11,52 @@ private index or an internal registry) exists for `rulespec-conformance`,
 at which point the vendored files and the `[tool.uv.sources]` entries in
 `pyproject.toml` should be deleted in favor of normal version constraints.
 
-**Source of truth**: rc18 is built from the rulespec repository's
-`feat/us-frdoc-x-space` branch at `3e439a3`, in the `~/Work/rulespec-x`
-worktree. That branch is based on `feat/us-frdoc-legacy-space` (`850c204`),
-so rc18 carries BOTH new spaces and rc17 was never vendored beyond an
-afternoon. It carries the one shared
+**Source of truth**: rc18 is built from the rulespec repository's annotated
+tag `v0.2.0-pre.18` (tag object `b942529e`, commit `a519d06b`), pushed to
+`github.com/Formspec-Labs/rulespec`. Its SHA-256 digest is
+`ed11ab4a4709fd36b36ad445dd17ac0e14c10ec0d1f605f662f1a68a6ab662fb`, byte
+identical to the copy SpicySearch vendors. It carries the one shared
 platform artifact protocol, its common fixtures, and the source-item schema
-used by SpicyRegs, DocSpec, and SpicySearch. Its SHA-256 digest is
-`bd4816dac509ed0a9686fc94104d8463d6e05c53b8e2ce74e9d1ea9a67b76977`.
+used by SpicyRegs, DocSpec, and SpicySearch.
 
-**rc18 IS A PROVISIONAL PIN.** That branch is local and unmerged as of
-2026-09-02, so this wheel is not built from anything published: if the branch
-moves before it merges, this wheel must be rebuilt and re-vendored, because
-the digest above IS the pin and a moved branch silently invalidates it.
-The predecessor rc16 came from `feat/widen-frdoc-and-cfr-lexical-spaces` at
-`961de3c` (digest
-`f66be5e7613a0d8e1dbfe88885a1b694309fe0144431c3a1e3f3adf105f2382b`),
-descending from `feat/rulespec-conformance-package` at `ae9ebc7` with no
-divergence.
+**rc18 was re-cut and the version string did not move.** Until 2026-09-04
+the vendored rc18 was built from the local unmerged branch
+`feat/us-frdoc-x-space` at `3e439a3`, digest
+`bd4816dac509ed0a9686fc94104d8463d6e05c53b8e2ce74e9d1ea9a67b76977`, and this
+file called it a provisional pin for exactly that reason: a branch moves
+under its own name. The tag released that work, so the wheel was rebuilt
+from the tag -- SAME version string, DIFFERENT bytes. `0.2.0rc18` therefore
+does not identify these bytes; the digest does, and `uv.lock` records it.
+The superseded digest must not come back. A tag is immutable, so the pin is
+no longer provisional; what would make it provisional again is vendoring
+from a branch, a worktree, or any other ref that can be repointed.
 
-**Why a second wheel.** `rulespec_artifacts-1.0.9-py3-none-any.whl` is
-vendored alongside it because rc16 declared `rulespec-artifacts==1.0.9` as a
-hard dependency and rc15 did not (rc17 declares the same pin, so no second
-bump was needed -- checked against its `Requires-Dist` before locking, exactly
-as the bump procedure below says to). That dependency arrived with the shared
-platform-artifact protocol, not with any contract change; nothing in RefSpec
-imports it, and `rulespec_conformance` itself reaches for it only lazily,
-inside three platform-artifact helpers this repo never calls. But a declared
-dependency still has to resolve, and `rulespec-artifacts` is on no index
-either, so it is vendored on the same interim terms and should be deleted at
-the same time. Its SHA-256 digest is
-`67cb33bf63c11bc6812ad0e8f0a8b73e89501fa6d4242acf75a7cc6612f5d6c6`, byte
-identical to the copy SpicySearch already vendors.
+**Built from a published tag is not the same as a published package.**
+`rulespec-conformance` is on no index. These bytes were built here, from
+that tag, and committed. That is what
+`profiles/rulespec-dependency.json` means by
+`releaseAvailability: localUnpublished`, and why
+`publication-release-manifest.schema.json` holds such a release to
+`deploymentClass: developmentOnly`: a consumer cannot obtain this dependency
+from a publisher, only rebuild it from source. The tag changed where the
+bytes come from, not whether anyone else can get them, so that field stays
+`localUnpublished` until an index exists -- the same event that deletes this
+directory.
+
+**Why a second wheel.** `rulespec_artifacts-1.0.11-py3-none-any.whl` is
+vendored alongside it because rc18 declares a `rulespec-artifacts>=1.0.11`
+floor where rc16 and rc17 declared a hard `==1.0.9`, so 1.0.9 no longer
+satisfies it. That dependency arrived with the shared platform-artifact
+protocol, not with any contract change; nothing in RefSpec imports it, and
+`rulespec_conformance` itself reaches for it only lazily, inside three
+platform-artifact helpers this repo never calls. But a declared dependency
+still has to resolve, and `rulespec-artifacts` is on no index either, so it
+is vendored on the same interim terms and should be deleted at the same
+time. Its SHA-256 digest is
+`bedd8ee4799d9633963272714a30258f505404155732480ad5cb1dde2d7cbf4f`, byte
+identical to the copies DocSpec and SpicySearch vendor -- all three compared
+2026-09-05. `pyproject.toml` carries the measured 1.0.9 -> 1.0.11 diff
+beside the pin rather than repeating it here.
 
 **What rc17 and rc18 changed in the contract.** Two additions, no widening of
 an existing space, so nothing previously valid changed meaning.
@@ -71,9 +85,12 @@ hyphen-number suffix (was digits only). `rkaf:us-rin` is unchanged. See
 REF-054 in `docs/decisions.md`.
 
 **Bumping the contract**: when rulespec ships a new contract revision,
-replace the wheel file with the new build, update the version in this
-file's name and in `pyproject.toml`'s `[tool.uv.sources]` entry, then run
-`uv lock` to re-resolve. Do not hand-edit `uv.lock`. Check the new wheel's
-`Requires-Dist` against the previous one before locking: an added dependency
-that is on no index has to be vendored too, which is how the second wheel
-above arrived.
+replace the wheel file with the new build, update the version in this file's
+name and in `pyproject.toml`'s `[tool.uv.sources]` entry, then run `uv lock`
+to re-resolve; do not hand-edit `uv.lock`. Update the digests above in the
+same commit -- `tests/test_rulespec_dependency_pin_drift.py` compares them
+against the bytes actually in this directory, so a stale one fails the suite
+rather than sitting here for days, which is how the 2026-09-04 re-cut was
+found. Check the new wheel's `Requires-Dist` against the previous one before
+locking: an added dependency that is on no index has to be vendored too,
+which is how the second wheel above arrived.

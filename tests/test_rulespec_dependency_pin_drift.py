@@ -25,6 +25,7 @@ assertion it guarded is now simply true.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -113,3 +114,53 @@ def test_the_profile_still_states_what_it_does_not_claim() -> None:
     profile = _profile()
     assert profile["releaseAvailability"] == "localUnpublished"
     assert profile["productionConformanceEligible"] is False
+
+
+def test_the_vendor_readme_names_the_bytes_that_are_actually_vendored() -> None:
+    """`vendor/README.md` documents each wheel by digest, so it can go stale.
+
+    It did. The 2026-09-04 seal rebuilt rc18 from tag `v0.2.0-pre.18` and
+    replaced `rulespec-artifacts` 1.0.9 with 1.0.11, and left the README
+    describing the superseded build: a branch and worktree that no longer
+    exist, and two digests belonging to bytes no longer in the tree. Nothing
+    compared prose to bytes, so it read as current for a day.
+
+    The comparison runs in the direction that catches that -- every wheel
+    present must be named by its real digest -- rather than the reverse, so
+    the README may still discuss a SUPERSEDED digest in prose, and does.
+    """
+
+    readme = (ROOT / "vendor" / "README.md").read_text(encoding="utf-8")
+    wheels = sorted((ROOT / "vendor").glob("*.whl"))
+    assert wheels, "vendor/ has no wheels; this test is measuring nothing"
+    for wheel in wheels:
+        digest = hashlib.sha256(wheel.read_bytes()).hexdigest()
+        assert digest in readme, f"vendor/README.md does not name the sha256 of {wheel.name}"
+
+
+def test_the_vendor_readme_names_no_wheel_that_is_gone() -> None:
+    """The other half: a filename the README documents must still be there.
+
+    This is the assertion that would have caught the 1.0.9 paragraph, which
+    survived the bump to 1.0.11 describing a file that had been deleted. It
+    means prose about a superseded wheel refers to it by PACKAGE and VERSION
+    (`rulespec-artifacts` 1.0.9) rather than by filename.
+    """
+
+    readme = (ROOT / "vendor" / "README.md").read_text(encoding="utf-8")
+    for name in set(re.findall(r"rulespec_\w+-[\w.]+-py3-none-any\.whl", readme)):
+        assert (ROOT / "vendor" / name).is_file(), f"vendor/README.md documents {name}, which is not vendored"
+
+
+def test_the_vendor_readme_and_the_profile_name_one_source_revision() -> None:
+    """Two documents record where the wheel came from; they must agree.
+
+    `profiles/rulespec-dependency.json` carries `validator.sourceRevision` and
+    the README carries the same commit in prose. A re-vendor that updates the
+    sealed profile and forgets the README leaves the two disagreeing about
+    provenance, which is the drift this whole module exists for.
+    """
+
+    readme = (ROOT / "vendor" / "README.md").read_text(encoding="utf-8")
+    revision = _profile()["validator"]["sourceRevision"]
+    assert revision[:7] in readme, f"vendor/README.md does not name the profile's source revision {revision}"
