@@ -124,10 +124,14 @@ def test_checked_catalog_is_exact_and_two_tier() -> None:
     # the inventory; the GAO Form 41217 submission-form row joined (89 -> 87).
     # REF-035 through REF-037 add the mapping research and acquisition-wave
     # sources without treating mapping-only rows as verified distributions.
+    # REF-069 adds `usc-act-index` (116 -> 117). It lands at inventoryOnly on
+    # purpose: the artifact is sealed and digest-pinned but written under
+    # `output/`, which git does not carry, so it is not yet exchanged as an
+    # immutable release and has no portable distribution to verify.
     assert catalog["summary"] == {
         "evidenceOnlyCount": 7,
-        "inventoryOnlyCount": 106,
-        "resourceCount": 116,
+        "inventoryOnlyCount": 107,
+        "resourceCount": 117,
         "verifiedDistributionCount": 5,
         "verifiedResourceCount": 3,
     }

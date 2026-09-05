@@ -99,7 +99,7 @@ def test_descriptor_proof_pins_exact_registry_inputs_and_output() -> None:
         "sha256": _file_sha256(dataset_bytes),
     }
     resource_ids = sorted(resource["resourceId"] for resource in catalog["resources"])
-    assert len(resource_ids) == len(set(resource_ids)) == 116
+    assert len(resource_ids) == len(set(resource_ids)) == 117
     assert len(index["rows"]) == 112
     assert proof["resourceIdSetDigest"] == _canonical_sha256(resource_ids)
     # REF-034: the retired AGROVOC and NALT rows and the closed EPA row left
@@ -110,23 +110,28 @@ def test_descriptor_proof_pins_exact_registry_inputs_and_output() -> None:
     # REF-047 adds the OFR CFR List of Subjects part index: one more registry
     # source, one more scheme, one more legal-identity index placement, and one
     # more member release.
+    # REF-069 adds `usc-act-index` on the same shape but with NO index
+    # placement, because the resource has no atlas-index row: one registry
+    # source (116 -> 117), one scheme (105 -> 106, concept schemes 41 -> 42),
+    # one member release (87 -> 88), 11 quads (1241 -> 1252), and
+    # atlasIndexPlacementCount unmoved at 112.
     assert proof["counts"] == {
         "atlasIndexPlacementCount": 112,
-        "conceptSchemeCount": 41,
+        "conceptSchemeCount": 42,
         "memberDispositionCounts": {
             "assignmentEvidenceOnly": 4,
             "childReleaseOnly": 6,
             "definitionOnly": 1,
             "historicalEvidenceOnly": 2,
-            "memberRelease": 87,
+            "memberRelease": 88,
             "mappingAssertionsOnly": 11,
             "noPublisherRecord": 3,
             "resourceFamily": 1,
             "reviewWithheld": 1,
         },
-        "quadCount": 1241,
-        "registrySourceCount": 116,
-        "resourceSchemeCount": 105,
+        "quadCount": 1252,
+        "registrySourceCount": 117,
+        "resourceSchemeCount": 106,
         "supportedRingStatementCount": 95,
     }
 
@@ -187,8 +192,8 @@ def test_every_catalog_row_has_one_source_and_member_sources_have_schemes() -> N
     resources = {resource["resourceId"]: resource for resource in catalog["resources"]}
     scheme_nodes = set(graph.subjects(RDF.type, ATLAS.ResourceScheme))
     source_nodes = set(graph.subjects(RDF.type, ATLAS.RegistrySource))
-    assert len(scheme_nodes) == len(resources) - 11 == 105
-    assert len(source_nodes) == len(resources) == 116
+    assert len(scheme_nodes) == len(resources) - 11 == 106
+    assert len(source_nodes) == len(resources) == 117
     for resource_id, resource in resources.items():
         node = URIRef("urn:ref:atlas-resource-scheme:" + quote(resource_id, safe="-._~"))
         source = URIRef("urn:ref:atlas-source-descriptor:" + quote(resource_id, safe="-._~"))
@@ -261,7 +266,7 @@ def test_every_catalog_row_has_one_source_and_member_sources_have_schemes() -> N
         assert list(graph.objects(node, ATLAS.contentDigest)) == []
         assert list(graph.objects(source, ATLAS.contentDigest)) == []
 
-    assert len(set(graph.subjects(RDF.type, SKOS.ConceptScheme))) == 41
+    assert len(set(graph.subjects(RDF.type, SKOS.ConceptScheme))) == 42
     assert len(list(graph.triples((None, ATLAS.supportedRing, None)))) == 95
 
 
@@ -289,7 +294,7 @@ def test_checked_descriptor_bytes_are_exactly_regenerable() -> None:
     assert completed.returncode == 0, completed.stderr
     assert completed.stderr == ""
     assert completed.stdout == (
-        "Atlas 3.1 registry descriptors are current: 105 schemes, 112 index placements, 1241 quads\n"
+        "Atlas 3.1 registry descriptors are current: 106 schemes, 112 index placements, 1252 quads\n"
     )
 
 

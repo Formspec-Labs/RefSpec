@@ -4901,6 +4901,114 @@ layer up, and
 carries the reasoning so the next reader does not close the gap in whichever
 direction they happen to be standing in.
 
+### REF-069: the U.S. Code act index is an owned RefSpec resource, and a consumer admits it on stated coverage
+
+- **Date:** 2026-09-05
+- **Status:** Accepted. Records an artifact that has been sealed since
+  2026-08-22 and default since 2026-08-23. Adds `usc-act-index` to
+  `portfolio/resource-inventory-v0.json` and regenerates
+  `portfolio/resource-catalog-v0.json`. Moves no artifact, no schema version,
+  and no code except one stale docstring sentence.
+
+**Why this record exists.** The act index is the resource behind turning a
+name a person actually says — "Clean Air Act section 111" — into the U.S.
+Code sections it means. It has been built, sealed, pinned and tested for two
+weeks, and it appeared in no decision of this ledger and in no portfolio
+resource. SpicySearch's Decision 0008 admits a sibling fact only when all
+five of its conditions pass, and its first is that the fact "falls within the
+producer's applicable accepted ownership decision and is published through
+its product path, not a local research tool." With no ownership row, a
+consumer reading this repository correctly could not tell a sealed reference
+artifact from a research script, and had to refuse. That is the gap this
+closes; it authorizes no query lane and changes nothing in SpicySearch.
+
+**What it is.** `usc-act-index-artifact-v2`, written by
+`src/refspec/registry/usc_act_index.py` and read by
+`src/refspec/registry/act_resolution.py`. Two tables and a quarantine:
+`usc-act-sections.parquet` classifies act sections to U.S. Code sections,
+`usc-popular-names.parquet` carries the Popular Name Tool's names, aliases and
+Table III keys, and `quarantine.parquet` holds what the schema could not carry
+whole. Resolution is two joins — popular name to act, act section to U.S.C.
+section — with the U.S. Code's own source credits as a second, independent
+source carrying the enacting law's division, which Table III lacks.
+
+**Source bytes.** OLRC's whole-of-Table-III bulk release,
+`olrc-table3-xml-bulk-119-73.zip`, 14,966,992 bytes, sha256
+`93e1f233e081e47fc3680c4b699151c6d66329988fe21add3b6e9e62746aeea7`, member
+`fulldump@119-73.xml` at 126,260,704 bytes, release point 119-73. The digest
+here was re-taken with `shasum` against the file on disk rather than copied
+out of the receipt, because a digest supplied by the artifact that is being
+described proves only internal consistency. The popular-name table is carried
+byte-identically from the 2026-08-02 build (release point 119-102, digest
+`603d5b07…`) and is not rebuilt here, so the two halves state their own
+provenance separately.
+
+**And the bulk half has no stated publisher URL, which a consumer must know.**
+The bytes are retained and pinned on four numbers the module re-checks on
+every build and every `--verify`, but the address they arrived from was never
+recorded — the 2026-08-05 acquisition pass wrote "fetched by plain curl" and
+no address — and OLRC has since moved to release point 119-102. Probed
+2026-08-22, `/table3/`, `/download/releasepoints/us/pl/119/73/` and
+`/classification/` all answer the site's soft-404 for `fulldump@119-73` in
+either extension, and neither `download.shtml` nor
+`classification/tables.shtml` links a bulk Table III file at all.
+`tools/build_registry_source_manifest.py` therefore records the gap instead of
+a locator, and this record does the same: naming a plausible OLRC path would
+pin a verified digest to an address nobody verified, which reads as provenance
+and is not. Re-acquisition from the publisher is consequently NOT reproducible
+today; verification against the retained bytes is.
+
+**Measured coverage, from the receipt.** 48,973 `<act>` elements and 317,590
+`<record>` elements in the source; 23,147 distinct Table III keys stated;
+15,189 keys reached, meaning they carry at least one record this schema can
+key; 302,156 classification rows written, 289,095 of them with a Statutes at
+Large page. 20,865 popular-name rows over 13,626 distinct names. 35,805 rows
+quarantined: 20,371 whose Statutes at Large page span was narrowed to its
+first page and 15,434 records stating no act section. Of the 8,391 Table III
+keys the Popular Name Tool's index names, 7,546 are covered and 845 are not.
+
+Three of those figures cross-check inside the receipt rather than being read
+once: 23,147 − 15,189 = 7,958, the stated count of keys classifying no
+keyable record; 20,371 + 15,434 = 35,805, the quarantine total; and
+7,546 + 845 = 8,391. A number that only appears once is a number nothing
+checked.
+
+**The refusal taxonomy.** Seven codes, enumerated in the receipt so a consumer
+reads the vocabulary from the artifact rather than from the module:
+`act_not_in_index`, `source_incomplete`, `act_section_not_classified`,
+`classification_not_current`, `usc_section_not_expressible`,
+`act_section_ambiguous`, `act_section_outside_act`. `source_incomplete` is
+empty in this build: reading one local file, it asks for nothing and so can
+fail to fetch nothing.
+
+**One code is knowingly imprecise, and admitting the resource means admitting
+that.** `act_not_in_index` is published for 107 popular names the index cannot
+resolve, and is accurate for 19 of them. The Popular Name Tool CITES 63 of the
+other 88 — the Congressional Review Act, the Anti-Deficiency Act and the
+Paperwork Reduction Act among them — and simply publishes no Table III key, so
+the honest statement is "the source lists this name and classifies nothing
+under it", not "this act is absent from the index". Splitting them needs a new
+reason code, which is a rebuild decision rather than a module edit, and
+`test_the_refusals_are_mostly_names_the_tool_does_list` pins 107 so a rebuild
+that changes the number has to say so. It was 115 until 2026-08-22, when two
+bounded spelling fixes took eight; the remaining 107 are source-side absences
+that no spelling closure moves.
+
+**How a consumer admits it.** Decision 0008 requires five conditions and
+fewer than five is refusal, not a partial pass. This record supplies the
+ownership half of condition 1 and the stated coverage condition 3 verifies
+against. It does NOT by itself satisfy the publication half of condition 1:
+REF-024 has products exchange immutable releases and installed packages and
+never read a sibling source tree, and this artifact currently lives under
+`output/`, which git does not carry. Publishing it — as a portable
+distribution with per-file digests under `portfolio/`, or as a package — is
+the remaining step, and it is deliberately not taken here so that the
+publication decision is made on its own terms rather than as a side effect of
+writing down what already existed. Until it is taken, the catalog entry stands
+at `inventoryOnly` and a consumer that reads the artifact does so as an
+explicitly local-only build, which condition 2 already allows and forbids from
+publishing or serving.
+
 ### REF-068: the Rulespec pin names a public tag, and posture does not move with a version
 
 - **Date:** 2026-09-04

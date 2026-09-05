@@ -1569,7 +1569,7 @@ def test_mapping_emits_evidence_accounting_and_dedicated_pack(
 
     inventory = generator.verify_inputs(releases, mapping_releases)
     assert inventory["expectedResources"] == 2
-    assert inventory["registryDescriptors"] == 105
+    assert inventory["registryDescriptors"] == 106  # REF-069 adds `usc-act-index`
     mapping_source = inventory["mappingSources"][0]
     assert [row["role"] for row in mapping_source["inputs"]] == [
         "publisherAlignment",

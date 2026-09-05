@@ -46,13 +46,16 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
     assert load_json(REPORT) == generated
     assert generated["summary"] == {
         "atlasIndexRowCount": 112,
-        "catalogOnlyDescriptorCount": 18,
-        "catalogResourceCount": 116,
+        "catalogOnlyDescriptorCount": 19,
+        "catalogResourceCount": 117,
         # 31 -> 32 and 91 -> 92: usc_act_index, which builds the act index
         # act_resolution reads from OLRC's whole-of-Table-III release. It
-        # publishes no registry RESOURCE, so registry-descriptors.nq does not
-        # move at all — only the module rolls the two counts and the proof's
-        # module set.
+        # published no registry RESOURCE, so registry-descriptors.nq did not
+        # move at all — only the module rolled the two counts and the proof's
+        # module set. REF-069 (2026-09-05) ENDS that: the act index is now a
+        # catalog resource, `usc-act-index`, so 116 -> 117, the descriptor
+        # count 18 -> 19, mappingReference 37 -> 38, and the .nq graph moves
+        # for the first time on this module's account (11 quads).
         # 32 -> 33 and 92 -> 93: usc_section_oracle, which answers whether a
         # U.S.C. section exists at a given edition from the pinned OLRC
         # release point and the 1994-2024 annual archives. Same shape as
@@ -104,7 +107,7 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
             "codeList": 26,
             "historicalVocabulary": 1,
             "identifierAuthority": 20,
-            "mappingReference": 37,
+            "mappingReference": 38,
             "resourceFamily": 1,
             "sourceAssignedVocabulary": 8,
             "structuralSchema": 11,

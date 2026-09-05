@@ -49,8 +49,9 @@ large part of the remaining refusals into codes that are about the source
 rather than about coverage — see
 ``research/evidence/act-index-bulk-table3-2026-08-22.md``. It is one release
 point behind (119-73 against 119-102) for the 24 laws both cover, in 29
-enumerated rows, which is why the default is still the per-page artifact and
-switching it is a decision rather than a consequence.
+enumerated rows, which is why switching was taken as a decision rather than
+allowed as a consequence -- taken on 2026-08-23, once those 29 rows were
+enumerated and none was a resolution this corpus asks for.
 ``test_act_section_not_classified_is_mostly_never_fetched`` keeps the per-page
 number on the record.
 

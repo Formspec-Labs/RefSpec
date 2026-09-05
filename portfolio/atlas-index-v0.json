@@ -43,12 +43,12 @@
     "refspec.registry.usc_disposition_tables",
     "refspec.registry.usc_section_oracle"
   ],
-  "indexDigest": "sha256:fa52f2837ed225b2ed302c50795a609c250afc1bcd5871e08baa8fa56259ff60",
-  "indexId": "urn:ref:atlas-index:fa52f2837ed225b2ed302c50795a609c250afc1bcd5871e08baa8fa56259ff60",
+  "indexDigest": "sha256:b4044d0075ffb3255a446511de92ac37c06ee53d8fb3866107c8b09bd640c257",
+  "indexId": "urn:ref:atlas-index:b4044d0075ffb3255a446511de92ac37c06ee53d8fb3866107c8b09bd640c257",
   "nonAuthorizing": true,
-  "recordedAt": "2026-08-06T18:42:39Z",
-  "resourceCatalogDigest": "sha256:13911c5bda7183e68aa08398ea02d90533337d80e4b4c67180210ad1bfb65798",
-  "resourceCatalogId": "urn:ref:resource-catalog:13911c5bda7183e68aa08398ea02d90533337d80e4b4c67180210ad1bfb65798",
+  "recordedAt": "2026-09-05T00:00:00Z",
+  "resourceCatalogDigest": "sha256:8ac52340439f60a6c569c4df7391e93a08334f4b4c97435b5d5ac530353aaba5",
+  "resourceCatalogId": "urn:ref:resource-catalog:8ac52340439f60a6c569c4df7391e93a08334f4b4c97435b5d5ac530353aaba5",
   "rows": [
     {
       "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",

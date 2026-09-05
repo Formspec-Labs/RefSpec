@@ -42,8 +42,8 @@
     "refspec.registry.usc_disposition_tables",
     "refspec.registry.usc_section_oracle"
   ],
-  "recordedAt": "2026-08-06T18:42:39Z",
-  "resourceCatalogDigest": "sha256:13911c5bda7183e68aa08398ea02d90533337d80e4b4c67180210ad1bfb65798",
+  "recordedAt": "2026-09-05T00:00:00Z",
+  "resourceCatalogDigest": "sha256:8ac52340439f60a6c569c4df7391e93a08334f4b4c97435b5d5ac530353aaba5",
   "rows": [
     {
       "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
@@ -53,7 +53,6 @@
         "deterministicMetadata"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -66,6 +65,7 @@
       ],
       "release": null,
       "resourceId": "congress-billstatus-native-controls",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.billstatus_codes"
     },
     {
@@ -77,7 +77,6 @@
         "sourceAssignedEvidence"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -90,6 +89,7 @@
       ],
       "release": null,
       "resourceId": "cbo-cost-estimate-feed",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.cbo_topic_codes"
     },
     {
@@ -101,7 +101,6 @@
         "entityResolution"
       ],
       "planningStatus": "rejected",
-      "semanticRing": "entity",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -114,6 +113,7 @@
       ],
       "release": null,
       "resourceId": "cbo-publication-identifiers",
+      "semanticRing": "entity",
       "sourceModule": "refspec.registry.cbo_topic_codes"
     },
     {
@@ -125,7 +125,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "planned",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -138,6 +137,7 @@
       ],
       "release": null,
       "resourceId": "cbo-cost-estimate-feed",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.cbo_topic_codes"
     },
     {
@@ -149,7 +149,6 @@
         "schemaInterpretation"
       ],
       "planningStatus": "rejected",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -162,6 +161,7 @@
       ],
       "release": null,
       "resourceId": "census-acs-geography-identifiers",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.census_geo_codes"
     },
     {
@@ -173,7 +173,6 @@
         "schemaInterpretation"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -186,6 +185,7 @@
       ],
       "release": null,
       "resourceId": "census-tiger-geoid-structure",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.census_geo_codes"
     },
     {
@@ -197,7 +197,6 @@
         "schemaInterpretation"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -210,6 +209,7 @@
       ],
       "release": null,
       "resourceId": "usgs-gnis-identifiers",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.census_geo_codes"
     },
     {
@@ -221,7 +221,6 @@
         "mappingReference"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -234,6 +233,7 @@
       ],
       "release": null,
       "resourceId": "census-aspep-function-item-codes",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.census_gov_finance_codes"
     },
     {
@@ -245,7 +245,6 @@
         "mappingReference"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -258,6 +257,7 @@
       ],
       "release": null,
       "resourceId": "census-aspep-data-flags",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.census_gov_finance_codes"
     },
     {
@@ -269,7 +269,6 @@
         "mappingReference"
       ],
       "planningStatus": "rejected",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -282,6 +281,7 @@
       ],
       "release": null,
       "resourceId": "nasbo-state-expenditure-program-areas",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.census_gov_finance_codes"
     },
     {
@@ -293,7 +293,6 @@
         "sourceAssignedEvidence"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -306,6 +305,7 @@
       ],
       "release": null,
       "resourceId": "cfr-list-of-subjects",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.cfr_list_of_subjects"
     },
     {
@@ -319,7 +319,6 @@
         "sourceAssignedEvidence"
       ],
       "planningStatus": "planned",
-      "semanticRing": "legalIdentity",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -340,6 +339,7 @@
       ],
       "release": null,
       "resourceId": "cfr-subject-index",
+      "semanticRing": "legalIdentity",
       "sourceModule": "refspec.registry.cfr_list_of_subjects"
     },
     {
@@ -351,7 +351,6 @@
         "entityResolution"
       ],
       "planningStatus": "planned",
-      "semanticRing": "entity",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -364,6 +363,7 @@
       ],
       "release": null,
       "resourceId": "courtlistener-jurisdictions",
+      "semanticRing": "entity",
       "sourceModule": "refspec.registry.courtlistener_codes"
     },
     {
@@ -376,7 +376,6 @@
         "sourceAssignedEvidence"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -401,6 +400,7 @@
         "releaseId": "urn:ref:source-concept-release:subject:d137bdbae553a0ca59fb879458703de0a0a9047b49c119cb79a0765de75f3567"
       },
       "resourceId": "crs-legislative-subject-terms",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.crs_legislative_resources"
     },
     {
@@ -413,7 +413,6 @@
         "sourceAssignedEvidence"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -438,6 +437,7 @@
         "releaseId": "urn:ref:source-concept-release:subject:3e2d1e3d598d818c4d53e9514c05ad8a5a804a3f138e1325f1605c7eed517d7e"
       },
       "resourceId": "crs-policy-areas",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.crs_legislative_resources"
     },
     {
@@ -449,7 +449,6 @@
         "sourceAssignedEvidence"
       ],
       "planningStatus": "planned",
-      "semanticRing": "entity",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -474,6 +473,7 @@
         "releaseId": "urn:ref:source-concept-release:entity:79db00f21940827fdf62a0af51e1d0d9161fdc438f345700f50590439b0f5822"
       },
       "resourceId": "crs-legislative-subject-terms",
+      "semanticRing": "entity",
       "sourceModule": "refspec.registry.crs_legislative_resources"
     },
     {
@@ -485,7 +485,6 @@
         "sourceAssignedEvidence"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -498,6 +497,7 @@
       ],
       "release": null,
       "resourceId": "crs-native-controls",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.crs_product_topics"
     },
     {
@@ -509,7 +509,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -522,6 +521,7 @@
       ],
       "release": null,
       "resourceId": "crs-native-controls",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.crs_product_topics"
     },
     {
@@ -533,7 +533,6 @@
         "searchExpansion"
       ],
       "planningStatus": "deferred",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -546,6 +545,7 @@
       ],
       "release": null,
       "resourceId": "doe-osti-semantic-thesaurus-2020",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.doe_osti_thesaurus"
     },
     {
@@ -557,7 +557,6 @@
         "searchExpansion"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -578,6 +577,7 @@
         "releaseId": "https://elsst.cessda.eu/id/6"
       },
       "resourceId": "elsst",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.elsst"
     },
     {
@@ -589,7 +589,6 @@
         "entityResolution"
       ],
       "planningStatus": "rejected",
-      "semanticRing": "entity",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -602,6 +601,7 @@
       ],
       "release": null,
       "resourceId": "epa-substance-identifiers",
+      "semanticRing": "entity",
       "sourceModule": "refspec.registry.epa_srs_substances"
     },
     {
@@ -613,7 +613,6 @@
         "searchExpansion"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -634,6 +633,7 @@
       ],
       "release": null,
       "resourceId": "eurovoc",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.eurovoc_thesaurus"
     },
     {
@@ -645,7 +645,6 @@
         "searchExpansion"
       ],
       "planningStatus": "deferred",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -658,6 +657,7 @@
       ],
       "release": null,
       "resourceId": "eurovoc",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.eurovoc_organization_experiment"
     },
     {
@@ -668,7 +668,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -689,6 +688,7 @@
       ],
       "release": null,
       "resourceId": "eurovoc-lcsh-alignment",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.eurovoc_lcsh_alignment"
     },
     {
@@ -699,7 +699,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -720,6 +719,7 @@
       ],
       "release": null,
       "resourceId": "fast-lcsh-adopted-mapping",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.fast_topical"
     },
     {
@@ -731,7 +731,6 @@
         "schemaInterpretation"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -744,6 +743,7 @@
       ],
       "release": null,
       "resourceId": "fac-api-dictionary",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.fac_dictionary"
     },
     {
@@ -755,7 +755,6 @@
         "searchExpansion"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -768,6 +767,7 @@
       ],
       "release": null,
       "resourceId": "fast-topical",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.fast_topical"
     },
     {
@@ -779,7 +779,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -792,6 +791,7 @@
       ],
       "release": null,
       "resourceId": "fcc-ecfs-native-controls",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.fcc_ecfs_codes"
     },
     {
@@ -803,7 +803,6 @@
         "entityResolution"
       ],
       "planningStatus": "planned",
-      "semanticRing": "entity",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -816,6 +815,7 @@
       ],
       "release": null,
       "resourceId": "fcc-ecfs-native-controls",
+      "semanticRing": "entity",
       "sourceModule": "refspec.registry.fcc_ecfs_codes"
     },
     {
@@ -827,7 +827,6 @@
         "legalIdentityResolution"
       ],
       "planningStatus": "rejected",
-      "semanticRing": "legalIdentity",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -840,6 +839,7 @@
       ],
       "release": null,
       "resourceId": "fcc-ecfs-native-controls",
+      "semanticRing": "legalIdentity",
       "sourceModule": "refspec.registry.fcc_ecfs_codes"
     },
     {
@@ -851,7 +851,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -864,6 +863,7 @@
       ],
       "release": null,
       "resourceId": "fec-native-controls",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.fec_committee_codes"
     },
     {
@@ -875,7 +875,6 @@
         "entityResolution"
       ],
       "planningStatus": "planned",
-      "semanticRing": "entity",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -888,6 +887,7 @@
       ],
       "release": null,
       "resourceId": "federal-hierarchy",
+      "semanticRing": "entity",
       "sourceModule": "refspec.registry.federal_hierarchy_orgs"
     },
     {
@@ -899,7 +899,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -920,6 +919,7 @@
         "releaseId": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1"
       },
       "resourceId": "federal-register-thesaurus-2025",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.federal_register_thesaurus_2025"
     },
     {
@@ -931,7 +931,6 @@
         "sourceAssignedEvidence"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -944,6 +943,7 @@
       ],
       "release": null,
       "resourceId": "federal-register-api-topics",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.federal_register_topics_api"
     },
     {
@@ -955,7 +955,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "planned",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -968,6 +967,7 @@
       ],
       "release": null,
       "resourceId": "ferc-elibrary-native-controls",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.ferc_elibrary_codes"
     },
     {
@@ -979,7 +979,6 @@
         "schemaInterpretation"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -992,6 +991,7 @@
       ],
       "release": null,
       "resourceId": "ferc-elibrary-identifiers",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.ferc_elibrary_codes"
     },
     {
@@ -1003,7 +1003,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1016,6 +1015,7 @@
       ],
       "release": null,
       "resourceId": "gao-cra-submission-form-controls",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.gao_cra_form_codes"
     },
     {
@@ -1027,7 +1027,6 @@
         "sourceAssignedEvidence"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1040,6 +1039,7 @@
       ],
       "release": null,
       "resourceId": "gao-topics",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.gao_published_topics"
     },
     {
@@ -1051,7 +1051,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1064,6 +1063,7 @@
       ],
       "release": null,
       "resourceId": "gcmd-science-keywords",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.gcmd_science_keywords"
     },
     {
@@ -1076,7 +1076,6 @@
         "searchExpansion"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1089,6 +1088,7 @@
       ],
       "release": null,
       "resourceId": "gemet",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.gemet_thesaurus"
     },
     {
@@ -1100,7 +1100,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1113,6 +1112,7 @@
       ],
       "release": null,
       "resourceId": "govinfo-collections",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.govinfo_collections"
     },
     {
@@ -1124,7 +1124,6 @@
         "legalIdentityResolution"
       ],
       "planningStatus": "planned",
-      "semanticRing": "legalIdentity",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1137,6 +1136,7 @@
       ],
       "release": null,
       "resourceId": "ecfr-cfr-structure",
+      "semanticRing": "legalIdentity",
       "sourceModule": "refspec.registry.govinfo_collections"
     },
     {
@@ -1148,7 +1148,6 @@
         "legalIdentityResolution"
       ],
       "planningStatus": "rejected",
-      "semanticRing": "legalIdentity",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1161,6 +1160,7 @@
       ],
       "release": null,
       "resourceId": "govinfo-cfr-packages",
+      "semanticRing": "legalIdentity",
       "sourceModule": "refspec.registry.govinfo_collections"
     },
     {
@@ -1172,7 +1172,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1185,6 +1184,7 @@
       ],
       "release": null,
       "resourceId": "grants-gov-status-codes",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.grants_gov_codes"
     },
     {
@@ -1196,7 +1196,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1209,6 +1208,7 @@
       ],
       "release": null,
       "resourceId": "grants-gov-status-codes",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.grants_gov_codes"
     },
     {
@@ -1220,7 +1220,6 @@
         "searchExpansion"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1241,6 +1240,7 @@
         "releaseId": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37"
       },
       "resourceId": "icpsr-subject-thesaurus",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.icpsr_subject"
     },
     {
@@ -1252,7 +1252,6 @@
         "searchExpansion"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1297,6 +1296,7 @@
       ],
       "release": null,
       "resourceId": "lcsh-subjects",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.lcsh_topical"
     },
     {
@@ -1308,7 +1308,6 @@
         "sourceAssignedEvidence"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1321,6 +1320,7 @@
       ],
       "release": null,
       "resourceId": "lda-general-issue-codes",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.lda_controlled_codes"
     },
     {
@@ -1332,7 +1332,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1345,6 +1344,7 @@
       ],
       "release": null,
       "resourceId": "lda-filing-types",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.lda_controlled_codes"
     },
     {
@@ -1357,7 +1357,6 @@
         "searchExpansion"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1370,6 +1369,7 @@
       ],
       "release": null,
       "resourceId": "mesh-descriptors",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.mesh_descriptors"
     },
     {
@@ -1382,7 +1382,6 @@
         "rankingSignal"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1395,6 +1394,7 @@
       ],
       "release": null,
       "resourceId": "naics",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.naics_psc_codes"
     },
     {
@@ -1407,7 +1407,6 @@
         "rankingSignal"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1420,6 +1419,7 @@
       ],
       "release": null,
       "resourceId": "psc",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.naics_psc_codes"
     },
     {
@@ -1431,7 +1431,6 @@
         "mappingReference"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1444,6 +1443,7 @@
       ],
       "release": null,
       "resourceId": "nasa-technology-taxonomy",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.nasa_technology_taxonomy"
     },
     {
@@ -1456,7 +1456,6 @@
         "searchExpansion"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1469,6 +1468,7 @@
       ],
       "release": null,
       "resourceId": "nasa-thesaurus",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.nasa_thesaurus"
     },
     {
@@ -1480,7 +1480,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1493,6 +1492,7 @@
       ],
       "release": null,
       "resourceId": "nature-of-suit",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.nature_of_suit_codes"
     },
     {
@@ -1504,7 +1504,6 @@
         "entityResolution"
       ],
       "planningStatus": "rejected",
-      "semanticRing": "entity",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1517,6 +1516,7 @@
       ],
       "release": null,
       "resourceId": "nppes-npi-authority",
+      "semanticRing": "entity",
       "sourceModule": "refspec.registry.nppes_npi_identifiers"
     },
     {
@@ -1528,7 +1528,6 @@
         "entityResolution"
       ],
       "planningStatus": "planned",
-      "semanticRing": "entity",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1541,6 +1540,7 @@
       ],
       "release": null,
       "resourceId": "cms-certification-number-authority",
+      "semanticRing": "entity",
       "sourceModule": "refspec.registry.nppes_npi_identifiers"
     },
     {
@@ -1552,7 +1552,6 @@
         "schemaInterpretation"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1565,6 +1564,7 @@
       ],
       "release": null,
       "resourceId": "nppes-data-dissemination-layout",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.nppes_npi_identifiers"
     },
     {
@@ -1576,7 +1576,6 @@
         "schemaInterpretation"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1589,6 +1588,7 @@
       ],
       "release": null,
       "resourceId": "nrc-adams-native-controls",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.nrc_adams_aps_docs"
     },
     {
@@ -1600,7 +1600,6 @@
         "schemaInterpretation"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1613,6 +1612,7 @@
       ],
       "release": null,
       "resourceId": "nrc-adams-identifiers",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.nrc_adams_aps_docs"
     },
     {
@@ -1624,7 +1624,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1637,6 +1636,7 @@
       ],
       "release": null,
       "resourceId": "oira-review-native-controls",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.oira_review_codes"
     },
     {
@@ -1648,7 +1648,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1661,6 +1660,7 @@
       ],
       "release": null,
       "resourceId": "omb-a11-budget-codes",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.omb_a11_budget_codes"
     },
     {
@@ -1672,7 +1672,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "planned",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1685,6 +1684,7 @@
       ],
       "release": null,
       "resourceId": "opm-ehri-workforce-codes",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.opm_workforce_codes"
     },
     {
@@ -1696,7 +1696,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "rejected",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1709,6 +1708,7 @@
       ],
       "release": null,
       "resourceId": "opm-plum-position-status-codes",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.opm_workforce_codes"
     },
     {
@@ -1720,7 +1720,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1733,6 +1732,7 @@
       ],
       "release": null,
       "resourceId": "oversight-report-types",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.oversight_report_types"
     },
     {
@@ -1744,7 +1744,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1757,6 +1756,7 @@
       ],
       "release": null,
       "resourceId": "pra-icr-native-controls",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.pra_icr_codes"
     },
     {
@@ -1768,7 +1768,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1781,6 +1780,7 @@
       ],
       "release": null,
       "resourceId": "regulations-gov-native-controls",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.regulations_gov_codes"
     },
     {
@@ -1792,7 +1792,6 @@
         "entityResolution"
       ],
       "planningStatus": "planned",
-      "semanticRing": "entity",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1813,6 +1812,7 @@
       ],
       "release": null,
       "resourceId": "regulations-gov-native-controls",
+      "semanticRing": "entity",
       "sourceModule": "refspec.registry.regulations_gov_agencies"
     },
     {
@@ -1824,7 +1824,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "entity",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1841,6 +1840,7 @@
       ],
       "release": null,
       "resourceId": "regulations-gov-agency-identity",
+      "semanticRing": "entity",
       "sourceModule": "refspec.registry.regulations_gov_agencies"
     },
     {
@@ -1852,7 +1852,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1865,6 +1864,7 @@
       ],
       "release": null,
       "resourceId": "sam-assistance-listing-controls",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.sam_assistance_listing_codes"
     },
     {
@@ -1876,7 +1876,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1889,6 +1888,7 @@
       ],
       "release": null,
       "resourceId": "sam-assistance-listing-controls",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.sam_assistance_listing_codes"
     },
     {
@@ -1900,7 +1900,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1913,6 +1912,7 @@
       ],
       "release": null,
       "resourceId": "sam-opportunities-native-controls",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.sam_opportunities_codes"
     },
     {
@@ -1924,7 +1924,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1937,6 +1936,7 @@
       ],
       "release": null,
       "resourceId": "sam-opportunities-native-controls",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.sam_opportunities_codes"
     },
     {
@@ -1948,7 +1948,6 @@
         "entityResolution"
       ],
       "planningStatus": "planned",
-      "semanticRing": "entity",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1961,6 +1960,7 @@
       ],
       "release": null,
       "resourceId": "treasury-account-symbol-structure",
+      "semanticRing": "entity",
       "sourceModule": "refspec.registry.treasury_tas_fast_book"
     },
     {
@@ -1972,7 +1972,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -1985,6 +1984,7 @@
       ],
       "release": null,
       "resourceId": "treasury-fast-book",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.treasury_tas_fast_book"
     },
     {
@@ -1996,7 +1996,6 @@
         "entityResolution"
       ],
       "planningStatus": "rejected",
-      "semanticRing": "entity",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2009,6 +2008,7 @@
       ],
       "release": null,
       "resourceId": "uei-authority",
+      "semanticRing": "entity",
       "sourceModule": "refspec.registry.uei_cage_identifiers"
     },
     {
@@ -2020,7 +2020,6 @@
         "entityResolution"
       ],
       "planningStatus": "rejected",
-      "semanticRing": "entity",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2033,6 +2032,7 @@
       ],
       "release": null,
       "resourceId": "cage-authority",
+      "semanticRing": "entity",
       "sourceModule": "refspec.registry.uei_cage_identifiers"
     },
     {
@@ -2044,7 +2044,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2057,6 +2056,7 @@
       ],
       "release": null,
       "resourceId": "unified-agenda-native-controls",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.unified_agenda_codes"
     },
     {
@@ -2067,7 +2067,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2096,6 +2095,7 @@
       ],
       "release": null,
       "resourceId": "unified-agenda-gao-cra-priority-mapping",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.unified_agenda_codes"
     },
     {
@@ -2107,7 +2107,6 @@
         "schemaInterpretation"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2120,6 +2119,7 @@
       ],
       "release": null,
       "resourceId": "unified-agenda-legal-authority-citations",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.unified_agenda_codes"
     },
     {
@@ -2131,7 +2131,6 @@
         "facetedRetrieval"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2144,6 +2143,7 @@
       ],
       "release": null,
       "resourceId": "usaspending-award-type-codes",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.usaspending_gsdm_codes"
     },
     {
@@ -2155,7 +2155,6 @@
         "schemaInterpretation"
       ],
       "planningStatus": "notApplicable",
-      "semanticRing": "value",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2168,6 +2167,7 @@
       ],
       "release": null,
       "resourceId": "governmentwide-spending-data-model",
+      "semanticRing": "value",
       "sourceModule": "refspec.registry.usaspending_gsdm_codes"
     },
     {
@@ -2179,7 +2179,30 @@
         "facetedRetrieval"
       ],
       "planningStatus": "notApplicable",
+      "readinessEvidence": [
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/registry/federal_register_native_controls.py"
+        },
+        {
+          "kind": "parserTest",
+          "path": "tests/test_federal_register_native_controls.py"
+        }
+      ],
+      "release": null,
+      "resourceId": "federal-register-native-controls",
       "semanticRing": "value",
+      "sourceModule": "refspec.registry.federal_register_native_controls"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "deterministicMetadata",
+        "entityResolution"
+      ],
+      "planningStatus": "planned",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2192,6 +2215,7 @@
       ],
       "release": null,
       "resourceId": "federal-register-native-controls",
+      "semanticRing": "entity",
       "sourceModule": "refspec.registry.federal_register_native_controls"
     },
     {
@@ -2203,31 +2227,6 @@
         "entityResolution"
       ],
       "planningStatus": "planned",
-      "semanticRing": "entity",
-      "readinessEvidence": [
-        {
-          "kind": "sourceImplementation",
-          "path": "src/refspec/registry/federal_register_native_controls.py"
-        },
-        {
-          "kind": "parserTest",
-          "path": "tests/test_federal_register_native_controls.py"
-        }
-      ],
-      "release": null,
-      "resourceId": "federal-register-native-controls",
-      "sourceModule": "refspec.registry.federal_register_native_controls"
-    },
-    {
-      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
-      "atlasParticipation": null,
-      "facet": "urn:ref:facet:entity",
-      "intendedUses": [
-        "deterministicMetadata",
-        "entityResolution"
-      ],
-      "planningStatus": "planned",
-      "semanticRing": "entity",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2240,6 +2239,7 @@
       ],
       "release": null,
       "resourceId": "fcc-ecfs-native-controls",
+      "semanticRing": "entity",
       "sourceModule": "refspec.registry.fcc_bureaus_offices"
     },
     {
@@ -2251,7 +2251,6 @@
         "entityResolution"
       ],
       "planningStatus": "planned",
-      "semanticRing": "entity",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2264,6 +2263,7 @@
       ],
       "release": null,
       "resourceId": "federal-hierarchy",
+      "semanticRing": "entity",
       "sourceModule": "refspec.registry.federal_hierarchy_complete"
     },
     {
@@ -2275,7 +2275,6 @@
         "entityResolution"
       ],
       "planningStatus": "planned",
-      "semanticRing": "entity",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2288,6 +2287,7 @@
       ],
       "release": null,
       "resourceId": "opm-ehri-workforce-codes",
+      "semanticRing": "entity",
       "sourceModule": "refspec.registry.opm_workforce_codes"
     },
     {
@@ -2300,7 +2300,6 @@
         "legalIdentityResolution"
       ],
       "planningStatus": "planned",
-      "semanticRing": "entity",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2321,6 +2320,7 @@
       ],
       "release": null,
       "resourceId": "ecfr-agencies",
+      "semanticRing": "entity",
       "sourceModule": "refspec.registry.cfr_list_of_subjects"
     },
     {
@@ -2331,7 +2331,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2352,6 +2351,7 @@
       ],
       "release": null,
       "resourceId": "fast-bulk-external-links-delta",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.oclc_fast_external_links"
     },
     {
@@ -2363,7 +2363,6 @@
         "searchExpansion"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2384,6 +2383,7 @@
       ],
       "release": null,
       "resourceId": "fast-bulk-see-also-endpoints",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.oclc_fast_external_links"
     },
     {
@@ -2394,7 +2394,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2415,6 +2414,7 @@
       ],
       "release": null,
       "resourceId": "eurovoc-gemet-alignment",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.eurovoc_alignment_portfolio"
     },
     {
@@ -2425,7 +2425,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2446,6 +2445,7 @@
       ],
       "release": null,
       "resourceId": "eurovoc-mesh-alignment",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.eurovoc_alignment_portfolio"
     },
     {
@@ -2456,7 +2456,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2477,6 +2476,7 @@
       ],
       "release": null,
       "resourceId": "gemet-alignments",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.gemet_alignments"
     },
     {
@@ -2487,7 +2487,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2508,6 +2507,7 @@
       ],
       "release": null,
       "resourceId": "lcsh-external-links-mapping",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
     {
@@ -2518,7 +2518,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2539,6 +2538,7 @@
       ],
       "release": null,
       "resourceId": "northwestern-mesh-lcsh-mapping",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.lcsh_mesh_mapping"
     },
     {
@@ -2549,7 +2549,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2570,6 +2569,7 @@
       ],
       "release": null,
       "resourceId": "lc-external-agrovoc-endpoints",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
     {
@@ -2580,7 +2580,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2601,6 +2600,7 @@
       ],
       "release": null,
       "resourceId": "lc-external-bncf-endpoints",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
     {
@@ -2611,7 +2611,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2632,6 +2631,7 @@
       ],
       "release": null,
       "resourceId": "lc-external-bne-endpoints",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
     {
@@ -2642,7 +2642,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2663,6 +2662,7 @@
       ],
       "release": null,
       "resourceId": "lc-external-fast-endpoints",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
     {
@@ -2673,7 +2673,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2694,6 +2693,7 @@
       ],
       "release": null,
       "resourceId": "lc-external-getty-aat-endpoints",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
     {
@@ -2704,7 +2704,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2725,6 +2724,7 @@
       ],
       "release": null,
       "resourceId": "lc-external-getty-ulan-endpoints",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
     {
@@ -2735,7 +2735,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2756,6 +2755,7 @@
       ],
       "release": null,
       "resourceId": "lc-external-gnd-endpoints",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
     {
@@ -2766,7 +2766,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2787,6 +2786,7 @@
       ],
       "release": null,
       "resourceId": "lc-external-homosaurus-endpoints",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
     {
@@ -2797,7 +2797,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2818,6 +2817,7 @@
       ],
       "release": null,
       "resourceId": "lc-external-nalt-endpoints",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
     {
@@ -2828,7 +2828,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2849,6 +2848,7 @@
       ],
       "release": null,
       "resourceId": "lc-external-ndl-names-endpoints",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
     {
@@ -2859,7 +2859,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2880,6 +2879,7 @@
       ],
       "release": null,
       "resourceId": "lc-external-ndl-subjects-endpoints",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
     {
@@ -2890,7 +2890,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2911,6 +2910,7 @@
       ],
       "release": null,
       "resourceId": "lc-external-periodo-lcsh-periods-endpoints",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
     {
@@ -2921,7 +2921,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2942,6 +2941,7 @@
       ],
       "release": null,
       "resourceId": "lc-external-rameau-endpoints",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
     {
@@ -2952,7 +2952,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -2973,6 +2972,7 @@
       ],
       "release": null,
       "resourceId": "lc-external-wikidata-endpoints",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
     {
@@ -2983,7 +2983,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -3004,6 +3003,7 @@
       ],
       "release": null,
       "resourceId": "lc-external-yso-endpoints",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
     {
@@ -3014,7 +3014,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -3035,6 +3034,7 @@
       ],
       "release": null,
       "resourceId": "umthes",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.umthes_content"
     },
     {
@@ -3045,7 +3045,6 @@
         "mappingReference"
       ],
       "planningStatus": "planned",
-      "semanticRing": "subject",
       "readinessEvidence": [
         {
           "kind": "sourceImplementation",
@@ -3074,6 +3073,7 @@
       ],
       "release": null,
       "resourceId": "gemet-umthes-alignments",
+      "semanticRing": "subject",
       "sourceModule": "refspec.registry.gemet_alignments"
     }
   ]

@@ -712,9 +712,19 @@ SOURCE_LANGUAGE_PROFILES = MappingProxyType(
 
 REGISTRY_DESCRIPTORS = BINDING_ROOT / "tests" / "registry-descriptors.nq"
 REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.nq"
-REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:170afb958d999b157527c92b664dae137c8cae408cbf71aad6ab6d735ee867f0"
+REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:a8e58fb2309f911236615b0f905d2e5472286201fb4ce5fc40661608a641cac6"
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
+# 2026-09-05 (REF-069): `usc-act-index` joins the resource inventory, and this
+# is the FIRST of these entries where the .nq graph itself moved rather than
+# only the proof. One mappingReference resource adds 11 quads (a ResourceScheme
+# and a SourceDescriptor with their identifier, title, profile and type), so
+# both pins below move together. Everything else held: 112 index placements
+# unchanged because the resource has no atlas-index row, indexedResourceCount
+# still 98, and every index-derived set digest in registry-coverage.json
+# byte-identical -- only the catalog-derived ones moved. Symptom if you skip
+# this step: 47 tests fail across producers and validators while all three
+# `--check` generators report "current".
 # 2026-09-02: the same operation again -- eo_roster,
 # hand_validated_interpretations and infrastructure.invariants join as
 # implementation modules, having landed unclassified in the 2026-08-31/09-01
@@ -733,7 +743,7 @@ REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/regi
 # edited that day, is NOT index evidence and moved nothing here). The
 # descriptors .nq graph is byte-identical both times; only the proof's
 # inputs.atlasIndexDigest moved, and this pin moves with it.
-REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:c46ada6254a7fd914c3d406ce64caacb95b3cdf29359308ebbb14e433f236e72"
+REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:5948422bcd78a9bb95ac71eccadb893dd5c7c2dbf5d878c37c3873fc573e45dd"
 
 
 def _load_validator() -> Any:
@@ -9503,9 +9513,10 @@ def verify_inputs(
     descriptors = set(registry.subjects(RDF.type, ATLAS.ResourceScheme))
     # REF-037 adds the acquisition-wave endpoint schemes while its ten
     # mapping-only sources remain descriptor records without schemes. The OFR
-    # CFR List of Subjects part index adds the 105th.
-    if len(descriptors) != 105:
-        raise ValueError(f"expected 105 registry descriptors; found {len(descriptors)}")
+    # CFR List of Subjects part index adds the 105th, and REF-069's
+    # `usc-act-index` the 106th.
+    if len(descriptors) != 106:
+        raise ValueError(f"expected 106 registry descriptors; found {len(descriptors)}")
 
     return {
         "expectedResources": sum(source.expected_resources for source in sources),
