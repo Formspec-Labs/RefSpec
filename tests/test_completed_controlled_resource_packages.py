@@ -13,13 +13,16 @@ def test_completed_package_inventory_is_closed_and_honest() -> None:
     summary = inventory["summary"]
 
     assert inventory["schemaVersion"] == "2.0"
-    assert len(resources) == summary["resourceCount"] == 12
-    assert len({resource["resourceId"] for resource in resources}) == 12
-    assert sum(resource["releaseOrSnapshotCount"] for resource in resources) == summary["releaseOrSnapshotCount"] == 13
+    # REF-069 adds `usc-act-index` as the first sealedRegistryArtifact: 12 -> 13
+    # resources, 13 -> 14 releases, and 22,045 -> 345,066 records, the jump being
+    # its 302,156 classification rows plus 20,865 popular-name rows.
+    assert len(resources) == summary["resourceCount"] == 13
+    assert len({resource["resourceId"] for resource in resources}) == 13
+    assert sum(resource["releaseOrSnapshotCount"] for resource in resources) == summary["releaseOrSnapshotCount"] == 14
     assert (
         sum(resource["recordOrObservationCount"] for resource in resources)
         == summary["recordOrObservationCount"]
-        == 22_045
+        == 345_066
     )
     assert (
         sum(resource["packageClass"] == "managedConceptRelease" for resource in resources)
@@ -35,6 +38,23 @@ def test_completed_package_inventory_is_closed_and_honest() -> None:
         sum(resource["packageClass"] == "sourceControlledResource" for resource in resources)
         == summary["sourceControlledResourceCount"]
         == 5
+    )
+    assert (
+        sum(resource["packageClass"] == "sealedRegistryArtifact" for resource in resources)
+        == summary["sealedRegistryArtifactCount"]
+        == 1
+    )
+    # What makes the enumeration above CLOSED rather than merely long. Each class
+    # was asserted on its own, so REF-069's fourth class entered the inventory
+    # without any assertion noticing -- only the resource count did, which named
+    # the symptom and not the cause. Summing them means a fifth class fails here
+    # until someone states it, which is what "closed and honest" was claiming.
+    assert (
+        summary["managedConceptResourceCount"]
+        + summary["sourceConceptReleaseCount"]
+        + summary["sourceControlledResourceCount"]
+        + summary["sealedRegistryArtifactCount"]
+        == summary["resourceCount"]
     )
     assert all(resource["intendedUses"] for resource in resources)
     assert all({"candidateUseAuthorized", "acceptedOutputUseAuthorized"}.isdisjoint(resource) for resource in resources)
