@@ -79,7 +79,7 @@ def _execution(*, digests: list[str], counts: dict[str, int]) -> dict:
         "that is a heavyweight sealed-evidence rebuild and the overseerer is batching those. "
         "THE TRAP FOR WHOEVER RUNS IT: plain `verify_registry_audit.py` writes realDataGate "
         "{status: notEvaluated, failures: []} over a summary that honestly says `failed` with "
-        "12 named gaps. Only the --require-real-data form preserves them. And the audit aborts "
+        "11 named gaps across 10 modules. Only the --require-real-data form preserves them. And the audit aborts "
         "WITHOUT WRITING when a direct test fails, which reads exactly like a stale summary, so "
         "check stdout for `registry audit error:` before trusting the file's mtime. STRICT so "
         "the marker cannot outlive the regeneration."
