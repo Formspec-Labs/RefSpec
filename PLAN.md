@@ -12,10 +12,12 @@ Branch `main`, tree clean, gate green (`make test`; the two pytest tiers were
 last run at `-n 6` rather than `-n auto` because other work held the machine —
 worker count is the only deviation).
 
-**Seven commits are unpushed and that is deliberate.** RefSpec's public origin
-is pushed only on the owner's own words to the session doing the pushing, and
-that word has not been given for these. Do not push them because they are
-here; ask.
+**Commits sit unpushed here and that is deliberate, not a backlog.** RefSpec's
+public origin is pushed only on the owner's own words to the session doing the
+pushing. Do not push them because they are here; ask. For the count, ask git
+rather than this file — `git rev-list --count origin/main..HEAD` — because a
+number written here goes stale on the next commit, including the commit that
+updates this line.
 
 ## The two parked items, and what unblocks them
 
