@@ -1135,9 +1135,10 @@ def test_receipt_payload_matches_the_receipt_on_disk() -> None:
     reason=(
         "2026-09-07: `cfr_authority_notes` gained `part_head` so the term router can say what a "
         "CFR part IS. Producer bytes moved, so the sealed receipt names code the tree no longer "
-        "holds. The rebuild is deliberately NOT taken here: the overseerer is batching four "
-        "pending sealed moves into one rebuild, and rebuilding for this alone would spend that "
-        "batch. STRICT so that whoever runs the batch is forced to delete this marker in the same "
+        "holds. The rebuild is deliberately NOT taken here: it rewrites a sealed artifact, which is "
+        "an action needing the owner's own words to the session performing it, and other sealed "
+        "moves are pending that want the same rebuild rather than one each. STRICT so that "
+        "whoever runs it is forced to delete this marker in the same "
         "commit — an xfail that starts passing fails, which is what keeps the record and the "
         "artifact from drifting apart. See REF-067 and docs/unified-agenda-rebuild-runbook.md."
     ),
