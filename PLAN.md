@@ -19,25 +19,25 @@ rather than this file — `git rev-list --count origin/main..HEAD` — because a
 number written here goes stale on the next commit, including the commit that
 updates this line.
 
-## The two parked items, and what unblocks them
+## The one parked item, and what unblocks it
 
-Both are STRICT xfails, so each fails the moment the thing it documents is
-fixed, forcing its own deletion in the same commit. Neither is a bug.
+`test_registry_audit_snapshot_is_current_and_honest_about_open_gaps` is a
+STRICT xfail: it fails the moment the thing it documents is fixed, forcing its
+own deletion in the same commit. It is not a bug. The registry audit summary
+is behind the source manifest (`term_explanation` joined the registry), its
+module list shifted rather than merely short.
 
-- `test_the_receipt_names_the_code_that_wrote_it` — `cfr_authority_notes`
-  gained `part_head` (the CFR part's NAME, which it read and threw away), so
-  the sealed Unified Agenda receipt names code the tree no longer holds.
-- `test_registry_audit_snapshot_is_current_and_honest_about_open_gaps` — the
-  registry audit summary is at 100 modules against a manifest at 101, its
-  module list shifted rather than merely short.
-
-**Both want one rebuild rather than one each, and both rewrite SEALED
-artifacts** — an action needing the owner's own words to whoever performs it.
-As of 2026-09-07 that rebuild has three conflicting readings of who owns it
-and no one holding it; the gap is with the owner, not with this lane. Each
-marker carries the traps in its own reason — read them before running
-anything, particularly the one about `verify_registry_audit.py` silently
-destroying eleven honestly named gaps.
+Regenerating it is `make audit-registry-real-data`, which rewrites a tracked
+evidence artifact -- an action needing the owner's own words to whoever
+performs it -- and runs the complete suite serially (the direct module tests
+alone recorded 1,194 s in the committed summary, and the complete suite follows
+them) under the shared SpicySearch measurement lock, so it runs in the first
+window in which no lane needs that lock, never mid-batch. The marker carries the two
+traps for whoever runs it; read them first, particularly the one about
+`verify_registry_audit.py` silently destroying the honestly named gaps. The
+expected result is derivable before running: the gate stays `failed` and
+gains exactly one gap, term_explanation's, which has no publisher input of its
+own by design.
 
 ## The one live next action, which is not this lane's
 
