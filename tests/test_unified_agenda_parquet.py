@@ -1130,19 +1130,6 @@ def test_receipt_payload_matches_the_receipt_on_disk() -> None:
     assert set(receipt_payload(empty)) == set(recorded)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "2026-09-07: `cfr_authority_notes` gained `part_head` so the term router can say what a "
-        "CFR part IS. Producer bytes moved, so the sealed receipt names code the tree no longer "
-        "holds. The rebuild is deliberately NOT taken here: it rewrites a sealed artifact, which is "
-        "an action needing the owner's own words to the session performing it, and other sealed "
-        "moves are pending that want the same rebuild rather than one each. STRICT so that "
-        "whoever runs it is forced to delete this marker in the same "
-        "commit — an xfail that starts passing fails, which is what keeps the record and the "
-        "artifact from drifting apart. See REF-067 and docs/unified-agenda-rebuild-runbook.md."
-    ),
-)
 def test_the_receipt_names_the_code_that_wrote_it() -> None:
     """A receipt digest that names no code cannot be matched to a build:
     twenty commits landed between two builds on 2026-08-22 and a consumer's
@@ -1156,7 +1143,11 @@ def test_the_receipt_names_the_code_that_wrote_it() -> None:
     the end of this test therefore checks the recorded commit BY VALUE -- the
     digests it records must equal the blobs at the commit it names -- rather
     than by equality against HEAD, which said nothing about the artifact and
-    went red whenever HEAD moved or the tree held one untracked file."""
+    went red whenever HEAD moved or the tree held one untracked file.
+
+    When this goes RED after a producer module changes, the way back to green
+    is docs/unified-agenda-rebuild-runbook.md: rebuild, then re-pin from the
+    receipt delta. Never re-pin to make it green."""
     import hashlib
     import json
     import re

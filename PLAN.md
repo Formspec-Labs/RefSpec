@@ -19,25 +19,26 @@ rather than this file — `git rev-list --count origin/main..HEAD` — because a
 number written here goes stale on the next commit, including the commit that
 updates this line.
 
-## The two parked items, and what unblocks them
+## Merged, and the one parked item
 
-Both are STRICT xfails, so each fails the moment the thing it documents is
-fixed, forcing its own deletion in the same commit. Neither is a bug.
+The Unified Agenda receipt rebuild (move five of the SpicySearch v14 batch)
+is merged: the artifact was rebuilt in place per
+[the runbook](docs/unified-agenda-rebuild-runbook.md) with all four tables
+byte-identical and only the receipt's producer block moved, and the strict
+xfail that named the stale receipt is gone. `git log --grep 'stale receipt'`
+on main finds the commit and its digests.
 
-- `test_the_receipt_names_the_code_that_wrote_it` — `cfr_authority_notes`
-  gained `part_head` (the CFR part's NAME, which it read and threw away), so
-  the sealed Unified Agenda receipt names code the tree no longer holds.
-- `test_registry_audit_snapshot_is_current_and_honest_about_open_gaps` — the
-  registry audit summary is at 100 modules against a manifest at 101, its
-  module list shifted rather than merely short.
-
-**Both want one rebuild rather than one each, and both rewrite SEALED
-artifacts** — an action needing the owner's own words to whoever performs it.
-As of 2026-09-07 that rebuild has three conflicting readings of who owns it
-and no one holding it; the gap is with the owner, not with this lane. Each
-marker carries the traps in its own reason — read them before running
-anything, particularly the one about `verify_registry_audit.py` silently
-destroying eleven honestly named gaps.
+`test_registry_audit_snapshot_is_current_and_honest_about_open_gaps` stays a
+STRICT xfail: it fails the moment the thing it documents is fixed, forcing its
+own deletion in the same commit. It is not a bug. The registry audit summary
+is behind the source manifest (`term_explanation` joined the registry). It is
+PARKED, not forgotten: no consumer build needs it, regenerating it rewrites a
+tracked evidence artifact (an action needing the owner's own words to whoever
+performs it), and the run is the direct module tests, serial, under the shared
+measurement lock (`compositions/measurement.lock` in the SpicySearch checkout,
+whose AGENTS.md states the rule), so it runs in any quiet window in which no
+lane needs that lock. The marker carries the exact command, what is predictable
+about the result, and three traps for whoever runs it; read the marker first.
 
 ## The one live next action, which is not this lane's
 
