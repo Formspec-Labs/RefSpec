@@ -4956,10 +4956,34 @@ exists.
 **The blocker, with the demand measurement, which is the part not to
 re-derive.** FERC is the largest unanswered family — **51,015 distinct docket
 strings, 6.5% of all references** in the Federal Register's docket field — and
-the whole family is blocked on one page answering HTTP 403 to an automated
-fetch. A browser-mediated acquisition of `elibrary-classtype-information`
-yields the docket-prefix table, and "Docket No. CP26-20-000 is a FERC
-certificate docket" becomes routable. The others, measured the same day:
+the whole family is blocked on one capture that has not been taken.
+
+**And the page that returned 403 is NOT the page needed** — established
+2026-09-07 when the capture was scoped, correcting this entry's first wording.
+The Cloudflare challenge was against `www.ferc.gov/media/elibrary-classtype-information`,
+the HTML landing page. The docket-prefix table is a separate PDF on a
+different host, and nobody has reported a 403 on it, so a plain fetch should
+be tried before anyone spends time on browser mediation:
+
+    https://elibrary.ferc.gov/eLibrary/assets/docket-prefix.pdf
+    sha256 c32efae9f51a70b6f955821d2fb3d3025995ef0e17e57bf2d32dfa16c2508dcb
+    282,729 bytes, 6 pages, 95 rows
+
+`parse_ferc_docket_prefix_pdf` already exists and verifies byte length AND
+digest before parsing, so a wrong capture fails loudly rather than half-
+working. Per row it yields `status` (active from Tables 1 and 2, discontinued
+from Table 3), `prefix`, `library`, `definition` — the definition text is the
+answer a person gets, and the discontinued half matters because an old docket
+should still resolve. NOT needed for this: the class/type PDF (235 rows, a
+different question) or the 403-ed HTML itself.
+
+**Tell the capturer this or a good capture gets retried three times:** the pin
+is FERC's **June 2025** edition. If FERC has republished, the fetch returns a
+different digest and the parser refuses it. That is the check working — it
+means the document moved, not that the capture failed — and it wants a
+deliberate re-pin of digest, page count and row count rather than a retry.
+
+The others, measured the same day:
 EPA FRL 50,713 strings, SEC release 48,272, FAA airworthiness 35,271,
 SEC rule filing 31,104, OMB control 3,039 over 13,848 references.
 
