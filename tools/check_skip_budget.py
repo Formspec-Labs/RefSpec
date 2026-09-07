@@ -7,7 +7,7 @@ whether one test skipped or two hundred did, and a deselection that quietly
 removes coverage looks exactly like a pass.
 
 The budget is the number of skips a clean clone produces, recorded in
-``PLAN.md`` item 5 beside how it was measured. This script reads the JUnit XML
+``plans/atlas-3.0-lineage.md`` item 5 beside how it was measured. This script reads the JUnit XML
 that ``pytest --junitxml`` writes -- a structured count rather than a parse of
 the summary line -- and fails when the run skipped more tests than that.
 
@@ -66,7 +66,7 @@ def main(argv: list[str] | None = None) -> int:
     if len(skipped) < args.budget:
         print(
             f"skip budget is now loose: {len(skipped)} skipped against a budget of "
-            f"{args.budget}; lower the budget in PLAN.md item 5"
+            f"{args.budget}; lower the budget in plans/atlas-3.0-lineage.md item 5"
         )
     return 0
 
