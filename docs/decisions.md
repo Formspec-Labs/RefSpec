@@ -4938,49 +4938,33 @@ direction they happen to be standing in.
 ### REF-070: a handed term is answerable only where a directory of instances exists, and the top families are blocked on acquisition
 
 - **Date:** 2026-09-07
-- **Status:** Accepted. Records a survey whose verdict was DO NOT BUILD, and
-  the acquisition blocker that would change it. Moves no code and no artifact;
-  `term_explanation`'s docstring carries the operative rule where a future
-  proposer will meet it.
+- **Status:** Accepted. Verdict: DO NOT extend the router. Moves no code and no
+  artifact.
 
-**The question.** `term_explanation` answers four shapes a non-expert is
-handed. RefSpec has 78 registry modules. The obvious inference — 74 families
-waiting to be routed — was mine, and it was wrong.
+**The rule, and it is the durable half.** A family is answerable if and only if
+we hold a DIRECTORY OF INSTANCES; a type vocabulary cannot answer "what is THIS
+one". The reasoning, the four worked cases and the test that separates the two
+live in `refspec.registry.term_explanation`'s docstring, where the next person
+proposing an extension will meet them; they are not restated here.
 
-**The rule, which is worth more than the verdict.** A family is answerable if
-and only if we hold a DIRECTORY OF INSTANCES. Type vocabularies cannot answer
-"what is THIS one". The four routed shapes each sit on a directory: 48,973
-acts, 8,240 authority notes, 608,755 docket ids in the corpus, another lane's
-agenda table. The candidate modules for the top unanswered families hold
-closed TYPE lists plus acquisition code — categories, where a person handed an
-identifier needs an instance. So the ratio is four of four, not four of
-seventy-eight: every family we hold a directory for is already routed.
+**The verdict.** Four of four, not four of seventy-eight: every family we hold
+a directory for is already routed, and every top unanswered family is blocked
+on ACQUISITION rather than on routing. The survey overturned its own proposer,
+which is what checking by trying to answer buys over checking that a module
+exists.
 
-**Checked by trying to answer, not by confirming a module exists**, which is
-the only test that separates the two and is why the survey overturned its own
-proposer. `ferc_elibrary_codes` packages a 2,202-byte constructed fixture
-because the publisher's page answers HTTP 403 to automated requests;
-`pra_icr_codes` holds the OMB control number's form shape and records in its
-own gaps that the agency codes are JavaScript-generated and were never
-captured; `nrc_adams_aps_docs` holds 22 property names.
+**The blocker, with the demand measurement, which is the part not to
+re-derive.** FERC is the largest unanswered family — **51,015 distinct docket
+strings, 6.5% of all references** in the Federal Register's docket field — and
+the whole family is blocked on one page answering HTTP 403 to an automated
+fetch. A browser-mediated acquisition of `elibrary-classtype-information`
+yields the docket-prefix table, and "Docket No. CP26-20-000 is a FERC
+certificate docket" becomes routable. The others, measured the same day:
+EPA FRL 50,713 strings, SEC release 48,272, FAA airworthiness 35,271,
+SEC rule filing 31,104, OMB control 3,039 over 13,848 references.
 
-**THE NAMED ACQUISITION BLOCKER, recorded so the demand side is not
-re-measured.** FERC is the largest unanswered family: **51,015 distinct docket
-strings, 6.5% of all references** in the Federal Register's docket field, and
-the whole family is blocked on ONE page returning 403 to an automated fetch.
-A browser-mediated acquisition of `elibrary-classtype-information` would yield
-the docket-prefix table, at which point "Docket No. CP26-20-000 is a FERC
-certificate docket" becomes routable. That is acquisition work in an
-acquisition lane, not routing work here, and it is the single highest-value
-unblock this survey found. The demand measurement is the part not to redo:
-FERC 51,015 strings, SEC release 48,272, EPA FRL 50,713, SEC rule filing
-31,104, FAA airworthiness 35,271, OMB control 3,039 strings over 13,848
-references.
-
-**What would change the verdict:** any of those acquisitions landing. Nothing
-else. Extending the router first produces "that is a FERC docket" without
-saying which, which is the partial shape the module already names as its
-weakest output.
+**What would change the verdict:** one of those acquisitions landing. Nothing
+else.
 
 ### REF-069: the U.S. Code act index is an owned RefSpec resource, and a consumer admits it on stated coverage
 
@@ -5039,13 +5023,15 @@ pin a verified digest to an address nobody verified, which reads as provenance
 and is not. Re-acquisition from the publisher is consequently NOT reproducible
 today; verification against the retained bytes is.
 
-**Measured coverage, from the receipt.** 48,973 `<act>` elements and 317,590
+**Measured coverage, re-read from the receipt after the 2026-09-05 rebuild** —
+the entry first quoted `popular_name_index_table3_keys*`, retired by `2e968378`,
+and the rebuild that replaced them is `3bb9a906`. 48,973 `<act>` elements and 317,590
 `<record>` elements in the source; 23,147 distinct Table III keys stated;
 15,189 keys reached, meaning they carry at least one record this schema can
 key; 302,156 classification rows written, 289,095 of them with a Statutes at
 Large page. 20,865 popular-name rows over 13,626 distinct names. 35,805 rows
 quarantined: 20,371 whose Statutes at Large page span was narrowed to its
-first page and 15,434 records stating no act section. Of the 8,391 Table III
+first page and 15,434 records stating no act section. Of the 8,399 Table III
 keys the Popular Name Tool CITES, 7,553 are covered and 846 are not.
 
 Three of those figures cross-check inside the receipt rather than being read
@@ -5054,20 +5040,7 @@ keyable record; 20,371 + 15,434 = 35,805, the quarantine total; and
 7,553 + 846 = 8,399. A number that only appears once is a number nothing
 checked.
 
-**Corrected 2026-09-05, and the correction is the interesting part.** The
-figures above were read from the sealed receipt, and the popular-name line
-first said "845 of 8,391", quoting `popular_name_index_table3_keys*`. Those
-fields no longer exist: `2e968378` consolidated the index-keyed measures into
-the cite-keyed ones during the silent-misreads campaign, and the sealed
-artifact — built 2026-08-22 and never rebuilt since — went on carrying the
-retired fields. Rebuilding on 2026-09-05 with the module actually in the tree
-also moved `usc-act-sections.parquet` and `quarantine.parquet`, proven by
-building the pre-edit module to a scratch directory and getting bytes
-identical to the rebuild, so none of the movement is this cycle's. Every
-`coverage` figure above survived the rebuild unchanged; it is the `measured`
-block that had drifted.
-
-**The refusal taxonomy.** Seven codes, enumerated in the receipt so a consumer
+**The refusal taxonomy.** Eleven codes, derived into the receipt from the resolver at build so a consumer
 reads the vocabulary from the artifact rather than from the module:
 `act_not_in_index`, `source_incomplete`, `act_section_not_classified`,
 `classification_not_current`, `usc_section_not_expressible`,
