@@ -37,14 +37,15 @@
     "refspec.registry.packages.crs_source_packages",
     "refspec.registry.packages.federal_register_topics_package",
     "refspec.registry.packages.lda_controlled_list_resources",
+    "refspec.registry.term_explanation",
     "refspec.registry.unified_agenda_editions",
     "refspec.registry.unified_agenda_parquet",
     "refspec.registry.usc_act_index",
     "refspec.registry.usc_disposition_tables",
     "refspec.registry.usc_section_oracle"
   ],
-  "indexDigest": "sha256:7670e959ab71b518a0f192473b2bb6cc56ae1c915fa05a15a98e72890657c021",
-  "indexId": "urn:ref:atlas-index:7670e959ab71b518a0f192473b2bb6cc56ae1c915fa05a15a98e72890657c021",
+  "indexDigest": "sha256:fae1abbc4386244f09f6be9b411489271de09d9921c78d14bc06f75fce1800ff",
+  "indexId": "urn:ref:atlas-index:fae1abbc4386244f09f6be9b411489271de09d9921c78d14bc06f75fce1800ff",
   "nonAuthorizing": true,
   "recordedAt": "2026-09-05T00:00:00Z",
   "resourceCatalogDigest": "sha256:51f9d1085b5eabc35713c5d10fb1c6c4c6da50b09bf31e51da97b2abce8cf2c8",
@@ -3622,7 +3623,7 @@
   ],
   "summary": {
     "exactReleaseCount": 6,
-    "implementationModuleCount": 40,
+    "implementationModuleCount": 41,
     "participationCounts": {
       "bridge": 34,
       "core": 1,

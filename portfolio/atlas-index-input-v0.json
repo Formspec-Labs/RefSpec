@@ -36,6 +36,7 @@
     "refspec.registry.packages.crs_source_packages",
     "refspec.registry.packages.federal_register_topics_package",
     "refspec.registry.packages.lda_controlled_list_resources",
+    "refspec.registry.term_explanation",
     "refspec.registry.unified_agenda_editions",
     "refspec.registry.unified_agenda_parquet",
     "refspec.registry.usc_act_index",

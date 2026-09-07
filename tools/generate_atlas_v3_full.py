@@ -715,6 +715,13 @@ REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-d
 REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:f4ca83a852748a90cf4f1cf67a5bb954b76f42ecc39ac9b6ec57d4934fbfb5a4"
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
+# 2026-09-07: `term_explanation` joins as an IMPLEMENTATION module -- it reads
+# the registry to answer what a handed term is and publishes no atlas resource,
+# the same classification `act_resolution` carries. The .nq graph is
+# byte-identical; only the proof's inputs.atlasIndexDigest moves, so this is
+# the proof pin alone. `check-generated` refuses an unclassified registry
+# module, which is how a new reader is forced to declare which kind it is
+# rather than defaulting into the graph.
 # 2026-09-05 (REF-069, second move the same day): the act index is PUBLISHED as
 # a sealed registry artifact, so its descriptor payload changes from
 # consumability inventoryOnly to verifiedDistribution and gains the
@@ -750,7 +757,7 @@ REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/regi
 # edited that day, is NOT index evidence and moved nothing here). The
 # descriptors .nq graph is byte-identical both times; only the proof's
 # inputs.atlasIndexDigest moved, and this pin moves with it.
-REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:c871368142b3b9d569d0069ad77c01dc87658eab80806ac2d852d0103d4efd08"
+REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:a4b85bbeaa0919c8305a1b53924d988a8381441cd2d8b8008c1760d855ad30d1"
 
 
 def _load_validator() -> Any:
