@@ -4935,6 +4935,53 @@ layer up, and
 carries the reasoning so the next reader does not close the gap in whichever
 direction they happen to be standing in.
 
+### REF-070: a handed term is answerable only where a directory of instances exists, and the top families are blocked on acquisition
+
+- **Date:** 2026-09-07
+- **Status:** Accepted. Records a survey whose verdict was DO NOT BUILD, and
+  the acquisition blocker that would change it. Moves no code and no artifact;
+  `term_explanation`'s docstring carries the operative rule where a future
+  proposer will meet it.
+
+**The question.** `term_explanation` answers four shapes a non-expert is
+handed. RefSpec has 78 registry modules. The obvious inference — 74 families
+waiting to be routed — was mine, and it was wrong.
+
+**The rule, which is worth more than the verdict.** A family is answerable if
+and only if we hold a DIRECTORY OF INSTANCES. Type vocabularies cannot answer
+"what is THIS one". The four routed shapes each sit on a directory: 48,973
+acts, 8,240 authority notes, 608,755 docket ids in the corpus, another lane's
+agenda table. The candidate modules for the top unanswered families hold
+closed TYPE lists plus acquisition code — categories, where a person handed an
+identifier needs an instance. So the ratio is four of four, not four of
+seventy-eight: every family we hold a directory for is already routed.
+
+**Checked by trying to answer, not by confirming a module exists**, which is
+the only test that separates the two and is why the survey overturned its own
+proposer. `ferc_elibrary_codes` packages a 2,202-byte constructed fixture
+because the publisher's page answers HTTP 403 to automated requests;
+`pra_icr_codes` holds the OMB control number's form shape and records in its
+own gaps that the agency codes are JavaScript-generated and were never
+captured; `nrc_adams_aps_docs` holds 22 property names.
+
+**THE NAMED ACQUISITION BLOCKER, recorded so the demand side is not
+re-measured.** FERC is the largest unanswered family: **51,015 distinct docket
+strings, 6.5% of all references** in the Federal Register's docket field, and
+the whole family is blocked on ONE page returning 403 to an automated fetch.
+A browser-mediated acquisition of `elibrary-classtype-information` would yield
+the docket-prefix table, at which point "Docket No. CP26-20-000 is a FERC
+certificate docket" becomes routable. That is acquisition work in an
+acquisition lane, not routing work here, and it is the single highest-value
+unblock this survey found. The demand measurement is the part not to redo:
+FERC 51,015 strings, SEC release 48,272, EPA FRL 50,713, SEC rule filing
+31,104, FAA airworthiness 35,271, OMB control 3,039 strings over 13,848
+references.
+
+**What would change the verdict:** any of those acquisitions landing. Nothing
+else. Extending the router first produces "that is a FERC docket" without
+saying which, which is the partial shape the module already names as its
+weakest output.
+
 ### REF-069: the U.S. Code act index is an owned RefSpec resource, and a consumer admits it on stated coverage
 
 - **Date:** 2026-09-05
