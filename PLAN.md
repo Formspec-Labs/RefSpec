@@ -35,8 +35,9 @@ is behind the source manifest (`term_explanation` joined the registry). It is
 PARKED, not forgotten: no consumer build needs it, regenerating it rewrites a
 tracked evidence artifact (an action needing the owner's own words to whoever
 performs it), and the run is the direct module tests, serial, under the shared
-SpicySearch measurement lock, so it runs in any quiet window in which no lane
-needs that lock. The marker carries the exact command, what is predictable
+measurement lock (`compositions/measurement.lock` in the SpicySearch checkout,
+whose AGENTS.md states the rule), so it runs in any quiet window in which no
+lane needs that lock. The marker carries the exact command, what is predictable
 about the result, and three traps for whoever runs it; read the marker first.
 
 ## The one live next action, which is not this lane's

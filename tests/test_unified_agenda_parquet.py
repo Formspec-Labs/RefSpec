@@ -1143,7 +1143,11 @@ def test_the_receipt_names_the_code_that_wrote_it() -> None:
     the end of this test therefore checks the recorded commit BY VALUE -- the
     digests it records must equal the blobs at the commit it names -- rather
     than by equality against HEAD, which said nothing about the artifact and
-    went red whenever HEAD moved or the tree held one untracked file."""
+    went red whenever HEAD moved or the tree held one untracked file.
+
+    When this goes RED after a producer module changes, the way back to green
+    is docs/unified-agenda-rebuild-runbook.md: rebuild, then re-pin from the
+    receipt delta. Never re-pin to make it green."""
     import hashlib
     import json
     import re
