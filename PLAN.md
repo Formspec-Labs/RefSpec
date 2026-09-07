@@ -19,25 +19,25 @@ rather than this file — `git rev-list --count origin/main..HEAD` — because a
 number written here goes stale on the next commit, including the commit that
 updates this line.
 
-## The one parked item, and what unblocks it
+## Merged, and the one parked item
 
-`test_registry_audit_snapshot_is_current_and_honest_about_open_gaps` is a
+The Unified Agenda receipt rebuild (move five of the SpicySearch v14 batch)
+is merged: the artifact was rebuilt in place per
+[the runbook](docs/unified-agenda-rebuild-runbook.md) with all four tables
+byte-identical and only the receipt's producer block moved, and the strict
+xfail that named the stale receipt is gone. `git log --grep 'stale receipt'`
+on main finds the commit and its digests.
+
+`test_registry_audit_snapshot_is_current_and_honest_about_open_gaps` stays a
 STRICT xfail: it fails the moment the thing it documents is fixed, forcing its
 own deletion in the same commit. It is not a bug. The registry audit summary
-is behind the source manifest (`term_explanation` joined the registry), its
-module list shifted rather than merely short.
-
-Regenerating it is `make audit-registry-real-data`, which rewrites a tracked
-evidence artifact -- an action needing the owner's own words to whoever
-performs it -- and runs the complete suite serially (the direct module tests
-alone recorded 1,194 s in the committed summary, and the complete suite follows
-them) under the shared SpicySearch measurement lock, so it runs in the first
-window in which no lane needs that lock, never mid-batch. The marker carries the two
-traps for whoever runs it; read them first, particularly the one about
-`verify_registry_audit.py` silently destroying the honestly named gaps. The
-expected result is derivable before running: the gate stays `failed` and
-gains exactly one gap, term_explanation's, which has no publisher input of its
-own by design.
+is behind the source manifest (`term_explanation` joined the registry). It is
+PARKED, not forgotten: no consumer build needs it, regenerating it rewrites a
+tracked evidence artifact (an action needing the owner's own words to whoever
+performs it), and the run is the direct module tests, serial, under the shared
+SpicySearch measurement lock, so it runs in any quiet window in which no lane
+needs that lock. The marker carries the exact command, what is predictable
+about the result, and three traps for whoever runs it; read the marker first.
 
 ## The one live next action, which is not this lane's
 
