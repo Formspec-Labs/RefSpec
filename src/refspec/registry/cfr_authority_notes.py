@@ -618,6 +618,14 @@ class AuthorityNote:
     #: "part" so a file in this schema that omits them still loads.
     authority_level: str = "part"
     authority_scope: str = "part"
+    #: The publisher's own head for the part -- "PART 60—STANDARDS OF
+    #: PERFORMANCE FOR NEW STATIONARY SOURCES". Present in every pinned record
+    #: and dropped by this reader until 2026-09-07, when
+    #: :mod:`refspec.registry.term_explanation` needed it: it is the part's
+    #: NAME, and a definitional answer that cannot say what a part is called
+    #: has nothing to offer a person handed "40 CFR 60". Defaulted so a file in
+    #: the older schema still loads.
+    part_head: str | None = None
 
     @property
     def part(self) -> tuple[int, str]:
@@ -826,6 +834,7 @@ class CfrAuthorityNotes:
                 citations=read_note_citations(record["authority_note"], oracle=oracle),
                 authority_level=str(record.get("authority_level", "part")),
                 authority_scope=str(record.get("authority_scope", "part")),
+                part_head=record.get("part_head"),
             )
             for record in (json.loads(line) for line in payload.decode("utf-8").splitlines() if line.strip())
         )
