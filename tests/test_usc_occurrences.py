@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 from usc_authority_oracle import parse_authority_citation as prior_field_reader
+from usc_occurrence_oracle import find_usc_citations as prior_occurrence_reader
 
 from refspec.registry.citation_grammar import find_usc_citations, parse_authority_citation
 
@@ -58,6 +59,31 @@ def test_existing_field_reader_matches_copied_oracle_on_source_and_mutations(cas
     for value in variants:
         assert [asdict(c) for c in parse_authority_citation(value)] == [
             asdict(c) for c in prior_field_reader(value)]
+
+
+@pytest.mark.parametrize('case', FIELD_CASES, ids=lambda row: row['id'])
+def test_previous_occurrence_results_stay_identical_on_prior_sources(case):
+    text = case['raw']
+    for value in (text, '  ' + text + '\n', text.replace('U.S.C.', 'USC'),
+                  text.replace(' ', '\u00a0'), 'See ' + text + '; 7 U.S.C. 1.'):
+        assert find_usc_citations(value) == prior_occurrence_reader(value)
+
+
+@pytest.mark.parametrize('tail', [', et seq.', ' and following', ' ff.'])
+def test_open_ended_citation_is_not_reduced_to_its_first_section(tail):
+    text = 'Under 38 U.S.C. 4301' + tail + ', the employee retains rights.'
+    before, = prior_occurrence_reader(text)
+    after, = find_usc_citations(text)
+    assert before.text == '38 U.S.C. 4301' and before.refusal is None
+    assert after.text == '38 U.S.C. 4301' + tail
+    assert after.refusal == 'usc_open_ended_reference_unresolved'
+    assert after.citation == before.citation and after.citation.usc_section_end is None
+    assert parse_authority_citation(text) == prior_field_reader(text)
+
+
+def test_ordinary_prose_and_paragraph_boundaries_are_not_open_ranges():
+    for text in ('38 U.S.C. 4301 applies to this employee.', '38 U.S.C. 4301\n\net seq.'):
+        assert find_usc_citations(text) == prior_occurrence_reader(text)
 
 
 def test_qualified_list_keeps_its_title_context_and_literal_connectors():

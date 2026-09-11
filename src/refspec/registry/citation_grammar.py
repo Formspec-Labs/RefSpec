@@ -3092,6 +3092,9 @@ _USC_SUBCHAPTER_TAIL = re.compile(
 # Preserve an unread attached continuation as a refusal, not a shorter identity.
 # A final sentence period alone is not a token continuation.
 _USC_UNREAD_TAIL = re.compile(r"(?:[\w.-]*\w)?(?:\([^()\s]+\))*")
+# Unlike the whole-field _IGNORABLE_TAIL, a source occurrence must retain
+# this scope marker inside prose, with the end of the range left unresolved.
+_USC_OPEN_END_TAIL = re.compile(r"[\s,]*(?:et\s+seq\.?|and\s+following|ff\.?)(?!\w)", re.IGNORECASE)
 
 
 def find_usc_citations(text: str) -> tuple[UscCitationOccurrence, ...]:
@@ -3162,6 +3165,9 @@ def find_usc_citations(text: str) -> tuple[UscCitationOccurrence, ...]:
             end, refusal = tail.end(), 'usc_token_continuation_unresolved'
         if groups.get('range_end') is not None and citation.usc_section_end is None:
             refusal = 'usc_range_unresolved'
+        continuation = _USC_OPEN_END_TAIL.match(text, end)
+        if continuation is not None and not _CITATION_PARAGRAPH_BREAK.search(text, end, continuation.end()):
+            end, refusal = continuation.end(), 'usc_open_ended_reference_unresolved'
         if start and text[start].isalnum() and (text[start - 1].isalnum() or text[start - 1] == '_'):
             while start and (text[start - 1].isalnum() or text[start - 1] == '_'):
                 start -= 1
