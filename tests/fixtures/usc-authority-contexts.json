@@ -1,0 +1,42 @@
+[
+  {
+    "api_url": "https://www.ecfr.gov/api/versioner/v1/full/2026-08-19/title-12.xml",
+    "authority_level": "part",
+    "authority_note": "Authority: Secs. 1.5, 1.7, 1.10, 1.11, 1.12, 2.2, 2.3, 2.4, 2.5, 2.12, 3.1, 3.7, 3.11, 3.25, 4.3, 4.3A, 4.9, 4.14B, 4.25, 5.9, 5.17, 8.0, 8.3, 8.4, 8.6, 8.8, 8.10, 8.12 of the Farm Credit Act (12 U.S.C. 2013, 2015, 2018, 2019, 2020, 2073, 2074, 2075, 2076, 2093, 2122, 2128, 2132, 2146, 2154, 2154a, 2160, 2202b, 2211, 2243, 2252, 2279aa, 2279aa-3, 2279aa-4, 2279aa-6, 2279aa-8, 2279aa-10, 2279aa-12); sec. 301(a), Pub. L. 100-233, 101 Stat. 1568, 1608, as amended by sec. 301(a), Pub. L. 103-399, 102 Stat 989, 993 (12 U.S.C. 2154 note); sec. 939A, Pub. L. 111-203, 124 Stat. 1326, 1887 (15 U.S.C. 78o-7 note).",
+    "authority_scope": "part",
+    "cfr_part": "615",
+    "cfr_title": 12,
+    "fetched": "2026-08-24",
+    "part_api_url": "https://www.ecfr.gov/api/versioner/v1/full/2026-08-19/title-12.xml?part=615",
+    "part_head": "PART 615—FUNDING AND FISCAL AFFAIRS, LOAN POLICIES AND OPERATIONS, AND FUNDING OPERATIONS",
+    "raw_bytes": 39190451,
+    "raw_sha256": "0bb24979bddc96cb4a955f0c9e7b8dbfca72c427f68e38b806f2ecf9d1342772",
+    "raw_truncated_at_128k": false,
+    "source_note": null,
+    "subdivision_auth_count": 0,
+    "title_issue_date": "2026-08-19",
+    "title_xml_bytes": 39190451,
+    "title_xml_sha256": "0bb24979bddc96cb4a955f0c9e7b8dbfca72c427f68e38b806f2ecf9d1342772",
+    "context_capture": "authority-title-12-part-615.xml"
+  },
+  {
+    "api_url": "https://www.ecfr.gov/api/versioner/v1/full/2026-08-19/title-14.xml",
+    "authority_level": "part",
+    "authority_note": "Authority: 49 U.S.C. 106(f), 40103, 40113, 40119, 41706, 42301 preceding note added by Pub. L. 112-95, sec. 412, 126 Stat. 89, 44101, 44701-44702, 44705, 44709-44711, 44713, 44716-44717, 44722, 44729, 44732; 46105; Pub. L. 111-216, 124 Stat. 2348 (49 U.S.C. 44701 note); Pub. L. 112-95, 126 Stat. 62 (49 U.S.C. 44732 note); Pub. L. 115-254, 132 Stat. 3186 (49 U.S.C. 44701 note).",
+    "authority_scope": "part",
+    "cfr_part": "121",
+    "cfr_title": 14,
+    "fetched": "2026-08-24",
+    "part_api_url": "https://www.ecfr.gov/api/versioner/v1/full/2026-08-19/title-14.xml?part=121",
+    "part_head": "PART 121—OPERATING REQUIREMENTS: DOMESTIC, FLAG, AND SUPPLEMENTAL OPERATIONS",
+    "raw_bytes": 15999434,
+    "raw_sha256": "fbbbb5301cc44152f45c4cb7d5cbac9fc30c4a5287b0ccbf0d79aefdc5480637",
+    "raw_truncated_at_128k": false,
+    "source_note": null,
+    "subdivision_auth_count": 0,
+    "title_issue_date": "2026-08-19",
+    "title_xml_bytes": 15999434,
+    "title_xml_sha256": "fbbbb5301cc44152f45c4cb7d5cbac9fc30c4a5287b0ccbf0d79aefdc5480637",
+    "context_capture": "authority-title-14-part-121.xml"
+  }
+]

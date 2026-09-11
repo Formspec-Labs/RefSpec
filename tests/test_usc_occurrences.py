@@ -1,0 +1,179 @@
+"""Qualified source references and unchanged authority-field interpretation."""
+import hashlib
+import json
+from dataclasses import asdict
+from pathlib import Path
+
+import pytest
+from usc_authority_oracle import parse_authority_citation as prior_field_reader
+
+from refspec.registry.citation_grammar import find_usc_citations, parse_authority_citation
+
+CASES = json.loads((Path(__file__).parent / 'fixtures/usc-occurrences.json').read_text())
+FIELD_CASES = [*CASES, *(
+    {'id': f"authority-{row['cfr_title']}-{row['cfr_part']}", 'raw': row['authority_note']}
+    for row in json.loads((Path(__file__).parent / 'fixtures/usc-authority-contexts.json').read_text())
+)]
+
+
+def reading(item):
+    result = {k: v for k, v in asdict(item.citation).items()
+              if v is not None and v is not False and v != () and v != {} and k != 'parse_status'}
+    for name in ('pinpoint', 'range_end_pinpoint', 'subchapter', 'subchapter_end', 'refusal'):
+        value = getattr(item, name)
+        if value:
+            result[name] = list(value) if isinstance(value, tuple) else value
+    return result
+
+
+def check_positions(text, items):
+    for item in items:
+        assert 0 <= item.start < item.end <= len(text)
+        assert text[item.start:item.end] == item.text
+        if item.context_start is None:
+            assert item.context_end is None
+        else:
+            assert 0 <= item.context_start < item.context_end <= len(text)
+
+
+@pytest.mark.parametrize('case', CASES, ids=lambda row: row['id'])
+def test_frozen_written_targets_and_original_positions(case):
+    assert hashlib.sha256(case['raw'].encode()).hexdigest() == case['text_sha256']
+    items = find_usc_citations(case['raw'])
+    check_positions(case['raw'], items)
+    assert [reading(item) for item in items] == [row['reading'] for row in case['occurrences']]
+    assert [(item.start, item.end, item.text) for item in items] == [
+        (row['start'], row['end'], row['text']) for row in case['occurrences']]
+    for item, expected in zip(items, case['occurrences'], strict=True):
+        context = None if item.context_start is None else case['raw'][item.context_start:item.context_end]
+        assert context == expected.get('context')
+
+
+@pytest.mark.parametrize('case', FIELD_CASES, ids=lambda row: row['id'])
+def test_existing_field_reader_matches_copied_oracle_on_source_and_mutations(case):
+    text = case['raw']
+    variants = (text, '  '+text+'\n', 'See '+text+'; 7 U.S.C. 1.',
+                text.replace('U.S.C.', 'USC'), text.replace(' ', '\u00a0'),
+                text+' and 552a', text.replace('note', 'NOTE'))
+    for value in variants:
+        assert [asdict(c) for c in parse_authority_citation(value)] == [
+            asdict(c) for c in prior_field_reader(value)]
+
+
+def test_qualified_list_keeps_its_title_context_and_literal_connectors():
+    text = '5 U.S.C. 552(a), 552a note, and 553(b)'
+    items = find_usc_citations(text)
+    check_positions(text, items)
+    assert [c.citation.usc_section for c in items] == ['552', '552a', '553']
+    assert [c.pinpoint for c in items] == [('a',), (), ('b',)]
+    assert [c.citation.usc_note for c in items] == [False, True, False]
+    assert items[1].text == ', 552a note'
+    assert items[2].text == 'and 553(b)'
+    assert text[items[2].context_start:items[2].context_end] == '5 U.S.C. 552(a), 552a note'
+    assert all(c.refusal is None for c in items)
+
+
+def test_repeated_section_pinpoints_are_not_merged():
+    text = '5 U.S.C. 552(a); 5 U.S.C. 552(b)'
+    items = find_usc_citations(text)
+    check_positions(text, items)
+    assert [c.pinpoint for c in items] == [('a',), ('b',)]
+    assert items[0].end < items[1].start
+
+
+def test_commas_separate_list_members_without_creating_token_damage():
+    text = '12 U.S.C. 2013, 2015, 2018'
+    items = find_usc_citations(text)
+    check_positions(text, items)
+    assert [c.text for c in items] == ['12 U.S.C. 2013', ', 2015', ', 2018']
+    assert all(c.refusal is None for c in items)
+
+
+@pytest.mark.parametrize('position', ['preceding', 'following'])
+def test_positioned_note_is_retained_and_refuses_a_section_identity(position):
+    text = f'49 U.S.C. 42301 {position} note'
+    item, = find_usc_citations(text)
+    assert item.text == text and item.citation.usc_note is True
+    assert item.refusal == 'usc_note_position_unresolved'
+
+
+@pytest.mark.parametrize('case', FIELD_CASES[-2:], ids=lambda row: row['id'])
+def test_publisher_authority_lists_have_no_false_token_boundary_refusals(case):
+    items = find_usc_citations(case['raw'])
+    check_positions(case['raw'], items)
+    assert all(c.refusal in (None, 'usc_note_position_unresolved') for c in items)
+    if case['id'] == 'authority-14-121':
+        note, = (c for c in items if c.citation.usc_section == '42301')
+        assert note.text == ', 42301 preceding note'
+        assert note.refusal == 'usc_note_position_unresolved'
+
+
+@pytest.mark.parametrize('text,first,last', [
+    ('5 U.S.C. 552-553(a)', (), ('a',)),
+    ('5 U.S.C. 552(a) through 553(b)', ('a',), ('b',)),
+])
+def test_pinpoints_stay_with_the_written_range_endpoint(text, first, last):
+    item, = find_usc_citations(text)
+    assert item.text == text
+    assert item.pinpoint == first and item.range_end_pinpoint == last
+    assert item.citation.usc_section == '552' and item.citation.usc_section_end == '553'
+    assert item.citation.usc_section_span_rule == 'stated'
+    assert item.refusal is None
+
+
+def test_declined_range_preserves_both_written_pinpoints_and_refuses_narrowing():
+    text = '49 U.S.C. 1354(a) to 1354(c)'
+    item, = find_usc_citations(text)
+    assert item.text == text and item.pinpoint == ('a',) and item.range_end_pinpoint == ('c',)
+    assert item.refusal == 'usc_range_unresolved'
+
+
+@pytest.mark.parametrize('text,appendix,quote', [
+    ('5 U.S.C.', False, '5 U.S.C.'),
+    ('5 U.S.C. App.', True, '5 U.S.C. App.'),
+    ('Under 5 U.S.C. App. other provisions apply.', True, '5 U.S.C. App.'),
+])
+def test_bare_title_or_appendix_does_not_invent_a_section(text, appendix, quote):
+    item, = find_usc_citations(text)
+    assert item.text == quote and item.citation.usc_title == 5
+    assert item.citation.usc_appendix is appendix and item.citation.usc_section is None
+    assert item.refusal is None
+
+
+def test_unicode_left_boundary_is_retained_as_a_refusal():
+    text = 'α5 USC 552'
+    item, = find_usc_citations(text)
+    assert item.text == text and item.refusal == 'usc_token_boundary_unresolved'
+
+
+def test_a_paragraph_break_stops_an_inherited_title():
+    assert [c.citation.usc_section for c in find_usc_citations('5 USC 552\n\nand 553')] == ['552']
+
+
+def test_subchapter_does_not_pick_a_chapter_from_a_range():
+    item, = find_usc_citations('5 USC chapters 5-7, subchapter I')
+    assert item.subchapter == 'I' and item.citation.usc_chapter_end == '7'
+    assert item.refusal == 'usc_subchapter_scope_ambiguous'
+
+
+def test_declared_but_missing_subchapter_is_not_broadened_to_the_chapter():
+    text = '5 USC chapter 81, subchapter'
+    item, = find_usc_citations(text)
+    assert item.text == text and item.refusal == 'usc_subchapter_unresolved'
+
+
+@pytest.mark.parametrize('text,first,last', [
+    ('5 USC chapter 81, subchapters I-II', 'I', 'II'),
+    ('5 USC chapter 81, subchapter I-A', 'I-A', None),
+    ('5 USC chapter 81, subchapters I through II', 'I', 'II'),
+])
+def test_subchapter_names_and_written_ranges_are_preserved(text, first, last):
+    item, = find_usc_citations(text)
+    assert item.text == text and item.subchapter == first and item.subchapter_end == last
+    assert item.refusal is None
+
+
+def test_a_range_separator_does_not_steal_the_next_explicit_title():
+    items = find_usc_citations('7 U.S.C. 6501 - 7 U.S.C. 6524')
+    assert [c.citation.usc_section for c in items] == ['6501', '6524']
+    assert all(c.citation.usc_section_end is None and c.refusal is None for c in items)

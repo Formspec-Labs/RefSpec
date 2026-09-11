@@ -1,0 +1,690 @@
+[
+  {
+    "origin": "constructed diagnostic, manually selected",
+    "name": "compound-usc",
+    "raw": "42 U.S.C. 1395w-4",
+    "expected": [
+      "usc|42|1395w-4"
+    ],
+    "negative": false,
+    "label_note": "Lexical identity only; no legal existence or applicability judgment.",
+    "id": "case-05",
+    "text_sha256": "f3659d4015f99391088680f98003f0a9cfe164c574b64774b69c10bf96398658",
+    "expectation": "Section 1395w-4 of title 42; one compound section name.",
+    "occurrences": [
+      {
+        "text": "42 U.S.C. 1395w-4",
+        "start": 0,
+        "end": 17,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 42,
+          "usc_section": "1395w-4"
+        }
+      }
+    ]
+  },
+  {
+    "origin": "constructed diagnostic, manually selected",
+    "name": "usc-in-prose",
+    "raw": "The agency acts under 5 U.S.C. 552, as discussed below.",
+    "expected": [
+      "usc|5|552"
+    ],
+    "negative": false,
+    "label_note": "Lexical identity only; no legal existence or applicability judgment.",
+    "id": "case-06",
+    "text_sha256": "faaa9ccd2af345701b1a0579dc620f72637b72fa0236c3e90f086706bfd54a9f",
+    "expectation": "Section 552 of title 5, inside prose; surrounding prose is not a token defect.",
+    "occurrences": [
+      {
+        "text": "5 U.S.C. 552",
+        "start": 22,
+        "end": 34,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 5,
+          "usc_section": "552"
+        }
+      }
+    ]
+  },
+  {
+    "origin": "constructed diagnostic, manually selected",
+    "name": "usc-chapter",
+    "raw": "5 U.S.C. chapter 5",
+    "expected": [
+      "usc_chapter|5|5"
+    ],
+    "negative": false,
+    "label_note": "Lexical identity only; no legal existence or applicability judgment.",
+    "id": "case-07",
+    "text_sha256": "bee803e04a4c7fbf7980005c7292d05c2bcb7fd8ae5a7b1146ec268e574b28f7",
+    "expectation": "Chapter 5 of title 5; not section 5.",
+    "occurrences": [
+      {
+        "text": "5 U.S.C. chapter 5",
+        "start": 0,
+        "end": 18,
+        "reading": {
+          "authority_type": "usc_chapter",
+          "usc_title": 5,
+          "usc_chapter": "5"
+        }
+      }
+    ]
+  },
+  {
+    "origin": "constructed diagnostic, manually selected",
+    "name": "usc-appendix",
+    "raw": "5 U.S.C. App. 3",
+    "expected": [
+      "usc_appendix|5|3"
+    ],
+    "negative": false,
+    "label_note": "Lexical identity only; no legal existence or applicability judgment.",
+    "id": "case-08",
+    "text_sha256": "852d4f06af1db9f7b1d4db49664341a507da0cd3ea9660cb3055490b758830bc",
+    "expectation": "Section 3 in the appendix to title 5; not title 5 section 3.",
+    "occurrences": [
+      {
+        "text": "5 U.S.C. App. 3",
+        "start": 0,
+        "end": 15,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 5,
+          "usc_section": "3",
+          "usc_appendix": true
+        }
+      }
+    ]
+  },
+  {
+    "origin": "constructed diagnostic, manually selected",
+    "name": "usc-note",
+    "raw": "42 U.S.C. 1983 note",
+    "expected": [
+      "usc_note|42|1983"
+    ],
+    "negative": false,
+    "label_note": "Lexical identity only; no legal existence or applicability judgment.",
+    "id": "case-09",
+    "text_sha256": "ba73d0e5e92645292fabd19c37129bf75149a4a6448e7698219e2508b37ae3d4",
+    "expectation": "The note under title 42 section 1983; not section 1983 itself.",
+    "occurrences": [
+      {
+        "text": "42 U.S.C. 1983 note",
+        "start": 0,
+        "end": 19,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 42,
+          "usc_section": "1983",
+          "usc_note": true
+        }
+      }
+    ]
+  },
+  {
+    "origin": "constructed diagnostic, manually selected",
+    "name": "usc-list",
+    "raw": "5 USC 552 and 552a",
+    "expected": [
+      "usc|5|552",
+      "usc|5|552a"
+    ],
+    "negative": false,
+    "label_note": "Lexical identity only; no legal existence or applicability judgment.",
+    "id": "case-23",
+    "text_sha256": "9b75f1d33b3ecd5d8affd507fdced018e08741d2c6ac64044029d231f622c21a",
+    "expectation": "Two sections of title 5: 552 and 552a. Second occurrence needs the stated title context.",
+    "occurrences": [
+      {
+        "text": "5 USC 552",
+        "start": 0,
+        "end": 9,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 5,
+          "usc_section": "552"
+        }
+      },
+      {
+        "text": "and 552a",
+        "start": 10,
+        "end": 18,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 5,
+          "usc_section": "552a"
+        },
+        "context": "5 USC 552"
+      }
+    ]
+  },
+  {
+    "origin": "constructed diagnostic, manually selected",
+    "name": "bare-range",
+    "raw": "5401-5405",
+    "expected": [],
+    "negative": true,
+    "label_note": "Lexical identity only; no legal existence or applicability judgment.",
+    "id": "case-27",
+    "text_sha256": "d771c85a489c72c7e999f9c0572dd7ca8fdcfc67802ee05fd8b0a452205d73c6",
+    "expectation": "No USC namespace is stated; do not infer one.",
+    "occurrences": []
+  },
+  {
+    "origin": "constructed diagnostic, manually selected",
+    "name": "malformed-usc",
+    "raw": "42 USC 1983affirmed",
+    "expected": [],
+    "negative": true,
+    "label_note": "Lexical identity only; no legal existence or applicability judgment.",
+    "id": "case-29",
+    "text_sha256": "e3f8a281b0953d636b7766c667e23d83c2c6adcb32b5c022bb999884e77ad0de",
+    "expectation": "Damaged 1983affirmed must not be admitted as an intact section token.",
+    "occurrences": [
+      {
+        "text": "42 USC 1983affirmed",
+        "start": 0,
+        "end": 19,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 42,
+          "usc_section": "1983",
+          "refusal": "usc_token_continuation_unresolved"
+        }
+      }
+    ]
+  },
+  {
+    "id": "publisher-subsection",
+    "raw": "(d) Effective on July 10, 2018, the position of administrative law judge appointed under 5 U.S.C. 3105 shall be listed in Schedule E for all levels of basic pay under 5 U.S.C. 5372(b). Incumbents of this position who are, on July 10, 2018, in the competitive service shall remain in the competitive service as long as they remain in their current positions.\n",
+    "origin": "first matching pinned eCFR title 5 paragraph, before parser outputs",
+    "source": {
+      "title": 5,
+      "name": "Administrative Personnel",
+      "reserved": false,
+      "date": "2026-08-14",
+      "url": "https://www.ecfr.gov/api/versioner/v1/full/2026-08-14/title-5.xml",
+      "path": "title-5.xml",
+      "http_status": 200,
+      "bytes": 11588530,
+      "sha256": "c80f950b58579980776158e6a728c68025af8a75dcec83bf35401478a802224f",
+      "fetched_at": "2026-08-24T11:36:40+00:00",
+      "attempts": 1,
+      "ok": true,
+      "hole_reason": null
+    },
+    "section": "6.8",
+    "section_capture": "title-5-section-6.8.xml",
+    "xml_start": 35881,
+    "xml_end": 38397,
+    "text_sha256": "d18b00bc7fc406ca044dcc8cd4bc5240961e483681bd46e27de2d4091d7a8b80",
+    "expectation": "Title 5 section 3105 and title 5 section 5372(b); dates are not USC list members.",
+    "occurrences": [
+      {
+        "text": "5 U.S.C. 3105",
+        "start": 89,
+        "end": 102,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 5,
+          "usc_section": "3105"
+        }
+      },
+      {
+        "text": "5 U.S.C. 5372(b)",
+        "start": 167,
+        "end": 183,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 5,
+          "usc_section": "5372",
+          "pinpoint": [
+            "b"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "publisher-chapter",
+    "raw": "(3) The name of each former employee of the agency who has been furloughed or separated due to compensable injury sustained under the provisions of 5 U.S.C. chapter 81, subchapter I, who is not entitled to immediate restoration, and who is eligible for priority consideration under this part. Candidates in this category are considered in the commuting area where they last served and, if the agency determines that an appropriate vacancy is unlikely to occur in that area during the candidates' period of reemployment priority, in other locations for which they are available.\n",
+    "origin": "first matching pinned eCFR title 5 paragraph, before parser outputs",
+    "source": {
+      "title": 5,
+      "name": "Administrative Personnel",
+      "reserved": false,
+      "date": "2026-08-14",
+      "url": "https://www.ecfr.gov/api/versioner/v1/full/2026-08-14/title-5.xml",
+      "path": "title-5.xml",
+      "http_status": 200,
+      "bytes": 11588530,
+      "sha256": "c80f950b58579980776158e6a728c68025af8a75dcec83bf35401478a802224f",
+      "fetched_at": "2026-08-24T11:36:40+00:00",
+      "attempts": 1,
+      "ok": true,
+      "hole_reason": null
+    },
+    "section": "302.303",
+    "section_capture": "title-5-section-302.303.xml",
+    "xml_start": 615305,
+    "xml_end": 622067,
+    "text_sha256": "bc391a522eae0309bd141c9634ce998ec1316e77b79ff5b3ac76cbcbe8ac4c07",
+    "expectation": "Title 5 chapter 81, subchapter I. Preserve subchapter I with its chapter, not as a complete chapter-wide target.",
+    "occurrences": [
+      {
+        "text": "5 U.S.C. chapter 81, subchapter I",
+        "start": 148,
+        "end": 181,
+        "reading": {
+          "authority_type": "usc_chapter",
+          "usc_title": 5,
+          "usc_chapter": "81",
+          "subchapter": "I"
+        }
+      }
+    ]
+  },
+  {
+    "id": "publisher-note",
+    "raw": "(iv) 50 U.S.C. 403j; Public Law 86-36 (50 U.S.C. 402, note); the Berlin Tariff Agreement; or as a local national employee paid from appropriated funds; or\n",
+    "origin": "first matching pinned eCFR title 5 paragraph, before parser outputs",
+    "source": {
+      "title": 5,
+      "name": "Administrative Personnel",
+      "reserved": false,
+      "date": "2026-08-14",
+      "url": "https://www.ecfr.gov/api/versioner/v1/full/2026-08-14/title-5.xml",
+      "path": "title-5.xml",
+      "http_status": 200,
+      "bytes": 11588530,
+      "sha256": "c80f950b58579980776158e6a728c68025af8a75dcec83bf35401478a802224f",
+      "fetched_at": "2026-08-24T11:36:40+00:00",
+      "attempts": 1,
+      "ok": true,
+      "hole_reason": null
+    },
+    "section": "315.608",
+    "section_capture": "title-5-section-315.608.xml",
+    "xml_start": 698995,
+    "xml_end": 707284,
+    "text_sha256": "0a5cd7f945759183e29d364108e3c4990ed0e751d1d6d7506d6e4ef3d2b47c10",
+    "expectation": "Title 50 section 403j and the note under title 50 section 402. Public Law 86-36 and other employment categories are surrounding context, not USC section identities.",
+    "occurrences": [
+      {
+        "text": "50 U.S.C. 403j",
+        "start": 5,
+        "end": 19,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 50,
+          "usc_section": "403j"
+        }
+      },
+      {
+        "text": "50 U.S.C. 402, note",
+        "start": 39,
+        "end": 58,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 50,
+          "usc_section": "402",
+          "usc_note": true
+        }
+      }
+    ]
+  },
+  {
+    "id": "pinpoints",
+    "raw": "5 U.S.C. 552(a)(1)",
+    "expectation": "Title 5 section 552, with both attached labels (a)(1).",
+    "origin": "constructed diagnostic, manually selected",
+    "text_sha256": "063d142c0f8bf19c12a22502dc2eb656611acb27b663a83beee8a35187334810",
+    "occurrences": [
+      {
+        "text": "5 U.S.C. 552(a)(1)",
+        "start": 0,
+        "end": 18,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 5,
+          "usc_section": "552",
+          "pinpoint": [
+            "a",
+            "1"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "stated-range",
+    "raw": "5 U.S.C. 552-553",
+    "expectation": "Written endpoints 552 and 553, stated range; do not enumerate interior sections.",
+    "origin": "constructed diagnostic, manually selected",
+    "text_sha256": "bcba82967ad26d3eea5e7d14adb808812c9faa5ce44e64402667bf2c8a93da16",
+    "occurrences": [
+      {
+        "text": "5 U.S.C. 552-553",
+        "start": 0,
+        "end": 16,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 5,
+          "usc_section": "552",
+          "usc_section_end": "553",
+          "usc_section_span_rule": "stated"
+        }
+      }
+    ]
+  },
+  {
+    "id": "abbreviated-range",
+    "raw": "19 U.S.C. 1484-86",
+    "expectation": "Written 1484-86; expanded endpoint 1486 only with the abbreviation basis exposed. Do not treat it as a stated endpoint.",
+    "origin": "constructed diagnostic, manually selected",
+    "text_sha256": "c20bf4cd29fa2b39be9983eadef1ce26f9cdf4f846734ec20bf0ab3759737a42",
+    "occurrences": [
+      {
+        "text": "19 U.S.C. 1484-86",
+        "start": 0,
+        "end": 17,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 19,
+          "usc_section": "1484",
+          "usc_section_end": "1486",
+          "usc_section_span_rule": "abbreviated-span"
+        }
+      }
+    ]
+  },
+  {
+    "id": "descending-pair",
+    "raw": "5 U.S.C. 553-552",
+    "expectation": "Keep written 553-552 opaque or explicitly unresolved. Do not reverse or expand it into an increasing range. Section existence is unknown.",
+    "origin": "constructed diagnostic, manually selected",
+    "text_sha256": "37c80f8aa2ec5467943a413beb0ff1ee149451a804c81239ca6b211c1a92e015",
+    "occurrences": [
+      {
+        "text": "5 U.S.C. 553-552",
+        "start": 0,
+        "end": 16,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 5,
+          "usc_section": "553-552"
+        }
+      }
+    ]
+  },
+  {
+    "id": "unicode",
+    "raw": "⚖ See 42 U.S.C. 1395w–4(a).",
+    "expectation": "One compound section 1395w-4 with pinpoint (a), retaining original Unicode spelling and original character positions.",
+    "origin": "constructed diagnostic, manually selected",
+    "text_sha256": "6869626855db6025423e48b1ff89e274bd77bd64eaf3cd855097a53a6bbc7b4f",
+    "occurrences": [
+      {
+        "text": "42 U.S.C. 1395w–4(a)",
+        "start": 6,
+        "end": 26,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 42,
+          "usc_section": "1395w-4",
+          "pinpoint": [
+            "a"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "repeat",
+    "raw": "5 U.S.C. 552 applies; see 5 U.S.C. 552 again.",
+    "expectation": "Two separate occurrences of the same title/section, with their own original positions.",
+    "origin": "constructed diagnostic, manually selected",
+    "text_sha256": "08807a3aee2fc2dea87ac12759bb58a8098cb22ba47f9e6d36d3a5ad9c4c7d86",
+    "occurrences": [
+      {
+        "text": "5 U.S.C. 552",
+        "start": 0,
+        "end": 12,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 5,
+          "usc_section": "552"
+        }
+      },
+      {
+        "text": "5 U.S.C. 552",
+        "start": 26,
+        "end": 38,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 5,
+          "usc_section": "552"
+        }
+      }
+    ]
+  },
+  {
+    "id": "year",
+    "raw": "See 5 U.S.C. 552 (2024).",
+    "expectation": "Section 552; 2024 is a year, not a subsection or another section.",
+    "origin": "constructed diagnostic, manually selected",
+    "text_sha256": "c0972463642979a51fe46c14d680da86ac46a7730023671578d03cc8b93f3700",
+    "occurrences": [
+      {
+        "text": "5 U.S.C. 552",
+        "start": 4,
+        "end": 16,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 5,
+          "usc_section": "552"
+        }
+      }
+    ]
+  },
+  {
+    "id": "chapter-range",
+    "raw": "5 U.S.C. chapters 5-7",
+    "expectation": "Chapters 5 through 7, with written endpoints; not a section range.",
+    "origin": "constructed diagnostic, manually selected",
+    "text_sha256": "2c4444318276e1d3760a30ccdaa45f6c0e6680f25e14183bb6072e4ca4b0cb3d",
+    "occurrences": [
+      {
+        "text": "5 U.S.C. chapters 5-7",
+        "start": 0,
+        "end": 21,
+        "reading": {
+          "authority_type": "usc_chapter",
+          "usc_title": 5,
+          "usc_chapter": "5",
+          "usc_chapter_end": "7"
+        }
+      }
+    ]
+  },
+  {
+    "id": "compound-letter-tail",
+    "raw": "42 U.S.C. 1395w-114a",
+    "expectation": "One compound section name 1395w-114a; preserve its entire lettered tail.",
+    "origin": "constructed diagnostic, manually selected",
+    "text_sha256": "db5b45954c574dbf8f913d479157401393d43e587c12fe31d02e1ae7c6cbe484",
+    "occurrences": [
+      {
+        "text": "42 U.S.C. 1395w-114a",
+        "start": 0,
+        "end": 20,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 42,
+          "usc_section": "1395w-114a"
+        }
+      }
+    ]
+  },
+  {
+    "id": "appendix-note",
+    "raw": "50 U.S.C. App. 2401 note",
+    "expectation": "A note under appendix section 2401 of title 50; preserve both appendix and note.",
+    "origin": "constructed diagnostic, manually selected",
+    "text_sha256": "e43c5484f775bcb082a4b97e1cdb446324348402a4b47f05f8213525ff00ef7c",
+    "occurrences": [
+      {
+        "text": "50 U.S.C. App. 2401 note",
+        "start": 0,
+        "end": 24,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 50,
+          "usc_section": "2401",
+          "usc_appendix": true,
+          "usc_note": true
+        }
+      }
+    ]
+  },
+  {
+    "id": "dotted-damage",
+    "raw": "26 USC 1.104-1(c)",
+    "expectation": "Do not admit section 1 by truncating this regulation-shaped token.",
+    "origin": "constructed diagnostic, manually selected",
+    "text_sha256": "057c732224a8452aa4675f65dd27bb1554e4c1736901cf3524ff0f6b6fdf74e7",
+    "occurrences": [
+      {
+        "text": "26 USC 1.104-1(c)",
+        "start": 0,
+        "end": 17,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 26,
+          "usc_section": "1",
+          "refusal": "usc_token_continuation_unresolved"
+        }
+      }
+    ]
+  },
+  {
+    "id": "reserved-title",
+    "raw": "53 USC 101",
+    "expectation": "Reserved title: retain an explicit refusal or no accepted USC reading; not a valid current-title assertion.",
+    "origin": "constructed diagnostic, manually selected",
+    "text_sha256": "87c48ecf7c6d6e95586947232e208b51af3fdaae12ccac17575d8970aa3f3275",
+    "occurrences": [
+      {
+        "text": "53 USC 101",
+        "start": 0,
+        "end": 10,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 53,
+          "usc_section": "101",
+          "refusal": "usc_title_outside_supported_space"
+        }
+      }
+    ]
+  },
+  {
+    "id": "zero-title",
+    "raw": "0 USC 1",
+    "expectation": "Invalid title: no accepted USC identity.",
+    "origin": "constructed diagnostic, manually selected",
+    "text_sha256": "63d93178b1ccf0920ac459b50c0b1c4be2698b519cba3467408ee37d809b10b0",
+    "occurrences": [
+      {
+        "text": "0 USC 1",
+        "start": 0,
+        "end": 7,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 0,
+          "usc_section": "1",
+          "refusal": "usc_title_outside_supported_space"
+        }
+      }
+    ]
+  },
+  {
+    "id": "high-title",
+    "raw": "55 USC 1",
+    "expectation": "Outside the currently defined title range: no accepted USC identity.",
+    "origin": "constructed diagnostic, manually selected",
+    "text_sha256": "33f1de64ee320c7fa15877219b0c90a055ea6ae6d7eb0ca8396fa7c7ede2417c",
+    "occurrences": [
+      {
+        "text": "55 USC 1",
+        "start": 0,
+        "end": 8,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 55,
+          "usc_section": "1",
+          "refusal": "usc_title_outside_supported_space"
+        }
+      }
+    ]
+  },
+  {
+    "id": "ordinary-numbers",
+    "raw": "The report lists 1983, 1987 and 1988, with 552 applications.",
+    "expectation": "Ordinary prose numbers; no USC namespace is supplied.",
+    "origin": "constructed diagnostic, manually selected",
+    "text_sha256": "c79a65be0471ab6127391ea26f25029c1f1801dcea230d1980cc15130f7d925d",
+    "occurrences": []
+  },
+  {
+    "id": "unrelated-list",
+    "raw": "Under 5 U.S.C. 552 the agency reports counts, 2020, 2021, and 2022 applications.",
+    "expectation": "One stated USC reference to section 552; application counts must not become USC list members.",
+    "origin": "constructed diagnostic, manually selected",
+    "text_sha256": "16491b9e2418dd83381c01808f94ac8ba6c8c4cc6e260a83f4834fc1be15bd73",
+    "occurrences": [
+      {
+        "text": "5 U.S.C. 552",
+        "start": 6,
+        "end": 18,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 5,
+          "usc_section": "552"
+        }
+      }
+    ]
+  },
+  {
+    "id": "historical-cfr",
+    "raw": "35 CFR 1.1",
+    "expectation": "Historical CFR title 35 remains lexically possible. No USC reading; check RefSpec CFR separately.",
+    "origin": "constructed diagnostic, manually selected",
+    "text_sha256": "2d87780b6e9f83c172a4a8cacc46325b62aeec513d7f77c095df559d20d5a802",
+    "occurrences": []
+  },
+  {
+    "id": "comma-note",
+    "raw": "50 U.S.C. 402, note",
+    "expectation": "The note under section 402 of title 50, including the comma-qualified note spelling.",
+    "origin": "constructed diagnostic, manually selected",
+    "text_sha256": "c62a9c27213c7a86a9603d3db35984b1ffbf551c9bebca90f2048389a771c85a",
+    "occurrences": [
+      {
+        "text": "50 U.S.C. 402, note",
+        "start": 0,
+        "end": 19,
+        "reading": {
+          "authority_type": "usc",
+          "usc_title": 50,
+          "usc_section": "402",
+          "usc_note": true
+        }
+      }
+    ]
+  }
+]

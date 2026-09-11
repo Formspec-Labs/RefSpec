@@ -101,7 +101,6 @@ __all__ = [
     "USC_TITLE_COUNT",
     "ActRelativeCitation",
     "ActRelativeCitationOccurrence",
-    "act_name_with_trailing_year",
     "AuthorityCitation",
     "CfrCitation",
     "CfrCitationOccurrence",
@@ -109,10 +108,13 @@ __all__ = [
     "FederalRegisterCitation",
     "SupremeCourtCitation",
     "TimetableFrCitation",
+    "UscCitationOccurrence",
+    "act_name_with_trailing_year",
     "damerau_levenshtein",
     "find_act_relative_citations",
     "find_act_relative_occurrences",
     "find_cfr_citations",
+    "find_usc_citations",
     "names_citation_structure",
     "normalize_popular_name",
     "parse_agenda_timetable_citation",
@@ -1477,7 +1479,13 @@ _USC_TRANSPOSED_LABEL = re.compile(
 #: the LLSDC sourcebook "The Authority of Statutes Placed in Section Notes
 #: of the United States Code" is the license — so "8 U.S.C. 1252 note" is a
 #: real place distinct from 8 U.S.C. 1252, the same way an appendix is.
-_USC_NOTE_TAIL = re.compile(r"\s+notes?\b")
+_USC_NOTE_TAIL = {
+    prose: re.compile(prefix + r"notes?\b", re.IGNORECASE if prose else 0)
+    for prose, prefix in (
+        (False, r"\s+"),
+        (True, r"(?:\s+|\s*,\s*)(?:(?P<position>preceding|following)\s+)?"),
+    )
+}
 
 #: A code that names itself instead of its title number. The Internal Revenue
 #: Code IS title 26, so "I.R.C. 337(d)" and "26 U.S.C. 337(d)" must reach one
@@ -1675,8 +1683,8 @@ _STRUCTURE_WORD_WITNESSES: Mapping[str, tuple[str, str]] = {
     "amended": (_IGNORABLE_TAIL.pattern, " as amended "),
     "following": (_IGNORABLE_TAIL.pattern, " and following "),
     "ff": (_IGNORABLE_TAIL.pattern, " ff. "),
-    "note": (_USC_NOTE_TAIL.pattern, " note"),
-    "notes": (_USC_NOTE_TAIL.pattern, " notes"),
+    "note": (_USC_NOTE_TAIL[False].pattern, " note"),
+    "notes": (_USC_NOTE_TAIL[False].pattern, " notes"),
 }
 
 #: The census itself, for a caller that only needs membership.
@@ -3059,6 +3067,118 @@ def _repair_whole_value_label(text: str) -> str:
     return text
 
 
+@dataclass(frozen=True)
+class UscCitationOccurrence:
+    """A source USC mention, including qualifications the field view omits."""
+
+    citation: AuthorityCitation
+    start: int
+    end: int
+    text: str
+    pinpoint: tuple[str, ...] = ()
+    range_end_pinpoint: tuple[str, ...] = ()
+    subchapter: str | None = None
+    subchapter_end: str | None = None
+    context_start: int | None = None
+    context_end: int | None = None
+    refusal: str | None = None
+
+
+_USC_SUBCHAPTER_TAIL = re.compile(
+    r"\s*,?\s*(?i:subchapter)(?P<plural>s)?\b"
+    r"(?:\s+(?P<first>(?:[IVXLCDM]+|\d+[A-Za-z]?)(?:-[A-Z\d]+)*)(?![\w-])"
+    r"(?:\s+(?i:to|through)\s+(?P<last>[IVXLCDM]+|\d+[A-Za-z]?)(?![\w-]))?)?"
+)
+# Preserve an unread attached continuation as a refusal, not a shorter identity.
+# A final sentence period alone is not a token continuation.
+_USC_UNREAD_TAIL = re.compile(r"(?:[\w.-]*\w)?(?:\([^()\s]+\))*")
+
+
+def find_usc_citations(text: str) -> tuple[UscCitationOccurrence, ...]:
+    """Locate qualified USC mentions using the existing authority matcher.
+
+    Prose lists continue only across adjacent citation syntax. The field reader's
+    wider list policy and identity-only results remain separate. Source spelling,
+    repeated mentions, range interpretation and refusals survive; neither a valid
+    token nor a supported title establishes existence in an edition.
+    """
+    found: list[UscCitationOccurrence] = []
+    normalized = _normalize_dashes(text)
+
+    def points(position):
+        labels, end = [], position
+        while True:
+            start = _ACT_SPACE.match(text, end).end()
+            if _CITATION_PARAGRAPH_BREAK.search(text, end, start):
+                break
+            label = _CFR_PINPOINT_LABEL.match(text, start)
+            if label is None or (start > end and label.group(1).isdigit() and len(label.group(1)) == 4):
+                break
+            labels.append(label.group(1))
+            end = label.end()
+        return tuple(labels), end
+
+    def record(citation, match, offset, span, context):
+        start, end = span
+        end = max(end, offset + match.end())
+        while end > start and text[end - 1].isspace():
+            end -= 1  # An optional appendix section can leave trailing space.
+        groups = match.groupdict()
+        section = 'section' if groups.get('section') is not None else 'first'
+        labels, end_labels = (), ()
+        if groups.get(section) is not None:
+            labels, position = points(offset + match.end(section))
+            end = max(end, position)
+            if groups.get('range_end') is not None:
+                end_labels, position = points(offset + match.end('range_end'))
+                end = max(end, position)
+            elif citation.usc_section_end is not None:
+                end_labels, labels = labels, ()  # A label after "552-553" belongs to 553.
+        refusal = None
+        note = _USC_NOTE_TAIL[True].match(text, end)
+        if note is not None and not _CITATION_PARAGRAPH_BREAK.search(text, end, note.end()):
+            citation, end = replace(citation, usc_note=True), note.end()
+            if note.group('position'):
+                refusal = 'usc_note_position_unresolved'
+        subchapter = subchapter_end = None
+        if citation.usc_chapter is not None:
+            tail = _USC_SUBCHAPTER_TAIL.match(normalized, end)
+            if tail is not None and not _CITATION_PARAGRAPH_BREAK.search(text, end, tail.end()):
+                subchapter, subchapter_end, end = tail.group('first'), tail.group('last'), tail.end()
+                if subchapter is None:
+                    refusal = 'usc_subchapter_unresolved'
+                elif tail.group('plural') and '-' in subchapter and subchapter_end is None:
+                    # The plural marker distinguishes written endpoints from
+                    # a singular compound label such as subchapter I-A.
+                    endpoints = subchapter.split('-')
+                    if len(endpoints) == 2:
+                        subchapter, subchapter_end = endpoints
+                    else:
+                        refusal = 'usc_subchapter_unresolved'
+                if citation.usc_chapter_end is not None:
+                    refusal = 'usc_subchapter_scope_ambiguous'
+        tail = _USC_UNREAD_TAIL.match(text, end)
+        if tail is not None and tail.end() > end:
+            end, refusal = tail.end(), 'usc_token_continuation_unresolved'
+        if groups.get('range_end') is not None and citation.usc_section_end is None:
+            refusal = 'usc_range_unresolved'
+        if start and text[start].isalnum() and (text[start - 1].isalnum() or text[start - 1] == '_'):
+            while start and (text[start - 1].isalnum() or text[start - 1] == '_'):
+                start -= 1
+            refusal = 'usc_token_boundary_unresolved'
+        if not usc_title_is_possible(citation.usc_title):
+            refusal = 'usc_title_outside_supported_space'
+        found.append(UscCitationOccurrence(
+            citation, start, end, text[start:end], labels, end_labels,
+            subchapter, subchapter_end,
+            context[0] if context else None, context[1] if context else None, refusal,
+        ))
+        return end
+
+    _parse_authority_citation(text, usc_record=record)
+    return tuple(sorted(found, key=lambda item: (item.start, item.end)))
+
+
 def parse_authority_citation(text: str) -> tuple[AuthorityCitation, ...]:
     """Read every legal authority in one string, with a status instead of silence.
 
@@ -3077,14 +3197,21 @@ def parse_authority_citation(text: str) -> tuple[AuthorityCitation, ...]:
     free to change.
     """
 
-    normalized = _repair_whole_value_label(_normalize_dashes(text.strip()))
+    return _parse_authority_citation(text)
+
+
+def _parse_authority_citation(text: str, *, usc_record: Callable[..., int] | None = None) -> tuple[AuthorityCitation, ...]:
+    normalized = (_normalize_dashes(text) if usc_record is not None
+                  else _repair_whole_value_label(_normalize_dashes(text.strip())))
     if states_nothing(normalized):
         # A placeholder is not a failed parse: the publisher said nothing.
         return (AuthorityCitation(authority_type="unstated", parse_status="failed"),)
 
     citations: list[AuthorityCitation] = []
 
-    def _add(citation: AuthorityCitation) -> None:
+    usc_ends: dict[int, int] = {}
+
+    def _add(citation: AuthorityCitation, match=None, *, offset=0, span=None, context=None):
         # An EXPANDED span is never "ok", and the rule saying so is here rather
         # than at each of the six places a section citation is constructed.
         # "ok" means this module accounts for the whole string, and for an
@@ -3098,6 +3225,12 @@ def parse_authority_citation(text: str) -> tuple[AuthorityCitation, ...]:
             citation = replace(citation, parse_status="partial")
         if citation not in citations:
             citations.append(citation)
+        if usc_record is not None and match is not None and citation.authority_type in ('usc', 'usc_chapter'):
+            span = span or (offset + match.start(), offset + match.end())
+            end = usc_record(citation, match, offset, span, context)
+            usc_ends[span[0]] = end
+            return end
+        return None
 
     def _read(
         pattern: re.Pattern[str],
@@ -3126,7 +3259,7 @@ def parse_authority_citation(text: str) -> tuple[AuthorityCitation, ...]:
                 AuthorityCitation(
                     parse_status=status or _status_for_span(normalized, match.start(), end),
                     **fields(match),
-                )
+                ), match, span=(match.start(), end),
             )
         return matches
 
@@ -3167,7 +3300,7 @@ def parse_authority_citation(text: str) -> tuple[AuthorityCitation, ...]:
             # Code section — see ``_usc_leading_section_is_untruncated`` and
             # :data:`_A_DOTTED_NUMBER_IS_A_CFR_SECTION`. Only the fabricated
             # row is withheld.
-            if not _usc_leading_section_is_untruncated(normalized, match):
+            if usc_record is None and not _usc_leading_section_is_untruncated(normalized, match):
                 continue
             fields = _usc_section_fields(match.group("section"), match.groupdict().get("range_end"))
             covered_end = (
@@ -3175,7 +3308,7 @@ def parse_authority_citation(text: str) -> tuple[AuthorityCitation, ...]:
                 if match.groupdict().get("range_end") is not None and fields["usc_section_end"] is None
                 else match.end()
             )
-            note = _USC_NOTE_TAIL.match(normalized, covered_end)
+            note = _USC_NOTE_TAIL[False].match(normalized, covered_end)
             if note is not None:
                 covered_end = note.end()
             title = match.groupdict().get("title")
@@ -3186,7 +3319,7 @@ def parse_authority_citation(text: str) -> tuple[AuthorityCitation, ...]:
                     usc_title=int(title) if title else named_title,
                     usc_note=note is not None,
                     **fields,
-                )
+                ), match, span=(match.start(), covered_end),
             )
 
     # The transposed label: "21 UCS 374" is 21 U.S.C. 374 (uppercase only;
@@ -3210,7 +3343,7 @@ def parse_authority_citation(text: str) -> tuple[AuthorityCitation, ...]:
                 parse_status=_status_for_span(normalized, match.start(), match.end()),
                 usc_title=title,
                 **_usc_section_fields(match.group("first")),
-            )
+            ), match,
         )
         # A listed member is never covered by the head's span, so it is
         # partial whatever the head was.
@@ -3221,7 +3354,7 @@ def parse_authority_citation(text: str) -> tuple[AuthorityCitation, ...]:
                     parse_status="partial",
                     usc_title=title,
                     usc_section=_usc_section(item.group("section")),
-                )
+                ), item, offset=match.start('items'), context=match.span(),
             )
 
     # A deviation from citations.py, which kept chapters out of the authority
@@ -3652,7 +3785,15 @@ def parse_authority_citation(text: str) -> tuple[AuthorityCitation, ...]:
     for index, (match, in_appendix) in enumerate(seeds):
         stop = seeds[index + 1][0].start() if index + 1 < len(seeds) else len(normalized)
         window = match.end()
+        position = usc_ends.get(match.start(), window)
         for tail in _USC_LIST_TAIL.finditer(normalized[window:stop]):
+            if usc_record is not None:
+                tail_start = window + tail.start()
+                if tail_start < position:
+                    continue
+                gap = normalized[position:tail_start]
+                if gap.strip(' \t\r\n,') or _CITATION_PARAGRAPH_BREAK.search(gap):
+                    break
             start, end = window + tail.start("section"), window + tail.end("section")
             if (
                 _lies_inside(named, start, end)
@@ -3666,7 +3807,7 @@ def parse_authority_citation(text: str) -> tuple[AuthorityCitation, ...]:
                     statute_start >= window and statute_end <= window + tail.start()
                     for statute_start, statute_end in statutes
                 )
-                _add(
+                occurrence_end = _add(
                     AuthorityCitation(
                         authority_type="usc",
                         parse_status="partial",
@@ -3674,8 +3815,10 @@ def parse_authority_citation(text: str) -> tuple[AuthorityCitation, ...]:
                         usc_appendix=in_appendix,
                         usc_section_after_statute=after_statute,
                         **fields,
-                    )
+                    ), tail, offset=window, context=(match.start(), position),
                 )
+                if occurrence_end is not None:
+                    position = occurrence_end
 
     if not citations:
         # A CFR-shaped whole value whose title is outside the CFR's series but
@@ -3708,13 +3851,13 @@ def parse_authority_citation(text: str) -> tuple[AuthorityCitation, ...]:
             # "16 USC et seq" names a title wholesale. Partial, never "ok":
             # a title without a section identifies a body of law, not a
             # provision — the same posture as the part-less CFR read.
-            return (
-                AuthorityCitation(
+            citation = AuthorityCitation(
                     authority_type="usc",
                     parse_status="partial",
                     usc_title=int(bare_usc.group("title")),
-                ),
-            )
+                )
+            _add(citation, bare_usc)
+            return (citation,)
         # A row nothing could resolve still carries what it states. Partial
         # information is worth keeping: a consumer looking for section 326 of
         # an NDAA can find the row even where no reader can say which year's
