@@ -333,7 +333,7 @@ def test_an_impossible_cfr_title_mints_nothing() -> None:
     assert mint_cfr_iri(CFR_TITLE_COUNT + 1, "1") is None
     assert mint_cfr_iri(35, "1") is not None  # Reserved today; the Panama Canal until 2000
     assert mint_cfr_iri(0, "1") is None
-    assert mint_cfr_iri(40, "0") is None  # there is no part 0, as there is no title 0
+    assert mint_cfr_iri(16, "0").iri == "urn:rkaf:us:cfr:16:0"  # Published Organization part.
 
 
 def test_a_section_that_states_nothing_is_no_section_rather_than_a_bad_one() -> None:

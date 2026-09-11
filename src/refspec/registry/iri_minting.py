@@ -424,16 +424,17 @@ def _cfr_part(value: object) -> str | None:
     inside receipt-pinned ``citation_grammar``; see REF-054 for the trigger
     that reopens it.
 
-    Refuses part 0, and leading zeros are spelling: see
-    :func:`_positive_integer`, whose join-key rule this reuses unchanged.
+    Unlike titles, parts can be zero: the publisher XML includes 16 CFR part 0
+    (Organization), among others. Strip padding while preserving a zero stem;
+    minting a supported spelling does not establish issuance or applicability.
     """
 
     text = _stated(value).lower()
     match = re.fullmatch(r"([0-9]+)([a-z]?)", text)
     if match is None:
         return None
-    number = _positive_integer(match[1])
-    return None if number is None else f"{number}{match[2]}"
+    number = match[1].lstrip("0") or "0"
+    return f"{number}{match[2]}"
 
 
 def _cfr_section(value: object) -> str | None:
