@@ -2653,6 +2653,8 @@ _CFR_SUBPART_RANGE = re.compile(
     rf"\s*(?:[-–—]|(?i:to|through)\s+)\s*(?:(?i:subpart)\s+)?(?P<end>{_CFR_SUBPART_NAME})"
 )
 _CFR_SUBPART_CONTEXT = re.compile(r"[ \t]*\([^()\r\n]*\)")
+# "The section notes that ..." uses a verb, not a note locator.
+_CFR_NOTE_PROSE = re.compile(r"\s+(?:that|how|why|whether)\b", re.IGNORECASE)
 
 
 def find_cfr_citations(
@@ -2666,7 +2668,8 @@ def find_cfr_citations(
     before walking lists. Written range endpoints survive without expansion.
     List connectors and parenthetical qualifications remain in the source slice;
     their legal relationship is not inferred. Ambiguous part/subpart pairings
-    carry a refusal rather than becoming definite addresses.
+    and unsupported note/open-ended scope carry refusals rather than becoming
+    definite addresses. The identity-only parser does not retain these tails.
     ``expand_qualifiers=False`` keeps one occurrence per coordinate while still
     consuming its complete qualifier text and retaining ambiguity verdicts.
     """
@@ -2713,12 +2716,29 @@ def find_cfr_citations(
     def collect(base: CfrCitationOccurrence) -> int:
         before = len(found)
         end = record(base)
+        # Reuse the authority reader's written scope lexemes. A note or an
+        # open-ended continuation cannot be resolved as the bare coordinate.
+        for pattern, refusal in (
+            (_USC_NOTE_TAIL[True], 'note_target_unresolved'),
+            (_USC_OPEN_END_TAIL, 'open_ended_reference_unresolved'),
+        ):
+            tail = pattern.match(text, end)
+            if tail is None or _CITATION_PARAGRAPH_BREAK.search(text, end, tail.end()):
+                continue
+            if pattern is _USC_NOTE_TAIL[True]:
+                prose = _CFR_NOTE_PROSE.match(text, tail.end())
+                if prose and not _CITATION_PARAGRAPH_BREAK.search(text, tail.end(), prose.end()):
+                    continue
+            end = tail.end()
+            last = found[-1]
+            found[-1] = replace(last, end=end, text=text[last.start:end],
+                                refusal=last.refusal or refusal)
         if not expand_qualifiers and len(found) > before:
             first = found[before]
             found[before:] = [replace(
                 first, end=end, text=text[first.start:end], subpart=None,
                 subpart_end=None, appendix=None,
-                refusal=first.refusal or first.qualifier_status,
+                refusal=first.refusal or first.qualifier_status or found[-1].refusal,
             )]
         return end
 
