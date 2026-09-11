@@ -127,15 +127,18 @@ import hashlib
 import json
 import time
 import urllib.request
-import xml.etree.ElementTree as ET
 import zipfile
 from collections import Counter
-from collections.abc import Iterator, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-USLM_NS = "http://xml.house.gov/schemas/uslm/1.0"
+from refspec.registry.uslm import (
+    EDGE_TYPES, UNIT_TAGS, USLM_NS, ExtractionError, classify_href,
+    iter_edges, section_identifiers, _target_section,
+)
+
 
 RELEASE_POINT = "119/102"
 BASE_URL = "https://uscode.house.gov/download/releasepoints/us/pl"
@@ -157,69 +160,6 @@ TITLES: tuple[str, ...] = (
 #: Reserved titles the publisher lists but does not publish.  Named rather than
 #: merely omitted, so that asking for one gets an explanation instead of a 404.
 RESERVED_TITLES: dict[str, str] = {"53": "Title 53 is reserved and has no USLM text at any release point"}
-
-#: The four citators the corpus uses, mapped to a descriptive label for each.
-#:
-#: These names describe *which citator the publisher used*.  They are deliberately
-#: not legal predicates and not Atlas predicates: see the module docstring and the
-#: evidence README for why establishing the predicate is a separate, unresolved
-#: question that this tool must not pre-empt.  Membership here is the fail-closed
-#: gate: an href outside these prefixes aborts the build rather than being emitted
-#: with a guessed type.
-EDGE_TYPES: dict[str, str] = {
-    "/us/pl": "enactingPublicLaw",
-    "/us/stat": "statutesAtLarge",
-    "/us/usc": "uscCrossReference",
-    "/us/act": "actName",
-}
-
-#: What a ``/us/usc`` href actually points at.  USLM spells the level in the path
-#: segment, and ``st`` (subtitle) shares a prefix with ``s`` (section), so the
-#: longer keys must be tested first or every subtitle is misread as a section.
-USC_LEVELS: tuple[tuple[str, str], ...] = (
-    ("sch", "subchapter"),
-    ("spt", "subpart"),
-    ("st", "subtitle"),
-    ("ch", "chapter"),
-    ("pt", "part"),
-    ("d", "division"),
-    ("s", "section"),
-)
-
-#: Note topics whose references are historical apparatus rather than operative
-#: text.  Used only to *label* an edge's context; nothing is filtered on it.
-AMENDMENT_TOPICS = frozenset({"amendments", "effectiveDateOfAmendment", "prospectiveAmendment", "shortTitleOfAmendment"})
-
-SECTION_TAG = "section"
-SOURCE_CREDIT_TAG = "sourceCredit"
-NOTE_TAG = "note"
-
-#: The unit that *makes* a citation.  In the fifty-odd ordinary titles this is
-#: always ``<section>``, which is why it is tempting to hardcode -- but the five
-#: appendix titles are not built from sections at all.  Title 5 Appendix is 107
-#: ``<reorganizationPlan>`` elements; Titles 11 and 28 Appendix are the Federal
-#: Rules, built from ``<courtRule>``.  An invariant written against ``<section>``
-#: alone reports 1,420 "orphaned" edges in Title 5 Appendix that are perfectly
-#: well anchored, just not to a section.  ``sourceSection`` is still emitted
-#: separately, so a consumer that only wants sections can still filter on it
-#: without having to know which titles are exceptions.
-UNIT_TAGS: tuple[str, ...] = ("section", "reorganizationPlan", "courtRule", "article", "compiledAct")
-
-#: Table-of-contents scaffolding.  A ``<ref>`` inside a ``<toc>`` is a navigation
-#: link to a subdivision the document already contains, not a citation made by the
-#: law.  It must be its own context: folded into ``operative`` it produced 2,992
-#: bogus "section-to-section references" in Title 26 that are really TOC entries
-#: pointing at subtitles, with no citing section at all.
-TOC_TAGS = frozenset({"toc", "tocItem"})
-
-#: Levels that can carry an ``identifier`` and so can serve as an edge's anchor.
-ANCHOR_TAGS = frozenset(
-    {
-        "title", "subtitle", "chapter", "subchapter", "part", "subpart", "division",
-        "section", "subsection", "paragraph", "subparagraph", "clause", "subclause",
-        "item", "subitem",
-    }
-)
 
 # --------------------------------------------------------------------------- #
 # deduplication policy
@@ -257,21 +197,12 @@ ANCHOR_TAGS = frozenset(
 ASSERTION_KEY: tuple[str, ...] = ("title", "sourceAnchor", "edgeType", "href", "context")
 
 
-class ExtractionError(RuntimeError):
-    """The corpus contained something this tool has no defined meaning for."""
-
-
 def _sha256(payload: bytes) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
 def _canonical(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
-
-
-def _localname(tag: str) -> str:
-    """Strip the USLM namespace; every element in these documents carries it."""
-    return tag.rsplit("}", 1)[-1] if "}" in tag else tag
 
 
 def assertion_key(edge: dict[str, Any]) -> tuple[Any, ...] | None:
@@ -406,185 +337,6 @@ def fetch_title(title: str, release_point: str, cache: Path) -> tuple[bytes, Sou
         xml_sha256=_sha256(xml),
     )
     return xml, pin
-
-
-def classify_href(href: str) -> tuple[str, str | None]:
-    """Map an href to its edge type and, for USC targets, the level it points at.
-
-    Fails closed.  A prefix outside :data:`EDGE_TYPES` means the corpus cites a
-    citator this tool does not model, and emitting it under a guessed type would
-    put a row of unknown meaning into the graph.
-    """
-    if not href.startswith("/"):
-        raise ExtractionError(f"href is not an absolute identifier: {href!r}")
-    prefix = "/".join(href.split("/")[:3])
-    edge_type = EDGE_TYPES.get(prefix)
-    if edge_type is None:
-        raise ExtractionError(f"unrecognised href prefix {prefix!r} in {href!r}")
-    if edge_type != "uscCrossReference":
-        return edge_type, None
-
-    parts = href.split("/")
-    if len(parts) < 5:
-        # /us/usc/tNN -- a reference to a whole title.
-        return edge_type, "title"
-    segment = parts[4]
-    for marker, level in USC_LEVELS:
-        if segment.startswith(marker):
-            return edge_type, level
-    raise ExtractionError(f"unrecognised USC level in {href!r} (segment {segment!r})")
-
-
-@dataclass(frozen=True)
-class Anchor:
-    """One element on the ancestor stack that an edge can be attributed to."""
-
-    tag: str
-    identifier: str | None
-    note_topic: str | None
-    status: str | None
-
-
-def _context(
-    stack: Sequence[Anchor],
-) -> tuple[str | None, str | None, str | None, str | None, str | None, str, str | None]:
-    """Locate an edge: its section, its finest anchor, and what kind of text it sits in.
-
-    The context label is the part that keeps amendment credits separable from
-    genuine cross-references.  ``sourceCredit`` and the amendment note topics are
-    the section's history; ``operative`` is the enacted text itself.  Precedence
-    runs innermost-first, because a ``<sourceCredit>`` nested in a note is still a
-    source credit.
-    """
-    section: str | None = None
-    anchor: str | None = None
-    unit: str | None = None
-    unit_kind: str | None = None
-    unit_status: str | None = None
-    context = "operative"
-    topic: str | None = None
-    for entry in reversed(stack):
-        if entry.tag == SOURCE_CREDIT_TAG and context == "operative":
-            context = "sourceCredit"
-        elif entry.tag in TOC_TAGS and context == "operative":
-            context = "toc"
-        elif entry.tag == NOTE_TAG and context == "operative":
-            context = "note"
-            topic = entry.note_topic
-        if anchor is None and entry.identifier and entry.tag in ANCHOR_TAGS:
-            anchor = entry.identifier
-        # The enclosing unit is recorded whether or not it carries an identifier.
-        # A repealed or transferred section keeps its ``id`` but loses its
-        # ``identifier`` -- the publisher mints identifiers only for units that
-        # still exist -- and the repeal notice in its heading still cites the
-        # Public Law that repealed it.  Those citations are real and are kept,
-        # with ``sourceUnit`` null and ``sourceUnitStatus`` saying why.
-        if unit_kind is None and entry.tag in UNIT_TAGS:
-            unit, unit_kind, unit_status = entry.identifier, entry.tag, entry.status
-        if section is None and entry.tag == SECTION_TAG and entry.identifier:
-            section = entry.identifier
-    return section, anchor, unit, unit_kind, unit_status, context, topic
-
-
-def iter_edges(xml: bytes, title: str, skipped: Counter[str]) -> Iterator[dict[str, Any]]:
-    """Walk the document once, yielding one row per href-bearing element.
-
-    ``iterparse`` with an explicit ancestor stack rather than a DOM walk: the
-    larger titles run to tens of megabytes and every edge needs to know which
-    section encloses it, which is ancestor state a streaming parse already has.
-
-    Anything deliberately not emitted is tallied into ``skipped`` rather than
-    dropped, so the manifest can account for every href in the document.
-    """
-    stack: list[Anchor] = []
-    for event, element in ET.iterparse(_BytesReader(xml), events=("start", "end")):
-        tag = _localname(element.tag)
-        if event == "start":
-            stack.append(
-                Anchor(
-                    tag=tag,
-                    identifier=element.get("identifier"),
-                    note_topic=element.get("topic"),
-                    status=element.get("status"),
-                )
-            )
-            href = element.get("href")
-            if tag == "ref":
-                skipped["refElementsSeen"] += 1
-                if href is None:
-                    # class="footnoteRef" with an idref: an internal footnote
-                    # pointer, well-formed and simply not a citation.
-                    skipped["refWithoutHref"] += 1
-            if href is not None:
-                # An in-document anchor (``#TAB_231_0``) points at a table in this
-                # same file.  It is navigation, not a citation of another law, and
-                # it is the one href shape that is not an identifier.
-                if href.startswith("#"):
-                    skipped["inDocumentFragment"] += 1
-                    if tag == "ref":
-                        skipped["inDocumentFragmentOnRef"] += 1
-                    continue
-                edge_type, usc_level = classify_href(href)
-                section, anchor, unit, unit_kind, unit_status, context, topic = _context(stack)
-                yield {
-                    "title": title,
-                    "sourceSection": section,
-                    "sourceUnit": unit,
-                    "sourceUnitKind": unit_kind,
-                    "sourceUnitStatus": unit_status,
-                    "sourceAnchor": anchor,
-                    "href": href,
-                    "edgeType": edge_type,
-                    "uscTargetLevel": usc_level,
-                    "element": tag,
-                    "context": context,
-                    "noteTopic": topic,
-                    "historical": context == "sourceCredit" or topic in AMENDMENT_TOPICS,
-                }
-        else:
-            if not stack:
-                raise ExtractionError(f"title {title}: unbalanced element stack at </{tag}>")
-            stack.pop()
-            element.clear()
-
-
-class _BytesReader:
-    """Minimal file-like wrapper so ``iterparse`` can stream an in-memory payload."""
-
-    def __init__(self, payload: bytes) -> None:
-        self._payload = memoryview(payload)
-        self._offset = 0
-
-    def read(self, size: int = -1) -> bytes:
-        if size < 0:
-            size = len(self._payload) - self._offset
-        chunk = self._payload[self._offset : self._offset + size]
-        self._offset += len(chunk)
-        return bytes(chunk)
-
-
-def section_identifiers(xml: bytes) -> set[str]:
-    """Every ``<section identifier>`` in the document, for resolving USC targets."""
-    found: set[str] = set()
-    for event, element in ET.iterparse(_BytesReader(xml), events=("end",)):
-        del event
-        if _localname(element.tag) == SECTION_TAG:
-            identifier = element.get("identifier")
-            if identifier:
-                found.add(identifier)
-        element.clear()
-    return found
-
-
-def _target_section(href: str) -> str | None:
-    """The section-granularity prefix of a USC href, or None if it targets no section."""
-    parts = href.split("/")
-    if len(parts) < 5:
-        return None
-    segment = parts[4]
-    if not segment.startswith("s") or segment.startswith(("sch", "spt", "st")):
-        return None
-    return "/".join(parts[:5])
 
 
 def extract_title(title: str, release_point: str, cache: Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:

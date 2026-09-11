@@ -1,0 +1,109 @@
+"""Default-reader parity and exact publisher occurrence locations."""
+from collections import Counter
+from copy import deepcopy
+from pathlib import Path
+import re
+import xml.etree.ElementTree as ET
+
+import pytest
+
+from refspec.registry import uslm
+import uslm_reference_oracle as oracle
+
+FIXTURES = Path(__file__).parent / 'fixtures/uslm-source-links'
+
+
+def outcome(reader, xml, title):
+    counts = Counter()
+    rows = []
+    error = None
+    try:
+        rows.extend(reader.iter_edges(xml, title, counts))
+    except Exception as exc:
+        error = (type(exc).__name__, str(exc))
+    return rows, dict(counts), error
+
+
+def variants(xml):
+    yield 'original', xml
+    for mutation in ('duplicate', 'fragment', 'no-href', 'unknown-prefix', 'relative',
+                     'unknown-level', 'no-identifier', 'a-element', 'nested-inline', 'unicode'):
+        root = ET.fromstring(xml)
+        link = next(e for e in root.iter() if e.get('href'))
+        if mutation == 'duplicate':
+            parent = next(p for p in root.iter() if link in p)
+            parent.append(deepcopy(link))
+        elif mutation == 'fragment':
+            link.set('href', '#local-table')
+        elif mutation == 'no-href':
+            del link.attrib['href']
+        elif mutation == 'unknown-prefix':
+            link.set('href', '/us/unsupported/t5/s1')
+        elif mutation == 'relative':
+            link.set('href', 's1')
+        elif mutation == 'unknown-level':
+            link.set('href', '/us/usc/t5/unknown')
+        elif mutation == 'no-identifier':
+            for e in root.iter():
+                e.attrib.pop('identifier', None)
+        elif mutation == 'a-element':
+            link.tag = f'{{{uslm.USLM_NS}}}a'
+        elif mutation == 'nested-inline':
+            content = link.text
+            link.text = 'before '
+            child = ET.SubElement(link, f'{{{uslm.USLM_NS}}}inline')
+            child.text = content
+            child.tail = ' after'
+        else:
+            link.set('href', '/us/usc/t26/s1400Z–1')
+            link.text = '§\u202f1400Z–1 & another occurrence 🧭'
+        yield mutation, ET.tostring(root)
+    yield 'malformed', xml[:-20]
+
+
+@pytest.mark.parametrize('name,title', [('title-05-s423.xml', '05'), ('title-42-s242c.xml', '42')])
+def test_default_readings_and_refusals_match_copied_oracle(name, title):
+    for mutation, xml in variants((FIXTURES / name).read_bytes()):
+        assert outcome(uslm, xml, title) == outcome(oracle, xml, title), mutation
+
+
+@pytest.mark.parametrize('name,title', [('title-05-s423.xml', '05'), ('title-42-s242c.xml', '42')])
+def test_optional_paths_select_each_actual_xml_occurrence(name, title):
+    for mutation, xml in variants((FIXTURES / name).read_bytes()):
+        rows, counts, error = outcome(oracle, xml, title)
+        if error:
+            continue
+        actual_counts = Counter()
+        actual = list(uslm.iter_edges(xml, title, actual_counts, include_source_path=True))
+        assert dict(actual_counts) == counts
+        assert [{k:v for k,v in x.items() if k != 'sourceXPath'} for x in actual] == rows
+        root = ET.fromstring(xml)
+        # Check the generated child positions against the independently built
+        # DOM. ElementTree's abbreviated *[n] lookup counts same-tag siblings
+        # differently from XPath; it is not a full XPath evaluator.
+        expected = [e for e in root.iter() if e.get('href') and not e.get('href').startswith('#')]
+        selected = []
+        for row in actual:
+            positions = [int(p) for p in re.findall(r'/\*\[(\d+)\]', row['sourceXPath'])]
+            assert positions[0] == 1
+            assert ''.join(f'/*[{p}]' for p in positions) == row['sourceXPath']
+            node = root
+            for position in positions[1:]:
+                node = node[position - 1]
+            assert node is not None, (mutation, row)
+            assert node.get('href') == row['href'], (mutation, row)
+            selected.append(node)
+        assert selected == expected, mutation
+        assert len({x['sourceXPath'] for x in actual}) == len(actual), mutation
+
+
+def test_root_href_and_skipped_fragment_do_not_shift_paths():
+    xml = b'<ref href="/us/usc/t5/s1"><ref href="#local"/><ref href="/us/usc/t5/s2"/></ref>'
+    rows = list(uslm.iter_edges(xml, '05', Counter(), include_source_path=True))
+    assert [x['sourceXPath'] for x in rows] == ['/*[1]', '/*[1]/*[2]']
+
+
+def test_comments_do_not_count_as_element_siblings():
+    xml = b'<root><!-- comment --><ref href="/us/usc/t5/s2"/><?instruction test?><ref href="/us/usc/t5/s3"/></root>'
+    rows = list(uslm.iter_edges(xml, '05', Counter(), include_source_path=True))
+    assert [x['sourceXPath'] for x in rows] == ['/*[1]/*[1]', '/*[1]/*[2]']
