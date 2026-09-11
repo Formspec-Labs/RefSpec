@@ -12,6 +12,7 @@ import pytest
 from refspec.registry import citation_grammar
 from refspec.registry.citation_grammar import (
     CFR_LETTERED_PART_SHARE,
+    CfrCitationRange,
     find_act_relative_citations,
     normalize_popular_name,
     parse_authority_citation,
@@ -182,7 +183,8 @@ def test_zero_padded_titles_are_read_and_literal_zero_is_labelled() -> None:
     assert parse_cfr_citations("07 CFR 1943")[0].cfr_title == 7
     assert parse_cfr_citations("07 CFR 1943")[0].title_is_possible is True
     zero = parse_cfr_citations("0 CFR 150 to 189")[0]
-    assert (zero.cfr_title, zero.title_is_possible) == (0, False)
+    assert isinstance(zero, CfrCitationRange)
+    assert (zero.start.cfr_title, zero.start.title_is_possible, zero.end.title_is_possible) == (0, False, False)
 
 
 def test_the_part_is_a_join_key_so_leading_zeros_normalize() -> None:
@@ -1859,8 +1861,10 @@ def test_a_sentinel_wearing_a_zero_title_still_states_nothing() -> None:
         assert (row.authority_type, row.parse_status) == ("unstated", "failed"), placeholder
     # The truncated real citation, and the bare forms, both unchanged.
     assert not citation_grammar.states_nothing("0 CFR 150 to 189")
-    assert [(c.cfr_title, c.cfr_part, c.title_is_possible) for c in parse_cfr_citations("0 CFR 150 to 189")] == [
-        (0, "150", False)
+    ranged, = parse_cfr_citations("0 CFR 150 to 189")
+    assert isinstance(ranged, CfrCitationRange)
+    assert [(c.cfr_title, c.cfr_part, c.title_is_possible) for c in (ranged.start, ranged.end)] == [
+        (0, "150", False), (0, "189", False)
     ]
     assert citation_grammar.states_nothing("None") and citation_grammar.states_nothing("NYD")
     # A real title is never looked past: "40 CFR None" would be a real title
@@ -2944,60 +2948,30 @@ def test_a_bare_volume_us_page_is_a_code_citation_with_a_lost_c() -> None:
         assert [r.authority_type for r in parse_authority_citation(text)] == ["other"], text
 
 
-def test_a_plural_label_with_a_dash_names_a_range_and_the_part_is_refused() -> None:
-    """"16 CFR pts. 0-4" cites five parts, so recording part 0 records none of them.
+def test_plural_part_ranges_keep_endpoints_and_plural_compounds_keep_names() -> None:
+    """The old title-only range refusal is replaced by explicit endpoints.
 
-    Two questions had been fused into one gap. The GPO Style Manual ch. 9
-    publishes "pt., pts." as the standard abbreviations and real citations use
-    them ("7 C.F.R. pts. 300, 319" at 60 FR 50379, 50381), so the label was
-    always real; what kept it out of the grammar was the fear of what reading
-    it would do to "16 CFR pts. 0-4", where the part capture would take "0".
-    Separating them lets the label be read and the range be refused by name.
-
-    A REPORTED premise did not reproduce and is recorded here so nobody
-    re-fixes it: "16 CFR pts. 0-4" never minted part "0". "pts." was
-    unreadable, so the value fell through to the title-only fallback and the
-    pinned artifact carries cfr_part NULL for it (RIN 3084-AB85, ed 202510).
-    The wrong part was minted by the SPELLED-OUT label, which the grammar
-    could always read.
-
-    Measured 2026-08-22 over both pinned tables. CFR column: 7 distinct
-    reference values, 10 source rows, each losing a range's first part --
-    "40 CFR parts 1500-1508" (CEQ's NEPA regulations), "14 CFR parts 200-399",
-    "31 CFR Parts 202-391", "2 CFR parts 5800-5801", "41 CFR parts 102-33 to
-    102-42" and "102-71 to 102-83", "20 CFR parts 660 - 672". Authority
-    column: 1 value, 1 row. The "pts." label itself gains nothing on this
-    corpus, which carries exactly one such value; it is read so the next one
-    does not have to wait.
-
-    The dash-is-a-range rule fires only under a PLURAL label because the CFR
-    numbers parts with hyphens: 41 CFR 60-1 and 102-117 are part NAMES, and 97
-    bare dash-joined whole values in the CFR column ascend, so an ordering
-    rule would call them ranges. The plural label is the only evidence that
-    more than one unit is meant.
+    Real Agenda forms previously named in this test remain controls. The
+    publisher XML additionally proves that plural title-41 lists contain
+    compound part names; plural does not mean split each hyphenated token.
     """
-
-    # The label is read; the range is refused; the LIST is expanded.
-    assert [(c.cfr_title, c.cfr_part) for c in parse_cfr_citations("16 CFR pts. 0-4")] == [(16, None)]
+    for text, title, start, end in (
+        ("16 CFR pts. 0-4", 16, "0", "4"),
+        ("16 CFR parts 0-4", 16, "0", "4"),
+        ("40 CFR parts 1500-1508", 40, "1500", "1508"),
+        ("20 CFR parts 660 - 672", 20, "660", "672"),
+        ("41 CFR parts 102-33 to 102-42", 41, "102-33", "102-42"),
+        ("31 CFR Parts 202-391", 31, "202", "391"),
+        ("46 CFR Parts 53 to 54", 46, "53", "54"),
+    ):
+        ranged, = parse_cfr_citations(text)
+        assert isinstance(ranged, CfrCitationRange)
+        assert [(c.cfr_title, c.cfr_part) for c in (ranged.start, ranged.end)] == [(title, start), (title, end)]
     assert _parts("7 C.F.R. pts. 300, 319") == ["300", "319"]
     assert _parts("12 CFR pt. 1081 subpart E") == ["1081"]
-    # Every plural spelling refuses the range, spaced dash or not.
-    for text, title in (
-        ("16 CFR parts 0-4", 16),
-        ("40 CFR parts 1500-1508", 40),
-        ("20 CFR parts 660 - 672", 20),
-        ("41 CFR parts 102-33 to 102-42", 41),
-        ("31 CFR Parts 202-391", 31),
-    ):
-        assert [(c.cfr_title, c.cfr_part) for c in parse_cfr_citations(text)] == [(title, None)], text
-    # A SINGULAR label leaves the hyphenated pair exactly as it read before:
-    # in titles 41 and 48 the hyphen is the part's own name, and this rule
-    # holds no evidence about which it is.
-    assert _parts("41 CFR 60-1") == ["60"]
-    assert _parts("41 CFR part 102-117") == ["102"]
-    # And a plural label with no dash is untouched.
+    assert _parts("41 CFR 60-1") == ["60-1"]
+    assert _parts("41 CFR part 102-117") == ["102-117"]
     assert _parts("40 CFR parts 60, 61", list_expansion="always") == ["60", "61"]
-    assert _parts("46 CFR Parts 53 to 54") == ["53"]
 
 
 #: The lost-hyphen family, and the REFUSAL to repair it. Each entry is
@@ -3808,8 +3782,12 @@ def test_the_cfr_section_population_is_one_number_recomputed() -> None:
         for citation in sectioned:
             sections_under.setdefault((citation.cfr_title, citation.cfr_part), set()).add(citation.cfr_section)
 
-    assert (values, citations, rows) == (309, 312, 4_126)
-    assert len(sections_under) == 90, "(title, part) pairs that name a section at all"
+    # Whole-token reading newly retains 41 CFR 101-5.2 in two source rows
+    # (RIN 3090-AH37, editions 200204 and 200210). Historical subtotal is
+    # still 309 values / 312 citations / 4,126 source rows.
+    assert (values, citations, rows) == (310, 313, 4_128)
+    assert source_rows['41 CFR 101-5.2'] == {('3090-AH37', '200204', 0), ('3090-AH37', '200210', 0)}
+    assert len(sections_under) == 91, "(title, part) pairs that name a section at all"
     collapsed = {part: sections for part, sections in sections_under.items() if len(sections) > 1}
     assert len(collapsed) == 22, "parts that collapsed more than one section into one citation"
     assert len(collapsed[(49, "1")]) == 22, "the DOT delegation sections under 49 CFR part 1"

@@ -111,8 +111,9 @@ from refspec.registry.act_resolution import (
 from refspec.registry.cfr_authority_notes import CfrAuthorityNotes, usc_citation
 from refspec.registry.citation_grammar import (
     ActRelativeCitation,
+    CfrCitationRange,
+    find_cfr_citations,
     normalize_popular_name,
-    parse_cfr_citations,
     stated_act_name,
     stated_section,
 )
@@ -153,6 +154,8 @@ UNEXPLAINED_REASONS = (
     "identifier_covers_several_rulemakings",
     #: A CFR part outside the 8,240 notes the pinned cache holds.
     "cfr_part_not_in_cache",
+    #: A range, multiple citations, or refused scope cannot name one part.
+    "cfr_scope_not_one_part",
     #: A RIN is recognised and its subject lives in the Unified Agenda catalog,
     #: which this repository does not hold. Named rather than guessed.
     "rin_subject_not_owned_here",
@@ -370,10 +373,13 @@ def _explain_act_section(text: str, index: ActIndex, notes: CfrAuthorityNotes) -
 
 
 def _explain_cfr_part(text: str, index: ActIndex, notes: CfrAuthorityNotes) -> TermExplanation | None:
-    citations = parse_cfr_citations(text)
+    citations = find_cfr_citations(text, expand_qualifiers=False)
     if not citations:
         return None
-    first = citations[0]
+    if (len(citations) != 1 or isinstance(citations[0].citation, CfrCitationRange)
+            or citations[0].refusal or citations[0].qualifier_status):
+        return TermExplanation(text=text, kind="cfr_part", unexplained_reason="cfr_scope_not_one_part")
+    first = citations[0].citation
     note = notes.note(first.cfr_title, first.cfr_part)
     if note is None:
         return TermExplanation(text=text, kind="cfr_part", unexplained_reason="cfr_part_not_in_cache")

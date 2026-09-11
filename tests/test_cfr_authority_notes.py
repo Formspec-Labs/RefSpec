@@ -746,13 +746,13 @@ def _repository_carrying_only_the_notes_cache(tmp_path: Path) -> Path:
 
 
 def test_the_oracle_gate_is_pinned_by_the_count_it_moves(notes: CfrAuthorityNotes, tmp_path: Path) -> None:
-    """34,777 citations with the repository's own oracle, 34,666 without one.
+    """30,234 USC citations with the repository's oracle, 30,123 without one.
 
     The missing-oracle degradation is fail-CLOSED but SILENT: a tree with no
     sealed oracle directory withholds every Statutes-at-Large-marked citation
     and nothing in the reader, the receipt or the digest says so, which makes
     "gated, and the marks were fine" and "never asked" read identically. Both
-    totals are pinned here so they cannot: the fixture is the production
+    USC totals are pinned here so they cannot: the fixture is the production
     default (:meth:`CfrAuthorityNotes.from_repository`, auto-loading the real
     oracle) and the tmp tree is the same pinned cache with the oracle absent.
 
@@ -761,16 +761,22 @@ def test_the_oracle_gate_is_pinned_by_the_count_it_moves(notes: CfrAuthorityNote
     fabricated ones -- 14 CFR 121's genuine 49 U.S.C. resume after "126 Stat.
     89" is in that 111, asserted below.
     ``research/evidence/stat-page-gate-2026-09-01/`` carries the measurement.
+
+    CFR range handling changes the unrelated CFR comparison population. The
+    copied-baseline comparison preserves every changed note in
+    ``fixtures/cfr-note-range-divergences.json``; it proves that these USC
+    counts and the other families did not change. The older all-family pins
+    (34,777/34,666) already differed by one from the copied pre-range code.
     """
 
-    gated = sum(len(note.citations) for note in notes.records)
-    assert gated == 34_777
+    gated = sum(citation.family == "usc" for note in notes.records for citation in note.citations)
+    assert gated == 30_234
 
     notes_path = _repository_carrying_only_the_notes_cache(tmp_path)
     assert _default_oracle(notes_path) is None
     ungated_notes = CfrAuthorityNotes.from_file(notes_path)
-    ungated = sum(len(note.citations) for note in ungated_notes.records)
-    assert ungated == 34_666
+    ungated = sum(citation.family == "usc" for note in ungated_notes.records for citation in note.citations)
+    assert ungated == 30_123
     assert gated - ungated == 111
 
     faa = ungated_notes.note(14, "121")

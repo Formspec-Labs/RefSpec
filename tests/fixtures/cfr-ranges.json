@@ -1,0 +1,204 @@
+[
+  {
+    "id": "compound_section_range",
+    "source_title": 41,
+    "start_byte": 354934,
+    "end_byte": 355366,
+    "xml": "<P>Each building or part of a building that is constructed or altered by, on behalf of, or for the use of the agency shall be designed, constructed, or altered so as to be readily accessible to and usable by handicapped persons. The definitions, requirements, and standards of the Architectural Barriers Act (42 U.S.C. 4151-4157), as established in 41 CFR 101-19.600 to 101-19.607, apply to buildings covered by this section.\n\n\n</P>",
+    "raw_context": "ficial responsible for implementation of the plan.\n\n\n</P>\n</DIV8>\n\n\n<DIV8 N=\"51-10.151\" TYPE=\"SECTION\" VOLUME=\"1\">\n<HEAD>§ 51-10.151   Program accessibility: New construction and alterations.</HEAD>\n<P>Each building or part of a building that is constructed or altered by, on behalf of, or for the use of the agency shall be designed, constructed, or altered so as to be readily accessible to and usable by handicapped persons. The definitions, requirements, and standards of the Architectural Barriers Act (42 U.S.C. 4151-4157), as established in 41 CFR 101-19.600 to 101-19.607, apply to buildings covered by this section.\n\n\n</P>\n</DIV8>\n\n\n<DIV8 N=\"51-10.152 - 51-10.159\" TYPE=\"SECTION\" VOLUME=\"1\">\n<HEAD>§§ 51-10.152-51-10.159   [Reserved]</HEAD>\n</DIV8>\n\n\n<DIV8 N=\"51-10.160\" TYPE=\"SECTION\" VOLUME=\"1\">\n<HEAD>§ 51-10.160   C",
+    "text": "Each building or part of a building that is constructed or altered by, on behalf of, or for the use of the agency shall be designed, constructed, or altered so as to be readily accessible to and usable by handicapped persons. The definitions, requirements, and standards of the Architectural Barriers Act (42 U.S.C. 4151-4157), as established in 41 CFR 101-19.600 to 101-19.607, apply to buildings covered by this section.\n\n\n",
+    "focus": "41 CFR 101-19.600 to 101-19.607",
+    "focus_start": 346,
+    "expected": {
+      "range_start": "101-19.600",
+      "range_end": "101-19.607"
+    },
+    "frozen_before": [
+      {
+        "cfr_title": 41,
+        "cfr_part": "101",
+        "cfr_section": null,
+        "title_is_possible": true,
+        "part_is_plausible": true
+      }
+    ]
+  },
+  {
+    "id": "compound_singular",
+    "source_title": 41,
+    "start_byte": 636937,
+    "end_byte": 636961,
+    "xml": "<P>41 CFR Part 60-3\n</P>",
+    "raw_context": "ations are as follows:\n</P>\n<EXTRACT>\n<FP>Equal Employment Opportunity Commission\n</FP>\n<P>29 CFR Part 1607\n</P>\n<FP>Department of Labor\n</FP>\n<FP>Office of Federal Contract Compliance Programs\n</FP>\n<P>41 CFR Part 60-3\n</P>\n<FP>Department of Justice\n</FP>\n<P>28 CFR 50.14\n</P>\n<FP>Civil Service Commission\n</FP>\n<P>5 CFR 300.103(c)</P></EXTRACT>\n<P>Normally when citing these guidelines, the section number immediately prec",
+    "text": "41 CFR Part 60-3\n",
+    "focus": "41 CFR Part 60-3",
+    "focus_start": 0,
+    "expected": {
+      "parts": [
+        "60-3"
+      ]
+    },
+    "frozen_before": [
+      {
+        "cfr_title": 41,
+        "cfr_part": "60",
+        "cfr_section": null,
+        "title_is_possible": true,
+        "part_is_plausible": true
+      }
+    ]
+  },
+  {
+    "id": "compound_list",
+    "source_title": 41,
+    "start_byte": 1317403,
+    "end_byte": 1317540,
+    "xml": "<P>For information on records and standard and optional forms, see FMR parts 102-193 and 102-194 (41 CFR parts 102-193 and 102-194).\n</P>",
+    "raw_context": "d.\n\n\n</PSPACE></SOURCE>\n\n<DIV8 N=\"101-11.0\" TYPE=\"SECTION\" VOLUME=\"2\">\n<HEAD>§ 101-11.0   Cross-reference to the Federal Management Regulation (FMR) (41 CFR chapter 102, parts 1 through 220).</HEAD>\n<P>For information on records and standard and optional forms, see FMR parts 102-193 and 102-194 (41 CFR parts 102-193 and 102-194).\n</P>\n<CITA TYPE=\"N\">[70 FR 3132, Jan. 19, 2005]\n\n\n</CITA>\n</DIV8>\n\n</DIV5>\n\n</DIV4>\n\n\n<DIV4 N=\"C\" TYPE=\"SUBCHAP\" VOLUME=\"2\">\n<HEAD>SUBCHAPTER C—DEFENSE MATERIALS\n\n\n</HEAD>\n\n<DIV5 N=\"101-14 - 101-15\" TYP",
+    "text": "For information on records and standard and optional forms, see FMR parts 102-193 and 102-194 (41 CFR parts 102-193 and 102-194).\n",
+    "focus": "41 CFR parts 102-193 and 102-194",
+    "focus_start": 95,
+    "expected": {
+      "parts": [
+        "102-193",
+        "102-194"
+      ]
+    },
+    "frozen_before": [
+      {
+        "cfr_title": 41,
+        "cfr_part": null,
+        "cfr_section": null,
+        "title_is_possible": true,
+        "part_is_plausible": null
+      }
+    ]
+  },
+  {
+    "id": "compound_list_three",
+    "source_title": 41,
+    "start_byte": 1691716,
+    "end_byte": 1691917,
+    "xml": "<P>(b) For information on travel on Government aircraft previously contained in subparts 101-37.1 and 101-37.4, see 41 CFR parts 300-3, 301-10, and 301-70 of the Federal Travel Regulation (FTR).\n\n\n</P>",
+    "raw_context": "tion and coordination, previously contained in subparts 101-37.1, 101-37.2, 101-37.3, and 101-37.5 through 101-37.14, see FMR part 102-33, Management of Government Aircraft (41 CFR part 102-33).\n</P>\n<P>(b) For information on travel on Government aircraft previously contained in subparts 101-37.1 and 101-37.4, see 41 CFR parts 300-3, 301-10, and 301-70 of the Federal Travel Regulation (FTR).\n\n\n</P>\n</DIV8>\n\n</DIV5>\n\n\n<DIV5 N=\"101-38\" TYPE=\"PART\" VOLUME=\"2\">\n<HEAD>PART 101-38—MOTOR VEHICLE MANAGEMENT\n</HEAD>\n<AUTH>\n<HED>Authority:</HED><PSPACE>Sec. 205(c), 63 Stat. 390 (40 U.S.C. 486(c)).\n</PS",
+    "text": "(b) For information on travel on Government aircraft previously contained in subparts 101-37.1 and 101-37.4, see 41 CFR parts 300-3, 301-10, and 301-70 of the Federal Travel Regulation (FTR).\n\n\n",
+    "focus": "41 CFR parts 300-3, 301-10, and 301-70",
+    "focus_start": 113,
+    "expected": {
+      "parts": [
+        "300-3",
+        "301-10",
+        "301-70"
+      ]
+    },
+    "frozen_before": [
+      {
+        "cfr_title": 41,
+        "cfr_part": null,
+        "cfr_section": null,
+        "title_is_possible": true,
+        "part_is_plausible": null
+      }
+    ]
+  },
+  {
+    "id": "numeric_part_range",
+    "source_title": 40,
+    "start_byte": 404770,
+    "end_byte": 404881,
+    "xml": "<PSPACE>42 U.S.C. 4321 <I>et seq.;</I> also 40 CFR parts 1500 through 1508, unless otherwise noted.\n\n\n</PSPACE>",
+    "raw_context": "=\"PART\" VOLUME=\"1\">\n<HEAD>PART 6—PROCEDURES FOR IMPLEMENTING THE NATIONAL ENVIRONMENTAL POLICY ACT AND ASSESSING THE ENVIRONMENTAL EFFECTS ABROAD OF EPA ACTIONS \n</HEAD>\n<AUTH>\n<HED>Authority:</HED><PSPACE>42 U.S.C. 4321 <I>et seq.;</I> also 40 CFR parts 1500 through 1508, unless otherwise noted.\n\n\n</PSPACE></AUTH>\n<SOURCE>\n<HED>Source:</HED><PSPACE>72 FR 53662, Sept. 19, 2007, unless otherwise noted.\n\n\n</PSPACE></SOURCE>\n\n<DIV6 N=\"A\" TYPE=\"SUBPART\" VOLUME=\"1\">\n<HEAD>Subpart A—General Provisions for EP",
+    "text": "42 U.S.C. 4321 et seq.; also 40 CFR parts 1500 through 1508, unless otherwise noted.\n\n\n",
+    "focus": "40 CFR parts 1500 through 1508",
+    "focus_start": 29,
+    "expected": {
+      "range_start": "1500",
+      "range_end": "1508"
+    },
+    "frozen_before": [
+      {
+        "cfr_title": 40,
+        "cfr_part": "1500",
+        "cfr_section": null,
+        "title_is_possible": true,
+        "part_is_plausible": true
+      }
+    ]
+  },
+  {
+    "id": "compound_cross_title",
+    "source_title": 48,
+    "start_byte": 967610,
+    "end_byte": 968081,
+    "xml": "<P>(e)(1) When the suspending and debarring official has authority to debar contractors from both contracts pursuant to the Federal Acquisition Regulation in this chapter and contracts for the purchase of Federal personal property pursuant to the Federal Management Regulation (FMR) in 41 CFR part 102-38, that official shall consider simultaneously debarring the contractor from the award of acquisition contracts and from the purchase of Federal personal property.\n</P>",
+    "raw_context": "he Government, unless the agency head or a designee (except see 26.505(e)) states in writing the compelling reasons justifying continued business dealings between that agency and the contractor.\n</P>\n<P>(e)(1) When the suspending and debarring official has authority to debar contractors from both contracts pursuant to the Federal Acquisition Regulation in this chapter and contracts for the purchase of Federal personal property pursuant to the Federal Management Regulation (FMR) in 41 CFR part 102-38, that official shall consider simultaneously debarring the contractor from the award of acquisition contracts and from the purchase of Federal personal property.\n</P>\n<P>(2) When debarring a contractor from the award of acquisition contracts and from the purchase of Federal personal property, the debarment notice shall so indicate and the appropriate FAR and FMR c",
+    "text": "(e)(1) When the suspending and debarring official has authority to debar contractors from both contracts pursuant to the Federal Acquisition Regulation in this chapter and contracts for the purchase of Federal personal property pursuant to the Federal Management Regulation (FMR) in 41 CFR part 102-38, that official shall consider simultaneously debarring the contractor from the award of acquisition contracts and from the purchase of Federal personal property.\n",
+    "focus": "41 CFR part 102-38",
+    "focus_start": 283,
+    "expected": {
+      "parts": [
+        "102-38"
+      ]
+    },
+    "frozen_before": [
+      {
+        "cfr_title": 41,
+        "cfr_part": "102",
+        "cfr_section": null,
+        "title_is_possible": true,
+        "part_is_plausible": true
+      }
+    ]
+  },
+  {
+    "id": "compound_cross_title_list",
+    "source_title": 48,
+    "start_byte": 2438657,
+    "end_byte": 2438744,
+    "xml": "<P>(e) The regulations of the Secretary of Labor (41 CFR parts 60-300 and 61-300).\n</P>",
+    "raw_context": "nt Opportunities Act of 1998, Public Law 105-339.\n</P>\n<P>(c) The Jobs for Veterans Act, Public Law 107-288.\n</P>\n<P>(d) Executive Order 11701, January 24, 1973 (3 CFR, 1971-1975 Comp., p. 752).\n</P>\n<P>(e) The regulations of the Secretary of Labor (41 CFR parts 60-300 and 61-300).\n</P>\n<CITA TYPE=\"N\">[75 FR 60251, Sept. 29, 2010, as amended at 79 FR 43577, July 25, 2014; 80 FR 75910, Dec. 4, 2015]\n\n\n</CITA>\n</DIV8>\n\n\n<DIV8 N=\"22.1301\" TYPE=\"SECTION\" VOLUME=\"1\">\n<HEAD>22.1301   Defi",
+    "text": "(e) The regulations of the Secretary of Labor (41 CFR parts 60-300 and 61-300).\n",
+    "focus": "41 CFR parts 60-300 and 61-300",
+    "focus_start": 47,
+    "expected": {
+      "parts": [
+        "60-300",
+        "61-300"
+      ]
+    },
+    "frozen_before": [
+      {
+        "cfr_title": 41,
+        "cfr_part": null,
+        "cfr_section": null,
+        "title_is_possible": true,
+        "part_is_plausible": null
+      }
+    ]
+  },
+  {
+    "id": "five_digit_part",
+    "source_title": 5,
+    "start_byte": 11497457,
+    "end_byte": 11497631,
+    "xml": "<P>(b) Requests for all records other than those described in § 10002.9, shall be governed by the Council's Freedom of Information Act procedures at 5 CFR part 10001.\n\n\n</P>",
+    "raw_context": "\n\n\n</PSPACE></SOURCE>\n\n<DIV8 N=\"10002.1\" TYPE=\"SECTION\" VOLUME=\"3\">\n<HEAD>§ 10002.1   Purpose and scope.</HEAD>\n<P>(a) The regulations in this part implement the provisions of the Sunshine Act.\n</P>\n<P>(b) Requests for all records other than those described in § 10002.9, shall be governed by the Council's Freedom of Information Act procedures at 5 CFR part 10001.\n\n\n</P>\n</DIV8>\n\n\n<DIV8 N=\"10002.2\" TYPE=\"SECTION\" VOLUME=\"3\">\n<HEAD>§ 10002.2   Definitions.</HEAD>\n<P>The following definitions apply in this part:\n</P>\n<P><I>Chairperson</I> means the Chairperson of the ",
+    "text": "(b) Requests for all records other than those described in § 10002.9, shall be governed by the Council's Freedom of Information Act procedures at 5 CFR part 10001.\n\n\n",
+    "focus": "5 CFR part 10001",
+    "focus_start": 146,
+    "expected": {
+      "parts": [
+        "10001"
+      ]
+    },
+    "frozen_before": [
+      {
+        "cfr_title": 5,
+        "cfr_part": "10001",
+        "cfr_section": null,
+        "title_is_possible": true,
+        "part_is_plausible": true
+      }
+    ]
+  }
+]

@@ -143,6 +143,11 @@ _DISPOSITION_COLUMNS_AWAITING_THE_REBUILD = (
 #: with the roster itself.
 _INITIALISM_ROSTER_COLUMNS = ("act_initialism_roster",)
 
+# The stored artifact predates complete CFR ranges. These fields are verified
+# through fresh fixture Parquet in test_cfr_range_consumers, not inferred from
+# the old table whose missing columns are recorded here.
+_CFR_RANGE_COLUMNS = ("cfr_part_end", "cfr_section_end", "cfr_end_part_is_plausible", "cfr_refusal")
+
 #: Every column the artifact on disk predates: the corrected-key split, the
 #: act resolution's two, the CFR note join's two, the recodification's newest
 #: three, the continuation's two, the scheme-label repair's two, the join's
@@ -159,6 +164,7 @@ _COLUMNS_AWAITING_THE_REBUILD = frozenset(
     + _JOIN_COLUMNS
     + _TITLE_CARRY_COLUMNS
     + _INITIALISM_ROSTER_COLUMNS
+    + _CFR_RANGE_COLUMNS
 )
 
 

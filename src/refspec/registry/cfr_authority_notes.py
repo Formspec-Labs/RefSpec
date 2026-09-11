@@ -346,12 +346,19 @@ def public_law_citation(public_law: object) -> Citation | None:
     return Citation(family="public_law", identity=text) if text else None
 
 
-def cfr_citation(cfr_title: object, cfr_part: object) -> Citation | None:
+def cfr_citation(
+    cfr_title: object, cfr_part: object, *, part_end: object = None,
+    section_end: object = None, refusal: object = None,
+) -> Citation | None:
     """``(49, "1")`` -> ``cfr 49:1``. The SECTION under the part is not identity
     here: a note naming "49 CFR 1.97" names part 1, and a rule citing 49 CFR
     1.53 names the same part. Judging the section would call two delegations of
-    the same part a mismatch."""
+    the same part a mismatch. Ranges and refused readings are not reduced to
+    their first part; this comparison does not represent their full scope.
+    """
 
+    if part_end is not None or section_end is not None or refusal is not None:
+        return None
     part = normalize_part(cfr_part)
     if cfr_title is None or part is None:
         return None
@@ -554,7 +561,9 @@ def read_note_citations(note: str, *, oracle: UscSectionOracle | None = None) ->
         elif parsed.authority_type == "public_law":
             offer(public_law_citation(parsed.public_law))
         elif parsed.authority_type == "cfr":
-            offer(cfr_citation(parsed.cfr_title, parsed.cfr_part))
+            offer(cfr_citation(parsed.cfr_title, parsed.cfr_part,
+                               part_end=parsed.cfr_part_end, section_end=parsed.cfr_section_end,
+                               refusal=parsed.cfr_refusal))
     title: int | None = None
     for segment in _NOTE_SEGMENT.split(body):
         parsed_segment = parse_authority_citation(segment)
@@ -752,11 +761,11 @@ class CfrAuthorityNotes:
     file here, so unlike the six-table section oracle there is no way to
     authenticate part of it.
 
-    **Construction reads every note through the grammar**: 34,777 citations
-    against generation 1's 4,488, which measures at ~5.4 s against ~1.35 s on
-    the machine the suite's budget was set on -- plus the section-existence
-    oracle's own load (:func:`_default_oracle`), ~2.1 s, paid once per
-    repository root per process rather than once per reader
+    **Construction reads every note through the grammar.** The 2026-09-01
+    measurement read 34,777 citations in ~5.4 s against generation 1's 4,488
+    in ~1.35 s; those are historical counts and timings, not the current
+    CFR range-aware output. The section-existence oracle's own load
+    (:func:`_default_oracle`) is paid once per repository root rather than once per reader
     (:func:`_oracle_for_root` memoizes it). The builder constructs one reader
     per build and the test module constructs three, so the cost is paid a
     handful of times and never per row; the per-question cost is

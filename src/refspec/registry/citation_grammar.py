@@ -104,6 +104,7 @@ __all__ = [
     "AuthorityCitation",
     "CfrCitation",
     "CfrCitationOccurrence",
+    "CfrCitationRange",
     "EoCompilationLocator",
     "EoCompilationOccurrence",
     "FederalRegisterCitation",
@@ -115,6 +116,7 @@ __all__ = [
     "find_act_relative_citations",
     "find_act_relative_occurrences",
     "find_cfr_citations",
+    "find_eo_compilation_locators",
     "find_usc_citations",
     "names_citation_structure",
     "normalize_popular_name",
@@ -122,7 +124,6 @@ __all__ = [
     "parse_authority_citation",
     "parse_cfr_citations",
     "parse_eo_compilation_locators",
-    "find_eo_compilation_locators",
     "parse_federal_register_citations",
     "parse_supreme_court_citation",
     "stated_act_name",
@@ -515,11 +516,10 @@ _DASHES = str.maketrans(dict.fromkeys("‐‑‒–—―−\x96\x97", "-"))
 #: trailing one is the sentence's punctuation.
 _CFR_SECTION_CAPTURE = r"[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?"
 
-#: A part number, optionally with the letter suffix the CFR actually uses.
-#: The suffix is only part of the part when nothing alphanumeric follows it:
-#: "17 CFR 15c3-3" is rule 15c3-3 under part 240, and reading "15c" invents a
-#: part that does not exist.
-_CFR_PART_CAPTURE = rf"\d+[A-Za-z]?{_RIGHT}"
+# Capture the whole token before interpreting its hyphens. Title 41 has
+# compound parts, including plural lists of them; elsewhere a plural label
+# can state a numeric part range. Neither licenses a shorter numeric prefix.
+_CFR_PART_CAPTURE = r"\d+[A-Za-z]?(?:-\d+[A-Za-z]?)*(?![\w-])"
 
 #: The word naming the unit a CFR number belongs to. "Part" and "section" are
 #: different units but one syntactic slot, and the CFR writes both.
@@ -530,35 +530,15 @@ _CFR_PART_CAPTURE = rf"\d+[A-Za-z]?{_RIGHT}"
 #: gap was never a judgement that the spelling is unreal — it was the fear of
 #: what reading it would DO to the one such value the Agenda's CFR field
 #: carries, "16 CFR pts. 0-4", where a part range would have yielded part "0".
-#: :data:`_CFR_PART_RANGE_TAIL` refuses that instead, so the label and the
-#: hazard are now separate questions.
+#: The item reader now preserves that range as two endpoints.
 _CFR_UNIT_LABEL = rf"(?:parts?|pts?\.?|{_SECTION_MARKER})"
-
-#: What follows a part number when the number is the START OF A RANGE rather
-#: than the part being cited: a dash and more digits, spaced or not.
-#: "16 CFR pts. 0-4" cites parts 0, 1, 2, 3 and 4, and this grammar has no
-#: column for a span of them, so the part is REFUSED and the citation reads
-#: its title alone — the posture that value already had while "pts." was
-#: unreadable, now held by a named rule rather than by a gap.
-#:
-#: It fires only under a PLURAL label, and the reason is the CFR's own
-#: numbering: in titles 41 and 48 a hyphen is part of the part's NAME, not a
-#: range separator. "41 CFR 60-1" is one part (OFCCP), "41 CFR 102-117" is
-#: another, and 97 whole values in the Agenda's CFR field write a bare
-#: dash-joined pair whose halves ASCEND — so the U.S.C. ordering rule would
-#: misread them as ranges. A plural label is what states that more than one
-#: unit is meant, and it is the only evidence available; without it the pair
-#: is left exactly as it reads today, which is a separate and larger question
-#: than this one.
-_CFR_PART_RANGE_TAIL = re.compile(r"\s*-\s*\d")
 
 # The title accepts leading zeros deliberately; the verdict falls on the
 # integer (07 -> 7 possible, 00 -> 0 impossible). The offset-matching hazard
 # the ancestors' [1-9] guarded against is carried by _LEFT alone.
 _CFR_STANDARD = re.compile(
-    rf"{_LEFT}(?P<title>\d+)\s*C\.?\s*F\.?\s*R\.?"
-    rf"\s*(?P<label>{_CFR_UNIT_LABEL})?\s*"
-    rf"(?P<part>{_CFR_PART_CAPTURE})(?:\.(?P<section>{_CFR_SECTION_CAPTURE}))?",
+    rf"{_LEFT}(?P<title>\d+)\s*C\.?\s*F\.?\s*R\.?(?![A-Za-z_])"
+    rf"\s*(?P<label>{_CFR_UNIT_LABEL})?\s*",
     re.IGNORECASE,
 )
 
@@ -571,7 +551,7 @@ _CFR_STANDARD = re.compile(
 #: Regulations, chapter XII" carries no "CFR" for the abbreviation grammars.
 _CFR_LONGHAND = re.compile(
     rf"{_LEFT}title\s+(?P<title>\d+),?\s+Code\s+of\s+Federal\s+Regulations"
-    r"(?:,?\s*(?:parts?|pt\.?)\s*(?P<part>\d+[A-Za-z]?))?",
+    r"(?:,?\s*(?P<label>parts?|pt\.?)\s*)?",
     re.IGNORECASE,
 )
 
@@ -579,8 +559,7 @@ _CFR_TITLE_PART = re.compile(
     rf"{_LEFT}(?:"
     rf"title\s+(?P<title>\d+)\s*[,;:-]?\s*(?:C\.?\s*F\.?\s*R\.?\s*)?"
     rf"|(?P<title_cfr>\d+)\s*[,;:-]?\s*C\.?\s*F\.?\s*R\.?\s*"
-    r")(?:parts?|pt\.?)\s+"
-    rf"(?P<part>{_CFR_PART_CAPTURE})(?:\.(?P<section>{_CFR_SECTION_CAPTURE}))?",
+    r")(?P<label>parts?|pt\.?)\s+",
     re.IGNORECASE,
 )
 
@@ -589,11 +568,17 @@ _CFR_TITLE_PART = re.compile(
 #: number that LEADS ANOTHER CITATION is never a list member, so
 #: "17 CFR 240, 15 U.S.C. 78c" does not fabricate a part 15.
 _CFR_LIST_ITEM = re.compile(
-    rf"{_LIST_SEPARATOR}(?P<part>{_CFR_PART_CAPTURE})"
-    rf"(?:\.(?P<section>{_CFR_SECTION_CAPTURE}))?"
-    rf"{_ANOTHER_CITATION_AHEAD}",
+    rf"{_LIST_SEPARATOR}(?=\d)",
     re.IGNORECASE,
 )
+
+_CFR_COORDINATE = re.compile(
+    rf"(?P<part>{_CFR_PART_CAPTURE})(?:\.(?P<section>{_CFR_SECTION_CAPTURE}))?"
+    rf"(?![\w]|\.[A-Za-z0-9]){_ANOTHER_CITATION_AHEAD}", re.IGNORECASE,
+)
+_CFR_RANGE_CONNECTOR = re.compile(r"\s+(?:(?i:to|through)\b\s*|-\s+)")
+_CFR_UNREAD_TOKEN = re.compile(r"[\w.]+(?:[ \t]*-[ \t]*[\w.]+)*-?(?:\([^()\s]+\))*|(?:\([^()\r\n]+\))+")
+_CFR_OTHER_CITATION_GUARD = re.compile(_ANOTHER_CITATION_AHEAD, re.IGNORECASE)
 
 
 def _label_is_plural(label: str | None) -> bool:
@@ -678,6 +663,9 @@ _COMPILATION_YEAR = r"(?:1[789]|20)\d{2}"
 _COMPILATION_WORD = r"(?:Comp|Supp)\.?(?!\w)"
 _EO_COMPILATION = re.compile(
     r"\b3\s*C\.?\s*F\.?\s*R\.?\s*[,;:]?\s*"
+    # 40 CFR 110's authority note writes "3 CFR parts 1971-1975 Comp.".
+    # This label is accepted only with the explicit compilation word below.
+    r"(?P<part_label>parts\s+)?"
     # Judicial ordering, already recognized by SpicySearch's source reader:
     # "3 CFR 60–61 (1971–1975 Comp.)". The numbers before the volume are
     # pages, not CFR parts. Keep both written endpoints.
@@ -698,14 +686,14 @@ _EO_COMPILATION = re.compile(
     # refusing it left the volume's FIRST year minted as CFR part 1971. The
     # typo is carried, not corrected: the end reads "1075".
     rf"(?P<end>{_COMPILATION_YEAR}|\d{{4}}(?=\s*,?\s*{_COMPILATION_WORD})|\d{{2}}(?!\d)))"
-    rf"\s*,?\s*(?(page_before){_COMPILATION_WORD}|(?:{_COMPILATION_WORD})?)"
+    rf"\s*,?\s*(?(page_before){_COMPILATION_WORD}|(?(part_label){_COMPILATION_WORD}|(?:{_COMPILATION_WORD})?))"
     rf"|\s*,?\s*{_COMPILATION_WORD}"
     # A PAGE LABEL proves the shape where the compilation word is missing, on
     # the same terms a year range does: no CFR part is ever cited "p. 235".
     # 12 CFR 602's note writes "52 FR 23781, 3 CFR 1987, p. 235" and minted
     # part 1987. A bare number after the year still proves nothing and is
     # still refused -- the label is the whole evidence.
-    r"|(?(page_before)(?!)|(?=\s*,?\s*(?:pp?\.?|pages?)\s*\d))"
+    r"|(?(page_before)(?!)|(?(part_label)(?!)|(?=\s*,?\s*(?:pp?\.?|pages?)\s*\d)))"
     r")"
     r"(?(page_before)(?P<closing>\s*\))?|"
     rf"(?:\s*,?\s*(?:pp?\.?|pages?)?\s*(?P<page>\d+)(?!\w)"
@@ -1883,6 +1871,14 @@ class CfrCitation:
 
 
 @dataclass(frozen=True)
+class CfrCitationRange:
+    """Two written endpoints, not one identifier or an expanded membership list."""
+
+    start: CfrCitation
+    end: CfrCitation
+
+
+@dataclass(frozen=True)
 class CfrCitationOccurrence:
     """A parsed CFR identity with its exact, codepoint-indexed source slice.
 
@@ -1893,7 +1889,7 @@ class CfrCitationOccurrence:
     remain in ``text``. A stated range records endpoints, never inferred members.
     """
 
-    citation: CfrCitation
+    citation: CfrCitation | CfrCitationRange
     start: int
     end: int
     text: str
@@ -1905,6 +1901,8 @@ class CfrCitationOccurrence:
     appendix: str | None = None
     #: Multiple parts followed by subparts do not establish a pairing.
     qualifier_status: str | None = None
+    range_end_pinpoint: tuple[str, ...] = ()
+    refusal: str | None = None
 
 
 @dataclass(frozen=True)
@@ -1972,6 +1970,10 @@ class AuthorityCitation:
     #: :func:`test_a_cfr_part_carries_its_verdict_and_the_retyping_stays_refused`
     #: for that population, and for what settling it would take.
     cfr_part_is_plausible: bool | None = None
+    cfr_part_end: str | None = None
+    cfr_section_end: str | None = None
+    cfr_end_part_is_plausible: bool | None = None
+    cfr_refusal: str | None = None
     reorganization_plan: str | None = None
     #: An act-relative authority ("Clean Air Act sec 112"): the OLRC popular
     #: name key, with the act's own section number when one was cited.
@@ -2110,7 +2112,9 @@ def _cfr_title_is_possible(title: int) -> bool:
 def _part_is_plausible(part: str | None) -> bool | None:
     if part is None:
         return None
-    return len([c for c in part if c.isdigit()]) <= _MAX_PLAUSIBLE_PART_DIGITS
+    # A hyphen separates components, not a lost decimal: 102-193 is a
+    # publisher-defined part, while the single digit run 412106 is suspect.
+    return all(sum(c.isdigit() for c in atom) <= _MAX_PLAUSIBLE_PART_DIGITS for atom in part.split("-"))
 
 
 def _canonical_part(part: str | None) -> str | None:
@@ -2118,7 +2122,8 @@ def _canonical_part(part: str | None) -> str | None:
 
     if part is None:
         return None
-    return part.lstrip("0") or "0"
+    head, separator, tail = part.partition("-")
+    return (head.lstrip("0") or "0") + separator + tail
 
 
 def _normalize_dashes(text: str) -> str:
@@ -2600,8 +2605,13 @@ def _excise_compilations(text: str) -> str:
     return _EO_COMPILATION.sub(_blank, text)
 
 
-def parse_cfr_citations(text: str, *, list_expansion: str = "plural-label") -> tuple[CfrCitation, ...]:
-    """Read every CFR citation in one string.
+def parse_cfr_citations(text: str, *, list_expansion: str = "plural-label") -> tuple[CfrCitation | CfrCitationRange, ...]:
+    """Read single CFR coordinates and written endpoint pairs.
+
+    Ranges return ``CfrCitationRange`` and must not be minted as one part.
+    Unread/ambiguous scope returns a title-only coordinate here; use
+    ``find_cfr_citations`` to retain the raw scope and its refusal reason.
+    Neither reader enumerates a range or verifies legal existence.
 
     ``list_expansion`` decides when ", 61, and 63" continues a citation:
 
@@ -2645,8 +2655,10 @@ _CFR_SUBPART_RANGE = re.compile(
 _CFR_SUBPART_CONTEXT = re.compile(r"[ \t]*\([^()\r\n]*\)")
 
 
-def find_cfr_citations(text: str, *, list_expansion: str = "plural-label") -> tuple[CfrCitationOccurrence, ...]:
-    """Locate the existing grammar's CFR readings without changing identities.
+def find_cfr_citations(
+    text: str, *, list_expansion: str = "plural-label", expand_qualifiers: bool = True,
+) -> tuple[CfrCitationOccurrence, ...]:
+    """Read complete CFR coordinates and ranges with their exact source evidence.
 
     Source spelling, repeated occurrences and impossible-title verdicts survive.
     Explicit CFR citations only: no title or local paragraph target is inferred
@@ -2655,158 +2667,209 @@ def find_cfr_citations(text: str, *, list_expansion: str = "plural-label") -> tu
     List connectors and parenthetical qualifications remain in the source slice;
     their legal relationship is not inferred. Ambiguous part/subpart pairings
     carry a refusal rather than becoming definite addresses.
+    ``expand_qualifiers=False`` keeps one occurrence per coordinate while still
+    consuming its complete qualifier text and retaining ambiguity verdicts.
     """
     found: list[CfrCitationOccurrence] = []
 
-    def record(citation: CfrCitation, span: tuple[int, int], context: tuple[int, int] | None) -> int:
-        start, end = span
-        labels: list[str] = []
-        if citation.cfr_section is not None:
-            while (label := _CFR_PINPOINT_LABEL.match(text, end)) is not None:
-                labels.append(label.group(1))
-                end = label.end()
-        elif citation.cfr_part is not None and (subpart := _CFR_SUBPART.match(text, end)) is not None:
-            if not _CITATION_PARAGRAPH_BREAK.search(text, end, subpart.end()):
-                appendix = subpart.group('appendix')
-                plural = bool(subpart.group('plural'))
-                status = 'ambiguous_part_scope' if context is not None else None
-                while subpart is not None:
-                    end = subpart.end()
-                    range_end = None
-                    if (tail := _CFR_SUBPART_RANGE.match(text, end)) is not None:
-                        if not _CITATION_PARAGRAPH_BREAK.search(text, end, tail.end()):
-                            range_end, end = tail.group('end'), tail.end()
-                    if (description := _CFR_SUBPART_CONTEXT.match(text, end)) is not None:
-                        end = description.end()
-                    found.append(CfrCitationOccurrence(
-                        citation, start, end, text[start:end], (),
-                        context[0] if context else None, context[1] if context else None,
-                        subpart.group('subpart'), range_end, appendix, status,
-                    ))
-                    if range_end is not None:
-                        break
-                    next_item = _CFR_SUBPART_ITEM.match(text, end)
-                    if (next_item is None or (not plural and not next_item.group('label'))
-                            or _CITATION_PARAGRAPH_BREAK.search(text, end, next_item.end())):
-                        break
-                    # Keep the whole written anchor when a part list is ambiguous.
-                    if start == span[0]:
-                        context = (context[0] if context else start, end)
-                    plural = plural or (next_item.group('label') or '').strip().casefold() == 'subparts'
-                    start, subpart = end, next_item
-                return end
-        found.append(CfrCitationOccurrence(citation, start, end, text[start:end], tuple(labels),
-                                           context[0] if context else None, context[1] if context else None))
+    def record(base: CfrCitationOccurrence) -> int:
+        citation, start, end = base.citation, base.start, base.end
+        context = None if base.context_start is None else (base.context_start, base.context_end)
+        if (isinstance(citation, CfrCitation) and not base.refusal
+                and citation.cfr_section is None and citation.cfr_part is not None
+                and (subpart := _CFR_SUBPART.match(text, end)) is not None
+                and not _CITATION_PARAGRAPH_BREAK.search(text, end, subpart.end())):
+            appendix = subpart.group('appendix')
+            plural = bool(subpart.group('plural'))
+            status = 'ambiguous_part_scope' if context is not None else None
+            while subpart is not None:
+                end = subpart.end()
+                range_end = None
+                if ((tail := _CFR_SUBPART_RANGE.match(text, end)) is not None
+                        and not _CITATION_PARAGRAPH_BREAK.search(text, end, tail.end())):
+                    range_end, end = tail.group('end'), tail.end()
+                if (description := _CFR_SUBPART_CONTEXT.match(text, end)) is not None:
+                    end = description.end()
+                found.append(CfrCitationOccurrence(
+                    citation, start, end, text[start:end], (),
+                    context[0] if context else None, context[1] if context else None,
+                    subpart.group('subpart'), range_end, appendix, status,
+                ))
+                if range_end is not None:
+                    break
+                next_item = _CFR_SUBPART_ITEM.match(text, end)
+                if (next_item is None or (not plural and not next_item.group('label'))
+                        or _CITATION_PARAGRAPH_BREAK.search(text, end, next_item.end())):
+                    break
+                # Keep the whole written anchor when a part list is ambiguous.
+                if start == base.start:
+                    context = (context[0] if context else start, end)
+                plural = plural or (next_item.group('label') or '').strip().casefold() == 'subparts'
+                start, subpart = end, next_item
+            return end
+        found.append(base)
         return end
 
-    _parse_cfr_citations(text, list_expansion=list_expansion, record=record)
+    def collect(base: CfrCitationOccurrence) -> int:
+        before = len(found)
+        end = record(base)
+        if not expand_qualifiers and len(found) > before:
+            first = found[before]
+            found[before:] = [replace(
+                first, end=end, text=text[first.start:end], subpart=None,
+                subpart_end=None, appendix=None,
+                refusal=first.refusal or first.qualifier_status,
+            )]
+        return end
+
+    _parse_cfr_citations(text, list_expansion=list_expansion, record=collect)
     return tuple(found)
+
+
+def _cfr_coordinate(title: int, part: str | None, section: str | None = None) -> CfrCitation:
+    part = _canonical_part(part)
+    return CfrCitation(title, part, section, _cfr_title_is_possible(title), _part_is_plausible(part))
+
+
+def _read_cfr_item(text: str, normalized: str, title: int, start: int, position: int,
+                   plural: bool, context: tuple[int, int] | None = None) -> CfrCitationOccurrence:
+    """One anchored coordinate, its pinpoints and an optional written range end."""
+    def points(at: int) -> tuple[tuple[str, ...], int]:
+        labels = []
+        while (label := _CFR_PINPOINT_LABEL.match(text, at)) is not None:
+            labels.append(label.group(1))
+            at = label.end()
+        return tuple(labels), at
+
+    def trim(at: int) -> int:
+        while at > start and text[at - 1].isspace():
+            at -= 1
+        return at
+
+    def unread_end(at: int) -> int:
+        tail = _CFR_UNREAD_TOKEN.match(text, at)
+        # The failed endpoint may lead another explicit citation. Preserve
+        # its title for the outer scanner instead of absorbing that title.
+        if tail is not None and _CFR_OTHER_CITATION_GUARD.match(normalized, tail.end()) is not None:
+            return tail.end()
+        return trim(at)
+
+    def coordinate(match):
+        item = _cfr_coordinate(title, match.group('part'), match.group('section'))
+        problem = None
+        if '-' in item.cfr_part and not (title == 41 and re.fullmatch(r"\d+-\d+", item.cfr_part)):
+            problem = 'ambiguous_hyphen'
+        if item.cfr_section and re.search(r"-\d+\.", item.cfr_section):
+            problem = 'ambiguous_section_range'
+        return item, problem
+
+    citation = _cfr_coordinate(title, None)
+    labels, end_labels, refusal = (), (), None
+    end = position
+    match = _CFR_COORDINATE.match(normalized, position)
+    if match is None:
+        # Preserve a damaged numeric coordinate; ordinary following prose is
+        # not an unread identifier merely because it follows a CFR title.
+        if position < len(text) and text[position].isdigit():
+            tail = _CFR_UNREAD_TOKEN.match(text, position)
+            end, refusal = (tail.end() if tail else position + 1), 'unread_coordinate'
+        else:
+            end = trim(position)
+    else:
+        citation, refusal = coordinate(match)
+        end = match.end()
+        if (refusal == 'ambiguous_hyphen' and plural and citation.cfr_section is None
+                and re.fullmatch(r"\d+-\d+", citation.cfr_part)):
+            left, right = citation.cfr_part.split('-')
+            citation = CfrCitationRange(_cfr_coordinate(title, left), _cfr_coordinate(title, right))
+            refusal = None
+        if isinstance(citation, CfrCitation) and citation.cfr_section is not None:
+            labels, end = points(end)
+        tail = _CFR_RANGE_CONNECTOR.match(normalized, end)
+        if tail is not None and not _CITATION_PARAGRAPH_BREAK.search(text, end, tail.end()):
+            end = tail.end()
+            last = _CFR_COORDINATE.match(normalized, end)
+            if last is None:
+                end = unread_end(end)
+                refusal = 'range_end_unread'
+            else:
+                endpoint, problem = coordinate(last)
+                end = last.end()
+                if endpoint.cfr_section is not None:
+                    end_labels, end = points(end)
+                if isinstance(citation, CfrCitationRange):
+                    refusal = 'nested_range'
+                else:
+                    mixed = (citation.cfr_section is None) != (endpoint.cfr_section is None)
+                    citation = CfrCitationRange(citation, endpoint)
+                    refusal = refusal or problem or ('mixed_range_units' if mixed else None)
+            # A third endpoint is unread scope, not permission to publish the
+            # first pair as if it accounted for the complete written range.
+            while ((extra := _CFR_RANGE_CONNECTOR.match(normalized, end)) is not None
+                   and not _CITATION_PARAGRAPH_BREAK.search(text, end, extra.end())):
+                end = unread_end(extra.end())
+                refusal = 'nested_range'
+    return CfrCitationOccurrence(
+        citation, start, end, text[start:end], labels,
+        context[0] if context else None, context[1] if context else None,
+        range_end_pinpoint=end_labels, refusal=refusal,
+    )
 
 
 def _parse_cfr_citations(
     text: str, *, list_expansion: str,
-    record: Callable[[CfrCitation, tuple[int, int], tuple[int, int] | None], int] | None = None,
-) -> tuple[CfrCitation, ...]:
+    record: Callable[[CfrCitationOccurrence], int] | None = None,
+) -> tuple[CfrCitation | CfrCitationRange, ...]:
     if list_expansion not in {"plural-label", "always"}:
         raise ValueError(f"unknown list expansion policy: {list_expansion!r}")
-
-    # A placeholder locates nothing, and the CFR field writes several of them
-    # with a zero title glued on ("00 CFR NYD", "00 CFR None"). Without this
-    # gate the grammar read title 0 and the builder published 35 rows saying
-    # "impossible CFR title" about values that name no title at all.
-    # :func:`parse_authority_citation` has asked the same question of the same
-    # detector since it existed; this reader simply never did.
-    #
-    # Nothing vanishes: the builder emits a row carrying the reference_text
-    # with a NULL title whenever this returns empty, which is what the 4,453
-    # bare "None" rows already do.
     if states_nothing(text):
         return ()
-
     normalized = _excise_compilations(_normalize_dashes(text))
-    citations: list[CfrCitation] = []
+    citations: list[CfrCitation | CfrCitationRange] = []
     spans: list[tuple[int, int]] = []
 
-    def _collect(title: int, part: str | None, section: str | None, span: tuple[int, int],
-                 context: tuple[int, int] | None = None) -> int:
-        """Record one citation and the characters it accounts for.
+    def collect(item: CfrCitationOccurrence) -> int:
+        # The identity-only API has no refusal column. A rejected start must
+        # not escape as a complete single-part identifier through that API.
+        citation = item.citation
+        if item.refusal:
+            head = citation.start if isinstance(citation, CfrCitationRange) else citation
+            citation = _cfr_coordinate(head.cfr_title, None)
+        citations.append(citation)
+        end = record(item) if record is not None else item.end
+        spans.append((item.start, end))
+        return end
 
-        Three call sites built this identically before, and the third had
-        already dropped its ``cfr_section`` — the longhand spelling captures
-        no section, so nothing broke, and nothing would have said so if the
-        spelling grew one.
-        """
-
-        citations.append(
-            CfrCitation(
-                cfr_title=title,
-                cfr_part=part,
-                cfr_section=section,
-                title_is_possible=_cfr_title_is_possible(title),
-                part_is_plausible=_part_is_plausible(part),
-            )
-        )
-        spans.append(span)
-        if record is not None:
-            return record(citations[-1], span, context)
-        return span[1]
-
-    def _overlaps_a_read_span(match: re.Match[str]) -> bool:
-        return any(start < match.end() and match.start() < end for start, end in spans)
-
-    for match in _CFR_STANDARD.finditer(normalized):
-        title = int(match.group("title"))
-        plural = _label_is_plural(match.group("label"))
-        # A plural label with a dash-joined pair behind it names a RANGE of
-        # parts, and there is no column for one. The part is refused rather
-        # than minted: "16 CFR pts. 0-4" cites five parts, and recording the
-        # first is recording a part the citation does not single out.
-        ranged = plural and _CFR_PART_RANGE_TAIL.match(normalized, match.end("part")) is not None
-        position = _collect(
-            title,
-            None if ranged else _canonical_part(match.group("part")),
-            None if ranged else match.group("section"),
-            match.span(),
-        )
-        if ranged or (list_expansion != "always" and not plural):
-            continue
-        # The list is walked ANCHORED, one item touching the next, so an
-        # expansion can never jump over intervening prose to a number that
-        # belongs to something else.
-        context = (match.start(), position)
-        while (item := _CFR_LIST_ITEM.match(normalized, position)) is not None:
-            position = _collect(title, _canonical_part(item.group("part")), item.group("section"), item.span(), context)
-
-    # The keyword spellings, each only where nothing has already been read at
-    # that position — they overlap the standard grammar on "40 CFR part 60"
-    # and one citation must not become two.
-    for match in _CFR_TITLE_PART.finditer(normalized):
-        if _overlaps_a_read_span(match):
-            continue
-        _collect(
-            int(match.group("title") or match.group("title_cfr")),
-            _canonical_part(match.group("part")),
-            match.group("section"),
-            match.span(),
-        )
-    for match in _CFR_LONGHAND.finditer(normalized):
-        if _overlaps_a_read_span(match):
-            continue
-        _collect(int(match.group("title")), _canonical_part(match.group("part")), None, match.span())
-
-    if citations:
-        return tuple(citations)
-    bare = re.match(rf"{_LEFT}(?P<title>\d+)\s*C\.?\s*F\.?\s*R\.?", normalized, re.IGNORECASE)
-    if bare is None:
-        return ()
-    # A title with no readable part still tells a consumer the title, which
-    # is how "35 CFR ch. II" stays visible as a Reserved-title citation.
-    title = int(bare.group("title"))
-    citation = CfrCitation(cfr_title=title, cfr_part=None, title_is_possible=_cfr_title_is_possible(title))
-    if record is not None:
-        record(citation, bare.span(), None)
-    return (citation,)
-
+    for pattern in (_CFR_STANDARD, _CFR_TITLE_PART, _CFR_LONGHAND):
+        for match in pattern.finditer(normalized):
+            # The standard scan and its anchored list items advance in source
+            # order. Only alternate anchor spellings need the old overlap walk.
+            overlaps = (bool(spans) and match.start() < spans[-1][1] if pattern is _CFR_STANDARD else
+                        any(start < match.end() and match.start() < end for start, end in spans))
+            if overlaps:
+                continue
+            title = int(match.group('title') or match.groupdict().get('title_cfr'))
+            plural = _label_is_plural(match.group('label'))
+            if pattern is _CFR_LONGHAND and match.group('label') is None:
+                item = CfrCitationOccurrence(_cfr_coordinate(title, None), match.start(), match.end(), match.group())
+            else:
+                item = _read_cfr_item(text, normalized, title, match.start(), match.end(), plural)
+            position = collect(item)
+            if item.refusal or (list_expansion != 'always' and not plural):
+                continue
+            context = (match.start(), position)
+            while (separator := _CFR_LIST_ITEM.match(normalized, position)) is not None:
+                if _CITATION_PARAGRAPH_BREAK.search(text, position, separator.end()):
+                    break
+                # Check the same whole-coordinate guard for the first member,
+                # every list member and every range endpoint.
+                if _CFR_COORDINATE.match(normalized, separator.end()) is None:
+                    break
+                item = _read_cfr_item(text, normalized, title, position, separator.end(), plural, context)
+                position = collect(item)
+                if item.refusal:
+                    break
+    return tuple(citations)
 
 # --------------------------------------------------------------------------- #
 # Authority parsing
@@ -3698,7 +3761,10 @@ def _parse_authority_citation(text: str, *, usc_record: Callable[..., int] | Non
     # semantics stay the consumer's question. A part-less citation still names
     # its title: "3 CFR" and "48 CFR ch 1" are 63 Agenda authority values, and
     # the title is what they state.
-    for cfr in parse_cfr_citations(normalized):
+    for occurrence in find_cfr_citations(normalized, expand_qualifiers=False):
+        citation = occurrence.citation
+        cfr = citation.start if isinstance(citation, CfrCitationRange) else citation
+        endpoint = citation.end if isinstance(citation, CfrCitationRange) else None
         if not cfr.title_is_possible:
             continue
         _add(
@@ -3709,6 +3775,12 @@ def _parse_authority_citation(text: str, *, usc_record: Callable[..., int] | Non
                 cfr_part=cfr.cfr_part,
                 cfr_section=cfr.cfr_section,
                 cfr_part_is_plausible=cfr.part_is_plausible,
+                cfr_part_end=endpoint.cfr_part if endpoint else None,
+                cfr_section_end=endpoint.cfr_section if endpoint else None,
+                cfr_end_part_is_plausible=endpoint.part_is_plausible if endpoint else None,
+                cfr_refusal=(occurrence.refusal or occurrence.qualifier_status or
+                             ('range_pinpoints_not_represented' if endpoint is not None and
+                              (occurrence.pinpoint or occurrence.range_end_pinpoint) else None)),
             )
         )
 

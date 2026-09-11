@@ -4,7 +4,7 @@ from dataclasses import asdict
 import pytest
 from cfr_parser_oracle import parse_cfr_citations as original_parse
 
-from refspec.registry.citation_grammar import find_cfr_citations, parse_cfr_citations
+from refspec.registry.citation_grammar import CfrCitation, CfrCitationRange, find_cfr_citations, parse_cfr_citations
 
 
 @pytest.mark.parametrize('text', [
@@ -25,6 +25,14 @@ from refspec.registry.citation_grammar import find_cfr_citations, parse_cfr_cita
 @pytest.mark.parametrize('policy', ['plural-label', 'always'])
 def test_existing_readings_match_frozen_oracle(text, policy):
     expected = original_parse(text, list_expansion=policy)
+    # Frozen, named changes: complete compound identity and stated range.
+    if text == '41 CFR 60–1':
+        assert expected[0].cfr_part == '60'
+        expected = (CfrCitation(41, '60-1', part_is_plausible=True),)
+    elif text == '16 CFR pts. 0-4':
+        assert expected[0].cfr_part is None
+        expected = (CfrCitationRange(CfrCitation(16, '0', part_is_plausible=True),
+                                     CfrCitation(16, '4', part_is_plausible=True)),)
     assert parse_cfr_citations(text, list_expansion=policy) == expected
     occurrences = find_cfr_citations(text, list_expansion=policy)
     assert tuple(o.citation for o in occurrences) == expected
@@ -51,8 +59,10 @@ def test_list_continuations_keep_the_source_that_supplied_their_title():
 
 def test_pinpoints_do_not_hide_the_next_member_of_a_plural_list():
     text = '40 CFR §§ 82.155(a), 82.156(b)'
-    # Deliberate new-reader coverage: keep the old identity-only API unchanged.
-    assert parse_cfr_citations(text) == original_parse(text)
+    # Both native readers now walk past pinpoints; the copied old reader
+    # proves this is a named coverage change, not unchanged behavior.
+    assert len(original_parse(text)) == 1
+    assert [c.cfr_section for c in parse_cfr_citations(text)] == ['155', '156']
     first, second = find_cfr_citations(text)
     assert [o.citation.cfr_section for o in (first, second)] == ['155', '156']
     assert [o.pinpoint for o in (first, second)] == [('a',), ('b',)]

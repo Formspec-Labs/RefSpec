@@ -73,14 +73,15 @@ from refspec.registry.citation_grammar import (
     USC_SPAN_ABBREVIATED,
     USC_SPAN_STATED,
     ActRelativeCitation,
-    act_name_with_trailing_year,
+    CfrCitationRange,
     _normalize_dashes,
+    act_name_with_trailing_year,
     find_act_relative_citations,
+    find_cfr_citations,
     names_citation_structure,
     normalize_popular_name,
     parse_agenda_timetable_citation,
     parse_authority_citation,
-    parse_cfr_citations,
     parse_federal_register_citations,
     stated_act_name,
     stated_section,
@@ -240,6 +241,16 @@ ACTIONS_SCHEMA = pa.schema(
     ]
 )
 
+_CFR_RANGE_FIELDS = (
+    pa.field("cfr_part_end", pa.string(), nullable=True),
+    pa.field("cfr_section_end", pa.string(), nullable=True),
+    pa.field("cfr_end_part_is_plausible", pa.bool_(), nullable=True),
+    pa.field("cfr_refusal", pa.string(), nullable=True),
+)
+_CFR_RANGE_COLUMNS = tuple(field.name for field in _CFR_RANGE_FIELDS)
+_CFR_SCOPE_COLUMNS = ("cfr_part_end", "cfr_section_end", "cfr_refusal")
+
+
 CFR_REFERENCES_SCHEMA = pa.schema(
     [
         pa.field("rin", pa.string(), nullable=False),
@@ -251,6 +262,7 @@ CFR_REFERENCES_SCHEMA = pa.schema(
         pa.field("cfr_title_is_possible", pa.bool_(), nullable=True),
         pa.field("cfr_section", pa.string(), nullable=True),
         pa.field("cfr_part_is_plausible", pa.bool_(), nullable=True),
+        *_CFR_RANGE_FIELDS,
         #: Whether (title, part) appears in the OFR's own 2025 subject index —
         #: an evidence-grade signal, not a verdict: a 1995 Panama Canal part
         #: is real and absent; a fused "60758" is fake and absent; 5 CFR 10001
@@ -387,6 +399,7 @@ LEGAL_AUTHORITIES_SCHEMA = pa.schema(
         #: more: real parts reach five digits, so "49 CFR 30166" passes it and
         #: is still a U.S.C. section wearing a CFR label.
         pa.field("cfr_part_is_plausible", pa.bool_(), nullable=True),
+        *_CFR_RANGE_FIELDS,
         pa.field("reorganization_plan", pa.string(), nullable=True),
         pa.field("act_key", pa.string(), nullable=True),
         pa.field("act_section", pa.string(), nullable=True),
@@ -784,11 +797,13 @@ AUTHORITY_SOURCES: tuple[str, ...] = (
 #: and the text itself are all about the STRING, and a continuation that
 #: repeats a box in a different spelling is still a repeat. ``authority_type``
 #: leads because two rows of different types are never the same citation.
+#: A refused CFR scope must also remain distinct from an accepted address
+#: sharing its readable prefix; refusal alone does not state an address.
 _CITATION_IDENTITY_COLUMNS: tuple[str, ...] = (
     "authority_type",
     "usc_title", "usc_section", "usc_section_end", "usc_appendix", "usc_note",
     "usc_chapter", "usc_chapter_end",
-    "cfr_title", "cfr_part", "cfr_section",
+    "cfr_title", "cfr_part", "cfr_section", *_CFR_SCOPE_COLUMNS,
     "public_law", "executive_order",
     "statute_volume", "statute_page", "statute_page_text", "statute_volume_text",
     "reorganization_plan", "act_key", "act_section",
@@ -810,7 +825,7 @@ _CITATION_IDENTITY_COLUMNS: tuple[str, ...] = (
 _STATED_IDENTITY_COLUMNS: tuple[str, ...] = tuple(
     column
     for column in _CITATION_IDENTITY_COLUMNS[1:]
-    if LEGAL_AUTHORITIES_SCHEMA.field(column).nullable
+    if column != "cfr_refusal" and LEGAL_AUTHORITIES_SCHEMA.field(column).nullable
 )
 
 
@@ -4437,10 +4452,18 @@ _CFR_NOTE_COLUMNS = ("authority_in_own_cfr_note", "cfr_note_part")
 #: and counted (see :class:`_CfrAuthorityNoteCensus`). An executive order is
 #: deliberately not here: every in-range EO number names a real order, so
 #: "the note names a different one" is not evidence, and the campaign says so.
+def _cfr_row_citation(row: Mapping[str, object]):
+    """A single supported part for note comparison, never a range endpoint."""
+
+    return cfr_citation(row.get("cfr_title"), row.get("cfr_part"),
+                        part_end=row.get("cfr_part_end"), section_end=row.get("cfr_section_end"),
+                        refusal=row.get("cfr_refusal"))
+
+
 _CFR_NOTE_CITATION_BY_TYPE: Mapping[str, Callable[[Mapping[str, object]], object]] = {
     "usc": lambda row: usc_citation(row["usc_title"], row["usc_section"]),
     "public_law": lambda row: public_law_citation(row["public_law"]),
-    "cfr": lambda row: cfr_citation(row["cfr_title"], row["cfr_part"]),
+    "cfr": _cfr_row_citation,
     #: Resolved key first, the name as stated where nothing resolved it --
     #: exactly the pair the emission keeps (``stated_act_name`` is NULL once
     #: ``act_key`` is set). The RESOLVED U.S.C. section is deliberately not
@@ -4496,6 +4519,8 @@ def _held_parts_by_rule(
     if notes is None:
         return held
     for reference in references:
+        if _cfr_row_citation(reference) is None:
+            continue
         title, part = reference["cfr_title"], normalize_part(reference["cfr_part"])
         if title is None or part is None or not notes.holds(title, part):
             continue
@@ -4637,6 +4662,8 @@ def _write_usc_slot_reading(
 
     cfr_witness: set[tuple[str, int, str]] = set()
     for reference in references:
+        if any(reference.get(column) is not None for column in _CFR_SCOPE_COLUMNS):
+            continue
         title, section = reference.get("cfr_title"), reference.get("cfr_section")
         if title is not None and section is not None:
             cfr_witness.add((reference["rin"], int(title), section))
@@ -5670,6 +5697,7 @@ _JOIN_CITATION_COLUMNS: tuple[str, ...] = (
     "usc_title", "usc_section", "usc_section_end", "usc_section_span_rule",
     "usc_chapter", "usc_chapter_end", "usc_appendix", "usc_note",
     "cfr_title", "cfr_part", "cfr_section", "cfr_part_is_plausible",
+    *_CFR_RANGE_COLUMNS,
     "reorganization_plan", "act_key", "act_section",
     "public_law", "executive_order", "statute_volume", "statute_page",
     "statute_page_text", "statute_volume_text", "statute_volume_matches_public_law",
@@ -8431,6 +8459,37 @@ def _corroborated_fr_citation(
     }
 
 
+def _cfr_reference_readings(text: str, ofr_parts: set[tuple[int, str]] | None) -> list[dict[str, object]]:
+    """Keep complete CFR readings beside the original structured field."""
+
+    rows = []
+    for match in find_cfr_citations(text, list_expansion="always", expand_qualifiers=False):
+        ranged = isinstance(match.citation, CfrCitationRange)
+        start = match.citation.start if ranged else match.citation
+        end = match.citation.end if ranged else None
+        refusal = match.refusal or match.qualifier_status or (
+            "range_pinpoints_not_represented"
+            if ranged and (match.pinpoint or match.range_end_pinpoint) else None
+        )
+        rows.append({
+            "cfr_title": start.cfr_title,
+            "cfr_part": start.cfr_part,
+            "cfr_section": start.cfr_section,
+            "cfr_title_is_possible": start.title_is_possible,
+            "cfr_part_is_plausible": start.part_is_plausible,
+            "cfr_part_end": end.cfr_part if end else None,
+            "cfr_section_end": end.cfr_section if end else None,
+            "cfr_end_part_is_plausible": end.part_is_plausible if end else None,
+            "cfr_refusal": refusal,
+            "cfr_part_in_current_ofr_index": (
+                None if ranged or refusal or start.cfr_part is None or ofr_parts is None
+                else (start.cfr_title, start.cfr_part.lower()) in ofr_parts
+            ),
+        })
+    return rows or [dict.fromkeys(field.name for field in CFR_REFERENCES_SCHEMA
+                                 if field.name.startswith("cfr_"))]
+
+
 def build_unified_agenda_parquet(
     source_root: Path,
     output_root: Path,
@@ -8527,46 +8586,15 @@ def build_unified_agenda_parquet(
                 # A structured field is entirely a citation, so a comma-list
                 # continues it whatever label it carries -- 953 references in
                 # this field list parts with no label at all.
-                parsed = parse_cfr_citations(text, list_expansion="always")
-                if not parsed:
-                    references.append(
-                        {
-                            "rin": record.rin,
-                            "publication_id": record.publication_id,
-                            "ordinal": ordinal,
-                            "reference_text": text,
-                            "cfr_title": None,
-                            "cfr_part": None,
-                            "cfr_title_is_possible": None,
-                            "cfr_section": None,
-                            "cfr_part_is_plausible": None,
-                            # Stated, not left to the schema to fill: there is
-                            # no part here to look up, and a counter over this
-                            # column must not have to know that.
-                            "cfr_part_in_current_ofr_index": None,
-                            "citation_ordinal": 0,
-                        }
-                    )
-                for citation_ordinal, citation in enumerate(parsed):
-                    references.append(
-                        {
-                            "rin": record.rin,
-                            "publication_id": record.publication_id,
-                            "ordinal": ordinal,
-                            "reference_text": text,
-                            "cfr_title": citation.cfr_title,
-                            "cfr_part": citation.cfr_part,
-                            "cfr_title_is_possible": citation.title_is_possible,
-                            "cfr_section": citation.cfr_section,
-                            "cfr_part_is_plausible": citation.part_is_plausible,
-                            "cfr_part_in_current_ofr_index": (
-                                None
-                                if citation.cfr_part is None or ofr_parts is None
-                                else (citation.cfr_title, citation.cfr_part.lower()) in ofr_parts
-                            ),
-                            "citation_ordinal": citation_ordinal,
-                        }
-                    )
+                for citation_ordinal, reading in enumerate(_cfr_reference_readings(text, ofr_parts)):
+                    references.append({
+                        "rin": record.rin,
+                        "publication_id": record.publication_id,
+                        "ordinal": ordinal,
+                        "reference_text": text,
+                        "citation_ordinal": citation_ordinal,
+                        **reading,
+                    })
             for ordinal, entry in enumerate(record.timetable):
                 # The field is structured, so lowercase "fr" is the
                 # publisher's damage rather than prose; uppercasing before the
@@ -8955,6 +8983,7 @@ def build_unified_agenda_parquet(
                             # rather than dropped: the sibling reference table
                             # judges the identical string and this one did not.
                             "cfr_part_is_plausible": authority.cfr_part_is_plausible,
+                            **{column: getattr(authority, column) for column in _CFR_RANGE_COLUMNS},
                             "reorganization_plan": authority.reorganization_plan,
                             "act_key": resolved_act_key,
                             "act_section": authority.act_section,
@@ -9291,6 +9320,14 @@ def build_unified_agenda_parquet(
             "carries -- emitted, never dropped, because the filer wrote them"
         ),
         "grammar": "refspec.registry.citation_grammar",
+        "cfrRangesRetainWrittenEndpoints": (
+            "cfr_part_end and cfr_section_end describe a stated range, never "
+            "enumerated members or a single target. cfr_refusal retains an "
+            "unsupported reading; part-note comparisons withhold both ranges "
+            "and refused readings. Range endpoint pinpoints remain in source "
+            "text and set range_pinpoints_not_represented because these flat "
+            "columns do not store them. Current OFR membership is NULL for either"
+        ),
         "verdictColumnsAreThreeValued": (
             "cfr_title_is_possible and cfr_part_is_plausible are NULL when there "
             "is nothing to judge; truthiness misreads NULL as False"
