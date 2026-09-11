@@ -71,6 +71,7 @@ if str(REPO_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from refspec.registry.citation_grammar import normalize_popular_name
+from refspec.registry.act_resolution import PopularNameRecord
 from refspec.registry.infrastructure.artifact_serialization import (
     file_sha256,
     scan_for_secrets,
@@ -195,34 +196,6 @@ _CARRIED_ATTRIBUTES = frozenset({"content-type", "t3searchkey", "usckey"})
 def visible_text(fragment: str) -> str:
     """The visible text of an HTML fragment, whitespace collapsed."""
     return re.sub(r"\s+", " ", unescape(TAG.sub("", fragment))).strip()
-
-
-@dataclass(frozen=True)
-class PopularNameRecord:
-    """One popular name and one thing the tool says about it.
-
-    An entry may carry several information paragraphs -- the enacting citation,
-    a short-title reference, an alias -- so one name yields several records.
-    """
-
-    name: str
-    content_type: str
-    table3_key: str | None = None
-    usc_title: str | None = None
-    usc_section: str | None = None
-    see_also: str | None = None
-    release_point: str | None = None
-    division: str | None = None
-    statutes_at_large_volume: str | None = None
-    statutes_at_large_page: str | None = None
-    #: Which of the two statements the place was read from: ``"statviewer"``,
-    #: ``"stated"``, ``"both"`` (they agree), ``"disagreement"``, or ``None``.
-    #: Not a column of the sealed table -- it is the measurement that makes
-    #: :data:`STATUTES_AT_LARGE_RULE` checkable, and the receipt counts it.
-    statutes_at_large_witness: str | None = None
-    #: The verbatim ``usckey`` where it is not an anchor, so the refusal keeps
-    #: the value it refused.
-    refused_usc_anchor: str | None = None
 
 
 @dataclass(frozen=True)

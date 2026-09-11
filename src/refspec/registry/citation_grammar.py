@@ -73,6 +73,7 @@ other is worse than the restatement was.
 from __future__ import annotations
 
 import re
+from bisect import bisect_left, bisect_right
 from collections.abc import Callable, Container, Iterable, Mapping
 from dataclasses import dataclass, replace
 from string import ascii_lowercase
@@ -99,14 +100,19 @@ __all__ = [
     "USC_SPAN_STATED",
     "USC_TITLE_COUNT",
     "ActRelativeCitation",
+    "ActRelativeCitationOccurrence",
+    "act_name_with_trailing_year",
     "AuthorityCitation",
     "CfrCitation",
+    "CfrCitationOccurrence",
     "EoCompilationLocator",
     "FederalRegisterCitation",
     "SupremeCourtCitation",
     "TimetableFrCitation",
     "damerau_levenshtein",
     "find_act_relative_citations",
+    "find_act_relative_occurrences",
+    "find_cfr_citations",
     "names_citation_structure",
     "normalize_popular_name",
     "parse_agenda_timetable_citation",
@@ -1861,6 +1867,31 @@ class CfrCitation:
 
 
 @dataclass(frozen=True)
+class CfrCitationOccurrence:
+    """A parsed CFR identity with its exact, codepoint-indexed source slice.
+
+    List continuations inherit the title from ``context_start:context_end``;
+    that span identifies the explicitly written citation that opened the list.
+    A pinpoint records attached labels, not verified paragraph existence.
+    Subparts and appendices retain their written container; list connectors
+    remain in ``text``. A stated range records endpoints, never inferred members.
+    """
+
+    citation: CfrCitation
+    start: int
+    end: int
+    text: str
+    pinpoint: tuple[str, ...] = ()
+    context_start: int | None = None
+    context_end: int | None = None
+    subpart: str | None = None
+    subpart_end: str | None = None
+    appendix: str | None = None
+    #: Multiple parts followed by subparts do not establish a pairing.
+    qualifier_status: str | None = None
+
+
+@dataclass(frozen=True)
 class AuthorityCitation:
     """One legal authority, with a status instead of silence.
 
@@ -2547,6 +2578,91 @@ def parse_cfr_citations(text: str, *, list_expansion: str = "plural-label") -> t
     stops a list at a number that leads another citation form.
     """
 
+    return _parse_cfr_citations(text, list_expansion=list_expansion)
+
+
+# Adjacent labels are source pinpoints; a separated "(2025)" is not consumed.
+# Internal spacing is retained in the slice, including the CFR's "( 4 )".
+_CFR_PINPOINT_LABEL = re.compile(r"\(\s*([0-9A-Za-z]{1,4})\s*\)")
+_CITATION_PARAGRAPH_BREAK = re.compile(r"\r?\n[ \t]*\r?\n")
+# A dash may introduce another complete label, but not a damaged word suffix.
+_CFR_SUBPART_NAME = r"[A-Z]+(?!\w)(?!-(?![A-Z]+(?!\w)))"
+_CFR_SUBPART = re.compile(
+    rf"\s*,?\s*(?:(?i:appendix)\s+(?P<appendix>{_CFR_SUBPART_NAME})\s+(?i:to)\s+)?"
+    rf"(?i:subpart)(?P<plural>(?i:s)?)\s+(?P<subpart>{_CFR_SUBPART_NAME})"
+)
+_CFR_SUBPART_ITEM = re.compile(
+    rf"\s*(?:,\s*(?:(?i:and|or)\s+)?|(?i:and|or)\s+)"
+    rf"(?P<label>(?i:subparts?)\s+)?(?P<subpart>{_CFR_SUBPART_NAME})"
+)
+_CFR_SUBPART_RANGE = re.compile(
+    rf"\s*(?:[-–—]|(?i:to|through)\s+)\s*(?:(?i:subpart)\s+)?(?P<end>{_CFR_SUBPART_NAME})"
+)
+_CFR_SUBPART_CONTEXT = re.compile(r"[ \t]*\([^()\r\n]*\)")
+
+
+def find_cfr_citations(text: str, *, list_expansion: str = "plural-label") -> tuple[CfrCitationOccurrence, ...]:
+    """Locate the existing grammar's CFR readings without changing identities.
+
+    Source spelling, repeated occurrences and impossible-title verdicts survive.
+    Explicit CFR citations only: no title or local paragraph target is inferred
+    from document context. Attached pinpoints and subpart qualifiers are consumed
+    before walking lists. Written range endpoints survive without expansion.
+    List connectors and parenthetical qualifications remain in the source slice;
+    their legal relationship is not inferred. Ambiguous part/subpart pairings
+    carry a refusal rather than becoming definite addresses.
+    """
+    found: list[CfrCitationOccurrence] = []
+
+    def record(citation: CfrCitation, span: tuple[int, int], context: tuple[int, int] | None) -> int:
+        start, end = span
+        labels: list[str] = []
+        if citation.cfr_section is not None:
+            while (label := _CFR_PINPOINT_LABEL.match(text, end)) is not None:
+                labels.append(label.group(1))
+                end = label.end()
+        elif citation.cfr_part is not None and (subpart := _CFR_SUBPART.match(text, end)) is not None:
+            if not _CITATION_PARAGRAPH_BREAK.search(text, end, subpart.end()):
+                appendix = subpart.group('appendix')
+                plural = bool(subpart.group('plural'))
+                status = 'ambiguous_part_scope' if context is not None else None
+                while subpart is not None:
+                    end = subpart.end()
+                    range_end = None
+                    if (tail := _CFR_SUBPART_RANGE.match(text, end)) is not None:
+                        if not _CITATION_PARAGRAPH_BREAK.search(text, end, tail.end()):
+                            range_end, end = tail.group('end'), tail.end()
+                    if (description := _CFR_SUBPART_CONTEXT.match(text, end)) is not None:
+                        end = description.end()
+                    found.append(CfrCitationOccurrence(
+                        citation, start, end, text[start:end], (),
+                        context[0] if context else None, context[1] if context else None,
+                        subpart.group('subpart'), range_end, appendix, status,
+                    ))
+                    if range_end is not None:
+                        break
+                    next_item = _CFR_SUBPART_ITEM.match(text, end)
+                    if (next_item is None or (not plural and not next_item.group('label'))
+                            or _CITATION_PARAGRAPH_BREAK.search(text, end, next_item.end())):
+                        break
+                    # Keep the whole written anchor when a part list is ambiguous.
+                    if start == span[0]:
+                        context = (context[0] if context else start, end)
+                    plural = plural or (next_item.group('label') or '').strip().casefold() == 'subparts'
+                    start, subpart = end, next_item
+                return end
+        found.append(CfrCitationOccurrence(citation, start, end, text[start:end], tuple(labels),
+                                           context[0] if context else None, context[1] if context else None))
+        return end
+
+    _parse_cfr_citations(text, list_expansion=list_expansion, record=record)
+    return tuple(found)
+
+
+def _parse_cfr_citations(
+    text: str, *, list_expansion: str,
+    record: Callable[[CfrCitation, tuple[int, int], tuple[int, int] | None], int] | None = None,
+) -> tuple[CfrCitation, ...]:
     if list_expansion not in {"plural-label", "always"}:
         raise ValueError(f"unknown list expansion policy: {list_expansion!r}")
 
@@ -2567,7 +2683,8 @@ def parse_cfr_citations(text: str, *, list_expansion: str = "plural-label") -> t
     citations: list[CfrCitation] = []
     spans: list[tuple[int, int]] = []
 
-    def _collect(title: int, part: str | None, section: str | None, span: tuple[int, int]) -> None:
+    def _collect(title: int, part: str | None, section: str | None, span: tuple[int, int],
+                 context: tuple[int, int] | None = None) -> int:
         """Record one citation and the characters it accounts for.
 
         Three call sites built this identically before, and the third had
@@ -2586,6 +2703,9 @@ def parse_cfr_citations(text: str, *, list_expansion: str = "plural-label") -> t
             )
         )
         spans.append(span)
+        if record is not None:
+            return record(citations[-1], span, context)
+        return span[1]
 
     def _overlaps_a_read_span(match: re.Match[str]) -> bool:
         return any(start < match.end() and match.start() < end for start, end in spans)
@@ -2598,7 +2718,7 @@ def parse_cfr_citations(text: str, *, list_expansion: str = "plural-label") -> t
         # than minted: "16 CFR pts. 0-4" cites five parts, and recording the
         # first is recording a part the citation does not single out.
         ranged = plural and _CFR_PART_RANGE_TAIL.match(normalized, match.end("part")) is not None
-        _collect(
+        position = _collect(
             title,
             None if ranged else _canonical_part(match.group("part")),
             None if ranged else match.group("section"),
@@ -2609,10 +2729,9 @@ def parse_cfr_citations(text: str, *, list_expansion: str = "plural-label") -> t
         # The list is walked ANCHORED, one item touching the next, so an
         # expansion can never jump over intervening prose to a number that
         # belongs to something else.
-        position = match.end()
+        context = (match.start(), position)
         while (item := _CFR_LIST_ITEM.match(normalized, position)) is not None:
-            _collect(title, _canonical_part(item.group("part")), item.group("section"), item.span())
-            position = item.end()
+            position = _collect(title, _canonical_part(item.group("part")), item.group("section"), item.span(), context)
 
     # The keyword spellings, each only where nothing has already been read at
     # that position — they overlap the standard grammar on "40 CFR part 60"
@@ -2639,7 +2758,10 @@ def parse_cfr_citations(text: str, *, list_expansion: str = "plural-label") -> t
     # A title with no readable part still tells a consumer the title, which
     # is how "35 CFR ch. II" stays visible as a Reserved-title citation.
     title = int(bare.group("title"))
-    return (CfrCitation(cfr_title=title, cfr_part=None, title_is_possible=_cfr_title_is_possible(title)),)
+    citation = CfrCitation(cfr_title=title, cfr_part=None, title_is_possible=_cfr_title_is_possible(title))
+    if record is not None:
+        record(citation, bare.span(), None)
+    return (citation,)
 
 
 # --------------------------------------------------------------------------- #
@@ -3622,11 +3744,15 @@ def parse_authority_citation(text: str) -> tuple[AuthorityCitation, ...]:
 #: "sec. 111", "section 111", "§ 111" — the marker an act-relative citation
 #: hangs its section on.
 _ACT_SECTION = re.compile(r"(?:sec(?:tion)?s?\.?|§{1,2})\s*(?P<section>\d+[A-Za-z]?)", re.IGNORECASE)
-_CITED_DIVISION = re.compile(r"\bdiv(?:ision)?\.?\s+(?P<division>[A-Z]{1,3})\b")
+_CITED_DIVISION = re.compile(r"(?i:\bdiv(?:ision)?\.?)\s+(?P<division>[A-Z]{1,3})\b")
 #: The inverted spelling: "sec. 3505 of the Modernization of Cosmetics ... Act",
 #: and its comma form "Sec 13(a)(15), Fair Labor Standards Act" (25 failed
 #: values, measured 2026-08-21).
-_ACT_SECTION_OF_THE = re.compile(r"\A\s*(?:of\s+(?:the\s+)?|,\s*(?:the\s+)?)", re.IGNORECASE)
+_ACT_SECTION_OF_THE = re.compile(r"\s*(?:of\s+(?:the\s+)?|,\s*(?:the\s+)?|\s+)", re.IGNORECASE)
+_ACT_SPACE = re.compile(r"\s*")
+_ACT_PARENTHETICAL = re.compile(r"\([^()]{1,12}\)")
+_ACT_DIVISION_OF = re.compile(r"\s+of\s+(?:the\s+)?", re.IGNORECASE)
+_ACT_NAME_GAP = re.compile(r"[\s,:\"'”’)]*")
 #: No popular name in the Popular Name Tool is longer than this many words;
 #: bounding the backward scan keeps recognition linear in the text.
 _MAX_ACT_NAME_WORDS = 24
@@ -3662,6 +3788,19 @@ def normalize_popular_name(name: object) -> str:
     return re.sub(r"\s+", " ", text).strip().lower()
 
 
+_YEAR_PREFIXED_NAME = re.compile(r"^\s*(?:the\s+)?((?:18|19|20)\d{2})\s+(\S.*)$", re.IGNORECASE)
+
+
+def act_name_with_trailing_year(name: str) -> str | None:
+    """A candidate spelling, admitted only by the caller's existing name index.
+
+    Shared with Unified Agenda prose recovery: '2020 PIPES Act' ->
+    'PIPES Act of 2020'. This reorders a stated year; it supplies none.
+    """
+    match = _YEAR_PREFIXED_NAME.match(name)
+    return f"{match.group(2)} of {match.group(1)}" if match else None
+
+
 @dataclass(frozen=True)
 class ActRelativeCitation:
     """A provision cited through the act that created it.
@@ -3679,79 +3818,102 @@ class ActRelativeCitation:
     division: str | None = None
 
 
-def _longest_name_before(before: str, act_names: Container[str]) -> str | None:
-    words = before.split()
-    for length in range(min(_MAX_ACT_NAME_WORDS, len(words)), 0, -1):
-        candidate = " ".join(words[-length:])
-        if normalize_popular_name(candidate) in act_names:
-            return _NAME_EDGE.sub("", candidate)
+@dataclass(frozen=True)
+class ActRelativeCitationOccurrence:
+    """An exact act-section mention; its labels are not mapped USC subsections."""
+
+    citation: ActRelativeCitation
+    start: int
+    end: int
+    text: str
+    pinpoint: tuple[str, ...] = ()
+
+
+def _act_name_span(document: str, words: list[re.Match[str]], act_names: Container[str],
+                   *, before: bool) -> tuple[int, int, str, str] | None:
+    """Longest indexed name from at most 24 adjacent source tokens."""
+    for length in range(len(words), 0, -1):
+        selected = words[-length:] if before else words[:length]
+        start, end = selected[0].start(), selected[-1].end()
+        raw = document[start:end]
+        if _CITATION_PARAGRAPH_BREAK.search(raw):
+            continue
+        candidate = " ".join(raw.split())
+        key = normalize_popular_name(candidate)
+        if key not in act_names:
+            reordered = act_name_with_trailing_year(key)
+            if reordered is None or reordered not in act_names:
+                continue
+            key = reordered
+        edges = list(_NAME_EDGE.finditer(raw))
+        left = edges[0].end() if edges and edges[0].start() == 0 else 0
+        right = edges[-1].start() if edges and edges[-1].end() == len(raw) else len(raw)
+        return start + left, start + right, _NAME_EDGE.sub("", candidate), key
     return None
 
 
-def _longest_name_after(after: str, act_names: Container[str]) -> str | None:
-    # "Sec 1886(d) of the Social Security Act": the subsection parenthetical
-    # sits between the section number and "of the", and requiring adjacency
-    # silently failed every such citation — 25 of the commonest single form
-    # alone. Parentheticals are skipped, bounded so a sentence in parentheses
-    # is not.
-    after = re.sub(r"^(?:\s*\([^()]{1,12}\))+", "", after)
-    opening = _ACT_SECTION_OF_THE.match(after)
-    if opening is None:
-        return None
-    words = after[opening.end() :].split()
-    for length in range(min(_MAX_ACT_NAME_WORDS, len(words)), 0, -1):
-        candidate = " ".join(words[:length])
-        if normalize_popular_name(candidate) in act_names:
-            return _NAME_EDGE.sub("", candidate)
-    return None
+def find_act_relative_occurrences(text: object, *, act_names: Container[str]) -> tuple[ActRelativeCitationOccurrence, ...]:
+    """Read indexed act names with exact spans, repeats and source pinpoints.
+
+    The supplied name index remains the grammar: no guessed acronyms or acts.
+    Tokens are indexed once; each section examines at most 24 adjacent tokens
+    on either side instead of splitting the entire preceding document again.
+    A directly adjacent name is supported by the published 199510 crop-insurance
+    authority fields. A division must explicitly name the act it belongs to;
+    nearby prose is never searched for a replacement division.
+    """
+    document = "" if text is None else str(text)
+    words = list(re.finditer(r"\S+", document))
+    starts, ends = [w.start() for w in words], [w.end() for w in words]
+    found: list[ActRelativeCitationOccurrence] = []
+    for marker in _ACT_SECTION.finditer(document):
+        section = _usc_section(marker.group("section"))
+        if section is None:
+            continue
+        end, labels = marker.end(), []
+        while True:
+            position = _ACT_SPACE.match(document, end).end()
+            if _CITATION_PARAGRAPH_BREAK.search(document, end, position):
+                break
+            parenthetical = _ACT_PARENTHETICAL.match(document, position)
+            if parenthetical is None:
+                break
+            label = _CFR_PINPOINT_LABEL.fullmatch(document, position, parenthetical.end())
+            if label is not None and not (position > end and label.group(1).isdigit() and len(label.group(1)) == 4):
+                labels.append(label.group(1))
+            end = parenthetical.end()  # Other short qualifiers remain in the exact source slice.
+        left = bisect_right(ends, marker.start())
+        named = _act_name_span(document, words[max(0, left - _MAX_ACT_NAME_WORDS):left], act_names, before=True)
+        if named is not None and (not _ACT_NAME_GAP.fullmatch(document, named[1], marker.start())
+                                  or _CITATION_PARAGRAPH_BREAK.search(document, named[1], marker.start())):
+            named = None
+        if named is None:
+            opening = _ACT_SECTION_OF_THE.match(document, end)
+            if opening is None or _CITATION_PARAGRAPH_BREAK.search(document, end, opening.end()):
+                continue
+            right = bisect_left(starts, opening.end())
+            named = _act_name_span(document, words[right:right + _MAX_ACT_NAME_WORDS], act_names, before=False)
+        if named is None:
+            continue
+        name_start, name_end, name, key = named
+        start, end = min(marker.start(), name_start), max(end, name_end)
+        division = None
+        if name_start == start:
+            prefix = words[max(0, bisect_right(ends, start) - 4)].start()  # "division B of the"
+            for stated in _CITED_DIVISION.finditer(document, prefix, start):
+                if _ACT_DIVISION_OF.fullmatch(document, stated.end(), start):
+                    division, start = stated.group('division'), stated.start()
+                    break
+        if isinstance(act_names, Mapping):
+            key = act_names[key]  # Preserve the supplied canonical spelling map.
+        citation = ActRelativeCitation(name, key, section, division)
+        found.append(ActRelativeCitationOccurrence(citation, start, end, document[start:end], tuple(labels)))
+    return tuple(found)
 
 
 def find_act_relative_citations(text: object, *, act_names: Container[str]) -> tuple[ActRelativeCitation, ...]:
-    """Find act-relative citations whose act ``act_names`` knows.
-
-    **The index is the grammar.** ``act_names`` holds normalized popular names
-    — in production, the 13,626 the OLRC publishes — and a span is an act name
-    only if the index says so. The alternative, recognizing a shape
-    (capitalized words ending in "Act"), was measured against 4,777 sealed
-    authority strings and matched "U.S.C." 108 times.
-
-    Longest match wins, because one popular name may end with another: the
-    Clean Air Act Amendments of 1977 are not the Clean Air Act. An act the
-    index does not name is not read — the corpus writes "INA sec. 103(a)(1)",
-    and inferring which act that abbreviates is precisely the guess the
-    identity fence exists to stop.
-    """
-
-    document = "" if text is None else str(text)
-    found: list[ActRelativeCitation] = []
-    for marker in _ACT_SECTION.finditer(document):
-        section = _usc_section(marker.group("section"))
-        named = _longest_name_before(document[: marker.start()], act_names) or _longest_name_after(
-            document[marker.end() :], act_names
-        )
-        if section is None or named is None:
-            continue
-        # A division stated anywhere across the citation's own span belongs to
-        # it; the window is the span, not the string, so a second citation's
-        # division is never borrowed.
-        window = document[max(0, marker.start() - len(named) - 40) : marker.end() + 40]
-        stated_division = _CITED_DIVISION.search(window)
-        key = normalize_popular_name(named)
-        if isinstance(act_names, Mapping):
-            # A Mapping container carries spelling variants ("Motor Carrier
-            # Act of 1935") keyed to their canonical popular name ("Motor
-            # Carrier Act, 1935"); the key published is always canonical, so
-            # act_resolution's join never sees a variant.
-            key = act_names[key]
-        citation = ActRelativeCitation(
-            act_name=named,
-            act_key=key,
-            section=section,
-            division=stated_division.group("division") if stated_division else None,
-        )
-        if citation not in found:
-            found.append(citation)
-    return tuple(found)
+    """Identity-only view of the same matcher, deduplicated in source order."""
+    return tuple(dict.fromkeys(item.citation for item in find_act_relative_occurrences(text, act_names=act_names)))
 
 
 @dataclass(frozen=True)

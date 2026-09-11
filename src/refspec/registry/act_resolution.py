@@ -69,7 +69,7 @@ import hashlib
 import json
 import re
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from functools import cached_property
 from pathlib import Path
 from typing import NamedTuple
@@ -88,6 +88,7 @@ __all__ = [
     "USC_SOURCE_CREDIT_ARTIFACT",
     "ActIndex",
     "ActResolution",
+    "PopularNameRecord",
     "Classification",
     "SourceCreditAnswer",
     "SourceCreditIndex",
@@ -116,8 +117,8 @@ __all__ = [
 #: papered over: because the two act-index artifacts share one popular-name
 #: table byte for byte, no check here can tell a directory holding 08-02's
 #: classifications from one holding 08-22's *by that table*, and the
-#: classifications table is what distinguishes them
-#: (``test_the_two_act_indexes_differ_only_in_their_classifications``).
+#: classifications and quarantine tables distinguish them and must agree on the
+#: admitted artifact; the shared popular-name file fits either one.
 #: The per-page build: one HTTP request per act, 27 requested, 24 reached.
 #: Still pinned and readable; no longer the default.
 USC_ACT_INDEX_PER_PAGE_ARTIFACT = "output/usc-act-index-2026-08-02"
@@ -140,10 +141,12 @@ _ARTIFACT_PINS: Mapping[str, Mapping[str, str]] = {
     "usc-act-index-2026-08-02": {
         "usc-popular-names.parquet": "sha256:603d5b072133d8fe6802736aeaa70b9fb9832e4fb996158a083fae3ce1026a9a",
         "usc-act-sections.parquet": "sha256:93c4981ec437f08ce4b1826e8dfdd0519ded05e8143541a21b901488f8baf1f8",
+        "quarantine.parquet": "sha256:c2d956c67dd05203a5733dff3fd1b74cb2e3da3f6f57e61b8d078d0954f71ee9",
     },
     "usc-act-index-2026-08-22": {
         "usc-popular-names.parquet": "sha256:603d5b072133d8fe6802736aeaa70b9fb9832e4fb996158a083fae3ce1026a9a",
         "usc-act-sections.parquet": "sha256:9040d4460e90704aef911b4d4f704e9f432cebd7b58717f31f090a3008ca6159",
+        "quarantine.parquet": "sha256:a89305172a27e682488e05e8fc82d8b0521d20a8fcee7d97a00331e8527acfac",
     },
     "usc-source-credit-index-2026-08-02": {
         "usc-source-credits.parquet": "sha256:d377545fe60d592a120bda30dffba665380cf82f826ae06cb327a581f0af9d8a",
@@ -188,12 +191,10 @@ ALIAS_PRECEDENCE_RULE = "stated-cross-reference-before-derived-year-v1"
 #: artifact's own receipt records the bound as a rule of the build.
 ALIAS_MAX_DEPTH = 8
 
-#: How an act is told apart from the others its public law enacted: both
-#: halves stated by OLRC, neither inferred. A Table III row belongs to the act
-#: whose division's Statutes at Large range contains its page; only the
-#: division *end* is derived, from the next division's start, and divisions
-#: partition the volume.
-DIVISION_RULE = "act-division-statutes-at-large-range-v1"
+#: Exclude only when every complete page is outside the conservative division
+#: range, regardless of row count. Unknown or narrowed pages cannot prove it;
+#: an in-range page does not establish membership. The next start bounds the end.
+DIVISION_RULE = "act-division-complete-pages-exclusion-v2"
 
 #: Both sources are consulted, always. Either may answer alone; the same
 #: identifier from both says ``both``; different identifiers REFUSE. The
@@ -201,7 +202,8 @@ DIVISION_RULE = "act-division-statutes-at-large-range-v1"
 #: than one place, where each source retains a different one — (114-94,
 #: div. C, §32101): Table III says 22 U.S.C. 2714a, the credits say
 #: 26 U.S.C. 7345, and both are true. Naming one would be arbitrary.
-SOURCE_COMPOSITION_RULE = "table3-and-source-credits-consulted-disagreement-refuses-v1"
+#: Multiple credit targets likewise prevent selecting a lone Table III candidate.
+SOURCE_COMPOSITION_RULE = "table3-and-source-credits-plurality-and-disagreement-refuse-v2"
 
 #: What the source-credit index had to say, whether or not it decided
 #: anything. A consumer must be able to tell "no key to look under" from
@@ -280,6 +282,7 @@ _PAGE_RANGE_OPEN_END = 1 << 30
 #: Every way this module declines to publish an identifier. Codes are data: a
 #: consumer counts them, and an artifact records them per citation.
 UNRESOLVED_REASONS = (
+    "act_name_ambiguous",
     #: The source does not LIST this name at all. On the pinned index this is
     #: true of 19 of the 107 unanswerable names -- each reachable only as some
     #: other entry's ``see also`` target, never as an entry of its own.
@@ -303,6 +306,7 @@ UNRESOLVED_REASONS = (
     #: 9,916 (key, section) pairs name several classifications; choosing among
     #: them is how "sec. 107 of the Taxpayer Certainty and Disaster Tax Relief
     #: Act of 2020" once became pipeline-safety civil penalties.
+    #: Also covers multiple credit targets when Table III supplies one candidate.
     "act_section_ambiguous",
     #: Every classification of the act section sits outside the citing act's
     #: own division — the section belongs to a sibling act.
@@ -384,6 +388,25 @@ class Classification(NamedTuple):
 
 
 @dataclass(frozen=True)
+class PopularNameRecord:
+    """One popular name and one source statement; shared by builder and lookup."""
+
+    name: str
+    content_type: str
+    table3_key: str | None = None
+    usc_title: str | None = None
+    usc_section: str | None = None
+    see_also: str | None = None
+    release_point: str | None = None
+    division: str | None = None
+    statutes_at_large_volume: str | None = None
+    statutes_at_large_page: str | None = None
+    #: Builder evidence, absent from the sealed table.
+    statutes_at_large_witness: str | None = None
+    refused_usc_anchor: str | None = None
+
+
+@dataclass(frozen=True)
 class ActResolution:
     """What an act-relative citation resolved to, or why it did not."""
 
@@ -407,6 +430,19 @@ class ActResolution:
     statutes_at_large_volume: str | None = None
     statutes_at_large_page: str | None = None
 
+    #: Populated only where the source credits name several possible targets.
+    source_credit_targets: tuple[SourceCreditTarget, ...] = ()
+    #: Retain each source's identifier when they disagree; select neither.
+    conflicting_targets: Mapping[str, str] = field(default_factory=dict)
+    #: Table III's candidate when multiple credit targets prevent a unique answer.
+    table3_candidate_iri: str | None = None
+    #: Division established by the name source or explicitly stated citation.
+    act_division: str | None = None
+    #: Competing name records, including records ruled out by a stated division.
+    name_sources: tuple[PopularNameRecord, ...] = ()
+    #: Each compatible identity's lookup; none is selected by their parent result.
+    candidate_resolutions: tuple[ActResolution, ...] = ()
+
     def __post_init__(self) -> None:
         if (self.iri is None) == (self.unresolved_reason is None):
             raise ValueError("a resolution states an identifier or a reason, never both or neither")
@@ -420,13 +456,32 @@ class ActResolution:
             raise ValueError(f"undeclared source-credit status: {self.source_credit_status!r}")
         if self.table3_reason is not None and self.table3_reason not in UNRESOLVED_REASONS:
             raise ValueError(f"undeclared Table III reason: {self.table3_reason!r}")
+        if self.conflicting_targets and (
+            self.unresolved_reason != "sources_disagree"
+            or set(self.conflicting_targets) != {"table3", "source_credits"}
+            or len(set(self.conflicting_targets.values())) != 2
+        ):
+            raise ValueError("conflicting targets require two distinct source answers and a disagreement refusal")
+        if self.table3_candidate_iri is not None and (
+            self.unresolved_reason != "act_section_ambiguous" or self.source_credit_status != "multi_target"
+        ):
+            raise ValueError("a Table III candidate requires a multiple-target refusal")
+        if self.candidate_resolutions and (
+            self.unresolved_reason != "act_name_ambiguous"
+            or len(self.candidate_resolutions) < 2
+            or any(c.candidate_resolutions or c.citation != self.citation for c in self.candidate_resolutions)
+        ):
+            raise ValueError("name candidates require an ambiguity refusal and unnested lookups of the same citation")
 
 
 @dataclass(frozen=True)
 class ActIndex:
     """The two joins, loaded from the pinned artifact or built for a test."""
 
-    table3_key_by_name: Mapping[str, str] = field(default_factory=dict)
+    #: None means the listed name has multiple law keys; never a first-row winner.
+    table3_key_by_name: Mapping[str, str | None] = field(default_factory=dict)
+    #: Only names with multiple law/division identities need these source records.
+    name_candidates: Mapping[str, tuple[PopularNameRecord, ...]] = field(default_factory=dict)
     alias_by_name: Mapping[str, str] = field(default_factory=dict)
     #: Table III key -> act section -> **every** classification row. A tuple,
     #: not a single row: a single-valued mapping silently discarded 1,060 of
@@ -447,16 +502,12 @@ class ActIndex:
     #: the division is the act's own start; the range arithmetic never reads
     #: it, because a division's start is the *earliest* of its acts' and lives
     #: in :attr:`division_starts`.
-    division_by_name: Mapping[str, tuple[str, int]] = field(default_factory=dict)
+    division_by_name: Mapping[str, tuple[str, int | None]] = field(default_factory=dict)
     #: Table III key -> every division of that law and where it begins, page
-    #: ascending. Populated from EVERY qualifying row, where
-    #: :attr:`division_by_name` keeps only a name's first, so the two can in
-    #: principle diverge — one name ("Detainee Treatment Act of 2005") is
-    #: already cited under two laws. On the pinned index they do not: deriving
-    #: these starts from ``division_by_name`` instead reproduces all 660 of
-    #: them exactly. Kept separate anyway, because "they agree today" is a
-    #: measurement of one artifact, not a property of the source.
+    #: ascending. Read every qualifying source row, including ambiguous names.
     division_starts: Mapping[str, tuple[tuple[str, int], ...]] = field(default_factory=dict)
+    #: The producer retained non-single-page spellings separately from first pages.
+    narrowed_page_sections: frozenset[tuple[str, str]] = frozenset()
 
     @cached_property
     def acts_supplying_year(self) -> Mapping[str, tuple[str, ...]]:
@@ -488,6 +539,8 @@ class ActIndex:
         truncate each other — the wider range is the sound one.
         """
 
+        if act_key in self.name_candidates:
+            return None
         stated = self.division_by_name.get(act_key)
         if stated is None:
             return None
@@ -506,10 +559,17 @@ class ActIndex:
 
         directory = Path(artifact_dir)
         receipt = json.loads((directory / "receipt.json").read_text(encoding="utf-8"))
-        table3_key_by_name: dict[str, str] = {}
+        if not (_artifacts_stating(directory / "usc-act-sections.parquet")
+                & _artifacts_stating(directory / "quarantine.parquet")):
+            raise ValueError("classifications and quarantine must belong to the same act artifact")
+        narrowed = frozenset(
+            (row["table3_key"], row["raw_value"].partition(" -> ")[0])
+            for row in _read_pinned_parquet(directory, "quarantine.parquet")
+            if row["reason"] == "statutes_at_large_page_span_narrowed"
+        )
+        records_by_name: dict[str, set[PopularNameRecord]] = {}
         alias_by_name: dict[str, str] = {}
         cited_names: set[str] = set()
-        division_by_name: dict[str, tuple[str, int]] = {}
         starts: dict[str, dict[str, int]] = {}
         for row in _read_pinned_parquet(directory, "usc-popular-names.parquet"):
             # Normalized on the way in, not trusted as stored. The builder ran
@@ -527,17 +587,31 @@ class ActIndex:
                 continue
             cited_names.add(name)
             if row["table3_key"]:
-                table3_key_by_name.setdefault(name, row["table3_key"])
+                record = PopularNameRecord(**{k: v for k, v in row.items() if k not in {"name_key", "see_also_key"}})
+                records_by_name.setdefault(name, set()).add(record)
             if not (row["division"] and row["statutes_at_large_page"]):
                 continue
             page = int(row["statutes_at_large_page"])
-            division_by_name.setdefault(name, (row["division"], page))
             if row["table3_key"]:
                 # Every qualifying row, not just a name's first: a division
                 # begins where its EARLIEST act does, and the acts that state
                 # it are spread across the table.
                 by_division = starts.setdefault(row["table3_key"], {})
                 by_division[row["division"]] = min(by_division.get(row["division"], page), page)
+        table3_key_by_name = {}
+        division_by_name = {}
+        name_candidates = {}
+        for name, records in records_by_name.items():
+            laws = {r.table3_key for r in records}
+            table3_key_by_name[name] = next(iter(laws)) if len(laws) == 1 else None
+            identities = {(r.table3_key, r.division) for r in records}
+            if len(identities) > 1:
+                name_candidates[name] = tuple(sorted(records, key=lambda r: tuple(str(v or "") for v in asdict(r).values())))
+            else:
+                division = next(iter(identities))[1]
+                if division:
+                    page = min((int(r.statutes_at_large_page) for r in records if r.statutes_at_large_page), default=None)
+                    division_by_name[name] = (division, page)
         classifications: dict[str, dict[str, tuple[Classification, ...]]] = {}
         for row in _read_pinned_parquet(directory, "usc-act-sections.parquet"):
             by_section = classifications.setdefault(row["table3_key"], {})
@@ -548,15 +622,17 @@ class ActIndex:
             )
         return cls(
             table3_key_by_name=table3_key_by_name,
+            name_candidates=name_candidates,
             alias_by_name=alias_by_name,
             classifications=classifications,
             incomplete_sources=frozenset(hole["table3_key"] for hole in receipt.get("source_incomplete", ())),
             cited_names=frozenset(cited_names),
             division_by_name=division_by_name,
             division_starts={
-                key: tuple(sorted(by_division.items(), key=lambda item: item[1]))
+                key: tuple(sorted(by_division.items(), key=lambda item: (item[1], item[0])))
                 for key, by_division in starts.items()
             },
+            narrowed_page_sections=narrowed,
         )
 
 
@@ -579,6 +655,7 @@ class SourceCreditAnswer:
     usc_section: str | None = None
     statutes_at_large_volume: str | None = None
     statutes_at_large_page: str | None = None
+    targets: tuple[SourceCreditTarget, ...] = ()
 
     def __post_init__(self) -> None:
         if self.status not in SOURCE_CREDIT_STATUSES:
@@ -644,7 +721,7 @@ class SourceCreditIndex:
         if not found:
             return SourceCreditAnswer(status="absent")
         if len({(t.usc_title, t.usc_section) for t in found}) > 1:
-            return SourceCreditAnswer(status="multi_target")
+            return SourceCreditAnswer(status="multi_target", targets=found)
         # Every surviving target names one section; no triple in the pinned
         # index states it at two different pages, so this reads a fact rather
         # than picking one (``test_one_target_never_hides_two_pages``).
@@ -750,22 +827,14 @@ def _resolve_through_table3(
     rows = index.classifications.get(table3_key, {}).get(citation.section, ())
     if not rows:
         return _Verdict(reason="act_section_not_classified")
+    page_range = index.act_page_range(act_key)
+    if page_range is not None and (table3_key, citation.section) not in index.narrowed_page_sections:
+        low, high = page_range
+        # Exclusion only: unknown pages cannot prove it, and narrowing to one
+        # in-range row cannot identify that row as belonging to the named act.
+        if all(page is not None and not low <= page <= high for *_, page in rows):
+            return _Verdict(reason="act_section_outside_act")
     if len(rows) > 1:
-        page_range = index.act_page_range(act_key)
-        if page_range is not None:
-            low, high = page_range
-            # Sound even though the range is only an upper bound: a page
-            # outside a range that is too WIDE is outside the true one. The
-            # converse is deliberately NOT taken — the surviving rows are
-            # never bound to a name here, so they cannot be used by accident.
-            # The range is derived from popular-name start pages, and 6.6% of
-            # the pages such a range accepts (2,240 of 34,113 measured) belong
-            # to a different division; narrowing on that basis would mint
-            # exactly the wrong identifier this line of work exists to
-            # prevent. It would decide 2,426 of the pinned index's 3,170
-            # in-range multi-row lookups, and refusing them is the price.
-            if not any(low <= page <= high for *_, page in rows if page is not None):
-                return _Verdict(reason="act_section_outside_act")
         return _Verdict(reason="act_section_ambiguous")
     usc_title, usc_section, status, page = rows[0]
     if status:
@@ -852,9 +921,29 @@ def resolve_act_relative_citation(
     act_key = resolve_act_name(citation.act_key, index)
     if act_key is None:
         return ActResolution(citation, unresolved_reason=act_name_absence_reason(citation.act_key, index))
+    sources = index.name_candidates.get(act_key, ())
+    if sources:
+        groups = {}
+        for source in sources:
+            if citation.division and source.division and citation.division != source.division:
+                continue
+            identity = (source.table3_key, source.division or citation.division)
+            groups.setdefault(identity, []).append(source)
+        candidates = []
+        for (law, division), records in sorted(groups.items(), key=lambda item: (item[0][0], item[0][1] or "")):
+            page = min((int(r.statutes_at_large_page) for r in records if r.statutes_at_large_page), default=None)
+            narrowed = replace(index, table3_key_by_name={act_key: law}, name_candidates={},
+                               division_by_name={act_key: (division, page)} if division else {})
+            candidates.append(resolve_act_relative_citation(citation, index=narrowed, source_credits=source_credits))
+        if len(candidates) == 1:
+            return replace(candidates[0], name_sources=sources)
+        return ActResolution(citation, act_key=act_key, table3_key=index.table3_key_by_name[act_key],
+                             unresolved_reason="act_name_ambiguous" if candidates else "act_division_conflict",
+                             name_sources=sources, candidate_resolutions=tuple(candidates))
     table3_key = index.table3_key_by_name[act_key]
     stated = index.division_by_name.get(act_key)
-    common = {"act_key": act_key, "table3_key": table3_key}
+    common = {"act_key": act_key, "table3_key": table3_key,
+              "act_division": stated[0] if stated else citation.division}
 
     # A division the citation itself names is the strongest discriminator
     # there is; if it contradicts the resolved act's division, the two halves
@@ -881,11 +970,16 @@ def resolve_act_relative_citation(
         )
     credits = _verdict_from_credits(credit)
 
-    shared = {**common, "table3_reason": table3.reason, "source_credit_status": credit.status}
+    shared = {**common, "table3_reason": table3.reason, "source_credit_status": credit.status,
+              "source_credit_targets": credit.targets}
 
+    if table3.iri is not None and credit.status == "multi_target":
+        return ActResolution(citation, **shared, unresolved_reason="act_section_ambiguous",
+                             table3_candidate_iri=table3.iri)
     if table3.iri is not None and credits.iri is not None:
         if table3.iri != credits.iri:
-            return ActResolution(citation, **shared, unresolved_reason="sources_disagree")
+            return ActResolution(citation, **shared, unresolved_reason="sources_disagree",
+                                 conflicting_targets={"table3": table3.iri, "source_credits": credits.iri})
         # Agreed. The identifier and its components are Table III's; the
         # Statutes at Large volume and page are the credits', which state a
         # volume the Table III loader does not carry.

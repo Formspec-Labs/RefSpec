@@ -430,10 +430,9 @@ def test_a_rin_the_shape_admits_and_rkaf_cannot_spell_is_refused() -> None:
     """``rkaf:us-rin`` closes on ``[0-9]{2}``; the shape allows
     ``[A-Za-z0-9]{2}``.
 
-    Zero of the Unified Agenda's 46,547 RINs take the divergent form
-    (measured 2026-08-31), so the gap costs nothing today. It is pinned here
-    so that the day a roster carries one, the refusal is a failing test rather
-    than a silently missing identifier.
+    None of the Unified Agenda's 46,547 RINs measured on 2026-08-31 took the
+    divergent form. This test pins the syntax distinction; it does not read
+    a roster or monitor future corpus coverage.
     """
 
     assert identifier_shapes.is_regulation_identifier_number("0648-ABCD")
@@ -442,9 +441,9 @@ def test_a_rin_the_shape_admits_and_rkaf_cannot_spell_is_refused() -> None:
 
 def test_a_real_rin_outside_the_shape_is_refused_not_repaired() -> None:
     """Five real RINs fall outside the shape, each confirmed against the
-    Federal Register API on 2026-08-22. The minter refuses them for the same
-    reason the shape does: no roster entry corroborates them, and a minter
-    that guessed would publish an identity nothing issued."""
+    Federal Register API on 2026-08-22. The minter refuses their syntax as
+    outside the supported identifier space. It performs no roster lookup;
+    refusal does not contradict those historical publisher attestations."""
 
     for real_but_unminted in ("0648-XD990", "0648-XC705", "3090-00XX", "1115-09AE", "2070-78AB"):
         assert mint_rin_iri(real_but_unminted) is None, real_but_unminted

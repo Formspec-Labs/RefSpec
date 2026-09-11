@@ -986,14 +986,13 @@ def test_the_year_less_lexicon_is_widened_by_four_names_and_refuses_634() -> Non
 
 
 @pytest.mark.slow
-def test_the_enacting_years_widening_is_11952_variants_and_moves_nothing_held() -> None:
+def test_enacting_year_variants_require_agreement_and_preserve_existing_spellings() -> None:
     """Measured against the pinned index and the pinned public-law roster.
 
-    3,999 of the tool's listed names carry no year and are dated by a source --
-    the session-law Table III key states its own year, the roster dates a
-    public law -- and each takes the three spellings the tool alternates
-    between, 11,952 keys. It is added AFTER the whole closure and never over
-    it: nothing already spelled moves, nothing is lost.
+    The prior first-law choice dated 3,999 names and added 11,952 variants.
+    Eight of those names have conflicting source years. The current check
+    requires all possible laws to agree, retaining three other multi-law names
+    whose years do agree. Existing non-year spellings remain unchanged.
     """
 
     from pathlib import Path as _Path
@@ -1012,10 +1011,16 @@ def test_the_enacting_years_widening_is_11952_variants_and_moves_nothing_held() 
     index = ActIndex.from_artifact(root / "output/usc-act-index-2026-08-22")
     names = resolvable_act_names(root / "output/usc-act-index-2026-08-22")
     years = _act_enactment_years(index, _pl_roster())
-    assert len(years) == 3_999
+    assert len(years) == 3_991
     narrow = _act_name_spelling_closure(names, _act_name_resolver(index))
     widened = _act_name_spelling_closure(names, _act_name_resolver(index), years)
-    assert len(set(widened) - set(narrow)) == 11_952
+    assert len(set(widened) - set(narrow)) == 11_928
+    assert {
+        '50 states commemorative coin program act', 'adult education and family literacy act',
+        'internet tax nondiscrimination act', 'pact act', 'read act',
+        'secret service overtime pay extension act', 'tsunami warning and education act',
+        'united states cotton futures act',
+    }.isdisjoint(years)
     assert not set(narrow) - set(widened)
     assert {key: value for key, value in widened.items() if narrow.get(key, value) != value} == {}
 
@@ -6340,10 +6345,16 @@ def test_the_receipt_census_covers_the_act_resolution(con) -> None:
     )
     # Every declared reason and every declared evidence, listed even at zero: a
     # refusal that stops being reported is what these columns exist to show.
-    assert set(declared["actRelativeRowsByResolutionReason"]) == set(ACT_RESOLUTION_REASONS)
+    # This sealed publication artifact predates name-multiplicity resolution.
+    # Verify its original vocabulary and rows; do not rewrite the receipt to
+    # imply that the new resolver produced it. Fresh caller controls cover the
+    # newly declared refusal independently.
+    historical_reasons = set(ACT_RESOLUTION_REASONS) - {"act_name_ambiguous"}
+    assert set(declared["actRelativeRowsByResolutionReason"]) == historical_reasons
+    assert _one(con, f"select count(*) from {A} and act_resolution_reason = 'act_name_ambiguous'") == 0
     assert declared["actRelativeRowsByResolutionReason"] == {
         reason: _one(con, f"select count(*) from {A} and act_resolution_reason = '{reason}'")
-        for reason in ACT_RESOLUTION_REASONS
+        for reason in historical_reasons
     }
     assert set(declared["actRelativeResolvedRowsByEvidence"]) == set(ACT_RESOLUTION_EVIDENCE)
     assert declared["actRelativeResolvedRowsByEvidence"] == {

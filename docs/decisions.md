@@ -4391,6 +4391,19 @@ framing inverts: the gap is in RefSpec's column shape, not in rkaf, and
 `iri_minting`'s prose was corrected to say so. Widening would have deleted a
 working tripwire for a coverage gain of provably zero.
 
+**2026-09-11 clarification of the RIN rationale.** The preceding paragraph
+records the original decision; the supported space remains unchanged. Its
+publisher-wide format claim was too broad: the Fish and Wildlife Service
+statement describes that agency, while the cited Unified Agenda measurement
+supports only its recorded population. `citation_grammar._RIN_TOKEN` shields
+U.S.C. list parsing; it is not a public RIN occurrence reader. `mint_rin_iri`
+performs syntax validation without a roster lookup. A refusal means that the
+value is outside the supported space, not that no RIN was issued; success does
+not establish issuance either. The fixed refusal test pins syntax behavior and
+does not monitor future roster changes. Current API and test explanations now
+state those limits. No parser behavior or identifier space changed in this
+clarification.
+
 **Reconciliation and migration.** A lexical-space widening moves values from
 the partner hatch to first-class deterministically and without a lookup:
 `urn:rkaf:partner:refspec:frdoc:X` becomes `urn:rkaf:us:frdoc:X` exactly when

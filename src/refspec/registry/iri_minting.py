@@ -126,20 +126,16 @@ this section reads shorter than it did.
   It spells **8,226 of the 8,424** pairs end to end (97.65%) — the 189 plus
   nine index rows whose part is literally ``0``, which there is no part 0 to
   name.
-- **The RIN space is narrower than the shape, and here the direction is the
-  other way round.** ``rkaf:us-rin`` closes on ``[0-9]{2}`` where
-  ``identifier_shapes._RIN`` allows ``[A-Za-z0-9]{2}``, and zero of the
-  46,547 RINs take the divergent form. This one is **not a gap in rkaf**:
-  the only published RIN format statement anywhere — the Fish and Wildlife
-  Service handbook's "two letters followed by two numbers", recorded at
-  ``identifier_shapes.py:344-352``, which says in the same breath that its
-  own shape is *"a chosen lexical space, not the publisher's
-  specification"* — **is** ``[A-Z]{2}[0-9]{2}``. rkaf matches the publisher
-  and RefSpec's column shape is the loose one; this module's own prose
-  reader (``citation_grammar._RIN_TOKEN``) agrees with rkaf, not with the
-  column shape. So the divergence was re-examined in rc16 and rkaf was left
-  alone. It stays pinned by a refusal test, which is the alarm for the day a
-  roster carries one — not a defect waiting to be fixed.
+- **The RIN space is narrower than the query shape.** ``rkaf:us-rin`` closes
+  on ``[0-9]{2}`` where ``identifier_shapes._RIN`` allows
+  ``[A-Za-z0-9]{2}``. None of the 46,547 Unified Agenda RINs measured on
+  2026-08-31 took the divergent form. REF-054 therefore retained the space;
+  this is a bounded representation choice, not a universal publisher grammar.
+  The cited Fish and Wildlife Service format statement describes that agency.
+  ``citation_grammar._RIN_TOKEN`` is a U.S.C. list-parsing guard, not a public
+  RIN reader. Minting checks the supported syntax without consulting a roster
+  or establishing that a value was issued. The refusal test pins that behavior;
+  new roster coverage requires a separate comparison.
 
 The whole ``document_number`` column, sorted by what it can carry and pinned
 by ``test_the_document_number_column_is_accounted_for_exactly``: **480,566**
@@ -543,20 +539,16 @@ def mint_rin_iri(value: object) -> MintedIdentifier | None:
 
     ``rkaf:us-rin`` closes on ``[0-9]{2}`` where the shape allows
     ``[A-Za-z0-9]{2}``, so a RIN whose last two characters are letters
-    normalizes and then refuses. Zero of the Unified Agenda's 46,547 RINs take
-    that form (measured 2026-08-31), so the divergence costs nothing today;
-    ``test_a_rin_the_shape_admits_and_rkaf_cannot_spell_is_refused`` is there
-    so it stops costing nothing loudly.
+    normalizes and then refuses. None of the 46,547 Unified Agenda RINs
+    measured on 2026-08-31 took that form. REF-054 retained this supported
+    space; the cited Fish and Wildlife Service format statement is
+    agency-specific, not a universal grammar.
 
-    The narrow one here is the SHAPE's counterpart, not this space. rulespec
-    was asked to widen the tail alongside frdoc and CFR in ``0.2.0rc16`` and
-    was deliberately left alone: ``[A-Z]{2}[0-9]{2}`` is the only published
-    format statement anyone has found, the five known out-of-space RINs
-    (0648-XD990, 0648-XC705, 3090-00XX, 1115-09AE, 2070-78AB) are unreachable
-    by widening the last two characters anyway — two need a five-character
-    tail, three run digit-digit-letter-letter — and widening would have
-    deleted the refusal test for a coverage gain of provably zero. See
-    REF-054.
+    The five historically documented published exceptions (0648-XD990,
+    0648-XC705, 3090-00XX, 1115-09AE, 2070-78AB) remain outside the space:
+    two have five-character tails, three have digit-digit-letter-letter
+    tails. This function checks syntax only. ``None`` does not prove a
+    RIN does not exist, and success does not prove issuance or source meaning.
     """
 
     rin = normalize_rin(value)

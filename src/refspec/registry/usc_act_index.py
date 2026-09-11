@@ -515,10 +515,9 @@ def build(
     name_rows = _read_rows(popular_names_from / "usc-popular-names.parquet")
     # Every table3_key any "cite" row states, as a SET -- order-free by
     # construction, and deliberately not a per-name resolution. 34 of the
-    # table's name_keys name two different table3_keys each ('detainee
-    # treatment act of 2005' -> {109-148, 109-163}), which is real ambiguity
-    # in the source; picking a winner per name is ActIndex.from_artifact's
-    # job, done at query time with its own alias-chasing, and a private
+    # table's name_keys name multiple table3_keys ('detainee treatment act
+    # of 2005' -> {109-148, 109-163}), which is real source ambiguity.
+    # ActIndex.from_artifact now retains those alternatives. A private
     # setdefault restating that choice here previously made this count move
     # with parquet row order (8,391 by file order, 8,392 by a sorted
     # tie-break) while also reading the STORED name_key rather than the

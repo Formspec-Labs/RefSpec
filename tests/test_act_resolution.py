@@ -717,17 +717,17 @@ def test_the_pins_restate_the_receipts_they_are_meant_to_outrank() -> None:
     for artifact_name, pins in _ARTIFACT_PINS.items():
         for table, pin in pins.items():
             assert receipted[artifact_name][table] == pin, f"{artifact_name}/{table}"
-        # Only the tables a loader reads are pinned; the quarantine files are not.
-        assert set(pins) < set(receipted[artifact_name]), artifact_name
+        # Act lookup now reads its quarantine for narrowed-page uncertainty.
+        assert set(pins) <= set(receipted[artifact_name]), artifact_name
 
 
 @artifact
-def test_only_a_pinned_table_can_be_read_through_this_door() -> None:
+def test_only_a_pinned_table_can_be_read_through_this_door(tmp_path) -> None:
     """The pin is the authentication, so an unpinned table has no way in."""
 
-    assert (ACT_DIR / "quarantine.parquet").is_file()
+    (tmp_path / "unlisted.parquet").write_bytes(b"not a sealed table")
     with pytest.raises(KeyError):
-        _read_pinned_parquet(ACT_DIR, "quarantine.parquet")
+        _read_pinned_parquet(tmp_path, "unlisted.parquet")
 
 
 @artifact
@@ -742,16 +742,14 @@ def test_a_drifted_artifact_refuses_to_load() -> None:
 
 
 @artifact
-def test_the_two_act_indexes_differ_only_in_their_classifications() -> None:
+def test_the_two_act_indexes_share_names_but_have_distinct_classifications_and_quarantine() -> None:
     """What the artifact-keyed pins can and cannot tell apart, stated.
 
     The 2026-08-22 rebuild reads only Table III; its popular-name table is the
     08-02 one carried over byte for byte, and one digest is therefore pinned
     under both artifacts. So no digest check can distinguish the two builds by
-    that table — there is nothing to distinguish — and the classifications
-    table is the whole difference between them. This is why the loader does not
-    pretend to catch a "mixed" directory: between these two artifacts, every
-    mixture is byte-identical to one of them.
+    that table. Classifications and the now-consumed quarantine differ and must
+    belong to the same artifact; the policy tests reject mixing those two files.
     """
 
     assert (ACT_DIR / "usc-popular-names.parquet").read_bytes() == (
@@ -760,6 +758,7 @@ def test_the_two_act_indexes_differ_only_in_their_classifications() -> None:
     assert (ACT_DIR / "usc-act-sections.parquet").read_bytes() != (
         BULK_ACT_DIR / "usc-act-sections.parquet"
     ).read_bytes()
+    assert (ACT_DIR / "quarantine.parquet").read_bytes() != (BULK_ACT_DIR / "quarantine.parquet").read_bytes()
     names = _ARTIFACT_PINS["usc-act-index-2026-08-02"]["usc-popular-names.parquet"]
     assert _ARTIFACT_PINS["usc-act-index-2026-08-22"]["usc-popular-names.parquet"] == names
     assert (
@@ -826,10 +825,14 @@ def test_a_session_law_chapter_is_never_offered_to_the_credits(index) -> None:
     nothing, it would ask a question in the wrong language.
     """
 
-    keys = set(index.table3_key_by_name.values())
+    # The previous first-row map retained 8,391 keys / 1,921 chapters.
+    # Include the source alternatives it dropped, rather than counting None.
+    keys = {k for k in index.table3_key_by_name.values() if k} | {
+        r.table3_key for rows in index.name_candidates.values() for r in rows
+    }
     chapters = {k for k in keys if ":" in k}
-    assert len(keys) == 8_391
-    assert len(chapters) == 1_921
+    assert len(keys) == 8_399
+    assert len(chapters) == 1_922
     assert "1955:360" in chapters  # Clean Air Act
     assert all(re.fullmatch(r"\d{4}:\d+", k) for k in chapters)
 
@@ -1197,8 +1200,10 @@ def test_act_section_not_classified_is_mostly_never_fetched(index) -> None:
     assert receipt["coverage"]["acts_requested"] == 27
     assert len(index.classifications) == 24, "the fetched set IS the classified set"
 
-    keys = set(index.table3_key_by_name.values())
-    assert len(keys) == 8_391
+    keys = {k for k in index.table3_key_by_name.values() if k} | {
+        r.table3_key for rows in index.name_candidates.values() for r in rows
+    }
+    assert len(keys) == 8_399  # All stated laws; the previous first-row map held 8,391.
     assert len(keys & set(index.classifications)) == 24
 
     fetched = sum(1 for key in index.table3_key_by_name.values() if key in index.classifications)

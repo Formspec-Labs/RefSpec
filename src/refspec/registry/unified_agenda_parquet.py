@@ -73,6 +73,7 @@ from refspec.registry.citation_grammar import (
     USC_SPAN_ABBREVIATED,
     USC_SPAN_STATED,
     ActRelativeCitation,
+    act_name_with_trailing_year,
     _normalize_dashes,
     find_act_relative_citations,
     names_citation_structure,
@@ -1982,20 +1983,25 @@ def _act_enactment_years(
     if index is None:
         return {}
     dates = pl_roster[0] if pl_roster else {}
+
+    def stated_year(table3_key):
+        session = _SESSION_LAW_YEAR.match(table3_key or "")
+        if session is not None:
+            return session.group(1)
+        public_law = re.fullmatch(r"(\d+)-(\d+)", table3_key or "")
+        if public_law is None:
+            return None
+        approved = dates.get((int(public_law.group(1)), int(public_law.group(2))))
+        return approved[-4:] if approved else None
+
     years: dict[str, str] = {}
     for name, table3_key in index.table3_key_by_name.items():
         if _TRAILING_YEAR_DESIGNATOR.search(name):
             continue
-        session = _SESSION_LAW_YEAR.match(table3_key or "")
-        if session is not None:
-            years[name] = session.group(1)
-            continue
-        public_law = re.fullmatch(r"(\d+)-(\d+)", table3_key or "")
-        if public_law is None:
-            continue
-        approved = dates.get((int(public_law.group(1)), int(public_law.group(2))))
-        if approved:
-            years[name] = approved[-4:]
+        keys = {r.table3_key for r in index.name_candidates.get(name, ())} or {table3_key}
+        found = {stated_year(key) for key in keys}
+        if len(found) == 1 and None not in found:
+            years[name] = found.pop()
     return years
 
 
@@ -6786,7 +6792,6 @@ _TRAILING_SECTION = re.compile(
     r",?\s*(?:sec(?:tion)?s?\.?|§{1,2})\s*(?P<section>\d{1,5}[A-Za-z]?)(?:\([^()]{1,12}\))*\s*$",
     re.IGNORECASE,
 )
-_YEAR_PREFIXED_NAME = re.compile(r"^\s*(?:the\s+)?((?:18|19|20)\d{2})\s+(\S.*)$", re.IGNORECASE)
 #: The ELIDED list member: "Section 172(a) and (c)" is one section twice, not a
 #: section and a nameless second thing. The filer omits the repeated number,
 #: and until 2026-08-24 the list splitter required every "and"-joined member to
@@ -6856,9 +6861,9 @@ def _act_prose_recoveries(text: str, act_lookup) -> tuple[tuple[str, str | None]
         name_candidates = [name, _INTERNAL_PARENTHETICAL.sub("", name)]
         # The year-prefix reordering composes here too: "sec. 403 of the
         # 2018 FAA Reauthorization Act" names the act of 2018.
-        year_led = _YEAR_PREFIXED_NAME.match(name_candidates[-1])
+        year_led = act_name_with_trailing_year(name_candidates[-1])
         if year_led is not None:
-            name_candidates.append(f"{year_led.group(2)} of {year_led.group(1)}")
+            name_candidates.append(year_led)
         for candidate in name_candidates:
             hit = _lookup(candidate)
             if hit is not None:
@@ -6889,9 +6894,9 @@ def _act_prose_recoveries(text: str, act_lookup) -> tuple[tuple[str, str | None]
     lead = _LEADING_DESIGNATOR.sub("", work)
     if lead != work:
         candidates.append(lead)
-    year_prefixed = _YEAR_PREFIXED_NAME.match(_INTERNAL_PARENTHETICAL.sub("", work))
+    year_prefixed = act_name_with_trailing_year(_INTERNAL_PARENTHETICAL.sub("", work))
     if year_prefixed is not None:
-        candidates.append(f"{year_prefixed.group(2)} of {year_prefixed.group(1)}")
+        candidates.append(year_prefixed)
     for candidate in candidates:
         hit = _lookup(candidate)
         if hit is not None:

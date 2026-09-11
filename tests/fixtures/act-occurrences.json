@@ -1,0 +1,62 @@
+{
+  "source": "/Users/mikewolfd/Work/corpora/refspec-registry-unified-agenda-parquet/unified_agenda_legal_authorities.parquet",
+  "sha256": "eddb1b2edcda8450dcacd748f981cea3cb682956cde9e7a1e6f7fb25d59d5119",
+  "cases": [
+    {
+      "rin": "0560-AC86",
+      "publication_id": "199510",
+      "authority_text": "The Food Security Act of 1985, sec 1201, as amended",
+      "authority_source": "box",
+      "act_key": "food security act of 1985"
+    },
+    {
+      "rin": "0560-AD90",
+      "publication_id": "199510",
+      "authority_text": "Sec 508 (b)(7)(A) Federal Crop Insurance Reform Act of 1994",
+      "authority_source": "box",
+      "act_key": "federal crop insurance reform act of 1994"
+    },
+    {
+      "rin": "0560-AD91",
+      "publication_id": "199510",
+      "authority_text": "Sec 508(b)(7)(A) Federal Crop Insurance Reform Act of 1994",
+      "authority_source": "box",
+      "act_key": "federal crop insurance reform act of 1994"
+    },
+    {
+      "rin": "0560-AD93",
+      "publication_id": "199510",
+      "authority_text": "Sec 422 of the Uruguay Round Agreements Act",
+      "authority_source": "box",
+      "act_key": "uruguay round agreements act"
+    },
+    {
+      "rin": "0560-AC99",
+      "publication_id": "199510",
+      "authority_text": "The Agricultural Adjustment Act of 1938, sec 379, as amended",
+      "authority_source": "box",
+      "act_key": "agricultural adjustment act of 1938"
+    },
+    {
+      "rin": "0560-AD00",
+      "publication_id": "199510",
+      "authority_text": "The Agricultural Act of 1949, sec 105B(g), as amended",
+      "authority_source": "box",
+      "act_key": "agricultural act of 1949"
+    },
+    {
+      "rin": "0790-AG14",
+      "publication_id": "199510",
+      "authority_text": "Sec 326, National Defense Authorization Act for FY 1995",
+      "authority_source": "box",
+      "act_key": null
+    },
+    {
+      "rin": "1901-AA58",
+      "publication_id": "199510",
+      "authority_text": "42 USC 2208 Atomic Energy Act of 1954, sec 168",
+      "authority_source": "box",
+      "act_key": null
+    }
+  ]
+}
