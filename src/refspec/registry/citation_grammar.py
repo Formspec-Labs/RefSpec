@@ -105,6 +105,7 @@ __all__ = [
     "CfrCitation",
     "CfrCitationOccurrence",
     "EoCompilationLocator",
+    "EoCompilationOccurrence",
     "FederalRegisterCitation",
     "SupremeCourtCitation",
     "TimetableFrCitation",
@@ -121,6 +122,7 @@ __all__ = [
     "parse_authority_citation",
     "parse_cfr_citations",
     "parse_eo_compilation_locators",
+    "find_eo_compilation_locators",
     "parse_federal_register_citations",
     "parse_supreme_court_citation",
     "stated_act_name",
@@ -673,9 +675,13 @@ def _label_is_plural(label: str | None) -> bool:
 #: 8 CFR 1215, 19 CFR 200, 29 CFR 1400, measured 2026-08-24). No authority
 #: value writes "Supp." at all, so the widening is the notes' alone.
 _COMPILATION_YEAR = r"(?:1[789]|20)\d{2}"
-_COMPILATION_WORD = r"(?:Comp|Supp)\.?"
+_COMPILATION_WORD = r"(?:Comp|Supp)\.?(?!\w)"
 _EO_COMPILATION = re.compile(
     r"\b3\s*C\.?\s*F\.?\s*R\.?\s*[,;:]?\s*"
+    # Judicial ordering, already recognized by SpicySearch's source reader:
+    # "3 CFR 60–61 (1971–1975 Comp.)". The numbers before the volume are
+    # pages, not CFR parts. Keep both written endpoints.
+    r"(?:(?P<page_before>\d+)(?:\s*-\s*(?P<page_before_end>\d+))?\s*\(\s*)?"
     # The publisher may write the volume year TWICE, once as the year and once
     # as the volume: 5 CFR 10000's note reads "E.O. 12600, 52 FR 23781, 3 CFR
     # 1987, 1987 Comp., p. 235", and the first 1987 was minted as CFR part
@@ -692,16 +698,18 @@ _EO_COMPILATION = re.compile(
     # refusing it left the volume's FIRST year minted as CFR part 1971. The
     # typo is carried, not corrected: the end reads "1075".
     rf"(?P<end>{_COMPILATION_YEAR}|\d{{4}}(?=\s*,?\s*{_COMPILATION_WORD})|\d{{2}}(?!\d)))"
-    rf"\s*,?\s*(?:{_COMPILATION_WORD})?"
+    rf"\s*,?\s*(?(page_before){_COMPILATION_WORD}|(?:{_COMPILATION_WORD})?)"
     rf"|\s*,?\s*{_COMPILATION_WORD}"
     # A PAGE LABEL proves the shape where the compilation word is missing, on
     # the same terms a year range does: no CFR part is ever cited "p. 235".
     # 12 CFR 602's note writes "52 FR 23781, 3 CFR 1987, p. 235" and minted
     # part 1987. A bare number after the year still proves nothing and is
     # still refused -- the label is the whole evidence.
-    r"|(?=\s*,?\s*(?:pp?\.?|pages?)\s*\d)"
+    r"|(?(page_before)(?!)|(?=\s*,?\s*(?:pp?\.?|pages?)\s*\d))"
     r")"
-    rf"(?:\s*,?\s*(?:pp?\.?|pages?)?\s*(?P<page>\d+){_ANOTHER_CITATION_AHEAD})?",
+    r"(?(page_before)(?P<closing>\s*\))?|"
+    rf"(?:\s*,?\s*(?:pp?\.?|pages?)?\s*(?P<page>\d+)(?!\w)"
+    rf"(?:\s*-\s*(?P<page_end>\d+)(?!\w))?{_ANOTHER_CITATION_AHEAD})?)",
     re.IGNORECASE,
 )
 
@@ -2061,16 +2069,28 @@ class AuthorityCitation:
 
 @dataclass(frozen=True)
 class EoCompilationLocator:
-    """A Title 3 compilation locator: the page an EO was printed on.
+    """A Title 3 compilation locator for a presidential document.
 
     Deliberately carries no identifier — the volume and page locate a printed
-    order, and inventing either a CFR citation or an order number from them
+    document (including a proclamation), and inventing a CFR citation or order number
     would be one of the two wrong answers this type exists to refuse.
     """
 
     compilation_start: str
     compilation_end: str | None
     page: str | None
+    page_end: str | None = None
+
+
+@dataclass(frozen=True)
+class EoCompilationOccurrence:
+    """A compilation locator and its exact original source coordinates."""
+
+    locator: EoCompilationLocator
+    start: int
+    end: int
+    text: str
+    refusal: str | None = None
 
 
 # --------------------------------------------------------------------------- #
@@ -2538,12 +2558,28 @@ def _usc_leading_section_is_untruncated(text: str, match: re.Match[str]) -> bool
 def parse_eo_compilation_locators(text: str) -> tuple[EoCompilationLocator, ...]:
     """Read every Title 3 compilation locator, identifying nothing."""
 
+    return tuple(item.locator for item in find_eo_compilation_locators(text))
+
+
+def find_eo_compilation_locators(text: str) -> tuple[EoCompilationOccurrence, ...]:
+    """Read volume/page coordinates without inferring an order or CFR identity.
+
+    Repetitions and spelling survive. An unclosed page-first parenthetical
+    retains its observed fields with a refusal; it must not become a CFR part.
+    This reader requires contiguous source text, not a layout reconstruction.
+    """
     normalized = _normalize_dashes(text)
     return tuple(
-        EoCompilationLocator(
-            compilation_start=match.group("start"),
-            compilation_end=_compilation_end(match),
-            page=match.group("page"),
+        EoCompilationOccurrence(
+            locator=EoCompilationLocator(
+                compilation_start=match.group("start"),
+                compilation_end=_compilation_end(match),
+                page=match.group("page_before") or match.group("page"),
+                page_end=match.group("page_before_end") or match.group("page_end"),
+            ),
+            start=match.start(), end=match.end(), text=text[match.start():match.end()],
+            refusal=("compilation_parenthetical_unclosed"
+                     if match.group("page_before") is not None and match.group("closing") is None else None),
         )
         for match in _EO_COMPILATION.finditer(normalized)
     )

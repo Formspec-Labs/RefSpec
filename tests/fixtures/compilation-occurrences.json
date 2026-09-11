@@ -1,0 +1,140 @@
+{
+  "label_basis": "Manual reading of saved court text and printed citation forms; revisable development cases, not gold labels.",
+  "cases": [
+    {
+      "id": "court-1",
+      "opinion_id": "scotus-2025-62-25-332",
+      "start": 116036,
+      "end": 116058,
+      "text": "3 CFR 127 (1981 Comp.)",
+      "context_start": 115866,
+      "context": " Information and Regulatory Af-\nfairs (OIRA) to oversee propos ed executive agency actions \nthat carry significant economic impacts.  See, e.g., Exec. Or-\nder No. 12291, 3 CFR 127 (1981 Comp.); Exec. Order No. \n12866, 3 CFR 638 (1993 Comp.). And even before today’s\ndecision, the President has extended OIRA review to many \nindependent agencies.  Exec. Order No.",
+      "expected": {
+        "compilation_start": "1981",
+        "compilation_end": null,
+        "page": "127",
+        "page_end": null
+      }
+    },
+    {
+      "id": "court-2",
+      "opinion_id": "scotus-2025-62-25-332",
+      "start": 116084,
+      "end": 116106,
+      "text": "3 CFR 638 (1993 Comp.)",
+      "context_start": 115914,
+      "context": "oversee propos ed executive agency actions \nthat carry significant economic impacts.  See, e.g., Exec. Or-\nder No. 12291, 3 CFR 127 (1981 Comp.); Exec. Order No. \n12866, 3 CFR 638 (1993 Comp.). And even before today’s\ndecision, the President has extended OIRA review to many \nindependent agencies.  Exec. Order No. 14215, 90 Fed. Reg. \n10447 (2025).  Separately,",
+      "expected": {
+        "compilation_start": "1993",
+        "compilation_end": null,
+        "page": "638",
+        "page_end": null
+      }
+    },
+    {
+      "id": "court-3",
+      "opinion_id": "scotus-2025-12-24-1287",
+      "start": 40446,
+      "end": 40469,
+      "text": "3 \nCFR 115 (2009 Comp.)",
+      "context_start": 40276,
+      "context": "have invoked other statutes—but never IEEPA—to im-\npose tariffs, on products ranging from car tires to washing \nmachines. See, e. g., Presidential Proclamation No. 8414, 3 \nCFR 115 (2009 Comp.); Presidential Proclamation No. 9694, \n83 Fed. Reg. 3553 (2018). And those tariffs did not “even \nbeg[in] to approach the size or scope” of the IEEPA tariffs \nat issue he",
+      "expected": {
+        "compilation_start": "2009",
+        "compilation_end": null,
+        "page": "115",
+        "page_end": null
+      }
+    },
+    {
+      "id": "court-4",
+      "opinion_id": "scotus-2025-12-24-1287",
+      "start": 51876,
+      "end": 51898,
+      "text": "3 CFR 741 (2001 Comp.)",
+      "context_start": 51706,
+      "context": "ial practice under IEEPA demonstrates \nas much. See CRS, Casey, International Emergency Eco-\nnomic Powers Act, at 79–106 (Table A–3); see, e. g., Exec. \nOrder No. 13194, 3 CFR 741 (2001 Comp.) (blocking importa-\ntion of diamonds from insurgent regime in Sierra Leone); \nExec. Order No. 12947, 3 CFR 319 (1995 Comp.) (prohibiting \ntransactions with those “who thr",
+      "expected": {
+        "compilation_start": "2001",
+        "compilation_end": null,
+        "page": "741",
+        "page_end": null
+      }
+    },
+    {
+      "id": "court-5",
+      "opinion_id": "scotus-2025-12-24-1287",
+      "start": 51999,
+      "end": 52021,
+      "text": "3 CFR 319 (1995 Comp.)",
+      "context_start": 51829,
+      "context": "able A–3); see, e. g., Exec. \nOrder No. 13194, 3 CFR 741 (2001 Comp.) (blocking importa-\ntion of diamonds from insurgent regime in Sierra Leone); \nExec. Order No. 12947, 3 CFR 319 (1995 Comp.) (prohibiting \ntransactions with those “who threaten to disrupt the Middle \nEast peace process”). None of IEEPA's authorities includes \nthe distinct and extraordinary pow",
+      "expected": {
+        "compilation_start": "1995",
+        "compilation_end": null,
+        "page": "319",
+        "page_end": null
+      }
+    },
+    {
+      "id": "court-6",
+      "opinion_id": "scotus-2025-12-24-1287",
+      "start": 181126,
+      "end": 181152,
+      "text": "3 CFR 60 (1971–1975 Comp.)",
+      "context_start": 180956,
+      "context": "ontinued in that tradition by invoking two statutes \n(the Tariff Act of 1930 and Trade Expansion Act of 1962) found in Title \n19. See Presidential Proclamation No. 4074, 3 CFR 60 (1971–1975 Comp.). \nBut in defending his act against a legal challenge, the Department of Jus-\ntice argued that even if the two cited statutes did not authorize the tariffs, \nTWEA would d",
+      "expected": {
+        "compilation_start": "1971",
+        "compilation_end": "1975",
+        "page": "60",
+        "page_end": null
+      }
+    },
+    {
+      "id": "court-7",
+      "opinion_id": "scotus-2025-12-24-1287",
+      "start": 254661,
+      "end": 254687,
+      "text": "3 CFR 94 (1971–1975 Comp.)",
+      "context_start": 254491,
+      "context": " Nixon terminated them only because the tariffs \n(as intended) induced major American trading partners to \nnegotiate new agreements. Presidential Proclamation No. \n4098, 3 CFR 94 (1971–1975 Comp.). \nThe Nixon tariffs garnered substantial national and inter-\nnational attention, and were generally popular in Congress. \nPredictably, however, the tariffs sparked litig",
+      "expected": {
+        "compilation_start": "1971",
+        "compilation_end": "1975",
+        "page": "94",
+        "page_end": null
+      }
+    },
+    {
+      "id": "court-8",
+      "opinion_id": "scotus-2025-12-24-1287",
+      "start": 258916,
+      "end": 258943,
+      "text": "3 CFR 433 (1971–1975 Comp.)",
+      "context_start": 258746,
+      "context": "e \nIEEPA's enactment should answer them. \nIn 1975, President Ford imposed signifcant monetary ex-\nactions on foreign imports of oil. Presidential Proclamation \nNo. 4341, 3 CFR 433 (1971–1975 Comp.). He acted under \nSection 232 of the Trade Expansion Act of 1962. Like \nTWEA and IEEPA, the relevant provision of Section 232 \ndid not use the word “tariff” or “duty.” Ra",
+      "expected": {
+        "compilation_start": "1971",
+        "compilation_end": "1975",
+        "page": "433",
+        "page_end": null
+      }
+    },
+    {
+      "id": "court-9",
+      "opinion_id": "scotus-2025-12-24-1287",
+      "start": 259757,
+      "end": 259787,
+      "text": "3 CFR 60–61 \n(1971–1975 Comp.)",
+      "context_start": 259587,
+      "context": "esident Nixon imposed 10 percent tar-\niffs on virtually all imports from every country in the world for an unspeci-\nfed duration. See Presidential Proclamation No. 4074, 3 CFR 60–61 \n(1971–1975 Comp.). \nPage Proof Pending Publication\n\n346 LEARNING RESOURCES, INC. v. TRUMP \nKavanaugh, J., dissenting \nthe “regulate . . . importation” language in IEEPA and \nTWEA. \nIn con",
+      "expected": {
+        "compilation_start": "1971",
+        "compilation_end": "1975",
+        "page": "60",
+        "page_end": "61"
+      }
+    }
+  ]
+}
