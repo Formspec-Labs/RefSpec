@@ -76,6 +76,7 @@ import re
 from bisect import bisect_left, bisect_right
 from collections.abc import Callable, Container, Iterable, Mapping
 from dataclasses import dataclass, replace
+from itertools import accumulate
 from string import ascii_lowercase
 from typing import Any
 
@@ -579,6 +580,11 @@ _CFR_COORDINATE = re.compile(
 _CFR_RANGE_CONNECTOR = re.compile(r"\s+(?:(?i:to|through)\b\s*|-\s+)")
 _CFR_UNREAD_TOKEN = re.compile(r"[\w.]+(?:[ \t]*-[ \t]*[\w.]+)*-?(?:\([^()\s]+\))*|(?:\([^()\r\n]+\))+")
 _CFR_OTHER_CITATION_GUARD = re.compile(_ANOTHER_CITATION_AHEAD, re.IGNORECASE)
+# A reverse spelling still names the CFR explicitly. These only locate the
+# unit label and its later title; the shared item reader must consume the body.
+_CFR_REVERSE_HEAD = re.compile(rf"{_LEFT}(?P<label>{_CFR_UNIT_LABEL})\s*(?=\d)", re.IGNORECASE)
+_CFR_REVERSE_OF = re.compile(r"\s+of\s+(?=title\s+\d)", re.IGNORECASE)
+_CFR_REVERSE_LIST_ITEM = re.compile(rf"{_LIST_SEPARATOR}(?P<label>{_CFR_UNIT_LABEL})?\s*(?=\d)", re.IGNORECASE)
 
 
 def _label_is_plural(label: str | None) -> bool:
@@ -1882,8 +1888,9 @@ class CfrCitationRange:
 class CfrCitationOccurrence:
     """A parsed CFR identity with its exact, codepoint-indexed source slice.
 
-    List continuations inherit the title from ``context_start:context_end``;
-    that span identifies the explicitly written citation that opened the list.
+    List continuations inherit the title from ``context_start:context_end``.
+    That span identifies the opening citation, or the complete group when its
+    explicitly written title follows the coordinates (``of title N, Code ...``).
     A pinpoint records attached labels, not verified paragraph existence.
     Subparts and appendices retain their written container; list connectors
     remain in ``text``. A stated range records endpoints, never inferred members.
@@ -2657,22 +2664,8 @@ _CFR_SUBPART_CONTEXT = re.compile(r"[ \t]*\([^()\r\n]*\)")
 _CFR_NOTE_PROSE = re.compile(r"\s+(?:that|how|why|whether)\b", re.IGNORECASE)
 
 
-def find_cfr_citations(
-    text: str, *, list_expansion: str = "plural-label", expand_qualifiers: bool = True,
-) -> tuple[CfrCitationOccurrence, ...]:
-    """Read complete CFR coordinates and ranges with their exact source evidence.
-
-    Source spelling, repeated occurrences and impossible-title verdicts survive.
-    Explicit CFR citations only: no title or local paragraph target is inferred
-    from document context. Attached pinpoints and subpart qualifiers are consumed
-    before walking lists. Written range endpoints survive without expansion.
-    List connectors and parenthetical qualifications remain in the source slice;
-    their legal relationship is not inferred. Ambiguous part/subpart pairings
-    and unsupported note/open-ended scope carry refusals rather than becoming
-    definite addresses. The identity-only parser does not retain these tails.
-    ``expand_qualifiers=False`` keeps one occurrence per coordinate while still
-    consuming its complete qualifier text and retaining ambiguity verdicts.
-    """
+def _qualify_cfr_item(text: str, base: CfrCitationOccurrence, *, expand_qualifiers: bool = True) -> tuple[CfrCitationOccurrence, ...]:
+    """Shared source qualifiers for forward and reverse explicit spellings."""
     found: list[CfrCitationOccurrence] = []
 
     def record(base: CfrCitationOccurrence) -> int:
@@ -2742,7 +2735,34 @@ def find_cfr_citations(
             )]
         return end
 
-    _parse_cfr_citations(text, list_expansion=list_expansion, record=collect)
+    collect(base)
+    return tuple(found)
+
+
+def find_cfr_citations(
+    text: str, *, list_expansion: str = "plural-label", expand_qualifiers: bool = True,
+) -> tuple[CfrCitationOccurrence, ...]:
+    """Read complete CFR coordinates and ranges with their exact source evidence.
+
+    Source spelling, repeated occurrences and impossible-title verdicts survive.
+    Explicit CFR citations only: no title or local paragraph target is inferred
+    from document context. Attached pinpoints and subpart qualifiers are consumed
+    before walking lists. Written range endpoints survive without expansion.
+    List connectors and parenthetical qualifications remain in the source slice;
+    their legal relationship is not inferred. Ambiguous part/subpart pairings
+    and unsupported note/open-ended scope carry refusals rather than becoming
+    definite addresses. The identity-only parser does not retain these tails.
+    ``expand_qualifiers=False`` keeps one occurrence per coordinate while still
+    consuming its complete qualifier text and retaining ambiguity verdicts.
+    """
+    found: list[CfrCitationOccurrence] = []
+
+    def collect(base: CfrCitationOccurrence, *, qualified: bool = False) -> int:
+        rows = (base,) if qualified else _qualify_cfr_item(text, base, expand_qualifiers=expand_qualifiers)
+        found.extend(rows)
+        return rows[-1].end
+
+    _parse_cfr_citations(text, list_expansion=list_expansion, record=collect, expand_qualifiers=expand_qualifiers)
     return tuple(found)
 
 
@@ -2836,9 +2856,53 @@ def _read_cfr_item(text: str, normalized: str, title: int, start: int, position:
     )
 
 
+def _reverse_cfr_items(text, normalized, head, body_end, title_match, list_expansion, expand_qualifiers):
+    """Read only a complete coordinate group directly followed by its CFR title."""
+    if _CITATION_PARAGRAPH_BREAK.search(text, head.start(), head.end()):
+        return ()
+    title = int(title_match.group('title'))
+    label = head.group('label')
+    plural = _label_is_plural(label)
+    rows, position, start = [], head.end(), head.start()
+    while True:
+        item = _read_cfr_item(text, normalized, title, start, position, plural,
+                              (head.start(), title_match.end()) if rows else None)
+        coordinate = item.citation.start if isinstance(item.citation, CfrCitationRange) else item.citation
+        if re.fullmatch(_SECTION_MARKER, label, re.IGNORECASE) and coordinate.cfr_section is None:
+            return ()
+        qualified = _qualify_cfr_item(text, item, expand_qualifiers=expand_qualifiers)
+        rows.extend(qualified)
+        position = qualified[-1].end
+        if position == body_end:
+            break
+        if position > body_end or item.refusal:
+            return ()
+        separator = _CFR_REVERSE_LIST_ITEM.match(normalized, position)
+        if (separator is None or _CITATION_PARAGRAPH_BREAK.search(text, position, separator.end())
+                or _CFR_COORDINATE.match(normalized, separator.end()) is None):
+            return ()
+        if not plural and list_expansion != 'always' and separator.group('label') is None:
+            return ()
+        label = separator.group('label') or label
+        plural = plural or _label_is_plural(label)
+        start, position = position, separator.end()
+    # The final written member includes the suffix; every member retains the
+    # complete title-bearing group as context. A note after that shared title
+    # cannot turn earlier list members into unqualified section targets.
+    last = rows.pop()
+    tail = _qualify_cfr_item(text, replace(last, end=title_match.end(), text=text[last.start:title_match.end()], refusal=None),
+                             expand_qualifiers=expand_qualifiers)
+    shared_refusal = tail[-1].refusal
+    rows.extend(replace(row, refusal=last.refusal or row.refusal) for row in tail)
+    end = rows[-1].end
+    return tuple(replace(row, context_start=head.start() if len(rows) > 1 else None,
+                         context_end=end if len(rows) > 1 else None,
+                         refusal=row.refusal or shared_refusal) for row in rows)
+
+
 def _parse_cfr_citations(
     text: str, *, list_expansion: str,
-    record: Callable[[CfrCitationOccurrence], int] | None = None,
+    record: Callable[..., int] | None = None, expand_qualifiers: bool = True,
 ) -> tuple[CfrCitation | CfrCitationRange, ...]:
     if list_expansion not in {"plural-label", "always"}:
         raise ValueError(f"unknown list expansion policy: {list_expansion!r}")
@@ -2848,7 +2912,16 @@ def _parse_cfr_citations(
     citations: list[CfrCitation | CfrCitationRange] = []
     spans: list[tuple[int, int]] = []
 
-    def collect(item: CfrCitationOccurrence) -> int:
+    reverse_titles = []
+    for prefix in _CFR_REVERSE_OF.finditer(normalized):
+        title = _CFR_LONGHAND.match(normalized, prefix.end())
+        if (title is not None and title.group('label') is None
+                and not _CITATION_PARAGRAPH_BREAK.search(text, prefix.start(), title.end())):
+            reverse_titles.append((prefix.start(), title))
+    title_starts = [start for start, _ in reverse_titles]
+
+    def collect(item: CfrCitationOccurrence, *, qualified: bool = False) -> int:
+        nonlocal latest_end
         # The identity-only API has no refusal column. A rejected start must
         # not escape as a complete single-part identifier through that API.
         citation = item.citation
@@ -2856,17 +2929,43 @@ def _parse_cfr_citations(
             head = citation.start if isinstance(citation, CfrCitationRange) else citation
             citation = _cfr_coordinate(head.cfr_title, None)
         citations.append(citation)
-        end = record(item) if record is not None else item.end
+        end = item.end
+        if record is not None:
+            end = record(item, qualified=True) if qualified else record(item)
         spans.append((item.start, end))
+        latest_end = max(latest_end, end)
         return end
 
-    for pattern in (_CFR_STANDARD, _CFR_TITLE_PART, _CFR_LONGHAND):
+    def overlaps(start, end):
+        at = bisect_left(previous_starts, end) - 1
+        return start < latest_end or (at >= 0 and previous_ends[at] > start)
+
+    for pattern in (_CFR_STANDARD, _CFR_TITLE_PART, _CFR_REVERSE_HEAD, _CFR_LONGHAND):
+        # Index previous spellings once. Within this source-ordered pass, only
+        # the latest consumed end can overlap a later anchor. Prefix maxima
+        # handle the nested complete-group and individual-member intervals.
+        previous = sorted(spans)
+        previous_starts = [start for start, _ in previous]
+        previous_ends = list(accumulate((end for _, end in previous), max))
+        latest_end = -1
+
         for match in pattern.finditer(normalized):
-            # The standard scan and its anchored list items advance in source
-            # order. Only alternate anchor spellings need the old overlap walk.
-            overlaps = (bool(spans) and match.start() < spans[-1][1] if pattern is _CFR_STANDARD else
-                        any(start < match.end() and match.start() < end for start, end in spans))
-            if overlaps:
+            if pattern is _CFR_REVERSE_HEAD:
+                if match.start() < latest_end:
+                    continue
+                at = bisect_left(title_starts, match.end())
+                if at == len(reverse_titles):
+                    continue
+                body_end, title_match = reverse_titles[at]
+                if overlaps(match.start(), title_match.end()):
+                    continue
+                rows = _reverse_cfr_items(text, normalized, match, body_end, title_match, list_expansion, expand_qualifiers)
+                if rows:
+                    for row in rows:
+                        collect(row, qualified=True)
+                    spans.append((match.start(), latest_end))
+                continue
+            if overlaps(match.start(), match.end()):
                 continue
             title = int(match.group('title') or match.groupdict().get('title_cfr'))
             plural = _label_is_plural(match.group('label'))

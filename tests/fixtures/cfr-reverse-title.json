@@ -1,0 +1,354 @@
+[
+  {
+    "id": "derivatives-definitions",
+    "kind": "actual_publisher_paragraph",
+    "text": "Self-regulatory organization. This term means a contract market (as defined in § 1.3(h)), a swap execution facility (as defined in § 1.3(rrrr)), or a registered futures association under section 17 of the Act.\n",
+    "source_path": "/*[1]/*[1]/*[2]/*[2]/*[5]/*[4]/*[334]",
+    "source": {
+      "local_path": "/Users/mikewolfd/Work/corpora/_salvage-2026-08-28/refspec-output/ecfr-title-xml-2026-08-24/title-17.xml",
+      "title": 17,
+      "name": "Commodity and Securities Exchanges",
+      "reserved": false,
+      "date": "2026-08-17",
+      "url": "https://www.ecfr.gov/api/versioner/v1/full/2026-08-17/title-17.xml",
+      "path": "title-17.xml",
+      "http_status": 200,
+      "bytes": 17251585,
+      "sha256": "cc97dba6a531344ea1c64e7d10d5580f55f34c6daef1e7c5ba9e137d941d10ef",
+      "fetched_at": "2026-08-24T11:38:14+00:00",
+      "attempts": 1,
+      "ok": true,
+      "hole_reason": null
+    }
+  },
+  {
+    "id": "derivatives-accounts",
+    "kind": "actual_publisher_paragraph",
+    "text": "(3) A futures commission merchant may not commingle futures customer funds with funds deposited by 30.7 customers as defined in § 30.1 of this chapter and set aside in separate accounts as required by part 30 of this chapter, or with funds deposited by Cleared Swaps Customers as defined in § 22.1 of this chapter and held in segregated accounts pursuant to section 4d(f) of the Act; provided, however, that a futures commission merchant may commingle futures customer funds with funds deposited by 30.7 customers or Cleared Swaps Customers if expressly permitted by a Commission regulation or order, or by a derivatives clearing organization rule approved in accordance with § 39.15(b)(2) of this chapter.\n",
+    "source_path": "/*[1]/*[1]/*[2]/*[2]/*[8]/*[2]/*[22]",
+    "source": {
+      "local_path": "/Users/mikewolfd/Work/corpora/_salvage-2026-08-28/refspec-output/ecfr-title-xml-2026-08-24/title-17.xml",
+      "title": 17,
+      "name": "Commodity and Securities Exchanges",
+      "reserved": false,
+      "date": "2026-08-17",
+      "url": "https://www.ecfr.gov/api/versioner/v1/full/2026-08-17/title-17.xml",
+      "path": "title-17.xml",
+      "http_status": 200,
+      "bytes": 17251585,
+      "sha256": "cc97dba6a531344ea1c64e7d10d5580f55f34c6daef1e7c5ba9e137d941d10ef",
+      "fetched_at": "2026-08-24T11:38:14+00:00",
+      "attempts": 1,
+      "ok": true,
+      "hole_reason": null
+    }
+  },
+  {
+    "id": "treasury-regulations",
+    "kind": "actual_publisher_paragraph",
+    "text": "If the facility is a building, the statute requires that it be exclusively devoted to pollution control. Most questions as to whether a facility is a building and, if so, whether it is exclusively devoted to pollution control are resolved by § 1.169-2(b)(2) of the Treasury Department regulations.\n",
+    "source_path": "/*[1]/*[1]/*[2]/*[2]/*[20]/*[14]/*[23]",
+    "source": {
+      "local_path": "/Users/mikewolfd/Work/corpora/_salvage-2026-08-28/refspec-output/ecfr-title-xml-2026-08-24/title-40.xml",
+      "title": 40,
+      "name": "Protection of Environment",
+      "reserved": false,
+      "date": "2026-08-20",
+      "url": "https://www.ecfr.gov/api/versioner/v1/full/2026-08-20/title-40.xml",
+      "path": "title-40.xml",
+      "http_status": 200,
+      "bytes": 157031367,
+      "sha256": "f52bbdb5a097f686be7f6080f1171e2199dc01473fb1d0d6a433753c95e5a373",
+      "fetched_at": "2026-08-24T11:51:04+00:00",
+      "attempts": 1,
+      "ok": true,
+      "hole_reason": null
+    }
+  },
+  {
+    "id": "refrigerant-practices",
+    "kind": "actual_publisher_paragraph",
+    "text": "(i) The applicable practices in §§ 82.155 and 82.156 are observed, the applicable practices in § 82.157 are observed for appliances that contain any class I or class II refrigerant or blend containing a class I or class II refrigerant, recovery and/or recycling machines that meet the requirements in § 82.158 are used whenever refrigerant is removed from an appliance, the technician certification provisions in § 82.161 are observed, and the reclamation requirements in § 82.164 are observed; or\n",
+    "source_path": "/*[1]/*[1]/*[2]/*[4]/*[34]/*[9]/*[5]/*[14]",
+    "source": {
+      "local_path": "/Users/mikewolfd/Work/corpora/_salvage-2026-08-28/refspec-output/ecfr-title-xml-2026-08-24/title-40.xml",
+      "title": 40,
+      "name": "Protection of Environment",
+      "reserved": false,
+      "date": "2026-08-20",
+      "url": "https://www.ecfr.gov/api/versioner/v1/full/2026-08-20/title-40.xml",
+      "path": "title-40.xml",
+      "http_status": 200,
+      "bytes": 157031367,
+      "sha256": "f52bbdb5a097f686be7f6080f1171e2199dc01473fb1d0d6a433753c95e5a373",
+      "fetched_at": "2026-08-24T11:51:04+00:00",
+      "attempts": 1,
+      "ok": true,
+      "hole_reason": null
+    }
+  },
+  {
+    "id": "refrigerant-equipment",
+    "kind": "actual_publisher_paragraph",
+    "text": "(a) Appliances (except small appliances, MVACs, and MVAC-like appliances). Before opening appliances (except small appliances, MVACs, and MVAC-like appliances) or disposing of such appliances, technicians must evacuate the refrigerant, including all the liquid refrigerant, to the levels in Table 1 using a recovery and/or recycling machine certified pursuant to § 82.158 unless the situations in paragraphs (a)(1) or (2) of this section apply. Technicians may evacuate either the entire appliance or the part to be serviced, if the refrigerant in the part can be isolated to a system receiver. A technician must verify that the applicable level of evacuation has been reached in the appliance or the part before it is opened.\n",
+    "source_path": "/*[1]/*[1]/*[2]/*[4]/*[34]/*[9]/*[7]/*[3]",
+    "source": {
+      "local_path": "/Users/mikewolfd/Work/corpora/_salvage-2026-08-28/refspec-output/ecfr-title-xml-2026-08-24/title-40.xml",
+      "title": 40,
+      "name": "Protection of Environment",
+      "reserved": false,
+      "date": "2026-08-20",
+      "url": "https://www.ecfr.gov/api/versioner/v1/full/2026-08-20/title-40.xml",
+      "path": "title-40.xml",
+      "http_status": 200,
+      "bytes": 157031367,
+      "sha256": "f52bbdb5a097f686be7f6080f1171e2199dc01473fb1d0d6a433753c95e5a373",
+      "fetched_at": "2026-08-24T11:51:04+00:00",
+      "attempts": 1,
+      "ok": true,
+      "hole_reason": null
+    }
+  },
+  {
+    "id": "compound-part",
+    "kind": "actual_publisher_paragraph",
+    "text": "Learners, student learners, apprentices, and handicapped workers may be employed at less than the minimum wage prescribed in § 50-202.2 to the same extent such employment is permitted under section 14 of the Fair Labor Standards Act.\n",
+    "source_path": "/*[1]/*[1]/*[3]/*[2]/*[4]/*[5]/*[3]/*[2]",
+    "source": {
+      "local_path": "/Users/mikewolfd/Work/corpora/_salvage-2026-08-28/refspec-output/ecfr-title-xml-2026-08-24/title-41.xml",
+      "title": 41,
+      "name": "Public Contracts and Property Management",
+      "reserved": false,
+      "date": "2026-08-17",
+      "url": "https://www.ecfr.gov/api/versioner/v1/full/2026-08-17/title-41.xml",
+      "path": "title-41.xml",
+      "http_status": 200,
+      "bytes": 4034733,
+      "sha256": "168b082bf28e66ec10aa8fa40f96b54613c686db5ee21981455c9511050ef48b",
+      "fetched_at": "2026-08-24T11:51:07+00:00",
+      "attempts": 1,
+      "ok": true,
+      "hole_reason": null
+    }
+  },
+  {
+    "id": "foreign-title-suffix",
+    "kind": "actual_publisher_paragraph",
+    "text": "(b) Any requests for variances shall also be considered requests for variances under the Williams-Steiger Occupational Safety and Health Act of 1970, and any variance from a standard which is contained in this part and which is incorporated in part 1910 of title 29, Code of Federal Regulations, shall be deemed a variance from the standard under both the Walsh-Healey Public Contracts Act and the Williams-Steiger Occupational Safety and Health Act of 1970. In accordance with the requirements of § 1954.3(d)(1)(i) of title 29, Code of Federal Regulations, variance actions taken under State provisions under a State occupational safety and health plan approved under section 18 of the Occupational Safety and Health Act of 1970 with regard to State standards found to be at least as effective as the comparable Federal standards contained in this part and incorporated in part 1910 of title 29, Code of Federal Regulations, shall be deemed a variance action from the standard under both the Walsh-Healey Public Contracts Act and the Occupational Safety and Health Act of 1970. \n",
+    "source_path": "/*[1]/*[1]/*[3]/*[2]/*[6]/*[4]/*[3]/*[3]",
+    "source": {
+      "local_path": "/Users/mikewolfd/Work/corpora/_salvage-2026-08-28/refspec-output/ecfr-title-xml-2026-08-24/title-41.xml",
+      "title": 41,
+      "name": "Public Contracts and Property Management",
+      "reserved": false,
+      "date": "2026-08-17",
+      "url": "https://www.ecfr.gov/api/versioner/v1/full/2026-08-17/title-41.xml",
+      "path": "title-41.xml",
+      "http_status": 200,
+      "bytes": 4034733,
+      "sha256": "168b082bf28e66ec10aa8fa40f96b54613c686db5ee21981455c9511050ef48b",
+      "fetched_at": "2026-08-24T11:51:07+00:00",
+      "attempts": 1,
+      "ok": true,
+      "hole_reason": null
+    }
+  },
+  {
+    "id": "quoted-foreign-section",
+    "kind": "actual_publisher_paragraph",
+    "text": "Employers regulated by the AEC shall be governed by “§ 20.206” (10 CFR part 20) standards. Employers in a State named in § 50-204.34(c) shall be governed by the requirements of the laws and regulations of that State. All other employers shall be regulated by the following: \n",
+    "source_path": "/*[1]/*[1]/*[3]/*[2]/*[6]/*[6]/*[9]/*[2]",
+    "source": {
+      "local_path": "/Users/mikewolfd/Work/corpora/_salvage-2026-08-28/refspec-output/ecfr-title-xml-2026-08-24/title-41.xml",
+      "title": 41,
+      "name": "Public Contracts and Property Management",
+      "reserved": false,
+      "date": "2026-08-17",
+      "url": "https://www.ecfr.gov/api/versioner/v1/full/2026-08-17/title-41.xml",
+      "path": "title-41.xml",
+      "http_status": 200,
+      "bytes": 4034733,
+      "sha256": "168b082bf28e66ec10aa8fa40f96b54613c686db5ee21981455c9511050ef48b",
+      "fetched_at": "2026-08-24T11:51:07+00:00",
+      "attempts": 1,
+      "ok": true,
+      "hole_reason": null
+    }
+  },
+  {
+    "id": "mixed-title-local-scope",
+    "kind": "actual_publisher_paragraph",
+    "text": "(a) Immediate notification. Each employer shall immediately notify the Regional Director of the appropriate Wage and Labor Standards Administration, Office of Occupational Safety of the Bureau of Labor Standards of the U.S. Department of Labor, for employees not protected by AEC by means of 10 CFR part 20, § 50-204.34(b) of this part, or the requirements of the laws and regulations of States named in § 50-204.34(c), by telephone or telegraph of any incident involving radiation which may have caused or threatens to cause: \n",
+    "source_path": "/*[1]/*[1]/*[3]/*[2]/*[6]/*[6]/*[12]/*[2]",
+    "source": {
+      "local_path": "/Users/mikewolfd/Work/corpora/_salvage-2026-08-28/refspec-output/ecfr-title-xml-2026-08-24/title-41.xml",
+      "title": 41,
+      "name": "Public Contracts and Property Management",
+      "reserved": false,
+      "date": "2026-08-17",
+      "url": "https://www.ecfr.gov/api/versioner/v1/full/2026-08-17/title-41.xml",
+      "path": "title-41.xml",
+      "http_status": 200,
+      "bytes": 4034733,
+      "sha256": "168b082bf28e66ec10aa8fa40f96b54613c686db5ee21981455c9511050ef48b",
+      "fetched_at": "2026-08-24T11:51:07+00:00",
+      "attempts": 1,
+      "ok": true,
+      "hole_reason": null
+    }
+  },
+  {
+    "id": "driver-introduction",
+    "kind": "actual_publisher_paragraph",
+    "text": "Words or phrases used in this part are defined in §§ 386.2 and 390.5T of this subchapter, and § 40.3 of this title, except as provided in this section—\n",
+    "source_path": "/*[1]/*[1]/*[3]/*[4]/*[3]/*[22]/*[4]/*[5]/*[2]",
+    "source": {
+      "local_path": "/Users/mikewolfd/Work/corpora/_salvage-2026-08-28/refspec-output/ecfr-title-xml-2026-08-24/title-49.xml",
+      "title": 49,
+      "name": "Transportation",
+      "reserved": false,
+      "date": "2026-08-19",
+      "url": "https://www.ecfr.gov/api/versioner/v1/full/2026-08-19/title-49.xml",
+      "path": "title-49.xml",
+      "http_status": 200,
+      "bytes": 33168573,
+      "sha256": "9d7ad9e60318d955ce8e59ca407250c80b29602fb649086245da0ceb83e3d4aa",
+      "fetched_at": "2026-08-24T11:52:24+00:00",
+      "attempts": 1,
+      "ok": true,
+      "hole_reason": null
+    }
+  },
+  {
+    "id": "driver-knowledge",
+    "kind": "actual_publisher_paragraph",
+    "text": "Actual knowledge for the purpose of subpart B of this part, means actual knowledge by an employer that a driver has used alcohol or controlled substances based on the employer's direct observation of the employee, information provided by the driver's previous employer(s), a traffic citation for driving a CMV while under the influence of alcohol or controlled substances or an employee's admission of alcohol or controlled substance use, except as provided in § 382.121. Direct observation as used in this definition means observation of alcohol or controlled substances use and does not include observation of employee behavior or physical characteristics sufficient to warrant reasonable suspicion testing under § 382.307. As used in this section, “traffic citation” means a ticket, complaint, or other document charging driving a CMV while under the influence of alcohol or controlled substances.\n",
+    "source_path": "/*[1]/*[1]/*[3]/*[4]/*[3]/*[22]/*[4]/*[5]/*[3]",
+    "source": {
+      "local_path": "/Users/mikewolfd/Work/corpora/_salvage-2026-08-28/refspec-output/ecfr-title-xml-2026-08-24/title-49.xml",
+      "title": 49,
+      "name": "Transportation",
+      "reserved": false,
+      "date": "2026-08-19",
+      "url": "https://www.ecfr.gov/api/versioner/v1/full/2026-08-19/title-49.xml",
+      "path": "title-49.xml",
+      "http_status": 200,
+      "bytes": 33168573,
+      "sha256": "9d7ad9e60318d955ce8e59ca407250c80b29602fb649086245da0ceb83e3d4aa",
+      "fetched_at": "2026-08-24T11:52:24+00:00",
+      "attempts": 1,
+      "ok": true,
+      "hole_reason": null
+    }
+  },
+  {
+    "id": "bare-local",
+    "kind": "constructed_control",
+    "text": "See § 82.155."
+  },
+  {
+    "id": "stated-local-title",
+    "kind": "constructed_control",
+    "text": "See § 82.155 of this title."
+  },
+  {
+    "id": "no-context",
+    "kind": "constructed_control",
+    "text": "See § 82.155 of this title."
+  },
+  {
+    "id": "unverified-display-title",
+    "kind": "constructed_control",
+    "text": "See § 82.155 of this title."
+  },
+  {
+    "id": "conflicting-native-titles",
+    "kind": "constructed_control",
+    "text": "See § 82.155 of this title."
+  },
+  {
+    "id": "conflicting-heading",
+    "kind": "constructed_control",
+    "text": "See § 82.155 of this title."
+  },
+  {
+    "id": "other-title-explicit",
+    "kind": "constructed_control",
+    "text": "See 17 CFR § 1.3 and § 1.4."
+  },
+  {
+    "id": "other-title-suffix",
+    "kind": "constructed_control",
+    "text": "See § 1.3 of title 17, Code of Federal Regulations."
+  },
+  {
+    "id": "other-manual",
+    "kind": "constructed_control",
+    "text": "See § 1.3 of the Operations Manual."
+  },
+  {
+    "id": "quoted-deictic-scope",
+    "kind": "constructed_control",
+    "text": "The other agency regulation states: “§ 1.3 of this chapter applies.”"
+  },
+  {
+    "id": "contradictory-local-part",
+    "kind": "constructed_control",
+    "text": "See § 90.1 of this part."
+  },
+  {
+    "id": "local-list",
+    "kind": "constructed_control",
+    "text": "See §§ 82.155(a), 82.156(b) of this part."
+  },
+  {
+    "id": "repeated-local",
+    "kind": "constructed_control",
+    "text": "See § 82.155 of this title; see § 82.155 of this title."
+  },
+  {
+    "id": "local-range",
+    "kind": "constructed_control",
+    "text": "See §§ 82.155 through 82.156 of this title."
+  },
+  {
+    "id": "note-scope",
+    "kind": "constructed_control",
+    "text": "See § 82.155 note of this title."
+  },
+  {
+    "id": "open-ended-scope",
+    "kind": "constructed_control",
+    "text": "See § 82.155 et seq. of this title."
+  },
+  {
+    "id": "not-a-cfr-coordinate",
+    "kind": "constructed_control",
+    "text": "See section 17 of the Act; the amount is 82.155 dollars."
+  },
+  {
+    "id": "paragraph-boundary",
+    "kind": "constructed_control",
+    "text": "See § 82.155.\n\nReferences of this title follow."
+  },
+  {
+    "id": "explicit-usc",
+    "kind": "constructed_control",
+    "text": "See 26 U.S.C. § 1 and 17 CFR § 1.3."
+  },
+  {
+    "id": "title-49-section",
+    "kind": "constructed_control",
+    "text": "See § 40.3 of this title."
+  },
+  {
+    "id": "title-40-section",
+    "kind": "constructed_control",
+    "text": "See § 40.3 of this title."
+  },
+  {
+    "id": "compound-local-part",
+    "kind": "constructed_control",
+    "text": "See § 102-5.20 of this part."
+  }
+]
