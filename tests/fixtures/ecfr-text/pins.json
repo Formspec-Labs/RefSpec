@@ -1,0 +1,86 @@
+[
+  {
+    "file": "rail-definition-0.xml",
+    "sha256": "d9a673e09b64db6707ae5e7e4e30368517fe12a8639bd58503b1e58c25209026",
+    "bytes": 37521,
+    "native_attributes": {
+      "N": "390.5",
+      "TYPE": "SECTION",
+      "VOLUME": "5"
+    },
+    "title_context": 49,
+    "source_byte_start": 20946534,
+    "source_byte_end": 20984055,
+    "publisher_title_receipt": {
+      "title": 49,
+      "name": "Transportation",
+      "reserved": false,
+      "date": "2026-08-19",
+      "url": "https://www.ecfr.gov/api/versioner/v1/full/2026-08-19/title-49.xml",
+      "path": "title-49.xml",
+      "http_status": 200,
+      "bytes": 33168573,
+      "sha256": "9d7ad9e60318d955ce8e59ca407250c80b29602fb649086245da0ceb83e3d4aa",
+      "fetched_at": "2026-08-24T11:52:24+00:00",
+      "attempts": 1,
+      "ok": true,
+      "hole_reason": null
+    }
+  },
+  {
+    "file": "alcohol-definition-0.xml",
+    "sha256": "097e3a1d894847027f69e7a2224672e4f9d582671d6a71afc39b02c37b1932cf",
+    "bytes": 13241,
+    "native_attributes": {
+      "N": "382.107",
+      "TYPE": "SECTION",
+      "VOLUME": "5"
+    },
+    "title_context": 49,
+    "source_byte_start": 19993522,
+    "source_byte_end": 20006763,
+    "publisher_title_receipt": {
+      "title": 49,
+      "name": "Transportation",
+      "reserved": false,
+      "date": "2026-08-19",
+      "url": "https://www.ecfr.gov/api/versioner/v1/full/2026-08-19/title-49.xml",
+      "path": "title-49.xml",
+      "http_status": 200,
+      "bytes": 33168573,
+      "sha256": "9d7ad9e60318d955ce8e59ca407250c80b29602fb649086245da0ceb83e3d4aa",
+      "fetched_at": "2026-08-24T11:52:24+00:00",
+      "attempts": 1,
+      "ok": true,
+      "hole_reason": null
+    }
+  },
+  {
+    "file": "refrigerant-equipment-0.xml",
+    "sha256": "d21962f557bcba7f415951a26cc29369bea88d76a42121494fb2bf2b0712210d",
+    "bytes": 15301,
+    "native_attributes": {
+      "N": "82.158",
+      "TYPE": "SECTION",
+      "VOLUME": "21"
+    },
+    "title_context": 40,
+    "source_byte_start": 85849968,
+    "source_byte_end": 85865269,
+    "publisher_title_receipt": {
+      "title": 40,
+      "name": "Protection of Environment",
+      "reserved": false,
+      "date": "2026-08-20",
+      "url": "https://www.ecfr.gov/api/versioner/v1/full/2026-08-20/title-40.xml",
+      "path": "title-40.xml",
+      "http_status": 200,
+      "bytes": 157031367,
+      "sha256": "f52bbdb5a097f686be7f6080f1171e2199dc01473fb1d0d6a433753c95e5a373",
+      "fetched_at": "2026-08-24T11:51:04+00:00",
+      "attempts": 1,
+      "ok": true,
+      "hole_reason": null
+    }
+  }
+]
