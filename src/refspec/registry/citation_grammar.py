@@ -109,6 +109,7 @@ __all__ = [
     "EoCompilationLocator",
     "EoCompilationOccurrence",
     "FederalRegisterCitation",
+    "LocalClauseOccurrence",
     "SupremeCourtCitation",
     "TimetableFrCitation",
     "UscCitationOccurrence",
@@ -118,6 +119,7 @@ __all__ = [
     "find_act_relative_occurrences",
     "find_cfr_citations",
     "find_eo_compilation_locators",
+    "find_local_clause_occurrences",
     "find_usc_citations",
     "names_citation_structure",
     "normalize_popular_name",
@@ -2645,6 +2647,63 @@ def parse_cfr_citations(text: str, *, list_expansion: str = "plural-label") -> t
 # Adjacent labels are source pinpoints; a separated "(2025)" is not consumed.
 # Internal spacing is retained in the slice, including the CFR's "( 4 )".
 _CFR_PINPOINT_LABEL = re.compile(r"\(\s*([0-9A-Za-z]{1,4})\s*\)")
+
+_LOCAL_CLAUSE = re.compile(r"\b(?P<kind>clauses?)\s*(?P<label>\([^()\r\n]*\))", re.IGNORECASE)
+_LOCAL_CLAUSE_SUFFIX = re.compile(
+    r"\s*(?:\(|[-–—]|\b(?:of|in|under|through|to)\b|"
+    r"(?:,\s*)?(?:(?:and|or)\s+)?(?:\(|clauses?\b))", re.IGNORECASE,
+)
+_LOCAL_SCOPE_BOUNDARY = re.compile(
+    r"[.!?;]|\r?\n[ \t]*\r?\n|\b(?:section|subsection|paragraph|subparagraph|subclause)\b", re.IGNORECASE,
+)
+
+
+@dataclass(frozen=True)
+class LocalClauseOccurrence:
+    """A source mention, not an address or an assertion that a rule governs.
+
+    Refusals retain the occurrence rather than silently shortening qualified
+    forms into a bare label. The consumer must supply native structural scope.
+    """
+
+    label: str
+    start: int
+    end: int
+    text: str
+    refusal: str | None = None
+
+
+def find_local_clause_occurrences(text: object) -> tuple[LocalClauseOccurrence, ...]:
+    """Read singular, unqualified lowercase Roman clause labels with exact spans.
+
+    Observed source: 20 USC 1414(d)(1)(C)(iii), whose agreement under clause (i)
+    and consent under clause (ii) are ordinary text without publisher hyperlinks.
+    Lists, ranges, attached pinpoints and stated containers require a broader
+    grammar. Preserve them as refusals. A prior structural word in the same
+    sentence is also conservative evidence against guessing the local parent.
+    Scope boundaries are indexed once: O(text + occurrences * log(boundaries)).
+    """
+    document = "" if text is None else str(text)
+    boundaries = list(_LOCAL_SCOPE_BOUNDARY.finditer(document))
+    ends = [b.end() for b in boundaries]
+    found: list[LocalClauseOccurrence] = []
+    for marker in _LOCAL_CLAUSE.finditer(document):
+        label_match = _CFR_PINPOINT_LABEL.fullmatch(marker.group("label"))
+        label = label_match.group(1) if label_match else marker.group("label")[1:-1].strip()
+        refusal = None
+        if marker.group("kind").lower() != "clause" or re.fullmatch(r"[ivxlcdm]+", label) is None:
+            refusal = "local_clause_label_unsupported"
+        elif _CITATION_PARAGRAPH_BREAK.search(marker.group()):
+            refusal = "local_clause_paragraph_break"
+        else:
+            suffix = _LOCAL_CLAUSE_SUFFIX.match(document, marker.end())
+            if suffix and not _CITATION_PARAGRAPH_BREAK.search(document, marker.end(), suffix.end()):
+                refusal = "local_clause_qualification_unsupported"
+        previous = bisect_right(ends, marker.start()) - 1
+        if previous >= 0 and boundaries[previous].group()[0].isalpha():
+            refusal = "local_clause_container_unsupported"
+        found.append(LocalClauseOccurrence(label, marker.start(), marker.end(), marker.group(), refusal))
+    return tuple(found)
 _CITATION_PARAGRAPH_BREAK = re.compile(r"\r?\n[ \t]*\r?\n")
 # A dash may introduce another complete label, but not a damaged word suffix.
 _CFR_SUBPART_NAME = r"[A-Z]+(?!\w)(?!-(?![A-Z]+(?!\w)))"
