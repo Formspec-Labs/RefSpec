@@ -43,7 +43,7 @@ bytes come from, not whether anyone else can get them, so that field stays
 `localUnpublished` until an index exists -- the same event that deletes this
 directory.
 
-**Why a second wheel.** `rulespec_artifacts-1.0.11-py3-none-any.whl` is
+**Why a second wheel.** `rulespec_artifacts-1.0.12-py3-none-any.whl` is
 vendored alongside it because rc18 declares a `rulespec-artifacts>=1.0.11`
 floor where rc16 and rc17 declared a hard `==1.0.9`, so 1.0.9 no longer
 satisfies it. That dependency arrived with the shared platform-artifact
@@ -53,10 +53,12 @@ platform-artifact helpers this repo never calls. But a declared dependency
 still has to resolve, and `rulespec-artifacts` is on no index either, so it
 is vendored on the same interim terms and should be deleted at the same
 time. Its SHA-256 digest is
-`bedd8ee4799d9633963272714a30258f505404155732480ad5cb1dde2d7cbf4f`, byte
-identical to the copies DocSpec and SpicySearch vendor -- all three compared
-2026-09-05. `pyproject.toml` carries the measured 1.0.9 -> 1.0.11 diff
-beside the pin rather than repeating it here.
+`3f6c946c60ff2ddbe854fce7f74f4358ddb21e3ba3f6ad10caa8a0d8d59fd0a5`, copied
+from SpicyDocs' qualified wheel on 2026-09-14. Rulespec commit `bf59d63`
+adds a bounded local blob writer and public exports; the existing artifact
+encoder/verifier module and dependency closure are unchanged from 1.0.11.
+This aligns source-provider consumers without changing RefSpec's pinned
+Arrow 23 writer or regenerating any data artifacts.
 
 **What rc17 and rc18 changed in the contract.** Two additions, no widening of
 an existing space, so nothing previously valid changed meaning.

@@ -9,7 +9,7 @@ from refspec.generated_rulespec_dependency import load_rulespec_dependency
 try:
     __version__ = version("refspec")
 except PackageNotFoundError:  # pragma: no cover - direct source-tree import
-    __version__ = "0.1.0.dev0"
+    __version__ = "0.1.0.dev1"
 
 
 __all__ = [
