@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import re
 from collections.abc import Mapping, Sequence
+from importlib import import_module
 from pathlib import Path
 from typing import Any, Literal
 
@@ -65,6 +66,25 @@ def file_sha256(path: Path) -> str:
     return "sha256:" + digest.hexdigest()
 
 
+def producer_module_source(name: str) -> Path:
+    """Locate an imported module's source for a run receipt; refuse missing code.
+
+    Hash this file with ``file_sha256``. The result identifies installed source
+    bytes, not a Git checkout or the complete Python execution environment.
+    """
+
+    try:
+        source = import_module(name).__file__
+    except ImportError as error:
+        raise ValueError(f"producer dependency module is unavailable: {name}") from error
+    if source is None:
+        raise ValueError(f"producer dependency module has no source file: {name}")
+    path = Path(source).resolve()
+    if not path.is_file():
+        raise ValueError(f"producer module missing from this checkout: {name} (expected at {path})")
+    return path
+
+
 def path_sha256_descriptor(path: str, payload: bytes) -> dict[str, str]:
     """Return the minimal ``{path, sha256}`` artifact descriptor."""
 
@@ -103,6 +123,7 @@ __all__ = [
     "file_sha256",
     "path_sha256_descriptor",
     "plain_json",
+    "producer_module_source",
     "sha256_digest",
     "source_artifact_path",
 ]

@@ -36,9 +36,14 @@ from spicy_docs.sources.federal_register.topics import (
     read_fr_topics,
 )
 
+from refspec.registry.infrastructure.artifact_serialization import (
+    file_sha256,
+    producer_module_source,
+)
 from refspec.registry.infrastructure.source_identity import (
     SourceCaptureEvent,
     SourceIdentityError,
+    generate_uuid7,
 )
 from refspec.storage import canonical_json
 
@@ -274,6 +279,7 @@ class AcquiredFederalRegisterTopics:
     acquisition_mode: Literal["local", "network"]
     snapshot: FederalRegisterTopicsSnapshot
     capture_event: SourceCaptureEvent
+    receipt_path: Path
 
 
 def _resolve_capture_event(
@@ -307,6 +313,7 @@ def _publish_capture(
     resolved_url: str | None,
     acquisition_mode: Literal["local", "network"],
     capture_event: SourceCaptureEvent,
+    producer_modules: dict[str, str],
     snapshot: FederalRegisterTopicsSnapshot | None = None,
 ) -> AcquiredFederalRegisterTopics:
     if snapshot is None:
@@ -347,6 +354,33 @@ def _publish_capture(
                     ) from error
         finally:
             temporary.unlink(missing_ok=True)
+    # A replay may reuse the acquisition event and bytes. Give this processing
+    # run its own record, outside the content-addressed source and sealed package.
+    recorded_at = datetime.now(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+    run_id = generate_uuid7(recorded_at=recorded_at)
+    receipt_path = Path(store_dir) / "runs" / f"{run_id}.json"
+    receipt_path.parent.mkdir(parents=True, exist_ok=True)
+    receipt = canonical_json({
+        "schemaVersion": "federal-register-topics-run-v1",
+        "runId": run_id,
+        "recordedAt": recorded_at,
+        "captureEvent": capture_event.as_dict(),
+        "acquisitionMode": acquisition_mode,
+        "sourceSha256": snapshot.source_sha256,
+        "sourceByteLength": snapshot.source_byte_length,
+        "parserVersion": FEDERAL_REGISTER_TOPICS_PARSER_VERSION,
+        "producer": {"modules": producer_modules},
+    })
+    descriptor, temporary_name = tempfile.mkstemp(prefix=".run-", dir=receipt_path.parent)
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as output:
+            output.write(receipt)
+            output.flush()
+            os.fsync(output.fileno())
+        os.link(temporary, receipt_path)
+    finally:
+        temporary.unlink(missing_ok=True)
     return AcquiredFederalRegisterTopics(
         path=destination,
         source_url=source_url,
@@ -356,6 +390,7 @@ def _publish_capture(
         acquisition_mode=acquisition_mode,
         snapshot=snapshot,
         capture_event=capture_event,
+        receipt_path=receipt_path,
     )
 
 
@@ -373,7 +408,8 @@ def capture_federal_register_topics(
 
     Every capture records a :class:`SourceCaptureEvent`. Pass ``fetch_event``
     when rebuilding a previously persisted acquisition; otherwise a new event
-    is minted and must be persisted by the caller.
+    is minted. ``receipt_path`` retains that event and this run's source-reader
+    hashes separately from the source bytes and sealed package identity.
     """
 
     if timeout_seconds <= 0:
@@ -384,6 +420,14 @@ def capture_federal_register_topics(
         retrieved_at=retrieved_at,
         fetch_event=fetch_event,
     )
+    producer_modules = {
+        name: file_sha256(producer_module_source(name))
+        for name in (
+            __name__,
+            "spicy_docs.sources.federal_register.topics",
+            "spicy_docs.sources.json_input",
+        )
+    }
     if source_path is not None:
         local_path = Path(source_path)
         if local_path.is_symlink() or not local_path.is_file():
@@ -397,6 +441,7 @@ def capture_federal_register_topics(
             resolved_url=None,
             acquisition_mode="local",
             capture_event=capture_event,
+            producer_modules=producer_modules,
         )
     if not allow_network:
         raise FederalRegisterTopicsError(
@@ -423,6 +468,7 @@ def capture_federal_register_topics(
         resolved_url=acquired.capture.resolved_url,
         acquisition_mode="network",
         capture_event=capture_event,
+        producer_modules=producer_modules,
         snapshot=_accepted_snapshot(acquired.topics),
     )
 

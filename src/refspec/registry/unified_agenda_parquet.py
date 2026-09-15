@@ -1438,17 +1438,10 @@ def _producer_module_source(name: str) -> Path:
     """
 
     if name.startswith("spicy_docs."):
-        from importlib import import_module
+        from refspec.registry.infrastructure.artifact_serialization import producer_module_source
 
-        try:
-            source = import_module(name).__file__
-        except ImportError as error:
-            raise ValueError(f"producer dependency module is unavailable: {name}") from error
-        if source is None:
-            raise ValueError(f"producer dependency module has no source file: {name}")
-        path = Path(source).resolve()
-    else:
-        path = Path(__file__).resolve().parent / f"{name}.py"
+        return producer_module_source(name)
+    path = Path(__file__).resolve().parent / f"{name}.py"
     if not path.is_file():
         raise ValueError(f"producer module missing from this checkout: {name} (expected at {path})")
     return path

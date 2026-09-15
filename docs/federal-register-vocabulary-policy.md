@@ -57,3 +57,11 @@ Offline tests lock source counts, Lists of Subjects
 behavior, the absence of `skos:broader`, active-profile boundaries, and the
 Federal Register-specific candidate priority. Optional gates regenerate the
 checked extract from the exact PDF and reopen the complete managed release.
+
+Each `capture_federal_register_topics` call returns `receipt_path`: a new
+`runs/<run-id>.json` beside the content-addressed source store. It records the
+input pins, acquisition event, parsing policy and installed reader source
+hashes. Replaying an earlier acquisition creates a new run record and preserves
+the earlier acquisition time. Keep these receipts with the capture store; they
+do not alter sealed package identity. Source hashes describe the installed
+files, not the complete execution environment.

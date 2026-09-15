@@ -85,6 +85,7 @@ if str(REPO_ROOT / "src") not in sys.path:
 
 from refspec.registry.infrastructure.artifact_serialization import (
     file_sha256,
+    producer_module_source,
     scan_for_secrets,
     scan_text_for_secrets,
 )
@@ -448,6 +449,18 @@ def compare_to_frozen(rows: list[dict[str, Any]], frozen_table: Path) -> dict[st
 
 
 def build(output_dir: Path, *, archive: Path, release_point: str) -> dict:
+    # Resolve code before writing outputs. The policy version alone cannot
+    # identify the separately installed source reader or its XML helpers.
+    modules = {
+        name: file_sha256(producer_module_source(name))
+        for name in (
+            "spicy_docs.sources.uscode_references",
+            "spicy_docs.sources.uscode",
+            "spicy_docs.sources.xml_observations",
+            "spicy_docs.sources.xml",
+        )
+    }
+    modules["tools.build_usc_source_credits"] = file_sha256(Path(__file__))
     output_dir.mkdir(parents=True, exist_ok=True)
     scan, members = scan_release_zip(archive)
     rows = credit_rows(scan.credits)
@@ -472,6 +485,7 @@ def build(output_dir: Path, *, archive: Path, release_point: str) -> dict:
     receipt = {
         "schema_version": ARTIFACT_SCHEMA_VERSION,
         "parser_version": PARSER_VERSION,
+        "producer": {"modules": modules},
         "coverage": {
             "titles": len(members),
             "source_credits_scanned": scan.credits_scanned,
