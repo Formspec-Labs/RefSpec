@@ -1,27 +1,41 @@
-"""RefSpec acceptance of shared Federal Register source observations.
+# Frozen test-only oracle: 5d71a26c:src/refspec/registry/federal_register_native_controls.py
+"""Documented Federal Register native controls and the agencies roster.
 
-REF-032 requires publisher lists rather than inventories inferred from a corpus.
-SpicyDocs reads supplied JSON; this module keeps exact snapshot pins, reviewed
-field/code rules, roster relationships and cross-source comparisons. Facet counts
-remain capture-time metadata. Importing this module performs no network access.
+REF-032 removed the observed Federal Register inventories: four set-distinct
+scans over a SpicyRegs Parquet snapshot that had stood in for the publisher's
+own lists. This module carries the documented successors, captured from the
+publisher directly:
+
+* ``https://www.federalregister.gov/api/v1/documentation.json`` is the
+  machine-readable OpenAPI 3.0.0 description that the publisher's own
+  developer-documentation page renders. Its ``components.schemas.DocumentType``
+  enumeration states the documented document types (``RULE``, ``PRORULE``,
+  ``NOTICE``, ``PRESDOCU``), its ``PresidentialDocumentType`` enumeration
+  states the documented presidential-document subtypes, and its ``Agency``
+  enumeration states the documented agency slugs.
+* ``https://www.federalregister.gov/api/v1/documents/facets/type`` carries the
+  publisher's display names for the four document types (``Rule``,
+  ``Proposed Rule``, ``Notice``, ``Presidential Document``). Its per-type
+  document counts are corpus counts at capture time and are retained verbatim
+  as capture metadata, never as members.
+* ``https://www.federalregister.gov/api/v1/agencies`` is the publisher's
+  agencies roster: every agency record with its numeric ``id``, ``slug``,
+  names, description, URLs, and publisher-asserted ``parent_id`` relations.
+
+Importing this module performs no network access. Callers provide exact
+captured publisher bytes; every parse verifies them against the pinned digest
+and byte length and refuses drifted bytes.
 """
 
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlsplit
-
-from spicy_docs.sources.federal_register.reference_data import (
-    FederalRegisterReferenceError,
-    FrDocumentedEnums,
-    read_fr_agencies,
-    read_fr_documented_enums,
-    read_fr_type_facets,
-)
 
 FR_PUBLISHER = "Office of the Federal Register, National Archives and Records Administration"
 FR_API_DOCUMENTATION_URL = "https://www.federalregister.gov/api/v1/documentation.json"
@@ -126,32 +140,25 @@ def verify_payload(payload: bytes, pin: FRSnapshotPin, *, location: str) -> str:
     return actual
 
 
-def _source_read(reader, payload: bytes):
+def _json_root(payload: bytes, label: str) -> Any:
     try:
-        return reader(payload)
-    except FederalRegisterReferenceError as error:
-        raise FRSourceDriftError(str(error)) from error
+        return json.loads(payload)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise FRSourceDriftError(f"{label} is not valid UTF-8 JSON") from error
 
 
-def _schema_enum(document: FrDocumentedEnums, schema_name: str, pattern: re.Pattern[str]) -> tuple[str, ...]:
-    components = document.raw.get("components")
+def _schema_enum(openapi_root: Mapping[str, Any], schema_name: str, pattern: re.Pattern[str]) -> tuple[str, ...]:
+    components = openapi_root.get("components")
     if not isinstance(components, Mapping) or not isinstance(components.get("schemas"), Mapping):
         raise FRSourceDriftError("FR API description has no components.schemas object")
     schema = components["schemas"].get(schema_name)
     if not isinstance(schema, Mapping) or not isinstance(schema.get("items"), Mapping):
         raise FRSourceDriftError(f"FR API description schema {schema_name} is not the reviewed array schema")
-    observed = next(
-        (
-            item
-            for item in document.enums
-            if item.schema_name == schema_name and item.source_path.endswith(".items.enum")
-        ),
-        None,
-    )
-    if observed is None or not observed.values:
+    enum = schema["items"].get("enum")
+    if not isinstance(enum, list) or not enum:
         raise FRSourceDriftError(f"FR API description schema {schema_name} declares no enum")
     values: list[str] = []
-    for ordinal, value in enumerate(observed.values):
+    for ordinal, value in enumerate(enum):
         if not isinstance(value, str) or pattern.fullmatch(value) is None:
             raise FRSourceDriftError(f"{schema_name} enum value {ordinal} has an unsupported shape: {value!r}")
         values.append(value)
@@ -195,17 +202,20 @@ def parse_documented_document_types(
 
     documentation_sha256 = verify_payload(documentation_payload, documentation_pin, location="FR API description")
     facets_sha256 = verify_payload(facets_payload, facets_pin, location="FR type facets response")
-    document = _source_read(read_fr_documented_enums, documentation_payload)
-    root = document.raw
+    root = _json_root(documentation_payload, "FR API description")
+    if not isinstance(root, Mapping):
+        raise FRSourceDriftError("FR API description root must be an object")
     openapi_version = root.get("openapi")
     if not isinstance(openapi_version, str) or not openapi_version:
         raise FRSourceDriftError("FR API description declares no openapi version")
     info = root.get("info")
     if not isinstance(info, Mapping) or not isinstance(info.get("version"), str):
         raise FRSourceDriftError("FR API description info block drifted")
-    codes = _schema_enum(document, "DocumentType", _TYPE_CODE)
+    codes = _schema_enum(root, "DocumentType", _TYPE_CODE)
 
-    facets = {row.code: row for row in _source_read(read_fr_type_facets, facets_payload).records}
+    facets = _json_root(facets_payload, "FR type facets response")
+    if not isinstance(facets, Mapping):
+        raise FRSourceDriftError("FR type facets root must be an object")
     if set(facets) != set(codes):
         raise FRSourceDriftError(
             "FR type facets keys differ from the documented DocumentType enum: "
@@ -214,13 +224,13 @@ def parse_documented_document_types(
     types: list[FRDocumentedDocumentType] = []
     for ordinal, code in enumerate(codes, start=1):
         facet = facets[code]
-        if set(facet.raw) != {"count", "name"}:
+        if not isinstance(facet, Mapping) or set(facet) != {"count", "name"}:
             raise FRSourceDriftError(f"FR type facet {code} fields drifted")
-        name = facet.name
-        count = facet.count
-        if not name.strip() or name != name.strip():
+        name = facet["name"]
+        count = facet["count"]
+        if not isinstance(name, str) or not name.strip() or name != name.strip():
             raise FRSourceDriftError(f"FR type facet {code} has a malformed display name")
-        if count < 0:
+        if not isinstance(count, int) or isinstance(count, bool) or count < 0:
             raise FRSourceDriftError(f"FR type facet {code} has a malformed document count")
         types.append(
             FRDocumentedDocumentType(
@@ -249,8 +259,10 @@ def parse_documented_presidential_document_types(
     """Parse the documented ``PresidentialDocumentType`` enumeration."""
 
     verify_payload(documentation_payload, documentation_pin, location="FR API description")
-    document = _source_read(read_fr_documented_enums, documentation_payload)
-    return _schema_enum(document, "PresidentialDocumentType", _SUBTYPE_CODE)
+    root = _json_root(documentation_payload, "FR API description")
+    if not isinstance(root, Mapping):
+        raise FRSourceDriftError("FR API description root must be an object")
+    return _schema_enum(root, "PresidentialDocumentType", _SUBTYPE_CODE)
 
 
 @dataclass(frozen=True, slots=True)
@@ -289,6 +301,14 @@ class FRAgenciesRoster:
         return {record.slug: record for record in self.records}
 
 
+def _optional_text(value: object, label: str) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise FRSourceDriftError(f"{label} must be text or null")
+    return value
+
+
 def _official_page_url(value: object, label: str) -> str:
     if not isinstance(value, str) or not value:
         raise FRSourceDriftError(f"{label} must be non-empty text")
@@ -306,38 +326,50 @@ def parse_agencies_roster(
     """Parse the complete publisher agencies roster from exact bytes."""
 
     source_sha256 = verify_payload(agencies_payload, agencies_pin, location="FR agencies response")
-    observed = _source_read(read_fr_agencies, agencies_payload)
-    if not observed.records:
+    root = _json_root(agencies_payload, "FR agencies response")
+    if not isinstance(root, list) or not root:
         raise FRSourceDriftError("FR agencies response must be a non-empty array")
 
     records: list[FRAgencyRecord] = []
-    for ordinal, row in enumerate(observed.records, start=1):
+    for ordinal, entry in enumerate(root, start=1):
         label = f"agencies[{ordinal - 1}]"
-        entry = row.raw
+        if not isinstance(entry, Mapping):
+            raise FRSourceDriftError(f"{label} must be an object")
         if set(entry) != _AGENCY_FIELDS:
             raise FRSourceDriftError(f"{label} fields drifted from the reviewed shape: {sorted(entry)}")
-        agency_id = row.agency_id
-        if agency_id <= 0:
+        agency_id = entry["id"]
+        if not isinstance(agency_id, int) or isinstance(agency_id, bool) or agency_id <= 0:
             raise FRSourceDriftError(f"{label}.id must be a positive integer")
-        slug = row.slug
-        if _SLUG.fullmatch(slug) is None:
+        slug = entry["slug"]
+        if not isinstance(slug, str) or _SLUG.fullmatch(slug) is None:
             raise FRSourceDriftError(f"{label}.slug has an unsupported shape: {slug!r}")
-        name = row.name
-        if not name.strip():
+        name = entry["name"]
+        if not isinstance(name, str) or not name.strip():
             raise FRSourceDriftError(f"{label}.name must be non-empty text")
+        parent_id = entry["parent_id"]
+        if parent_id is not None and (not isinstance(parent_id, int) or isinstance(parent_id, bool)):
+            raise FRSourceDriftError(f"{label}.parent_id must be an integer or null")
+        child_ids = entry["child_ids"]
+        child_slugs = entry["child_slugs"]
+        if not isinstance(child_ids, list) or not all(
+            isinstance(item, int) and not isinstance(item, bool) for item in child_ids
+        ):
+            raise FRSourceDriftError(f"{label}.child_ids must be an array of integers")
+        if not isinstance(child_slugs, list) or not all(isinstance(item, str) for item in child_slugs):
+            raise FRSourceDriftError(f"{label}.child_slugs must be an array of text slugs")
         records.append(
             FRAgencyRecord(
                 agency_id=agency_id,
                 slug=slug,
                 name=name,
-                short_name=row.short_name,
-                description=row.description,
-                url=_official_page_url(row.url, f"{label}.url"),
-                json_url=_official_page_url(row.json_url, f"{label}.json_url"),
-                agency_url=row.agency_url,
-                parent_id=row.parent_id,
-                child_ids=row.child_ids,
-                child_slugs=row.child_slugs,
+                short_name=_optional_text(entry["short_name"], f"{label}.short_name"),
+                description=_optional_text(entry["description"], f"{label}.description"),
+                url=_official_page_url(entry["url"], f"{label}.url"),
+                json_url=_official_page_url(entry["json_url"], f"{label}.json_url"),
+                agency_url=_optional_text(entry["agency_url"], f"{label}.agency_url"),
+                parent_id=parent_id,
+                child_ids=tuple(child_ids),
+                child_slugs=tuple(child_slugs),
                 logo_present=entry["logo"] is not None,
                 source_ordinal=ordinal,
                 raw=entry,
@@ -362,7 +394,9 @@ def parse_agencies_roster(
             if child_id not in by_id:
                 raise FRSourceDriftError(f"agency {record.agency_id} names child {child_id} outside the roster")
             if by_id[child_id].parent_id != record.agency_id:
-                raise FRSourceDriftError(f"agency {record.agency_id} child {child_id} does not name it back as parent")
+                raise FRSourceDriftError(
+                    f"agency {record.agency_id} child {child_id} does not name it back as parent"
+                )
 
     anomalies = {
         "nullAgencyUrlCount": sum(1 for record in records if record.agency_url is None),
@@ -388,8 +422,10 @@ def crosscheck_documented_agency_slugs(
     """Require the documented ``Agency`` slug enum to equal the roster's slugs."""
 
     verify_payload(documentation_payload, documentation_pin, location="FR API description")
-    document = _source_read(read_fr_documented_enums, documentation_payload)
-    documented = _schema_enum(document, "Agency", _SLUG)
+    root = _json_root(documentation_payload, "FR API description")
+    if not isinstance(root, Mapping):
+        raise FRSourceDriftError("FR API description root must be an object")
+    documented = _schema_enum(root, "Agency", _SLUG)
     roster_slugs = {record.slug for record in roster.records}
     if set(documented) != roster_slugs:
         missing = sorted(set(documented) - roster_slugs)

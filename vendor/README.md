@@ -1,13 +1,21 @@
 # Vendored dependencies
 
-`spicy_docs-0.12.0-py3-none-any.whl` supplies shared Unified Agenda metadata,
-CFR, U.S. Code and Federal Register readers. Its SHA-256 is
-`a231f4975b9cb07e4ca0dd80dc6fb9c94db43bc61004d9384f62f3b0936b7ac6`. Provider source: SpicyDocs `e847f5c` on `codex/unified-agenda-fields`.
-RefSpec 0.1.0.dev4 keeps snapshot checks, normalization, documented source repairs
-and legal interpretation. Python 3.12 matches the provider.
+`spicy_docs-0.13.0-py3-none-any.whl` supplies shared Federal Register reference
+data/topics and BILLSTATUS guide readers, alongside Agenda, CFR and U.S. Code.
+SHA-256: `6275c4684f3e7f9b83f4dd5001b644e9381b53e196f8b51151afd2ac7b7558d7`.
+Provider source: SpicyDocs `15d5a9c` on `codex/publisher-code-readers`.
+RefSpec 0.1.0.dev5 keeps snapshot acceptance, normalization and interpretation.
+Python 3.12 matches the provider. The `acquisition` extra supplies the existing
+explicit topics network route through bounded HTTP; imports remain offline.
 
 The wheel is vendored for reproducible installation and is not published to
-an index. PAR05 qualification compares all 60 retained Agenda editions and
+an index. PAR06 qualification compares the full held FR captures and guide,
+including all 7,767 topic rows. Topic row digests remain unchanged; the new
+shared-reader v2 mapping policy changes future Atlas release lineage. Existing
+sealed artifacts are unchanged. Installed implementation hashes are retained in
+qualification receipts; per-run topics producer evidence remains a follow-up.
+
+PAR05 qualification compared all 60 retained Agenda editions and
 241,726 records with the old reader, including explicit repaired copies of the
 two malformed 2004 exports. Original source bytes and sealed tables remain pinned.
 New Agenda build receipts hash the installed parser and its XML dependencies;

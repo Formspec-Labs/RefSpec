@@ -1,3 +1,5 @@
+# Frozen from 5d71a26c505c1ce7e51b3f1aeacaf84db603ae39:src/refspec/registry/federal_register_topics_api.py.
+# Test-only independent oracle; do not refactor with production.
 """Exact capture and source-faithful parsing for FederalRegister.gov topics.
 
 The public topics endpoint is a mutable API response, not a versioned
@@ -17,24 +19,14 @@ import json
 import os
 import re
 import tempfile
+import urllib.error
+import urllib.request
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal
-
-from spicy_docs.sources.federal_register.topics import (
-    DEFAULT_MAX_BYTES,
-    FR_TOPICS_URL,
-    FrTopicLink,
-    FrTopicRow,
-    FrTopicsAcquirer,
-    FrTopicsBudget,
-    FrTopicsRead,
-    FrTopicsSourceError,
-    read_fr_topics,
-)
+from typing import Any, Literal
 
 from refspec.registry.infrastructure.source_identity import (
     SourceCaptureEvent,
@@ -42,13 +34,11 @@ from refspec.registry.infrastructure.source_identity import (
 )
 from refspec.storage import canonical_json
 
-if TYPE_CHECKING:
-    import httpx
-
-FEDERAL_REGISTER_TOPICS_API_URL = FR_TOPICS_URL
-# Names RefSpec's mapping policy; installed source-reader hashes identify its code.
+FEDERAL_REGISTER_TOPICS_API_URL = (
+    "https://www.federalregister.gov/api/v1/topics.json"
+)
 FEDERAL_REGISTER_TOPICS_PARSER_VERSION = (
-    "federal-register-topics-api-shared-reader-v2"
+    "federal-register-topics-api-source-faithful-v1"
 )
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
@@ -87,6 +77,12 @@ def _require_exact_keys(
 def _require_nonempty_text(value: object, label: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise FederalRegisterTopicsError(f"{label} must be non-empty text")
+    return value
+
+
+def _require_text(value: object, label: str) -> str:
+    if not isinstance(value, str):
+        raise FederalRegisterTopicsError(f"{label} must be text")
     return value
 
 
@@ -205,61 +201,131 @@ class FederalRegisterTopicsSnapshot:
         }
 
 
-def _accepted_link(link: FrTopicLink) -> FederalRegisterTopicLink:
-    _require_exact_keys(link.raw, _LINK_KEYS, link.source_path)
+def _parse_link(value: object, label: str) -> FederalRegisterTopicLink:
+    if not isinstance(value, Mapping):
+        raise FederalRegisterTopicsError(f"{label} must be an object")
+    _require_exact_keys(value, _LINK_KEYS, label)
     return FederalRegisterTopicLink(
-        name=_require_nonempty_text(link.name, f"{link.source_path}.name"),
-        slug=link.slug,
+        name=_require_nonempty_text(value["name"], f"{label}.name"),
+        slug=_require_text(value["slug"], f"{label}.slug"),
     )
 
 
-def _accepted_topic(row: FrTopicRow) -> FederalRegisterTopicRecord:
-    _require_exact_keys(row.raw, _TOPIC_KEYS, row.source_path)
+def _parse_links(value: object, label: str) -> tuple[FederalRegisterTopicLink, ...]:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
+        raise FederalRegisterTopicsError(f"{label} must be an array")
+    return tuple(
+        _parse_link(item, f"{label}[{index}]")
+        for index, item in enumerate(value)
+    )
+
+
+def _parse_topic(
+    value: object,
+    *,
+    collection: TopicCollection,
+    source_ordinal: int,
+) -> FederalRegisterTopicRecord:
+    label = f"results.{collection}[{source_ordinal}]"
+    if not isinstance(value, Mapping):
+        raise FederalRegisterTopicsError(f"{label} must be an object")
+    _require_exact_keys(value, _TOPIC_KEYS, label)
+    cfr_references = value["cfr_references"]
+    if not isinstance(cfr_references, Sequence) or isinstance(
+        cfr_references, (str, bytes)
+    ):
+        raise FederalRegisterTopicsError(
+            f"{label}.cfr_references must be an array"
+        )
     return FederalRegisterTopicRecord(
-        collection=row.collection,
-        source_ordinal=row.source_ordinal,
-        name=_require_nonempty_text(row.name, f"{row.source_path}.name"),
-        slug=row.slug,
-        see=tuple(_accepted_link(link) for link in row.see),
-        see_also=tuple(_accepted_link(link) for link in row.see_also),
+        collection=collection,
+        source_ordinal=source_ordinal,
+        name=_require_nonempty_text(value["name"], f"{label}.name"),
+        slug=_require_text(value["slug"], f"{label}.slug"),
+        see=_parse_links(value["see"], f"{label}.see"),
+        see_also=_parse_links(value["see_also"], f"{label}.see_also"),
         cfr_reference_json=tuple(
-            _canonical_json_value(reference.raw, reference.source_path)
-            for reference in row.cfr_references
+            _canonical_json_value(
+                item,
+                f"{label}.cfr_references[{index}]",
+            )
+            for index, item in enumerate(cfr_references)
         ),
     )
 
 
-def _accepted_snapshot(source: FrTopicsRead) -> FederalRegisterTopicsSnapshot:
-    """Apply RefSpec's complete-key, nonempty-label and count acceptance rules."""
-    _require_exact_keys(source.raw, _ROOT_KEYS, "topics response")
-    _require_exact_keys(source.raw["meta"], frozenset({"count"}), "meta")
-    _require_exact_keys(source.raw["meta"]["count"], _RESULT_KEYS | {"total"}, "meta.count")
-    _require_exact_keys(source.raw["results"], _RESULT_KEYS, "results")
-    parsed = {
-        collection.name: tuple(_accepted_topic(row) for row in collection.rows)
-        for collection in source.collections
+def parse_federal_register_topics_api(
+    payload: bytes,
+) -> FederalRegisterTopicsSnapshot:
+    """Parse one exact API response and reject source-shape drift."""
+
+    if not isinstance(payload, bytes) or not payload:
+        raise FederalRegisterTopicsError("topics payload must be non-empty bytes")
+    try:
+        value = json.loads(payload)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise FederalRegisterTopicsError(
+            "topics payload must be valid UTF-8 JSON"
+        ) from error
+    if not isinstance(value, Mapping):
+        raise FederalRegisterTopicsError("topics response must be an object")
+    _require_exact_keys(value, _ROOT_KEYS, "topics response")
+
+    meta = value["meta"]
+    results = value["results"]
+    if not isinstance(meta, Mapping) or set(meta) != {"count"}:
+        raise FederalRegisterTopicsError(
+            "meta must contain only the declared count object"
+        )
+    declared_counts = meta["count"]
+    if not isinstance(declared_counts, Mapping):
+        raise FederalRegisterTopicsError("meta.count must be an object")
+    _require_exact_keys(declared_counts, _RESULT_KEYS | {"total"}, "meta.count")
+    if not isinstance(results, Mapping):
+        raise FederalRegisterTopicsError("results must be an object")
+    _require_exact_keys(results, _RESULT_KEYS, "results")
+
+    parsed: dict[
+        TopicCollection,
+        tuple[FederalRegisterTopicRecord, ...],
+    ] = {}
+    for collection in ("thesaurus", "ad_hoc"):
+        rows = results[collection]
+        if not isinstance(rows, Sequence) or isinstance(rows, (str, bytes)):
+            raise FederalRegisterTopicsError(
+                f"results.{collection} must be an array"
+            )
+        parsed[collection] = tuple(
+            _parse_topic(
+                row,
+                collection=collection,
+                source_ordinal=index,
+            )
+            for index, row in enumerate(rows)
+        )
+
+    actual_counts = {
+        "thesaurus": len(parsed["thesaurus"]),
+        "ad_hoc": len(parsed["ad_hoc"]),
     }
-    for key, actual in source.observed_counts.items():
-        declared = source.declared_counts[key]
+    actual_counts["total"] = sum(actual_counts.values())
+    for key, actual in actual_counts.items():
+        declared = declared_counts.get(key)
+        if not isinstance(declared, int) or isinstance(declared, bool):
+            raise FederalRegisterTopicsError(
+                f"meta.count.{key} must be an integer"
+            )
         if declared != actual:
             raise FederalRegisterTopicsError(
                 f"meta.count.{key} declares {declared}, observed {actual}"
             )
+
     return FederalRegisterTopicsSnapshot(
-        source_sha256="sha256:" + source.input_sha256,
-        source_byte_length=source.input_bytes,
+        source_sha256=_sha256_bytes(payload),
+        source_byte_length=len(payload),
         thesaurus=parsed["thesaurus"],
         ad_hoc=parsed["ad_hoc"],
     )
-
-
-def parse_federal_register_topics_api(payload: bytes) -> FederalRegisterTopicsSnapshot:
-    """Read through SpicyDocs, then apply the receiver's source acceptance rules."""
-    try:
-        source = read_fr_topics(payload)
-    except FrTopicsSourceError as error:
-        raise FederalRegisterTopicsError(str(error)) from error
-    return _accepted_snapshot(source)
 
 
 @dataclass(frozen=True, slots=True)
@@ -307,10 +373,8 @@ def _publish_capture(
     resolved_url: str | None,
     acquisition_mode: Literal["local", "network"],
     capture_event: SourceCaptureEvent,
-    snapshot: FederalRegisterTopicsSnapshot | None = None,
 ) -> AcquiredFederalRegisterTopics:
-    if snapshot is None:
-        snapshot = parse_federal_register_topics_api(payload)
+    snapshot = parse_federal_register_topics_api(payload)
     digest_hex = snapshot.source_sha256.removeprefix("sha256:")
     destination = (
         Path(store_dir) / "sha256" / digest_hex / "topics.json"
@@ -367,7 +431,6 @@ def capture_federal_register_topics(
     timeout_seconds: float = 60.0,
     retrieved_at: str | None = None,
     fetch_event: SourceCaptureEvent | None = None,
-    transport: httpx.BaseTransport | None = None,
 ) -> AcquiredFederalRegisterTopics:
     """Capture one mutable API response, locally unless network is explicit.
 
@@ -403,28 +466,29 @@ def capture_federal_register_topics(
             "provide source_path or set allow_network=True explicitly"
         )
 
-    import httpx
-
-    budget = FrTopicsBudget(
-        max_requests=1,
-        max_bytes=DEFAULT_MAX_BYTES,
-        timeout_seconds=timeout_seconds,
-        min_request_interval_seconds=0,
+    request = urllib.request.Request(
+        FEDERAL_REGISTER_TOPICS_API_URL,
+        headers={
+            "Accept": "application/json",
+            "User-Agent": "RefSpec explicit Federal Register topics capture/1.0",
+        },
+        method="GET",
     )
     try:
-        with FrTopicsAcquirer(budget=budget, transport=transport) as source:
-            acquired = source.acquire_topics()
-    except (FrTopicsSourceError, httpx.HTTPError, OSError) as error:
-        raise FederalRegisterTopicsError(str(error)) from error
-    return _publish_capture(
-        acquired.capture.body,
-        Path(store_dir),
-        source_url=acquired.capture.requested_url,
-        resolved_url=acquired.capture.resolved_url,
-        acquisition_mode="network",
-        capture_event=capture_event,
-        snapshot=_accepted_snapshot(acquired.topics),
-    )
+        response = urllib.request.urlopen(request, timeout=timeout_seconds)
+    except (OSError, urllib.error.URLError) as error:
+        raise FederalRegisterTopicsError(
+            f"could not capture {FEDERAL_REGISTER_TOPICS_API_URL}: {error}"
+        ) from error
+    with response:
+        return _publish_capture(
+            response.read(),
+            Path(store_dir),
+            source_url=FEDERAL_REGISTER_TOPICS_API_URL,
+            resolved_url=response.geturl(),
+            acquisition_mode="network",
+            capture_event=capture_event,
+        )
 
 
 def open_federal_register_topics_capture(

@@ -39,11 +39,18 @@ import hashlib
 import os
 import re
 import tempfile
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, Protocol
 from urllib.parse import urlsplit
+
+from spicy_docs.sources.congress.billstatus_codes import (
+    BillStatusGuide,
+    BillStatusGuideCell,
+    BillStatusGuideError,
+    read_billstatus_guide,
+)
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
@@ -73,9 +80,6 @@ _BILL_TYPE_CODE = re.compile(r"^[A-Z]{1,7}$")
 _ACTION_CODE = re.compile(r"^[A-Z0-9]{4,6}$")
 _VERSION_CODE = re.compile(r"^[0-9]{2}$")
 _CHAMBERS = frozenset({"HOUSE", "SENATE", "BOTH"})
-_SEPARATOR_CELL = re.compile(r"^:?-+:?$")
-_BOLD_CELL = re.compile(r"^\*\*(.+)\*\*$")
-_BILL_TYPE_SENTENCE = re.compile(r"^Bill type \(Possible values are (.+)\)\.\s*$")
 
 _HEADER_ACTION_CODES = "# 3. Action Code Element Possible Values"
 _HEADER_VERSION_CODES = "# 5. Mapping of LOC Summaries Version Codes and  Action Description Text"
@@ -473,61 +477,21 @@ def acquire_billstatus_source(
     )
 
 
-def _split_row(line: str, header_line: str) -> list[str]:
-    stripped = line.strip()
-    if len(stripped) < 2 or not (stripped.startswith("|") and stripped.endswith("|")):
-        raise BillStatusSourceDriftError(f"malformed table row under {header_line!r}: {line!r}")
-    return [cell.strip() for cell in stripped[1:-1].split("|")]
+def _source_table(guide: BillStatusGuide, heading: str, columns: int) -> tuple[tuple[BillStatusGuideCell, ...], ...]:
+    table = next((table for table in guide.tables if table.heading.text.removesuffix("\n") == heading), None)
+    if table is None:
+        raise BillStatusSourceDriftError(f"expected section header not found: {heading!r}")
+    if len(table.header.cells) != columns:
+        raise BillStatusSourceDriftError(f"table under {heading!r} has an unexpected column count")
+    if not table.rows:
+        raise BillStatusSourceDriftError(f"table under {heading!r} has no data rows")
+    return tuple(row.cells for row in table.rows)
 
 
-def _is_separator_row(line: str, column_count: int, header_line: str) -> bool:
-    cells = _split_row(line, header_line)
-    return len(cells) == column_count and all(_SEPARATOR_CELL.fullmatch(cell) for cell in cells)
-
-
-def _strip_bold(cell: str, header_line: str) -> str:
-    match = _BOLD_CELL.fullmatch(cell)
-    if match is None:
-        raise BillStatusSourceDriftError(f"expected a bold code cell under {header_line!r}: {cell!r}")
-    value = match.group(1).strip()
-    if not value:
-        raise BillStatusSourceDriftError(f"empty code cell under {header_line!r}")
-    return value
-
-
-def _parse_pipe_table(lines: Sequence[str], header_line: str, column_count: int) -> list[list[str]]:
-    try:
-        start = lines.index(header_line)
-    except ValueError as error:
-        raise BillStatusSourceDriftError(f"expected section header not found: {header_line!r}") from error
-    index = start + 1
-    while index < len(lines) and not lines[index].strip().startswith("|"):
-        if lines[index].startswith("# "):
-            raise BillStatusSourceDriftError(f"no table found between {header_line!r} and the next section")
-        index += 1
-    if index >= len(lines):
-        raise BillStatusSourceDriftError(f"no table found after {header_line!r}")
-    header_row = _split_row(lines[index], header_line)
-    if len(header_row) != column_count:
-        raise BillStatusSourceDriftError(
-            f"table under {header_line!r} has {len(header_row)} columns, expected {column_count}"
-        )
-    index += 1
-    if index >= len(lines) or not _is_separator_row(lines[index], column_count, header_line):
-        raise BillStatusSourceDriftError(f"malformed table separator under {header_line!r}")
-    index += 1
-    rows: list[list[str]] = []
-    while index < len(lines) and lines[index].strip().startswith("|"):
-        cells = _split_row(lines[index], header_line)
-        if len(cells) != column_count:
-            raise BillStatusSourceDriftError(
-                f"table row under {header_line!r} has {len(cells)} cells, expected {column_count}: {lines[index]!r}"
-            )
-        rows.append(cells)
-        index += 1
-    if not rows:
-        raise BillStatusSourceDriftError(f"table under {header_line!r} has no data rows")
-    return rows
+def _code_cell(cell: BillStatusGuideCell, heading: str) -> str:
+    if not cell.bold or not cell.value:
+        raise BillStatusSourceDriftError(f"expected a nonempty bold code cell under {heading!r}")
+    return cell.value
 
 
 def _identifier(
@@ -547,25 +511,16 @@ def _identifier(
     )
 
 
-def _parse_bill_types(lines: Sequence[str], acquired: AcquiredBillStatusSource) -> tuple[BillStatusCode, ...]:
-    try:
-        header_index = lines.index(_HEADER_BILL_TYPE)
-    except ValueError as error:
-        raise BillStatusSourceDriftError(f"expected section header not found: {_HEADER_BILL_TYPE!r}") from error
-    sentence: str | None = None
-    for candidate in lines[header_index + 1 : header_index + 5]:
-        if candidate.strip():
-            sentence = candidate.strip()
-            break
-    if sentence is None:
-        raise BillStatusSourceDriftError(f"no sentence found after {_HEADER_BILL_TYPE!r}")
-    match = _BILL_TYPE_SENTENCE.fullmatch(sentence)
-    if match is None:
-        raise BillStatusSourceDriftError(f"bill type sentence drifted from the reviewed wording: {sentence!r}")
+def _parse_bill_types(guide: BillStatusGuide, acquired: AcquiredBillStatusSource) -> tuple[BillStatusCode, ...]:
+    statement = next((item for item in guide.bill_type_statements if item.heading.text.removesuffix("\n") == _HEADER_BILL_TYPE), None)
+    if statement is None:
+        raise BillStatusSourceDriftError(f"expected section header not found: {_HEADER_BILL_TYPE!r}")
+    if statement.sentence.line_number - statement.heading.line_number > 4:
+        raise BillStatusSourceDriftError("bill type sentence moved outside the reviewed section layout")
     codes: list[BillStatusCode] = []
     seen: set[str] = set()
-    for token in re.split(r",\s*(?:and\s+)?", match.group(1)):
-        code = token.strip()
+    for token in statement.values:
+        code = token.value
         if not code:
             continue
         if _BILL_TYPE_CODE.fullmatch(code) is None:
@@ -586,13 +541,13 @@ def _parse_bill_types(lines: Sequence[str], acquired: AcquiredBillStatusSource) 
     return tuple(codes)
 
 
-def _parse_action_codes(lines: Sequence[str], acquired: AcquiredBillStatusSource) -> tuple[BillStatusCode, ...]:
-    rows = _parse_pipe_table(lines, _HEADER_ACTION_CODES, 2)
+def _parse_action_codes(guide: BillStatusGuide, acquired: AcquiredBillStatusSource) -> tuple[BillStatusCode, ...]:
+    rows = _source_table(guide, _HEADER_ACTION_CODES, 2)
     codes: list[BillStatusCode] = []
     seen: set[str] = set()
     for code_cell, label_cell in rows:
-        code = _strip_bold(code_cell, _HEADER_ACTION_CODES)
-        label = label_cell.strip()
+        code = _code_cell(code_cell, _HEADER_ACTION_CODES)
+        label = label_cell.raw.text.strip()
         if _ACTION_CODE.fullmatch(code) is None:
             raise BillStatusSourceDriftError(f"malformed action code: {code!r}")
         if not label:
@@ -614,16 +569,16 @@ def _parse_action_codes(lines: Sequence[str], acquired: AcquiredBillStatusSource
 
 
 def _parse_summary_version_codes(
-    lines: Sequence[str],
+    guide: BillStatusGuide,
     acquired: AcquiredBillStatusSource,
 ) -> tuple[BillStatusCode, ...]:
-    rows = _parse_pipe_table(lines, _HEADER_VERSION_CODES, 3)
+    rows = _source_table(guide, _HEADER_VERSION_CODES, 3)
     codes: list[BillStatusCode] = []
     seen: set[tuple[str, str]] = set()
     for code_cell, chamber_cell, label_cell in rows:
-        code = _strip_bold(code_cell, _HEADER_VERSION_CODES)
-        chamber = chamber_cell.strip()
-        label = label_cell.strip()
+        code = _code_cell(code_cell, _HEADER_VERSION_CODES)
+        chamber = chamber_cell.raw.text.strip()
+        label = label_cell.raw.text.strip()
         if _VERSION_CODE.fullmatch(code) is None:
             raise BillStatusSourceDriftError(f"malformed summary version code: {code!r}")
         if chamber not in _CHAMBERS:
@@ -675,11 +630,14 @@ def parse_billstatus_code_sets(acquired: AcquiredBillStatusSource) -> BillStatus
 
     payload = acquired.path.read_bytes()
     _verify_payload(payload, acquired.pin, location="parsed BILLSTATUS source")
-    lines = payload.decode("utf-8").split("\n")
+    try:
+        guide = read_billstatus_guide(payload)
+    except BillStatusGuideError as error:
+        raise BillStatusSourceDriftError(str(error)) from error
 
-    bill_types = _parse_bill_types(lines, acquired)
-    action_codes = _parse_action_codes(lines, acquired)
-    summary_version_codes = _parse_summary_version_codes(lines, acquired)
+    bill_types = _parse_bill_types(guide, acquired)
+    action_codes = _parse_action_codes(guide, acquired)
+    summary_version_codes = _parse_summary_version_codes(guide, acquired)
 
     return BillStatusControlPortfolio(
         bill_types=_resource("billTypes", "closedEnumeration", bill_types, acquired),
