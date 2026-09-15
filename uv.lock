@@ -533,7 +533,7 @@ dependencies = [
     { name = "rulespec-artifacts" },
 ]
 wheels = [
-    { filename = "spicy_docs-0.10.0-py3-none-any.whl", hash = "sha256:f3e61f210836ec044fa2cf6e3f323fc36ea79f9a99a5555b8ceff6cb2cc499ee" },
+    { filename = "spicy_docs-0.10.0-py3-none-any.whl", hash = "sha256:28e18f3617d702b5ba421c4438b900ed2d8b0c22cd7ddec4c6fd7fd6cee81d99" },
 ]
 
 [package.metadata]
