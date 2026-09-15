@@ -1,17 +1,19 @@
 # Vendored dependencies
 
-`spicy_docs-0.10.0-py3-none-any.whl` supplies the shared U.S. Code structure,
-annual section, reference and source-credit readers. Its SHA-256 is
-`28e18f3617d702b5ba421c4438b900ed2d8b0c22cd7ddec4c6fd7fd6cee81d99`.
-The provider source is SpicyDocs commit `1118145` on `codex/uscode-readers`.
-RefSpec 0.1.0.dev2 keeps citation classification, normalization and legal-policy
-decisions. Python 3.12 matches the provider's supported range. This local wheel
-is vendored for reproducible installation; it has not been published to an index.
-The PAR03 qualification receipt records source revisions, raw-corpus comparisons,
-intentional corrections and installation outside both source checkouts.
+`spicy_docs-0.11.0-py3-none-any.whl` supplies the shared CFR authority, agency
+and subject-index readers, plus the U.S. Code and Federal Register readers.
+Its SHA-256 is `c6022ffe35e2206184a366a74fc3f24361e34afb51db9626d3fa434223639d3e`.
+The provider source is SpicyDocs commit `132b952` on `codex/cfr-metadata`.
+RefSpec 0.1.0.dev3 keeps snapshot acceptance, subject association, citation
+classification and legal-policy decisions. Python 3.12 matches the provider.
+The wheel is vendored for reproducible installation and is not published to
+an index. PAR04 qualification covers all 49 retained eCFR XML titles, all 50
+subject pages, the complete agency roster, mutations and installed packages.
 
-The existing sealed U.S. Code tables are unchanged. New structure builds produce
-unadopted candidates and remove the old parser's subtitle-as-subsection errors.
+The existing sealed U.S. Code tables and CFR authority cache remain pinned.
+New U.S. Code structure builds produce unadopted candidates with the old
+subtitle-as-subsection errors removed. CFR authority observations retain actual
+scope; callers select notes without promoting subdivision notes to part scope.
 
 `rulespec_conformance-0.2.0rc18-py3-none-any.whl` is vendored into this repo
 because CI runners have no `~/Work/rulespec` checkout and `ci.yml` runs

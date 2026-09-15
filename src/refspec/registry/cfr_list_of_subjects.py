@@ -40,12 +40,17 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
-from html import unescape
+from heapq import merge
 from typing import Any, Literal
 from urllib.parse import quote, urlsplit
 from xml.etree import ElementTree
+
+from spicy_docs.sources.cfr.agencies import EcfrAgencyRoster as SourceAgencyRoster
+from spicy_docs.sources.cfr.agencies import read_ecfr_agency_roster
+from spicy_docs.sources.cfr.models import CfrSourceError
+from spicy_docs.sources.cfr.subject_index import CfrSubjectBlock, read_cfr_subject_index
 
 from refspec.storage import canonical_json
 
@@ -160,20 +165,16 @@ def _find_structure_paths(
     return tuple(paths)
 
 
-def _flatten_agencies(value: Sequence[object]) -> tuple[Mapping[str, Any], ...]:
-    rows: list[Mapping[str, Any]] = []
-    for ordinal, item in enumerate(value):
-        if not isinstance(item, Mapping):
-            raise CFRSourceDriftError(f"agencies[{ordinal}] must be an object")
-        _required_text(item.get("name"), f"agencies[{ordinal}].name")
-        _required_text(item.get("slug"), f"agencies[{ordinal}].slug")
-        children = item.get("children", [])
-        references = item.get("cfr_references")
-        if not isinstance(children, list) or not isinstance(references, list):
-            raise CFRSourceDriftError(f"agencies[{ordinal}] children and cfr_references must be arrays")
-        rows.append(item)
-        rows.extend(_flatten_agencies(children))
-    return tuple(rows)
+def _agency_source(payload: bytes) -> SourceAgencyRoster:
+    try:
+        source = read_ecfr_agency_roster(payload)
+    except CfrSourceError as error:
+        raise CFRSourceDriftError(str(error)) from error
+    if not isinstance(source.raw, Mapping):
+        raise CFRSourceDriftError("eCFR agencies response must be an object")
+    if not isinstance(source.raw.get("agencies"), list):
+        raise CFRSourceDriftError("eCFR agencies response must contain an agencies array")
+    return source
 
 
 @dataclass(frozen=True, slots=True)
@@ -313,17 +314,13 @@ def _parse_ecfr_agency_reference(value: object, *, path: str, ordinal: int) -> E
     )
 
 
-def _parse_ecfr_agency_rows(
-    values: object,
-    *,
-    path: str,
-    parent_slug: str | None,
-) -> tuple[EcfrAgencyRecord, ...]:
-    if not isinstance(values, list):
-        raise CFRSourceDriftError(f"{path} must be an array")
+def _accept_ecfr_agency_rows(source: SourceAgencyRoster) -> tuple[EcfrAgencyRecord, ...]:
+    """Apply this snapshot's shape policy to the shared source observations."""
     parsed: list[EcfrAgencyRecord] = []
-    for ordinal, value in enumerate(values):
-        row_path = f"{path}[{ordinal}]"
+    slugs_by_path: dict[str | None, str] = {}
+    for observation in source.records:
+        value = observation.raw
+        row_path = observation.source_path
         if not isinstance(value, Mapping):
             raise CFRSourceDriftError(f"{row_path} must be an object")
         fields = frozenset(value)
@@ -356,14 +353,14 @@ def _parse_ecfr_agency_rows(
                 display_name=_required_text(value["display_name"], f"{row_path}.display_name"),
                 sortable_name=_required_text(value["sortable_name"], f"{row_path}.sortable_name"),
                 slug=slug,
-                parent_slug=parent_slug,
+                parent_slug=slugs_by_path.get(observation.parent_path),
                 child_slugs=child_slugs,
                 source_path=row_path,
                 references=references,
                 raw=value,
             )
         )
-        parsed.extend(_parse_ecfr_agency_rows(child_values, path=f"{row_path}.children", parent_slug=slug))
+        slugs_by_path[row_path] = slug
     return tuple(parsed)
 
 
@@ -381,13 +378,12 @@ def parse_ecfr_agency_roster(
     digest = sha256_digest(payload)
     if digest != pin.expected_sha256:
         raise CFRSourceDriftError(f"eCFR agencies digest drift: expected {pin.expected_sha256}, got {digest}")
-    root = _json_object(payload, "eCFR agencies response")
+    source = _agency_source(payload)
+    root = source.raw
     if set(root) != {"agencies"}:
         raise CFRSourceDriftError(f"eCFR agencies response fields drifted: {sorted(root)}")
     top_level = root["agencies"]
-    records = _parse_ecfr_agency_rows(top_level, path="$.agencies", parent_slug=None)
-    if not isinstance(top_level, list):
-        raise CFRSourceDriftError("eCFR agencies response must contain an agencies array")
+    records = _accept_ecfr_agency_rows(source)
 
     slugs = [record.slug for record in records]
     if len(slugs) != len(set(slugs)):
@@ -525,13 +521,19 @@ def inspect_ecfr_part_sources(
     if meta.get("import_in_progress") is not False:
         raise CFRSourceDriftError("eCFR title import is in progress")
 
-    agencies_response = _json_object(agencies_payload, "eCFR agencies response")
-    top_level_agencies = agencies_response.get("agencies")
-    if not isinstance(top_level_agencies, list):
-        raise CFRSourceDriftError("eCFR agencies response must contain an agencies array")
-    all_agencies = _flatten_agencies(top_level_agencies)
+    agency_source = _agency_source(agencies_payload)
+    top_level_agencies = agency_source.raw["agencies"]
+    all_agencies = agency_source.records
     responsible: list[str] = []
-    for agency in all_agencies:
+    for observation in all_agencies:
+        agency = observation.raw
+        path = observation.source_path
+        if not isinstance(agency, Mapping):
+            raise CFRSourceDriftError(f"{path} must be an object")
+        _required_text(agency.get("name"), f"{path}.name")
+        _required_text(agency.get("slug"), f"{path}.slug")
+        if not isinstance(agency.get("children", []), list) or not isinstance(agency.get("cfr_references"), list):
+            raise CFRSourceDriftError(f"{path} children and cfr_references must be arrays")
         references = agency["cfr_references"]
         matches_part_or_chapter = any(
             isinstance(reference, Mapping)
@@ -724,39 +726,6 @@ class CfrPartSubjects:
     terms: tuple[str, ...]
 
 
-#: The publisher's own HTML is hand-maintained and carries a small number of
-#: recurring irregularities. Each is handled BY NAME and counted, so that a
-#: malformation of a kind not seen before surfaces as a reject instead of
-#: joining a permissive catch-all. Measured over the 2026-08-20 capture of all
-#: fifty pages: 13 missing keyword, 1 "Oart" typo, 1 non-underscore separator,
-#: 1 leaked tag, 0 rejects.
-# The ``dt`` group must not be allowed to span a ``</dt>``. A part with no
-# terms -- a [Reserved] part, or the publisher's stray ``<dt>&nbsp;</dt>``
-# separators -- has no ``<dd>`` after its own close tag, so a plain ``.*?``
-# runs forward to the NEXT part's close tag and swallows its heading,
-# stealing its terms. That silently lost 42 CFR 59 and 45 CFR 2532 and
-# misattributed their terms to the parts above them; an independent
-# event-driven reader caught it after the mistyped-<dd> fix did not reach it.
-_SUBJECT_DT_DD = re.compile(
-    r"<dt>(?P<dt>(?:(?!</dt>).)*?)</dt>"
-    # Between a heading and its first term the publisher may emit a malformed
-    # element -- 45 CFR 2531 is preceded by ``<ddgrant programs="" ...>``, an
-    # unclosed ``<dd>`` whose term was swallowed into the tag name. Skipping
-    # any run that reaches neither a ``<dt`` nor a ``<dd>`` keeps that part's
-    # real terms; requiring ``<dd>`` immediately dropped the part outright.
-    r"(?P<gap>(?:(?!<dt[\s>])(?!<dd>).)*)"
-    r"(?P<dds>(?:\s*<dd>.*?</dd>)+)",
-    re.DOTALL | re.IGNORECASE,
-)
-_SUBJECT_DD = re.compile(r"<dd>(.*?)</dd>", re.DOTALL | re.IGNORECASE)
-_SUBJECT_TAGS = re.compile(r"<[^>]*>")
-_SUBJECT_HEAD = re.compile(
-    r"(?P<title>\d{1,2})\s*CFR\s*(?:(?P<kw>Parts?|Oart|Chapter)\s*)?"
-    r"(?P<part>[0-9][0-9A-Za-z.\-]*)\s*[_\u2014\u2013-]\s*(?P<heading>.*)",
-    re.IGNORECASE | re.DOTALL,
-)
-_SUBJECT_LEAKED_TAG = "strong>"
-
 #: Title 35 is reserved in the Code of Federal Regulations, so its subject
 #: index page legitimately carries no parts. An empty parse is correct there
 #: and a drift error everywhere else -- and a NON-empty parse for a reserved
@@ -882,8 +851,35 @@ CFR_SUBJECT_INDEX_DUPLICATE_PART_KEYS: tuple[tuple[int, str], ...] = (
 )
 
 
-def _subject_text(fragment: str) -> str:
-    return " ".join(unescape(_SUBJECT_TAGS.sub(" ", fragment)).split())
+def _subject_label(block: CfrSubjectBlock) -> str:
+    # RefSpec's established label policy treats markup boundaries as spaces.
+    return " ".join(" ".join(block.text_fragments).split())
+
+
+def _subject_groups(
+    blocks: Iterable[CfrSubjectBlock],
+) -> Iterator[tuple[CfrSubjectBlock, list[CfrSubjectBlock]]]:
+    """Associate DT headings with following DDs within the same source list."""
+    heading: CfrSubjectBlock | None = None
+    terms: list[CfrSubjectBlock] = []
+    for block in blocks:
+        if block.tag in {"dt", "dd"} and block.issues:
+            raise CFRSourceDriftError(f"CFR subject index has malformed {block.tag}: {block.issues}")
+        if heading is not None and (block.tag == "dt" or block.list_index != heading.list_index):
+            if terms:
+                yield heading, terms
+            heading, terms = None, []
+        if block.tag == "dt":
+            heading = block
+        elif block.tag == "dd" and heading is not None:
+            terms.append(block)
+        elif terms and heading is not None:
+            yield heading, terms
+            heading, terms = None, []
+        # Retained malformed markup before the first DD includes the frozen
+        # publisher's ddgrant element. It supplies no recoverable subject label.
+    if heading is not None and terms:
+        yield heading, terms
 
 
 def parse_cfr_subject_index(
@@ -910,60 +906,46 @@ def parse_cfr_subject_index(
             f"CFR subject index title {pin.cfr_title} is {len(payload)} bytes; pinned {pin.expected_byte_length}"
         )
 
-    body = payload.decode("utf-8", errors="replace")
+    try:
+        source = read_cfr_subject_index(payload)
+    except CfrSourceError as error:
+        raise CFRSourceDriftError(str(error)) from error
     parts: list[CfrPartSubjects] = []
-    for match in _SUBJECT_DT_DD.finditer(body):
-        entry = _subject_text(match.group("dt"))
+    events = merge(source.blocks, source.metadata, key=lambda block: block.byte_span[0])
+    for block, terms in _subject_groups(events):
+        entry = _subject_label(block)
         if not entry or "CFR" not in entry.upper():
             continue
-        if entry.lower().startswith(_SUBJECT_LEAKED_TAG):
-            entry = entry[len(_SUBJECT_LEAKED_TAG) :].lstrip()
-        head = _SUBJECT_HEAD.match(entry)
+        head = block.heading
         if head is None:
             raise CFRSourceDriftError(
                 f"CFR subject index title {pin.cfr_title} has an unparsable part entry: {entry[:120]!r}"
             )
-        declared_title = int(head.group("title"))
+        declared_title = int(head.title)
         if declared_title != pin.cfr_title:
             raise CFRSourceDriftError(
                 f"CFR subject index for title {pin.cfr_title} contains a title {declared_title} entry"
             )
-        # Fifth documented publisher irregularity, and the consequential one:
-        # 32 part headings across 14 pages are marked up as <dd> rather than
-        # <dt>. Left alone, the mistyped part vanishes AND its terms are
-        # wrongly attributed to the part above it. Recover them as the part
-        # headings they plainly are, rather than admitting them as terms.
         pending: list[tuple[str, str, list[str]]] = [
-            (head.group("part").rstrip("."), head.group("heading").strip().rstrip("."), [])
+            (head.part.rstrip("."), " ".join(head.heading.split()).rstrip("."), [])
         ]
-        for raw_dd in _SUBJECT_DD.findall(match.group("dds")):
-            value = _subject_text(raw_dd)
+        for term in terms:
+            value = _subject_label(term)
             if not value or value.upper() == "N/A":
                 continue
-            if value.lower().startswith(_SUBJECT_LEAKED_TAG):
-                value = value[len(_SUBJECT_LEAKED_TAG) :].lstrip()
-            nested = _SUBJECT_HEAD.match(value) if "CFR" in value.upper() else None
-            if nested is not None and int(nested.group("title")) == declared_title:
-                pending.append(
-                    (
-                        nested.group("part").rstrip("."),
-                        nested.group("heading").strip().rstrip("."),
-                        [],
-                    )
-                )
-                continue
-            pending[-1][2].append(value.rstrip("."))
-        for part_number, heading, collected in pending:
-            if not collected:
-                continue
-            parts.append(
-                CfrPartSubjects(
-                    cfr_title=declared_title,
-                    cfr_part=part_number,
-                    part_heading=heading,
-                    terms=tuple(collected),
-                )
-            )
+            if value.lower().startswith("strong>"):
+                value = value[len("strong>") :].lstrip()
+            nested = term.heading
+            # The publisher mistypes 32 same-title part headings as DDs.
+            if nested is not None and int(nested.title) == declared_title:
+                pending.append((nested.part.rstrip("."), " ".join(nested.heading.split()).rstrip("."), []))
+            else:
+                pending[-1][2].append(value.rstrip("."))
+        parts.extend(
+            CfrPartSubjects(declared_title, number, heading, tuple(collected))
+            for number, heading, collected in pending
+            if collected
+        )
     if not parts and pin.cfr_title not in CFR_RESERVED_TITLES:
         raise CFRSourceDriftError(f"CFR subject index title {pin.cfr_title} yielded no part assignments")
     if parts and pin.cfr_title in CFR_RESERVED_TITLES:

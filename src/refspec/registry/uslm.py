@@ -12,7 +12,7 @@ from typing import Any
 
 from spicy_docs.sources.uscode import USLM_NAMESPACE
 from spicy_docs.sources.uscode_references import UsCodeReference, scan_uscode_references
-from spicy_docs.sources.uscode_xml import UsCodeElement
+from spicy_docs.sources.xml_observations import XmlElement
 
 USLM_NS = USLM_NAMESPACE
 
@@ -114,7 +114,7 @@ def classify_href(href: str) -> tuple[str, str | None]:
     raise ExtractionError(f"unrecognised USC level in {href!r} (segment {segment!r})")
 
 def _context(
-    stack: Sequence[UsCodeElement],
+    stack: Sequence[XmlElement],
 ) -> tuple[str | None, str | None, str | None, str | None, str | None, str, str | None]:
     """Locate an edge: its section, its finest anchor, and what kind of text it sits in.
 
