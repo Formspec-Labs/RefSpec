@@ -92,12 +92,12 @@ def test_native_root_title_and_empty_source_remain_uninferred():
 
 def test_shared_dispatch_parses_once_without_changing_profile_output(monkeypatch):
     from refspec.registry import xml_text
-    original = xml_text.ET.fromstring
+    original = xml_text.parse_xml
     calls = []
-    def parse(xml):
+    def parse(xml, **kwargs):
         calls.append(xml)
-        return original(xml)
-    monkeypatch.setattr(xml_text.ET, 'fromstring', parse)
+        return original(xml, **kwargs)
+    monkeypatch.setattr(xml_text, 'parse_xml', parse)
     xml = b'<DIV8 N="1.1" TYPE="SECTION"><P>Rule.</P></DIV8>'
     assert xml_text.read_text(xml)['method'] == 'ecfr-block-boundaries/1'
     assert calls == [xml]

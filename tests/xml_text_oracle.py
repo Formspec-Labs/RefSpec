@@ -1,11 +1,9 @@
+# Frozen from 4fe282c1:src/refspec/registry/xml_text.py for PAR13 parity only.
+# The implementation below remains byte-for-byte unchanged.
 """Readable publisher XML with exact source mapping; USLM and eCFR profiles."""
+import xml.etree.ElementTree as ET
 from bisect import bisect_left, bisect_right
 from typing import Any
-
-from spicy_docs.sources.xml import parse_xml
-
-MAX_XML_BYTES = 256 * 1024 * 1024
-MAX_XML_DEPTH = 256
 
 _TEXT_BLOCKS = frozenset(['main', 'appendix', 'title', 'subtitle', 'chapter', 'subchapter', 'part', 'subpart', 'division', 'subdivision', 'level', 'compiledAct', 'courtRules', 'courtRule', 'reorganizationPlans', 'reorganizationPlan', 'section', 'subsection', 'paragraph', 'subparagraph', 'clause', 'subclause', 'item', 'subitem', 'subsubitem', 'continuation', 'notes', 'sourceCredit', 'note', 'p', 'ul', 'ol', 'li', 'longTitle', 'enactingFormula', 'table', 'thead', 'tbody', 'tfoot', 'tr'])
 _TEXT_CELLS = frozenset({'td', 'th'})
@@ -16,15 +14,8 @@ _SEPARATOR_RANK = {'': 0, ' ': 1, '\t': 2, '\n\n': 3}
 
 
 def read_text(xml: bytes, *, profile: str | None = None) -> dict[str, Any]:
-    """Map decoded codepoints after the shared parser checks source size and depth.
-
-    The 256 MiB input limit admits retained full eCFR titles. It does not bound
-    memory use or processing time. Inert external DOCTYPE declarations are
-    accepted without loading them; internal subsets and entities are refused.
-    """
-    root = parse_xml(xml, max_bytes=MAX_XML_BYTES, max_depth=MAX_XML_DEPTH,
-                     error_type=ValueError, label='Publisher text XML',
-                     allow_external_doctype=True)
+    """Two publisher profiles share exact decoded-text mapping and traversal."""
+    root = ET.fromstring(xml)
     if profile is None:
         profile = 'uslm' if root.tag == '{http://xml.house.gov/schemas/uslm/1.0}uscDoc' else 'ecfr'
     ecfr = profile == 'ecfr'
