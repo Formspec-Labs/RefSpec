@@ -1,14 +1,17 @@
 # Vendored dependencies
 
-`spicy_docs-0.16.0-py3-none-any.whl` supplies shared GovInfo PREMIS and MODS
+`spicy_docs-0.17.0-py3-none-any.whl` supplies shared GovInfo PREMIS and MODS
 readers, alongside Federal Register, BILLSTATUS, Agenda, CFR and U.S. Code.
-SHA-256: `c77ded2fa95256c3c39d406125f192fb829c6a91f79f5e896ed72b9caf066d94`.
-Provider source: SpicyDocs `71566b3` on `codex/govinfo-premis`.
-RefSpec 0.1.0.dev8 retains snapshot acceptance, normalization and interpretation.
+SHA-256: `917ca1ce62f139a2bae12e3cae6e3ef526118d533f0c71ebbc583daad4f337d2`.
+Provider source: SpicyDocs `b9ff1fe` on `codex/govinfo-premis`.
+RefSpec 0.1.0.dev9 retains snapshot acceptance, normalization and interpretation.
 USLM/eCFR text now delegates source parsing to that wheel; named layout,
 Unicode character positions and section interpretation remain here. The shared
 reader admits inert external DTDs without loading them and refuses internal
 declarations, over-depth input and source files over 256 MiB.
+PyArrow 25.0.1, DuckDB 1.5.5 or later, and SpicyDocs 0.17.0 allow this wheel
+to run beside current DocSpec. Existing sealed artifacts are unchanged; new Parquet files identify
+the upgraded writer and can have different physical bytes.
 Python 3.12 matches the provider. The `acquisition` extra supplies the existing
 explicit topics network route through bounded HTTP; imports remain offline.
 
