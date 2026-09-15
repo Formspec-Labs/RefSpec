@@ -37,7 +37,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Protocol, cast
 from urllib.parse import urlsplit
-from xml.etree import ElementTree
+
+from spicy_docs.sources.govinfo.premis import PREMIS_NAMESPACE, GovInfoPremisError, read_govinfo_premis
+from spicy_docs.sources.xml import scan_xml
+from spicy_docs.sources.xml_tree import XmlTreeElement
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier, validate_identifier_date
 from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
@@ -54,10 +57,6 @@ ECFR_API_BASE = "https://www.ecfr.gov/api/versioner/v1"
 GOVINFO_IDENTIFIER_AUTHORITY_URI = "https://www.govinfo.gov/developers"
 ECFR_IDENTIFIER_AUTHORITY_URI = "https://www.ecfr.gov/developers/documentation/api/v1"
 GOVINFO_CFR_PACKAGE_ID = "CFR-2023-title1-vol1"
-
-# The PREMIS 2.0 namespace GovInfo uses for its per-package fixity record.
-_PREMIS_NS = "info:lc/xmlns/premis-v2"
-_XSI_NS = "http://www.w3.org/2001/XMLSchema-instance"
 
 ResourceName = Literal[
     "govInfoCollections",
@@ -292,10 +291,16 @@ def _verify_payload(payload: bytes, pin: GovInfoSnapshotPin, *, location: str) -
         except (UnicodeDecodeError, json.JSONDecodeError) as error:
             raise GovInfoSourceDriftError(f"{location} is not valid JSON") from error
     else:
-        try:
-            ElementTree.fromstring(payload)
-        except ElementTree.ParseError as error:
-            raise GovInfoSourceDriftError(f"{location} is not valid XML") from error
+        scan_xml(
+            payload,
+            start=lambda _tag, _attributes: None,
+            end=lambda _tag: None,
+            data=lambda _text: None,
+            max_bytes=16 * 1024 * 1024,
+            max_depth=64,
+            error_type=GovInfoSourceDriftError,
+            label=location,
+        )
     return actual_sha256, byte_length
 
 
@@ -897,8 +902,10 @@ class ParsedGovInfoPackageFixity:
     records: tuple[GovInfoFixityRecord, ...]
 
 
-def _premis_tag(name: str) -> str:
-    return f"{{{_PREMIS_NS}}}{name}"
+def _premis_text(elements: tuple[XmlTreeElement, ...]) -> str | None:
+    # The reviewed receiver uses the first complete child path and leading text.
+    # SpicyDocs retains all repeated elements and descendant text separately.
+    return elements[0].leading_text if elements else None
 
 
 def parse_govinfo_cfr_package_fixity(
@@ -906,80 +913,72 @@ def parse_govinfo_cfr_package_fixity(
     *,
     expected_package_id: str,
 ) -> ParsedGovInfoPackageFixity:
-    """Parse a package's PREMIS record for its SHA-256 file fixity digests.
+    """Apply RefSpec's reviewed SHA-256 file policy to shared PREMIS observations.
 
-    A ``file`` object without a ``fixity`` element is skipped: GovInfo only
-    computes fixity for a subset of a package's file objects (see
-    GOVINFO_PORTFOLIO_GAPS). A ``fixity`` element with an algorithm other
-    than SHA-256 is treated as drift, since no non-SHA-256 digest has ever
-    been observed from this source.
+    Files without fixity remain in SpicyDocs output but do not become RefSpec
+    identifiers. This metadata portfolio does not check downloaded bytes.
     """
-
     payload = acquired.path.read_bytes()
     _verify_payload(payload, acquired.pin, location="parsed GovInfo package PREMIS source")
-    root = ElementTree.fromstring(payload)
-    if root.tag != _premis_tag("premis"):
-        raise GovInfoSourceDriftError("PREMIS payload root element is not a premis-v2 <premis> document")
+    try:
+        source = read_govinfo_premis(payload)
+    except GovInfoPremisError as error:
+        raise GovInfoSourceDriftError(str(error)) from error
 
     records: list[GovInfoFixityRecord] = []
     seen_object_ids: set[str] = set()
-    for obj in root.findall(_premis_tag("object")):
-        if obj.get(f"{{{_XSI_NS}}}type") != "file":
+    for obj in source.objects:
+        if obj.object_type != "file":
             continue
-        fixity_el = obj.find(f"{_premis_tag('objectCharacteristics')}/{_premis_tag('fixity')}")
-        if fixity_el is None:
+        fixities = obj.fixities
+        if not fixities:
             continue
-
-        identifier_type_el = obj.find(f"{_premis_tag('objectIdentifier')}/{_premis_tag('objectIdentifierType')}")
-        identifier_value_el = obj.find(f"{_premis_tag('objectIdentifier')}/{_premis_tag('objectIdentifierValue')}")
-        if identifier_type_el is None or identifier_type_el.text != "FDsys ACP":
+        fixity = fixities[0]
+        identifier_type = _premis_text(obj.fields("objectIdentifier", "objectIdentifierType"))
+        identifier_value = _premis_text(obj.fields("objectIdentifier", "objectIdentifierValue"))
+        if identifier_type != "FDsys ACP":
             raise GovInfoSourceDriftError("PREMIS file object uses an unrecognized objectIdentifierType")
-        if identifier_value_el is None or not (identifier_value_el.text or "").strip():
+        if not identifier_value or not identifier_value.strip():
             raise GovInfoSourceDriftError("PREMIS file object is missing an objectIdentifierValue")
-        object_identifier_value = identifier_value_el.text.strip()  # type: ignore[union-attr]
+        object_identifier_value = identifier_value.strip()
 
-        algorithm_el = fixity_el.find(_premis_tag("messageDigestAlgorithm"))
-        digest_el = fixity_el.find(_premis_tag("messageDigest"))
-        if algorithm_el is None or algorithm_el.text != "SHA-256":
+        algorithm = _premis_text(fixity.findall(f"{{{PREMIS_NAMESPACE}}}messageDigestAlgorithm"))
+        digest_text = _premis_text(fixity.findall(f"{{{PREMIS_NAMESPACE}}}messageDigest"))
+        if algorithm != "SHA-256":
             raise GovInfoSourceDriftError(
                 f"PREMIS file object {object_identifier_value} uses an unsupported fixity algorithm"
             )
-        digest = (digest_el.text or "").strip().lower() if digest_el is not None else ""
+        digest = (digest_text or "").strip().lower()
         if _HEX64.fullmatch(digest) is None:
             raise GovInfoSourceDriftError(
                 f"PREMIS file object {object_identifier_value} has a malformed SHA-256 digest"
             )
 
-        original_name_el = obj.find(_premis_tag("originalName"))
-        if original_name_el is None or not (original_name_el.text or "").strip():
+        name_text = _premis_text(obj.original_names)
+        if not name_text or not name_text.strip():
             raise GovInfoSourceDriftError(f"PREMIS file object {object_identifier_value} is missing originalName")
-        original_name = original_name_el.text.strip()  # type: ignore[union-attr]
+        original_name = name_text.strip()
         if not original_name.startswith(expected_package_id):
             raise GovInfoSourceDriftError(
                 f"PREMIS file object originalName {original_name!r} does not belong to {expected_package_id!r}"
             )
 
-        location_type_el = obj.find(
-            f"{_premis_tag('storage')}/{_premis_tag('contentLocation')}/{_premis_tag('contentLocationType')}"
-        )
-        location_value_el = obj.find(
-            f"{_premis_tag('storage')}/{_premis_tag('contentLocation')}/{_premis_tag('contentLocationValue')}"
-        )
-        if location_type_el is None or location_type_el.text != "URI":
+        location_type = _premis_text(obj.fields("storage", "contentLocation", "contentLocationType"))
+        location_value = _premis_text(obj.fields("storage", "contentLocation", "contentLocationValue"))
+        if location_type != "URI":
             raise GovInfoSourceDriftError(
                 f"PREMIS file object {object_identifier_value} contentLocationType is not URI"
             )
-        if location_value_el is None or not (location_value_el.text or "").strip():
+        if not location_value or not location_value.strip():
             raise GovInfoSourceDriftError(
                 f"PREMIS file object {object_identifier_value} is missing contentLocationValue"
             )
-        content_location_uri = location_value_el.text.strip().rsplit(" ", 1)[-1]  # type: ignore[union-attr]
+        content_location_uri = location_value.strip().rsplit(" ", 1)[-1]
         parsed_uri = urlsplit(content_location_uri)
         if parsed_uri.scheme != "https" or parsed_uri.hostname != "www.govinfo.gov":
             raise GovInfoSourceDriftError(
                 f"PREMIS file object {object_identifier_value} contentLocationValue is not a www.govinfo.gov HTTPS URI"
             )
-
         if object_identifier_value in seen_object_ids:
             raise GovInfoSourceDriftError(f"PREMIS payload repeats objectIdentifierValue {object_identifier_value!r}")
         seen_object_ids.add(object_identifier_value)
@@ -1005,7 +1004,6 @@ def parse_govinfo_cfr_package_fixity(
 
     if not records:
         raise GovInfoSourceDriftError("PREMIS payload does not contain any SHA-256 file fixity records")
-
     return ParsedGovInfoPackageFixity(
         package_id=expected_package_id,
         retrieved_at=acquired.pin.retrieved_at,

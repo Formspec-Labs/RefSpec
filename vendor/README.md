@@ -1,25 +1,23 @@
 # Vendored dependencies
 
-`spicy_docs-0.13.0-py3-none-any.whl` supplies shared Federal Register reference
-data/topics and BILLSTATUS guide readers, alongside Agenda, CFR and U.S. Code.
-SHA-256: `6275c4684f3e7f9b83f4dd5001b644e9381b53e196f8b51151afd2ac7b7558d7`.
-Provider source: SpicyDocs `15d5a9c` on `codex/publisher-code-readers`.
-RefSpec 0.1.0.dev5 keeps snapshot acceptance, normalization and interpretation.
+`spicy_docs-0.14.0-py3-none-any.whl` supplies shared GovInfo PREMIS and MODS
+readers, alongside Federal Register, BILLSTATUS, Agenda, CFR and U.S. Code.
+SHA-256: `ec9c5ec081a43d1258005a5af269ac5fdbbb6742b22fff7089943b74cab85062`.
+Provider source: SpicyDocs `96ae559` on `codex/govinfo-premis`.
+RefSpec 0.1.0.dev6 retains snapshot acceptance, normalization and interpretation.
 Python 3.12 matches the provider. The `acquisition` extra supplies the existing
 explicit topics network route through bounded HTTP; imports remain offline.
 
-The wheel is vendored for reproducible installation and is not published to
-an index. PAR06 qualification compares the full held FR captures and guide,
-including all 7,767 topic rows. Topic row digests remain unchanged; the new
-shared-reader v2 mapping policy changes future Atlas release lineage. Existing
-sealed artifacts are unchanged. Installed implementation hashes are retained in
-qualification receipts; per-run topics producer evidence remains a follow-up.
+PAR07 compares the complete CFR preservation record and its three accepted
+file digests against the frozen reader. Thirty files without fixity remain
+available upstream. Source pins, first-path field selection and identifier
+values stay unchanged; bounded XML rejects DTDs and excessive depth. The
+separate SpicyDocs byte comparer checks selected file consistency, not authenticity.
 
-PAR05 qualification compared all 60 retained Agenda editions and
-241,726 records with the old reader, including explicit repaired copies of the
-two malformed 2004 exports. Original source bytes and sealed tables remain pinned.
-New Agenda build receipts hash the installed parser and its XML dependencies;
-they identify different producer code from older sealed receipts.
+This wheel is vendored for reproducible installation and is not published to
+an index. Earlier qualification covers all 7,767 FR topic rows and 241,726
+Agenda records. Sealed data remains unchanged. Per-run topic producer evidence
+and U.S. Code source-credit provider pins remain follow-ups in PAR08.
 
 Prior U.S. Code structure corrections remain unadopted candidates. CFR authority
 observations retain actual scope; the existing authority cache is unchanged.

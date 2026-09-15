@@ -269,7 +269,7 @@ accepts GovInfo JSON, eCFR JSON, or GovInfo PREMIS XML according to the
 | `parse_govinfo_collections()` | Read the complete `collectionCode`/`collectionName` list, validate holdings-count fields without emitting them, require unique codes, and require 42 rows. |
 | `parse_ecfr_cfr_titles()` | Read 50 title identities, names, currency dates, and the `reserved` flag; require active titles to carry dates and reserved titles to omit them. |
 | `parse_govinfo_cfr_package_summary()` | Validate the exact field shape for one annual-edition CFR package, its collection and title identity, links, dates, document classification, Superintendent of Documents (SuDoc) number, and six download roles. |
-| `parse_govinfo_cfr_package_fixity()` | Read SHA-256 file digests from PREMIS 2.0 file objects and retain their official names and locations. |
+| `parse_govinfo_cfr_package_fixity()` | Apply RefSpec's SHA-256 and identity rules to SpicyDocs PREMIS 2 observations; retain the accepted file names and locations. |
 | `assemble_govinfo_control_portfolio()` | Require the package summary's collection and title to exist and require the PREMIS package ID to equal the summary package ID. |
 | `validate_collection_code()`, `validate_cfr_title_number()` | Resolve exact known collection and title values. |
 | `build_govinfo_collections_package()` | Build the deterministic 42-row collection-code package from one exact local capture. |
@@ -278,6 +278,12 @@ The module deliberately omits volatile `packageCount` and `granuleCount`
 values from collection records, although the parser checks their types in the
 pinned bytes. It also treats collection names and CFR title names as plain
 labels rather than subjects.
+
+SpicyDocs owns the bounded PREMIS XML reader and preserves objects without
+fixity. RefSpec's digest portfolio excludes those objects and keeps its reviewed
+field selection and normalization rules. The separate SpicyDocs byte-comparison
+API checks an exact rendition location against one published digest; this
+portfolio does not compare downloaded files or establish authenticity.
 
 `ECFR_CFR_HIERARCHY_LEVEL_TYPES` is different from the two closed API rosters.
 It records nine values observed in selected eCFR structure captures because
