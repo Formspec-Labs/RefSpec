@@ -1,10 +1,10 @@
 # Vendored dependencies
 
-`spicy_docs-0.14.0-py3-none-any.whl` supplies shared GovInfo PREMIS and MODS
+`spicy_docs-0.15.0-py3-none-any.whl` supplies shared GovInfo PREMIS and MODS
 readers, alongside Federal Register, BILLSTATUS, Agenda, CFR and U.S. Code.
-SHA-256: `ec9c5ec081a43d1258005a5af269ac5fdbbb6742b22fff7089943b74cab85062`.
-Provider source: SpicyDocs `96ae559` on `codex/govinfo-premis`.
-RefSpec 0.1.0.dev6 retains snapshot acceptance, normalization and interpretation.
+SHA-256: `deb8d5cfbdc426effcfecc008b43d9b819c3014f8a5d6b87539a72d651b2df0f`.
+Provider source: SpicyDocs `da531c4` on `codex/govinfo-premis`.
+RefSpec 0.1.0.dev7 retains snapshot acceptance, normalization and interpretation.
 Python 3.12 matches the provider. The `acquisition` extra supplies the existing
 explicit topics network route through bounded HTTP; imports remain offline.
 
@@ -16,8 +16,9 @@ separate SpicyDocs byte comparer checks selected file consistency, not authentic
 
 This wheel is vendored for reproducible installation and is not published to
 an index. Earlier qualification covers all 7,767 FR topic rows and 241,726
-Agenda records. Sealed data remains unchanged. Per-run topic producer evidence
-and U.S. Code source-credit provider pins remain follow-ups in PAR08.
+Agenda records. Sealed data remains unchanged. Topics runs now retain separate producer receipts,
+and source-credit receipts include installed reader hashes. The `pdf-pypdf` extra
+shares raw GAO PDF page reading while RefSpec retains folding and interpretation.
 
 Prior U.S. Code structure corrections remain unadopted candidates. CFR authority
 observations retain actual scope; the existing authority cache is unchanged.

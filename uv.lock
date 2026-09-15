@@ -487,7 +487,7 @@ wheels = [
 
 [[package]]
 name = "refspec"
-version = "0.1.0.dev6"
+version = "0.1.0.dev7"
 source = { editable = "." }
 dependencies = [
     { name = "backports-zstd" },
@@ -501,7 +501,7 @@ dependencies = [
     { name = "referencing" },
     { name = "rulespec-artifacts" },
     { name = "rulespec-conformance" },
-    { name = "spicy-docs", extra = ["acquisition"] },
+    { name = "spicy-docs", extra = ["acquisition", "pdf-pypdf"] },
     { name = "typing-extensions" },
 ]
 
@@ -530,7 +530,7 @@ requires-dist = [
     { name = "referencing", specifier = ">=0.37,<1" },
     { name = "rulespec-artifacts", path = "vendor/rulespec_artifacts-1.0.12-py3-none-any.whl" },
     { name = "rulespec-conformance", path = "vendor/rulespec_conformance-0.2.0rc18-py3-none-any.whl" },
-    { name = "spicy-docs", extras = ["acquisition"], path = "vendor/spicy_docs-0.14.0-py3-none-any.whl" },
+    { name = "spicy-docs", extras = ["acquisition", "pdf-pypdf"], path = "vendor/spicy_docs-0.15.0-py3-none-any.whl" },
     { name = "typing-extensions", specifier = ">=4.12,<5" },
 ]
 
@@ -677,14 +677,14 @@ wheels = [
 
 [[package]]
 name = "spicy-docs"
-version = "0.14.0"
-source = { path = "vendor/spicy_docs-0.14.0-py3-none-any.whl" }
+version = "0.15.0"
+source = { path = "vendor/spicy_docs-0.15.0-py3-none-any.whl" }
 dependencies = [
     { name = "jsonschema" },
     { name = "rulespec-artifacts" },
 ]
 wheels = [
-    { filename = "spicy_docs-0.14.0-py3-none-any.whl", hash = "sha256:ec9c5ec081a43d1258005a5af269ac5fdbbb6742b22fff7089943b74cab85062" },
+    { filename = "spicy_docs-0.15.0-py3-none-any.whl", hash = "sha256:deb8d5cfbdc426effcfecc008b43d9b819c3014f8a5d6b87539a72d651b2df0f" },
 ]
 
 [package.optional-dependencies]
@@ -693,6 +693,9 @@ acquisition = [
     { name = "httpx" },
     { name = "loguru" },
     { name = "tqdm" },
+]
+pdf-pypdf = [
+    { name = "pypdf" },
 ]
 
 [package.metadata]
@@ -708,11 +711,12 @@ requires-dist = [
     { name = "polars", marker = "extra == 'public-table'" },
     { name = "pyarrow", marker = "extra == 'public-table'" },
     { name = "pymupdf", marker = "extra == 'pdf'", specifier = ">=1.28,<2" },
+    { name = "pypdf", marker = "extra == 'pdf-pypdf'", specifier = ">=6,<7" },
     { name = "rapidocr-onnxruntime", marker = "extra == 'pdf-rapidocr'", specifier = ">=1.4.4,<2" },
     { name = "rulespec-artifacts", specifier = "==1.0.12" },
     { name = "tqdm", marker = "extra == 'acquisition'" },
 ]
-provides-extras = ["acquisition", "pdf", "pdf-apple", "pdf-gemini", "pdf-mlx", "pdf-rapidocr", "public-table"]
+provides-extras = ["acquisition", "pdf", "pdf-apple", "pdf-gemini", "pdf-mlx", "pdf-pypdf", "pdf-rapidocr", "public-table"]
 
 [[package]]
 name = "tqdm"

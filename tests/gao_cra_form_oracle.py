@@ -38,6 +38,7 @@ access.
 from __future__ import annotations
 
 import hashlib
+import io
 import re
 from dataclasses import dataclass
 from typing import Literal
@@ -252,19 +253,6 @@ def sha256_digest(payload: bytes) -> str:
     return "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
-def _normalized_pdf_text(payload: bytes) -> str:
-    """Keep GAO's ligature/whitespace policy around shared raw page reading."""
-    from spicy_docs.extraction.pypdf import PypdfReader
-
-    # pypdf previously tried the empty password itself. Preserve that explicit
-    # choice here; a protected file or unreadable page still refuses the input.
-    with PypdfReader().open(payload, password="") as document:
-        return " ".join(
-            " ".join(fold_pdf_text(document.read_page(number) or "").split())
-            for number in range(1, document.page_count + 1)
-        )
-
-
 def _verified_normalized_text(payload: bytes, pin: GaoCraFormPin) -> str:
     if len(payload) != pin.expected_byte_length:
         raise GaoCraFormSourceDriftError(
@@ -279,7 +267,14 @@ def _verified_normalized_text(payload: bytes, pin: GaoCraFormPin) -> str:
     if payload[:5] != b"%PDF-":
         raise GaoCraFormSourceDriftError(f"GAO CRA {pin.form_kind} no longer starts with a PDF header")
     try:
-        text = _normalized_pdf_text(payload)
+        from pypdf import PdfReader
+    except ImportError as error:  # pragma: no cover - dependency gate
+        raise GaoCraFormSourceDriftError("pypdf is required to read the GAO CRA form text layer") from error
+    try:
+        reader = PdfReader(io.BytesIO(payload))
+        text = " ".join(
+            " ".join(fold_pdf_text(page.extract_text() or "").split()) for page in reader.pages
+        )
     except Exception as error:  # pragma: no cover - unreadable pinned source
         raise GaoCraFormSourceDriftError(f"GAO CRA {pin.form_kind} text layer is unreadable") from error
     if pin.revision not in text:
@@ -394,7 +389,17 @@ def parse_gao_cra_institutional_bridge(
             "GAO CRA institutional evidence no longer starts with a PDF header"
         )
     try:
-        text = _normalized_pdf_text(payload)
+        from pypdf import PdfReader
+    except ImportError as error:  # pragma: no cover - dependency gate
+        raise GaoCraFormSourceDriftError(
+            "pypdf is required to read the GAO institutional evidence"
+        ) from error
+    try:
+        reader = PdfReader(io.BytesIO(payload))
+        text = " ".join(
+            " ".join(fold_pdf_text(page.extract_text() or "").split())
+            for page in reader.pages
+        )
     except Exception as error:  # pragma: no cover - unreadable pinned source
         raise GaoCraFormSourceDriftError(
             "GAO CRA institutional evidence text layer is unreadable"
