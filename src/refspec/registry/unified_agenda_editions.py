@@ -41,7 +41,13 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass
-from xml.etree import ElementTree as ET
+
+from spicy_docs.sources.unified_agenda_records import (
+    UnifiedAgendaField,
+    UnifiedAgendaRecordObservation,
+    UnifiedAgendaSourceError,
+    scan_unified_agenda_records,
+)
 
 __all__ = [
     "CONTINUATION_LABEL_FAMILIES",
@@ -59,8 +65,6 @@ __all__ = [
 ]
 
 _SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
-_ROOT_TAG = "REGINFO_RIN_DATA"
-_RECORD_TAG = "RIN_INFO"
 
 #: The publisher's mangled ``U+2019``. Present exactly once in each of the two
 #: 2004 editions and nowhere else in the 60-file series -- verified by
@@ -671,20 +675,17 @@ UNIFIED_AGENDA_EXPECTED_EDITION_COUNT = 60
 UNIFIED_AGENDA_EXPECTED_RECORD_COUNT = 241726
 
 
-def _text(element: ET.Element | None) -> str:
-    return "" if element is None else " ".join((element.text or "").split())
+def _first(fields: tuple[UnifiedAgendaField, ...], tag: str) -> UnifiedAgendaField | None:
+    return next((field for field in fields if field.element.tag == tag), None)
 
 
-def _raw_text(element: ET.Element | None) -> str:
-    """Everything an element holds, whitespace intact.
+def _leading(field: UnifiedAgendaField | None) -> str:
+    """RefSpec's established citation-box whitespace and leading-text policy."""
+    return "" if field is None else " ".join(field.leading_text.split())
 
-    ``itertext`` rather than ``.text`` so that a child element could never take
-    its tail text away with it. Measured over all 241,726 records of the 60
-    pinned editions: no ``ADDITIONAL_INFO`` element has a child, so today the
-    two spellings agree -- and if one ever grows one, nothing vanishes.
-    """
 
-    return "" if element is None else "".join(element.itertext())
+def _children(field: UnifiedAgendaField | None) -> tuple[UnifiedAgendaField, ...]:
+    return () if field is None else field.children
 
 
 #: The labels a filer writes above a continued legal-authority list, each
@@ -747,7 +748,7 @@ def legal_authority_continuations(additional_info: str) -> tuple[AuthorityContin
     publisher's "^" paragraph mark, a blank line, or another of the form's
     fields continuing under its own label (see
     :data:`_ANOTHER_FIELD_CONTINUES`, which fires on nothing here). What comes
-    back is whitespace-collapsed exactly as :func:`_text` collapses a citation
+    back is whitespace-collapsed like a citation
     box, because it is the same kind of string and a caller must not have to
     know which of the two it holds.
 
@@ -815,52 +816,53 @@ def parse_unified_agenda_edition(
             f"{pin.file_stem} mangled-apostrophe presence does not match the recorded roster"
         )
 
-    root = ET.fromstring(repaired)
-    if root.tag != _ROOT_TAG:
-        raise UnifiedAgendaEditionError(f"{pin.file_stem} root element is {root.tag!r}, not {_ROOT_TAG!r}")
-
     records: list[UnifiedAgendaRecord] = []
-    for element in root.findall(f".//{_RECORD_TAG}"):
-        publication_id = _text(element.find("PUBLICATION/PUBLICATION_ID"))
+
+    def accept(observation: UnifiedAgendaRecordObservation) -> None:
+        fields = observation.fields
+        publication = next(
+            (
+                child
+                for field in fields if field.element.tag == "PUBLICATION"
+                for child in field.children if child.element.tag == "PUBLICATION_ID"
+            ),
+            None,
+        )
+        publication_id = _leading(publication)
         if publication_id != pin.publication_id:
             raise UnifiedAgendaEditionError(
                 f"{pin.file_stem} record declares publication {publication_id!r}, "
                 f"not the pinned {pin.publication_id!r}"
             )
-        cfr_list = element.find("CFR_LIST")
-        authority_list = element.find("LEGAL_AUTHORITY_LIST")
-        timetable_list = element.find("TIMETABLE_LIST")
         timetable = tuple(
             TimetableEntry(
-                action=_text(entry.find("TTBL_ACTION")),
-                date_text=_text(entry.find("TTBL_DATE")),
-                fr_citation=_text(entry.find("FR_CITATION")) or None,
+                action=_leading(_first(entry.children, "TTBL_ACTION")),
+                date_text=_leading(_first(entry.children, "TTBL_DATE")),
+                fr_citation=_leading(_first(entry.children, "FR_CITATION")) or None,
             )
-            for entry in ([] if timetable_list is None else timetable_list.findall("TIMETABLE"))
+            for entry in _children(_first(fields, "TIMETABLE_LIST"))
+            if entry.element.tag == "TIMETABLE"
         )
+        additional = _first(fields, "ADDITIONAL_INFO")
         records.append(
             UnifiedAgendaRecord(
-                rin=_text(element.find("RIN")),
+                rin=_leading(_first(fields, "RIN")),
                 publication_id=publication_id,
-                # `if element:` on an ElementTree node tests child count, not
-                # presence, and is deprecated for exactly that ambiguity -- an
-                # empty <CFR_LIST> is falsy while being perfectly present.
                 cfr_references=tuple(
-                    text
-                    for child in (() if cfr_list is None else cfr_list)
-                    if (text := _text(child))
+                    text for child in _children(_first(fields, "CFR_LIST")) if (text := _leading(child))
                 ),
                 legal_authorities=tuple(
-                    text
-                    for child in (() if authority_list is None else authority_list)
-                    if (text := _text(child))
+                    text for child in _children(_first(fields, "LEGAL_AUTHORITY_LIST")) if (text := _leading(child))
                 ),
                 timetable=timetable,
-                # Whitespace INTACT -- see the field's own comment on
-                # UnifiedAgendaRecord for why this one field is not collapsed.
-                additional_info=_raw_text(element.find("ADDITIONAL_INFO")),
+                additional_info="" if additional is None else additional.text,
             )
         )
+
+    try:
+        scan_unified_agenda_records(repaired, on_record=accept)
+    except UnifiedAgendaSourceError as error:
+        raise UnifiedAgendaEditionError(str(error)) from error
 
     if len(records) != pin.expected_record_count:
         raise UnifiedAgendaEditionError(

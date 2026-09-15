@@ -1,19 +1,20 @@
 # Vendored dependencies
 
-`spicy_docs-0.11.0-py3-none-any.whl` supplies the shared CFR authority, agency
-and subject-index readers, plus the U.S. Code and Federal Register readers.
-Its SHA-256 is `c6022ffe35e2206184a366a74fc3f24361e34afb51db9626d3fa434223639d3e`.
-The provider source is SpicyDocs commit `132b952` on `codex/cfr-metadata`.
-RefSpec 0.1.0.dev3 keeps snapshot acceptance, subject association, citation
-classification and legal-policy decisions. Python 3.12 matches the provider.
-The wheel is vendored for reproducible installation and is not published to
-an index. PAR04 qualification covers all 49 retained eCFR XML titles, all 50
-subject pages, the complete agency roster, mutations and installed packages.
+`spicy_docs-0.12.0-py3-none-any.whl` supplies shared Unified Agenda metadata,
+CFR, U.S. Code and Federal Register readers. Its SHA-256 is
+`a231f4975b9cb07e4ca0dd80dc6fb9c94db43bc61004d9384f62f3b0936b7ac6`. Provider source: SpicyDocs `e847f5c` on `codex/unified-agenda-fields`.
+RefSpec 0.1.0.dev4 keeps snapshot checks, normalization, documented source repairs
+and legal interpretation. Python 3.12 matches the provider.
 
-The existing sealed U.S. Code tables and CFR authority cache remain pinned.
-New U.S. Code structure builds produce unadopted candidates with the old
-subtitle-as-subsection errors removed. CFR authority observations retain actual
-scope; callers select notes without promoting subdivision notes to part scope.
+The wheel is vendored for reproducible installation and is not published to
+an index. PAR05 qualification compares all 60 retained Agenda editions and
+241,726 records with the old reader, including explicit repaired copies of the
+two malformed 2004 exports. Original source bytes and sealed tables remain pinned.
+New Agenda build receipts hash the installed parser and its XML dependencies;
+they identify different producer code from older sealed receipts.
+
+Prior U.S. Code structure corrections remain unadopted candidates. CFR authority
+observations retain actual scope; the existing authority cache is unchanged.
 
 `rulespec_conformance-0.2.0rc18-py3-none-any.whl` is vendored into this repo
 because CI runners have no `~/Work/rulespec` checkout and `ci.yml` runs

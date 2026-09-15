@@ -1189,10 +1189,12 @@ def test_the_receipt_names_the_code_that_wrote_it() -> None:
         # The EO roster module pins its derived roster and refuses on drift;
         # hashing it makes that new build input visible in the receipt.
         "eo_roster",
+        "spicy_docs.sources.unified_agenda_records",
+        "spicy_docs.sources.xml_observations",
+        "spicy_docs.sources.xml",
     }
-    package = Path(module.__file__).resolve().parent
     for name, digest in block["modules"].items():
-        assert digest == "sha256:" + hashlib.sha256((package / f"{name}.py").read_bytes()).hexdigest()
+        assert digest == "sha256:" + hashlib.sha256(module._producer_module_source(name).read_bytes()).hexdigest()
     assert set(block["oracles"]) == {
         "public-law-roster.csv",
         "part-subjects.csv",
@@ -1365,6 +1367,10 @@ def test_the_receipt_names_the_code_that_wrote_it() -> None:
         )
     if recorded_clean is True:
         for name, digest in recorded_producer["modules"].items():
+            # This commit identifies RefSpec only. Dependency module bytes are
+            # independently hashed above and qualified against the pinned wheel.
+            if name.startswith("spicy_docs."):
+                continue
             # A tracked SYMLINK stores its link text as the blob while
             # `_producer_module_source()` follows it and hashes the target, so
             # the two legitimately disagree and neither is wrong. Skipped with

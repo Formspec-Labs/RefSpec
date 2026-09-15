@@ -1409,6 +1409,11 @@ _PRODUCER_MODULES: tuple[str, ...] = (
     #: "oracles" below as well, because that one IS the publisher-derived
     #: bytes, the same argument as cfr_authority_notes.
     "eo_roster",
+    # The source reader moved to the wheel; its executing code still belongs
+    # in each new build receipt, including its shared XML dependencies.
+    "spicy_docs.sources.unified_agenda_records",
+    "spicy_docs.sources.xml_observations",
+    "spicy_docs.sources.xml",
 )
 
 
@@ -1416,8 +1421,9 @@ def _producer_module_source(name: str) -> Path:
     """The source file a producer module must have in this checkout, refusing
     by name when it is absent.
 
-    A producer module lives beside this file in the installed package: its
-    absence means the checkout is missing code this build depends on, not
+    Local producer modules live beside this file; qualified dependency names
+    resolve to the modules Python imported from the installed wheel. Their
+    absence means the installation is missing code this build depends on, not
     that there was nothing to hash. Answering ``None`` -- as the oracle-facing
     digest does, where absence is a legitimate, already-handled state -- would
     write a receipt with NULL provenance for the grammar that produced the
@@ -1431,7 +1437,18 @@ def _producer_module_source(name: str) -> Path:
     receipt.
     """
 
-    path = Path(__file__).resolve().parent / f"{name}.py"
+    if name.startswith("spicy_docs."):
+        from importlib import import_module
+
+        try:
+            source = import_module(name).__file__
+        except ImportError as error:
+            raise ValueError(f"producer dependency module is unavailable: {name}") from error
+        if source is None:
+            raise ValueError(f"producer dependency module has no source file: {name}")
+        path = Path(source).resolve()
+    else:
+        path = Path(__file__).resolve().parent / f"{name}.py"
     if not path.is_file():
         raise ValueError(f"producer module missing from this checkout: {name} (expected at {path})")
     return path
@@ -1591,9 +1608,10 @@ def _repository_commit_and_cleanliness(module_path: Path) -> tuple[str | None, b
 
 
 def _producer_block() -> dict[str, object]:
-    """Content digests of the modules and oracles a build reads, plus the
-    commit and working-tree cleanliness of the repository that tracks them,
-    when git can answer that honestly.
+    """Content digests of the modules and oracles a build reads.
+
+    Commit and working-tree cleanliness describe only the RefSpec checkout,
+    when git can answer. Installed dependency digests identify separate code.
 
     ``commit`` and ``workingTreeClean`` move together: both are answered or
     both are ``None``, and :func:`_repository_commit_and_cleanliness` carries
