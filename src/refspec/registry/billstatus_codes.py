@@ -30,21 +30,22 @@ against a fixed set, and never inferring a subject from an XML element
 name.
 
 Acquisition accepts a local exact capture or an injected fetcher.
-Importing this module never opens a network connection.
+Importing this module never opens a network connection. Rulespec Artifacts
+publishes exact captures at ``objects/sha256/<digest>``; old named-file cache
+directories are neither read nor changed. See ``docs/billstatus-acquisition.md``
+for cache and attempt-evidence semantics.
 """
 
 from __future__ import annotations
 
-import hashlib
-import os
 import re
-import tempfile
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, Protocol
 from urllib.parse import urlsplit
 
+from rulespec_artifacts import BlobIntegrityError, BlobLimitError, LocalBlobWriter
 from spicy_docs.sources.congress.billstatus_codes import (
     BillStatusGuide,
     BillStatusGuideCell,
@@ -52,6 +53,7 @@ from spicy_docs.sources.congress.billstatus_codes import (
     read_billstatus_guide,
 )
 
+from refspec.registry.infrastructure.artifact_serialization import sha256_digest
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 
@@ -315,12 +317,6 @@ BILLSTATUS_PORTFOLIO_GAPS = (
 )
 
 
-def sha256_digest(payload: bytes) -> str:
-    """Return the canonical RefSpec SHA-256 spelling."""
-
-    return "sha256:" + hashlib.sha256(payload).hexdigest()
-
-
 def _validate_resolved_url(value: str) -> None:
     parsed = urlsplit(value)
     if parsed.scheme != "https" or parsed.hostname != "raw.githubusercontent.com":
@@ -350,11 +346,9 @@ def _verify_payload(payload: bytes, pin: BillStatusSnapshotPin, *, location: str
 def _verify_existing(path: Path, pin: BillStatusSnapshotPin) -> AcquiredBillStatusSource:
     if path.is_symlink() or not path.is_file():
         raise BillStatusAcquisitionError(f"content-addressed target is not a regular file: {path}")
-    actual_sha256, byte_length = _verify_payload(
-        path.read_bytes(),
-        pin,
-        location="cached BILLSTATUS source",
-    )
+    with path.open("rb") as stream:
+        payload = stream.read(pin.expected_byte_length + 1)
+    actual_sha256, byte_length = _verify_payload(payload, pin, location="cached BILLSTATUS source")
     return AcquiredBillStatusSource(
         pin=pin,
         path=path,
@@ -372,7 +366,7 @@ def _verify_existing(path: Path, pin: BillStatusSnapshotPin) -> AcquiredBillStat
 def _publish_payload(
     payload: bytes,
     pin: BillStatusSnapshotPin,
-    final_path: Path,
+    store_dir: Path,
     *,
     content_type: str,
     acquisition_mode: Literal["local", "fetcher"],
@@ -384,39 +378,38 @@ def _publish_payload(
         pin,
         location=f"{acquisition_mode} BILLSTATUS source",
     )
-    final_path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary_name = tempfile.mkstemp(
-        prefix=".acquire-",
-        suffix=".tmp",
-        dir=final_path.parent,
-    )
-    temporary_path = Path(temporary_name)
+    final_path = Path(store_dir) / "objects" / "sha256" / pin.expected_sha256.removeprefix("sha256:")
     try:
-        with os.fdopen(descriptor, "wb") as output:
-            descriptor = -1
-            output.write(payload)
-            output.flush()
-            os.fsync(output.fileno())
-        try:
-            os.link(temporary_path, final_path)
-        except FileExistsError:
-            return _verify_existing(final_path, pin)
-        return AcquiredBillStatusSource(
-            pin=pin,
-            path=final_path,
-            sha256=actual_sha256,
-            byte_length=byte_length,
-            source_url=pin.source.source_url,
-            resolved_url=resolved_url,
-            content_type=content_type,
-            acquisition_mode=acquisition_mode,
-            cache_hit=False,
-            local_source_path=local_source_path,
+        stored = LocalBlobWriter(store_dir, object_prefix="objects/sha256").put(
+            (payload,),
+            max_bytes=byte_length,
+            expected_digest=actual_sha256,
+            expected_size=byte_length,
         )
-    finally:
-        if descriptor >= 0:
-            os.close(descriptor)
-        temporary_path.unlink(missing_ok=True)
+    except BlobLimitError as error:
+        raise BillStatusSourceDriftError("BILLSTATUS source exceeded its pinned byte length") from error
+    except BlobIntegrityError as error:
+        # Keep existing corrupt-target diagnostics, but never override an owner
+        # refusal merely because a changing target becomes valid on a reread.
+        if final_path.exists() or final_path.is_symlink():
+            _verify_existing(final_path, pin)
+        raise BillStatusAcquisitionError("BILLSTATUS source could not be published safely") from error
+    except ValueError as error:
+        raise BillStatusAcquisitionError(f"BILLSTATUS cache layout is unavailable: {error}") from error
+    if stored.reused:
+        return _verify_existing(final_path, pin)
+    return AcquiredBillStatusSource(
+        pin=pin,
+        path=Path(store_dir) / stored.object_key,
+        sha256=stored.digest,
+        byte_length=stored.byte_size,
+        source_url=pin.source.source_url,
+        resolved_url=resolved_url,
+        content_type=content_type,
+        acquisition_mode=acquisition_mode,
+        cache_hit=False,
+        local_source_path=local_source_path,
+    )
 
 
 def acquire_billstatus_source(
@@ -437,7 +430,7 @@ def acquire_billstatus_source(
     if digest_match is None:
         raise BillStatusAcquisitionError("pin.expected_sha256 must be a lowercase sha256:<64 hex> digest")
     digest_hex = digest_match.group(1)
-    final_path = Path(store_dir) / "sha256" / digest_hex / pin.source.filename
+    final_path = Path(store_dir) / "objects" / "sha256" / digest_hex
     if final_path.exists() or final_path.is_symlink():
         return _verify_existing(final_path, pin)
 
@@ -445,10 +438,12 @@ def acquire_billstatus_source(
         local_path = Path(source_path)
         if local_path.is_symlink() or not local_path.is_file():
             raise BillStatusAcquisitionError(f"local BILLSTATUS source is not a regular file: {local_path}")
+        with local_path.open("rb") as stream:
+            payload = stream.read(pin.expected_byte_length + 1)
         return _publish_payload(
-            local_path.read_bytes(),
+            payload,
             pin,
-            final_path,
+            store_dir,
             content_type="text/plain",
             acquisition_mode="local",
             resolved_url=None,
@@ -469,7 +464,7 @@ def acquire_billstatus_source(
     return _publish_payload(
         fetched.body,
         pin,
-        final_path,
+        store_dir,
         content_type=fetched.content_type,
         acquisition_mode="fetcher",
         resolved_url=fetched.resolved_url,
@@ -512,7 +507,9 @@ def _identifier(
 
 
 def _parse_bill_types(guide: BillStatusGuide, acquired: AcquiredBillStatusSource) -> tuple[BillStatusCode, ...]:
-    statement = next((item for item in guide.bill_type_statements if item.heading.text.removesuffix("\n") == _HEADER_BILL_TYPE), None)
+    statement = next(
+        (item for item in guide.bill_type_statements if item.heading.text.removesuffix("\n") == _HEADER_BILL_TYPE), None
+    )
     if statement is None:
         raise BillStatusSourceDriftError(f"expected section header not found: {_HEADER_BILL_TYPE!r}")
     if statement.sentence.line_number - statement.heading.line_number > 4:

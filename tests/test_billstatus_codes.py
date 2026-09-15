@@ -42,7 +42,7 @@ def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
     acquired = _acquire(tmp_path)
     cached = bs.acquire_billstatus_source(pin, tmp_path)
 
-    assert acquired.path == (tmp_path / "sha256" / pin.expected_sha256.removeprefix("sha256:") / pin.source.filename)
+    assert acquired.path == (tmp_path / "objects" / "sha256" / pin.expected_sha256.removeprefix("sha256:"))
     assert acquired.acquisition_mode == "local"
     assert acquired.cache_hit is False
     assert cached.sha256 == pin.expected_sha256
