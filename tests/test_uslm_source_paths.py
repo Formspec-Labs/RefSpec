@@ -1,16 +1,23 @@
 """Default-reader parity and exact publisher occurrence locations."""
+import re
+import xml.etree.ElementTree as ET
 from collections import Counter
 from copy import deepcopy
 from pathlib import Path
-import re
-import xml.etree.ElementTree as ET
 
 import pytest
+import uslm_reference_oracle as oracle
+from spicy_docs.sources.uscode import UsCodeSourceError
 
 from refspec.registry import uslm
-import uslm_reference_oracle as oracle
 
 FIXTURES = Path(__file__).parent / 'fixtures/uslm-source-links'
+
+# Both readers refuse the truncated source; the shared reader owns diagnostics.
+MALFORMED_DIAGNOSTICS = {
+    'title-05-s423.xml': ('ParseError', 'no element found: line 54, column 8'),
+    'title-42-s242c.xml': ('ParseError', 'no element found: line 92, column 8'),
+}
 
 
 def outcome(reader, xml, title):
@@ -18,8 +25,11 @@ def outcome(reader, xml, title):
     rows = []
     error = None
     try:
-        rows.extend(reader.iter_edges(xml, title, counts))
-    except Exception as exc:
+        if reader is oracle:
+            rows.extend(reader.iter_edges(xml, title, counts))
+        else:
+            reader.read_edges(xml, title, counts, rows.append)
+    except (ET.ParseError, uslm.ExtractionError, oracle.ExtractionError, UsCodeSourceError) as exc:
         error = (type(exc).__name__, str(exc))
     return rows, dict(counts), error
 
@@ -64,7 +74,13 @@ def variants(xml):
 @pytest.mark.parametrize('name,title', [('title-05-s423.xml', '05'), ('title-42-s242c.xml', '42')])
 def test_default_readings_and_refusals_match_copied_oracle(name, title):
     for mutation, xml in variants((FIXTURES / name).read_bytes()):
-        assert outcome(uslm, xml, title) == outcome(oracle, xml, title), mutation
+        actual, previous = outcome(uslm, xml, title), outcome(oracle, xml, title)
+        if mutation == 'malformed':
+            assert actual[:2] == previous[:2]
+            assert previous[2] == MALFORMED_DIAGNOSTICS[name]
+            assert actual[2] == ('UsCodeSourceError', 'U.S. Code XML is malformed')
+        else:
+            assert actual == previous, mutation
 
 
 @pytest.mark.parametrize('name,title', [('title-05-s423.xml', '05'), ('title-42-s242c.xml', '42')])
@@ -74,7 +90,8 @@ def test_optional_paths_select_each_actual_xml_occurrence(name, title):
         if error:
             continue
         actual_counts = Counter()
-        actual = list(uslm.iter_edges(xml, title, actual_counts, include_source_path=True))
+        actual = []
+        uslm.read_edges(xml, title, actual_counts, actual.append, include_source_path=True)
         assert dict(actual_counts) == counts
         assert [{k:v for k,v in x.items() if k != 'sourceXPath'} for x in actual] == rows
         root = ET.fromstring(xml)
@@ -99,11 +116,13 @@ def test_optional_paths_select_each_actual_xml_occurrence(name, title):
 
 def test_root_href_and_skipped_fragment_do_not_shift_paths():
     xml = b'<ref href="/us/usc/t5/s1"><ref href="#local"/><ref href="/us/usc/t5/s2"/></ref>'
-    rows = list(uslm.iter_edges(xml, '05', Counter(), include_source_path=True))
+    rows = []
+    uslm.read_edges(xml, '05', Counter(), rows.append, include_source_path=True)
     assert [x['sourceXPath'] for x in rows] == ['/*[1]', '/*[1]/*[2]']
 
 
 def test_comments_do_not_count_as_element_siblings():
     xml = b'<root><!-- comment --><ref href="/us/usc/t5/s2"/><?instruction test?><ref href="/us/usc/t5/s3"/></root>'
-    rows = list(uslm.iter_edges(xml, '05', Counter(), include_source_path=True))
+    rows = []
+    uslm.read_edges(xml, '05', Counter(), rows.append, include_source_path=True)
     assert [x['sourceXPath'] for x in rows] == ['/*[1]/*[1]', '/*[1]/*[2]']

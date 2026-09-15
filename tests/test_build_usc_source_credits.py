@@ -19,6 +19,7 @@ from pathlib import Path
 
 import pyarrow.parquet as pq
 import pytest
+from spicy_docs.sources.uscode_references import scan_uscode_references
 
 from tools import build_usc_source_credits as builder
 
@@ -174,8 +175,10 @@ def test_a_credit_is_attributed_to_its_ancestor_not_its_nearest_preceding_tag() 
     # The tag immediately before the outer credit is the inner section's close.
     assert document.index("</section>") < document.index(credit("added_enactment"))
 
-    seen = list(builder.iter_source_credits(document))
-    assert [section for section, _ in seen] == [inner, outer]
+    seen = []
+    scan_uscode_references(document.encode(), on_source_credit=seen.append)
+    assert [next(e.attributes["identifier"] for e in reversed(row.ancestors)
+                 if e.tag.rsplit("}", 1)[-1] == "section") for row in seen] == [inner, outer]
 
     # And the attribution survives the whole scan, not just the walk.
     scan = builder.scan_source_credits(document)

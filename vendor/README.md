@@ -1,4 +1,17 @@
-# Vendored dependencies: rulespec-conformance and rulespec-artifacts
+# Vendored dependencies
+
+`spicy_docs-0.10.0-py3-none-any.whl` supplies the shared U.S. Code structure,
+annual section, reference and source-credit readers. Its SHA-256 is
+`f3e61f210836ec044fa2cf6e3f323fc36ea79f9a99a5555b8ceff6cb2cc499ee`.
+The provider source is SpicyDocs commit `7bd03bb` on `codex/uscode-readers`.
+RefSpec 0.1.0.dev2 keeps citation classification, normalization and legal-policy
+decisions. Python 3.12 matches the provider's supported range. This local wheel
+is vendored for reproducible installation; it has not been published to an index.
+The PAR03 qualification receipt records source revisions, raw-corpus comparisons,
+intentional corrections and installation outside both source checkouts.
+
+The existing sealed U.S. Code tables are unchanged. New structure builds produce
+unadopted candidates and remove the old parser's subtitle-as-subsection errors.
 
 `rulespec_conformance-0.2.0rc18-py3-none-any.whl` is vendored into this repo
 because CI runners have no `~/Work/rulespec` checkout and `ci.yml` runs

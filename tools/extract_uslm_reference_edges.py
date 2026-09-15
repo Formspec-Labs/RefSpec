@@ -134,11 +134,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from refspec.registry.uslm import (
-    EDGE_TYPES, UNIT_TAGS, USLM_NS, ExtractionError, classify_href,
-    iter_edges, section_identifiers, _target_section,
-)
+from spicy_docs.sources.uscode_structure import scan_uscode_structure
 
+from refspec.registry.uslm import (
+    UNIT_TAGS,
+    ExtractionError,
+    _target_section,
+    read_edges,
+)
 
 RELEASE_POINT = "119/102"
 BASE_URL = "https://uscode.house.gov/download/releasepoints/us/pl"
@@ -343,9 +346,17 @@ def extract_title(title: str, release_point: str, cache: Path) -> tuple[list[dic
     """Extract one title's edges and the report describing that extraction."""
     started = time.monotonic()
     xml, pin = fetch_title(title, release_point, cache)
-    sections = section_identifiers(xml)
+    sections: set[str] = set()
+
+    def section(observation):
+        identifier = observation.element.attributes.get("identifier")
+        if identifier:
+            sections.add(identifier)
+
+    scan_uscode_structure(xml, on_section=section)
     skipped: Counter[str] = Counter()
-    edges = list(iter_edges(xml, title, skipped))
+    edges: list[dict[str, Any]] = []
+    read_edges(xml, title, skipped, edges.append)
 
     # Every <ref> the parser saw is either emitted, skipped as a fragment, or
     # skipped as href-less.  Proving that closes the account: no <ref> can go

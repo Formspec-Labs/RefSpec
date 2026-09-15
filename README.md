@@ -79,6 +79,31 @@ never source trees or live databases
 | Active plan (what's next) | [`plans/validation-cost-reset-plan.md`](plans/validation-cost-reset-plan.md) |
 | US/EU landscape context | [`ATLAS_US_EU_COMPARISON.md`](ATLAS_US_EU_COMPARISON.md) |
 
+## Refresh the U.S. Code structure tables
+
+Use the installed SpicyDocs readers to build candidate oracle tables from
+retained files:
+
+```sh
+uv run --frozen python tools/build_usc_structure.py \
+  --corpus /path/to/xml_uscAll_119-102.zip \
+  --annual 2012=/path/to/2012.zip \
+  --annual 2024=/path/to/2024.zip \
+  --output output/usc-structure-candidate
+```
+
+The new directory contains the existing six table schemas and a receipt with
+input/member/output digests and selected scope. RefSpec retains its section
+normalization, appendix filters and bracketed-stub attestation policy. The tool
+does not fetch sources or adopt the outputs: existing oracle pins stay unchanged.
+Only the supplied annual editions are included. Dated research scripts remain
+historical reproduction evidence; this is the maintained refresh command.
+The shared parser also fixes a proven source-reading error: subtitle paths such
+as `/stI/ch1` describe chapters, not section `tI` with subsection `ch1`. Candidate
+subsection tables remove 364 such false rows from retained release point 119-102;
+the exact correction set remains test evidence. Existing sealed tables remain
+unchanged until a separately reviewed adoption.
+
 ## What the seal does and does not prove
 
 Verifying a seal proves the distribution's bytes are exactly what passed the

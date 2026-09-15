@@ -6,14 +6,15 @@ locate markup elements, not positions in decoded text or the original XML bytes.
 """
 from __future__ import annotations
 
-import xml.etree.ElementTree as ET
 from collections import Counter
-from collections.abc import Iterator, Sequence
-from dataclasses import dataclass
-from io import BytesIO
+from collections.abc import Callable, Sequence
 from typing import Any
 
-USLM_NS = "http://xml.house.gov/schemas/uslm/1.0"
+from spicy_docs.sources.uscode import USLM_NAMESPACE
+from spicy_docs.sources.uscode_references import UsCodeReference, scan_uscode_references
+from spicy_docs.sources.uscode_xml import UsCodeElement
+
+USLM_NS = USLM_NAMESPACE
 
 #: The four citators the corpus uses, mapped to a descriptive label for each.
 #:
@@ -112,17 +113,8 @@ def classify_href(href: str) -> tuple[str, str | None]:
             return edge_type, level
     raise ExtractionError(f"unrecognised USC level in {href!r} (segment {segment!r})")
 
-@dataclass(frozen=True)
-class Anchor:
-    """One element on the ancestor stack that an edge can be attributed to."""
-
-    tag: str
-    identifier: str | None
-    note_topic: str | None
-    status: str | None
-
 def _context(
-    stack: Sequence[Anchor],
+    stack: Sequence[UsCodeElement],
 ) -> tuple[str | None, str | None, str | None, str | None, str | None, str, str | None]:
     """Locate an edge: its section, its finest anchor, and what kind of text it sits in.
 
@@ -140,114 +132,82 @@ def _context(
     context = "operative"
     topic: str | None = None
     for entry in reversed(stack):
-        if entry.tag == SOURCE_CREDIT_TAG and context == "operative":
+        tag = _localname(entry.tag)
+        identifier = entry.attributes.get("identifier")
+        if tag == SOURCE_CREDIT_TAG and context == "operative":
             context = "sourceCredit"
-        elif entry.tag in TOC_TAGS and context == "operative":
+        elif tag in TOC_TAGS and context == "operative":
             context = "toc"
-        elif entry.tag == NOTE_TAG and context == "operative":
+        elif tag == NOTE_TAG and context == "operative":
             context = "note"
-            topic = entry.note_topic
-        if anchor is None and entry.identifier and entry.tag in ANCHOR_TAGS:
-            anchor = entry.identifier
+            topic = entry.attributes.get("topic")
+        if anchor is None and identifier and tag in ANCHOR_TAGS:
+            anchor = identifier
         # The enclosing unit is recorded whether or not it carries an identifier.
         # A repealed or transferred section keeps its ``id`` but loses its
         # ``identifier`` -- the publisher mints identifiers only for units that
         # still exist -- and the repeal notice in its heading still cites the
         # Public Law that repealed it.  Those citations are real and are kept,
         # with ``sourceUnit`` null and ``sourceUnitStatus`` saying why.
-        if unit_kind is None and entry.tag in UNIT_TAGS:
-            unit, unit_kind, unit_status = entry.identifier, entry.tag, entry.status
-        if section is None and entry.tag == SECTION_TAG and entry.identifier:
-            section = entry.identifier
+        if unit_kind is None and tag in UNIT_TAGS:
+            unit, unit_kind, unit_status = identifier, tag, entry.attributes.get("status")
+        if section is None and tag == SECTION_TAG and identifier:
+            section = identifier
     return section, anchor, unit, unit_kind, unit_status, context, topic
 
-def iter_edges(xml: bytes, title: str, skipped: Counter[str], *, include_source_path: bool = False) -> Iterator[dict[str, Any]]:
-    """Walk the document once, yielding one row per href-bearing element.
+def read_edges(
+    xml: bytes,
+    title: str,
+    skipped: Counter[str],
+    emit: Callable[[dict[str, Any]], object],
+    *,
+    include_source_path: bool = False,
+) -> None:
+    """Apply RefSpec's citation policy to source observations from SpicyDocs.
 
-    ``iterparse`` with an explicit ancestor stack rather than a DOM walk: the
-    larger titles run to tens of megabytes and every edge needs to know which
-    section encloses it, which is ancestor state a streaming parse already has.
-
-    Anything deliberately not emitted is tallied into ``skipped`` rather than
-    dropped, so the manifest can account for every href in the document.
-    ``include_source_path`` adds a namespace-independent ``sourceXPath`` selecting
-    the exact element in these bytes. Repeated equal references have distinct
-    paths. The default row shape and traversal order are unchanged.
+    Emitted rows are provisional until the reader returns successfully. The
+    caller owns collection/publication; no second title-sized observation list
+    is materialized between source reading and policy application.
     """
-    stack: list[Anchor] = []
-    positions: list[int] = []
-    sibling_counts = [0]
-    for event, element in ET.iterparse(BytesIO(xml), events=("start", "end")):
-        tag = _localname(element.tag)
-        if event == "start":
-            if include_source_path:
-                sibling_counts[-1] += 1
-                positions.append(sibling_counts[-1])
-                sibling_counts.append(0)
-            stack.append(
-                Anchor(
-                    tag=tag,
-                    identifier=element.get("identifier"),
-                    note_topic=element.get("topic"),
-                    status=element.get("status"),
-                )
-            )
-            href = element.get("href")
+    def reference(observation: UsCodeReference) -> None:
+        tag = _localname(observation.element.tag)
+        href = observation.href
+        if tag == "ref":
+            skipped["refElementsSeen"] += 1
+            if href is None:
+                skipped["refWithoutHref"] += 1
+        if href is None:
+            return
+        if href.startswith("#"):
+            skipped["inDocumentFragment"] += 1
             if tag == "ref":
-                skipped["refElementsSeen"] += 1
-                if href is None:
-                    # class="footnoteRef" with an idref: an internal footnote
-                    # pointer, well-formed and simply not a citation.
-                    skipped["refWithoutHref"] += 1
-            if href is not None:
-                # An in-document anchor (``#TAB_231_0``) points at a table in this
-                # same file.  It is navigation, not a citation of another law, and
-                # it is the one href shape that is not an identifier.
-                if href.startswith("#"):
-                    skipped["inDocumentFragment"] += 1
-                    if tag == "ref":
-                        skipped["inDocumentFragmentOnRef"] += 1
-                    continue
-                edge_type, usc_level = classify_href(href)
-                section, anchor, unit, unit_kind, unit_status, context, topic = _context(stack)
-                row = {
-                    "title": title,
-                    "sourceSection": section,
-                    "sourceUnit": unit,
-                    "sourceUnitKind": unit_kind,
-                    "sourceUnitStatus": unit_status,
-                    "sourceAnchor": anchor,
-                    "href": href,
-                    "edgeType": edge_type,
-                    "uscTargetLevel": usc_level,
-                    "element": tag,
-                    "context": context,
-                    "noteTopic": topic,
-                    "historical": context == "sourceCredit" or topic in AMENDMENT_TOPICS,
-                }
-                if include_source_path:
-                    row["sourceXPath"] = "".join(f"/*[{p}]" for p in positions)
-                yield row
-        else:
-            if not stack:
-                raise ExtractionError(f"title {title}: unbalanced element stack at </{tag}>")
-            stack.pop()
-            if include_source_path:
-                positions.pop()
-                sibling_counts.pop()
-            element.clear()
+                skipped["inDocumentFragmentOnRef"] += 1
+            return
+        edge_type, usc_level = classify_href(href)
+        section, anchor, unit, unit_kind, unit_status, context, topic = _context(
+            (*observation.ancestors, observation.element)
+        )
+        row = {
+            "title": title,
+            "sourceSection": section,
+            "sourceUnit": unit,
+            "sourceUnitKind": unit_kind,
+            "sourceUnitStatus": unit_status,
+            "sourceAnchor": anchor,
+            "href": href,
+            "edgeType": edge_type,
+            "uscTargetLevel": usc_level,
+            "element": tag,
+            "context": context,
+            "noteTopic": topic,
+            "historical": context == "sourceCredit" or topic in AMENDMENT_TOPICS,
+        }
+        if include_source_path:
+            row["sourceXPath"] = observation.element.source_xpath
+        emit(row)
 
-def section_identifiers(xml: bytes) -> set[str]:
-    """Every ``<section identifier>`` in the document, for resolving USC targets."""
-    found: set[str] = set()
-    for event, element in ET.iterparse(BytesIO(xml), events=("end",)):
-        del event
-        if _localname(element.tag) == SECTION_TAG:
-            identifier = element.get("identifier")
-            if identifier:
-                found.add(identifier)
-        element.clear()
-    return found
+    scan_uscode_references(xml, on_reference=reference)
+
 
 def _target_section(href: str) -> str | None:
     """The section-granularity prefix of a USC href, or None if it targets no section."""

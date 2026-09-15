@@ -67,19 +67,17 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import io
 import re
 import sys
-import xml.etree.ElementTree as ElementTree
 import zipfile
 from collections import Counter, defaultdict
-from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import pyarrow as pa
 import pyarrow.parquet as pq
+from spicy_docs.sources.uscode_references import UsCodeSourceCredit, scan_uscode_references
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT / "src") not in sys.path:
@@ -290,45 +288,6 @@ class CreditScan:
         )
 
 
-def flatten_credit(element: ElementTree.Element) -> str:
-    """The credit's visible text.
-
-    Only ASCII whitespace is collapsed. USLM writes ``§ 107`` with a narrow
-    no-break space, and rewriting it would be editing the source to suit the
-    expression rather than the other way round.
-    """
-    return re.sub(r"[ \t\r\n]+", " ", "".join(element.itertext())).strip()
-
-
-def iter_source_credits(document: bytes | str) -> Iterator[tuple[str | None, str]]:
-    """Yield ``(enclosing section identifier, credit text)`` for one USLM title.
-
-    The identifier is the nearest **ancestor** ``<section>``'s, which is why
-    this walks the tree: a credit that follows a nested section's close tag has
-    a different nearest-preceding tag than it has ancestor.
-
-    Each finished ``<section>`` is cleared. ``iterparse`` streams the events,
-    not the tree, so without the clear every element seen stays resident and
-    the peak is the whole title -- 113 MB for title 42. Measured on that title
-    at release point 119-102: whole-process peak RSS 702 MB without the clear,
-    181 MB with it, byte-identical output.
-    """
-    payload = document.encode("utf-8") if isinstance(document, str) else document
-    stack: list[str | None] = []
-    for event, element in ElementTree.iterparse(io.BytesIO(payload), events=("start", "end")):
-        tag = element.tag.rsplit("}", 1)[-1]
-        if event == "start":
-            stack.append(element.get("identifier") if tag == "section" else None)
-            continue
-        if tag == "sourceCredit":
-            yield next((s for s in reversed(stack) if s), None), flatten_credit(element)
-        stack.pop()
-        if tag == "section":
-            # Every credit this section encloses is already yielded, and the
-            # identifiers the enclosing sections still need are on the stack.
-            element.clear()
-
-
 def bounded_page(text: str, matches: list[re.Match[str]], position: int) -> re.Match[str] | None:
     """The Statutes at Large place stated between one citation and the next.
 
@@ -348,7 +307,13 @@ def scan_source_credits(document: bytes | str) -> CreditScan:
     quarantine: list[QuarantinedCredit] = []
     scanned = naming_a_division = outside = strict_matches = bound_changed = 0
 
-    for identifier, text in iter_source_credits(document):
+    def interpret(observation: UsCodeSourceCredit) -> None:
+        nonlocal scanned, naming_a_division, outside, strict_matches, bound_changed
+        # Preserve the sealed receiver's nearest *identified* ancestor policy.
+        # Raw observations also expose the nearest section when its ID is absent.
+        identifier = next((element.attributes["identifier"] for element in reversed(observation.ancestors)
+                           if element.tag.rsplit("}", 1)[-1] == "section" and element.attributes.get("identifier")), None)
+        text = re.sub(r"[ \t\r\n]+", " ", observation.text).strip()
         scanned += 1
         if "div." in text:
             naming_a_division += 1
@@ -389,6 +354,9 @@ def scan_source_credits(document: bytes | str) -> CreditScan:
                     statutes_at_large_page=page.group("page") if page else None,
                 )
             )
+
+    payload = document.encode("utf-8") if isinstance(document, str) else document
+    scan_uscode_references(payload, on_source_credit=interpret)
 
     return CreditScan(
         credits=tuple(credits),

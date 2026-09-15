@@ -32,10 +32,12 @@ import zipfile
 from pathlib import Path
 
 import pytest
+import uslm_reference_oracle as oracle
 
+from refspec.registry import uslm as policy
 from tools import extract_uslm_reference_edges as uslm
 
-NS = uslm.USLM_NS
+NS = policy.USLM_NS
 
 
 def _document(body: str) -> bytes:
@@ -71,7 +73,9 @@ SAMPLE = _document(
 def _edges(xml: bytes, title: str = "26") -> list[dict]:
     from collections import Counter
 
-    return list(uslm.iter_edges(xml, title, Counter()))
+    rows = []
+    policy.read_edges(xml, title, Counter(), rows.append)
+    return rows
 
 
 # --------------------------------------------------------------------------- #
@@ -97,23 +101,23 @@ def _edges(xml: bytes, title: str = "26") -> list[dict]:
     ],
 )
 def test_classify_href_names_the_citator_and_the_usc_level(href: str, edge_type: str, level: str | None) -> None:
-    assert uslm.classify_href(href) == (edge_type, level)
+    assert policy.classify_href(href) == (edge_type, level)
 
 
 def test_classify_href_fails_closed_on_an_unmodelled_citator() -> None:
     """A new citator means the corpus grew a relation this tool has no meaning for."""
-    with pytest.raises(uslm.ExtractionError, match="unrecognised href prefix"):
-        uslm.classify_href("/us/cfr/t40/s60")
+    with pytest.raises(policy.ExtractionError, match="unrecognised href prefix"):
+        policy.classify_href("/us/cfr/t40/s60")
 
 
 def test_classify_href_fails_closed_on_a_relative_href() -> None:
-    with pytest.raises(uslm.ExtractionError, match="not an absolute identifier"):
-        uslm.classify_href("s61")
+    with pytest.raises(policy.ExtractionError, match="not an absolute identifier"):
+        policy.classify_href("s61")
 
 
 def test_classify_href_fails_closed_on_an_unmodelled_usc_level() -> None:
-    with pytest.raises(uslm.ExtractionError, match="unrecognised USC level"):
-        uslm.classify_href("/us/usc/t26/zz9")
+    with pytest.raises(policy.ExtractionError, match="unrecognised USC level"):
+        policy.classify_href("/us/usc/t26/zz9")
 
 
 # --------------------------------------------------------------------------- #
@@ -196,7 +200,9 @@ def test_a_footnote_ref_without_an_href_is_counted_not_emitted() -> None:
 
     skipped: Counter[str] = Counter()
     xml = _document('<section identifier="/us/usc/t26/s1"><ref class="footnoteRef" idref="FN1"/></section>')
-    assert list(uslm.iter_edges(xml, "26", skipped)) == []
+    rows = []
+    policy.read_edges(xml, "26", skipped, rows.append)
+    assert rows == []
     assert skipped["refWithoutHref"] == 1
     assert skipped["refElementsSeen"] == 1
 
@@ -206,7 +212,9 @@ def test_an_in_document_fragment_is_navigation_not_a_citation() -> None:
 
     skipped: Counter[str] = Counter()
     xml = _document('<section identifier="/us/usc/t26/s1"><ref href="#TAB_231_0">table</ref></section>')
-    assert list(uslm.iter_edges(xml, "26", skipped)) == []
+    rows = []
+    policy.read_edges(xml, "26", skipped, rows.append)
+    assert rows == []
     assert skipped["inDocumentFragment"] == 1
     assert skipped["inDocumentFragmentOnRef"] == 1
 
@@ -251,7 +259,7 @@ def test_an_unbalanced_document_fails_closed() -> None:
     from collections import Counter
 
     with pytest.raises(Exception):  # noqa: B017 - ET raises its own ParseError before our guard
-        list(uslm.iter_edges(b"<uscDoc><section>", "26", Counter()))
+        policy.read_edges(b"<uscDoc><section>", "26", Counter(), lambda row: None)
 
 
 # --------------------------------------------------------------------------- #
@@ -349,7 +357,7 @@ def test_dedup_keeps_the_first_occurrence_so_the_representative_is_deterministic
 def test_corpus_rollup_refuses_to_sum_when_title_is_no_longer_the_leading_key(monkeypatch: pytest.MonkeyPatch) -> None:
     """Summing per-title counts is valid only while no claim can span two titles."""
     monkeypatch.setattr(uslm, "ASSERTION_KEY", ("sourceAnchor", "edgeType", "href", "context"))
-    with pytest.raises(uslm.ExtractionError, match="leads ASSERTION_KEY"):
+    with pytest.raises(policy.ExtractionError, match="leads ASSERTION_KEY"):
         uslm.corpus_deduplication([])
 
 
@@ -408,16 +416,30 @@ def test_a_cross_title_target_is_unknown_rather_than_guessed(tmp_path: Path) -> 
     assert report["crossTitleSectionTargets"] == 1
 
 
+@pytest.mark.parametrize("namespace", [NS, "", "urn:foreign"])
+def test_only_source_vocabulary_sections_resolve_targets(tmp_path: Path, namespace: str) -> None:
+    xml = _document(
+        '<section identifier="/us/usc/t26/s1"><ref href="/us/usc/t26/s61"/></section>'
+        f'<section xmlns="{namespace}" identifier="/us/usc/t26/s61"/>'
+    )
+    # Named divergence: the old localname-only inventory admitted foreign markup.
+    assert "/us/usc/t26/s61" in oracle.section_identifiers(xml)
+    edges, report = uslm.extract_title("26", uslm.RELEASE_POINT, _cache_with(tmp_path, "26", xml))
+    expected = namespace != "urn:foreign"
+    assert edges[0]["targetResolved"] is expected
+    assert report["sections"] == (2 if expected else 1)
+
+
 def test_an_operative_edge_outside_any_unit_stops_the_run(tmp_path: Path) -> None:
     """The exact defect that once turned 2,992 TOC entries into cross-references."""
     xml = _document('<p><ref href="/us/usc/t26/s61">loose</ref></p>')
-    with pytest.raises(uslm.ExtractionError, match="operative edges sit in no"):
+    with pytest.raises(policy.ExtractionError, match="operative edges sit in no"):
         uslm.extract_title("26", uslm.RELEASE_POINT, _cache_with(tmp_path, "26", xml))
 
 
 def test_an_unidentified_unit_with_no_status_stops_the_run(tmp_path: Path) -> None:
     xml = _document('<section><p><ref href="/us/usc/t26/s61">x</ref></p></section>')
-    with pytest.raises(uslm.ExtractionError, match="with no status explaining why"):
+    with pytest.raises(policy.ExtractionError, match="with no status explaining why"):
         uslm.extract_title("26", uslm.RELEASE_POINT, _cache_with(tmp_path, "26", xml))
 
 
@@ -426,7 +448,7 @@ def test_a_cached_payload_that_is_not_a_zip_is_refused(tmp_path: Path) -> None:
     cache = tmp_path / "cache"
     cache.mkdir()
     (cache / "xml_usc53.zip").write_bytes(b"<html>Error</html>")
-    with pytest.raises(uslm.ExtractionError, match="did not return a zip archive"):
+    with pytest.raises(policy.ExtractionError, match="did not return a zip archive"):
         uslm.fetch_title("53", uslm.RELEASE_POINT, cache)
 
 
@@ -438,7 +460,7 @@ def test_an_archive_with_more_than_one_xml_member_is_refused(tmp_path: Path) -> 
         archive.writestr("a.xml", SAMPLE)
         archive.writestr("b.xml", SAMPLE)
     (cache / "xml_usc26.zip").write_bytes(buffer.getvalue())
-    with pytest.raises(uslm.ExtractionError, match="expected exactly one XML member"):
+    with pytest.raises(policy.ExtractionError, match="expected exactly one XML member"):
         uslm.fetch_title("26", uslm.RELEASE_POINT, cache)
 
 

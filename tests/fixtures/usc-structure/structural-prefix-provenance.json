@@ -1,0 +1,48 @@
+{
+  "sourceArchiveSha256": "sha256:55c8d19543c4a972a33e33532b592ac3984c83fdcb04de9f5a64ef1f8483d300",
+  "specimens": [
+    {
+      "member": "usc10.xml",
+      "memberSha256": "sha256:95cffae02b423464f744dbcb55df91fce386d494a74d22e56146a32e65979dd0",
+      "byteSpan": [
+        1040619,
+        1040812
+      ],
+      "element": "part",
+      "row": [
+        10,
+        "ta",
+        "pti"
+      ]
+    },
+    {
+      "member": "usc14.xml",
+      "memberSha256": "sha256:f58f5a0e5637f6d16cb16b06c4c4271a28856aca110020f6969c817d31704958",
+      "byteSpan": [
+        298932,
+        299115
+      ],
+      "element": "chapter",
+      "row": [
+        14,
+        "ti",
+        "ch1"
+      ]
+    },
+    {
+      "member": "usc41.xml",
+      "memberSha256": "sha256:e686f69b37069fbc377bfe0de77f189b585042af60ee7a5e881ac87a084c06ee",
+      "byteSpan": [
+        156293,
+        156498
+      ],
+      "element": "division",
+      "row": [
+        41,
+        "ti",
+        "da"
+      ]
+    }
+  ],
+  "fixtureSha256": "sha256:5003d6383b8a5043cecc8a22ee9ab391cb47c61954b1ecbcc62cddbc622e68a7"
+}

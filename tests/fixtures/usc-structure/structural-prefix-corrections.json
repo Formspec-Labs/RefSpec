@@ -1,0 +1,5102 @@
+{
+  "sourceArchiveSha256": "sha256:55c8d19543c4a972a33e33532b592ac3984c83fdcb04de9f5a64ef1f8483d300",
+  "rule": "Known longer prefixes st, sch and spt precede the section marker s; these are not section-part coordinates.",
+  "rows": [
+    {
+      "row": [
+        10,
+        "ta",
+        "pti"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stA/ptI",
+      "element": "part",
+      "byteSpan": [
+        1040619,
+        1040723
+      ]
+    },
+    {
+      "row": [
+        10,
+        "ta",
+        "ptii"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stA/ptII",
+      "element": "part",
+      "byteSpan": [
+        7757962,
+        7758067
+      ]
+    },
+    {
+      "row": [
+        10,
+        "ta",
+        "ptiii"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stA/ptIII",
+      "element": "part",
+      "byteSpan": [
+        22856412,
+        22856518
+      ]
+    },
+    {
+      "row": [
+        10,
+        "ta",
+        "ptiv"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stA/ptIV",
+      "element": "part",
+      "byteSpan": [
+        24444901,
+        24445006
+      ]
+    },
+    {
+      "row": [
+        10,
+        "ta",
+        "ptv"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stA/ptV",
+      "element": "part",
+      "byteSpan": [
+        33136833,
+        33136937
+      ]
+    },
+    {
+      "row": [
+        10,
+        "ta",
+        "ptvi"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stA/ptVI",
+      "element": "part",
+      "byteSpan": [
+        41258155,
+        41258260
+      ]
+    },
+    {
+      "row": [
+        10,
+        "tb",
+        "pti"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stB/ptI",
+      "element": "part",
+      "byteSpan": [
+        42734918,
+        42735022
+      ]
+    },
+    {
+      "row": [
+        10,
+        "tb",
+        "ptii"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stB/ptII",
+      "element": "part",
+      "byteSpan": [
+        43242557,
+        43242662
+      ]
+    },
+    {
+      "row": [
+        10,
+        "tb",
+        "ptiii"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stB/ptIII",
+      "element": "part",
+      "byteSpan": [
+        43978803,
+        43978909
+      ]
+    },
+    {
+      "row": [
+        10,
+        "tb",
+        "ptiv"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stB/ptIV",
+      "element": "part",
+      "byteSpan": [
+        44636715,
+        44636820
+      ]
+    },
+    {
+      "row": [
+        10,
+        "tc",
+        "pti"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stC/ptI",
+      "element": "part",
+      "byteSpan": [
+        45382782,
+        45382886
+      ]
+    },
+    {
+      "row": [
+        10,
+        "tc",
+        "ptii"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stC/ptII",
+      "element": "part",
+      "byteSpan": [
+        46003299,
+        46003404
+      ]
+    },
+    {
+      "row": [
+        10,
+        "tc",
+        "ptiii"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stC/ptIII",
+      "element": "part",
+      "byteSpan": [
+        47193946,
+        47194052
+      ]
+    },
+    {
+      "row": [
+        10,
+        "tc",
+        "ptiv"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stC/ptIV",
+      "element": "part",
+      "byteSpan": [
+        47941170,
+        47941275
+      ]
+    },
+    {
+      "row": [
+        10,
+        "td",
+        "pti"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stD/ptI",
+      "element": "part",
+      "byteSpan": [
+        49836079,
+        49836183
+      ]
+    },
+    {
+      "row": [
+        10,
+        "td",
+        "ptii"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stD/ptII",
+      "element": "part",
+      "byteSpan": [
+        50425032,
+        50425137
+      ]
+    },
+    {
+      "row": [
+        10,
+        "td",
+        "ptiii"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stD/ptIII",
+      "element": "part",
+      "byteSpan": [
+        51058154,
+        51058260
+      ]
+    },
+    {
+      "row": [
+        10,
+        "td",
+        "ptiv"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stD/ptIV",
+      "element": "part",
+      "byteSpan": [
+        51699569,
+        51699674
+      ]
+    },
+    {
+      "row": [
+        10,
+        "te",
+        "pti"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stE/ptI",
+      "element": "part",
+      "byteSpan": [
+        52299202,
+        52299306
+      ]
+    },
+    {
+      "row": [
+        10,
+        "te",
+        "ptii"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stE/ptII",
+      "element": "part",
+      "byteSpan": [
+        52883477,
+        52883582
+      ]
+    },
+    {
+      "row": [
+        10,
+        "te",
+        "ptiii"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stE/ptIII",
+      "element": "part",
+      "byteSpan": [
+        54216298,
+        54216404
+      ]
+    },
+    {
+      "row": [
+        10,
+        "te",
+        "ptiv"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stE/ptIV",
+      "element": "part",
+      "byteSpan": [
+        54778415,
+        54778520
+      ]
+    },
+    {
+      "row": [
+        10,
+        "te",
+        "ptv"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stE/ptV",
+      "element": "part",
+      "byteSpan": [
+        55148537,
+        55148641
+      ]
+    },
+    {
+      "row": [
+        10,
+        "tf",
+        "pti"
+      ],
+      "member": "usc10.xml",
+      "identifier": "/us/usc/t10/stF/ptI",
+      "element": "part",
+      "byteSpan": [
+        55328346,
+        55328450
+      ]
+    },
+    {
+      "row": [
+        14,
+        "ti",
+        "ch1"
+      ],
+      "member": "usc14.xml",
+      "identifier": "/us/usc/t14/stI/ch1",
+      "element": "chapter",
+      "byteSpan": [
+        298932,
+        299039
+      ]
+    },
+    {
+      "row": [
+        14,
+        "ti",
+        "ch11"
+      ],
+      "member": "usc14.xml",
+      "identifier": "/us/usc/t14/stI/ch11",
+      "element": "chapter",
+      "byteSpan": [
+        1595402,
+        1595510
+      ]
+    },
+    {
+      "row": [
+        14,
+        "ti",
+        "ch3"
+      ],
+      "member": "usc14.xml",
+      "identifier": "/us/usc/t14/stI/ch3",
+      "element": "chapter",
+      "byteSpan": [
+        388334,
+        388441
+      ]
+    },
+    {
+      "row": [
+        14,
+        "ti",
+        "ch5"
+      ],
+      "member": "usc14.xml",
+      "identifier": "/us/usc/t14/stI/ch5",
+      "element": "chapter",
+      "byteSpan": [
+        707466,
+        707573
+      ]
+    },
+    {
+      "row": [
+        14,
+        "ti",
+        "ch7"
+      ],
+      "member": "usc14.xml",
+      "identifier": "/us/usc/t14/stI/ch7",
+      "element": "chapter",
+      "byteSpan": [
+        1209812,
+        1209919
+      ]
+    },
+    {
+      "row": [
+        14,
+        "ti",
+        "ch9"
+      ],
+      "member": "usc14.xml",
+      "identifier": "/us/usc/t14/stI/ch9",
+      "element": "chapter",
+      "byteSpan": [
+        1373385,
+        1373492
+      ]
+    },
+    {
+      "row": [
+        14,
+        "tii",
+        "ch19"
+      ],
+      "member": "usc14.xml",
+      "identifier": "/us/usc/t14/stII/ch19",
+      "element": "chapter",
+      "byteSpan": [
+        1853204,
+        1853313
+      ]
+    },
+    {
+      "row": [
+        14,
+        "tii",
+        "ch21"
+      ],
+      "member": "usc14.xml",
+      "identifier": "/us/usc/t14/stII/ch21",
+      "element": "chapter",
+      "byteSpan": [
+        2092636,
+        2092745
+      ]
+    },
+    {
+      "row": [
+        14,
+        "tii",
+        "ch23"
+      ],
+      "member": "usc14.xml",
+      "identifier": "/us/usc/t14/stII/ch23",
+      "element": "chapter",
+      "byteSpan": [
+        2512940,
+        2513049
+      ]
+    },
+    {
+      "row": [
+        14,
+        "tii",
+        "ch25"
+      ],
+      "member": "usc14.xml",
+      "identifier": "/us/usc/t14/stII/ch25",
+      "element": "chapter",
+      "byteSpan": [
+        2608630,
+        2608739
+      ]
+    },
+    {
+      "row": [
+        14,
+        "tii",
+        "ch27"
+      ],
+      "member": "usc14.xml",
+      "identifier": "/us/usc/t14/stII/ch27",
+      "element": "chapter",
+      "byteSpan": [
+        2980909,
+        2981018
+      ]
+    },
+    {
+      "row": [
+        14,
+        "tii",
+        "ch29"
+      ],
+      "member": "usc14.xml",
+      "identifier": "/us/usc/t14/stII/ch29",
+      "element": "chapter",
+      "byteSpan": [
+        3206808,
+        3206917
+      ]
+    },
+    {
+      "row": [
+        14,
+        "tiii",
+        "ch37"
+      ],
+      "member": "usc14.xml",
+      "identifier": "/us/usc/t14/stIII/ch37",
+      "element": "chapter",
+      "byteSpan": [
+        3380731,
+        3380841
+      ]
+    },
+    {
+      "row": [
+        14,
+        "tiii",
+        "ch39"
+      ],
+      "member": "usc14.xml",
+      "identifier": "/us/usc/t14/stIII/ch39",
+      "element": "chapter",
+      "byteSpan": [
+        3604219,
+        3604329
+      ]
+    },
+    {
+      "row": [
+        14,
+        "tiii",
+        "ch41"
+      ],
+      "member": "usc14.xml",
+      "identifier": "/us/usc/t14/stIII/ch41",
+      "element": "chapter",
+      "byteSpan": [
+        3669900,
+        3670010
+      ]
+    },
+    {
+      "row": [
+        14,
+        "tiv",
+        "ch49"
+      ],
+      "member": "usc14.xml",
+      "identifier": "/us/usc/t14/stIV/ch49",
+      "element": "chapter",
+      "byteSpan": [
+        3683501,
+        3683610
+      ]
+    },
+    {
+      "row": [
+        14,
+        "tiv",
+        "ch51"
+      ],
+      "member": "usc14.xml",
+      "identifier": "/us/usc/t14/stIV/ch51",
+      "element": "chapter",
+      "byteSpan": [
+        3731513,
+        3731622
+      ]
+    },
+    {
+      "row": [
+        26,
+        "ta",
+        "ch1"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stA/ch1",
+      "element": "chapter",
+      "byteSpan": [
+        1722067,
+        1722174
+      ]
+    },
+    {
+      "row": [
+        26,
+        "ta",
+        "ch2"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stA/ch2",
+      "element": "chapter",
+      "byteSpan": [
+        33551347,
+        33551454
+      ]
+    },
+    {
+      "row": [
+        26,
+        "ta",
+        "ch2a"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stA/ch2A",
+      "element": "chapter",
+      "byteSpan": [
+        33851472,
+        33851580
+      ]
+    },
+    {
+      "row": [
+        26,
+        "ta",
+        "ch3"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stA/ch3",
+      "element": "chapter",
+      "byteSpan": [
+        33865743,
+        33865850
+      ]
+    },
+    {
+      "row": [
+        26,
+        "ta",
+        "ch4"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stA/ch4",
+      "element": "chapter",
+      "byteSpan": [
+        34044752,
+        34044859
+      ]
+    },
+    {
+      "row": [
+        26,
+        "ta",
+        "ch5"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stA/ch5",
+      "element": "chapter",
+      "byteSpan": [
+        34106295,
+        34106420
+      ]
+    },
+    {
+      "row": [
+        26,
+        "ta",
+        "ch6"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stA/ch6",
+      "element": "chapter",
+      "byteSpan": [
+        34111796,
+        34111903
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tb",
+        "ch11"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stB/ch11",
+      "element": "chapter",
+      "byteSpan": [
+        34349069,
+        34349177
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tb",
+        "ch12"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stB/ch12",
+      "element": "chapter",
+      "byteSpan": [
+        35214994,
+        35215102
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tb",
+        "ch13"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stB/ch13",
+      "element": "chapter",
+      "byteSpan": [
+        35468035,
+        35468143
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tb",
+        "ch14"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stB/ch14",
+      "element": "chapter",
+      "byteSpan": [
+        35705537,
+        35705645
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tb",
+        "ch15"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stB/ch15",
+      "element": "chapter",
+      "byteSpan": [
+        35788884,
+        35788992
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tc",
+        "ch21"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stC/ch21",
+      "element": "chapter",
+      "byteSpan": [
+        35807129,
+        35807237
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tc",
+        "ch22"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stC/ch22",
+      "element": "chapter",
+      "byteSpan": [
+        36612689,
+        36612797
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tc",
+        "ch23"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stC/ch23",
+      "element": "chapter",
+      "byteSpan": [
+        36842513,
+        36842621
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tc",
+        "ch23a"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stC/ch23A",
+      "element": "chapter",
+      "byteSpan": [
+        37648876,
+        37648985
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tc",
+        "ch24"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stC/ch24",
+      "element": "chapter",
+      "byteSpan": [
+        37669353,
+        37669461
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tc",
+        "ch25"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stC/ch25",
+      "element": "chapter",
+      "byteSpan": [
+        38059566,
+        38059674
+      ]
+    },
+    {
+      "row": [
+        26,
+        "td",
+        "ch31"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stD/ch31",
+      "element": "chapter",
+      "byteSpan": [
+        38191233,
+        38191341
+      ]
+    },
+    {
+      "row": [
+        26,
+        "td",
+        "ch32"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stD/ch32",
+      "element": "chapter",
+      "byteSpan": [
+        38496157,
+        38496265
+      ]
+    },
+    {
+      "row": [
+        26,
+        "td",
+        "ch33"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stD/ch33",
+      "element": "chapter",
+      "byteSpan": [
+        39238341,
+        39238449
+      ]
+    },
+    {
+      "row": [
+        26,
+        "td",
+        "ch34"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stD/ch34",
+      "element": "chapter",
+      "byteSpan": [
+        39574915,
+        39575023
+      ]
+    },
+    {
+      "row": [
+        26,
+        "td",
+        "ch35"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stD/ch35",
+      "element": "chapter",
+      "byteSpan": [
+        39656257,
+        39656365
+      ]
+    },
+    {
+      "row": [
+        26,
+        "td",
+        "ch36"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stD/ch36",
+      "element": "chapter",
+      "byteSpan": [
+        39707999,
+        39708107
+      ]
+    },
+    {
+      "row": [
+        26,
+        "td",
+        "ch37"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stD/ch37",
+      "element": "chapter",
+      "byteSpan": [
+        39887058,
+        39887166
+      ]
+    },
+    {
+      "row": [
+        26,
+        "td",
+        "ch38"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stD/ch38",
+      "element": "chapter",
+      "byteSpan": [
+        39927589,
+        39927697
+      ]
+    },
+    {
+      "row": [
+        26,
+        "td",
+        "ch39"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stD/ch39",
+      "element": "chapter",
+      "byteSpan": [
+        40177682,
+        40177790
+      ]
+    },
+    {
+      "row": [
+        26,
+        "td",
+        "ch40"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stD/ch40",
+      "element": "chapter",
+      "byteSpan": [
+        40190313,
+        40190421
+      ]
+    },
+    {
+      "row": [
+        26,
+        "td",
+        "ch41"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stD/ch41",
+      "element": "chapter",
+      "byteSpan": [
+        40210649,
+        40210757
+      ]
+    },
+    {
+      "row": [
+        26,
+        "td",
+        "ch42"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stD/ch42",
+      "element": "chapter",
+      "byteSpan": [
+        40262894,
+        40263002
+      ]
+    },
+    {
+      "row": [
+        26,
+        "td",
+        "ch43"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stD/ch43",
+      "element": "chapter",
+      "byteSpan": [
+        40778103,
+        40778211
+      ]
+    },
+    {
+      "row": [
+        26,
+        "td",
+        "ch44"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stD/ch44",
+      "element": "chapter",
+      "byteSpan": [
+        41547305,
+        41547413
+      ]
+    },
+    {
+      "row": [
+        26,
+        "td",
+        "ch45"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stD/ch45",
+      "element": "chapter",
+      "byteSpan": [
+        41603445,
+        41603553
+      ]
+    },
+    {
+      "row": [
+        26,
+        "td",
+        "ch46"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stD/ch46",
+      "element": "chapter",
+      "byteSpan": [
+        41631495,
+        41631603
+      ]
+    },
+    {
+      "row": [
+        26,
+        "td",
+        "ch47"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stD/ch47",
+      "element": "chapter",
+      "byteSpan": [
+        41635763,
+        41635871
+      ]
+    },
+    {
+      "row": [
+        26,
+        "td",
+        "ch48"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stD/ch48",
+      "element": "chapter",
+      "byteSpan": [
+        41648788,
+        41648896
+      ]
+    },
+    {
+      "row": [
+        26,
+        "td",
+        "ch49"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stD/ch49",
+      "element": "chapter",
+      "byteSpan": [
+        41710883,
+        41710991
+      ]
+    },
+    {
+      "row": [
+        26,
+        "td",
+        "ch50"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stD/ch50",
+      "element": "chapter",
+      "byteSpan": [
+        41718982,
+        41719090
+      ]
+    },
+    {
+      "row": [
+        26,
+        "td",
+        "ch50a"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stD/ch50A",
+      "element": "chapter",
+      "byteSpan": [
+        41726641,
+        41726750
+      ]
+    },
+    {
+      "row": [
+        26,
+        "te",
+        "ch51"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stE/ch51",
+      "element": "chapter",
+      "byteSpan": [
+        41749492,
+        41749600
+      ]
+    },
+    {
+      "row": [
+        26,
+        "te",
+        "ch52"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stE/ch52",
+      "element": "chapter",
+      "byteSpan": [
+        43375293,
+        43375401
+      ]
+    },
+    {
+      "row": [
+        26,
+        "te",
+        "ch53"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stE/ch53",
+      "element": "chapter",
+      "byteSpan": [
+        43723681,
+        43723789
+      ]
+    },
+    {
+      "row": [
+        26,
+        "te",
+        "ch54"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stE/ch54",
+      "element": "chapter",
+      "byteSpan": [
+        43855562,
+        43855670
+      ]
+    },
+    {
+      "row": [
+        26,
+        "te",
+        "ch55"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stE/ch55",
+      "element": "chapter",
+      "byteSpan": [
+        43865891,
+        43865999
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tf",
+        "ch61"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stF/ch61",
+      "element": "chapter",
+      "byteSpan": [
+        43893872,
+        43893980
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tf",
+        "ch62"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stF/ch62",
+      "element": "chapter",
+      "byteSpan": [
+        46510895,
+        46511003
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tf",
+        "ch63"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stF/ch63",
+      "element": "chapter",
+      "byteSpan": [
+        46740377,
+        46740485
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tf",
+        "ch64"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stF/ch64",
+      "element": "chapter",
+      "byteSpan": [
+        47205392,
+        47205500
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tf",
+        "ch65"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stF/ch65",
+      "element": "chapter",
+      "byteSpan": [
+        47814627,
+        47814735
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tf",
+        "ch66"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stF/ch66",
+      "element": "chapter",
+      "byteSpan": [
+        49015301,
+        49015409
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tf",
+        "ch67"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stF/ch67",
+      "element": "chapter",
+      "byteSpan": [
+        49430022,
+        49430130
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tf",
+        "ch68"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stF/ch68",
+      "element": "chapter",
+      "byteSpan": [
+        49627700,
+        49627808
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tf",
+        "ch69"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stF/ch69",
+      "element": "chapter",
+      "byteSpan": [
+        50922782,
+        50922890
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tf",
+        "ch70"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stF/ch70",
+      "element": "chapter",
+      "byteSpan": [
+        50960388,
+        50960496
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tf",
+        "ch71"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stF/ch71",
+      "element": "chapter",
+      "byteSpan": [
+        51048530,
+        51048638
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tf",
+        "ch72"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stF/ch72",
+      "element": "chapter",
+      "byteSpan": [
+        51075485,
+        51075593
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tf",
+        "ch73"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stF/ch73",
+      "element": "chapter",
+      "byteSpan": [
+        51092232,
+        51092340
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tf",
+        "ch74"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stF/ch74",
+      "element": "chapter",
+      "byteSpan": [
+        51110635,
+        51110743
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tf",
+        "ch75"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stF/ch75",
+      "element": "chapter",
+      "byteSpan": [
+        51150255,
+        51150363
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tf",
+        "ch76"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stF/ch76",
+      "element": "chapter",
+      "byteSpan": [
+        51446361,
+        51446469
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tf",
+        "ch77"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stF/ch77",
+      "element": "chapter",
+      "byteSpan": [
+        52301469,
+        52301577
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tf",
+        "ch78"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stF/ch78",
+      "element": "chapter",
+      "byteSpan": [
+        52735106,
+        52735214
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tf",
+        "ch79"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stF/ch79",
+      "element": "chapter",
+      "byteSpan": [
+        53143833,
+        53143941
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tf",
+        "ch80"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stF/ch80",
+      "element": "chapter",
+      "byteSpan": [
+        53700456,
+        53700564
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tg",
+        "ch91"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stG/ch91",
+      "element": "chapter",
+      "byteSpan": [
+        54267875,
+        54267983
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tg",
+        "ch92"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stG/ch92",
+      "element": "chapter",
+      "byteSpan": [
+        54282075,
+        54282183
+      ]
+    },
+    {
+      "row": [
+        26,
+        "th",
+        "ch95"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stH/ch95",
+      "element": "chapter",
+      "byteSpan": [
+        54321497,
+        54321605
+      ]
+    },
+    {
+      "row": [
+        26,
+        "th",
+        "ch96"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stH/ch96",
+      "element": "chapter",
+      "byteSpan": [
+        54461817,
+        54461925
+      ]
+    },
+    {
+      "row": [
+        26,
+        "ti",
+        "ch98"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stI/ch98",
+      "element": "chapter",
+      "byteSpan": [
+        54536301,
+        54536409
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tj",
+        "ch99"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stJ/ch99",
+      "element": "chapter",
+      "byteSpan": [
+        55155731,
+        55155839
+      ]
+    },
+    {
+      "row": [
+        26,
+        "tk",
+        "ch100"
+      ],
+      "member": "usc26.xml",
+      "identifier": "/us/usc/t26/stK/ch100",
+      "element": "chapter",
+      "byteSpan": [
+        55341185,
+        55341294
+      ]
+    },
+    {
+      "row": [
+        31,
+        "ti",
+        "ch1"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stI/ch1",
+      "element": "chapter",
+      "byteSpan": [
+        433667,
+        433774
+      ]
+    },
+    {
+      "row": [
+        31,
+        "ti",
+        "ch3"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stI/ch3",
+      "element": "chapter",
+      "byteSpan": [
+        443277,
+        443384
+      ]
+    },
+    {
+      "row": [
+        31,
+        "ti",
+        "ch5"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stI/ch5",
+      "element": "chapter",
+      "byteSpan": [
+        901248,
+        901355
+      ]
+    },
+    {
+      "row": [
+        31,
+        "ti",
+        "ch7"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stI/ch7",
+      "element": "chapter",
+      "byteSpan": [
+        1266688,
+        1266795
+      ]
+    },
+    {
+      "row": [
+        31,
+        "ti",
+        "ch9"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stI/ch9",
+      "element": "chapter",
+      "byteSpan": [
+        1919723,
+        1919830
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tii",
+        "ch11"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stII/ch11",
+      "element": "chapter",
+      "byteSpan": [
+        1966654,
+        1966763
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tii",
+        "ch13"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stII/ch13",
+      "element": "chapter",
+      "byteSpan": [
+        2573011,
+        2573120
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tii",
+        "ch15"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stII/ch15",
+      "element": "chapter",
+      "byteSpan": [
+        2980906,
+        2981015
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tiii",
+        "ch31"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stIII/ch31",
+      "element": "chapter",
+      "byteSpan": [
+        3268308,
+        3268418
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tiii",
+        "ch33"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stIII/ch33",
+      "element": "chapter",
+      "byteSpan": [
+        3674903,
+        3675013
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tiii",
+        "ch35"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stIII/ch35",
+      "element": "chapter",
+      "byteSpan": [
+        4204476,
+        4204586
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tiii",
+        "ch37"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stIII/ch37",
+      "element": "chapter",
+      "byteSpan": [
+        4674772,
+        4674882
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tiii",
+        "ch38"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stIII/ch38",
+      "element": "chapter",
+      "byteSpan": [
+        5333090,
+        5333200
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tiii",
+        "ch39"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stIII/ch39",
+      "element": "chapter",
+      "byteSpan": [
+        5467977,
+        5468087
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tiv",
+        "ch51"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stIV/ch51",
+      "element": "chapter",
+      "byteSpan": [
+        5592649,
+        5592758
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tiv",
+        "ch53"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stIV/ch53",
+      "element": "chapter",
+      "byteSpan": [
+        6414345,
+        6414454
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tv",
+        "ch61"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stV/ch61",
+      "element": "chapter",
+      "byteSpan": [
+        7430836,
+        7430944
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tv",
+        "ch62"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stV/ch62",
+      "element": "chapter",
+      "byteSpan": [
+        7634681,
+        7634789
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tv",
+        "ch63"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stV/ch63",
+      "element": "chapter",
+      "byteSpan": [
+        7663391,
+        7663499
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tv",
+        "ch64"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stV/ch64",
+      "element": "chapter",
+      "byteSpan": [
+        7715204,
+        7715312
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tv",
+        "ch65"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stV/ch65",
+      "element": "chapter",
+      "byteSpan": [
+        7749532,
+        7749640
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tv",
+        "ch67"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stV/ch67",
+      "element": "chapter",
+      "byteSpan": [
+        7868143,
+        7868251
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tv",
+        "ch69"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stV/ch69",
+      "element": "chapter",
+      "byteSpan": [
+        8062043,
+        8062151
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tv",
+        "ch71"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stV/ch71",
+      "element": "chapter",
+      "byteSpan": [
+        8179953,
+        8180061
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tv",
+        "ch73"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stV/ch73",
+      "element": "chapter",
+      "byteSpan": [
+        8265125,
+        8265233
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tv",
+        "ch75"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stV/ch75",
+      "element": "chapter",
+      "byteSpan": [
+        8292008,
+        8292116
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tv",
+        "ch77"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stV/ch77",
+      "element": "chapter",
+      "byteSpan": [
+        8370982,
+        8371090
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tvi",
+        "ch91"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stVI/ch91",
+      "element": "chapter",
+      "byteSpan": [
+        8382822,
+        8382931
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tvi",
+        "ch93"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stVI/ch93",
+      "element": "chapter",
+      "byteSpan": [
+        8524149,
+        8524258
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tvi",
+        "ch95"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stVI/ch95",
+      "element": "chapter",
+      "byteSpan": [
+        8602338,
+        8602447
+      ]
+    },
+    {
+      "row": [
+        31,
+        "tvi",
+        "ch97"
+      ],
+      "member": "usc31.xml",
+      "identifier": "/us/usc/t31/stVI/ch97",
+      "element": "chapter",
+      "byteSpan": [
+        8632691,
+        8632800
+      ]
+    },
+    {
+      "row": [
+        34,
+        "ti",
+        "ch101"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stI/ch101",
+      "element": "chapter",
+      "byteSpan": [
+        492087,
+        492196
+      ]
+    },
+    {
+      "row": [
+        34,
+        "ti",
+        "ch111"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stI/ch111",
+      "element": "chapter",
+      "byteSpan": [
+        3043389,
+        3043498
+      ]
+    },
+    {
+      "row": [
+        34,
+        "ti",
+        "ch121"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stI/ch121",
+      "element": "chapter",
+      "byteSpan": [
+        4152952,
+        4153061
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tii",
+        "ch201"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stII/ch201",
+      "element": "chapter",
+      "byteSpan": [
+        5535297,
+        5535407
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tii",
+        "ch203"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stII/ch203",
+      "element": "chapter",
+      "byteSpan": [
+        6089809,
+        6089919
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tii",
+        "ch205"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stII/ch205",
+      "element": "chapter",
+      "byteSpan": [
+        6290743,
+        6290853
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tii",
+        "ch207"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stII/ch207",
+      "element": "chapter",
+      "byteSpan": [
+        6336245,
+        6336355
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tii",
+        "ch209"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stII/ch209",
+      "element": "chapter",
+      "byteSpan": [
+        6567312,
+        6567422
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tii",
+        "ch211"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stII/ch211",
+      "element": "chapter",
+      "byteSpan": [
+        6876291,
+        6876401
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tii",
+        "ch213"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stII/ch213",
+      "element": "chapter",
+      "byteSpan": [
+        6978836,
+        6978946
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tii",
+        "ch215"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stII/ch215",
+      "element": "chapter",
+      "byteSpan": [
+        7001539,
+        7001649
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tii",
+        "ch217"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stII/ch217",
+      "element": "chapter",
+      "byteSpan": [
+        7081792,
+        7081902
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tii",
+        "ch219"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stII/ch219",
+      "element": "chapter",
+      "byteSpan": [
+        7130007,
+        7130117
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tiii",
+        "ch301"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stIII/ch301",
+      "element": "chapter",
+      "byteSpan": [
+        7168486,
+        7168597
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tiii",
+        "ch303"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stIII/ch303",
+      "element": "chapter",
+      "byteSpan": [
+        7297498,
+        7297609
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tiii",
+        "ch305"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stIII/ch305",
+      "element": "chapter",
+      "byteSpan": [
+        7455031,
+        7455142
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tiv",
+        "ch401"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stIV/ch401",
+      "element": "chapter",
+      "byteSpan": [
+        7545533,
+        7545643
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tiv",
+        "ch403"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stIV/ch403",
+      "element": "chapter",
+      "byteSpan": [
+        7632050,
+        7632160
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tiv",
+        "ch405"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stIV/ch405",
+      "element": "chapter",
+      "byteSpan": [
+        7730751,
+        7730861
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tiv",
+        "ch407"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stIV/ch407",
+      "element": "chapter",
+      "byteSpan": [
+        7783691,
+        7783801
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tiv",
+        "ch409"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stIV/ch409",
+      "element": "chapter",
+      "byteSpan": [
+        7976932,
+        7977042
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tiv",
+        "ch411"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stIV/ch411",
+      "element": "chapter",
+      "byteSpan": [
+        8145325,
+        8145435
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tiv",
+        "ch413"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stIV/ch413",
+      "element": "chapter",
+      "byteSpan": [
+        8197915,
+        8198025
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tiv",
+        "ch415"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stIV/ch415",
+      "element": "chapter",
+      "byteSpan": [
+        8279052,
+        8279162
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tv",
+        "ch501"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stV/ch501",
+      "element": "chapter",
+      "byteSpan": [
+        8350430,
+        8350539
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tv",
+        "ch503"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stV/ch503",
+      "element": "chapter",
+      "byteSpan": [
+        8397083,
+        8397192
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tv",
+        "ch505"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stV/ch505",
+      "element": "chapter",
+      "byteSpan": [
+        8470253,
+        8470362
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tv",
+        "ch507"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stV/ch507",
+      "element": "chapter",
+      "byteSpan": [
+        8499883,
+        8499992
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tv",
+        "ch509"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stV/ch509",
+      "element": "chapter",
+      "byteSpan": [
+        8507534,
+        8507643
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tv",
+        "ch511"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stV/ch511",
+      "element": "chapter",
+      "byteSpan": [
+        8532052,
+        8532161
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tvi",
+        "ch601"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stVI/ch601",
+      "element": "chapter",
+      "byteSpan": [
+        8575657,
+        8575767
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tvi",
+        "ch603"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stVI/ch603",
+      "element": "chapter",
+      "byteSpan": [
+        8621483,
+        8621593
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tvi",
+        "ch605"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stVI/ch605",
+      "element": "chapter",
+      "byteSpan": [
+        8676663,
+        8676773
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tvi",
+        "ch607"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stVI/ch607",
+      "element": "chapter",
+      "byteSpan": [
+        8825246,
+        8825356
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tvi",
+        "ch609"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stVI/ch609",
+      "element": "chapter",
+      "byteSpan": [
+        8837028,
+        8837138
+      ]
+    },
+    {
+      "row": [
+        34,
+        "tvi",
+        "ch611"
+      ],
+      "member": "usc34.xml",
+      "identifier": "/us/usc/t34/stVI/ch611",
+      "element": "chapter",
+      "byteSpan": [
+        8868005,
+        8868115
+      ]
+    },
+    {
+      "row": [
+        36,
+        "ti",
+        "pta"
+      ],
+      "member": "usc36.xml",
+      "identifier": "/us/usc/t36/stI/ptA",
+      "element": "part",
+      "byteSpan": [
+        700389,
+        700493
+      ]
+    },
+    {
+      "row": [
+        36,
+        "ti",
+        "ptb"
+      ],
+      "member": "usc36.xml",
+      "identifier": "/us/usc/t36/stI/ptB",
+      "element": "part",
+      "byteSpan": [
+        1419695,
+        1419799
+      ]
+    },
+    {
+      "row": [
+        36,
+        "tii",
+        "pta"
+      ],
+      "member": "usc36.xml",
+      "identifier": "/us/usc/t36/stII/ptA",
+      "element": "part",
+      "byteSpan": [
+        1664992,
+        1665097
+      ]
+    },
+    {
+      "row": [
+        36,
+        "tii",
+        "ptb"
+      ],
+      "member": "usc36.xml",
+      "identifier": "/us/usc/t36/stII/ptB",
+      "element": "part",
+      "byteSpan": [
+        1757356,
+        1757461
+      ]
+    },
+    {
+      "row": [
+        36,
+        "tiii",
+        "ch3001"
+      ],
+      "member": "usc36.xml",
+      "identifier": "/us/usc/t36/stIII/ch3001",
+      "element": "chapter",
+      "byteSpan": [
+        7278432,
+        7278544
+      ]
+    },
+    {
+      "row": [
+        40,
+        "ti",
+        "ch1"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stI/ch1",
+      "element": "chapter",
+      "byteSpan": [
+        416730,
+        416837
+      ]
+    },
+    {
+      "row": [
+        40,
+        "ti",
+        "ch11"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stI/ch11",
+      "element": "chapter",
+      "byteSpan": [
+        1689687,
+        1689795
+      ]
+    },
+    {
+      "row": [
+        40,
+        "ti",
+        "ch13"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stI/ch13",
+      "element": "chapter",
+      "byteSpan": [
+        1712512,
+        1712620
+      ]
+    },
+    {
+      "row": [
+        40,
+        "ti",
+        "ch3"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stI/ch3",
+      "element": "chapter",
+      "byteSpan": [
+        627634,
+        627741
+      ]
+    },
+    {
+      "row": [
+        40,
+        "ti",
+        "ch5"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stI/ch5",
+      "element": "chapter",
+      "byteSpan": [
+        758003,
+        758110
+      ]
+    },
+    {
+      "row": [
+        40,
+        "ti",
+        "ch7"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stI/ch7",
+      "element": "chapter",
+      "byteSpan": [
+        1619595,
+        1619702
+      ]
+    },
+    {
+      "row": [
+        40,
+        "ti",
+        "ch9"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stI/ch9",
+      "element": "chapter",
+      "byteSpan": [
+        1662814,
+        1662921
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tii",
+        "pta"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stII/ptA",
+      "element": "part",
+      "byteSpan": [
+        1991031,
+        1991136
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tii",
+        "ptb"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stII/ptB",
+      "element": "part",
+      "byteSpan": [
+        2583391,
+        2583496
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tii",
+        "ptc"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stII/ptC",
+      "element": "part",
+      "byteSpan": [
+        2744839,
+        2744944
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tii",
+        "ptd"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stII/ptD",
+      "element": "part",
+      "byteSpan": [
+        3157566,
+        3157671
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tiii",
+        "ch111"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stIII/ch111",
+      "element": "chapter",
+      "byteSpan": [
+        3721154,
+        3721265
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tiii",
+        "ch113"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stIII/ch113",
+      "element": "chapter",
+      "byteSpan": [
+        3756929,
+        3757040
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tiii",
+        "ch115"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stIII/ch115",
+      "element": "chapter",
+      "byteSpan": [
+        4030211,
+        4030322
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tiii",
+        "ch117"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stIII/ch117",
+      "element": "chapter",
+      "byteSpan": [
+        4075026,
+        4075137
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tiv",
+        "ch141"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stIV/ch141",
+      "element": "chapter",
+      "byteSpan": [
+        4093411,
+        4093521
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tiv",
+        "ch143"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stIV/ch143",
+      "element": "chapter",
+      "byteSpan": [
+        4128969,
+        4129079
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tiv",
+        "ch145"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stIV/ch145",
+      "element": "chapter",
+      "byteSpan": [
+        4251881,
+        4251991
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tiv",
+        "ch147"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stIV/ch147",
+      "element": "chapter",
+      "byteSpan": [
+        4471516,
+        4471626
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tv",
+        "ch151"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stV/ch151",
+      "element": "chapter",
+      "byteSpan": [
+        4504740,
+        4504849
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tv",
+        "ch153"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stV/ch153",
+      "element": "chapter",
+      "byteSpan": [
+        4518722,
+        4518831
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tv",
+        "ch155"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stV/ch155",
+      "element": "chapter",
+      "byteSpan": [
+        4587102,
+        4587211
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tv",
+        "ch157"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stV/ch157",
+      "element": "chapter",
+      "byteSpan": [
+        4630445,
+        4630554
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tv",
+        "ch159"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stV/ch159",
+      "element": "chapter",
+      "byteSpan": [
+        4688281,
+        4688390
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tvi",
+        "ch171"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stVI/ch171",
+      "element": "chapter",
+      "byteSpan": [
+        4724763,
+        4724873
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tvi",
+        "ch173"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stVI/ch173",
+      "element": "chapter",
+      "byteSpan": [
+        4737296,
+        4737406
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tvi",
+        "ch175"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stVI/ch175",
+      "element": "chapter",
+      "byteSpan": [
+        4799370,
+        4799480
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tvi",
+        "ch177"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stVI/ch177",
+      "element": "chapter",
+      "byteSpan": [
+        4850854,
+        4850964
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tvi",
+        "ch179"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stVI/ch179",
+      "element": "chapter",
+      "byteSpan": [
+        4893629,
+        4893739
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tvi",
+        "ch181"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stVI/ch181",
+      "element": "chapter",
+      "byteSpan": [
+        4916718,
+        4916828
+      ]
+    },
+    {
+      "row": [
+        40,
+        "tvi",
+        "ch183"
+      ],
+      "member": "usc40.xml",
+      "identifier": "/us/usc/t40/stVI/ch183",
+      "element": "chapter",
+      "byteSpan": [
+        4937645,
+        4937755
+      ]
+    },
+    {
+      "row": [
+        41,
+        "ti",
+        "da"
+      ],
+      "member": "usc41.xml",
+      "identifier": "/us/usc/t41/stI/dA",
+      "element": "division",
+      "byteSpan": [
+        156293,
+        156400
+      ]
+    },
+    {
+      "row": [
+        41,
+        "ti",
+        "db"
+      ],
+      "member": "usc41.xml",
+      "identifier": "/us/usc/t41/stI/dB",
+      "element": "division",
+      "byteSpan": [
+        308379,
+        308486
+      ]
+    },
+    {
+      "row": [
+        41,
+        "ti",
+        "dc"
+      ],
+      "member": "usc41.xml",
+      "identifier": "/us/usc/t41/stI/dC",
+      "element": "division",
+      "byteSpan": [
+        1364472,
+        1364579
+      ]
+    },
+    {
+      "row": [
+        41,
+        "tii",
+        "ch61"
+      ],
+      "member": "usc41.xml",
+      "identifier": "/us/usc/t41/stII/ch61",
+      "element": "chapter",
+      "byteSpan": [
+        2489568,
+        2489677
+      ]
+    },
+    {
+      "row": [
+        41,
+        "tii",
+        "ch63"
+      ],
+      "member": "usc41.xml",
+      "identifier": "/us/usc/t41/stII/ch63",
+      "element": "chapter",
+      "byteSpan": [
+        2520107,
+        2520216
+      ]
+    },
+    {
+      "row": [
+        41,
+        "tii",
+        "ch65"
+      ],
+      "member": "usc41.xml",
+      "identifier": "/us/usc/t41/stII/ch65",
+      "element": "chapter",
+      "byteSpan": [
+        2635771,
+        2635880
+      ]
+    },
+    {
+      "row": [
+        41,
+        "tii",
+        "ch67"
+      ],
+      "member": "usc41.xml",
+      "identifier": "/us/usc/t41/stII/ch67",
+      "element": "chapter",
+      "byteSpan": [
+        2731583,
+        2731692
+      ]
+    },
+    {
+      "row": [
+        41,
+        "tiii",
+        "ch71"
+      ],
+      "member": "usc41.xml",
+      "identifier": "/us/usc/t41/stIII/ch71",
+      "element": "chapter",
+      "byteSpan": [
+        2792636,
+        2792746
+      ]
+    },
+    {
+      "row": [
+        41,
+        "tiv",
+        "ch81"
+      ],
+      "member": "usc41.xml",
+      "identifier": "/us/usc/t41/stIV/ch81",
+      "element": "chapter",
+      "byteSpan": [
+        2935102,
+        2935211
+      ]
+    },
+    {
+      "row": [
+        41,
+        "tiv",
+        "ch83"
+      ],
+      "member": "usc41.xml",
+      "identifier": "/us/usc/t41/stIV/ch83",
+      "element": "chapter",
+      "byteSpan": [
+        2985950,
+        2986059
+      ]
+    },
+    {
+      "row": [
+        41,
+        "tiv",
+        "ch85"
+      ],
+      "member": "usc41.xml",
+      "identifier": "/us/usc/t41/stIV/ch85",
+      "element": "chapter",
+      "byteSpan": [
+        3193069,
+        3193178
+      ]
+    },
+    {
+      "row": [
+        41,
+        "tiv",
+        "ch87"
+      ],
+      "member": "usc41.xml",
+      "identifier": "/us/usc/t41/stIV/ch87",
+      "element": "chapter",
+      "byteSpan": [
+        3268542,
+        3268651
+      ]
+    },
+    {
+      "row": [
+        46,
+        "ti",
+        "ch1"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stI/ch1",
+      "element": "chapter",
+      "byteSpan": [
+        608987,
+        609094
+      ]
+    },
+    {
+      "row": [
+        46,
+        "ti",
+        "ch3"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stI/ch3",
+      "element": "chapter",
+      "byteSpan": [
+        684020,
+        684127
+      ]
+    },
+    {
+      "row": [
+        46,
+        "ti",
+        "ch5"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stI/ch5",
+      "element": "chapter",
+      "byteSpan": [
+        690030,
+        690137
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tii",
+        "pta"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stII/ptA",
+      "element": "part",
+      "byteSpan": [
+        752230,
+        752335
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tii",
+        "ptb"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stII/ptB",
+      "element": "part",
+      "byteSpan": [
+        1067265,
+        1067370
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tii",
+        "ptc"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stII/ptC",
+      "element": "part",
+      "byteSpan": [
+        2149626,
+        2149731
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tii",
+        "ptd"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stII/ptD",
+      "element": "part",
+      "byteSpan": [
+        2236251,
+        2236356
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tii",
+        "pte"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stII/ptE",
+      "element": "part",
+      "byteSpan": [
+        2321733,
+        2321838
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tii",
+        "ptf"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stII/ptF",
+      "element": "part",
+      "byteSpan": [
+        2676628,
+        2676733
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tii",
+        "ptg"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stII/ptG",
+      "element": "part",
+      "byteSpan": [
+        3061616,
+        3061721
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tii",
+        "pth"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stII/ptH",
+      "element": "part",
+      "byteSpan": [
+        3518197,
+        3518302
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tii",
+        "pti"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stII/ptI",
+      "element": "part",
+      "byteSpan": [
+        3944479,
+        3944584
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tii",
+        "ptj"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stII/ptJ",
+      "element": "part",
+      "byteSpan": [
+        4068277,
+        4068382
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tii",
+        "ptk"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stII/ptK",
+      "element": "part",
+      "byteSpan": [
+        4184574,
+        4184679
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tiii",
+        "ch301"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stIII/ch301",
+      "element": "chapter",
+      "byteSpan": [
+        4277946,
+        4278057
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tiii",
+        "ch303"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stIII/ch303",
+      "element": "chapter",
+      "byteSpan": [
+        4320719,
+        4320830
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tiii",
+        "ch305"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stIII/ch305",
+      "element": "chapter",
+      "byteSpan": [
+        4356288,
+        4356399
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tiii",
+        "ch307"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stIII/ch307",
+      "element": "chapter",
+      "byteSpan": [
+        4447659,
+        4447770
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tiii",
+        "ch309"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stIII/ch309",
+      "element": "chapter",
+      "byteSpan": [
+        4510307,
+        4510418
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tiii",
+        "ch311"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stIII/ch311",
+      "element": "chapter",
+      "byteSpan": [
+        4593031,
+        4593142
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tiii",
+        "ch313"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stIII/ch313",
+      "element": "chapter",
+      "byteSpan": [
+        4642959,
+        4643070
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tiv",
+        "pta"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stIV/ptA",
+      "element": "part",
+      "byteSpan": [
+        4877813,
+        4877918
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tiv",
+        "ptb"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stIV/ptB",
+      "element": "part",
+      "byteSpan": [
+        5306264,
+        5306369
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tiv",
+        "ptc"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stIV/ptC",
+      "element": "part",
+      "byteSpan": [
+        5422374,
+        5422479
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tiv",
+        "ptd"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stIV/ptD",
+      "element": "part",
+      "byteSpan": [
+        5453899,
+        5454004
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tv",
+        "pta"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stV/ptA",
+      "element": "part",
+      "byteSpan": [
+        5548890,
+        5548994
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tv",
+        "ptb"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stV/ptB",
+      "element": "part",
+      "byteSpan": [
+        5903800,
+        5903904
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tv",
+        "ptc"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stV/ptC",
+      "element": "part",
+      "byteSpan": [
+        6550010,
+        6550114
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tv",
+        "ptd"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stV/ptD",
+      "element": "part",
+      "byteSpan": [
+        7802141,
+        7802245
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tv",
+        "pte"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stV/ptE",
+      "element": "part",
+      "byteSpan": [
+        8174332,
+        8174436
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tv",
+        "ptf"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stV/ptF",
+      "element": "part",
+      "byteSpan": [
+        8321986,
+        8322090
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tv",
+        "ptg"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stV/ptG",
+      "element": "part",
+      "byteSpan": [
+        8611494,
+        8611598
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tvi",
+        "ch601"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stVI/ch601",
+      "element": "chapter",
+      "byteSpan": [
+        8666904,
+        8667014
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tvi",
+        "ch603"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stVI/ch603",
+      "element": "chapter",
+      "byteSpan": [
+        8713856,
+        8713966
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tvi",
+        "ch605"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stVI/ch605",
+      "element": "chapter",
+      "byteSpan": [
+        8782745,
+        8782855
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tvii",
+        "ch700"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stVII/ch700",
+      "element": "chapter",
+      "byteSpan": [
+        8848632,
+        8848743
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tvii",
+        "ch701"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stVII/ch701",
+      "element": "chapter",
+      "byteSpan": [
+        9115027,
+        9115138
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tvii",
+        "ch703"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stVII/ch703",
+      "element": "chapter",
+      "byteSpan": [
+        9555145,
+        9555256
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tvii",
+        "ch705"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stVII/ch705",
+      "element": "chapter",
+      "byteSpan": [
+        9593003,
+        9593114
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tviii",
+        "ch801"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stVIII/ch801",
+      "element": "chapter",
+      "byteSpan": [
+        9676175,
+        9676287
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tviii",
+        "ch803"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stVIII/ch803",
+      "element": "chapter",
+      "byteSpan": [
+        9715189,
+        9715301
+      ]
+    },
+    {
+      "row": [
+        46,
+        "tviii",
+        "ch805"
+      ],
+      "member": "usc46.xml",
+      "identifier": "/us/usc/t46/stVIII/ch805",
+      "element": "chapter",
+      "byteSpan": [
+        9741296,
+        9741408
+      ]
+    },
+    {
+      "row": [
+        49,
+        "ti",
+        "ch1"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stI/ch1",
+      "element": "chapter",
+      "byteSpan": [
+        845658,
+        845765
+      ]
+    },
+    {
+      "row": [
+        49,
+        "ti",
+        "ch3"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stI/ch3",
+      "element": "chapter",
+      "byteSpan": [
+        1901991,
+        1902098
+      ]
+    },
+    {
+      "row": [
+        49,
+        "ti",
+        "ch5"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stI/ch5",
+      "element": "chapter",
+      "byteSpan": [
+        2497140,
+        2497247
+      ]
+    },
+    {
+      "row": [
+        49,
+        "ti",
+        "ch7"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stI/ch7",
+      "element": "chapter",
+      "byteSpan": [
+        2750291,
+        2750419
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tii",
+        "ch11"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stII/ch11",
+      "element": "chapter",
+      "byteSpan": [
+        2755764,
+        2755873
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tii",
+        "ch13"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stII/ch13",
+      "element": "chapter",
+      "byteSpan": [
+        3241570,
+        3241679
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tiii",
+        "ch51"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stIII/ch51",
+      "element": "chapter",
+      "byteSpan": [
+        3357326,
+        3357436
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tiii",
+        "ch53"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stIII/ch53",
+      "element": "chapter",
+      "byteSpan": [
+        3987390,
+        3987500
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tiii",
+        "ch55"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stIII/ch55",
+      "element": "chapter",
+      "byteSpan": [
+        6062364,
+        6062474
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tiii",
+        "ch57"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stIII/ch57",
+      "element": "chapter",
+      "byteSpan": [
+        6206698,
+        6206808
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tiii",
+        "ch59"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stIII/ch59",
+      "element": "chapter",
+      "byteSpan": [
+        6219908,
+        6220018
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tiii",
+        "ch61"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stIII/ch61",
+      "element": "chapter",
+      "byteSpan": [
+        6297283,
+        6297393
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tiii",
+        "ch63"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stIII/ch63",
+      "element": "chapter",
+      "byteSpan": [
+        6339907,
+        6340017
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tiii",
+        "ch65"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stIII/ch65",
+      "element": "chapter",
+      "byteSpan": [
+        6457242,
+        6457352
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tiii",
+        "ch67"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stIII/ch67",
+      "element": "chapter",
+      "byteSpan": [
+        6513316,
+        6513426
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tiv",
+        "pta"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stIV/ptA",
+      "element": "part",
+      "byteSpan": [
+        6633597,
+        6633702
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tiv",
+        "ptb"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stIV/ptB",
+      "element": "part",
+      "byteSpan": [
+        7267338,
+        7267443
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tiv",
+        "ptc"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stIV/ptC",
+      "element": "part",
+      "byteSpan": [
+        8173681,
+        8173786
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tix",
+        "ch701"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stIX/ch701",
+      "element": "chapter",
+      "byteSpan": [
+        26545429,
+        26545539
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tix",
+        "ch702"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stIX/ch702",
+      "element": "chapter",
+      "byteSpan": [
+        26591109,
+        26591219
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tix",
+        "ch703"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stIX/ch703",
+      "element": "chapter",
+      "byteSpan": [
+        26663571,
+        26663702
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tv",
+        "pta"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stV/ptA",
+      "element": "part",
+      "byteSpan": [
+        8311785,
+        8311889
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tv",
+        "ptb"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stV/ptB",
+      "element": "part",
+      "byteSpan": [
+        9471628,
+        9471732
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tv",
+        "ptc"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stV/ptC",
+      "element": "part",
+      "byteSpan": [
+        9954974,
+        9955078
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tv",
+        "ptd"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stV/ptD",
+      "element": "part",
+      "byteSpan": [
+        11023526,
+        11023630
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tv",
+        "pte"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stV/ptE",
+      "element": "part",
+      "byteSpan": [
+        11108938,
+        11109042
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tvi",
+        "pta"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stVI/ptA",
+      "element": "part",
+      "byteSpan": [
+        11190072,
+        11190177
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tvi",
+        "ptb"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stVI/ptB",
+      "element": "part",
+      "byteSpan": [
+        12305659,
+        12305764
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tvi",
+        "ptc"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stVI/ptC",
+      "element": "part",
+      "byteSpan": [
+        13779690,
+        13779795
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tvii",
+        "pta"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stVII/ptA",
+      "element": "part",
+      "byteSpan": [
+        14906719,
+        14906825
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tvii",
+        "ptb"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stVII/ptB",
+      "element": "part",
+      "byteSpan": [
+        22939785,
+        22939891
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tvii",
+        "ptc"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stVII/ptC",
+      "element": "part",
+      "byteSpan": [
+        24906181,
+        24906287
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tvii",
+        "ptd"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stVII/ptD",
+      "element": "part",
+      "byteSpan": [
+        25123248,
+        25123354
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tvii",
+        "pte"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stVII/ptE",
+      "element": "part",
+      "byteSpan": [
+        25298960,
+        25299066
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tviii",
+        "ch601"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stVIII/ch601",
+      "element": "chapter",
+      "byteSpan": [
+        25372754,
+        25372866
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tviii",
+        "ch603"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stVIII/ch603",
+      "element": "chapter",
+      "byteSpan": [
+        26501524,
+        26501636
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tviii",
+        "ch605"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stVIII/ch605",
+      "element": "chapter",
+      "byteSpan": [
+        26523458,
+        26523570
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tx",
+        "ch801"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stX/ch801",
+      "element": "chapter",
+      "byteSpan": [
+        26665831,
+        26665940
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tx",
+        "ch803"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stX/ch803",
+      "element": "chapter",
+      "byteSpan": [
+        26797086,
+        26797195
+      ]
+    },
+    {
+      "row": [
+        49,
+        "tx",
+        "ch805"
+      ],
+      "member": "usc49.xml",
+      "identifier": "/us/usc/t49/stX/ch805",
+      "element": "chapter",
+      "byteSpan": [
+        26861697,
+        26861806
+      ]
+    },
+    {
+      "row": [
+        51,
+        "ti",
+        "ch101"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stI/ch101",
+      "element": "chapter",
+      "byteSpan": [
+        130231,
+        130340
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tii",
+        "ch201"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stII/ch201",
+      "element": "chapter",
+      "byteSpan": [
+        166884,
+        166994
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tii",
+        "ch203"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stII/ch203",
+      "element": "chapter",
+      "byteSpan": [
+        683784,
+        683894
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tiii",
+        "ch301"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stIII/ch301",
+      "element": "chapter",
+      "byteSpan": [
+        877874,
+        877985
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tiii",
+        "ch303"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stIII/ch303",
+      "element": "chapter",
+      "byteSpan": [
+        941095,
+        941206
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tiii",
+        "ch305"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stIII/ch305",
+      "element": "chapter",
+      "byteSpan": [
+        1030373,
+        1030484
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tiii",
+        "ch307"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stIII/ch307",
+      "element": "chapter",
+      "byteSpan": [
+        1079550,
+        1079661
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tiii",
+        "ch309"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stIII/ch309",
+      "element": "chapter",
+      "byteSpan": [
+        1116759,
+        1116870
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tiii",
+        "ch311"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stIII/ch311",
+      "element": "chapter",
+      "byteSpan": [
+        1131378,
+        1131489
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tiii",
+        "ch313"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stIII/ch313",
+      "element": "chapter",
+      "byteSpan": [
+        1169583,
+        1169694
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tiii",
+        "ch315"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stIII/ch315",
+      "element": "chapter",
+      "byteSpan": [
+        1177637,
+        1177748
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tiv",
+        "ch401"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stIV/ch401",
+      "element": "chapter",
+      "byteSpan": [
+        1208128,
+        1208238
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tiv",
+        "ch403"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stIV/ch403",
+      "element": "chapter",
+      "byteSpan": [
+        1312069,
+        1312179
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tiv",
+        "ch405"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stIV/ch405",
+      "element": "chapter",
+      "byteSpan": [
+        1393666,
+        1393776
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tiv",
+        "ch407"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stIV/ch407",
+      "element": "chapter",
+      "byteSpan": [
+        1416949,
+        1417059
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tiv",
+        "ch409"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stIV/ch409",
+      "element": "chapter",
+      "byteSpan": [
+        1437397,
+        1437507
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tv",
+        "ch501"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stV/ch501",
+      "element": "chapter",
+      "byteSpan": [
+        1523506,
+        1523615
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tv",
+        "ch503"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stV/ch503",
+      "element": "chapter",
+      "byteSpan": [
+        1658551,
+        1658660
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tv",
+        "ch505"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stV/ch505",
+      "element": "chapter",
+      "byteSpan": [
+        1685459,
+        1685568
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tv",
+        "ch507"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stV/ch507",
+      "element": "chapter",
+      "byteSpan": [
+        1735684,
+        1735793
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tv",
+        "ch509"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stV/ch509",
+      "element": "chapter",
+      "byteSpan": [
+        1760700,
+        1760809
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tv",
+        "ch511"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stV/ch511",
+      "element": "chapter",
+      "byteSpan": [
+        2157706,
+        2157815
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tv",
+        "ch513"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stV/ch513",
+      "element": "chapter",
+      "byteSpan": [
+        2203413,
+        2203522
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tv",
+        "ch515"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stV/ch515",
+      "element": "chapter",
+      "byteSpan": [
+        2218671,
+        2218780
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tvi",
+        "ch601"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stVI/ch601",
+      "element": "chapter",
+      "byteSpan": [
+        2225745,
+        2225855
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tvi",
+        "ch603"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stVI/ch603",
+      "element": "chapter",
+      "byteSpan": [
+        2399642,
+        2399752
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tvi",
+        "ch605"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stVI/ch605",
+      "element": "chapter",
+      "byteSpan": [
+        2429640,
+        2429750
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tvi",
+        "ch606"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stVI/ch606",
+      "element": "chapter",
+      "byteSpan": [
+        2471573,
+        2471683
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tvii",
+        "ch701"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stVII/ch701",
+      "element": "chapter",
+      "byteSpan": [
+        2555411,
+        2555522
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tvii",
+        "ch703"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stVII/ch703",
+      "element": "chapter",
+      "byteSpan": [
+        2582906,
+        2583035
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tvii",
+        "ch705"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stVII/ch705",
+      "element": "chapter",
+      "byteSpan": [
+        2584966,
+        2585077
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tvii",
+        "ch707"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stVII/ch707",
+      "element": "chapter",
+      "byteSpan": [
+        2642419,
+        2642530
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tvii",
+        "ch709"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stVII/ch709",
+      "element": "chapter",
+      "byteSpan": [
+        2704362,
+        2704473
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tvii",
+        "ch711"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stVII/ch711",
+      "element": "chapter",
+      "byteSpan": [
+        2778098,
+        2778209
+      ]
+    },
+    {
+      "row": [
+        51,
+        "tvii",
+        "ch713"
+      ],
+      "member": "usc51.xml",
+      "identifier": "/us/usc/t51/stVII/ch713",
+      "element": "chapter",
+      "byteSpan": [
+        2817111,
+        2817222
+      ]
+    },
+    {
+      "row": [
+        52,
+        "ti",
+        "ch101"
+      ],
+      "member": "usc52.xml",
+      "identifier": "/us/usc/t52/stI/ch101",
+      "element": "chapter",
+      "byteSpan": [
+        127529,
+        127638
+      ]
+    },
+    {
+      "row": [
+        52,
+        "ti",
+        "ch103"
+      ],
+      "member": "usc52.xml",
+      "identifier": "/us/usc/t52/stI/ch103",
+      "element": "chapter",
+      "byteSpan": [
+        171746,
+        171855
+      ]
+    },
+    {
+      "row": [
+        52,
+        "ti",
+        "ch105"
+      ],
+      "member": "usc52.xml",
+      "identifier": "/us/usc/t52/stI/ch105",
+      "element": "chapter",
+      "byteSpan": [
+        300337,
+        300446
+      ]
+    },
+    {
+      "row": [
+        52,
+        "ti",
+        "ch107"
+      ],
+      "member": "usc52.xml",
+      "identifier": "/us/usc/t52/stI/ch107",
+      "element": "chapter",
+      "byteSpan": [
+        346970,
+        347079
+      ]
+    },
+    {
+      "row": [
+        52,
+        "tii",
+        "ch201"
+      ],
+      "member": "usc52.xml",
+      "identifier": "/us/usc/t52/stII/ch201",
+      "element": "chapter",
+      "byteSpan": [
+        378623,
+        378733
+      ]
+    },
+    {
+      "row": [
+        52,
+        "tii",
+        "ch203"
+      ],
+      "member": "usc52.xml",
+      "identifier": "/us/usc/t52/stII/ch203",
+      "element": "chapter",
+      "byteSpan": [
+        405628,
+        405738
+      ]
+    },
+    {
+      "row": [
+        52,
+        "tii",
+        "ch205"
+      ],
+      "member": "usc52.xml",
+      "identifier": "/us/usc/t52/stII/ch205",
+      "element": "chapter",
+      "byteSpan": [
+        560386,
+        560496
+      ]
+    },
+    {
+      "row": [
+        52,
+        "tii",
+        "ch207"
+      ],
+      "member": "usc52.xml",
+      "identifier": "/us/usc/t52/stII/ch207",
+      "element": "chapter",
+      "byteSpan": [
+        665475,
+        665585
+      ]
+    },
+    {
+      "row": [
+        52,
+        "tii",
+        "ch209"
+      ],
+      "member": "usc52.xml",
+      "identifier": "/us/usc/t52/stII/ch209",
+      "element": "chapter",
+      "byteSpan": [
+        678086,
+        678196
+      ]
+    },
+    {
+      "row": [
+        52,
+        "tiii",
+        "ch301"
+      ],
+      "member": "usc52.xml",
+      "identifier": "/us/usc/t52/stIII/ch301",
+      "element": "chapter",
+      "byteSpan": [
+        1151928,
+        1152039
+      ]
+    },
+    {
+      "row": [
+        54,
+        "ti",
+        "da"
+      ],
+      "member": "usc54.xml",
+      "identifier": "/us/usc/t54/stI/dA",
+      "element": "division",
+      "byteSpan": [
+        294715,
+        294822
+      ]
+    },
+    {
+      "row": [
+        54,
+        "ti",
+        "db"
+      ],
+      "member": "usc54.xml",
+      "identifier": "/us/usc/t54/stI/dB",
+      "element": "division",
+      "byteSpan": [
+        1397137,
+        1397244
+      ]
+    },
+    {
+      "row": [
+        54,
+        "ti",
+        "dc"
+      ],
+      "member": "usc54.xml",
+      "identifier": "/us/usc/t54/stI/dC",
+      "element": "division",
+      "byteSpan": [
+        1397351,
+        1397458
+      ]
+    },
+    {
+      "row": [
+        54,
+        "tii",
+        "ch2001"
+      ],
+      "member": "usc54.xml",
+      "identifier": "/us/usc/t54/stII/ch2001",
+      "element": "chapter",
+      "byteSpan": [
+        1498411,
+        1498522
+      ]
+    },
+    {
+      "row": [
+        54,
+        "tii",
+        "ch2003"
+      ],
+      "member": "usc54.xml",
+      "identifier": "/us/usc/t54/stII/ch2003",
+      "element": "chapter",
+      "byteSpan": [
+        1551049,
+        1551160
+      ]
+    },
+    {
+      "row": [
+        54,
+        "tii",
+        "ch2004"
+      ],
+      "member": "usc54.xml",
+      "identifier": "/us/usc/t54/stII/ch2004",
+      "element": "chapter",
+      "byteSpan": [
+        1700854,
+        1700965
+      ]
+    },
+    {
+      "row": [
+        54,
+        "tii",
+        "ch2005"
+      ],
+      "member": "usc54.xml",
+      "identifier": "/us/usc/t54/stII/ch2005",
+      "element": "chapter",
+      "byteSpan": [
+        1727016,
+        1727127
+      ]
+    },
+    {
+      "row": [
+        54,
+        "tiii",
+        "da"
+      ],
+      "member": "usc54.xml",
+      "identifier": "/us/usc/t54/stIII/dA",
+      "element": "division",
+      "byteSpan": [
+        1814420,
+        1814529
+      ]
+    },
+    {
+      "row": [
+        54,
+        "tiii",
+        "db"
+      ],
+      "member": "usc54.xml",
+      "identifier": "/us/usc/t54/stIII/dB",
+      "element": "division",
+      "byteSpan": [
+        2585113,
+        2585222
+      ]
+    },
+    {
+      "row": [
+        54,
+        "tiii",
+        "dc"
+      ],
+      "member": "usc54.xml",
+      "identifier": "/us/usc/t54/stIII/dC",
+      "element": "division",
+      "byteSpan": [
+        2975354,
+        2975463
+      ]
+    }
+  ]
+}
