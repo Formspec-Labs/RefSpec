@@ -211,11 +211,17 @@ def test_the_tables_carry_what_the_shared_grammar_reads(con) -> None:
     # 445,064 before the Title 3 compilation diversion and the list-item
     # lookahead removed 213 fabricated rows ("3 CFR, 1977 Comp." read as part
     # 1977; a list swallowing the next citation's number).
-    assert _one(con, "select count(*) from '{d}/unified_agenda_cfr_references.parquet'") == 444_847
+    # 444,847 -> 445,087 at rebuild #16 (61bb05d0 "preserve complete CFR
+    # ranges through consumers"): +240, the range-coverage completion rows --
+    # 236 rows now carry cfr_part_end/cfr_end_part_is_plausible and 138 carry
+    # cfr_refusal, the columns that commit's schema declares.
+    assert _one(con, "select count(*) from '{d}/unified_agenda_cfr_references.parquet'") == 445_087
     assert _one(
         con,
         "select count(*) from '{d}/unified_agenda_cfr_references.parquet' where cfr_section is not null",
-    ) == 106_941
+        # Rebuild #16 (61bb05d0): 106,941 -> 107,148 (+207), complete ranges
+        # now carry their end sections (91 rows state cfr_section_end).
+    ) == 107_148
     # Damage is labelled, never filtered.
     assert _one(
         con,
@@ -225,7 +231,9 @@ def test_the_tables_carry_what_the_shared_grammar_reads(con) -> None:
         # the 2000 revision, and 115 rows from 1990s editions cite it.
         # 44 -> 9 when the grammar stopped reading a stray label as a title:
         # 35 of those rows never named a title at all, and now say so.
-    ) == 9
+        # Rebuild #16 (61bb05d0): 9 -> 11 (+2), complete ranges carry two
+        # more impossible-title readings the prior build refused to read.
+    ) == 11
 
 
 @pytest.mark.slow
@@ -304,7 +312,13 @@ def test_the_authority_field_is_no_longer_shipped_as_raw_text(con) -> None:
     # Rebuild #15 (2026-09-01 wave, research/evidence/rebuild15-delta-2026-09-01.txt): 800,573 -> 800,558
     # (-15) = 6 reg-dot anchor rows withheld + 9 stat-page filer members
     # refused at materialization (both REF-062).
-    assert total == 800_558
+    # Rebuild #16 (2026-09-16, shared-reader 0.20.0 re-pin d4a22979 riding
+    # 5d71a26c/61bb05d0/31ca84c2, which the #15 artifact predated): 800,558
+    # -> 800,579 (+21), measured shape-by-shape against the #15 artifact:
+    # cfr/partial +36 (61bb05d0's complete ranges), act_relative/corroborated
+    # -4 and act_relative/partial +1 and other/failed -12 (31ca84c2's
+    # evidence/ambiguity retypes).
+    assert total == 800_579
     # 12,244 -> 9,280 -> 6,997 -> 4,239 across three censuses. The third
     # wave's share: the agency-level abbreviation oracle (the RIN's leading
     # four digits are the OMB agency code), five whole-value abbreviation
@@ -377,7 +391,10 @@ def test_the_authority_field_is_no_longer_shipped_as_raw_text(con) -> None:
     # boxes whose only citation is now withheld and which fall back to
     # other/failed (REF-062) -- 168 retyped + 1 kept usc-with-null-section
     # + 6 removed = the 175 rows the fence's own DELTAS declared.
-    assert failed == (2_148 if _act_resolution_landed(con) else 2_960)
+    # Rebuild #16 (31ca84c2 evidence/ambiguity): 2,148 -> 2,136 (-12), the
+    # ambiguous act boxes now stating their identity as act_relative instead
+    # of failing as other.
+    assert failed == (2_136 if _act_resolution_landed(con) else 2_960)
     ranges = _one(
         con,
         "select count(*) from '{d}/unified_agenda_legal_authorities.parquet' "
@@ -440,7 +457,9 @@ def test_the_authority_field_is_no_longer_shipped_as_raw_text(con) -> None:
     # sibling ordinal, or under a rule this rebuild's own census already
     # ties to #44/45 exclusively). 34 + 171 = 205.
     # Rebuild #14 (2026-08-31 wave): 11,209 -> 11,337, the 128 rows retyped act_relative.
-    assert acts == (11_337 if _act_resolution_landed(con) else 9_065)
+    # Rebuild #16 (31ca84c2): 11,337 -> 11,334 (-3: corroborated -4, partial
+    # +1), the competing-identity retypes.
+    assert acts == (11_334 if _act_resolution_landed(con) else 9_065)
     appendix = _one(
         con,
         "select count(*) from '{d}/unified_agenda_legal_authorities.parquet' where usc_appendix",
@@ -711,7 +730,9 @@ def test_the_continuations_families_are_measured_not_asserted(con) -> None:
     # 13, :reverse-pl-verified 7, :self-glossing 5, sibling-act-from-an-
     # earlier-box 34). Every other rule's count is unchanged. 15 + 171 = 186.
     # Rebuild #14 (2026-08-31 wave, research/evidence/rebuild14-delta-2026-08-31.txt): 4,413 -> 4,541, the same 128 rows.
-    carried = 4_541 if _act_resolution_landed(con) else 2_782
+    # Rebuild #16 (31ca84c2): 4,541 -> 4,537 (-4), rows whose act identity
+    # is now carried as competing evidence rather than a single corroboration.
+    carried = 4_537 if _act_resolution_landed(con) else 2_782
     assert corroborated_acts == (carried, carried), "every corroborated row names its act"
     # The RS namespace never leaks into U.S.C. columns.
     leaked = _one(
@@ -2468,7 +2489,10 @@ def test_every_corroborated_row_names_the_rule_that_produced_it(con) -> None:
         # /CAA-112-&-103 split mints (a row with no prior key at all) --
         # confirmed against the rebuild-10 baseline by a keyed join, with
         # 2,290 rows unmoved under the same rule name.
-        "agency-roster-initialism": 2_327,
+        # Rebuild #16 (31ca84c2): 2,327 -> 2,324 (-3) and
+        # index-holds-the-stated-name 159 -> 158 (-1), competing act
+        # identities moved out of single-corroboration rules.
+        "agency-roster-initialism": 2_324,
         "index-holds-the-stated-name": 130,
         # The publisher writes one citation across several elements; this is
         # the run of bare sections a single in-series public law bounds.
@@ -2545,7 +2569,7 @@ def test_every_corroborated_row_names_the_rule_that_produced_it(con) -> None:
     if _act_resolution_landed(con):
         expected |= {
             SIBLING_ACT_RULE: 3,
-            "index-holds-the-stated-name": 159,
+            "index-holds-the-stated-name": 158,
             "pinned-roster-initialism:pinned-quote": 191,
             "pinned-roster-initialism:candidate-index-match": 24,
             "pinned-roster-initialism:reverse-pl-verified": 7,
@@ -3215,10 +3239,14 @@ def test_an_unresolved_row_still_states_what_it_states(con) -> None:
     # rows the apostrophe-year shape and the retiers resolve out of 'other'.
     # Rebuild #15 (2026-09-01 wave, research/evidence/rebuild15-delta-2026-09-01.txt): 464 -> 471 (+7),
     # reg-dot anchors retyped with their dotted stated_section kept (REF-062).
-    assert failing("stated_act_name is not null or stated_section is not null") == (471 if landed else 1_162)
+    # Rebuild #16 (31ca84c2): 471 -> 461 (-10), rows that now state the act
+    # they name instead of failing wordless.
+    assert failing("stated_act_name is not null or stated_section is not null") == (461 if landed else 1_162)
     assert failing("stated_act_name is not null") == (18 if landed else 540)
     # Rebuild #15 (2026-09-01 wave): 447 -> 454, the same +7 as the line above.
-    assert failing("stated_section is not null") == (454 if landed else 905)
+    # Rebuild #16 (31ca84c2): 454 -> 444 (-10), rows that now state their
+    # section where they previously failed wordless.
+    assert failing("stated_section is not null") == (444 if landed else 905)
 
 
 @pytest.mark.slow
@@ -4912,7 +4940,10 @@ def test_the_section_fence_over_the_built_table(con) -> None:
         ("A4-subsection-rendered-as-a-lettered-section", 3_651),
         ("B1-et-seq-follows-a-section", 159),
         # Rebuild #15 (2026-09-01 wave), REF-061.
-        ("B8-two-witness-lettered-section", 666),
+        # Rebuild #16 (61bb05d0): 666 -> 649 (-17), lettered-section pairs
+        # now read through the complete-range rule and no longer claim
+        # two-witness evidence (the only correction-evidence rule that moved).
+        ("B8-two-witness-lettered-section", 649),
         ("C3-paren-suffix-eaten", 200),
         ("act-section-under-a-usc-label", 8),
         ("space-lost-before-a-lettered-suffix", 4),
@@ -4931,7 +4962,7 @@ def test_the_section_fence_over_the_built_table(con) -> None:
     # 3,822 -> 3,822 at rebuild #10: A4 -8, act-section-under-a-usc-label +8.
     # Rebuild #14 (2026-08-31 wave, research/evidence/rebuild14-delta-2026-08-31.txt): 3,822 -> 4,022, the
     # 200 C3-paren-suffix-eaten promotions (bound to the row's own citation).
-    assert _one(con, f"select count(*) from {L} where usc_section_corrected is not null") == 4_688  # Rebuild #15 (2026-09-01): +666, the B8 two-witness promotions (REF-061).
+    assert _one(con, f"select count(*) from {L} where usc_section_corrected is not null") == 4_671  # Rebuild #15 (2026-09-01): +666, the B8 two-witness promotions (REF-061). Rebuild #16 (61bb05d0): -17 B8 pairs read as complete ranges.
     assert _one(
         con,
         f"select count(*) from {L} where (usc_section_corrected is null) <> "
@@ -5053,7 +5084,8 @@ def test_the_corrected_key_split_over_the_built_table(con) -> None:
         ("B1-et-seq-follows-a-section", 0, 159),
         # Rebuild #15 (2026-09-01 wave), REF-061: the two-witness builder rule.
         # A lettered-SECTION reading like B1's, so its pinpoint count is 0.
-        ("B8-two-witness-lettered-section", 0, 666),
+        # Rebuild #16 (61bb05d0): 666 -> 649, pairs read as complete ranges.
+        ("B8-two-witness-lettered-section", 0, 649),
         ("C3-paren-suffix-eaten", 0, 200),
         ("act-section-under-a-usc-label", 5, 8),
         ("space-lost-before-a-lettered-suffix", 0, 4),
@@ -5087,7 +5119,8 @@ def test_the_corrected_key_split_over_the_built_table(con) -> None:
         ("B1-et-seq-follows-a-section", 159),
         # Rebuild #15 (2026-09-01 wave), REF-061: every B8 correction moves the
         # identity (bare NNN -> NNNx), so the two censuses still coincide.
-        ("B8-two-witness-lettered-section", 666),
+        # Rebuild #16 (61bb05d0): 666 -> 649 with the census above.
+        ("B8-two-witness-lettered-section", 649),
         ("C3-paren-suffix-eaten", 200),
         ("act-section-under-a-usc-label", 8),
         ("space-lost-before-a-lettered-suffix", 4),
@@ -5096,7 +5129,7 @@ def test_the_corrected_key_split_over_the_built_table(con) -> None:
     # identity on all eight, so the moved census and the evidence census stay
     # equal and the 3,822 total below is unchanged.
     # Rebuild #14 (2026-08-31 wave): 4,022, the 200 C3 promotions all move the identity (78 -> 78b).
-    assert sum(rows for _, rows in moved) == 4_688  # Rebuild #15 (2026-09-01): +666, the B8 two-witness promotions (REF-061).
+    assert sum(rows for _, rows in moved) == 4_671  # Rebuild #15 (2026-09-01): +666, the B8 two-witness promotions (REF-061). Rebuild #16 (61bb05d0): -17 with the census above.
     assert _one(
         con,
         f"select count(*) from {L} where usc_section_corrected is not null "
@@ -5144,7 +5177,11 @@ def test_the_corrected_key_split_over_the_built_table(con) -> None:
         (12, "1715", "1715b", None, "B8-two-witness-lettered-section", 25),
         (12, "1715", "1715y", None, "B8-two-witness-lettered-section", 3),
         (12, "1715", None, None, None, 11),
-        (15, "18", "18a", None, "B8-two-witness-lettered-section", 19),
+        # Rebuild #16 (61bb05d0): the two-witness corrections for 15:18 fall
+        # from 19 to 2 -- the 17 rows whose held notes read through complete
+        # ranges keep the filed identity (the exact -17 of the B8 census).
+        (15, "18", "18a", None, "B8-two-witness-lettered-section", 2),
+        (15, "18", None, None, None, 17),
         (25, "161", None, None, None, 12),
         (47, "399", None, None, None, 24),
     ]
@@ -5152,7 +5189,7 @@ def test_the_corrected_key_split_over_the_built_table(con) -> None:
         con,
         f"select usc_title, usc_section, count(*), count(usc_section_corrected_section) from {L} "
         f"where {cited} group by 1, 2 order by 1, 2",
-    ) == [(12, "1715", 39, 28), (15, "18", 19, 19), (25, "161", 12, 0), (47, "399", 24, 0)]
+    ) == [(12, "1715", 39, 28), (15, "18", 19, 2), (25, "161", 12, 0), (47, "399", 24, 0)]
     # Every one of them is a real section the oracle prints: the candidate sits
     # beside an "exists" verdict, which is exactly why a move would be expensive
     # and why none is made.
@@ -5636,7 +5673,10 @@ def test_the_three_carried_verdicts_over_the_built_table(con) -> None:
         con,
         f"select cfr_part, count(*) from {L} where cfr_part is not null group by 1 order by length(cfr_part) desc, 2 "
         "desc limit 1",
-    ) == ("30166", 30)
+        # Rebuild #16 (61bb05d0): the longest cfr_part is now the complete
+        # range itself ("1500-1508", 22 rows); the bare "30166" extreme
+        # (30) no longer exists as a top value.
+    ) == ("1500-1508", 22)
 
     # The Statutes relation: 14 distinct values / 46 rows, every one a real
     # volume the series bound calls fine. The 14 values occupy 100 rows in
@@ -6195,7 +6235,7 @@ def test_the_act_relative_rows_carry_the_section_they_name(con) -> None:
     # test_the_authority_field_is_no_longer_shipped_as_raw_text's own note on
     # `acts` for the #56/#44-45 split).
     # Rebuild #14 (2026-08-31 wave, research/evidence/rebuild14-delta-2026-08-31.txt): 11,209 -> 11,337 (+128).
-    assert _one(con, f"select count(*) from {A}") == 11_337
+    assert _one(con, f"select count(*) from {A}") == 11_334  # Rebuild #16 (31ca84c2): -3 competing-identity retypes.
     # 5,590 rows / 354 (act, section) pairs, which is exactly what the live
     # resolver answered over this corpus when the bulk Table III index landed
     # (research/evidence/act-index-bulk-table3-2026-08-22.md, section 4). The
@@ -6275,9 +6315,11 @@ def test_the_act_relative_rows_carry_the_section_they_name(con) -> None:
     # (index-holds-the-stated-name) and #44/45's +171.
     assert dict(_rows(con, f"select parse_status, count(*) from {A} group by 1")) == {
         "resolved": 3_509,
-        "partial": 2_826,
+        # Rebuild #16 (31ca84c2): partial +1, an ambiguous act row.
+        "partial": 2_827,
         # Rebuild #14 (2026-08-31 wave): corroborated +128 (95 retiered + 33 apostrophe-year rows).
-        "corroborated": 4_541,
+        # Rebuild #16 (31ca84c2): corroborated -4 (competing-evidence retypes).
+        "corroborated": 4_537,
         "failed": 461,
     }
     # Taken from the module constant rather than restated. The literal list
@@ -6357,16 +6399,17 @@ def test_the_receipt_census_covers_the_act_resolution(con) -> None:
     )
     # Every declared reason and every declared evidence, listed even at zero: a
     # refusal that stops being reported is what these columns exist to show.
-    # This sealed publication artifact predates name-multiplicity resolution.
-    # Verify its original vocabulary and rows; do not rewrite the receipt to
-    # imply that the new resolver produced it. Fresh caller controls cover the
-    # newly declared refusal independently.
-    historical_reasons = set(ACT_RESOLUTION_REASONS) - {"act_name_ambiguous"}
-    assert set(declared["actRelativeRowsByResolutionReason"]) == historical_reasons
-    assert _one(con, f"select count(*) from {A} and act_resolution_reason = 'act_name_ambiguous'") == 0
+    # Rebuild #16 (31ca84c2) landed name-multiplicity resolution, so the
+    # receipt now honestly declares the full vocabulary and the resolver that
+    # produced it; act_name_ambiguous is declared at zero (no row takes that
+    # refusal on these editions).
+    assert set(declared["actRelativeRowsByResolutionReason"]) == set(ACT_RESOLUTION_REASONS)
+    # Rebuild #16 (31ca84c2): the refusal fires on 9 rows whose competing act
+    # names are now carried as evidence instead of a false single resolution.
+    assert _one(con, f"select count(*) from {A} and act_resolution_reason = 'act_name_ambiguous'") == 9
     assert declared["actRelativeRowsByResolutionReason"] == {
         reason: _one(con, f"select count(*) from {A} and act_resolution_reason = '{reason}'")
-        for reason in historical_reasons
+        for reason in ACT_RESOLUTION_REASONS
     }
     assert set(declared["actRelativeResolvedRowsByEvidence"]) == set(ACT_RESOLUTION_EVIDENCE)
     assert declared["actRelativeResolvedRowsByEvidence"] == {
@@ -6391,11 +6434,11 @@ def test_the_receipt_census_covers_the_act_resolution(con) -> None:
     # 9,576 -> 9,781 at rebuild #11: +205, the same #56/#44-45 movement
     # test_the_act_relative_rows_carry_the_section_they_name's own
     # parse_status dict attributes.
-    assert sum(declared["actRelativeRowsByStatus"].values()) == 11_337
+    assert sum(declared["actRelativeRowsByStatus"].values()) == 11_334  # Rebuild #16 (31ca84c2): -3 with the census.
     assert (
         sum(declared["actRelativeRowsByResolutionReason"].values())
         + sum(declared["actRelativeResolvedRowsByEvidence"].values())
-        == 11_337
+        == 11_334  # Rebuild #16 (31ca84c2): with the status census above.
     )
     # Three narrowings of a resolver code, each carrying its measured
     # population: without them 37 rows would say "not classified" where OLRC
@@ -6410,7 +6453,10 @@ def test_the_receipt_census_covers_the_act_resolution(con) -> None:
     assert {
         reason: declared["actRelativeRowsByResolutionReason"][reason]
         for reason in ("act_section_inside_a_range_key", "resolves_to_note", "revised_statutes_only")
-    } == {"act_section_inside_a_range_key": 37, "resolves_to_note": 157, "revised_statutes_only": 4}
+    # Rebuild #16 (31ca84c2): range_key 37 -> 28 and resolves_to_note
+    # 157 -> 151 -- six rows moved to competing-evidence refusals; the
+    # other two narrowings are untouched by either unit.
+    } == {"act_section_inside_a_range_key": 28, "resolves_to_note": 151, "revised_statutes_only": 4}
     # resolves_to_note 142 -> 157 at rebuild #14 (2026-08-31 wave): +15 of the 128 retyped rows.
     # corroborated: 2,104 -> 2,148 (+44), the same corroborated-with-evidence
     # movement test_the_act_relative_rows_carry_the_section_they_name
@@ -6547,9 +6593,11 @@ def test_the_rules_own_cfr_part_note_judges_what_the_filer_wrote(con) -> None:
         # Rebuild #15 (2026-09-01 wave, research/evidence/rebuild15-delta-2026-09-01.txt) (REF-062): the
         # Stat-page note gate refuses 266 fabricated note citations across 107
         # notes, moving judgments; the 15 removed filer rows leave the census.
-        "present": (489_168, 20_216),
-        "near-miss": (56_283, 5_795),
-        "absent": (124_906, 14_115),
+        # Rebuild #16 (61bb05d0/31ca84c2): the complete ranges and evidence
+        # retypes shrink every verdict population with the artifact.
+        "present": (482_721, 20_110),
+        "near-miss": (55_517, 5_776),
+        "absent": (119_542, 14_003),
     }
     # The verdict and the part that gave it are one fact in two columns.
     assert _one(
@@ -6566,7 +6614,8 @@ def test_the_rules_own_cfr_part_note_judges_what_the_filer_wrote(con) -> None:
     # order, so 936 parts are read on every row of their rules and never
     # happen to be the one that answers.
     named = {row[0] for row in _rows(con, f"select distinct cfr_note_part from {L} where cfr_note_part is not null")}
-    assert len(named) == 4_858
+    # Rebuild #16 (61bb05d0): 4,858 -> 4,936, the complete ranges name more parts.
+    assert len(named) == 4_936
     assert {"21 CFR 310", "49 CFR 192", "40 CFR 122"} <= named
     assert "45 CFR 12a" in named, "the part that settles 40 U.S.C. 550 is held now"
 
@@ -6677,13 +6726,13 @@ def test_the_note_verdict_census_is_the_receipts(con) -> None:
     # public_law and usc are byte-for-byte unchanged (neither #56 nor #44/45
     # touches a cfr/public_law/usc row's CFR-note verdict).
     assert declared["cfrNoteVerdictRowsByAuthorityType"] == {
-        "act_relative": {"present": 883, "near-miss": 9, "absent": 8_217},
-        "cfr": {"present": 4_046, "near-miss": 202, "absent": 1_449},
-        "public_law": {"present": 8_241, "near-miss": 238, "absent": 26_394},
-        # Rebuild #15 (2026-09-01 wave, research/evidence/rebuild15-delta-2026-09-01.txt): the Stat-page
-        # note gate (REF-062) -- only usc moves; the other three types are
-        # byte-for-byte unchanged.
-        "usc": {"present": 475_998, "near-miss": 55_834, "absent": 88_846},
+        # Rebuild #16 (61bb05d0/31ca84c2): every type moves -- the complete
+        # CFR ranges widen the cfr note verdicts (+79 cfr, +3 cfr near-miss)
+        # and the evidence retypes shift the act-relative population.
+        "act_relative": {"present": 862, "near-miss": 9, "absent": 8_035},
+        "cfr": {"present": 3_967, "near-miss": 200, "absent": 1_254},
+        "public_law": {"present": 8_161, "near-miss": 238, "absent": 26_241},
+        "usc": {"present": 469_731, "near-miss": 55_070, "absent": 84_012},
     }
     # THE FOUR COVERAGE COUNTS ARE WHERE THE ORACLE SWITCH IS VISIBLE, and they
     # are printed beside the verdicts precisely so a coverage move and a
@@ -6697,11 +6746,14 @@ def test_the_note_verdict_census_is_the_receipts(con) -> None:
     assert declared["cfrNoteCoverage"] == {
         # Rebuild #15 (2026-09-01 wave): 714,909 -> 714,894, the 15 removed rows
         # (REF-062); rins, rules and both part counts hold still.
-        "rows": 714_894,
-        "rins": 40_613,
-        "rules": 207_463,
+        # Rebuild #16 (61bb05d0): 714,894 -> 700,840 rows -- complete ranges
+        # consolidate the rules that name parts (207,463 -> 204,637; the 74
+        # newly named parts are 5,793 -> 5,867).
+        "rows": 700_840,
+        "rins": 40_384,
+        "rules": 204_637,
         "partsHeld": 8_240,
-        "partsNamedByARule": 5_793,
+        "partsNamedByARule": 5_867,
     }
     # The census closes: every covered row is judged or counted as unjudged.
     # The executive-order rows are still the largest unjudged family and still
@@ -6709,8 +6761,10 @@ def test_the_note_verdict_census_is_the_receipts(con) -> None:
     # note naming a different one is not evidence. 12,308 -> 16,684 is coverage
     # and nothing else: no reader is defined for the type at all, so every one
     # is unjudged by construction whichever notes are held.
-    assert declared["cfrNoteUnjudgedRowsByType"]["executive_order"] == 16_684
-    assert declared["cfrNoteUnjudgedRowsByType"]["usc"] == 722, "typed usc, naming no section"
+    # Rebuild #16 (61bb05d0): 16,684 -> 15,546, the rows now judged by ranges.
+    assert declared["cfrNoteUnjudgedRowsByType"]["executive_order"] == 15_546
+    # Rebuild #16 (61bb05d0): 722 -> 706, the rows now judged by complete ranges.
+    assert declared["cfrNoteUnjudgedRowsByType"]["usc"] == 706, "typed usc, naming no section"
     assert (
         sum(declared["cfrNoteVerdictRows"].values()) + sum(declared["cfrNoteUnjudgedRowsByType"].values())
         == declared["cfrNoteCoverage"]["rows"]
@@ -8605,7 +8659,9 @@ def test_the_stated_act_census_is_the_receipts(con) -> None:
     # same rows test_an_unresolved_row_still_states_what_it_states attributes).
     # Rebuild #15 (2026-09-01 wave, research/evidence/rebuild15-delta-2026-09-01.txt): 915 -> 922 (+7),
     # the same rows the 464 -> 471 above attributes (REF-062).
-    assert declared["statedActRowsStatingSomething"] == 922
+    # Rebuild #16 (31ca84c2): 922 -> 912 (-10), the same rows the 471 -> 461
+    # census above attributes.
+    assert declared["statedActRowsStatingSomething"] == 912
     # 624 -> 502 at rebuild #11: -122. The bare-section-no-name subset of the
     # 'other' pool is NOT immune to the corroboration readers -- the sibling-
     # act carry (#44/45) claims 18 of them outright, plus 104 more rows leave
@@ -8622,7 +8678,8 @@ def test_the_stated_act_census_is_the_receipts(con) -> None:
     # 502 -> 446 at rebuild #14 (2026-08-31 wave): -56, the same rows statedActRowsStatingSomething lost.
     # Rebuild #15 (2026-09-01 wave): 446 -> 453 (+7), the same family as
     # statedActRowsStatingSomething above (REF-062).
-    assert declared["statedActSectionOnlyRows"] == 453
+    # Rebuild #16 (31ca84c2): 453 -> 443 (-10), the rows that now state their act.
+    assert declared["statedActSectionOnlyRows"] == 443
     # 505 -> 469 (-36) = the names_an_act branch this rule's own typed+refused
     # split closes over: 451 typed (test_the_stated_acts_over_the_built_table)
     # + 18 refused (below). 505 - 469 is not one delta on its own; it falls
@@ -8649,13 +8706,16 @@ def test_the_stated_act_census_is_the_receipts(con) -> None:
         f"select count(*) from {L} where authority_type = 'other' and parse_status = 'failed' "
         "and stated_section is not null and stated_act_name is null",
         # Rebuild #15 (2026-09-01 wave): 446 -> 453 (+7), recomputed from the column.
-    ) == 453
+        # Rebuild #16 (31ca84c2): 453 -> 443, with the census above.
+    ) == 443
     # The 13 rows the year fence used to refuse are now the name index's, which
     # is where the corroborated total moved.
     #
     # 144 -> 159 at rebuild #11 (#56): see test_every_corroborated_row_names_
     # the_rule_that_produced_it's own note for the +9/+10/-4 breakdown.
-    assert declared["authorityCorroboratedRowsByRule"]["index-holds-the-stated-name"] == 159
+    # Rebuild #16 (31ca84c2): 159 -> 158, one competing-name row leaves
+    # single-name corroboration.
+    assert declared["authorityCorroboratedRowsByRule"]["index-holds-the-stated-name"] == 158
     # 474 -> 460 at rebuild #11: -14 = the act_key-is-null subset's -20
     # (test_the_stated_acts_over_the_built_table, #56 only) plus +6 from a
     # DIFFERENT population this receipt key also counts: rows whose

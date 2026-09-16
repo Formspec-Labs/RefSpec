@@ -880,7 +880,9 @@ def test_the_placeholder_candidate_receipt_is_the_measured_census() -> None:
     repair."""
 
     assert _declared("placeholderCandidateRows") == {
-        "published": 1_279,
+        # Rebuild #16 (61bb05d0): 1,279 -> 1,267 published candidates, the
+        # complete-range readings replacing placeholder candidates on 12 rows.
+        "published": 1_267,
         "rows_withheld": 0,
         "candidates_gated_by_edition": 0,
         "candidates_refuted_by_oracle": 23,
