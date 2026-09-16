@@ -11,8 +11,8 @@ from collections.abc import Callable, Sequence
 from typing import Any
 
 from spicy_docs.sources.uscode import USLM_NAMESPACE
-from spicy_docs.sources.uscode_references import UsCodeReference, scan_uscode_references
-from spicy_docs.sources.xml_observations import XmlElement
+from spicy_docs.sources.uscode.references import UsCodeReference, scan_uscode_references
+from spicy_docs.reading.xml_observations import XmlElement
 
 USLM_NS = USLM_NAMESPACE
 

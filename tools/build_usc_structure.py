@@ -24,14 +24,14 @@ from spicy_docs.sources.uscode import (
     DEFAULT_MAX_XML_BYTES,
     ReleasePoint,
 )
-from spicy_docs.sources.uscode_annual import AnnualSectionObservation, scan_uscode_annual_sections
-from spicy_docs.sources.uscode_archive import (
+from spicy_docs.sources.uscode.annual import AnnualSectionObservation, scan_uscode_annual_sections
+from spicy_docs.sources.uscode.archive import (
     AnnualArchiveEntry,
     UsCodeArchiveEntry,
     read_annual_archive,
     read_corpus_archive,
 )
-from spicy_docs.sources.uscode_structure import UsCodeStructureObservation, scan_uscode_structure
+from spicy_docs.sources.uscode.structure import UsCodeStructureObservation, scan_uscode_structure
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT / "src") not in sys.path:

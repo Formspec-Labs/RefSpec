@@ -1411,9 +1411,9 @@ _PRODUCER_MODULES: tuple[str, ...] = (
     "eo_roster",
     # The source reader moved to the wheel; its executing code still belongs
     # in each new build receipt, including its shared XML dependencies.
-    "spicy_docs.sources.unified_agenda_records",
-    "spicy_docs.sources.xml_observations",
-    "spicy_docs.sources.xml",
+    "spicy_docs.sources.unified_agenda.records",
+    "spicy_docs.reading.xml_observations",
+    "spicy_docs.reading.xml",
 )
 
 

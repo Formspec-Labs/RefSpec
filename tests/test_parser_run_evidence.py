@@ -42,7 +42,7 @@ def test_replay_keeps_capture_and_package_identity_but_records_each_reader_run(t
     _assert_module_bytes(before["producer"]["modules"])
     changed = tmp_path / "reader.py"
     changed.write_text("# changed installed reader bytes\n")
-    module_name = "spicy_docs.sources.json_input"
+    module_name = "spicy_docs.reading.json_input"
     monkeypatch.setattr(import_module(module_name), "__file__", str(changed))
     second = _capture(tmp_path)
     after = json.loads(second.receipt_path.read_bytes())
@@ -72,7 +72,7 @@ def test_replay_keeps_capture_and_package_identity_but_records_each_reader_run(t
 
 
 def test_topics_missing_reader_refuses_before_capture_publication(tmp_path, monkeypatch):
-    monkeypatch.setattr(import_module("spicy_docs.sources.json_input"), "__file__", str(tmp_path / "absent.py"))
+    monkeypatch.setattr(import_module("spicy_docs.reading.json_input"), "__file__", str(tmp_path / "absent.py"))
     with pytest.raises(ValueError, match="producer module missing"):
         _capture(tmp_path / "store")
     assert not (tmp_path / "store").exists()
@@ -98,16 +98,16 @@ def test_source_credit_build_records_installed_reader_before_outputs(tmp_path, m
     modules = receipt["producer"]["modules"]
     assert set(modules) == {
         "tools.build_usc_source_credits",
-        "spicy_docs.sources.uscode_references",
+        "spicy_docs.sources.uscode.references",
         "spicy_docs.sources.uscode",
-        "spicy_docs.sources.uscode_archive",
-        "spicy_docs.sources.zip_archive",
-        "spicy_docs.sources.xml_observations",
-        "spicy_docs.sources.xml",
+        "spicy_docs.sources.uscode.archive",
+        "spicy_docs.reading.zip_archive",
+        "spicy_docs.reading.xml_observations",
+        "spicy_docs.reading.xml",
     }
     _assert_module_bytes(modules)
     assert json.loads((tmp_path / "first/receipt.json").read_bytes()) == receipt
-    monkeypatch.setattr(import_module("spicy_docs.sources.xml"), "__file__", str(tmp_path / "absent.py"))
+    monkeypatch.setattr(import_module("spicy_docs.reading.xml"), "__file__", str(tmp_path / "absent.py"))
     with pytest.raises(ValueError, match="producer module missing"):
         credits.build(tmp_path / "missing", archive=archive, release_point="119-102")
     assert not (tmp_path / "missing").exists()
@@ -129,7 +129,7 @@ def _old_dependency_source(name):
 
 @pytest.mark.parametrize("mutation", ["original", "missing", "none", "unavailable"])
 def test_shared_source_resolver_matches_old_dependency_check(tmp_path, monkeypatch, mutation):
-    name = "spicy_docs.sources.xml"
+    name = "spicy_docs.reading.xml"
     if mutation == "missing":
         monkeypatch.setattr(import_module(name), "__file__", str(tmp_path / "absent.py"))
     elif mutation == "none":

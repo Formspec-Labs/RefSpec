@@ -2,7 +2,7 @@
 from bisect import bisect_left, bisect_right
 from typing import Any
 
-from spicy_docs.sources.xml import parse_xml
+from spicy_docs.reading.xml import parse_xml
 
 MAX_XML_BYTES = 256 * 1024 * 1024
 MAX_XML_DEPTH = 256

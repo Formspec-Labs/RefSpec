@@ -425,7 +425,7 @@ def capture_federal_register_topics(
         for name in (
             __name__,
             "spicy_docs.sources.federal_register.topics",
-            "spicy_docs.sources.json_input",
+            "spicy_docs.reading.json_input",
         )
     }
     if source_path is not None:

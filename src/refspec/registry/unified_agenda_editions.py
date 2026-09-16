@@ -42,7 +42,7 @@ import hashlib
 import re
 from dataclasses import dataclass
 
-from spicy_docs.sources.unified_agenda_records import (
+from spicy_docs.sources.unified_agenda.records import (
     UnifiedAgendaField,
     UnifiedAgendaRecordObservation,
     UnifiedAgendaSourceError,

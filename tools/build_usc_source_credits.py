@@ -76,8 +76,8 @@ from typing import Any
 import pyarrow as pa
 import pyarrow.parquet as pq
 from spicy_docs.sources.uscode import DEFAULT_MAX_ARCHIVE_BYTES, ReleasePoint, corpus_xml_locator
-from spicy_docs.sources.uscode_archive import UsCodeArchiveEntry, read_corpus_archive
-from spicy_docs.sources.uscode_references import UsCodeSourceCredit, scan_uscode_references
+from spicy_docs.sources.uscode.archive import UsCodeArchiveEntry, read_corpus_archive
+from spicy_docs.sources.uscode.references import UsCodeSourceCredit, scan_uscode_references
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT / "src") not in sys.path:
@@ -460,12 +460,12 @@ def build(output_dir: Path, *, archive: Path, release_point: str) -> dict:
     modules = {
         name: file_sha256(producer_module_source(name))
         for name in (
-            "spicy_docs.sources.uscode_references",
+            "spicy_docs.sources.uscode.references",
             "spicy_docs.sources.uscode",
-            "spicy_docs.sources.uscode_archive",
-            "spicy_docs.sources.zip_archive",
-            "spicy_docs.sources.xml_observations",
-            "spicy_docs.sources.xml",
+            "spicy_docs.sources.uscode.archive",
+            "spicy_docs.reading.zip_archive",
+            "spicy_docs.reading.xml_observations",
+            "spicy_docs.reading.xml",
         )
     }
     modules["tools.build_usc_source_credits"] = file_sha256(Path(__file__))

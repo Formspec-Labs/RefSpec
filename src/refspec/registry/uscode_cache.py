@@ -12,7 +12,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
 
-from spicy_docs.sources.json_input import load_bounded_json
+from spicy_docs.reading.json_input import load_bounded_json
 from spicy_docs.sources.uscode import (
     DEFAULT_MAX_ARCHIVE_BYTES,
     ReleasePoint,
@@ -20,8 +20,8 @@ from spicy_docs.sources.uscode import (
     UsCodeSourceError,
     title_xml_locator,
 )
-from spicy_docs.sources.uscode_acquisition import ZIP_MEDIA_TYPES, UsCodeAcquirer, UsCodeAcquisitionBudget
-from spicy_docs.sources.uscode_archive import read_title_archive
+from spicy_docs.sources.uscode.acquisition import ZIP_MEDIA_TYPES, UsCodeAcquirer, UsCodeAcquisitionBudget
+from spicy_docs.sources.uscode.archive import read_title_archive
 from spicy_docs.storage.publication import publish_directory_once, write_bytes_once
 
 from refspec.registry.infrastructure.artifact_serialization import sha256_digest

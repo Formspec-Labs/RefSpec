@@ -19,7 +19,7 @@ from pathlib import Path
 
 import pyarrow.parquet as pq
 import pytest
-from spicy_docs.sources.uscode_references import scan_uscode_references
+from spicy_docs.sources.uscode.references import scan_uscode_references
 
 from tools import build_usc_source_credits as builder
 

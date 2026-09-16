@@ -1,8 +1,8 @@
 # Vendored dependencies
 
-`spicy_docs-0.19.0-py3-none-any.whl` supplies shared source readers and
+`spicy_docs-0.20.0-py3-none-any.whl` supplies shared source readers and
 bounded U.S. Code acquisition with validated archive member delivery.
-SHA-256: `8ec1ee8d604f09e4e451876a03ec71e394867b88b0711375f724c0c1ce69cf41`.
+SHA-256: `167d7afc20a607471d907deb168b648427aa7fa10c12f70afacaedb6afbdd5c0`.
 Provider source: SpicyDocs `dfe3a0c735aa5255373f27743f684b224c51e7a2` on `codex/govinfo-premis`.
 RefSpec 0.1.0.dev10 retains snapshot acceptance, normalization and interpretation.
 Its title cache records original HTTP facts; its corpus and annual tools process
@@ -10,7 +10,7 @@ validated members without reopening ZIPs. See [U.S. Code inputs](../docs/uscode-
 
 Python 3.12, PyArrow 25.0.1 and DuckDB 1.5.5 or later remain unchanged. Existing
 sealed artifacts are unchanged; comparing a new writer to older Parquet bytes
-requires a row comparison. This RefSpec wheel is qualified with SpicyDocs 0.19.
+requires a row comparison. This RefSpec wheel is qualified with SpicyDocs 0.20.
 The current DocSpec 0.6/Search 0.2/Engine 0.4 stack pins SpicyDocs 0.17 and cannot
 share this environment until a coordinated adoption. Search's optional identity
 comparison group still uses the separately qualified RefSpec dev9; its runtime

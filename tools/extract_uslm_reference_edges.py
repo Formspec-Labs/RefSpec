@@ -131,7 +131,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
-from spicy_docs.sources.uscode_structure import scan_uscode_structure
+from spicy_docs.sources.uscode.structure import scan_uscode_structure
 
 from refspec.registry.uscode_cache import fetch_title
 from refspec.registry.uslm import (

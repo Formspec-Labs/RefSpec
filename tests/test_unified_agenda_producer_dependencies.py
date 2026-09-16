@@ -11,9 +11,9 @@ import pytest
 from refspec.registry import unified_agenda_parquet as builder
 
 DEPENDENCIES = {
-    "spicy_docs.sources.unified_agenda_records",
-    "spicy_docs.sources.xml_observations",
-    "spicy_docs.sources.xml",
+    "spicy_docs.sources.unified_agenda.records",
+    "spicy_docs.reading.xml_observations",
+    "spicy_docs.reading.xml",
 }
 
 
@@ -28,7 +28,7 @@ def test_receipt_hashes_actual_installed_parser_and_xml_dependencies():
 
 def test_dependency_drift_changes_receipt_without_changing_receiver(monkeypatch, tmp_path):
     before = builder._producer_block()["modules"]
-    name = "spicy_docs.sources.unified_agenda_records"
+    name = "spicy_docs.sources.unified_agenda.records"
     replacement = tmp_path / "changed_reader.py"
     replacement.write_text("# changed provider implementation\n")
     monkeypatch.setattr(import_module(name), "__file__", str(replacement))
@@ -37,7 +37,7 @@ def test_dependency_drift_changes_receipt_without_changing_receiver(monkeypatch,
 
 
 def test_missing_dependency_refuses_before_build_creates_output(monkeypatch, tmp_path):
-    name = "spicy_docs.sources.unified_agenda_records"
+    name = "spicy_docs.sources.unified_agenda.records"
     monkeypatch.setattr(import_module(name), "__file__", str(tmp_path / "missing_reader.py"))
     output = tmp_path / "output"
     with pytest.raises(ValueError, match="producer module missing"):
