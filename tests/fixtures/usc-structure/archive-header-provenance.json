@@ -1,0 +1,53 @@
+{
+  "meaning": "Exact source prefixes used to assemble bounded archive test documents; raw parser fixtures remain unchanged.",
+  "sources": [
+    {
+      "fixture": "release-119-102-title05-header.xml.part",
+      "archive": "xml_uscAll_119-102.zip",
+      "member": "usc05.xml",
+      "member_sha256": "88c6ee90764bf72209819ef1fcc4b4af400db9cf137d41fa480bcd768cc979a4",
+      "member_bytes": 18961883,
+      "range": [
+        0,
+        760
+      ],
+      "fixture_sha256": "775645b05e7a9ae0eb55b30847413aff2ba7f6239904ac6a48c47de3f7710b1d"
+    },
+    {
+      "fixture": "annual-2012-title40-header.html.part",
+      "archive": "2012.zip",
+      "member": "2012/2012USC40.htm",
+      "member_sha256": "aef4d8344004840dc921b4d1f8dd8682a987ca29cfc834873cc82879390a322a",
+      "member_bytes": 2384959,
+      "range": [
+        0,
+        859
+      ],
+      "fixture_sha256": "9cec29bf484c1bdd501091b603801a497d7ea3e2964f8eb95c5c92a301bd359b"
+    },
+    {
+      "fixture": "annual-2016-title50a.htm",
+      "archive": "2016.zip",
+      "member": "2016/2016usc50a.htm",
+      "member_sha256": "9bd08f370be5180572e94c9a612d6196deaf2f32c83d77657ab8681bdc460f8e",
+      "member_bytes": 1862,
+      "range": [
+        0,
+        1862
+      ],
+      "fixture_sha256": "9bd08f370be5180572e94c9a612d6196deaf2f32c83d77657ab8681bdc460f8e"
+    },
+    {
+      "fixture": "annual-2016-title40-header.html.part",
+      "archive": "2016.zip",
+      "member": "2016/2016usc40.htm",
+      "member_sha256": "f176dbfecd2b229fa554f41543d15687db8a393958ee7fd929166289024668e9",
+      "member_bytes": 2543451,
+      "range": [
+        0,
+        871
+      ],
+      "fixture_sha256": "0a75b57da48e398900c24a39c7312811c4572e300141a1d570db65922e624771"
+    }
+  ]
+}

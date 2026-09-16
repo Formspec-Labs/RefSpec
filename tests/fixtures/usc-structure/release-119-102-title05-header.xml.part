@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/css" href="usctitle.css"?>
+<uscDoc xsi:schemaLocation="http://xml.house.gov/schemas/uslm/1.0 USLM-1.0.15.xsd" xml:lang="en" identifier="/us/usc/t5" xmlns="http://xml.house.gov/schemas/uslm/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/">
+<meta>
+  <dc:title>Title 5</dc:title>
+  <dc:type>USCTitle</dc:type>
+  <docNumber>5</docNumber>
+  <docPublicationName>Online@119-102</docPublicationName>
+  <property role="is-positive-law">yes</property>
+  <dc:publisher>OLRC</dc:publisher>
+  <dcterms:created>2026-07-16T07:46:32</dcterms:created>
+  <dc:creator>USCConverter 1.7.2</dc:creator>
+</meta>
+<main>

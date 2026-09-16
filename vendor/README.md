@@ -1,19 +1,24 @@
 # Vendored dependencies
 
-`spicy_docs-0.17.0-py3-none-any.whl` supplies shared GovInfo PREMIS and MODS
-readers, alongside Federal Register, BILLSTATUS, Agenda, CFR and U.S. Code.
-SHA-256: `917ca1ce62f139a2bae12e3cae6e3ef526118d533f0c71ebbc583daad4f337d2`.
-Provider source: SpicyDocs `b9ff1fe` on `codex/govinfo-premis`.
-RefSpec 0.1.0.dev9 retains snapshot acceptance, normalization and interpretation.
-USLM/eCFR text now delegates source parsing to that wheel; named layout,
-Unicode character positions and section interpretation remain here. The shared
-reader admits inert external DTDs without loading them and refuses internal
-declarations, over-depth input and source files over 256 MiB.
-PyArrow 25.0.1, DuckDB 1.5.5 or later, and SpicyDocs 0.17.0 allow this wheel
-to run beside current DocSpec. Existing sealed artifacts are unchanged; new Parquet files identify
-the upgraded writer and can have different physical bytes.
-Python 3.12 matches the provider. The `acquisition` extra supplies the existing
-explicit topics network route through bounded HTTP; imports remain offline.
+`spicy_docs-0.19.0-py3-none-any.whl` supplies shared source readers and
+bounded U.S. Code acquisition with validated archive member delivery.
+SHA-256: `8ec1ee8d604f09e4e451876a03ec71e394867b88b0711375f724c0c1ce69cf41`.
+Provider source: SpicyDocs `dfe3a0c735aa5255373f27743f684b224c51e7a2` on `codex/govinfo-premis`.
+RefSpec 0.1.0.dev10 retains snapshot acceptance, normalization and interpretation.
+Its title cache records original HTTP facts; its corpus and annual tools process
+validated members without reopening ZIPs. See [U.S. Code inputs](../docs/uscode-acquisition.md).
+
+Python 3.12, PyArrow 25.0.1 and DuckDB 1.5.5 or later remain unchanged. Existing
+sealed artifacts are unchanged; comparing a new writer to older Parquet bytes
+requires a row comparison. This RefSpec wheel is qualified with SpicyDocs 0.19.
+The current DocSpec 0.6/Search 0.2/Engine 0.4 stack pins SpicyDocs 0.17 and cannot
+share this environment until a coordinated adoption. Search's optional identity
+comparison group still uses the separately qualified RefSpec dev9; its runtime
+does not depend on RefSpec. SpicyRegs 0.1.6 remains qualified with SpicyDocs 0.18.
+
+The `acquisition` extra supplies explicit Topics and U.S. Code HTTP routes.
+Imports remain offline. The `pdf-pypdf` extra supplies shared GAO page reading.
+USLM/eCFR formatting, Unicode positions and section interpretation stay here.
 
 PAR07 compares the complete CFR preservation record and its three accepted
 file digests against the frozen reader. Thirty files without fixity remain
@@ -77,18 +82,15 @@ directory.
 vendored alongside it because rc18 declares a `rulespec-artifacts>=1.0.11`
 floor where rc16 and rc17 declared a hard `==1.0.9`, so 1.0.9 no longer
 satisfies it. That dependency arrived with the shared platform-artifact
-protocol, not with any contract change; nothing in RefSpec imports it, and
-`rulespec_conformance` itself reaches for it only lazily, inside three
-platform-artifact helpers this repo never calls. But a declared dependency
-still has to resolve, and `rulespec-artifacts` is on no index either, so it
+protocol. RefSpec now uses its bounded local blob writer for BILLSTATUS
+captures. The package is also required by rulespec-conformance, and `rulespec-artifacts` is on no index either, so it
 is vendored on the same interim terms and should be deleted at the same
 time. Its SHA-256 digest is
 `3f6c946c60ff2ddbe854fce7f74f4358ddb21e3ba3f6ad10caa8a0d8d59fd0a5`, copied
 from SpicyDocs' qualified wheel on 2026-09-14. Rulespec commit `bf59d63`
 adds a bounded local blob writer and public exports; the existing artifact
 encoder/verifier module and dependency closure are unchanged from 1.0.11.
-This aligns source-provider consumers without changing RefSpec's pinned
-Arrow 23 writer or regenerating any data artifacts.
+This storage adoption does not regenerate sealed data artifacts.
 
 **What rc17 and rc18 changed in the contract.** Two additions, no widening of
 an existing space, so nothing previously valid changed meaning.

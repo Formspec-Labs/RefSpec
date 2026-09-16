@@ -87,6 +87,7 @@ retained files:
 ```sh
 uv run --frozen python tools/build_usc_structure.py \
   --corpus /path/to/xml_uscAll_119-102.zip \
+  --release-point 119-102 \
   --annual 2012=/path/to/2012.zip \
   --annual 2024=/path/to/2024.zip \
   --output output/usc-structure-candidate
@@ -96,8 +97,13 @@ The new directory contains the existing six table schemas and a receipt with
 input/member/output digests and selected scope. RefSpec retains its section
 normalization, appendix filters and bracketed-stub attestation policy. The tool
 does not fetch sources or adopt the outputs: existing oracle pins stay unchanged.
-Only the supplied annual editions are included. Dated research scripts remain
-historical reproduction evidence; this is the maintained refresh command.
+Each corpus title must state the requested release and native title identity. Annual
+files retain their stated year while table rows keep the requested archive year,
+including publisher-carried historical appendices. The v2 receipt records the
+release selection and 1 GiB aggregate expansion limit per archive. A refusal
+leaves no candidate output. Only supplied annual editions are included.
+Dated research scripts remain historical reproduction evidence; this is the
+maintained refresh command.
 The shared parser also fixes a proven source-reading error: subtitle paths such
 as `/stI/ch1` describe chapters, not section `tI` with subsection `ch1`. Candidate
 subsection tables remove 364 such false rows from retained release point 119-102;

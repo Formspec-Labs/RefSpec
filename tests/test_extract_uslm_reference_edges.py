@@ -33,6 +33,7 @@ from pathlib import Path
 
 import pytest
 import uslm_reference_oracle as oracle
+from usc_archive_fixtures import retain, title_xml
 
 from refspec.registry import uslm as policy
 from tools import extract_uslm_reference_edges as uslm
@@ -222,8 +223,7 @@ def test_an_in_document_fragment_is_navigation_not_a_citation() -> None:
 def test_identifiers_are_copied_byte_for_byte_including_the_en_dash() -> None:
     """U+2013 is what joins an href to its section; an ASCII hyphen matches nothing."""
     xml = _document(
-        '<section identifier="/us/usc/t26/s1400Z–1">'
-        '<p><ref href="/us/usc/t26/s1400Z–2">x</ref></p></section>'
+        '<section identifier="/us/usc/t26/s1400Z–1"><p><ref href="/us/usc/t26/s1400Z–2">x</ref></p></section>'
     )
     edge = _edges(xml)[0]
     assert edge["sourceAnchor"] == "/us/usc/t26/s1400Z–1"
@@ -382,8 +382,8 @@ def _cache_with(tmp_path: Path, title: str, xml: bytes) -> Path:
     cache.mkdir(exist_ok=True)
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w") as archive:
-        archive.writestr(f"usc{title}.xml", xml)
-    (cache / f"xml_usc{title}.zip").write_bytes(buffer.getvalue())
+        archive.writestr(f"usc{title}.xml", title_xml(xml, title))
+    retain(cache, buffer.getvalue(), title=title)
     return cache
 
 
@@ -401,9 +401,7 @@ def test_extract_title_reports_the_source_pin_and_both_unit_counts(tmp_path: Pat
 
 def test_a_dangling_same_title_target_is_flagged_rather_than_dropped(tmp_path: Path) -> None:
     """~1% of same-title references point at repealed sections; the text still says so."""
-    xml = _document(
-        '<section identifier="/us/usc/t26/s1"><p><ref href="/us/usc/t26/s9999">gone</ref></p></section>'
-    )
+    xml = _document('<section identifier="/us/usc/t26/s1"><p><ref href="/us/usc/t26/s9999">gone</ref></p></section>')
     edges, report = uslm.extract_title("26", uslm.RELEASE_POINT, _cache_with(tmp_path, "26", xml))
     assert edges[0]["targetResolved"] is False
     assert report["sameTitleSectionTargets"] == {"resolved": 0, "dangling": 1}
@@ -447,9 +445,9 @@ def test_a_cached_payload_that_is_not_a_zip_is_refused(tmp_path: Path) -> None:
     """The publisher answers a withdrawn title with an HTML error page and HTTP 200."""
     cache = tmp_path / "cache"
     cache.mkdir()
-    (cache / "xml_usc53.zip").write_bytes(b"<html>Error</html>")
-    with pytest.raises(policy.ExtractionError, match="did not return a zip archive"):
-        uslm.fetch_title("53", uslm.RELEASE_POINT, cache)
+    retain(cache, b"<html>Error</html>")
+    with pytest.raises(policy.ExtractionError, match="zip"):
+        uslm.fetch_title("26", uslm.RELEASE_POINT, cache)
 
 
 def test_an_archive_with_more_than_one_xml_member_is_refused(tmp_path: Path) -> None:
@@ -459,8 +457,8 @@ def test_an_archive_with_more_than_one_xml_member_is_refused(tmp_path: Path) -> 
     with zipfile.ZipFile(buffer, "w") as archive:
         archive.writestr("a.xml", SAMPLE)
         archive.writestr("b.xml", SAMPLE)
-    (cache / "xml_usc26.zip").write_bytes(buffer.getvalue())
-    with pytest.raises(policy.ExtractionError, match="expected exactly one XML member"):
+    retain(cache, buffer.getvalue())
+    with pytest.raises(policy.ExtractionError, match="exactly one member"):
         uslm.fetch_title("26", uslm.RELEASE_POINT, cache)
 
 
@@ -501,13 +499,33 @@ def test_the_evidence_manifest_pins_every_input_without_carrying_the_extraction(
     # dedup key, and `/us/pl` legitimately appears inside the OLRC release-point
     # URL, so only the shape of what is carried can distinguish pins from rows.
     assert set(evidence) == {
-        "type", "releasePoint", "publisher", "rights", "sourceBaseUrl", "titles",
-        "occurrenceRows", "byEdgeType", "byContext", "deduplication", "skipped",
-        "notUsableFor", "inputs",
+        "type",
+        "releasePoint",
+        "publisher",
+        "rights",
+        "sourceBaseUrl",
+        "titles",
+        "occurrenceRows",
+        "byEdgeType",
+        "byContext",
+        "deduplication",
+        "skipped",
+        "notUsableFor",
+        "inputs",
     }
     assert set(entry) == {
-        "title", "url", "zipBytes", "zipSha256", "member", "xmlBytes", "xmlSha256",
-        "sections", "occurrenceRows", "distinctClaims", "operativeUscCrossReferences",
-        "outputFile", "outputSha256",
+        "title",
+        "url",
+        "zipBytes",
+        "zipSha256",
+        "member",
+        "xmlBytes",
+        "xmlSha256",
+        "sections",
+        "occurrenceRows",
+        "distinctClaims",
+        "operativeUscCrossReferences",
+        "outputFile",
+        "outputSha256",
     }
     assert "/us/usc/" not in json.dumps(evidence)

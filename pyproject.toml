@@ -1,11 +1,11 @@
 [project]
 name = "refspec"
-version = "0.1.0.dev9"
+version = "0.1.0.dev10"
 description = "Reference implementation and bindings for the Regulatory Evidence Framework"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "spicy-docs[acquisition,pdf-pypdf]==0.17.0",
+    "spicy-docs[acquisition,pdf-pypdf]==0.19.0",
     "backports-zstd==1.6.0; python_version < '3.14'",
     "duckdb>=1.5.5,<2",
     "jsonschema>=4.26,<5",
@@ -17,12 +17,8 @@ dependencies = [
     "typing-extensions>=4.12,<5",
     "pymarc>=5.1,<6",
     "rulespec-conformance==0.2.0rc18",
-    # Not imported anywhere in RefSpec. rulespec-conformance requires it, and a
-    # [tool.uv.sources] entry only binds a DIRECT dependency, so the vendored
-    # wheel is unreachable unless it is named here. See vendor/README.md.
-    # Pinned exactly rather than to the `>=1.0.11` floor rc18 declares: this
-    # tree carries one artifacts wheel and resolves from it, so the pin should
-    # name the bytes in `vendor/` rather than a range nothing here can satisfy.
+    # Shared exact-byte storage for retained publisher captures; also required
+    # by rulespec-conformance. Pin the qualified vendored wheel.
     "rulespec-artifacts==1.0.12",
 ]
 
@@ -35,20 +31,14 @@ refspec-validate = "refspec.binding:main"
 refspec-release-graph-gate = "refspec.release_graph:main"
 
 [tool.uv.sources]
-spicy-docs = { path = "vendor/spicy_docs-0.17.0-py3-none-any.whl" }
+spicy-docs = { path = "vendor/spicy_docs-0.19.0-py3-none-any.whl" }
 # Vendored until a package index exists for rulespec-conformance. See
 # vendor/README.md for why, and for the bump procedure. The path is
 # relative so `uv lock`/`uv sync --frozen` are hermetic on CI runners,
 # which have no ~/Work/rulespec checkout.
 rulespec-conformance = { path = "vendor/rulespec_conformance-0.2.0rc18-py3-none-any.whl" }
-# rc16 declared a HARD `rulespec-artifacts==1.0.9` where rc15 declared none; at
-# rc18 (tag `v0.2.0-pre.18`) that became a FLOOR, `>=1.0.11`, so 1.0.9 no longer
-# satisfies it and staying was not an option. Nothing in RefSpec imports it —
-# rulespec_conformance only reaches for it lazily, inside three platform-artifact
-# helpers we never call — but a declared dependency still has to resolve, and it
-# is on no index either. Version 1.0.12 adds the shared local blob writer used
-# by SpicyDocs; existing artifact encoding and verification are unchanged.
-# Copy the qualified wheel instead of rebuilding another artifact with its name.
+# Shared immutable artifacts and local blob storage. Use the qualified wheel
+# because this package is not yet available from an index.
 rulespec-artifacts = { path = "vendor/rulespec_artifacts-1.0.12-py3-none-any.whl" }
 
 [dependency-groups]

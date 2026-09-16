@@ -9,7 +9,6 @@ Outputs are unsealed candidates: this tool never changes the oracle's pins.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import re
 import sys
 from collections.abc import Callable, Sequence
@@ -23,18 +22,23 @@ from spicy_docs.sources.uscode import (
     DEFAULT_MAX_ARCHIVE_BYTES,
     DEFAULT_MAX_ARCHIVE_ENTRIES,
     DEFAULT_MAX_XML_BYTES,
-    UsCodeSourceError,
+    ReleasePoint,
 )
 from spicy_docs.sources.uscode_annual import AnnualSectionObservation, scan_uscode_annual_sections
+from spicy_docs.sources.uscode_archive import (
+    AnnualArchiveEntry,
+    UsCodeArchiveEntry,
+    read_annual_archive,
+    read_corpus_archive,
+)
 from spicy_docs.sources.uscode_structure import UsCodeStructureObservation, scan_uscode_structure
-from spicy_docs.sources.zip_archive import archive_members, open_archive, read_member
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from refspec.registry.citation_grammar import _normalize_dashes
-from refspec.registry.infrastructure.artifact_serialization import file_sha256
+from refspec.registry.infrastructure.artifact_serialization import file_sha256, sha256_digest
 from refspec.registry.usc_section_oracle import normalize_section
 from refspec.storage import canonical_json
 
@@ -43,16 +47,24 @@ TABLES = {
     "ranges": ("usc-oracle-ranges.parquet", "title INTEGER, lo VARCHAR, hi VARCHAR, status VARCHAR, raw VARCHAR"),
     "subsections": ("usc-oracle-subsections.parquet", "title INTEGER, section VARCHAR, sub VARCHAR"),
     "chapters": ("usc-oracle-chapters.parquet", "title INTEGER, chapter VARCHAR"),
-    "annual_sections": ("usc-oracle-annual-sections.parquet", "year INTEGER, title INTEGER, appendix BOOLEAN, section VARCHAR"),
-    "annual_ranges": ("usc-oracle-annual-ranges.parquet", "year INTEGER, title INTEGER, appendix BOOLEAN, lo VARCHAR, hi VARCHAR"),
+    "annual_sections": (
+        "usc-oracle-annual-sections.parquet",
+        "year INTEGER, title INTEGER, appendix BOOLEAN, section VARCHAR",
+    ),
+    "annual_ranges": (
+        "usc-oracle-annual-ranges.parquet",
+        "year INTEGER, title INTEGER, appendix BOOLEAN, lo VARCHAR, hi VARCHAR",
+    ),
 }
 
-# These names select generation 2's retained input scope. Native title/release
-# identity belongs to SpicyDocs acquisition; this offline refresh makes no
-# acquisition claim and does not copy its header parser.
-_CORPUS_MEMBER = re.compile(r"usc(?P<title>[0-9]+)(?P<appendix>[aA]?)\.xml")
+# Annual filenames and sidecars select generation 2's retained output scope.
+# SpicyDocs separately verifies each title's source-stated native identity.
+MAX_TOTAL_BYTES = 1024**3
 _ANNUAL_MEMBER = re.compile(r"(?P<year>[0-9]{4})usc(?P<title>[0-9]+)(?P<appendix>[aA]?)\.htm", re.IGNORECASE)
-_ANNUAL_SIDE = re.compile(r"(?:index\.html?|usc\.css|[0-9]{4}usc(?:PopularNames|Table[0-9]+)\.htm|tbl[0-9]+(?:cd|pl)_[a-z0-9]+\.htm)", re.IGNORECASE)
+_ANNUAL_SIDE = re.compile(
+    r"(?:index\.html?|usc\.css|[0-9]{4}usc(?:PopularNames|Table[0-9]+)\.htm|tbl[0-9]+(?:cd|pl)_[a-z0-9]+\.htm)",
+    re.IGNORECASE,
+)
 _SUBSECTION = re.compile(r"[A-Za-z0-9]+")
 _TOKEN = re.compile(r"[0-9][0-9A-Za-z.\-]*")
 type Emit = Callable[[str, tuple[Any, ...]], None]
@@ -149,43 +161,56 @@ class _Tables:
         return files
 
 
-def _digest(body: bytes) -> str:
-    return "sha256:" + hashlib.sha256(body).hexdigest()
-
-
-def _archive(path: Path, *, year: int | None, emit: Emit) -> dict[str, Any]:
-    # Read at most the declared compressed bound even if a file grows after stat.
+def _archive(path: Path, *, year: int | None, release_point: ReleasePoint, emit: Emit) -> dict[str, Any]:
     with path.open("rb") as stream:
         body = stream.read(DEFAULT_MAX_ARCHIVE_BYTES + 1)
-    label = "retained U.S. Code structure archive"
     members = []
-    with open_archive(
-        body, max_bytes=DEFAULT_MAX_ARCHIVE_BYTES,
-        max_entries=DEFAULT_MAX_ARCHIVE_ENTRIES, max_entry_bytes=DEFAULT_MAX_XML_BYTES,
-        error_type=UsCodeSourceError, label=label,
-    ) as archive:
-        for info in archive_members(archive, max_entries=DEFAULT_MAX_ARCHIVE_ENTRIES, error_type=UsCodeSourceError, label=label):
-            stem = info.filename.rsplit("/", 1)[-1]
-            match = (_CORPUS_MEMBER if year is None else _ANNUAL_MEMBER).fullmatch(stem)
-            if match is None and (year is None or not _ANNUAL_SIDE.fullmatch(stem)):
-                raise ValueError(f"unclassified U.S. Code archive member: {info.filename}")
-            data = read_member(archive, info, max_bytes=DEFAULT_MAX_XML_BYTES, error_type=UsCodeSourceError, label=label)
-            members.append({"name": info.filename, "sha256": _digest(data), "bytes": len(data), "selected": match is not None})
-            if match is None:
-                continue
-            appendix = bool(match["appendix"])
-            if year is None:
-                read_release_title(data, appendix=appendix, emit=emit)
-            else:
-                if int(match["year"]) != year:
-                    raise ValueError(f"annual archive year differs from member name: {info.filename}")
-                read_annual_title(data, year=year, title=int(match["title"]), appendix=appendix, emit=emit)
+
+    def record(entry: UsCodeArchiveEntry | AnnualArchiveEntry, *, selected: bool) -> None:
+        members.append({"name": entry.name, "sha256": entry.sha256, "bytes": entry.byte_size, "selected": selected})
+
+    def corpus_entry(entry: UsCodeArchiveEntry, data: bytes) -> None:
+        record(entry, selected=True)
+        read_release_title(data, appendix=entry.metadata.document_type == "USCTitleAppendix", emit=emit)
+
+    def annual_entry(entry: AnnualArchiveEntry, data: bytes) -> None:
+        stem = entry.name.rsplit("/", 1)[-1]
+        match = _ANNUAL_MEMBER.fullmatch(stem)
+        if match is None and not _ANNUAL_SIDE.fullmatch(stem):
+            raise ValueError(f"unclassified U.S. Code archive member: {entry.name}")
+        record(entry, selected=entry.metadata is not None)
+        if entry.metadata is None:
+            return
+        if match is None or int(match["year"]) != year:
+            raise ValueError(f"annual archive year differs from member name: {entry.name}")
+        # Native years can be carried forward; the existing oracle attributes
+        # printed sections to the explicitly requested archive year.
+        read_annual_title(data, year=year, title=int(match["title"]), appendix=bool(match["appendix"]), emit=emit)
+
+    bounds = {
+        "max_bytes": DEFAULT_MAX_ARCHIVE_BYTES,
+        "max_entry_bytes": DEFAULT_MAX_XML_BYTES,
+        "max_entries": DEFAULT_MAX_ARCHIVE_ENTRIES,
+        "max_total_bytes": MAX_TOTAL_BYTES,
+    }
+    if year is None:
+        read_corpus_archive(body, release_point=release_point, on_entry=corpus_entry, **bounds)
+    else:
+        read_annual_archive(body, year=year, on_entry=annual_entry, **bounds)
     if not any(member["selected"] for member in members):
         raise ValueError(f"U.S. Code archive has no selected titles: {path}")
-    return {"path": str(path.resolve()), "year": year, "sha256": _digest(body), "bytes": len(body), "members": members}
+    return {
+        "path": str(path.resolve()),
+        "year": year,
+        "sha256": sha256_digest(body),
+        "bytes": len(body),
+        "members": members,
+    }
 
 
-def build(*, corpus: Path, annual: Sequence[tuple[int, Path]], output: Path) -> dict[str, Any]:
+def build(
+    *, corpus: Path, release_point: ReleasePoint, annual: Sequence[tuple[int, Path]], output: Path
+) -> dict[str, Any]:
     """Write a new candidate directory only after every selected archive succeeds."""
     if output.exists():
         raise ValueError(f"output already exists: {output}")
@@ -204,15 +229,28 @@ def build(*, corpus: Path, annual: Sequence[tuple[int, Path]], output: Path) -> 
             # One transaction avoids a disk commit per inserted source row.
             connection.execute("BEGIN TRANSACTION")
             tables = _Tables(connection)
-            inputs = [_archive(corpus, year=None, emit=tables.emit)]
-            inputs.extend(_archive(path, year=year, emit=tables.emit) for year, path in sorted(annual))
+            inputs = [_archive(corpus, year=None, release_point=release_point, emit=tables.emit)]
+            inputs.extend(
+                _archive(path, year=year, release_point=release_point, emit=tables.emit)
+                for year, path in sorted(annual)
+            )
             files = tables.write(candidate)
             connection.execute("COMMIT")
         receipt = {
-            "format": "refspec-usc-structure-candidate-v1", "spicyDocsVersion": version("spicy-docs"),
-            "policy": "generation-2-section-oracle", "inputs": inputs, "files": files,
-            "bounds": {"archiveBytes": DEFAULT_MAX_ARCHIVE_BYTES, "entryBytes": DEFAULT_MAX_XML_BYTES,
-                       "archiveEntries": DEFAULT_MAX_ARCHIVE_ENTRIES, "duckdbMemoryMiB": 256, "spillGiB": 4},
+            "format": "refspec-usc-structure-candidate-v2",
+            "spicyDocsVersion": version("spicy-docs"),
+            "releasePoint": release_point.label,
+            "policy": "generation-2-section-oracle",
+            "inputs": inputs,
+            "files": files,
+            "bounds": {
+                "archiveBytes": DEFAULT_MAX_ARCHIVE_BYTES,
+                "entryBytes": DEFAULT_MAX_XML_BYTES,
+                "archiveEntries": DEFAULT_MAX_ARCHIVE_ENTRIES,
+                "totalExpandedBytes": MAX_TOTAL_BYTES,
+                "duckdbMemoryMiB": 256,
+                "spillGiB": 4,
+            },
             "adopted": False,
         }
         (candidate / "receipt.json").write_text(canonical_json(receipt) + "\n", encoding="utf-8")
@@ -230,11 +268,14 @@ def _annual_argument(value: str) -> tuple[int, Path]:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--corpus", type=Path, required=True, help="retained release-point XML zip")
+    parser.add_argument(
+        "--release-point", type=ReleasePoint.from_label, required=True, help="native corpus release, e.g. 119-102"
+    )
     parser.add_argument("--annual", type=_annual_argument, action="append", default=[], metavar="YEAR=PATH")
     parser.add_argument("--output", type=Path, required=True, help="new candidate directory; never overwritten")
     args = parser.parse_args(argv)
     try:
-        receipt = build(corpus=args.corpus, annual=args.annual, output=args.output)
+        receipt = build(corpus=args.corpus, release_point=args.release_point, annual=args.annual, output=args.output)
     except (OSError, ValueError, duckdb.Error) as error:
         parser.exit(1, f"U.S. Code structure build failed: {error}\n")
     print(canonical_json({"output": str(args.output), "files": receipt["files"], "adopted": False}))

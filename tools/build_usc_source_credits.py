@@ -66,10 +66,8 @@ Usage::
 from __future__ import annotations
 
 import argparse
-import hashlib
 import re
 import sys
-import zipfile
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -77,6 +75,8 @@ from typing import Any
 
 import pyarrow as pa
 import pyarrow.parquet as pq
+from spicy_docs.sources.uscode import DEFAULT_MAX_ARCHIVE_BYTES, ReleasePoint, corpus_xml_locator
+from spicy_docs.sources.uscode_archive import UsCodeArchiveEntry, read_corpus_archive
 from spicy_docs.sources.uscode_references import UsCodeSourceCredit, scan_uscode_references
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -90,12 +90,6 @@ from refspec.registry.infrastructure.artifact_serialization import (
     scan_text_for_secrets,
 )
 from refspec.storage import canonical_json
-
-#: The whole Code for one release point, one zip. There is no per-section
-#: endpoint worth 51,548 requests.
-USLM_RELEASE_URL_TEMPLATE = (
-    "https://uscode.house.gov/download/releasepoints/us/pl/{congress}/{law}/xml_uscAll@{congress}-{law}.zip"
-)
 
 #: The archive this build reads, and the release point it is. It sits beside
 #: the USC *annual* editions in the same directory, and is not one of them: the
@@ -178,7 +172,6 @@ CREDIT_COLUMNS = (
 )
 QUARANTINE_COLUMNS = ("source", "reason", "public_law", "division", "act_section", "raw_value")
 
-_RELEASE_POINT = re.compile(r"^(?P<congress>[1-9]\d{0,2})-(?P<law>[1-9]\d*)$")
 
 #: A U.S. Code section identifier, and only that shape. A subsection
 #: (``/us/usc/t26/s6038E/a``) or an appendix path is not a section identifier
@@ -216,10 +209,7 @@ def uslm_release_url(release_point: str) -> str:
     A release point of any other shape is refused rather than turned into a URL
     that would 404, so a build fails on the key rather than on the response.
     """
-    match = _RELEASE_POINT.fullmatch(release_point or "")
-    if match is None:
-        raise ValueError(f"invalid U.S. Code release point: {release_point!r}")
-    return USLM_RELEASE_URL_TEMPLATE.format(congress=match.group("congress"), law=match.group("law"))
+    return corpus_xml_locator(ReleasePoint.from_label(release_point))
 
 
 def normalize_usc_section(value: object) -> str:
@@ -312,8 +302,14 @@ def scan_source_credits(document: bytes | str) -> CreditScan:
         nonlocal scanned, naming_a_division, outside, strict_matches, bound_changed
         # Preserve the sealed receiver's nearest *identified* ancestor policy.
         # Raw observations also expose the nearest section when its ID is absent.
-        identifier = next((element.attributes["identifier"] for element in reversed(observation.ancestors)
-                           if element.tag.rsplit("}", 1)[-1] == "section" and element.attributes.get("identifier")), None)
+        identifier = next(
+            (
+                element.attributes["identifier"]
+                for element in reversed(observation.ancestors)
+                if element.tag.rsplit("}", 1)[-1] == "section" and element.attributes.get("identifier")
+            ),
+            None,
+        )
         text = re.sub(r"[ \t\r\n]+", " ", observation.text).strip()
         scanned += 1
         if "div." in text:
@@ -370,20 +366,30 @@ def scan_source_credits(document: bytes | str) -> CreditScan:
     )
 
 
-def scan_release_zip(archive: Path) -> tuple[CreditScan, list[tuple[str, str]]]:
-    """Scan every title in a whole-Code release zip.
+def scan_release_zip(archive: Path, *, release_point: str) -> tuple[CreditScan, list[tuple[str, str]]]:
+    """Scan validated titles, preserving sorted member order in rows and receipt.
 
-    Returns the merged scan and one ``(member, sha256)`` pair per title, sorted,
-    so a receipt pins the bytes each count was read from rather than only the
-    zip they arrived in.
+    Keep only each title's small scan result; shared archive delivery releases
+    its XML before reading the next title. No result escapes a refused corpus.
     """
+    scans: dict[str, tuple[CreditScan, str]] = {}
+
+    def consume(entry: UsCodeArchiveEntry, payload: bytes) -> None:
+        scans[entry.name] = (scan_source_credits(payload), entry.sha256)
+
+    with archive.open("rb") as stream:
+        payload = stream.read(DEFAULT_MAX_ARCHIVE_BYTES + 1)
+    read_corpus_archive(
+        payload,
+        release_point=ReleasePoint.from_label(release_point),
+        max_total_bytes=1024**3,
+        on_entry=consume,
+    )
     scan = CreditScan()
-    members: list[tuple[str, str]] = []
-    with zipfile.ZipFile(archive) as bundle:
-        for name in sorted(n for n in bundle.namelist() if n.endswith(".xml")):
-            payload = bundle.read(name)
-            members.append((name, f"sha256:{hashlib.sha256(payload).hexdigest()}"))
-            scan = scan.merge(scan_source_credits(payload))
+    members = []
+    for name, (title_scan, digest) in sorted(scans.items()):
+        scan = scan.merge(title_scan)
+        members.append((name, digest))
     return scan, members
 
 
@@ -456,13 +462,15 @@ def build(output_dir: Path, *, archive: Path, release_point: str) -> dict:
         for name in (
             "spicy_docs.sources.uscode_references",
             "spicy_docs.sources.uscode",
+            "spicy_docs.sources.uscode_archive",
+            "spicy_docs.sources.zip_archive",
             "spicy_docs.sources.xml_observations",
             "spicy_docs.sources.xml",
         )
     }
     modules["tools.build_usc_source_credits"] = file_sha256(Path(__file__))
+    scan, members = scan_release_zip(archive, release_point=release_point)
     output_dir.mkdir(parents=True, exist_ok=True)
-    scan, members = scan_release_zip(archive)
     rows = credit_rows(scan.credits)
     quarantine = [
         {
@@ -592,7 +600,7 @@ def main(argv: list[str] | None = None) -> int:
         receipt = build(args.output, archive=args.archive, release_point=args.release_point)
         print(canonical_json(receipt["coverage"]))
     if args.verify is not None:
-        scan, _ = scan_release_zip(args.archive)
+        scan, _ = scan_release_zip(args.archive, release_point=args.release_point)
         report = compare_to_frozen(credit_rows(scan.credits), args.verify / "usc-source-credits.parquet")
         print(canonical_json(report))
         return 0 if report["rows_identical"] else 1

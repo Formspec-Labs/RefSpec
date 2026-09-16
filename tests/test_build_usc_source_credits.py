@@ -177,8 +177,10 @@ def test_a_credit_is_attributed_to_its_ancestor_not_its_nearest_preceding_tag() 
 
     seen = []
     scan_uscode_references(document.encode(), on_source_credit=seen.append)
-    assert [next(e.attributes["identifier"] for e in reversed(row.ancestors)
-                 if e.tag.rsplit("}", 1)[-1] == "section") for row in seen] == [inner, outer]
+    assert [
+        next(e.attributes["identifier"] for e in reversed(row.ancestors) if e.tag.rsplit("}", 1)[-1] == "section")
+        for row in seen
+    ] == [inner, outer]
 
     # And the attribution survives the whole scan, not just the walk.
     scan = builder.scan_source_credits(document)
@@ -241,7 +243,7 @@ def test_a_release_point_of_any_other_shape_is_refused_rather_than_turned_into_a
 @archive_required
 @frozen_required
 def test_the_derived_table_is_byte_identical_to_the_frozen_source_credit_index(tmp_path: Path) -> None:
-    scan, _ = builder.scan_release_zip(builder.DEFAULT_ARCHIVE)
+    scan, _ = builder.scan_release_zip(builder.DEFAULT_ARCHIVE, release_point=builder.DEFAULT_RELEASE_POINT)
     rows = builder.credit_rows(scan.credits)
 
     report = builder.compare_to_frozen(rows, FROZEN_TABLE)
@@ -281,7 +283,7 @@ def test_bounding_the_page_search_changes_no_retained_answer_on_this_release_poi
     as a quietly changed page number.
     """
 
-    scan, _ = builder.scan_release_zip(builder.DEFAULT_ARCHIVE)
+    scan, _ = builder.scan_release_zip(builder.DEFAULT_ARCHIVE, release_point=builder.DEFAULT_RELEASE_POINT)
 
     assert scan.credits_scanned == 51548
     assert scan.pages_the_bound_changed == builder.BOUND_CHANGES_NO_ANSWER_ON_119_102 == 0

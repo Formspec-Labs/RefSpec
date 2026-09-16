@@ -9,6 +9,7 @@ from importlib import import_module
 from pathlib import Path
 
 import pytest
+from usc_archive_fixtures import title_xml
 
 from refspec.registry import federal_register_topics_api as topics
 from refspec.registry.infrastructure.artifact_serialization import producer_module_source
@@ -90,13 +91,17 @@ def test_topics_run_id_collision_preserves_previous_receipt(tmp_path, monkeypatc
 def test_source_credit_build_records_installed_reader_before_outputs(tmp_path, monkeypatch):
     archive = tmp_path / "title.zip"
     with zipfile.ZipFile(archive, "w") as bundle:
-        bundle.writestr("usc05.xml", (FIXTURES / "uslm-source-links/title-05-s423.xml").read_bytes())
+        bundle.writestr(
+            "usc05.xml", title_xml((FIXTURES / "uslm-source-links/title-05-s423.xml").read_bytes(), title="05")
+        )
     receipt = credits.build(tmp_path / "first", archive=archive, release_point="119-102")
     modules = receipt["producer"]["modules"]
     assert set(modules) == {
         "tools.build_usc_source_credits",
         "spicy_docs.sources.uscode_references",
         "spicy_docs.sources.uscode",
+        "spicy_docs.sources.uscode_archive",
+        "spicy_docs.sources.zip_archive",
         "spicy_docs.sources.xml_observations",
         "spicy_docs.sources.xml",
     }
