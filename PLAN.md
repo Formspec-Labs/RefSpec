@@ -6,11 +6,18 @@ Longer-running plan detail is in [plans/](plans/) — start with
 [validation-cost-reset-plan.md](plans/validation-cost-reset-plan.md) and read
 its CONTINUATION header.
 
-## State as of 2026-09-07
+## State as of 2026-09-17
 
-Branch `main`, tree clean, gate green (`make test`; the two pytest tiers were
-last run at `-n 6` rather than `-n auto` because other work held the machine —
-worker count is the only deviation).
+Branch `main`, tree clean, at `0.1.0.dev11` pinning the vendored SpicyDocs
+0.20.0 wheel. dev8→dev11 (2026-09-14→16) completed the shared-reader
+adoption: U.S. Code/USLM (`1bc39535`, `1ffeb5ba`), Unified Agenda
+(`5d71a26c`), CFR metadata (`cf0f3e7b`), GovInfo/PREMIS (`6cf579bf`),
+publisher tables (`7f0d5614`), PDF/XML sharing (`4fe282c1`, `bd045e8f`),
+BILLSTATUS publication through shared storage (`2c84fe0b`), and archive
+readers for acquisition and builds (`daa59e25`, re-pinned `d4a22979`).
+Unified Agenda rebuild #16 (`fd22acdf`) ran on those readers with every delta
+attributed shape-by-shape in the updated pins. The 2026-09-07 gate note is
+superseded; run `make test` rather than trusting either line.
 
 **Commits sit unpushed here and that is deliberate, not a backlog.** RefSpec's
 public origin is pushed only on the owner's own words to the session doing the
