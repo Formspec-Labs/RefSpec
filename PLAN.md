@@ -19,9 +19,10 @@ Unified Agenda rebuild #16 (`fd22acdf`) ran on those readers with every delta
 attributed shape-by-shape in the updated pins. The 2026-09-07 gate note is
 superseded; run `make test` rather than trusting either line.
 
-**Commits sit unpushed here and that is deliberate, not a backlog.** RefSpec's
-public origin is pushed only on the owner's own words to the session doing the
-pushing. Do not push them because they are here; ask. For the count, ask git
+**Pushes need the owner's own words.** On 2026-09-17, on Mike's words, `main`
+(dev11 and rebuild #16) was pushed to origin. Until the next such instruction,
+commits sit unpushed deliberately — do not push them because they are here;
+ask. For the count, ask git
 rather than this file — `git rev-list --count origin/main..HEAD` — because a
 number written here goes stale on the next commit, including the commit that
 updates this line.
