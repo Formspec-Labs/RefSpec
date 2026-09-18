@@ -6,7 +6,7 @@
 >
 > **Date:** 2026-07-28
 >
-> **Current execution roadmap:** [Managed vocabulary experiment roadmap](managed-vocabulary-experiment-roadmap.md)
+> **Current execution index:** [PLAN.md](../PLAN.md). The [managed vocabulary experiment roadmap](managed-vocabulary-experiment-roadmap.md) this line used to name is a research frame, not the sequence.
 >
 > **Implemented vocabulary baseline:** [Vocabulary management and lookup separation](vocabulary-management-lookup-separation-plan.md)
 >

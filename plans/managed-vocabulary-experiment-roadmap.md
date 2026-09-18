@@ -2,7 +2,7 @@
 
 # Managed vocabulary experiment roadmap
 
-> **Status:** Active execution roadmap
+> **Status:** Research frame and experiment-lane registry (REF-022). The execution index is [PLAN.md](../PLAN.md); the retrieval and ranking halves were superseded 2026-08-01 (banners below).
 >
 > **Date:** 2026-07-29
 >

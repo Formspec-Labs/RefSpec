@@ -1,6 +1,18 @@
 # Barebones reset — build, prove once, sign, serve
 
-## CONTINUATION — read this first (2026-08-12, session handoff)
+## CONTINUATION — 2026-09-18 (current)
+
+[PLAN.md](../PLAN.md) is the index; read it first. State: branch `main`, tree
+clean, `0.1.0.dev11` on the vendored SpicyDocs 0.20.0 wheel, pushed to origin
+on 2026-09-17. Everything below this heading is the August evidence record.
+The 2026-08-12/13 continuation that follows is historical: the research branch
+it names was merged; the signer key it calls offline is on this machine (see
+the correction further down); the pattern-row-v2 merge and the last five reader
+kinds it lists as next both landed (`8e5cb6e0`, `0e85d2a0`); and its "nothing
+else is open" claim is superseded by REF-070 and
+`research/backlog-validation-2026-08-31.md`.
+
+## CONTINUATION — read this first (2026-08-12, session handoff) — historical
 
 Written for a blind agent resuming with zero session context. The history
 below this section is the evidence record; THIS section is the state.
