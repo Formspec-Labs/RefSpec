@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import pyarrow.parquet as pq
@@ -31,11 +32,27 @@ ENTRIES = json.loads((EVIDENCE / "fixtures" / "popular-name-entries.json").read_
 FROZEN_TABLE = ROOT / "output" / "usc-act-index-2026-08-22" / "usc-popular-names.parquet"
 FROZEN_DIGEST = "sha256:603d5b072133d8fe6802736aeaa70b9fb9832e4fb996158a083fae3ce1026a9a"
 
+#: A pyarrow bump moves exactly one string in these bytes: the parquet
+#: footer's ``created_by`` version stamp (23.0.0 sealed the frozen file; the
+#: pinned lock is 25.0.1). Measured 2026-09-21: same length, first difference
+#: at byte 563,247 of 563,299. The byte-identity checks strip that stamp, so
+#: every other difference still fails while a writer bump does not.
+_WRITER_STAMP = re.compile(rb"parquet-cpp-arrow version \d+\.\d+\.\d+")
+
+
+def without_writer_stamp(data: bytes) -> bytes:
+    """The file bytes with the footer's parquet writer-version stamp removed."""
+
+    return _WRITER_STAMP.sub(b"parquet-cpp-arrow version", data)
+
 #: What the frozen table becomes once
 #: :meth:`refspec.registry.act_resolution.ActIndex.from_artifact` applies
 #: ``normalize_popular_name`` to its two key columns on load
 #: (``act_resolution.py:499,501``) -- and, exactly, what this build derives.
-LOADED_DIGEST = "sha256:a8777c959adbf5f904a9b84ae6bdbaff5833add132e7998c6c0f8e66c948bb10"
+#: Re-measured under the pinned pyarrow 25.0.1 on 2026-09-21; the 2026-08-31
+#: measurement of the same content was ``sha256:a8777c959adb...`` under the
+#: 23.0.0 writer, whose footer stamp is the only byte that moved.
+LOADED_DIGEST = "sha256:280e5d263af5140d3a81d04becc54c29725ac8dd314e853efb16fbab479e24e1"
 
 #: The four rows whose ``name_key`` the frozen table spells with a leading
 #: ``''`` that today's normalizer strips. ``act_resolution.py:495-499`` already
@@ -269,13 +286,15 @@ def test_every_row_this_build_parses_is_a_row_the_frozen_table_states() -> None:
 @pinned_html_required
 @frozen_table_required
 def test_the_derived_table_is_the_frozen_one_after_the_loaders_own_normalization(tmp_path: Path) -> None:
-    """Byte-identity, once the difference the loader erases is erased.
+    """Byte-identity, once the loader's own normalization and the writer stamp are accounted for.
 
     Three digests, and they settle where the four-row delta comes from. The
-    writer here reproduces the frozen bytes exactly from the frozen rows, so
-    writer metadata is not a source of difference; and the derived table equals
-    the frozen table with ``normalize_popular_name`` applied to its key columns
-    -- which is what ``ActIndex.from_artifact`` does unconditionally on load.
+    writer here reproduces the frozen bytes exactly from the frozen rows, apart
+    from the parquet footer's writer-version stamp -- the one byte range a
+    pyarrow bump moves (see ``without_writer_stamp``); and the derived table
+    equals the frozen table with ``normalize_popular_name`` applied to its key
+    columns -- which is what ``ActIndex.from_artifact`` does unconditionally on
+    load.
     """
 
     def digest(path: Path) -> str:
@@ -286,7 +305,9 @@ def test_the_derived_table_is_the_frozen_one_after_the_loaders_own_normalization
 
     round_trip = tmp_path / "round-trip.parquet"
     builder.write_parquet(round_trip, builder.POPULAR_NAME_COLUMNS, frozen)
-    assert digest(round_trip) == FROZEN_DIGEST, "the writer, not the parse, would be the difference"
+    assert without_writer_stamp(round_trip.read_bytes()) == without_writer_stamp(
+        FROZEN_TABLE.read_bytes()
+    ), "the writer, not the parse, would be the difference"
 
     as_loaded = tmp_path / "as-loaded.parquet"
     builder.write_parquet(

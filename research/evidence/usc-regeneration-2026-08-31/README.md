@@ -60,6 +60,19 @@ sha256:a8777c95…  the derived table
 
 The two tables are one index. No agreement was forced anywhere.
 
+**2026-09-21 writer-stamp note.** The byte-identity verdicts above were
+measured under pyarrow 23.0.0, which sealed both frozen artifacts; the
+repository now pins pyarrow 25.0.1. Re-measured: a fresh build under the
+pinned writer reproduces every byte of the frozen files except the parquet
+footer's `created_by` version stamp -- same length, first difference at byte
+563,247 of 563,299 in `usc-popular-names.parquet`; `usc-source-credits.parquet`
+likewise. Rows, the four-row `name_key` delta, coverage counts, and inputs are
+unchanged, and the frozen digests remain the production pins. The tests now
+strip that one stamp before comparing bytes (`without_writer_stamp`), so any
+other difference still fails while a writer bump does not; the normalized
+table's digest was re-measured under 25.0.1 (the 23.0.0 value was
+`a8777c95…`).
+
 ---
 
 ## What was fetched, and from where

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import pyarrow.parquet as pq
@@ -27,6 +28,18 @@ FROZEN_TABLE = FROZEN_ARTIFACT / "usc-source-credits.parquet"
 #: The digest ``act_resolution.py:147`` pins. This build reproduces it byte for
 #: byte from the salvaged release-point archive.
 FROZEN_DIGEST = "sha256:d377545fe60d592a120bda30dffba665380cf82f826ae06cb327a581f0af9d8a"
+
+#: A pyarrow bump moves exactly one string in these bytes: the parquet
+#: footer's ``created_by`` version stamp (23.0.0 sealed the frozen file; the
+#: pinned lock is 25.0.1). The byte-identity checks strip that stamp, so every
+#: other difference still fails while a writer bump does not.
+_WRITER_STAMP = re.compile(rb"parquet-cpp-arrow version \d+\.\d+\.\d+")
+
+
+def without_writer_stamp(data: bytes) -> bytes:
+    """The file bytes with the footer's parquet writer-version stamp removed."""
+
+    return _WRITER_STAMP.sub(b"parquet-cpp-arrow version", data)
 
 archive_required = pytest.mark.skipif(
     not builder.DEFAULT_ARCHIVE.exists(), reason=f"release-point archive absent: {builder.DEFAULT_ARCHIVE}"
@@ -257,7 +270,7 @@ def test_a_release_point_of_any_other_shape_is_refused_rather_than_turned_into_a
 @archive_required
 @frozen_required
 def test_the_derived_table_is_byte_identical_to_the_frozen_source_credit_index(tmp_path: Path) -> None:
-    """Pin 3721 identical rows and the FROZEN_DIGEST for the rebuilt parquet."""
+    """Pin 3721 identical rows, the sealed artifact's digest, and byte-identity under the writer."""
 
     scan, _ = builder.scan_release_zip(builder.DEFAULT_ARCHIVE, release_point=builder.DEFAULT_RELEASE_POINT)
     rows = builder.credit_rows(scan.credits)
@@ -270,15 +283,15 @@ def test_the_derived_table_is_byte_identical_to_the_frozen_source_credit_index(t
 
     derived = tmp_path / "usc-source-credits.parquet"
     builder.write_parquet(derived, builder.CREDIT_COLUMNS, rows)
-    assert f"sha256:{hashlib.sha256(derived.read_bytes()).hexdigest()}" == FROZEN_DIGEST
     assert f"sha256:{hashlib.sha256(FROZEN_TABLE.read_bytes()).hexdigest()}" == FROZEN_DIGEST
+    assert without_writer_stamp(derived.read_bytes()) == without_writer_stamp(FROZEN_TABLE.read_bytes())
 
 
 @pytest.mark.slow
 @archive_required
 @frozen_required
 def test_the_receipt_reproduces_every_coverage_count_the_frozen_receipt_states(tmp_path: Path) -> None:
-    """Pin that the rebuilt receipt reproduces the frozen coverage, inputs, and digest."""
+    """Pin that the rebuilt receipt reproduces the frozen coverage and inputs, and digests its own output."""
 
     frozen = json.loads((FROZEN_ARTIFACT / "receipt.json").read_text(encoding="utf-8"))
     receipt = builder.build(tmp_path / "artifact", archive=builder.DEFAULT_ARCHIVE, release_point="119-102")
@@ -287,7 +300,13 @@ def test_the_receipt_reproduces_every_coverage_count_the_frozen_receipt_states(t
     assert receipt["inputs"]["archive_digest"] == frozen["inputs"]["archive_digest"]
     assert receipt["inputs"]["archive_bytes"] == frozen["inputs"]["archive_bytes"]
     assert receipt["inputs"]["titles"] == frozen["inputs"]["titles"]
-    assert receipt["outputs"]["usc-source-credits.parquet"]["digest"] == FROZEN_DIGEST
+    # The receipt digests the freshly written file, whose writer stamp follows
+    # the pinned pyarrow; the sealed artifact's own bytes carry the pin.
+    fresh = tmp_path / "artifact" / "usc-source-credits.parquet"
+    assert f"sha256:{hashlib.sha256(FROZEN_TABLE.read_bytes()).hexdigest()}" == FROZEN_DIGEST
+    assert receipt["outputs"]["usc-source-credits.parquet"]["digest"] == (
+        f"sha256:{hashlib.sha256(fresh.read_bytes()).hexdigest()}"
+    )
 
 
 @pytest.mark.slow
