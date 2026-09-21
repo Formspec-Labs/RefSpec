@@ -251,12 +251,15 @@ def test_a_lettered_cfr_part_mints_and_its_case_is_folded() -> None:
 
 
 def test_a_hyphen_numbered_cfr_part_is_in_the_space_and_out_of_the_minter() -> None:
-    """Pin that the space accepts a hyphen-numbered part while the minter refuses it, and that "41 CFR 101-1" reads as
-    phantom part 101 today.
+    """Pin that the space accepts a hyphen-numbered part while the minter refuses it.
 
-    The prose reader stops at the hyphen, so minting the hyphen form would swap
-    a named, tested gap for a silent wrong answer; the fix belongs upstream in
-    ``citation_grammar._CFR_PART_CAPTURE`` and REF-054 records the trigger.
+    REF-054 recorded the deferred phantom -- "41 CFR 101-1" reading as part
+    101 -- and named the reopen trigger: a receipt-authorized
+    ``citation_grammar`` rebuild capturing the complete hyphenated part. That
+    rebuild is 61bb05d0 (range preservation), so the reader now keeps
+    ``101-1`` and the phantom is unreachable. The minter still refuses the
+    hyphen branch: no pinned column carries a hyphen part, and title 41's
+    hyphen heads are not parts in their own right.
     """
 
     # The contract accepts it: the space is rulespec's, and it is right.
@@ -265,8 +268,9 @@ def test_a_hyphen_numbered_cfr_part_is_in_the_space_and_out_of_the_minter() -> N
     assert mint_cfr_iri(41, "101-1") is None
     assert mint_cfr_iri(41, "101-1", "20") is None
 
-    # The deferred phantom, pinned as it behaves today rather than as it should.
-    assert parse_cfr_citations("41 CFR 101-1")[0].cfr_part == "101"
+    # The phantom is closed: the reader keeps the whole hyphenated token, and
+    # a numeric part handed to the minter directly is still a legal part.
+    assert parse_cfr_citations("41 CFR 101-1")[0].cfr_part == "101-1"
     assert mint_cfr_iri(41, "101").iri == "urn:rkaf:us:cfr:41:101"
 
 

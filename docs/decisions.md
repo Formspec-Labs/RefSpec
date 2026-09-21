@@ -4438,6 +4438,18 @@ against the vendored wheel. The census lost its `modern-short-tail` bucket
 rather than pinning it at zero: a bucket naming an empty population is
 structure that stopped earning its keep.
 
+**Resolution (2026-09-11, recorded 2026-09-21).** The reopen trigger above
+was spent by 61bb05d0 ("preserve complete CFR ranges through consumers"):
+the receipt-authorized `citation_grammar` rebuild changed
+`_CFR_PART_CAPTURE` to capture the whole hyphenated token, so
+`parse_cfr_citations("41 CFR 101-1")` returns part `101-1`, the phantom
+first-class identifier for the nonexistent part `101` is unreachable, and
+`mint_cfr_iri`'s refusal of the hyphen branch is unchanged. The pin this
+entry named (`test_a_hyphen_numbered_cfr_part_is_in_the_space_and_out_of_the_minter`)
+was updated with the resolution; it no longer asserts the phantom. This
+recording is documentation only -- no identifier space or parser behaviour
+moved here.
+
 
 ### REF-055: The staging ground empties — corpora was temporary, and the win is anchoring, not durability
 
