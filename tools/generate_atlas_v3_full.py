@@ -722,6 +722,12 @@ REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-d
 REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:f4ca83a852748a90cf4f1cf67a5bb954b76f42ecc39ac9b6ec57d4934fbfb5a4"
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
+# 2026-09-21: the shared-reader wave's four support modules (ecfr,
+# uscode_cache, uslm, xml_text) join as implementation modules, and the
+# docstring and defect-fix passes edit readiness-evidence files the index
+# hashes. The .nq graph is byte-identical again (1,252 quads, 106 schemes);
+# only the proof's inputs.atlasIndexDigest moves, so this is the proof pin
+# alone.
 # 2026-09-07: `term_explanation` joins as an IMPLEMENTATION module -- it reads
 # the registry to answer what a handed term is and publishes no atlas resource,
 # the same classification `act_resolution` carries. The .nq graph is
@@ -764,7 +770,7 @@ REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/regi
 # edited that day, is NOT index evidence and moved nothing here). The
 # descriptors .nq graph is byte-identical both times; only the proof's
 # inputs.atlasIndexDigest moved, and this pin moves with it.
-REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:a4b85bbeaa0919c8305a1b53924d988a8381441cd2d8b8008c1760d855ad30d1"
+REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:42bf8df527c4bb8f0672b2fa544568415ce30fcb261b49f29ee08c2c0ec2b9b5"
 
 
 def _load_validator() -> Any:
