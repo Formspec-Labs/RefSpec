@@ -26,7 +26,7 @@ def source_root() -> Path:
     return REAL_SOURCE_ROOT
 
 
-def test_pinned_source_refuses_absent_wrong_and_truncated_bytes(tmp_path: Path) -> None:
+def test_pinned_source_refuses_absent_and_wrong_bytes(tmp_path: Path) -> None:
     """Pin the "is absent" and "digest differs" refusals for a missing or forged source file."""
 
     with pytest.raises(verifier.BoundedReleaseVerificationError, match="is absent"):
@@ -34,6 +34,15 @@ def test_pinned_source_refuses_absent_wrong_and_truncated_bytes(tmp_path: Path) 
 
     forged = tmp_path / verifier.SOURCE_FILENAME
     forged.write_bytes(b"%PDF-1.7\n" * 8)
+    with pytest.raises(verifier.BoundedReleaseVerificationError, match="digest differs"):
+        verifier.verify_pinned_source(tmp_path)
+
+
+def test_pinned_source_refuses_a_truncated_publisher_file(source_root: Path, tmp_path: Path) -> None:
+    """Pin that a partial download is refused -- by the digest check it fails first."""
+
+    truncated = tmp_path / verifier.SOURCE_FILENAME
+    truncated.write_bytes((source_root / verifier.SOURCE_FILENAME).read_bytes()[:4096])
     with pytest.raises(verifier.BoundedReleaseVerificationError, match="digest differs"):
         verifier.verify_pinned_source(tmp_path)
 

@@ -213,9 +213,8 @@ def test_recipe_closure_pins_this_module() -> None:
 
 def test_recipe_closure_release_keys_constant_is_ready_for_the_group_wiring() -> None:
     """The cross-file fix's constant already exists and names exactly this release, so wiring it is two lines."""
-    # A narrower, always-green companion to the xfail above: the constant the
-    # cross-file fix needs to import already exists and names exactly this
-    # release, so wiring it up is a two-line change once made.
+    # The constant the cross-file fix needs to import already exists and names
+    # exactly this release, so wiring it up is a two-line change once made.
     assert LCSH_CONSOLIDATED_RELEASE_KEYS == frozenset({LCSH_CONSOLIDATED_RELEASE_KEY})
 
 

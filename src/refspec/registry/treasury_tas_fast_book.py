@@ -1290,8 +1290,10 @@ class FASTBookAccountRecord:
                 f"Part {self.fast_book_part} {self.fund_group} fund general fund account "
                 "must not carry a statutory citation"
             )
-        if date.fromisoformat(self.edition_date) is None:
-            raise FASTBookRecordError("edition_date must be an ISO 8601 date")  # pragma: no cover - defensive
+        try:
+            date.fromisoformat(self.edition_date)
+        except ValueError as error:
+            raise FASTBookRecordError("edition_date must be an ISO 8601 date") from error
 
 
 def validate_fast_book_account_record(

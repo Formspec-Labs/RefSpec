@@ -76,12 +76,22 @@ class _StaticFetcher:
         )
 
 
-def test_module_import_opens_no_network_connection() -> None:
-    """Pins that the module exposes acquisition and fetcher interfaces without I/O at import."""
+def test_module_import_opens_no_network_connection(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pins that re-importing the module performs no network I/O."""
 
-    # Importing must never perform I/O; only an explicit fetcher call may.
-    assert hasattr(oversight, "acquire_oversight_report_types_page")
-    assert hasattr(oversight, "OversightPageFetcher")
+    import importlib
+    import socket
+
+    def refuse(*args: object, **kwargs: object) -> None:
+        raise AssertionError("module import attempted a network connection")
+
+    monkeypatch.setattr(socket.socket, "connect", refuse)
+    monkeypatch.setattr(socket, "create_connection", refuse)
+
+    reloaded = importlib.reload(oversight)
+
+    assert hasattr(reloaded, "acquire_oversight_report_types_page")
+    assert hasattr(reloaded, "OversightPageFetcher")
 
 
 def test_pinned_fixture_matches_the_module_snapshot_pin_exactly() -> None:

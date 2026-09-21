@@ -73,7 +73,7 @@ INCLINOMETERS = "https://www.osti.gov/thesaurus/76445"
 SEVERE_ACCIDENTS = "https://www.osti.gov/thesaurus/76395"
 DANGLING_TOP_CONCEPT = "https://www.osti.gov/thesaurus/29668"
 
-SYNTHETIC_MINIMAL_TURTLE = """\
+SYNTHETIC_MINIMAL_RDFXML = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <rdf:RDF
   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
@@ -197,18 +197,18 @@ def test_parser_rejects_a_relative_source_url() -> None:
     """A source URL that is not an absolute IRI is refused."""
 
     with pytest.raises(DoeOstiThesaurusError, match="absolute IRI"):
-        parse_doe_osti_thesaurus_rdfxml(SYNTHETIC_MINIMAL_TURTLE, source_url="not-a-url")
+        parse_doe_osti_thesaurus_rdfxml(SYNTHETIC_MINIMAL_RDFXML, source_url="not-a-url")
 
 
 @pytest.mark.parametrize(
     ("source", "message"),
     [
         (
-            SYNTHETIC_MINIMAL_TURTLE.replace('xml:lang="en">Edge Concept', ">Edge Concept"),
+            SYNTHETIC_MINIMAL_RDFXML.replace('xml:lang="en">Edge Concept', ">Edge Concept"),
             "untagged",
         ),
         (
-            SYNTHETIC_MINIMAL_TURTLE.replace(
+            SYNTHETIC_MINIMAL_RDFXML.replace(
                 '<skos:prefLabel xml:lang="en">Edge Concept</skos:prefLabel>',
                 (
                     '<skos:prefLabel xml:lang="en">Edge Concept</skos:prefLabel>'
@@ -218,7 +218,7 @@ def test_parser_rejects_a_relative_source_url() -> None:
             "more than one",
         ),
         (
-            SYNTHETIC_MINIMAL_TURTLE.replace(
+            SYNTHETIC_MINIMAL_RDFXML.replace(
                 '<skos:topConceptOf rdf:resource="https://www.osti.gov/thesaurus"/>',
                 (
                     '<skos:topConceptOf rdf:resource="https://www.osti.gov/thesaurus"/>'
@@ -228,7 +228,7 @@ def test_parser_rejects_a_relative_source_url() -> None:
             "unsupported predicate",
         ),
         (
-            SYNTHETIC_MINIMAL_TURTLE.replace(
+            SYNTHETIC_MINIMAL_RDFXML.replace(
                 '<skos:inScheme rdf:resource="https://www.osti.gov/thesaurus"/>',
                 (
                     '<skos:inScheme rdf:resource="https://www.osti.gov/thesaurus"/>'
@@ -238,7 +238,7 @@ def test_parser_rejects_a_relative_source_url() -> None:
             "unsupported rdf:type",
         ),
         (
-            SYNTHETIC_MINIMAL_TURTLE.replace(
+            SYNTHETIC_MINIMAL_RDFXML.replace(
                 "</skos:ConceptScheme>",
                 '</skos:ConceptScheme>\n  <skos:ConceptScheme rdf:about="https://www.osti.gov/thesaurus/2"/>',
             ),
@@ -260,7 +260,7 @@ def test_parser_rejects_lossy_or_ambiguous_skos_shapes(source: str, message: str
 def test_parser_rejects_a_blank_node_relation_object() -> None:
     """A blank-node relation object is refused as not an IRI."""
 
-    source = SYNTHETIC_MINIMAL_TURTLE.replace(
+    source = SYNTHETIC_MINIMAL_RDFXML.replace(
         "</skos:Concept>",
         "  <skos:broader><rdf:Description/></skos:broader>\n  </skos:Concept>",
     )

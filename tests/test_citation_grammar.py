@@ -473,7 +473,7 @@ def test_treaty_series_follow_the_bluebook_preference_list() -> None:
     }
 
 
-def test_the_constitution_family_reads_articles_and_refuses_typos() -> None:
+def test_the_constitution_family_reads_articles_and_repairs_a_head_insertion_typo() -> None:
     """Reads an Article/Section citation as the constitution family and repairs a one-insertion
     "Cost" only at the value's head.
     """

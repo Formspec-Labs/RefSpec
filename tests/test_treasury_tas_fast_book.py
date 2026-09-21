@@ -7,6 +7,7 @@ defects, the TAS component grammar, and the combined edition's gaps.
 from __future__ import annotations
 
 from collections import Counter
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -579,6 +580,32 @@ def test_fast_book_account_record_requires_citation_for_special_and_trust_funds(
                 "ACCOUNT_TITLE": "Example General Fund Account",
                 "PART": "I",
                 "FUND_GROUP": "general",
+                "STATUTORY_CITATION": "31 U.S.C. 1321",
+            },
+            description=description,
+        )
+
+
+def test_fast_book_account_record_rejects_a_non_iso_edition_date(
+    tmp_path: Path,
+) -> None:
+    """Pin refusal of an edition date the ISO 8601 parser cannot read."""
+
+    description = replace(
+        tas.parse_fast_book_description_page(
+            _acquire(tmp_path, tas.FAST_BOOK_DESCRIPTION_2026_08_03, FAST_BOOK_PAGE_FIXTURE)
+        ),
+        edition_date="April 29, 2026",
+    )
+
+    with pytest.raises(tas.FASTBookRecordError, match="ISO 8601"):
+        tas.validate_fast_book_account_record(
+            {
+                "AID": "020",
+                "MAIN": "0100",
+                "ACCOUNT_TITLE": "Example Trust Fund",
+                "PART": "I",
+                "FUND_GROUP": "trust",
                 "STATUTORY_CITATION": "31 U.S.C. 1321",
             },
             description=description,

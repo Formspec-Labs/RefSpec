@@ -64,15 +64,6 @@ def _input_digest(document: dict, digest_field: str, identity_field: str | None)
     return _canonical_sha256({key: value for key, value in document.items() if key not in excluded})
 
 
-def _node_digest(graph, node: URIRef) -> str:
-    statements = sorted(
-        f"{predicate.n3()} {obj.n3()} ."
-        for predicate, obj in graph.predicate_objects(node)
-        if predicate != ATLAS.contentDigest
-    )
-    return "sha256:" + hashlib.sha256(("\n".join(statements) + "\n").encode("utf-8")).hexdigest()
-
-
 def test_descriptor_proof_pins_exact_registry_inputs_and_output() -> None:
     """Pin the proof's own digest, every input/output digest, and the frozen 3.1 counts."""
 

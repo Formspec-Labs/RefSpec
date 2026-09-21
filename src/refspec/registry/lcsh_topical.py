@@ -157,7 +157,7 @@ class LcshTopicalRecord:
 
     @property
     def source_sha256(self) -> str:
-        """The pinned digest of this record's exact ndjson line."""
+        """The digest of this record's exact ndjson line, computed at read time."""
 
         return _sha256(self.raw_line)
 
