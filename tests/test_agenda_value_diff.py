@@ -8,8 +8,8 @@ self-diff. The fix DERIVES each table's value columns from the producer's
 schema -- every column is the key, a named-and-justified exclusion
 (citation_ordinal), or a compared value, with no fourth bucket -- reports
 old-only, new-only, neither-file and undeclared columns symmetrically, and
-streams 16-byte digest-keyed counters; the pinned arithmetic is 94 schema
-columns - 4 key - 1 ignored = 89 owed, 45 blind, 44 covered. These tests are
+streams 16-byte digest-keyed counters; the pinned arithmetic is 98 schema
+columns - 4 key - 1 ignored = 93 owed, 45 blind, 48 covered. These tests are
 the tripwires, the mutation battery, and the verdict-agreement proof against
 the pre-rework diff core copied in below rather than imported, with two frozen
 divergences (the example row after ``e.g.`` and the tie order) recorded in
@@ -130,9 +130,10 @@ def test_the_measured_blind_set_is_exactly_45_columns() -> None:
 
 
 def test_the_recorded_arithmetic_is_the_measured_arithmetic() -> None:
-    """94 - 4 key - 1 ignored = 89 owed, 45 blind, therefore 44 covered
-    (91 / 86 / 41 at the review; the three loud-tier columns of 2026-08-31
-    arrived through the schema, not the hand list).
+    """98 - 4 key - 1 ignored = 93 owed, 45 blind, therefore 48 covered
+    (91 / 86 / 41 at the review; three loud-tier columns arrived with the
+    2026-08-31 wave and four CFR range columns with the 2026-09-11
+    range-preservation wave, all through the schema, not the hand list).
 
     The docstring at the top of this file used to say the hand list "carried
     only 45 of the 86 non-key ones" while also naming 45 as the blind count --
@@ -143,12 +144,12 @@ def test_the_recorded_arithmetic_is_the_measured_arithmetic() -> None:
 
     owed = len(LEGAL_AUTHORITIES_SCHEMA.names) - len(_KEYS["legal-authorities"]) - len(_IGNORED)
     assert (len(LEGAL_AUTHORITIES_SCHEMA.names), len(_KEYS["legal-authorities"]), len(_IGNORED)) == (
-        94,
+        98,
         4,
         1,
     )
-    assert owed == 89
-    assert owed - len(_PREVIOUSLY_BLIND_LEGAL_AUTHORITIES_COLUMNS) == 44
+    assert owed == 93
+    assert owed - len(_PREVIOUSLY_BLIND_LEGAL_AUTHORITIES_COLUMNS) == 48
 
     # And timetables, where the hand list happened to be complete: 16 - 4 - 1
     # is 11, and none of the 11 were blind.
@@ -209,14 +210,14 @@ def test_previously_blind_columns_are_now_diffed() -> None:
 
 
 def test_legal_authorities_value_column_count() -> None:
-    """94 schema columns, less the 4-column key and the one deliberate
-    exclusion, is 89 -- pinned as a number so a column quietly added to
+    """98 schema columns, less the 4-column key and the one deliberate
+    exclusion, is 93 -- pinned as a number so a column quietly added to
     ``ignore`` (rather than to ``values``, where the schema puts it) changes
     a count here even if it passes the set-membership tripwire above by
     accident of some other column moving the other way."""
 
-    assert len(LEGAL_AUTHORITIES_SCHEMA.names) == 94
-    assert len(TABLES["legal-authorities"]["values"]) == 89
+    assert len(LEGAL_AUTHORITIES_SCHEMA.names) == 98
+    assert len(TABLES["legal-authorities"]["values"]) == 93
 
 
 def test_timetables_value_column_count() -> None:
