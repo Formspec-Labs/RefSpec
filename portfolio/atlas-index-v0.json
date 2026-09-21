@@ -12,6 +12,7 @@
     "refspec.registry.cfr_authority_notes",
     "refspec.registry.citation_grammar",
     "refspec.registry.claim_release_exports",
+    "refspec.registry.ecfr",
     "refspec.registry.entity_registry_release",
     "refspec.registry.eo_roster",
     "refspec.registry.gcmd_science_keywords_hierarchy",
@@ -42,12 +43,15 @@
     "refspec.registry.unified_agenda_parquet",
     "refspec.registry.usc_act_index",
     "refspec.registry.usc_disposition_tables",
-    "refspec.registry.usc_section_oracle"
+    "refspec.registry.usc_section_oracle",
+    "refspec.registry.uscode_cache",
+    "refspec.registry.uslm",
+    "refspec.registry.xml_text"
   ],
-  "indexDigest": "sha256:fae1abbc4386244f09f6be9b411489271de09d9921c78d14bc06f75fce1800ff",
-  "indexId": "urn:ref:atlas-index:fae1abbc4386244f09f6be9b411489271de09d9921c78d14bc06f75fce1800ff",
+  "indexDigest": "sha256:186d32d011ed494b407b872dd103494d33167fe646e50e19180bfcfeac7c80ba",
+  "indexId": "urn:ref:atlas-index:186d32d011ed494b407b872dd103494d33167fe646e50e19180bfcfeac7c80ba",
   "nonAuthorizing": true,
-  "recordedAt": "2026-09-05T00:00:00Z",
+  "recordedAt": "2026-09-21T00:00:00Z",
   "resourceCatalogDigest": "sha256:51f9d1085b5eabc35713c5d10fb1c6c4c6da50b09bf31e51da97b2abce8cf2c8",
   "resourceCatalogId": "urn:ref:resource-catalog:51f9d1085b5eabc35713c5d10fb1c6c4c6da50b09bf31e51da97b2abce8cf2c8",
   "rows": [
@@ -63,18 +67,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_billstatus_codes.py",
-          "sha256": "sha256:fb33da956fc4b05111e53c8773115113b44a984028b3b0f5b557f34ab956ec1c"
+          "sha256": "sha256:96f365837f3d3d0ddcd5c002d282f76e327588fc3e7fed0ba45fe2b38a0c3dd0"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/billstatus_codes.py",
-          "sha256": "sha256:30883f9bb0b47d5698613d75c141a6284488439252e368adad57c596e883924b"
+          "sha256": "sha256:09ea2e5be570088b3cbcb6e72cda22687958aa498d40a887019ebb38c52acb27"
         }
       ],
       "release": null,
       "resourceId": "congress-billstatus-native-controls",
-      "rowDigest": "sha256:09640258bb599632f15af2678f9e18d88a3daea3b73a3aab27c3960fdc1377bd",
-      "rowId": "urn:ref:atlas-index-row:09640258bb599632f15af2678f9e18d88a3daea3b73a3aab27c3960fdc1377bd",
+      "rowDigest": "sha256:d0e6181349f52416546640e011ddd462553ad518ccf2cfc814a84c41a9b13ed4",
+      "rowId": "urn:ref:atlas-index-row:d0e6181349f52416546640e011ddd462553ad518ccf2cfc814a84c41a9b13ed4",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.billstatus_codes"
     },
@@ -91,18 +95,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_cbo_topic_codes.py",
-          "sha256": "sha256:69372f9a38e8e87d78f77c20bbb47ec44d85cbc3629bbac25198c3cf6bd3adb0"
+          "sha256": "sha256:15892dd08804957d34f70da1912642883e18ff23b2fb2bbaebd507bdbec8ca44"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/cbo_topic_codes.py",
-          "sha256": "sha256:1b827335f32a3e18c30fdb8f8f6a10eeaabe52261fcead8497c93e6ae7027c53"
+          "sha256": "sha256:3b93768823b44302e6b3b6c85b7097ac0513a3e7a9a0d200d67ffd3ef282286a"
         }
       ],
       "release": null,
       "resourceId": "cbo-cost-estimate-feed",
-      "rowDigest": "sha256:ceb4d6f51b16dfece3612d5fe05e747ecde9bbaf3a571b2d93e8fc9d48f4e2d7",
-      "rowId": "urn:ref:atlas-index-row:ceb4d6f51b16dfece3612d5fe05e747ecde9bbaf3a571b2d93e8fc9d48f4e2d7",
+      "rowDigest": "sha256:5eaaa526a34230445344ba7e9a27472168a11977a5a6bab8ae2e4755955a1d08",
+      "rowId": "urn:ref:atlas-index-row:5eaaa526a34230445344ba7e9a27472168a11977a5a6bab8ae2e4755955a1d08",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.cbo_topic_codes"
     },
@@ -119,18 +123,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_cbo_topic_codes.py",
-          "sha256": "sha256:69372f9a38e8e87d78f77c20bbb47ec44d85cbc3629bbac25198c3cf6bd3adb0"
+          "sha256": "sha256:15892dd08804957d34f70da1912642883e18ff23b2fb2bbaebd507bdbec8ca44"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/cbo_topic_codes.py",
-          "sha256": "sha256:1b827335f32a3e18c30fdb8f8f6a10eeaabe52261fcead8497c93e6ae7027c53"
+          "sha256": "sha256:3b93768823b44302e6b3b6c85b7097ac0513a3e7a9a0d200d67ffd3ef282286a"
         }
       ],
       "release": null,
       "resourceId": "cbo-cost-estimate-feed",
-      "rowDigest": "sha256:409a360c145d4d4df447d39994c517303ca65933dfadf3d23c641edb6d0c3ac6",
-      "rowId": "urn:ref:atlas-index-row:409a360c145d4d4df447d39994c517303ca65933dfadf3d23c641edb6d0c3ac6",
+      "rowDigest": "sha256:311bfefc009b446496093d9ad9a99cdbc53a1a4ae48ed94c5b9b25512431f400",
+      "rowId": "urn:ref:atlas-index-row:311bfefc009b446496093d9ad9a99cdbc53a1a4ae48ed94c5b9b25512431f400",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.cbo_topic_codes"
     },
@@ -147,18 +151,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_cbo_topic_codes.py",
-          "sha256": "sha256:69372f9a38e8e87d78f77c20bbb47ec44d85cbc3629bbac25198c3cf6bd3adb0"
+          "sha256": "sha256:15892dd08804957d34f70da1912642883e18ff23b2fb2bbaebd507bdbec8ca44"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/cbo_topic_codes.py",
-          "sha256": "sha256:1b827335f32a3e18c30fdb8f8f6a10eeaabe52261fcead8497c93e6ae7027c53"
+          "sha256": "sha256:3b93768823b44302e6b3b6c85b7097ac0513a3e7a9a0d200d67ffd3ef282286a"
         }
       ],
       "release": null,
       "resourceId": "cbo-publication-identifiers",
-      "rowDigest": "sha256:137219713627ee28bb740c8bdf1f6d19ab12f582dc5401c32e25cfb8e52380ff",
-      "rowId": "urn:ref:atlas-index-row:137219713627ee28bb740c8bdf1f6d19ab12f582dc5401c32e25cfb8e52380ff",
+      "rowDigest": "sha256:73b16fe87105067832db2bc39cce39a610b6aa3ef48eb747ef2548697450d061",
+      "rowId": "urn:ref:atlas-index-row:73b16fe87105067832db2bc39cce39a610b6aa3ef48eb747ef2548697450d061",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.cbo_topic_codes"
     },
@@ -175,18 +179,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_census_geo_codes.py",
-          "sha256": "sha256:d6fddf1bac5cdcf94f6a0149db6e5143b0f8dcf41a5c84846fb94a3db8399e93"
+          "sha256": "sha256:343982e0cdb56458102d9714a4473502c2bf011f5c0c3a80b87068a95743d50e"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/census_geo_codes.py",
-          "sha256": "sha256:77eff3a0cb535d0d5658dcf7864cef1d0f212725a44a2a70451716ee28127fc4"
+          "sha256": "sha256:df2fcbd3f27f9f9ddaa6c912fa63615142f42e86da7ee7bbb3122d1695b02fbe"
         }
       ],
       "release": null,
       "resourceId": "census-acs-geography-identifiers",
-      "rowDigest": "sha256:5574c3f8837f2a62dc69540219870333ceb72f691172f570d383bc9078021943",
-      "rowId": "urn:ref:atlas-index-row:5574c3f8837f2a62dc69540219870333ceb72f691172f570d383bc9078021943",
+      "rowDigest": "sha256:1da230c4c35113590e3d8b966b404cc067c202d73de73d351f1d066830f9706a",
+      "rowId": "urn:ref:atlas-index-row:1da230c4c35113590e3d8b966b404cc067c202d73de73d351f1d066830f9706a",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.census_geo_codes"
     },
@@ -203,18 +207,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_census_geo_codes.py",
-          "sha256": "sha256:d6fddf1bac5cdcf94f6a0149db6e5143b0f8dcf41a5c84846fb94a3db8399e93"
+          "sha256": "sha256:343982e0cdb56458102d9714a4473502c2bf011f5c0c3a80b87068a95743d50e"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/census_geo_codes.py",
-          "sha256": "sha256:77eff3a0cb535d0d5658dcf7864cef1d0f212725a44a2a70451716ee28127fc4"
+          "sha256": "sha256:df2fcbd3f27f9f9ddaa6c912fa63615142f42e86da7ee7bbb3122d1695b02fbe"
         }
       ],
       "release": null,
       "resourceId": "census-tiger-geoid-structure",
-      "rowDigest": "sha256:6f0b0350d547606c1c6d4d13b50776e75d180406f315aa0da77969c18bf285af",
-      "rowId": "urn:ref:atlas-index-row:6f0b0350d547606c1c6d4d13b50776e75d180406f315aa0da77969c18bf285af",
+      "rowDigest": "sha256:7bf681714856b30110981a46e747c893a9a4413f938b090e5c2818d753fed7b2",
+      "rowId": "urn:ref:atlas-index-row:7bf681714856b30110981a46e747c893a9a4413f938b090e5c2818d753fed7b2",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.census_geo_codes"
     },
@@ -231,18 +235,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_census_geo_codes.py",
-          "sha256": "sha256:d6fddf1bac5cdcf94f6a0149db6e5143b0f8dcf41a5c84846fb94a3db8399e93"
+          "sha256": "sha256:343982e0cdb56458102d9714a4473502c2bf011f5c0c3a80b87068a95743d50e"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/census_geo_codes.py",
-          "sha256": "sha256:77eff3a0cb535d0d5658dcf7864cef1d0f212725a44a2a70451716ee28127fc4"
+          "sha256": "sha256:df2fcbd3f27f9f9ddaa6c912fa63615142f42e86da7ee7bbb3122d1695b02fbe"
         }
       ],
       "release": null,
       "resourceId": "usgs-gnis-identifiers",
-      "rowDigest": "sha256:2e8f6b716760da308f5420d2d5e3c68bd10330e719ae20c0b6fa1fb54fb2f532",
-      "rowId": "urn:ref:atlas-index-row:2e8f6b716760da308f5420d2d5e3c68bd10330e719ae20c0b6fa1fb54fb2f532",
+      "rowDigest": "sha256:31704fd96b09162f87755b6a8ee5e8e6b5083d9e676f607a38ff8eba32402793",
+      "rowId": "urn:ref:atlas-index-row:31704fd96b09162f87755b6a8ee5e8e6b5083d9e676f607a38ff8eba32402793",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.census_geo_codes"
     },
@@ -259,18 +263,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_census_gov_finance_codes.py",
-          "sha256": "sha256:f9b4255a81c90da290bf4492c91d37ce1947ad194589f2006a832db9a5be3638"
+          "sha256": "sha256:f98a9a5b6503af47527ba59b086dda896cd8d68d4b19a55f4253f74384593d1c"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/census_gov_finance_codes.py",
-          "sha256": "sha256:c57015c63652a6ba774cbb4314d506352ac78f91680a773419ee175f631f381b"
+          "sha256": "sha256:8f69654f3073f1fbe149653d92c04ccf89fded6f1b6c00379ca3221ec9ff3664"
         }
       ],
       "release": null,
       "resourceId": "census-aspep-data-flags",
-      "rowDigest": "sha256:60c658286a19108a99cae1745606116838795b3b80094dc45bc03f9270b3ca00",
-      "rowId": "urn:ref:atlas-index-row:60c658286a19108a99cae1745606116838795b3b80094dc45bc03f9270b3ca00",
+      "rowDigest": "sha256:b487c2b6c0970cb21eb90e10e1a155eb24a6807cae4d9dd8e30e5d90e03a7495",
+      "rowId": "urn:ref:atlas-index-row:b487c2b6c0970cb21eb90e10e1a155eb24a6807cae4d9dd8e30e5d90e03a7495",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.census_gov_finance_codes"
     },
@@ -287,18 +291,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_census_gov_finance_codes.py",
-          "sha256": "sha256:f9b4255a81c90da290bf4492c91d37ce1947ad194589f2006a832db9a5be3638"
+          "sha256": "sha256:f98a9a5b6503af47527ba59b086dda896cd8d68d4b19a55f4253f74384593d1c"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/census_gov_finance_codes.py",
-          "sha256": "sha256:c57015c63652a6ba774cbb4314d506352ac78f91680a773419ee175f631f381b"
+          "sha256": "sha256:8f69654f3073f1fbe149653d92c04ccf89fded6f1b6c00379ca3221ec9ff3664"
         }
       ],
       "release": null,
       "resourceId": "census-aspep-function-item-codes",
-      "rowDigest": "sha256:888c8a63f2fcf0b9751d719d1f2eeaffc55f3aedaf7082228469ebd8746ae048",
-      "rowId": "urn:ref:atlas-index-row:888c8a63f2fcf0b9751d719d1f2eeaffc55f3aedaf7082228469ebd8746ae048",
+      "rowDigest": "sha256:e5b8d5e90414327e58d10570cdadaa7ce24d5063e832cd948b5556aa1bf65dce",
+      "rowId": "urn:ref:atlas-index-row:e5b8d5e90414327e58d10570cdadaa7ce24d5063e832cd948b5556aa1bf65dce",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.census_gov_finance_codes"
     },
@@ -315,18 +319,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_census_gov_finance_codes.py",
-          "sha256": "sha256:f9b4255a81c90da290bf4492c91d37ce1947ad194589f2006a832db9a5be3638"
+          "sha256": "sha256:f98a9a5b6503af47527ba59b086dda896cd8d68d4b19a55f4253f74384593d1c"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/census_gov_finance_codes.py",
-          "sha256": "sha256:c57015c63652a6ba774cbb4314d506352ac78f91680a773419ee175f631f381b"
+          "sha256": "sha256:8f69654f3073f1fbe149653d92c04ccf89fded6f1b6c00379ca3221ec9ff3664"
         }
       ],
       "release": null,
       "resourceId": "nasbo-state-expenditure-program-areas",
-      "rowDigest": "sha256:6108befeec6934da265711d0e866b130cf9890f1a2c7d6321b2ac99b7084436e",
-      "rowId": "urn:ref:atlas-index-row:6108befeec6934da265711d0e866b130cf9890f1a2c7d6321b2ac99b7084436e",
+      "rowDigest": "sha256:0f4aff27158869089f6261a50f58d202722cc192d3ba160d48afcd0dcd2ec1dd",
+      "rowId": "urn:ref:atlas-index-row:0f4aff27158869089f6261a50f58d202722cc192d3ba160d48afcd0dcd2ec1dd",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.census_gov_finance_codes"
     },
@@ -343,18 +347,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_cfr_list_of_subjects.py",
-          "sha256": "sha256:a08a69412758a12d4624b3903838c671dd215ec8d7980c7409dd963956cb2b85"
+          "sha256": "sha256:16a6bf4f9fcd1a6ade0461b93ad84db6d6ad157a0f01b71f29bc791ff6d4fd2d"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/cfr_list_of_subjects.py",
-          "sha256": "sha256:ce4f46dfeac95b58d58adaa9c0167942cdd019ee798fb6d1db4e3962f5346071"
+          "sha256": "sha256:bc7b1f530f1e6a06885b662e89c05adb73b6781cfa93693cdfdb59685b5eb8b3"
         }
       ],
       "release": null,
       "resourceId": "cfr-list-of-subjects",
-      "rowDigest": "sha256:8f525953f0f36c953359a14c70449cddf3c0d037962cf902a05471ca8906607a",
-      "rowId": "urn:ref:atlas-index-row:8f525953f0f36c953359a14c70449cddf3c0d037962cf902a05471ca8906607a",
+      "rowDigest": "sha256:c16cc4bd0f90cb9e6da1e53a1a86843d88e704818a21d650e0d486536f949af9",
+      "rowId": "urn:ref:atlas-index-row:c16cc4bd0f90cb9e6da1e53a1a86843d88e704818a21d650e0d486536f949af9",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.cfr_list_of_subjects"
     },
@@ -373,28 +377,28 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_rosters.py",
-          "sha256": "sha256:c144cdf7651cdc4ccfbfa5c1605769b955cda0cb54005038f1aa692b818d1728"
+          "sha256": "sha256:7995bf5f7f35bfd982a399bafbc562223630b84603dc4052bbab3c0243f67474"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_cfr_subject_index.py",
-          "sha256": "sha256:e28955621c5d689a0aab0c3d1bd972544c08f734677727e5ebe2522c3d53d237"
+          "sha256": "sha256:8fb6bfbc7379499cfa8f6ace702371b913b8af39e28977c8a77b2318ef1110e4"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_rosters.py",
-          "sha256": "sha256:80f737ff918f259f07e32e19a68d423b3f33bd73796c7bb42583c34ccb35351b"
+          "sha256": "sha256:2cf90731334fb1d93318477d61a5a0487dc8888bed6307514ef06d5cde62d315"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/cfr_list_of_subjects.py",
-          "sha256": "sha256:ce4f46dfeac95b58d58adaa9c0167942cdd019ee798fb6d1db4e3962f5346071"
+          "sha256": "sha256:bc7b1f530f1e6a06885b662e89c05adb73b6781cfa93693cdfdb59685b5eb8b3"
         }
       ],
       "release": null,
       "resourceId": "cfr-subject-index",
-      "rowDigest": "sha256:371e80492536883468552af34fe97d4f7ccbbf6f0d600701acade175fbd413a9",
-      "rowId": "urn:ref:atlas-index-row:371e80492536883468552af34fe97d4f7ccbbf6f0d600701acade175fbd413a9",
+      "rowDigest": "sha256:d8e33b71a6c35f21e9d0d49b63a2b327632d7e49123dd86ba0825d17c5dcb962",
+      "rowId": "urn:ref:atlas-index-row:d8e33b71a6c35f21e9d0d49b63a2b327632d7e49123dd86ba0825d17c5dcb962",
       "semanticRing": "legalIdentity",
       "sourceModule": "refspec.registry.cfr_list_of_subjects"
     },
@@ -412,28 +416,28 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_rosters.py",
-          "sha256": "sha256:c144cdf7651cdc4ccfbfa5c1605769b955cda0cb54005038f1aa692b818d1728"
+          "sha256": "sha256:7995bf5f7f35bfd982a399bafbc562223630b84603dc4052bbab3c0243f67474"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_ecfr_agencies.py",
-          "sha256": "sha256:bb4208117b041f51e4573e03c0872fc5b6992af57b1344981c38f6b9dc1347e5"
+          "sha256": "sha256:bd3ee682c5e019e0e96ddcc1b25e9fa1740be2f24f9c88f08f7e166a0c796a71"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_rosters.py",
-          "sha256": "sha256:80f737ff918f259f07e32e19a68d423b3f33bd73796c7bb42583c34ccb35351b"
+          "sha256": "sha256:2cf90731334fb1d93318477d61a5a0487dc8888bed6307514ef06d5cde62d315"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/cfr_list_of_subjects.py",
-          "sha256": "sha256:ce4f46dfeac95b58d58adaa9c0167942cdd019ee798fb6d1db4e3962f5346071"
+          "sha256": "sha256:bc7b1f530f1e6a06885b662e89c05adb73b6781cfa93693cdfdb59685b5eb8b3"
         }
       ],
       "release": null,
       "resourceId": "ecfr-agencies",
-      "rowDigest": "sha256:a44017cf062847436ceab1f42003098f8a6e8eebb567d5dbdfe8c34004664211",
-      "rowId": "urn:ref:atlas-index-row:a44017cf062847436ceab1f42003098f8a6e8eebb567d5dbdfe8c34004664211",
+      "rowDigest": "sha256:95dc7397b7a839076a9c936e33b78dadca2f25783926179bbacf52c66fc25457",
+      "rowId": "urn:ref:atlas-index-row:95dc7397b7a839076a9c936e33b78dadca2f25783926179bbacf52c66fc25457",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.cfr_list_of_subjects"
     },
@@ -450,18 +454,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_courtlistener_codes.py",
-          "sha256": "sha256:3d37aba6927248f98c0839c42acffc343a97abdf6a45483058ae9d50910484f7"
+          "sha256": "sha256:0db8025333ec06d34b78249e39e42379709f6405930ae86da62acee0f59c58ef"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/courtlistener_codes.py",
-          "sha256": "sha256:2eb832ebd33639ba2014c133df224945e1403a018c91c7bad8b1189d119efa4f"
+          "sha256": "sha256:df1feb6157b157fa094a78a87557825e5e3f745028a9952e8876fa39d1475f0d"
         }
       ],
       "release": null,
       "resourceId": "courtlistener-jurisdictions",
-      "rowDigest": "sha256:96553af7cccbfca8bebed61a6efe994ce476af76c47fbb5047f7d066f470fa72",
-      "rowId": "urn:ref:atlas-index-row:96553af7cccbfca8bebed61a6efe994ce476af76c47fbb5047f7d066f470fa72",
+      "rowDigest": "sha256:6ba021bdf538ab70316cef153d40c1b91e6eebca6cee5d0c6ab1b3a6aa39fd0d",
+      "rowId": "urn:ref:atlas-index-row:6ba021bdf538ab70316cef153d40c1b91e6eebca6cee5d0c6ab1b3a6aa39fd0d",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.courtlistener_codes"
     },
@@ -478,7 +482,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_crs_legislative_resources.py",
-          "sha256": "sha256:fdf15dc3a254d325b067db2232f4aaea618a6c79b6bf7c784bb608ce9a82261c"
+          "sha256": "sha256:3c1e88653fc8af04c922960705461360f76d3c8e18e2908c2739d3b5f9cd8352"
         },
         {
           "kind": "sourceConceptReleaseValidation",
@@ -493,7 +497,7 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/packages/crs_source_concept_releases.py",
-          "sha256": "sha256:abbd1d5b3f46090edff8a0a81bffaab83cacbd64b01cb4d56feff43a968f57b8"
+          "sha256": "sha256:b5273fc5c93ba0465b7b8f0b45c27a48f159926c699568396142ae9f5eaa9fdf"
         }
       ],
       "release": {
@@ -503,8 +507,8 @@
         "releaseId": "urn:ref:source-concept-release:entity:79db00f21940827fdf62a0af51e1d0d9161fdc438f345700f50590439b0f5822"
       },
       "resourceId": "crs-legislative-subject-terms",
-      "rowDigest": "sha256:532dc867f51c428bf0862eef2ad490c772cb4dd11390cea55fa346063114b4e4",
-      "rowId": "urn:ref:atlas-index-row:532dc867f51c428bf0862eef2ad490c772cb4dd11390cea55fa346063114b4e4",
+      "rowDigest": "sha256:9f17879edcdf6a1d06db930bd6a4efe230be7358f19b6bbe0d4e7fa59f019b2c",
+      "rowId": "urn:ref:atlas-index-row:9f17879edcdf6a1d06db930bd6a4efe230be7358f19b6bbe0d4e7fa59f019b2c",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.crs_legislative_resources"
     },
@@ -522,7 +526,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_crs_legislative_resources.py",
-          "sha256": "sha256:fdf15dc3a254d325b067db2232f4aaea618a6c79b6bf7c784bb608ce9a82261c"
+          "sha256": "sha256:3c1e88653fc8af04c922960705461360f76d3c8e18e2908c2739d3b5f9cd8352"
         },
         {
           "kind": "sourceConceptReleaseValidation",
@@ -537,7 +541,7 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/packages/crs_source_concept_releases.py",
-          "sha256": "sha256:abbd1d5b3f46090edff8a0a81bffaab83cacbd64b01cb4d56feff43a968f57b8"
+          "sha256": "sha256:b5273fc5c93ba0465b7b8f0b45c27a48f159926c699568396142ae9f5eaa9fdf"
         }
       ],
       "release": {
@@ -547,8 +551,8 @@
         "releaseId": "urn:ref:source-concept-release:subject:d137bdbae553a0ca59fb879458703de0a0a9047b49c119cb79a0765de75f3567"
       },
       "resourceId": "crs-legislative-subject-terms",
-      "rowDigest": "sha256:41c36ec237256043bde7cb4e67eb83b0cc8b20c46b76434639851a8949e5a81f",
-      "rowId": "urn:ref:atlas-index-row:41c36ec237256043bde7cb4e67eb83b0cc8b20c46b76434639851a8949e5a81f",
+      "rowDigest": "sha256:6ea4b64319e94161e596f33316b3a98c18581931204ad1e6fe6ea32037078a0f",
+      "rowId": "urn:ref:atlas-index-row:6ea4b64319e94161e596f33316b3a98c18581931204ad1e6fe6ea32037078a0f",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.crs_legislative_resources"
     },
@@ -566,7 +570,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_crs_legislative_resources.py",
-          "sha256": "sha256:fdf15dc3a254d325b067db2232f4aaea618a6c79b6bf7c784bb608ce9a82261c"
+          "sha256": "sha256:3c1e88653fc8af04c922960705461360f76d3c8e18e2908c2739d3b5f9cd8352"
         },
         {
           "kind": "sourceConceptReleaseValidation",
@@ -581,7 +585,7 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/packages/crs_source_concept_releases.py",
-          "sha256": "sha256:abbd1d5b3f46090edff8a0a81bffaab83cacbd64b01cb4d56feff43a968f57b8"
+          "sha256": "sha256:b5273fc5c93ba0465b7b8f0b45c27a48f159926c699568396142ae9f5eaa9fdf"
         }
       ],
       "release": {
@@ -591,8 +595,8 @@
         "releaseId": "urn:ref:source-concept-release:subject:3e2d1e3d598d818c4d53e9514c05ad8a5a804a3f138e1325f1605c7eed517d7e"
       },
       "resourceId": "crs-policy-areas",
-      "rowDigest": "sha256:ae91fe876c8104c1778a8574152c1434d1f7b4550be3f56da717715540d097eb",
-      "rowId": "urn:ref:atlas-index-row:ae91fe876c8104c1778a8574152c1434d1f7b4550be3f56da717715540d097eb",
+      "rowDigest": "sha256:3ffc3526f7a3397ae6b12fa03ac3fc1e345592c9a237c052d90184164394b5ae",
+      "rowId": "urn:ref:atlas-index-row:3ffc3526f7a3397ae6b12fa03ac3fc1e345592c9a237c052d90184164394b5ae",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.crs_legislative_resources"
     },
@@ -609,18 +613,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_crs_product_topics.py",
-          "sha256": "sha256:49b7316ac5b680662d5aba1cde99071009b7c154ddb145197eda1727f59b17eb"
+          "sha256": "sha256:e9060828e509537d749900ec945b51c093a8fd53b7469e8ba6fee771c9d78a77"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/crs_product_topics.py",
-          "sha256": "sha256:2aeac6ff3e5aad6d04e55dc3b86cb4970c5802f0abe6f853eb1cc84ad4f1cad1"
+          "sha256": "sha256:07b9751569b96ef071b451147702344032d7abec3edbc8d8664988f45cec8715"
         }
       ],
       "release": null,
       "resourceId": "crs-native-controls",
-      "rowDigest": "sha256:038253379ed83d45be1d010452a00f5cca0ea2c8e394243a4f37b85ba51c5af9",
-      "rowId": "urn:ref:atlas-index-row:038253379ed83d45be1d010452a00f5cca0ea2c8e394243a4f37b85ba51c5af9",
+      "rowDigest": "sha256:fd38932eea9f17544aa1faf30503db1ddfc814ee4248ac637d05c94ad216262c",
+      "rowId": "urn:ref:atlas-index-row:fd38932eea9f17544aa1faf30503db1ddfc814ee4248ac637d05c94ad216262c",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.crs_product_topics"
     },
@@ -637,18 +641,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_crs_product_topics.py",
-          "sha256": "sha256:49b7316ac5b680662d5aba1cde99071009b7c154ddb145197eda1727f59b17eb"
+          "sha256": "sha256:e9060828e509537d749900ec945b51c093a8fd53b7469e8ba6fee771c9d78a77"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/crs_product_topics.py",
-          "sha256": "sha256:2aeac6ff3e5aad6d04e55dc3b86cb4970c5802f0abe6f853eb1cc84ad4f1cad1"
+          "sha256": "sha256:07b9751569b96ef071b451147702344032d7abec3edbc8d8664988f45cec8715"
         }
       ],
       "release": null,
       "resourceId": "crs-native-controls",
-      "rowDigest": "sha256:0466d4d698d0ce512c34233bba0a3417b3f494682639827184514cd9aeebd37e",
-      "rowId": "urn:ref:atlas-index-row:0466d4d698d0ce512c34233bba0a3417b3f494682639827184514cd9aeebd37e",
+      "rowDigest": "sha256:71198f6888bbea0ad4cf9ccc33d33e04421e97a44f5d34552269acf309441dc9",
+      "rowId": "urn:ref:atlas-index-row:71198f6888bbea0ad4cf9ccc33d33e04421e97a44f5d34552269acf309441dc9",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.crs_product_topics"
     },
@@ -665,18 +669,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_doe_osti_thesaurus.py",
-          "sha256": "sha256:abdeb2e388a0c4a5120a6906df4e366d90bea1bce588ce7727bb32186c664b2c"
+          "sha256": "sha256:604cbfac113664c4680bc89a9b1cfba85578d8a041e8f848c747ac28ff74d64d"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/doe_osti_thesaurus.py",
-          "sha256": "sha256:249539ae9df2b932a3512e5a2f36ff4a94be36b6a77ba7bae3b291774b8a2893"
+          "sha256": "sha256:8d9d8f45c1f04d68b070a9761f6dead5f61e63fb2b83206684e39846c0bd275f"
         }
       ],
       "release": null,
       "resourceId": "doe-osti-semantic-thesaurus-2020",
-      "rowDigest": "sha256:1bafc58139553930d8981f1692b3229bb75b5c61099187ec5e1d16dc1c18c50a",
-      "rowId": "urn:ref:atlas-index-row:1bafc58139553930d8981f1692b3229bb75b5c61099187ec5e1d16dc1c18c50a",
+      "rowDigest": "sha256:4f51615e82623171724ca38750dff4460a81adf78edcd9fc5e09645c5c9625f6",
+      "rowId": "urn:ref:atlas-index-row:4f51615e82623171724ca38750dff4460a81adf78edcd9fc5e09645c5c9625f6",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.doe_osti_thesaurus"
     },
@@ -698,7 +702,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_elsst.py",
-          "sha256": "sha256:f3469ed8b2d4f0c5769644cb7ff84a225247f94d1cc6a4dafb53c2c0136fae5a"
+          "sha256": "sha256:2dfe023625e6eb09d8810dbecfc71f605d93b9ce44a3c61af48b68bd19e78f36"
         },
         {
           "kind": "sourceImplementation",
@@ -713,8 +717,8 @@
         "releaseId": "https://elsst.cessda.eu/id/6"
       },
       "resourceId": "elsst",
-      "rowDigest": "sha256:df84d31af33344725d3ff359a4cfc6b5ab7e3d500015cb6a1d1a9c203766fc47",
-      "rowId": "urn:ref:atlas-index-row:df84d31af33344725d3ff359a4cfc6b5ab7e3d500015cb6a1d1a9c203766fc47",
+      "rowDigest": "sha256:126a858dddfaf249359a94939fe8ec194a0ab6bdff50560e587e15d8442e1cd0",
+      "rowId": "urn:ref:atlas-index-row:126a858dddfaf249359a94939fe8ec194a0ab6bdff50560e587e15d8442e1cd0",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.elsst"
     },
@@ -731,18 +735,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_epa_srs_substances.py",
-          "sha256": "sha256:5daf222ab7931bdc0fd9abec85b06e8174f6d604f2e383500baf61f6bc697a4a"
+          "sha256": "sha256:0ced019a67cb7cdb35c5763bcc56abf78aac0ce97d3a70c0a633eeb618828aa7"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/epa_srs_substances.py",
-          "sha256": "sha256:9556d96b1ccfda33056c0d597b926302943bb7439b16898d2ec012ca80567071"
+          "sha256": "sha256:e8cee23c4d30205256e021a7beca717de1e53e116a04e35f1e7b08ac8a29eff4"
         }
       ],
       "release": null,
       "resourceId": "epa-substance-identifiers",
-      "rowDigest": "sha256:ede0040853ad49586bdfc33b8cc81ce75bdc373f91b3fa4ce2573d275f6d5631",
-      "rowId": "urn:ref:atlas-index-row:ede0040853ad49586bdfc33b8cc81ce75bdc373f91b3fa4ce2573d275f6d5631",
+      "rowDigest": "sha256:d6947956f7b1d25b682cfed8ec092e89144906dcdb857e57bfcee5e640960acc",
+      "rowId": "urn:ref:atlas-index-row:d6947956f7b1d25b682cfed8ec092e89144906dcdb857e57bfcee5e640960acc",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.epa_srs_substances"
     },
@@ -758,28 +762,28 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_bulk.py",
-          "sha256": "sha256:cc5007dc54e7b9e5204831cccd79605c33018f5b0407c0b281ad5641a20203f2"
+          "sha256": "sha256:d85d40da9610a25be3c50563fef6a12dda9e53336b5e821b44f5e953843313b0"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_eurovoc_alignment_portfolio.py",
-          "sha256": "sha256:90726a029afece26339b7746f09bab7aac966cc84458b16d6d58dbcb7819cb6e"
+          "sha256": "sha256:4826eb8c499d1febd17f9cb9d85b2e2173d532155e847241ac770ca4a3a447c7"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_bulk.py",
-          "sha256": "sha256:9684c27727ef7262171365f7bd3af71e8b528c98ef46129bef46a5aa2b6858f9"
+          "sha256": "sha256:d98b3488cc2eb74cad386db7262a5f1676b1221502a97566072709e5a68a757c"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/eurovoc_alignment_portfolio.py",
-          "sha256": "sha256:b980a211979b79c1f9588ced6da6ce768a24c815483f4ab70e8aef8d0c186b70"
+          "sha256": "sha256:e860a98dae5de2f7ed8d73c092e22cec20ab8e32166f3484c0452aa0edb0c601"
         }
       ],
       "release": null,
       "resourceId": "eurovoc-gemet-alignment",
-      "rowDigest": "sha256:4a3aca88e32b623ed2566dd350d43c26d60891007277a8a3c13288651f6b06e1",
-      "rowId": "urn:ref:atlas-index-row:4a3aca88e32b623ed2566dd350d43c26d60891007277a8a3c13288651f6b06e1",
+      "rowDigest": "sha256:3b2e56fbd00eeb2cf621c852437a2b3285280dece02c05f649a15f19f5487214",
+      "rowId": "urn:ref:atlas-index-row:3b2e56fbd00eeb2cf621c852437a2b3285280dece02c05f649a15f19f5487214",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.eurovoc_alignment_portfolio"
     },
@@ -795,28 +799,28 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_bulk.py",
-          "sha256": "sha256:cc5007dc54e7b9e5204831cccd79605c33018f5b0407c0b281ad5641a20203f2"
+          "sha256": "sha256:d85d40da9610a25be3c50563fef6a12dda9e53336b5e821b44f5e953843313b0"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_eurovoc_alignment_portfolio.py",
-          "sha256": "sha256:90726a029afece26339b7746f09bab7aac966cc84458b16d6d58dbcb7819cb6e"
+          "sha256": "sha256:4826eb8c499d1febd17f9cb9d85b2e2173d532155e847241ac770ca4a3a447c7"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_bulk.py",
-          "sha256": "sha256:9684c27727ef7262171365f7bd3af71e8b528c98ef46129bef46a5aa2b6858f9"
+          "sha256": "sha256:d98b3488cc2eb74cad386db7262a5f1676b1221502a97566072709e5a68a757c"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/eurovoc_alignment_portfolio.py",
-          "sha256": "sha256:b980a211979b79c1f9588ced6da6ce768a24c815483f4ab70e8aef8d0c186b70"
+          "sha256": "sha256:e860a98dae5de2f7ed8d73c092e22cec20ab8e32166f3484c0452aa0edb0c601"
         }
       ],
       "release": null,
       "resourceId": "eurovoc-mesh-alignment",
-      "rowDigest": "sha256:9cc3c19ca96bcce5cc05d9ec281df0fa706201ffb9b19a4441c5bf4cad787584",
-      "rowId": "urn:ref:atlas-index-row:9cc3c19ca96bcce5cc05d9ec281df0fa706201ffb9b19a4441c5bf4cad787584",
+      "rowDigest": "sha256:8dae3f6a7a17bf7813acdc979567378df4b3d0250718b9713df1b29a1069db12",
+      "rowId": "urn:ref:atlas-index-row:8dae3f6a7a17bf7813acdc979567378df4b3d0250718b9713df1b29a1069db12",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.eurovoc_alignment_portfolio"
     },
@@ -832,12 +836,12 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments.py",
-          "sha256": "sha256:84c80ee3286ef2165c0420ac698352a9151a1c2258a93632721d12f572412f23"
+          "sha256": "sha256:9e22713297ee4810e193f56eae565e8d1346ad04aedf8d0c92a20b19d5c96101"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_eurovoc_lcsh_alignment.py",
-          "sha256": "sha256:a72ef325c0b6ae3136a6c13ee2537ec7c51441b722540e7c9c8b5339bdde9670"
+          "sha256": "sha256:84859d07a09c17e4f3cd817e0c98fbff1a398d503da363b8c23ee04a3efb4128"
         },
         {
           "kind": "sourceImplementation",
@@ -852,8 +856,8 @@
       ],
       "release": null,
       "resourceId": "eurovoc-lcsh-alignment",
-      "rowDigest": "sha256:f3896eb0af6934df9445ed5a1891da19b646f7d57266f0fddd048f1bb6568d42",
-      "rowId": "urn:ref:atlas-index-row:f3896eb0af6934df9445ed5a1891da19b646f7d57266f0fddd048f1bb6568d42",
+      "rowDigest": "sha256:761dd34312c6557e798dee937b7def4090bae9356ed4a6ff472249b14e3ed62d",
+      "rowId": "urn:ref:atlas-index-row:761dd34312c6557e798dee937b7def4090bae9356ed4a6ff472249b14e3ed62d",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.eurovoc_lcsh_alignment"
     },
@@ -870,7 +874,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_eurovoc_organization_experiment.py",
-          "sha256": "sha256:1fd7c182368c7a6458637dd8855fbc2171a971b4719c5cef2799e777cfcdc7cc"
+          "sha256": "sha256:d8be0f92fa0382499dbde184d4a15fcfffa00beb0dbebf03aa4fbbb4c3c4d652"
         },
         {
           "kind": "sourceImplementation",
@@ -880,8 +884,8 @@
       ],
       "release": null,
       "resourceId": "eurovoc",
-      "rowDigest": "sha256:417a34ef16775e00096603f46b45d41f78ee13336e2f11d93e93127b31da52e2",
-      "rowId": "urn:ref:atlas-index-row:417a34ef16775e00096603f46b45d41f78ee13336e2f11d93e93127b31da52e2",
+      "rowDigest": "sha256:790bf0d538c1917a4a0ddc41feed0e7388cfdd7f6ae63c753e81eb96667c9baf",
+      "rowId": "urn:ref:atlas-index-row:790bf0d538c1917a4a0ddc41feed0e7388cfdd7f6ae63c753e81eb96667c9baf",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.eurovoc_organization_experiment"
     },
@@ -898,17 +902,17 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_vocabularies.py",
-          "sha256": "sha256:017d65a33e6351b687f544ff52efe3ec4783bc93cc8b7ab8358d3638da80da8c"
+          "sha256": "sha256:797ea724a70c14193cf895f94babc85f21dfc30f3e4297aa13c2b35b9338d0b5"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_eurovoc_thesaurus.py",
-          "sha256": "sha256:8d93a85cecb3ff6b8be2402330571e5dcf0e63fce9efcbfba8a6601e4e299e0d"
+          "sha256": "sha256:b92cfc33c13b0b750a0652e8f27cf57565bd5932c67a3dfa229aa5d47e61cf28"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_vocabularies.py",
-          "sha256": "sha256:0ba5d366ebce226d469205a1f1884eb635c038871fce8a20e90cbcbcc45614b9"
+          "sha256": "sha256:1fc003f29246f5e8ac112f16d6bb49dc9a167699368e58fc944d61092d71b52b"
         },
         {
           "kind": "sourceImplementation",
@@ -918,8 +922,8 @@
       ],
       "release": null,
       "resourceId": "eurovoc",
-      "rowDigest": "sha256:4ae690bb0bd659199c97b51c6040353f7de686d5ac10ac7984909fe432840fc8",
-      "rowId": "urn:ref:atlas-index-row:4ae690bb0bd659199c97b51c6040353f7de686d5ac10ac7984909fe432840fc8",
+      "rowDigest": "sha256:4c698171d24e8a2b6c13d76911c30cdb66503ba6516e45cb1d3820c074c92e7a",
+      "rowId": "urn:ref:atlas-index-row:4c698171d24e8a2b6c13d76911c30cdb66503ba6516e45cb1d3820c074c92e7a",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.eurovoc_thesaurus"
     },
@@ -936,18 +940,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_fac_dictionary.py",
-          "sha256": "sha256:68b38148eb1e5be3757581599dea77af3d32d076d5db66ba6d8a6da175f8b9b6"
+          "sha256": "sha256:7287be37034ac02f542709a84acbaedd807d5473583a337ad40478bdbb634562"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/fac_dictionary.py",
-          "sha256": "sha256:691f3143224378037b244df7f1bfc0b582ed4f2d414abde3cf24758c761cc5c8"
+          "sha256": "sha256:b9cf955e19f6ef197b039c6685db2a6a34dbe932eb32b05eba522f166680b33a"
         }
       ],
       "release": null,
       "resourceId": "fac-api-dictionary",
-      "rowDigest": "sha256:1c593d38dbb3c70f62c40c5156cee6f588626b90cf437db41b04605d6b017f08",
-      "rowId": "urn:ref:atlas-index-row:1c593d38dbb3c70f62c40c5156cee6f588626b90cf437db41b04605d6b017f08",
+      "rowDigest": "sha256:698ccbd314551f449923834c9a0fb88720cecc73341499a625d743f496033823",
+      "rowId": "urn:ref:atlas-index-row:698ccbd314551f449923834c9a0fb88720cecc73341499a625d743f496033823",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.fac_dictionary"
     },
@@ -963,12 +967,12 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments.py",
-          "sha256": "sha256:84c80ee3286ef2165c0420ac698352a9151a1c2258a93632721d12f572412f23"
+          "sha256": "sha256:9e22713297ee4810e193f56eae565e8d1346ad04aedf8d0c92a20b19d5c96101"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_fast_topical.py",
-          "sha256": "sha256:b8e68dda93e31908cc8fbd626fba87b978417b1233fac90d843399f5ce807380"
+          "sha256": "sha256:250853e6924f5060808df97cf286d671fa31167fb173710864eb3191ad5e4aec"
         },
         {
           "kind": "sourceImplementation",
@@ -983,8 +987,8 @@
       ],
       "release": null,
       "resourceId": "fast-lcsh-adopted-mapping",
-      "rowDigest": "sha256:17839ad00c6c93e9dc6356c01ff0dda5a3a219468375ee11991efcaeeab7c9fa",
-      "rowId": "urn:ref:atlas-index-row:17839ad00c6c93e9dc6356c01ff0dda5a3a219468375ee11991efcaeeab7c9fa",
+      "rowDigest": "sha256:623eda9a82f356ea60f83fd777bde0008011ed1f53fc8f8a0f41bd1a7a8de4d9",
+      "rowId": "urn:ref:atlas-index-row:623eda9a82f356ea60f83fd777bde0008011ed1f53fc8f8a0f41bd1a7a8de4d9",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.fast_topical"
     },
@@ -1001,7 +1005,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_fast_topical.py",
-          "sha256": "sha256:b8e68dda93e31908cc8fbd626fba87b978417b1233fac90d843399f5ce807380"
+          "sha256": "sha256:250853e6924f5060808df97cf286d671fa31167fb173710864eb3191ad5e4aec"
         },
         {
           "kind": "sourceImplementation",
@@ -1011,8 +1015,8 @@
       ],
       "release": null,
       "resourceId": "fast-topical",
-      "rowDigest": "sha256:e4cddeb79c1fdd270778c77dcdd9df5170f487cd74285bb31962b44aaf4602a6",
-      "rowId": "urn:ref:atlas-index-row:e4cddeb79c1fdd270778c77dcdd9df5170f487cd74285bb31962b44aaf4602a6",
+      "rowDigest": "sha256:852ae5a3dcc64281c9a64e21cd90e88796b67a32b3998160accda8aced98fdbf",
+      "rowId": "urn:ref:atlas-index-row:852ae5a3dcc64281c9a64e21cd90e88796b67a32b3998160accda8aced98fdbf",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.fast_topical"
     },
@@ -1029,18 +1033,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_fcc_bureaus_offices.py",
-          "sha256": "sha256:7f642952ebcc42ae9883c625438121aa6fe41861de4ac26cd88c081267079f94"
+          "sha256": "sha256:823bc1a0fd02d34fc9e21fb4e910376cf3f1c9528a74d196927325598ce22eb5"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/fcc_bureaus_offices.py",
-          "sha256": "sha256:83e666c616446efe5ae4bb5bdf4ef02d7386e57e217da433c43e4ff0bed21d29"
+          "sha256": "sha256:f2806d3da6bc7d3720328c7e46cac822ff6263788824c89616d7c9e743b59f25"
         }
       ],
       "release": null,
       "resourceId": "fcc-ecfs-native-controls",
-      "rowDigest": "sha256:869d7fd2fdcd0a43d83074c25df570580aa675854ec29f77cbe0c80ead61e1ac",
-      "rowId": "urn:ref:atlas-index-row:869d7fd2fdcd0a43d83074c25df570580aa675854ec29f77cbe0c80ead61e1ac",
+      "rowDigest": "sha256:4a1631ea05e33bc19ba1ff3a6b8e4c3a0939bb36424b7af4adbcaf916d9d0512",
+      "rowId": "urn:ref:atlas-index-row:4a1631ea05e33bc19ba1ff3a6b8e4c3a0939bb36424b7af4adbcaf916d9d0512",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.fcc_bureaus_offices"
     },
@@ -1057,7 +1061,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_fcc_ecfs_codes.py",
-          "sha256": "sha256:d237acb473935df040d1d9076f4efbf37a6705477dd7c50e380c6cbcede2f8d1"
+          "sha256": "sha256:0071d57b7614b22479910569d1ba1398e2d97bd5d0ae6481a54df9aae97880f6"
         },
         {
           "kind": "sourceImplementation",
@@ -1067,8 +1071,8 @@
       ],
       "release": null,
       "resourceId": "fcc-ecfs-native-controls",
-      "rowDigest": "sha256:969f361b47198df68f0806f9fdaaa8657aadc3052eb1806c4de6ecff5ba91935",
-      "rowId": "urn:ref:atlas-index-row:969f361b47198df68f0806f9fdaaa8657aadc3052eb1806c4de6ecff5ba91935",
+      "rowDigest": "sha256:6e60d4d6746ea4592e81b19f39ede63e73db3f893138c22c9b8426831df493fd",
+      "rowId": "urn:ref:atlas-index-row:6e60d4d6746ea4592e81b19f39ede63e73db3f893138c22c9b8426831df493fd",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.fcc_ecfs_codes"
     },
@@ -1085,7 +1089,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_fcc_ecfs_codes.py",
-          "sha256": "sha256:d237acb473935df040d1d9076f4efbf37a6705477dd7c50e380c6cbcede2f8d1"
+          "sha256": "sha256:0071d57b7614b22479910569d1ba1398e2d97bd5d0ae6481a54df9aae97880f6"
         },
         {
           "kind": "sourceImplementation",
@@ -1095,8 +1099,8 @@
       ],
       "release": null,
       "resourceId": "fcc-ecfs-native-controls",
-      "rowDigest": "sha256:6a79a3e657283503828853acd80078cec60a99a65fb6b4f3bf67394872aa6034",
-      "rowId": "urn:ref:atlas-index-row:6a79a3e657283503828853acd80078cec60a99a65fb6b4f3bf67394872aa6034",
+      "rowDigest": "sha256:7440d6648557407ca80ad595386721c553a40d45e0b4306de494240bbad9636d",
+      "rowId": "urn:ref:atlas-index-row:7440d6648557407ca80ad595386721c553a40d45e0b4306de494240bbad9636d",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.fcc_ecfs_codes"
     },
@@ -1113,7 +1117,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_fcc_ecfs_codes.py",
-          "sha256": "sha256:d237acb473935df040d1d9076f4efbf37a6705477dd7c50e380c6cbcede2f8d1"
+          "sha256": "sha256:0071d57b7614b22479910569d1ba1398e2d97bd5d0ae6481a54df9aae97880f6"
         },
         {
           "kind": "sourceImplementation",
@@ -1123,8 +1127,8 @@
       ],
       "release": null,
       "resourceId": "fcc-ecfs-native-controls",
-      "rowDigest": "sha256:fcfd4213d9d0cc0e6c16f4445cef59f4bdacda688c59501535121a27245ddc3d",
-      "rowId": "urn:ref:atlas-index-row:fcfd4213d9d0cc0e6c16f4445cef59f4bdacda688c59501535121a27245ddc3d",
+      "rowDigest": "sha256:11a0012323149508b91a0a93b6251c0e159729f4c08aafefb3a79c73eedc3bd2",
+      "rowId": "urn:ref:atlas-index-row:11a0012323149508b91a0a93b6251c0e159729f4c08aafefb3a79c73eedc3bd2",
       "semanticRing": "legalIdentity",
       "sourceModule": "refspec.registry.fcc_ecfs_codes"
     },
@@ -1141,18 +1145,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_fec_committee_codes.py",
-          "sha256": "sha256:86c899d294b2c8609c68b3017873f161037e23f8368e4e0104e23fedbabda08e"
+          "sha256": "sha256:dea334ded1ca0c41241b2f3de0d6737d71a08aba6d599e96d343df1af0a5bc49"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/fec_committee_codes.py",
-          "sha256": "sha256:b95e6877821e01f77302eaccc2cbfb95307a5d1dc8a7a1d67cba811222d8530f"
+          "sha256": "sha256:2c9217b8e21d59c25eaf9018cd974b450290ca801e81c89f975a11b4fdc471d9"
         }
       ],
       "release": null,
       "resourceId": "fec-native-controls",
-      "rowDigest": "sha256:f1633264cfe9994e061638c33a0e3258411bed3b29c248a5584e461c5a3afb6f",
-      "rowId": "urn:ref:atlas-index-row:f1633264cfe9994e061638c33a0e3258411bed3b29c248a5584e461c5a3afb6f",
+      "rowDigest": "sha256:b97d30593ca255608a2dcbd59ac5966c8e18b5ecf266a8b9fb53bd0c30772913",
+      "rowId": "urn:ref:atlas-index-row:b97d30593ca255608a2dcbd59ac5966c8e18b5ecf266a8b9fb53bd0c30772913",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.fec_committee_codes"
     },
@@ -1169,18 +1173,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_federal_hierarchy_complete.py",
-          "sha256": "sha256:0db8e0dce76a99dec0bd9d622162372dbae19128154838900ce2119be7a71359"
+          "sha256": "sha256:a4223ea8f194fd075c6e3b76e231b97f8b6b0033d06958be6ef55a2394f72df4"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/federal_hierarchy_complete.py",
-          "sha256": "sha256:12db73b12e12caaaf9082fc41077f560231f2817c74d2a42df14808c788bfd9a"
+          "sha256": "sha256:577114c57c549244a7096084c79fb82e0549433eb051f1cfed4acff7480ee327"
         }
       ],
       "release": null,
       "resourceId": "federal-hierarchy",
-      "rowDigest": "sha256:455e640c0560240b2f545128444d06a0e14273a3ec7177f00bd9b4583a367120",
-      "rowId": "urn:ref:atlas-index-row:455e640c0560240b2f545128444d06a0e14273a3ec7177f00bd9b4583a367120",
+      "rowDigest": "sha256:b9d77f82a74ba4a7c6ab8c198847583cfd7d7da5415105f481a30ff39235da04",
+      "rowId": "urn:ref:atlas-index-row:b9d77f82a74ba4a7c6ab8c198847583cfd7d7da5415105f481a30ff39235da04",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.federal_hierarchy_complete"
     },
@@ -1197,18 +1201,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_federal_hierarchy_orgs.py",
-          "sha256": "sha256:a649bd3e29b6e587fd57ae4243c04a5f7fddf3324e71b9e2f4745b4f60371ac2"
+          "sha256": "sha256:1fce800f3c541195f462f2a7c796a09dbcae73289f30b208a1aaaa4335e724bb"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/federal_hierarchy_orgs.py",
-          "sha256": "sha256:c2e50e9d67169ec8fbee13855abcc151de60568259b06c5690cdd8635f2fcc37"
+          "sha256": "sha256:d1830e64c6b04f371a6b5bf1098236ea0bc523879dd88cd7eac24176890f2b5d"
         }
       ],
       "release": null,
       "resourceId": "federal-hierarchy",
-      "rowDigest": "sha256:22208d6ccbd4d3341418bd33501b9e5a071e58b98fa28fc92914f5dbf2f5550d",
-      "rowId": "urn:ref:atlas-index-row:22208d6ccbd4d3341418bd33501b9e5a071e58b98fa28fc92914f5dbf2f5550d",
+      "rowDigest": "sha256:427d546117a0a2e091f59585ef19bb2a5f3e1fd2ed270d5b3fc5059c2124f478",
+      "rowId": "urn:ref:atlas-index-row:427d546117a0a2e091f59585ef19bb2a5f3e1fd2ed270d5b3fc5059c2124f478",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.federal_hierarchy_orgs"
     },
@@ -1225,18 +1229,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_federal_register_native_controls.py",
-          "sha256": "sha256:3b5c2c2e02f6fee98492db792bb3339e27c8b3f5ba0aefb6c0d3aaa198a58203"
+          "sha256": "sha256:6b4d64aa1dcce8d984e6dfa40a62dee19f455809b4de6c7d8859f122530523f3"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/federal_register_native_controls.py",
-          "sha256": "sha256:fc6ea5a93f5749f7b48d4deb883e6f4f4ec881630e5935537053f4dfa85ff973"
+          "sha256": "sha256:3850000fadb7f2b94f3498d326f2bb79a339ba8160857f57bb95e2eeb33190a4"
         }
       ],
       "release": null,
       "resourceId": "federal-register-native-controls",
-      "rowDigest": "sha256:78ff2e167ef93dedc3f487c8fd1029b3d14d75d93d084d20245f8d3d2ad424c4",
-      "rowId": "urn:ref:atlas-index-row:78ff2e167ef93dedc3f487c8fd1029b3d14d75d93d084d20245f8d3d2ad424c4",
+      "rowDigest": "sha256:a46a9ccf385556d1da2d985a76e189ef8c2105e264c471573a3dd9d4efbd90c7",
+      "rowId": "urn:ref:atlas-index-row:a46a9ccf385556d1da2d985a76e189ef8c2105e264c471573a3dd9d4efbd90c7",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.federal_register_native_controls"
     },
@@ -1253,18 +1257,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_federal_register_native_controls.py",
-          "sha256": "sha256:3b5c2c2e02f6fee98492db792bb3339e27c8b3f5ba0aefb6c0d3aaa198a58203"
+          "sha256": "sha256:6b4d64aa1dcce8d984e6dfa40a62dee19f455809b4de6c7d8859f122530523f3"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/federal_register_native_controls.py",
-          "sha256": "sha256:fc6ea5a93f5749f7b48d4deb883e6f4f4ec881630e5935537053f4dfa85ff973"
+          "sha256": "sha256:3850000fadb7f2b94f3498d326f2bb79a339ba8160857f57bb95e2eeb33190a4"
         }
       ],
       "release": null,
       "resourceId": "federal-register-native-controls",
-      "rowDigest": "sha256:6a1c5925e3a1dee51d4467507c305ec34da2ac5611f42ea9d4ea17372cdc77e1",
-      "rowId": "urn:ref:atlas-index-row:6a1c5925e3a1dee51d4467507c305ec34da2ac5611f42ea9d4ea17372cdc77e1",
+      "rowDigest": "sha256:aeb46965fdcfbaabc553bcdb4f440382cd7ded0638720ca70e95055246632e46",
+      "rowId": "urn:ref:atlas-index-row:aeb46965fdcfbaabc553bcdb4f440382cd7ded0638720ca70e95055246632e46",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.federal_register_native_controls"
     },
@@ -1286,12 +1290,12 @@
         {
           "kind": "parserTest",
           "path": "tests/test_federal_register_thesaurus_2025.py",
-          "sha256": "sha256:1c1db97d9ad264a926fc6f83d09b3e8869125fcbc0de25bd848f16f65648cb8a"
+          "sha256": "sha256:ba5c3730a12a83754023ddb60596d9931f2caf8ad24fd6ce156c1e1edb40b34a"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/federal_register_thesaurus_2025.py",
-          "sha256": "sha256:7a6ec0bb4e39cd8ab469587ee1e82c38741a6ccc2324ee75b9c9c1ae06ac02c7"
+          "sha256": "sha256:ca7fc5d58445c0091ac4edd524d329958c6ddd0eb02b9bbb86a9cda0012c50ad"
         }
       ],
       "release": {
@@ -1301,8 +1305,8 @@
         "releaseId": "urn:ref:federal-register-thesaurus:2025-04-01:reference-resource-release:v1"
       },
       "resourceId": "federal-register-thesaurus-2025",
-      "rowDigest": "sha256:193dbe81d7cffd2ee2d4a28a4e0dfb8a6b8a08c88e9cacb080a16bcdd91e81f7",
-      "rowId": "urn:ref:atlas-index-row:193dbe81d7cffd2ee2d4a28a4e0dfb8a6b8a08c88e9cacb080a16bcdd91e81f7",
+      "rowDigest": "sha256:6f55183ce6397b5d2afd6c8c2907be0974e7c27cd2ab4bf1705e34ea808d1f13",
+      "rowId": "urn:ref:atlas-index-row:6f55183ce6397b5d2afd6c8c2907be0974e7c27cd2ab4bf1705e34ea808d1f13",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.federal_register_thesaurus_2025"
     },
@@ -1319,18 +1323,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_federal_register_topics_api.py",
-          "sha256": "sha256:c2076d8a40e2738dd230c168c41801cc23f0b3e282919aa2cea2f22a2fe50945"
+          "sha256": "sha256:6bc93ce6c6e8360af58ab9eb6ca981b67379af076ddf835268b8c39ab3bfb8fb"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/federal_register_topics_api.py",
-          "sha256": "sha256:2a029c6a1a05126651f9a23329a6df59913aaa79296da6d16f6aec2e4920aa0b"
+          "sha256": "sha256:c50e26b806854d690450ee57c27d615eb6ff49edf92eaa2495e77a182f5a71db"
         }
       ],
       "release": null,
       "resourceId": "federal-register-api-topics",
-      "rowDigest": "sha256:42b5aeb4d8930c839a37f5b34bbf3bf2c0b373b8510d66342047f843051c1ac0",
-      "rowId": "urn:ref:atlas-index-row:42b5aeb4d8930c839a37f5b34bbf3bf2c0b373b8510d66342047f843051c1ac0",
+      "rowDigest": "sha256:ec24c52733de25f9bd9e57c86a7fd8c22beb435c2fb85b6296f2ec292ea5f3fc",
+      "rowId": "urn:ref:atlas-index-row:ec24c52733de25f9bd9e57c86a7fd8c22beb435c2fb85b6296f2ec292ea5f3fc",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.federal_register_topics_api"
     },
@@ -1347,18 +1351,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_ferc_elibrary_codes.py",
-          "sha256": "sha256:1be502b8da16539d2e03ea0bd9c7684b420cbdac5ff68db52b9dcdfb8a77d7f8"
+          "sha256": "sha256:dda75be2e88b5d057568832d774bde2cde7d0227caeabb202e02f74fd5a05d10"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/ferc_elibrary_codes.py",
-          "sha256": "sha256:084f20e690c21fba79ca2f3b8ea1c8e4780f59248b13dfe6ce69be7a2acec7f4"
+          "sha256": "sha256:7c219450f2e572e36038466e9fc3516fa464b72473db01972a2bad248013e36e"
         }
       ],
       "release": null,
       "resourceId": "ferc-elibrary-identifiers",
-      "rowDigest": "sha256:1a2203b93e85ba0f5576297d9b76aa57c1fc1af36a61fcd92faed90e96264401",
-      "rowId": "urn:ref:atlas-index-row:1a2203b93e85ba0f5576297d9b76aa57c1fc1af36a61fcd92faed90e96264401",
+      "rowDigest": "sha256:0825bc2f747124d8f9bb971c06d20866c49db55db912e75b4275c49fbd4d67dd",
+      "rowId": "urn:ref:atlas-index-row:0825bc2f747124d8f9bb971c06d20866c49db55db912e75b4275c49fbd4d67dd",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.ferc_elibrary_codes"
     },
@@ -1375,18 +1379,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_ferc_elibrary_codes.py",
-          "sha256": "sha256:1be502b8da16539d2e03ea0bd9c7684b420cbdac5ff68db52b9dcdfb8a77d7f8"
+          "sha256": "sha256:dda75be2e88b5d057568832d774bde2cde7d0227caeabb202e02f74fd5a05d10"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/ferc_elibrary_codes.py",
-          "sha256": "sha256:084f20e690c21fba79ca2f3b8ea1c8e4780f59248b13dfe6ce69be7a2acec7f4"
+          "sha256": "sha256:7c219450f2e572e36038466e9fc3516fa464b72473db01972a2bad248013e36e"
         }
       ],
       "release": null,
       "resourceId": "ferc-elibrary-native-controls",
-      "rowDigest": "sha256:1fc1c8cb0b283d3e9b7de48b83c12e2c5ea13f128727dc8c41fc8a6e56142e36",
-      "rowId": "urn:ref:atlas-index-row:1fc1c8cb0b283d3e9b7de48b83c12e2c5ea13f128727dc8c41fc8a6e56142e36",
+      "rowDigest": "sha256:f51ebbde550de50237694c2b668b755bf1995e8f8c95bc38df5a89bc3c22ef66",
+      "rowId": "urn:ref:atlas-index-row:f51ebbde550de50237694c2b668b755bf1995e8f8c95bc38df5a89bc3c22ef66",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.ferc_elibrary_codes"
     },
@@ -1403,18 +1407,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_gao_cra_form_codes.py",
-          "sha256": "sha256:caf96c9e3f66e90f4ccccc725bb056777d3814fce3b1c010f7501511310756e0"
+          "sha256": "sha256:61192059c7c92800844335c610eec58fe893507b350552d5f3e1424d2a3edc0f"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/gao_cra_form_codes.py",
-          "sha256": "sha256:b411a1547dd295b9806115cd3bf61b124bcdd9f226c55a849d3fec23eea719b1"
+          "sha256": "sha256:33f7d0052a024ae55d5060815f291b8f269bfbf3b67f87e0e61bc0313d07707b"
         }
       ],
       "release": null,
       "resourceId": "gao-cra-submission-form-controls",
-      "rowDigest": "sha256:44aef7aec70f766463a5c8c0795f4c39da6dac44b6054db0e62d8b5a93e9fc2b",
-      "rowId": "urn:ref:atlas-index-row:44aef7aec70f766463a5c8c0795f4c39da6dac44b6054db0e62d8b5a93e9fc2b",
+      "rowDigest": "sha256:04aa5398f4d37c2aed84b530e914c799fb0603e66d00fcb19af8af544f5f9a4d",
+      "rowId": "urn:ref:atlas-index-row:04aa5398f4d37c2aed84b530e914c799fb0603e66d00fcb19af8af544f5f9a4d",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.gao_cra_form_codes"
     },
@@ -1431,18 +1435,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_gao_published_topics.py",
-          "sha256": "sha256:011383b2c3629e5a55d11a0209814347a85737e993b280f55a614eb6b450c0e3"
+          "sha256": "sha256:35d02c5436e8a863dfb696d3f814720da1cd2a7a9fe90e9ae1b8341383950b68"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/gao_published_topics.py",
-          "sha256": "sha256:e99403772aff598f389c02ae603d10e0d84110834cb4c48d9f208b92647a7fc2"
+          "sha256": "sha256:645396ec7859a9644c62235fba4df88ac15f1d55891589f84d7ce5f2a763a8ec"
         }
       ],
       "release": null,
       "resourceId": "gao-topics",
-      "rowDigest": "sha256:45a9fa5599c9d6b4bc1b1fb0dd75f44a7c78ab457a8bfde2efcf73f8d39adb13",
-      "rowId": "urn:ref:atlas-index-row:45a9fa5599c9d6b4bc1b1fb0dd75f44a7c78ab457a8bfde2efcf73f8d39adb13",
+      "rowDigest": "sha256:43ee8263f9d8a496f6d6e7ce27c9e6824889d7f6d4f0c10c617e8c0048c1167d",
+      "rowId": "urn:ref:atlas-index-row:43ee8263f9d8a496f6d6e7ce27c9e6824889d7f6d4f0c10c617e8c0048c1167d",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.gao_published_topics"
     },
@@ -1459,7 +1463,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_gcmd_science_keywords.py",
-          "sha256": "sha256:37cc98228c6214efb8e40eb3832982c3f4296a28630a534c47ea70fc1270c82a"
+          "sha256": "sha256:c4243cf98ea5082ad3721f7470e80b001a5500c7bacd37bb36775a22e559c020"
         },
         {
           "kind": "sourceImplementation",
@@ -1469,8 +1473,8 @@
       ],
       "release": null,
       "resourceId": "gcmd-science-keywords",
-      "rowDigest": "sha256:ded4a3baf5bf72a5c625332847afb39cc44b043240d20cd89d2c1ad5e7c956f9",
-      "rowId": "urn:ref:atlas-index-row:ded4a3baf5bf72a5c625332847afb39cc44b043240d20cd89d2c1ad5e7c956f9",
+      "rowDigest": "sha256:8dc69dd40da19b9d683ff13dbba11c0b35f73f76fe54d899e212a99462b0ea9f",
+      "rowId": "urn:ref:atlas-index-row:8dc69dd40da19b9d683ff13dbba11c0b35f73f76fe54d899e212a99462b0ea9f",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.gcmd_science_keywords"
     },
@@ -1486,12 +1490,12 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_subject.py",
-          "sha256": "sha256:c676196d082eb196659de4ddfc1ad0396fd4d0eac681634573129b3c1b116468"
+          "sha256": "sha256:9989f11d52ba4495902c903f718dafec0f8452c4440a18febf8a1872159b40e0"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_gemet_alignments.py",
-          "sha256": "sha256:c07fbc1f3090785830624fd2356449744ce57866392b4e2e318ea3e55cad165c"
+          "sha256": "sha256:f20188b0c888389ad19f0d9d11e334f94d13d96bbb513fe22255908b47746f3c"
         },
         {
           "kind": "sourceImplementation",
@@ -1501,13 +1505,13 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/gemet_alignments.py",
-          "sha256": "sha256:d32557c5bfc4041b212c7d21ed3299d450c3fe73716c79f709286bcefdfde3e9"
+          "sha256": "sha256:29df2293683a187d2cc0cd3abcf509dd4a08e361dca39d8b2e7e8315c2615e47"
         }
       ],
       "release": null,
       "resourceId": "gemet-alignments",
-      "rowDigest": "sha256:44ccf201cbe97738d1f99aad3ac381e44399d468d55c6ed7d0dcb13c24ca8821",
-      "rowId": "urn:ref:atlas-index-row:44ccf201cbe97738d1f99aad3ac381e44399d468d55c6ed7d0dcb13c24ca8821",
+      "rowDigest": "sha256:57a0edb987cf54ac3b0805db6938e1cd45b021f9336d14fbf41024c8374620af",
+      "rowId": "urn:ref:atlas-index-row:57a0edb987cf54ac3b0805db6938e1cd45b021f9336d14fbf41024c8374620af",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.gemet_alignments"
     },
@@ -1523,17 +1527,17 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_subject.py",
-          "sha256": "sha256:c676196d082eb196659de4ddfc1ad0396fd4d0eac681634573129b3c1b116468"
+          "sha256": "sha256:9989f11d52ba4495902c903f718dafec0f8452c4440a18febf8a1872159b40e0"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_gemet_alignments.py",
-          "sha256": "sha256:c07fbc1f3090785830624fd2356449744ce57866392b4e2e318ea3e55cad165c"
+          "sha256": "sha256:f20188b0c888389ad19f0d9d11e334f94d13d96bbb513fe22255908b47746f3c"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_umthes_content.py",
-          "sha256": "sha256:d846d39e7a954f6d188548e501279ee62178a19dde9375d3428027ff5c78ea8e"
+          "sha256": "sha256:0468d2870b488f6813e5b2bc13355e4d5ca1a796969d2afb8fcfec9a6c8132cc"
         },
         {
           "kind": "sourceImplementation",
@@ -1543,7 +1547,7 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/gemet_alignments.py",
-          "sha256": "sha256:d32557c5bfc4041b212c7d21ed3299d450c3fe73716c79f709286bcefdfde3e9"
+          "sha256": "sha256:29df2293683a187d2cc0cd3abcf509dd4a08e361dca39d8b2e7e8315c2615e47"
         },
         {
           "kind": "sourceImplementation",
@@ -1553,8 +1557,8 @@
       ],
       "release": null,
       "resourceId": "gemet-umthes-alignments",
-      "rowDigest": "sha256:9f847c164b2e21d3b551d9f85422251d8b499b621834aecec1c96419cff67e9f",
-      "rowId": "urn:ref:atlas-index-row:9f847c164b2e21d3b551d9f85422251d8b499b621834aecec1c96419cff67e9f",
+      "rowDigest": "sha256:87934c00e102e654c5d08da0f6d5f874d24a12f229c7b763048041cb77e3b5e8",
+      "rowId": "urn:ref:atlas-index-row:87934c00e102e654c5d08da0f6d5f874d24a12f229c7b763048041cb77e3b5e8",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.gemet_alignments"
     },
@@ -1572,18 +1576,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_gemet_thesaurus.py",
-          "sha256": "sha256:7c28df472f66dda3e9b764e75600333b6bcc220587aac1955209c303323baa6b"
+          "sha256": "sha256:056782b3b22f0116fe71979c0bf4869d02ab18b4601a47dca5859257dec1ecf8"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/gemet_thesaurus.py",
-          "sha256": "sha256:ccd6762814ae5ca41c73eb8263cc1839c30cd82a69ab63f11c800784270b48c2"
+          "sha256": "sha256:cd743c5eaafc9b249216c6a89dbf514a2e044f2276048b969cf6370af2675c60"
         }
       ],
       "release": null,
       "resourceId": "gemet",
-      "rowDigest": "sha256:66e05e9f7823cc1d0d636e499f3c1bd675ea35b87b2fce96485208d881a2d4c9",
-      "rowId": "urn:ref:atlas-index-row:66e05e9f7823cc1d0d636e499f3c1bd675ea35b87b2fce96485208d881a2d4c9",
+      "rowDigest": "sha256:99ed84f582de36bc53e53c18668c3a7f8ba727cefcc8ae83729dfc5bbe8fb971",
+      "rowId": "urn:ref:atlas-index-row:99ed84f582de36bc53e53c18668c3a7f8ba727cefcc8ae83729dfc5bbe8fb971",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.gemet_thesaurus"
     },
@@ -1600,18 +1604,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_govinfo_collections.py",
-          "sha256": "sha256:12a512d0fc41a45a63a8bc19e93e97a17db5f1336e16390445f66b92e56dc93a"
+          "sha256": "sha256:39c1b068d21128b82a819a373d6951acacaf903e2f5bbb8c9c09eb3d3a87413f"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/govinfo_collections.py",
-          "sha256": "sha256:f24f4cfbb3d0d9d882c6540dd238bf4235705ab2dcc2ceca8811984247fadb37"
+          "sha256": "sha256:2bdd0b4e8b310aac52ae8fbcecb4a0513925ede6e8e7bfad2435fe28212386f2"
         }
       ],
       "release": null,
       "resourceId": "ecfr-cfr-structure",
-      "rowDigest": "sha256:deb3f00ba61c74255ef8623bf6672d45ee9d9d8e62208dc472a21bae85698a74",
-      "rowId": "urn:ref:atlas-index-row:deb3f00ba61c74255ef8623bf6672d45ee9d9d8e62208dc472a21bae85698a74",
+      "rowDigest": "sha256:73275e8a2f6839aaf49f1a3f4d23d16308c2b90906ba6afecb89126fca3e4a80",
+      "rowId": "urn:ref:atlas-index-row:73275e8a2f6839aaf49f1a3f4d23d16308c2b90906ba6afecb89126fca3e4a80",
       "semanticRing": "legalIdentity",
       "sourceModule": "refspec.registry.govinfo_collections"
     },
@@ -1628,18 +1632,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_govinfo_collections.py",
-          "sha256": "sha256:12a512d0fc41a45a63a8bc19e93e97a17db5f1336e16390445f66b92e56dc93a"
+          "sha256": "sha256:39c1b068d21128b82a819a373d6951acacaf903e2f5bbb8c9c09eb3d3a87413f"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/govinfo_collections.py",
-          "sha256": "sha256:f24f4cfbb3d0d9d882c6540dd238bf4235705ab2dcc2ceca8811984247fadb37"
+          "sha256": "sha256:2bdd0b4e8b310aac52ae8fbcecb4a0513925ede6e8e7bfad2435fe28212386f2"
         }
       ],
       "release": null,
       "resourceId": "govinfo-cfr-packages",
-      "rowDigest": "sha256:6ccfc33935583e57f38bfb0809494b5398f74a4dba99c207c74efa7f13ab1137",
-      "rowId": "urn:ref:atlas-index-row:6ccfc33935583e57f38bfb0809494b5398f74a4dba99c207c74efa7f13ab1137",
+      "rowDigest": "sha256:ffa30eec660a08eb45a372625a1c7369126db7235ba47a7bd0323a21ef373dc3",
+      "rowId": "urn:ref:atlas-index-row:ffa30eec660a08eb45a372625a1c7369126db7235ba47a7bd0323a21ef373dc3",
       "semanticRing": "legalIdentity",
       "sourceModule": "refspec.registry.govinfo_collections"
     },
@@ -1656,18 +1660,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_govinfo_collections.py",
-          "sha256": "sha256:12a512d0fc41a45a63a8bc19e93e97a17db5f1336e16390445f66b92e56dc93a"
+          "sha256": "sha256:39c1b068d21128b82a819a373d6951acacaf903e2f5bbb8c9c09eb3d3a87413f"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/govinfo_collections.py",
-          "sha256": "sha256:f24f4cfbb3d0d9d882c6540dd238bf4235705ab2dcc2ceca8811984247fadb37"
+          "sha256": "sha256:2bdd0b4e8b310aac52ae8fbcecb4a0513925ede6e8e7bfad2435fe28212386f2"
         }
       ],
       "release": null,
       "resourceId": "govinfo-collections",
-      "rowDigest": "sha256:1c9527f2d4be99eeb2917bef170e9eb33f0ecf101fab55737d1c8c1f350e7f03",
-      "rowId": "urn:ref:atlas-index-row:1c9527f2d4be99eeb2917bef170e9eb33f0ecf101fab55737d1c8c1f350e7f03",
+      "rowDigest": "sha256:f3ccd38d122ea3636f8f4ac5d1adddb5b0ec95f2452943c4c2102494072137d0",
+      "rowId": "urn:ref:atlas-index-row:f3ccd38d122ea3636f8f4ac5d1adddb5b0ec95f2452943c4c2102494072137d0",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.govinfo_collections"
     },
@@ -1684,7 +1688,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_grants_gov_codes.py",
-          "sha256": "sha256:0603695313acc1defae18b9bcbe508318d37cedf783bfa93cf6f30e215840a7d"
+          "sha256": "sha256:56403451416b314a0fb59bc591030d57d7fa177dfbe76f554150c7f355d37dab"
         },
         {
           "kind": "sourceImplementation",
@@ -1694,8 +1698,8 @@
       ],
       "release": null,
       "resourceId": "grants-gov-status-codes",
-      "rowDigest": "sha256:66f9df6e35e041157f3e2308231c0d061dd1611238f51c4669051cb41a332d74",
-      "rowId": "urn:ref:atlas-index-row:66f9df6e35e041157f3e2308231c0d061dd1611238f51c4669051cb41a332d74",
+      "rowDigest": "sha256:7df2573e6b5b56e711e548f21ecc09f024a8b3949230b99d111ff2a83ee915e2",
+      "rowId": "urn:ref:atlas-index-row:7df2573e6b5b56e711e548f21ecc09f024a8b3949230b99d111ff2a83ee915e2",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.grants_gov_codes"
     },
@@ -1712,7 +1716,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_grants_gov_codes.py",
-          "sha256": "sha256:0603695313acc1defae18b9bcbe508318d37cedf783bfa93cf6f30e215840a7d"
+          "sha256": "sha256:56403451416b314a0fb59bc591030d57d7fa177dfbe76f554150c7f355d37dab"
         },
         {
           "kind": "sourceImplementation",
@@ -1722,8 +1726,8 @@
       ],
       "release": null,
       "resourceId": "grants-gov-status-codes",
-      "rowDigest": "sha256:7fff19090511290b002610d976d992c5b5fd26ac8e2df3224bc4a0ab9be09895",
-      "rowId": "urn:ref:atlas-index-row:7fff19090511290b002610d976d992c5b5fd26ac8e2df3224bc4a0ab9be09895",
+      "rowDigest": "sha256:d140a598f20fcccf5347ab517342c3a6ada268a5d89f5986bb9fbca962986e17",
+      "rowId": "urn:ref:atlas-index-row:d140a598f20fcccf5347ab517342c3a6ada268a5d89f5986bb9fbca962986e17",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.grants_gov_codes"
     },
@@ -1745,12 +1749,12 @@
         {
           "kind": "parserTest",
           "path": "tests/test_icpsr_subject.py",
-          "sha256": "sha256:9a10d20152951965b14f46d62214281cff8c745830c69ff1e97160d1d1da5930"
+          "sha256": "sha256:9699b1e08c5680b7ea81f3821bbe2e1c2a77f3f13752056c25a38326a341ed9a"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/icpsr_subject.py",
-          "sha256": "sha256:1478055d1d539c6c5f356e287cd7c0b05e74f1e290d534be035a4e3b2f1e0d23"
+          "sha256": "sha256:c462cb0e2066748d1d3b82589f87240da7331e979e8f6f5af932c84576d89cec"
         }
       ],
       "release": {
@@ -1760,8 +1764,8 @@
         "releaseId": "urn:ref:icpsr:release:development:8bf9bf7f6c335e3aaccd29eedd00d41d7bc153e216e7dff6ff215472368aae37"
       },
       "resourceId": "icpsr-subject-thesaurus",
-      "rowDigest": "sha256:e103d0e21c59e47c67993bb43ae71a0201df92845d6e7a64d7ba39dc83cc7c50",
-      "rowId": "urn:ref:atlas-index-row:e103d0e21c59e47c67993bb43ae71a0201df92845d6e7a64d7ba39dc83cc7c50",
+      "rowDigest": "sha256:8f5109dd62586b243a2ce44b37f68faf2904556f2869d003d85e122b092570bb",
+      "rowId": "urn:ref:atlas-index-row:8f5109dd62586b243a2ce44b37f68faf2904556f2869d003d85e122b092570bb",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.icpsr_subject"
     },
@@ -1777,28 +1781,28 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_lc.py",
-          "sha256": "sha256:1e0b12309503b901a6c56380110cb85e12543e6f3e8454d9eac9476cceec810f"
+          "sha256": "sha256:0eb0ff195b36f2af28f52b71d25d30d709acf54fb2873bd46de09e642a6a8567"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_lc_external_links.py",
-          "sha256": "sha256:e7655b0761e3ceec29adce7e6f1bcb07030b73a235b4b83087e735d9cd26aa69"
+          "sha256": "sha256:2de3170ef2e36b234fa2ce22be6169b8b7be9dbe457bcd0489f731d74afef621"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_lc.py",
-          "sha256": "sha256:d25dce6ff48d5e532c7f819b9f1bae7d718391fc49086e760d31d05b6d212a78"
+          "sha256": "sha256:6d77544eb26480a2776591a3690f7401bcf4d31a693af107cfad956f3235503d"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/lc_external_links.py",
-          "sha256": "sha256:69104ad8d982def292954f5618dd5fefdf2c1e0c7b335692a8b3bd0c6f0184ed"
+          "sha256": "sha256:31422d8372643e58c46d7efcde0cb10b4f556e9d7401848518e899764b939728"
         }
       ],
       "release": null,
       "resourceId": "lc-external-agrovoc-endpoints",
-      "rowDigest": "sha256:f5937c1c3979107aa46006f995ab3ee927755dfafc201a6e84c63074e3d4d176",
-      "rowId": "urn:ref:atlas-index-row:f5937c1c3979107aa46006f995ab3ee927755dfafc201a6e84c63074e3d4d176",
+      "rowDigest": "sha256:b5757ad66864fbebecbb39501565271c03c74b2836835065113209fa42221a4f",
+      "rowId": "urn:ref:atlas-index-row:b5757ad66864fbebecbb39501565271c03c74b2836835065113209fa42221a4f",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
@@ -1814,28 +1818,28 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_lc.py",
-          "sha256": "sha256:1e0b12309503b901a6c56380110cb85e12543e6f3e8454d9eac9476cceec810f"
+          "sha256": "sha256:0eb0ff195b36f2af28f52b71d25d30d709acf54fb2873bd46de09e642a6a8567"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_lc_external_links.py",
-          "sha256": "sha256:e7655b0761e3ceec29adce7e6f1bcb07030b73a235b4b83087e735d9cd26aa69"
+          "sha256": "sha256:2de3170ef2e36b234fa2ce22be6169b8b7be9dbe457bcd0489f731d74afef621"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_lc.py",
-          "sha256": "sha256:d25dce6ff48d5e532c7f819b9f1bae7d718391fc49086e760d31d05b6d212a78"
+          "sha256": "sha256:6d77544eb26480a2776591a3690f7401bcf4d31a693af107cfad956f3235503d"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/lc_external_links.py",
-          "sha256": "sha256:69104ad8d982def292954f5618dd5fefdf2c1e0c7b335692a8b3bd0c6f0184ed"
+          "sha256": "sha256:31422d8372643e58c46d7efcde0cb10b4f556e9d7401848518e899764b939728"
         }
       ],
       "release": null,
       "resourceId": "lc-external-bncf-endpoints",
-      "rowDigest": "sha256:de152298f1c71a31203e447d4dc7e4457a834c2e1443af47bcf23f11260a1d12",
-      "rowId": "urn:ref:atlas-index-row:de152298f1c71a31203e447d4dc7e4457a834c2e1443af47bcf23f11260a1d12",
+      "rowDigest": "sha256:972a7ab893bd79f11ed81fe136c0b00f0bd4cb900a5d9a34f893f078e8032574",
+      "rowId": "urn:ref:atlas-index-row:972a7ab893bd79f11ed81fe136c0b00f0bd4cb900a5d9a34f893f078e8032574",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
@@ -1851,28 +1855,28 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_lc.py",
-          "sha256": "sha256:1e0b12309503b901a6c56380110cb85e12543e6f3e8454d9eac9476cceec810f"
+          "sha256": "sha256:0eb0ff195b36f2af28f52b71d25d30d709acf54fb2873bd46de09e642a6a8567"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_lc_external_links.py",
-          "sha256": "sha256:e7655b0761e3ceec29adce7e6f1bcb07030b73a235b4b83087e735d9cd26aa69"
+          "sha256": "sha256:2de3170ef2e36b234fa2ce22be6169b8b7be9dbe457bcd0489f731d74afef621"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_lc.py",
-          "sha256": "sha256:d25dce6ff48d5e532c7f819b9f1bae7d718391fc49086e760d31d05b6d212a78"
+          "sha256": "sha256:6d77544eb26480a2776591a3690f7401bcf4d31a693af107cfad956f3235503d"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/lc_external_links.py",
-          "sha256": "sha256:69104ad8d982def292954f5618dd5fefdf2c1e0c7b335692a8b3bd0c6f0184ed"
+          "sha256": "sha256:31422d8372643e58c46d7efcde0cb10b4f556e9d7401848518e899764b939728"
         }
       ],
       "release": null,
       "resourceId": "lc-external-bne-endpoints",
-      "rowDigest": "sha256:49adfae747a62cdd0561e66e21edf6e814fe06213425771bde94862d2383ac61",
-      "rowId": "urn:ref:atlas-index-row:49adfae747a62cdd0561e66e21edf6e814fe06213425771bde94862d2383ac61",
+      "rowDigest": "sha256:6282abd2e533148562521824a6560eb65396fc048dbe71ea55a13cbc34aeca50",
+      "rowId": "urn:ref:atlas-index-row:6282abd2e533148562521824a6560eb65396fc048dbe71ea55a13cbc34aeca50",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
@@ -1888,28 +1892,28 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_lc.py",
-          "sha256": "sha256:1e0b12309503b901a6c56380110cb85e12543e6f3e8454d9eac9476cceec810f"
+          "sha256": "sha256:0eb0ff195b36f2af28f52b71d25d30d709acf54fb2873bd46de09e642a6a8567"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_lc_external_links.py",
-          "sha256": "sha256:e7655b0761e3ceec29adce7e6f1bcb07030b73a235b4b83087e735d9cd26aa69"
+          "sha256": "sha256:2de3170ef2e36b234fa2ce22be6169b8b7be9dbe457bcd0489f731d74afef621"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_lc.py",
-          "sha256": "sha256:d25dce6ff48d5e532c7f819b9f1bae7d718391fc49086e760d31d05b6d212a78"
+          "sha256": "sha256:6d77544eb26480a2776591a3690f7401bcf4d31a693af107cfad956f3235503d"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/lc_external_links.py",
-          "sha256": "sha256:69104ad8d982def292954f5618dd5fefdf2c1e0c7b335692a8b3bd0c6f0184ed"
+          "sha256": "sha256:31422d8372643e58c46d7efcde0cb10b4f556e9d7401848518e899764b939728"
         }
       ],
       "release": null,
       "resourceId": "lc-external-fast-endpoints",
-      "rowDigest": "sha256:5f2c5902ef14da48ff77a6d31356e1ac4737377817531339967306269d452f32",
-      "rowId": "urn:ref:atlas-index-row:5f2c5902ef14da48ff77a6d31356e1ac4737377817531339967306269d452f32",
+      "rowDigest": "sha256:84a0a805a47008e3f5899d3afd798ae72b5d4d9a9e2353bc036386021d0ff44b",
+      "rowId": "urn:ref:atlas-index-row:84a0a805a47008e3f5899d3afd798ae72b5d4d9a9e2353bc036386021d0ff44b",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
@@ -1925,28 +1929,28 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_lc.py",
-          "sha256": "sha256:1e0b12309503b901a6c56380110cb85e12543e6f3e8454d9eac9476cceec810f"
+          "sha256": "sha256:0eb0ff195b36f2af28f52b71d25d30d709acf54fb2873bd46de09e642a6a8567"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_lc_external_links.py",
-          "sha256": "sha256:e7655b0761e3ceec29adce7e6f1bcb07030b73a235b4b83087e735d9cd26aa69"
+          "sha256": "sha256:2de3170ef2e36b234fa2ce22be6169b8b7be9dbe457bcd0489f731d74afef621"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_lc.py",
-          "sha256": "sha256:d25dce6ff48d5e532c7f819b9f1bae7d718391fc49086e760d31d05b6d212a78"
+          "sha256": "sha256:6d77544eb26480a2776591a3690f7401bcf4d31a693af107cfad956f3235503d"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/lc_external_links.py",
-          "sha256": "sha256:69104ad8d982def292954f5618dd5fefdf2c1e0c7b335692a8b3bd0c6f0184ed"
+          "sha256": "sha256:31422d8372643e58c46d7efcde0cb10b4f556e9d7401848518e899764b939728"
         }
       ],
       "release": null,
       "resourceId": "lc-external-getty-aat-endpoints",
-      "rowDigest": "sha256:d12048b79d1fdc19fd584e384480bb9acafad81615ba797e7de3dfae2228646f",
-      "rowId": "urn:ref:atlas-index-row:d12048b79d1fdc19fd584e384480bb9acafad81615ba797e7de3dfae2228646f",
+      "rowDigest": "sha256:619a1b400819febe64666d8ffefc6ba48c914f1c8b487ebf2eca3e7c009c95f6",
+      "rowId": "urn:ref:atlas-index-row:619a1b400819febe64666d8ffefc6ba48c914f1c8b487ebf2eca3e7c009c95f6",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
@@ -1962,28 +1966,28 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_lc.py",
-          "sha256": "sha256:1e0b12309503b901a6c56380110cb85e12543e6f3e8454d9eac9476cceec810f"
+          "sha256": "sha256:0eb0ff195b36f2af28f52b71d25d30d709acf54fb2873bd46de09e642a6a8567"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_lc_external_links.py",
-          "sha256": "sha256:e7655b0761e3ceec29adce7e6f1bcb07030b73a235b4b83087e735d9cd26aa69"
+          "sha256": "sha256:2de3170ef2e36b234fa2ce22be6169b8b7be9dbe457bcd0489f731d74afef621"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_lc.py",
-          "sha256": "sha256:d25dce6ff48d5e532c7f819b9f1bae7d718391fc49086e760d31d05b6d212a78"
+          "sha256": "sha256:6d77544eb26480a2776591a3690f7401bcf4d31a693af107cfad956f3235503d"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/lc_external_links.py",
-          "sha256": "sha256:69104ad8d982def292954f5618dd5fefdf2c1e0c7b335692a8b3bd0c6f0184ed"
+          "sha256": "sha256:31422d8372643e58c46d7efcde0cb10b4f556e9d7401848518e899764b939728"
         }
       ],
       "release": null,
       "resourceId": "lc-external-getty-ulan-endpoints",
-      "rowDigest": "sha256:43b03e867465b3a334e7ad45d86212596c0a094f1598baa02c7b53de930fedac",
-      "rowId": "urn:ref:atlas-index-row:43b03e867465b3a334e7ad45d86212596c0a094f1598baa02c7b53de930fedac",
+      "rowDigest": "sha256:e6879102ef9eb090b5f9fc7c79d2156ce1f2379cb860c13ab5023423f40ec682",
+      "rowId": "urn:ref:atlas-index-row:e6879102ef9eb090b5f9fc7c79d2156ce1f2379cb860c13ab5023423f40ec682",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
@@ -1999,28 +2003,28 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_lc.py",
-          "sha256": "sha256:1e0b12309503b901a6c56380110cb85e12543e6f3e8454d9eac9476cceec810f"
+          "sha256": "sha256:0eb0ff195b36f2af28f52b71d25d30d709acf54fb2873bd46de09e642a6a8567"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_lc_external_links.py",
-          "sha256": "sha256:e7655b0761e3ceec29adce7e6f1bcb07030b73a235b4b83087e735d9cd26aa69"
+          "sha256": "sha256:2de3170ef2e36b234fa2ce22be6169b8b7be9dbe457bcd0489f731d74afef621"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_lc.py",
-          "sha256": "sha256:d25dce6ff48d5e532c7f819b9f1bae7d718391fc49086e760d31d05b6d212a78"
+          "sha256": "sha256:6d77544eb26480a2776591a3690f7401bcf4d31a693af107cfad956f3235503d"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/lc_external_links.py",
-          "sha256": "sha256:69104ad8d982def292954f5618dd5fefdf2c1e0c7b335692a8b3bd0c6f0184ed"
+          "sha256": "sha256:31422d8372643e58c46d7efcde0cb10b4f556e9d7401848518e899764b939728"
         }
       ],
       "release": null,
       "resourceId": "lc-external-gnd-endpoints",
-      "rowDigest": "sha256:e85bf2ae0cfba4d7ecac3aeda5872c47c580faab99affe33bf4bd307b9cec34f",
-      "rowId": "urn:ref:atlas-index-row:e85bf2ae0cfba4d7ecac3aeda5872c47c580faab99affe33bf4bd307b9cec34f",
+      "rowDigest": "sha256:e0346f1a7534d6dd8362078379fe16ecff723ca06bfb00d3ffd28174c8d5744b",
+      "rowId": "urn:ref:atlas-index-row:e0346f1a7534d6dd8362078379fe16ecff723ca06bfb00d3ffd28174c8d5744b",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
@@ -2036,28 +2040,28 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_lc.py",
-          "sha256": "sha256:1e0b12309503b901a6c56380110cb85e12543e6f3e8454d9eac9476cceec810f"
+          "sha256": "sha256:0eb0ff195b36f2af28f52b71d25d30d709acf54fb2873bd46de09e642a6a8567"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_lc_external_links.py",
-          "sha256": "sha256:e7655b0761e3ceec29adce7e6f1bcb07030b73a235b4b83087e735d9cd26aa69"
+          "sha256": "sha256:2de3170ef2e36b234fa2ce22be6169b8b7be9dbe457bcd0489f731d74afef621"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_lc.py",
-          "sha256": "sha256:d25dce6ff48d5e532c7f819b9f1bae7d718391fc49086e760d31d05b6d212a78"
+          "sha256": "sha256:6d77544eb26480a2776591a3690f7401bcf4d31a693af107cfad956f3235503d"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/lc_external_links.py",
-          "sha256": "sha256:69104ad8d982def292954f5618dd5fefdf2c1e0c7b335692a8b3bd0c6f0184ed"
+          "sha256": "sha256:31422d8372643e58c46d7efcde0cb10b4f556e9d7401848518e899764b939728"
         }
       ],
       "release": null,
       "resourceId": "lc-external-homosaurus-endpoints",
-      "rowDigest": "sha256:4701838893986dbc60f7d6bc2db4fb1b1f507135abea051aa3c9ae7dde22e970",
-      "rowId": "urn:ref:atlas-index-row:4701838893986dbc60f7d6bc2db4fb1b1f507135abea051aa3c9ae7dde22e970",
+      "rowDigest": "sha256:b227919170271ddd938071a97397a08f362808edc02ca5cfbc834af544187bc6",
+      "rowId": "urn:ref:atlas-index-row:b227919170271ddd938071a97397a08f362808edc02ca5cfbc834af544187bc6",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
@@ -2073,28 +2077,28 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_lc.py",
-          "sha256": "sha256:1e0b12309503b901a6c56380110cb85e12543e6f3e8454d9eac9476cceec810f"
+          "sha256": "sha256:0eb0ff195b36f2af28f52b71d25d30d709acf54fb2873bd46de09e642a6a8567"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_lc_external_links.py",
-          "sha256": "sha256:e7655b0761e3ceec29adce7e6f1bcb07030b73a235b4b83087e735d9cd26aa69"
+          "sha256": "sha256:2de3170ef2e36b234fa2ce22be6169b8b7be9dbe457bcd0489f731d74afef621"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_lc.py",
-          "sha256": "sha256:d25dce6ff48d5e532c7f819b9f1bae7d718391fc49086e760d31d05b6d212a78"
+          "sha256": "sha256:6d77544eb26480a2776591a3690f7401bcf4d31a693af107cfad956f3235503d"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/lc_external_links.py",
-          "sha256": "sha256:69104ad8d982def292954f5618dd5fefdf2c1e0c7b335692a8b3bd0c6f0184ed"
+          "sha256": "sha256:31422d8372643e58c46d7efcde0cb10b4f556e9d7401848518e899764b939728"
         }
       ],
       "release": null,
       "resourceId": "lc-external-nalt-endpoints",
-      "rowDigest": "sha256:56a7c13368a88f4bcf49059cdd5e61c41006d9436a87d68d3fd1e29a66832a72",
-      "rowId": "urn:ref:atlas-index-row:56a7c13368a88f4bcf49059cdd5e61c41006d9436a87d68d3fd1e29a66832a72",
+      "rowDigest": "sha256:35218a376a4347f1faa90effdc43808fe4ab791401460eab8f15fd46f8027a88",
+      "rowId": "urn:ref:atlas-index-row:35218a376a4347f1faa90effdc43808fe4ab791401460eab8f15fd46f8027a88",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
@@ -2110,28 +2114,28 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_lc.py",
-          "sha256": "sha256:1e0b12309503b901a6c56380110cb85e12543e6f3e8454d9eac9476cceec810f"
+          "sha256": "sha256:0eb0ff195b36f2af28f52b71d25d30d709acf54fb2873bd46de09e642a6a8567"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_lc_external_links.py",
-          "sha256": "sha256:e7655b0761e3ceec29adce7e6f1bcb07030b73a235b4b83087e735d9cd26aa69"
+          "sha256": "sha256:2de3170ef2e36b234fa2ce22be6169b8b7be9dbe457bcd0489f731d74afef621"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_lc.py",
-          "sha256": "sha256:d25dce6ff48d5e532c7f819b9f1bae7d718391fc49086e760d31d05b6d212a78"
+          "sha256": "sha256:6d77544eb26480a2776591a3690f7401bcf4d31a693af107cfad956f3235503d"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/lc_external_links.py",
-          "sha256": "sha256:69104ad8d982def292954f5618dd5fefdf2c1e0c7b335692a8b3bd0c6f0184ed"
+          "sha256": "sha256:31422d8372643e58c46d7efcde0cb10b4f556e9d7401848518e899764b939728"
         }
       ],
       "release": null,
       "resourceId": "lc-external-ndl-names-endpoints",
-      "rowDigest": "sha256:3f7d3bad0aabbaa1d567f150a563876eb45e896c5f1abfb6400a703c1d4a0a2c",
-      "rowId": "urn:ref:atlas-index-row:3f7d3bad0aabbaa1d567f150a563876eb45e896c5f1abfb6400a703c1d4a0a2c",
+      "rowDigest": "sha256:43a5055c978b63834635ff6ca0d30418f58ef4359820da87977de52a306901e3",
+      "rowId": "urn:ref:atlas-index-row:43a5055c978b63834635ff6ca0d30418f58ef4359820da87977de52a306901e3",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
@@ -2147,28 +2151,28 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_lc.py",
-          "sha256": "sha256:1e0b12309503b901a6c56380110cb85e12543e6f3e8454d9eac9476cceec810f"
+          "sha256": "sha256:0eb0ff195b36f2af28f52b71d25d30d709acf54fb2873bd46de09e642a6a8567"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_lc_external_links.py",
-          "sha256": "sha256:e7655b0761e3ceec29adce7e6f1bcb07030b73a235b4b83087e735d9cd26aa69"
+          "sha256": "sha256:2de3170ef2e36b234fa2ce22be6169b8b7be9dbe457bcd0489f731d74afef621"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_lc.py",
-          "sha256": "sha256:d25dce6ff48d5e532c7f819b9f1bae7d718391fc49086e760d31d05b6d212a78"
+          "sha256": "sha256:6d77544eb26480a2776591a3690f7401bcf4d31a693af107cfad956f3235503d"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/lc_external_links.py",
-          "sha256": "sha256:69104ad8d982def292954f5618dd5fefdf2c1e0c7b335692a8b3bd0c6f0184ed"
+          "sha256": "sha256:31422d8372643e58c46d7efcde0cb10b4f556e9d7401848518e899764b939728"
         }
       ],
       "release": null,
       "resourceId": "lc-external-ndl-subjects-endpoints",
-      "rowDigest": "sha256:b62a551e61dd1e4c25fce277f5bbd57a5b940278c75891400f48f1f465abdd4d",
-      "rowId": "urn:ref:atlas-index-row:b62a551e61dd1e4c25fce277f5bbd57a5b940278c75891400f48f1f465abdd4d",
+      "rowDigest": "sha256:9618e583486fe9407c47351fb992d19cbf17381ca1921f742b94fca74954a4a5",
+      "rowId": "urn:ref:atlas-index-row:9618e583486fe9407c47351fb992d19cbf17381ca1921f742b94fca74954a4a5",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
@@ -2184,28 +2188,28 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_lc.py",
-          "sha256": "sha256:1e0b12309503b901a6c56380110cb85e12543e6f3e8454d9eac9476cceec810f"
+          "sha256": "sha256:0eb0ff195b36f2af28f52b71d25d30d709acf54fb2873bd46de09e642a6a8567"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_lc_external_links.py",
-          "sha256": "sha256:e7655b0761e3ceec29adce7e6f1bcb07030b73a235b4b83087e735d9cd26aa69"
+          "sha256": "sha256:2de3170ef2e36b234fa2ce22be6169b8b7be9dbe457bcd0489f731d74afef621"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_lc.py",
-          "sha256": "sha256:d25dce6ff48d5e532c7f819b9f1bae7d718391fc49086e760d31d05b6d212a78"
+          "sha256": "sha256:6d77544eb26480a2776591a3690f7401bcf4d31a693af107cfad956f3235503d"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/lc_external_links.py",
-          "sha256": "sha256:69104ad8d982def292954f5618dd5fefdf2c1e0c7b335692a8b3bd0c6f0184ed"
+          "sha256": "sha256:31422d8372643e58c46d7efcde0cb10b4f556e9d7401848518e899764b939728"
         }
       ],
       "release": null,
       "resourceId": "lc-external-periodo-lcsh-periods-endpoints",
-      "rowDigest": "sha256:c82166bb7a9b731a4607805cac96689f15860a3ef568bcc521b79c60463e3128",
-      "rowId": "urn:ref:atlas-index-row:c82166bb7a9b731a4607805cac96689f15860a3ef568bcc521b79c60463e3128",
+      "rowDigest": "sha256:b9a37679692782303b2f1feb952e5d10d3b4c5b26cc54a66565859af900de96f",
+      "rowId": "urn:ref:atlas-index-row:b9a37679692782303b2f1feb952e5d10d3b4c5b26cc54a66565859af900de96f",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
@@ -2221,28 +2225,28 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_lc.py",
-          "sha256": "sha256:1e0b12309503b901a6c56380110cb85e12543e6f3e8454d9eac9476cceec810f"
+          "sha256": "sha256:0eb0ff195b36f2af28f52b71d25d30d709acf54fb2873bd46de09e642a6a8567"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_lc_external_links.py",
-          "sha256": "sha256:e7655b0761e3ceec29adce7e6f1bcb07030b73a235b4b83087e735d9cd26aa69"
+          "sha256": "sha256:2de3170ef2e36b234fa2ce22be6169b8b7be9dbe457bcd0489f731d74afef621"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_lc.py",
-          "sha256": "sha256:d25dce6ff48d5e532c7f819b9f1bae7d718391fc49086e760d31d05b6d212a78"
+          "sha256": "sha256:6d77544eb26480a2776591a3690f7401bcf4d31a693af107cfad956f3235503d"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/lc_external_links.py",
-          "sha256": "sha256:69104ad8d982def292954f5618dd5fefdf2c1e0c7b335692a8b3bd0c6f0184ed"
+          "sha256": "sha256:31422d8372643e58c46d7efcde0cb10b4f556e9d7401848518e899764b939728"
         }
       ],
       "release": null,
       "resourceId": "lc-external-rameau-endpoints",
-      "rowDigest": "sha256:ed5dff526576bfb92bf8cee63921d4573a661fcda5b49b287d57da280c6047e0",
-      "rowId": "urn:ref:atlas-index-row:ed5dff526576bfb92bf8cee63921d4573a661fcda5b49b287d57da280c6047e0",
+      "rowDigest": "sha256:a560faa7612827ca12c6cb4df1b0d6bf34acc7efc90f07ad4804756a9ce8c536",
+      "rowId": "urn:ref:atlas-index-row:a560faa7612827ca12c6cb4df1b0d6bf34acc7efc90f07ad4804756a9ce8c536",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
@@ -2258,28 +2262,28 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_lc.py",
-          "sha256": "sha256:1e0b12309503b901a6c56380110cb85e12543e6f3e8454d9eac9476cceec810f"
+          "sha256": "sha256:0eb0ff195b36f2af28f52b71d25d30d709acf54fb2873bd46de09e642a6a8567"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_lc_external_links.py",
-          "sha256": "sha256:e7655b0761e3ceec29adce7e6f1bcb07030b73a235b4b83087e735d9cd26aa69"
+          "sha256": "sha256:2de3170ef2e36b234fa2ce22be6169b8b7be9dbe457bcd0489f731d74afef621"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_lc.py",
-          "sha256": "sha256:d25dce6ff48d5e532c7f819b9f1bae7d718391fc49086e760d31d05b6d212a78"
+          "sha256": "sha256:6d77544eb26480a2776591a3690f7401bcf4d31a693af107cfad956f3235503d"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/lc_external_links.py",
-          "sha256": "sha256:69104ad8d982def292954f5618dd5fefdf2c1e0c7b335692a8b3bd0c6f0184ed"
+          "sha256": "sha256:31422d8372643e58c46d7efcde0cb10b4f556e9d7401848518e899764b939728"
         }
       ],
       "release": null,
       "resourceId": "lc-external-wikidata-endpoints",
-      "rowDigest": "sha256:c04b01b83b86ee0e39b0720f7267ed124d1c05b497c7c5f88893f5b8b90f26cc",
-      "rowId": "urn:ref:atlas-index-row:c04b01b83b86ee0e39b0720f7267ed124d1c05b497c7c5f88893f5b8b90f26cc",
+      "rowDigest": "sha256:2afe5b75d26a20faa487f9d8209b5f523b69e220542a89d33b515ab399471686",
+      "rowId": "urn:ref:atlas-index-row:2afe5b75d26a20faa487f9d8209b5f523b69e220542a89d33b515ab399471686",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
@@ -2295,28 +2299,28 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_lc.py",
-          "sha256": "sha256:1e0b12309503b901a6c56380110cb85e12543e6f3e8454d9eac9476cceec810f"
+          "sha256": "sha256:0eb0ff195b36f2af28f52b71d25d30d709acf54fb2873bd46de09e642a6a8567"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_lc_external_links.py",
-          "sha256": "sha256:e7655b0761e3ceec29adce7e6f1bcb07030b73a235b4b83087e735d9cd26aa69"
+          "sha256": "sha256:2de3170ef2e36b234fa2ce22be6169b8b7be9dbe457bcd0489f731d74afef621"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_lc.py",
-          "sha256": "sha256:d25dce6ff48d5e532c7f819b9f1bae7d718391fc49086e760d31d05b6d212a78"
+          "sha256": "sha256:6d77544eb26480a2776591a3690f7401bcf4d31a693af107cfad956f3235503d"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/lc_external_links.py",
-          "sha256": "sha256:69104ad8d982def292954f5618dd5fefdf2c1e0c7b335692a8b3bd0c6f0184ed"
+          "sha256": "sha256:31422d8372643e58c46d7efcde0cb10b4f556e9d7401848518e899764b939728"
         }
       ],
       "release": null,
       "resourceId": "lc-external-yso-endpoints",
-      "rowDigest": "sha256:c19eadc758073d262c1394bf59d5747ae8a3aaf84a459e696623ed7ffe7435ed",
-      "rowId": "urn:ref:atlas-index-row:c19eadc758073d262c1394bf59d5747ae8a3aaf84a459e696623ed7ffe7435ed",
+      "rowDigest": "sha256:f7eb9c29656266e20cd614cd7bec4ce643324fc4a336a575586b32ae619906b1",
+      "rowId": "urn:ref:atlas-index-row:f7eb9c29656266e20cd614cd7bec4ce643324fc4a336a575586b32ae619906b1",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
@@ -2332,28 +2336,28 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_lc.py",
-          "sha256": "sha256:1e0b12309503b901a6c56380110cb85e12543e6f3e8454d9eac9476cceec810f"
+          "sha256": "sha256:0eb0ff195b36f2af28f52b71d25d30d709acf54fb2873bd46de09e642a6a8567"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_lc_external_links.py",
-          "sha256": "sha256:e7655b0761e3ceec29adce7e6f1bcb07030b73a235b4b83087e735d9cd26aa69"
+          "sha256": "sha256:2de3170ef2e36b234fa2ce22be6169b8b7be9dbe457bcd0489f731d74afef621"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_lc.py",
-          "sha256": "sha256:d25dce6ff48d5e532c7f819b9f1bae7d718391fc49086e760d31d05b6d212a78"
+          "sha256": "sha256:6d77544eb26480a2776591a3690f7401bcf4d31a693af107cfad956f3235503d"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/lc_external_links.py",
-          "sha256": "sha256:69104ad8d982def292954f5618dd5fefdf2c1e0c7b335692a8b3bd0c6f0184ed"
+          "sha256": "sha256:31422d8372643e58c46d7efcde0cb10b4f556e9d7401848518e899764b939728"
         }
       ],
       "release": null,
       "resourceId": "lcsh-external-links-mapping",
-      "rowDigest": "sha256:ebf9b269153de78d52e9559c928b622eb386cef583d6a800d2986b3fc7f2216c",
-      "rowId": "urn:ref:atlas-index-row:ebf9b269153de78d52e9559c928b622eb386cef583d6a800d2986b3fc7f2216c",
+      "rowDigest": "sha256:c7ea5bb832dc4e42d02b5a6ccef9c1c18cd0a665a659ca9d3db9e0c634e30852",
+      "rowId": "urn:ref:atlas-index-row:c7ea5bb832dc4e42d02b5a6ccef9c1c18cd0a665a659ca9d3db9e0c634e30852",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.lc_external_links"
     },
@@ -2369,12 +2373,12 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_subject.py",
-          "sha256": "sha256:c676196d082eb196659de4ddfc1ad0396fd4d0eac681634573129b3c1b116468"
+          "sha256": "sha256:9989f11d52ba4495902c903f718dafec0f8452c4440a18febf8a1872159b40e0"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_lcsh_mesh_mapping.py",
-          "sha256": "sha256:ff5ea035913ea90f7837319f0a618acfc327791faa6fd7feaa6139a4007a25d2"
+          "sha256": "sha256:3ad5b991abc7f7d457d7c92231d24471117faaa0b218ca812db9411b739aa47f"
         },
         {
           "kind": "sourceImplementation",
@@ -2389,8 +2393,8 @@
       ],
       "release": null,
       "resourceId": "northwestern-mesh-lcsh-mapping",
-      "rowDigest": "sha256:540be41b39717791e623393d1638d1c4ab84f5b83083673cd0b0480222ee443b",
-      "rowId": "urn:ref:atlas-index-row:540be41b39717791e623393d1638d1c4ab84f5b83083673cd0b0480222ee443b",
+      "rowDigest": "sha256:6824c9086f7c709a63a4d26426843ea4909436dc55bbe375f1f1dca2956b450e",
+      "rowId": "urn:ref:atlas-index-row:6824c9086f7c709a63a4d26426843ea4909436dc55bbe375f1f1dca2956b450e",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.lcsh_mesh_mapping"
     },
@@ -2407,27 +2411,27 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments.py",
-          "sha256": "sha256:84c80ee3286ef2165c0420ac698352a9151a1c2258a93632721d12f572412f23"
+          "sha256": "sha256:9e22713297ee4810e193f56eae565e8d1346ad04aedf8d0c92a20b19d5c96101"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_lc.py",
-          "sha256": "sha256:1e0b12309503b901a6c56380110cb85e12543e6f3e8454d9eac9476cceec810f"
+          "sha256": "sha256:0eb0ff195b36f2af28f52b71d25d30d709acf54fb2873bd46de09e642a6a8567"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_lcsh.py",
-          "sha256": "sha256:7d97f42456cf892e4edb43288d70eef1a08c2e84dfeee6acf789f19114ecaba0"
+          "sha256": "sha256:f99b0a3ef90c00d810aab5e7fd5a7f00fc0f64f49a42df0fc30fa5c84f1902b5"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_subject.py",
-          "sha256": "sha256:c676196d082eb196659de4ddfc1ad0396fd4d0eac681634573129b3c1b116468"
+          "sha256": "sha256:9989f11d52ba4495902c903f718dafec0f8452c4440a18febf8a1872159b40e0"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_lcsh_topical.py",
-          "sha256": "sha256:d557f6c32af5d10a71cbcf57e925f17cc4ea3d84065fa6649c20e9b44a1cd9d7"
+          "sha256": "sha256:9e5f9bc89627c83fee9a6039612d4bae6d76f5c5c5d87aeff092209dc6e5f1c6"
         },
         {
           "kind": "sourceImplementation",
@@ -2437,12 +2441,12 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_lc.py",
-          "sha256": "sha256:d25dce6ff48d5e532c7f819b9f1bae7d718391fc49086e760d31d05b6d212a78"
+          "sha256": "sha256:6d77544eb26480a2776591a3690f7401bcf4d31a693af107cfad956f3235503d"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_lcsh.py",
-          "sha256": "sha256:ab8e85981f15c3cf94c50d38bd9e8a629c9c3d37469b5d9bcf9fe35230e60d21"
+          "sha256": "sha256:0c2929fc66b49b6dc3a5c01d6cf454c730f7d1c7bcaa22fe5e601512074b3231"
         },
         {
           "kind": "sourceImplementation",
@@ -2452,13 +2456,13 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/lcsh_topical.py",
-          "sha256": "sha256:4eb98e9bfc1c08baceb333f9201fa78a6832111a609c76337ff0461270252591"
+          "sha256": "sha256:2aaf3d892315c2b0a30a8200f3c31dcd94a46e855318dbd4e5db12e5150a94f4"
         }
       ],
       "release": null,
       "resourceId": "lcsh-subjects",
-      "rowDigest": "sha256:157f2f258a8e34bccd5f072ef76b7813a29654d9040dab8b0ce7fead31e47b21",
-      "rowId": "urn:ref:atlas-index-row:157f2f258a8e34bccd5f072ef76b7813a29654d9040dab8b0ce7fead31e47b21",
+      "rowDigest": "sha256:f4154a08597cab46049227072efb58f0ea8864b710fd9881fd82a8af45959add",
+      "rowId": "urn:ref:atlas-index-row:f4154a08597cab46049227072efb58f0ea8864b710fd9881fd82a8af45959add",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.lcsh_topical"
     },
@@ -2475,18 +2479,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_lda_controlled_codes.py",
-          "sha256": "sha256:b9ab54133134363246c6dbb56768d8d15b029fc9732ae207e1ff36ad020cb1d4"
+          "sha256": "sha256:4fb5e32078293b0281e28d8246f7f0cd8cfcb8695f040b7a2fbc777496ff68a0"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/lda_controlled_codes.py",
-          "sha256": "sha256:afffb310bba9be0ed05a05d40daa8d11f657c12a39789f51f3c8447d2177afa2"
+          "sha256": "sha256:8e4086b33aa573a008bfcef9e049d33800c5b94ca1ed71db59f09db4de0cd659"
         }
       ],
       "release": null,
       "resourceId": "lda-filing-types",
-      "rowDigest": "sha256:fefbd0808d2628fadd8a577d2632f41a169904bcffa320963e2dbc7eaf00b9ca",
-      "rowId": "urn:ref:atlas-index-row:fefbd0808d2628fadd8a577d2632f41a169904bcffa320963e2dbc7eaf00b9ca",
+      "rowDigest": "sha256:81d16e619409f045464adec4b22e1c87adaef4b1ae9df35f1f923735e3b9ed61",
+      "rowId": "urn:ref:atlas-index-row:81d16e619409f045464adec4b22e1c87adaef4b1ae9df35f1f923735e3b9ed61",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.lda_controlled_codes"
     },
@@ -2503,18 +2507,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_lda_controlled_codes.py",
-          "sha256": "sha256:b9ab54133134363246c6dbb56768d8d15b029fc9732ae207e1ff36ad020cb1d4"
+          "sha256": "sha256:4fb5e32078293b0281e28d8246f7f0cd8cfcb8695f040b7a2fbc777496ff68a0"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/lda_controlled_codes.py",
-          "sha256": "sha256:afffb310bba9be0ed05a05d40daa8d11f657c12a39789f51f3c8447d2177afa2"
+          "sha256": "sha256:8e4086b33aa573a008bfcef9e049d33800c5b94ca1ed71db59f09db4de0cd659"
         }
       ],
       "release": null,
       "resourceId": "lda-general-issue-codes",
-      "rowDigest": "sha256:3c6267893158e8f9869aaadeeb36984d475da18fd0b1155946cf7cc351226f8f",
-      "rowId": "urn:ref:atlas-index-row:3c6267893158e8f9869aaadeeb36984d475da18fd0b1155946cf7cc351226f8f",
+      "rowDigest": "sha256:fdf656dfd5a8903828015be0b8cc12a96432e2e9e70a1eee971ffee8b774f5e0",
+      "rowId": "urn:ref:atlas-index-row:fdf656dfd5a8903828015be0b8cc12a96432e2e9e70a1eee971ffee8b774f5e0",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.lda_controlled_codes"
     },
@@ -2532,18 +2536,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_mesh_descriptors.py",
-          "sha256": "sha256:8328d493f4ae2bea677e9597afede72073271382ec6f36aa5e9505685a6389ac"
+          "sha256": "sha256:e86b4f0f97e9ced2a942aa7ac63f7a272f41c92adc413a5952a33580b731c5a0"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/mesh_descriptors.py",
-          "sha256": "sha256:441ade5b38c722ffae55efee3c39bf40be1d61e8838830645a386fb3c0cd8408"
+          "sha256": "sha256:619c79f78b7cc2ca11dd30b69b1170edcf8311d6cad17f7cced01a2add89a4cf"
         }
       ],
       "release": null,
       "resourceId": "mesh-descriptors",
-      "rowDigest": "sha256:0cbfe175427919e73b9a26aa49331702d72b1c939960b24df6ba9da9f2d45888",
-      "rowId": "urn:ref:atlas-index-row:0cbfe175427919e73b9a26aa49331702d72b1c939960b24df6ba9da9f2d45888",
+      "rowDigest": "sha256:d2d799cf445c0b7ddb7446b84a5e7089521854d2be86383f983b6a11542fdd5e",
+      "rowId": "urn:ref:atlas-index-row:d2d799cf445c0b7ddb7446b84a5e7089521854d2be86383f983b6a11542fdd5e",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.mesh_descriptors"
     },
@@ -2561,18 +2565,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_naics_psc_codes.py",
-          "sha256": "sha256:22e9fb58f19151010c661163035832220858e5c5e0b97ea5ec8634fc49844a46"
+          "sha256": "sha256:797b3162e526d59c4113c28ab74f0395036618f4599da25bfe5a63e18b355394"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/naics_psc_codes.py",
-          "sha256": "sha256:c1fc63ec41cb7599727625e98f3352665da4114ad54de02b64377cd14f927d07"
+          "sha256": "sha256:6620e89f52c83956c28421ce96f9e6f7c8b4fbd3c64ff04e74c8cac2553afca8"
         }
       ],
       "release": null,
       "resourceId": "naics",
-      "rowDigest": "sha256:2476787f452e65c816fcb0cc60ea7e4301cbe594ac6165886e7255cc53e59ecd",
-      "rowId": "urn:ref:atlas-index-row:2476787f452e65c816fcb0cc60ea7e4301cbe594ac6165886e7255cc53e59ecd",
+      "rowDigest": "sha256:58b115651837ce6d7fc44f3d21ec119e75ee3d6e17827e5ddda5d08fa3ccf526",
+      "rowId": "urn:ref:atlas-index-row:58b115651837ce6d7fc44f3d21ec119e75ee3d6e17827e5ddda5d08fa3ccf526",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.naics_psc_codes"
     },
@@ -2590,18 +2594,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_naics_psc_codes.py",
-          "sha256": "sha256:22e9fb58f19151010c661163035832220858e5c5e0b97ea5ec8634fc49844a46"
+          "sha256": "sha256:797b3162e526d59c4113c28ab74f0395036618f4599da25bfe5a63e18b355394"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/naics_psc_codes.py",
-          "sha256": "sha256:c1fc63ec41cb7599727625e98f3352665da4114ad54de02b64377cd14f927d07"
+          "sha256": "sha256:6620e89f52c83956c28421ce96f9e6f7c8b4fbd3c64ff04e74c8cac2553afca8"
         }
       ],
       "release": null,
       "resourceId": "psc",
-      "rowDigest": "sha256:9f92665a8c7b3e29ee23b05e3df07338f7c90345f78be10ad86dea33a0250efe",
-      "rowId": "urn:ref:atlas-index-row:9f92665a8c7b3e29ee23b05e3df07338f7c90345f78be10ad86dea33a0250efe",
+      "rowDigest": "sha256:5217e1f4f7430250134e748b2310cfc48899b6e759c030b465d411150a5e1d11",
+      "rowId": "urn:ref:atlas-index-row:5217e1f4f7430250134e748b2310cfc48899b6e759c030b465d411150a5e1d11",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.naics_psc_codes"
     },
@@ -2618,18 +2622,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_nasa_technology_taxonomy.py",
-          "sha256": "sha256:ddf3e19abf3952857ba134f839e63bac82fd4ba3d40ce5a7582acebdecb7eb39"
+          "sha256": "sha256:4ba9729c6ee897804d984ed51e90d509e67270164d4a3e18708d13485db5950f"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/nasa_technology_taxonomy.py",
-          "sha256": "sha256:715ab2230890567f6a67ae65a732f171e506888242d5fe1b3cb0c08396b0c706"
+          "sha256": "sha256:4afe603fcb854d38251f6a325a58a27cfcfb9986c69a6026c8fe431ec36c85bf"
         }
       ],
       "release": null,
       "resourceId": "nasa-technology-taxonomy",
-      "rowDigest": "sha256:b4e8e4893221f1922af1c16dae072f4e744a5db0d7ec07de136a1b6c6cb10aa3",
-      "rowId": "urn:ref:atlas-index-row:b4e8e4893221f1922af1c16dae072f4e744a5db0d7ec07de136a1b6c6cb10aa3",
+      "rowDigest": "sha256:d8e1ba7ef9e20d03c27355444553dda8ffb2267cf9990ab0aac8f40e34c41607",
+      "rowId": "urn:ref:atlas-index-row:d8e1ba7ef9e20d03c27355444553dda8ffb2267cf9990ab0aac8f40e34c41607",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.nasa_technology_taxonomy"
     },
@@ -2647,18 +2651,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_nasa_thesaurus.py",
-          "sha256": "sha256:e6f389d9f056ae9ab780f8317326a01fb9c3b56a6ebb1f3f0ffe3d5c6be7d455"
+          "sha256": "sha256:93af2c7202c3e131aeca429ed9d7ce9aa94bb61af34eaf3ab356e3f27bf8c911"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/nasa_thesaurus.py",
-          "sha256": "sha256:8de0022c39fac8583b2a3e7dd2f270f78c0c1f7d6be8844d740d40a62de25d5b"
+          "sha256": "sha256:1aaeb7bff3f3af65cda325089d62e60196db3ef83c5931981974583288f6a62b"
         }
       ],
       "release": null,
       "resourceId": "nasa-thesaurus",
-      "rowDigest": "sha256:97c183a0f2d7d4b1b891c222a9c0673c3d63df953078850eda10ec3c62579a2b",
-      "rowId": "urn:ref:atlas-index-row:97c183a0f2d7d4b1b891c222a9c0673c3d63df953078850eda10ec3c62579a2b",
+      "rowDigest": "sha256:5b66b68bcd4a3c8f74c321bb081869afa0e375e7fbfc0938f207743b9a3f30c3",
+      "rowId": "urn:ref:atlas-index-row:5b66b68bcd4a3c8f74c321bb081869afa0e375e7fbfc0938f207743b9a3f30c3",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.nasa_thesaurus"
     },
@@ -2675,7 +2679,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_nature_of_suit_codes.py",
-          "sha256": "sha256:51e9a10c7841a8f062aa5ccaadf274e9d0d09d2a34cd80fbc9edeb0a6bae7065"
+          "sha256": "sha256:a6578e6e22f585fe30a1b825ad115c64ddac35911221dffd53e33e88a537db4d"
         },
         {
           "kind": "sourceImplementation",
@@ -2685,8 +2689,8 @@
       ],
       "release": null,
       "resourceId": "nature-of-suit",
-      "rowDigest": "sha256:05524d0b6f44c63841e00730ccf24c574e190d7cc5991e6ab688ea27f1cdfa03",
-      "rowId": "urn:ref:atlas-index-row:05524d0b6f44c63841e00730ccf24c574e190d7cc5991e6ab688ea27f1cdfa03",
+      "rowDigest": "sha256:aaf0f8e53381a92e28e2597fe816557cbe937457d4466464965e6f6a509dc800",
+      "rowId": "urn:ref:atlas-index-row:aaf0f8e53381a92e28e2597fe816557cbe937457d4466464965e6f6a509dc800",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.nature_of_suit_codes"
     },
@@ -2703,7 +2707,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_nppes_npi_identifiers.py",
-          "sha256": "sha256:96f141ada2a8939305d097ca004ebd912573ffb8419c6e6c29bdf7232439070b"
+          "sha256": "sha256:fb060b1b9f5e948006de0c0400996cf17ee17e65252ba77820d3f20c837ed526"
         },
         {
           "kind": "sourceImplementation",
@@ -2713,8 +2717,8 @@
       ],
       "release": null,
       "resourceId": "cms-certification-number-authority",
-      "rowDigest": "sha256:4b42de12f914244586095c3ba99e9870078696848fe6c6674a923a7bb1433769",
-      "rowId": "urn:ref:atlas-index-row:4b42de12f914244586095c3ba99e9870078696848fe6c6674a923a7bb1433769",
+      "rowDigest": "sha256:0b561f75566cfb88a9e974701030e9c0da55371bc65b32bbab9471f342da2a33",
+      "rowId": "urn:ref:atlas-index-row:0b561f75566cfb88a9e974701030e9c0da55371bc65b32bbab9471f342da2a33",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.nppes_npi_identifiers"
     },
@@ -2731,7 +2735,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_nppes_npi_identifiers.py",
-          "sha256": "sha256:96f141ada2a8939305d097ca004ebd912573ffb8419c6e6c29bdf7232439070b"
+          "sha256": "sha256:fb060b1b9f5e948006de0c0400996cf17ee17e65252ba77820d3f20c837ed526"
         },
         {
           "kind": "sourceImplementation",
@@ -2741,8 +2745,8 @@
       ],
       "release": null,
       "resourceId": "nppes-data-dissemination-layout",
-      "rowDigest": "sha256:3f68479358a6aab1025563ebda6a916c5f5a6b61fbda5f8f571bbef2d5da7bfe",
-      "rowId": "urn:ref:atlas-index-row:3f68479358a6aab1025563ebda6a916c5f5a6b61fbda5f8f571bbef2d5da7bfe",
+      "rowDigest": "sha256:a47aa099b9835c9efe9ac0083441c0659d6a3d22bc27a4117b1014e897555cbc",
+      "rowId": "urn:ref:atlas-index-row:a47aa099b9835c9efe9ac0083441c0659d6a3d22bc27a4117b1014e897555cbc",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.nppes_npi_identifiers"
     },
@@ -2759,7 +2763,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_nppes_npi_identifiers.py",
-          "sha256": "sha256:96f141ada2a8939305d097ca004ebd912573ffb8419c6e6c29bdf7232439070b"
+          "sha256": "sha256:fb060b1b9f5e948006de0c0400996cf17ee17e65252ba77820d3f20c837ed526"
         },
         {
           "kind": "sourceImplementation",
@@ -2769,8 +2773,8 @@
       ],
       "release": null,
       "resourceId": "nppes-npi-authority",
-      "rowDigest": "sha256:5374b0887451bed76e0b8dc4c6092929f3b1bc45dc533742500de948cf294111",
-      "rowId": "urn:ref:atlas-index-row:5374b0887451bed76e0b8dc4c6092929f3b1bc45dc533742500de948cf294111",
+      "rowDigest": "sha256:a34126b559e9abc42df222112898ed2702145ffea2f49bb5664f776d55b9686a",
+      "rowId": "urn:ref:atlas-index-row:a34126b559e9abc42df222112898ed2702145ffea2f49bb5664f776d55b9686a",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.nppes_npi_identifiers"
     },
@@ -2787,18 +2791,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_nrc_adams_aps_docs.py",
-          "sha256": "sha256:a3adbf7b4641490e9940dab9d37492474d023dc1b5c26220e5252f53ba0a20f5"
+          "sha256": "sha256:0c35f496ca627403a4f0810d2707cdebe0808b1c7562dacffd10bbdfe79f946a"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/nrc_adams_aps_docs.py",
-          "sha256": "sha256:42349eff955126eed3fb9421825c0ae8da7564d14a834eef459ffd61911a171f"
+          "sha256": "sha256:be540d39773f4dda7847cf09dd432e30cf7c86cf3fb89169a861774c948e3705"
         }
       ],
       "release": null,
       "resourceId": "nrc-adams-identifiers",
-      "rowDigest": "sha256:94f3ddde324ec380dcbfe735aab0c8e4eea4de2ad1a6bdd4863e4d9d1033d5f3",
-      "rowId": "urn:ref:atlas-index-row:94f3ddde324ec380dcbfe735aab0c8e4eea4de2ad1a6bdd4863e4d9d1033d5f3",
+      "rowDigest": "sha256:1d76f97657c7687c4fdbaa27014559803d947f46ac46e9f9f0bd3a3909c5d5e9",
+      "rowId": "urn:ref:atlas-index-row:1d76f97657c7687c4fdbaa27014559803d947f46ac46e9f9f0bd3a3909c5d5e9",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.nrc_adams_aps_docs"
     },
@@ -2815,18 +2819,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_nrc_adams_aps_docs.py",
-          "sha256": "sha256:a3adbf7b4641490e9940dab9d37492474d023dc1b5c26220e5252f53ba0a20f5"
+          "sha256": "sha256:0c35f496ca627403a4f0810d2707cdebe0808b1c7562dacffd10bbdfe79f946a"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/nrc_adams_aps_docs.py",
-          "sha256": "sha256:42349eff955126eed3fb9421825c0ae8da7564d14a834eef459ffd61911a171f"
+          "sha256": "sha256:be540d39773f4dda7847cf09dd432e30cf7c86cf3fb89169a861774c948e3705"
         }
       ],
       "release": null,
       "resourceId": "nrc-adams-native-controls",
-      "rowDigest": "sha256:fabed9c38d65b4ec023a16a3695b57604778dc783ab036f476cde1bb3a8e740b",
-      "rowId": "urn:ref:atlas-index-row:fabed9c38d65b4ec023a16a3695b57604778dc783ab036f476cde1bb3a8e740b",
+      "rowDigest": "sha256:604f91783932bfc559717f0e5254d662e40e0e6263ea76a8de58cd1c02f5e48a",
+      "rowId": "urn:ref:atlas-index-row:604f91783932bfc559717f0e5254d662e40e0e6263ea76a8de58cd1c02f5e48a",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.nrc_adams_aps_docs"
     },
@@ -2842,17 +2846,17 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_bulk.py",
-          "sha256": "sha256:cc5007dc54e7b9e5204831cccd79605c33018f5b0407c0b281ad5641a20203f2"
+          "sha256": "sha256:d85d40da9610a25be3c50563fef6a12dda9e53336b5e821b44f5e953843313b0"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_oclc_fast_external_links.py",
-          "sha256": "sha256:af785ad9ecc9a16709b7296ccedd609443b7953dc953585f07b9a5dd32ed8e9b"
+          "sha256": "sha256:e87120f0ecb7972502f7ca5294d9d38c29a1f4a094143dc828d09f1a7de19001"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_bulk.py",
-          "sha256": "sha256:9684c27727ef7262171365f7bd3af71e8b528c98ef46129bef46a5aa2b6858f9"
+          "sha256": "sha256:d98b3488cc2eb74cad386db7262a5f1676b1221502a97566072709e5a68a757c"
         },
         {
           "kind": "sourceImplementation",
@@ -2862,8 +2866,8 @@
       ],
       "release": null,
       "resourceId": "fast-bulk-external-links-delta",
-      "rowDigest": "sha256:f9a9ec7275b04cd642f8a5a15a3cd59a03ba0a0dad54af945d02d4809364a24b",
-      "rowId": "urn:ref:atlas-index-row:f9a9ec7275b04cd642f8a5a15a3cd59a03ba0a0dad54af945d02d4809364a24b",
+      "rowDigest": "sha256:1374e6cb7458d246aaca3da9d3c9fa6e1f57f51b86d6d6f2090808379673133c",
+      "rowId": "urn:ref:atlas-index-row:1374e6cb7458d246aaca3da9d3c9fa6e1f57f51b86d6d6f2090808379673133c",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.oclc_fast_external_links"
     },
@@ -2880,17 +2884,17 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_bulk.py",
-          "sha256": "sha256:cc5007dc54e7b9e5204831cccd79605c33018f5b0407c0b281ad5641a20203f2"
+          "sha256": "sha256:d85d40da9610a25be3c50563fef6a12dda9e53336b5e821b44f5e953843313b0"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_oclc_fast_external_links.py",
-          "sha256": "sha256:af785ad9ecc9a16709b7296ccedd609443b7953dc953585f07b9a5dd32ed8e9b"
+          "sha256": "sha256:e87120f0ecb7972502f7ca5294d9d38c29a1f4a094143dc828d09f1a7de19001"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_bulk.py",
-          "sha256": "sha256:9684c27727ef7262171365f7bd3af71e8b528c98ef46129bef46a5aa2b6858f9"
+          "sha256": "sha256:d98b3488cc2eb74cad386db7262a5f1676b1221502a97566072709e5a68a757c"
         },
         {
           "kind": "sourceImplementation",
@@ -2900,8 +2904,8 @@
       ],
       "release": null,
       "resourceId": "fast-bulk-see-also-endpoints",
-      "rowDigest": "sha256:3dc332c6a331529bd6cab6fbdc05c2b57e756a687d66447cf98d3442c4df7d6f",
-      "rowId": "urn:ref:atlas-index-row:3dc332c6a331529bd6cab6fbdc05c2b57e756a687d66447cf98d3442c4df7d6f",
+      "rowDigest": "sha256:05a02c509221facc34287dae8b94f68cf6a1e24e856aea07ececc651e293e573",
+      "rowId": "urn:ref:atlas-index-row:05a02c509221facc34287dae8b94f68cf6a1e24e856aea07ececc651e293e573",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.oclc_fast_external_links"
     },
@@ -2918,18 +2922,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_oira_review_codes.py",
-          "sha256": "sha256:780a26ce2fb7f797df8ba2c53975dd092a6a166632e7de4805ceb6bda847df61"
+          "sha256": "sha256:f6ae463714f792c98cf3a09711f562fef15e85311b3ccbbb71b88ff7f4579ec5"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/oira_review_codes.py",
-          "sha256": "sha256:a61e8434fcb965c76bc1367e97b5bbd68192a697023af6d0d073d65d87081b68"
+          "sha256": "sha256:1338758231f378f46efccc9ff85a5c8a9a631f0c7dac15164442daa6d0f72dc5"
         }
       ],
       "release": null,
       "resourceId": "oira-review-native-controls",
-      "rowDigest": "sha256:15a95e9a88803806599dfc0972a093f7b83e611cd58e2e9fb4f9f24abfb4d89f",
-      "rowId": "urn:ref:atlas-index-row:15a95e9a88803806599dfc0972a093f7b83e611cd58e2e9fb4f9f24abfb4d89f",
+      "rowDigest": "sha256:eefc0292b7225d573c4e0e4418cefc95567705f81a00772c1f84b609cd5504da",
+      "rowId": "urn:ref:atlas-index-row:eefc0292b7225d573c4e0e4418cefc95567705f81a00772c1f84b609cd5504da",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.oira_review_codes"
     },
@@ -2946,7 +2950,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_omb_a11_budget_codes.py",
-          "sha256": "sha256:6cfd551ac47b98786c0f7d0cafbd27a6d758a48d5ce9c075772909f228461328"
+          "sha256": "sha256:5f6b8e70d155da9da17a47a5e13f1ee507baa515dbf912a42981d69c79f8ffbf"
         },
         {
           "kind": "sourceImplementation",
@@ -2956,8 +2960,8 @@
       ],
       "release": null,
       "resourceId": "omb-a11-budget-codes",
-      "rowDigest": "sha256:1506ea4c27dcf1d5e6deef829b138900aacf17ae6082e82d20411186c2b13995",
-      "rowId": "urn:ref:atlas-index-row:1506ea4c27dcf1d5e6deef829b138900aacf17ae6082e82d20411186c2b13995",
+      "rowDigest": "sha256:c7196deb0f0fe66ebba1bc954a035a06c091c86ff94a878848c79772cbb82b11",
+      "rowId": "urn:ref:atlas-index-row:c7196deb0f0fe66ebba1bc954a035a06c091c86ff94a878848c79772cbb82b11",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.omb_a11_budget_codes"
     },
@@ -2974,18 +2978,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_opm_workforce_codes.py",
-          "sha256": "sha256:7762bc98e358a33ee7ef83a7d937cfc3b401a34e58c08f6c623c9559dfa320fc"
+          "sha256": "sha256:dc9bfbbedae39a9247d4ca6ae6e2afd855048778f08c4abe5c89175a2a36696a"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/opm_workforce_codes.py",
-          "sha256": "sha256:0138eec08d9ff9fe864e97f351ee9df10de03588bb040043e5c66ce01f114b9d"
+          "sha256": "sha256:9519bfbd5ab802d40da5a92ca8f02a0e5ad902ba4afb4cb3a53b72749573b05f"
         }
       ],
       "release": null,
       "resourceId": "opm-ehri-workforce-codes",
-      "rowDigest": "sha256:b0d53bfd355102c90f624d70be730e183bb546b3ec826cdec503f7cc3ac79b29",
-      "rowId": "urn:ref:atlas-index-row:b0d53bfd355102c90f624d70be730e183bb546b3ec826cdec503f7cc3ac79b29",
+      "rowDigest": "sha256:1df52548ba1a272e335f89fed9b9fc8720425b6f794f2ed4c7bfec7efb6aada7",
+      "rowId": "urn:ref:atlas-index-row:1df52548ba1a272e335f89fed9b9fc8720425b6f794f2ed4c7bfec7efb6aada7",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.opm_workforce_codes"
     },
@@ -3002,18 +3006,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_opm_workforce_codes.py",
-          "sha256": "sha256:7762bc98e358a33ee7ef83a7d937cfc3b401a34e58c08f6c623c9559dfa320fc"
+          "sha256": "sha256:dc9bfbbedae39a9247d4ca6ae6e2afd855048778f08c4abe5c89175a2a36696a"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/opm_workforce_codes.py",
-          "sha256": "sha256:0138eec08d9ff9fe864e97f351ee9df10de03588bb040043e5c66ce01f114b9d"
+          "sha256": "sha256:9519bfbd5ab802d40da5a92ca8f02a0e5ad902ba4afb4cb3a53b72749573b05f"
         }
       ],
       "release": null,
       "resourceId": "opm-ehri-workforce-codes",
-      "rowDigest": "sha256:6a2fa4f286798e73b955c17e9e552234a837229f106c9486dcec7f474ba7ec83",
-      "rowId": "urn:ref:atlas-index-row:6a2fa4f286798e73b955c17e9e552234a837229f106c9486dcec7f474ba7ec83",
+      "rowDigest": "sha256:d27c5b3aa55f0d08e709ab1b5234a38bdcf5cebcb55d208aa8d3a979b07f7392",
+      "rowId": "urn:ref:atlas-index-row:d27c5b3aa55f0d08e709ab1b5234a38bdcf5cebcb55d208aa8d3a979b07f7392",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.opm_workforce_codes"
     },
@@ -3030,18 +3034,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_opm_workforce_codes.py",
-          "sha256": "sha256:7762bc98e358a33ee7ef83a7d937cfc3b401a34e58c08f6c623c9559dfa320fc"
+          "sha256": "sha256:dc9bfbbedae39a9247d4ca6ae6e2afd855048778f08c4abe5c89175a2a36696a"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/opm_workforce_codes.py",
-          "sha256": "sha256:0138eec08d9ff9fe864e97f351ee9df10de03588bb040043e5c66ce01f114b9d"
+          "sha256": "sha256:9519bfbd5ab802d40da5a92ca8f02a0e5ad902ba4afb4cb3a53b72749573b05f"
         }
       ],
       "release": null,
       "resourceId": "opm-plum-position-status-codes",
-      "rowDigest": "sha256:6249fce3646155fbb8b3ec69389c110337715270786951fe4e507c2a82fa23eb",
-      "rowId": "urn:ref:atlas-index-row:6249fce3646155fbb8b3ec69389c110337715270786951fe4e507c2a82fa23eb",
+      "rowDigest": "sha256:fdcffdae135245be327192cb2e63d12f7a7e47f8b464387851649000115bc444",
+      "rowId": "urn:ref:atlas-index-row:fdcffdae135245be327192cb2e63d12f7a7e47f8b464387851649000115bc444",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.opm_workforce_codes"
     },
@@ -3058,18 +3062,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_oversight_report_types.py",
-          "sha256": "sha256:3003595b5e613f00df4959d14e44c2133c6827ba1e43518b09743891836ee3bd"
+          "sha256": "sha256:c745744caa3409736f77285d398282b73944961fdf9c2c14acfe825ab4550e4a"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/oversight_report_types.py",
-          "sha256": "sha256:687d9b88c8560647ccb3226c60d7089fbd9f38b55ed1e258cede1e341fe820a3"
+          "sha256": "sha256:92966ee1491b118017b7fd573049d9f629d2a8e0d3f520e998d18f5efab03d60"
         }
       ],
       "release": null,
       "resourceId": "oversight-report-types",
-      "rowDigest": "sha256:4c4626f79b090da6b5beae5e823bd79a4eb4728948ad6b603e9522ab0c82f50e",
-      "rowId": "urn:ref:atlas-index-row:4c4626f79b090da6b5beae5e823bd79a4eb4728948ad6b603e9522ab0c82f50e",
+      "rowDigest": "sha256:d37346bfbd8e55e5eef5c70f505f43b037ac1959b19e3f4962beedeb9a04688c",
+      "rowId": "urn:ref:atlas-index-row:d37346bfbd8e55e5eef5c70f505f43b037ac1959b19e3f4962beedeb9a04688c",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.oversight_report_types"
     },
@@ -3086,18 +3090,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_pra_icr_codes.py",
-          "sha256": "sha256:d094955da86d1a69ddc97fb2338e31de229272d4dda596364d409a229f40fb37"
+          "sha256": "sha256:2375378e6bc84e876d660bd80d62a0398c494a87fc8769130233e12940046e07"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/pra_icr_codes.py",
-          "sha256": "sha256:82ff096a9e633994fee450921878640b8beb8c547fa4aba90593d1dcd98385bb"
+          "sha256": "sha256:7fccdc645c3cc10dbe1739880400afcbafe4d4397f39c5fda28a6e8afbc7f0d8"
         }
       ],
       "release": null,
       "resourceId": "pra-icr-native-controls",
-      "rowDigest": "sha256:ce5be5ab3e59d27d6e9ca2b333cd2034819ce24ae8ae874569a681a0b63a186c",
-      "rowId": "urn:ref:atlas-index-row:ce5be5ab3e59d27d6e9ca2b333cd2034819ce24ae8ae874569a681a0b63a186c",
+      "rowDigest": "sha256:ae9d9753525eea750e049919665df9db5d76a45d7759c8120a1ea5f119609b2b",
+      "rowId": "urn:ref:atlas-index-row:ae9d9753525eea750e049919665df9db5d76a45d7759c8120a1ea5f119609b2b",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.pra_icr_codes"
     },
@@ -3114,7 +3118,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_entity.py",
-          "sha256": "sha256:f5327bee2fa6d74f31603e03a87ded62068261c49947dac66aba0519e0fcc210"
+          "sha256": "sha256:e3f1d5e6b2af972ad51bd9d794be660468f08d30fd7459015c8270968e7bac52"
         },
         {
           "kind": "sourceImplementation",
@@ -3129,8 +3133,8 @@
       ],
       "release": null,
       "resourceId": "regulations-gov-agency-identity",
-      "rowDigest": "sha256:19261f7b12fb7ccf79adf359eda4ad3236e74dd041bdaa2fc678403437da528a",
-      "rowId": "urn:ref:atlas-index-row:19261f7b12fb7ccf79adf359eda4ad3236e74dd041bdaa2fc678403437da528a",
+      "rowDigest": "sha256:52944b1aa7ec304a9363201c51369bfce0a5d86bc75eeaef41a38ce9880935ba",
+      "rowId": "urn:ref:atlas-index-row:52944b1aa7ec304a9363201c51369bfce0a5d86bc75eeaef41a38ce9880935ba",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.regulations_gov_agencies"
     },
@@ -3147,28 +3151,28 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_rosters.py",
-          "sha256": "sha256:c144cdf7651cdc4ccfbfa5c1605769b955cda0cb54005038f1aa692b818d1728"
+          "sha256": "sha256:7995bf5f7f35bfd982a399bafbc562223630b84603dc4052bbab3c0243f67474"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_regulations_gov_agencies.py",
-          "sha256": "sha256:46353db46962a3ca8fd4d7d4cd8eeab2471be788ecddf9248d1be08761daabf4"
+          "sha256": "sha256:43558d06d35d445d9545962841da5d29babc798adb7c09fc9d20111a68790a9d"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_rosters.py",
-          "sha256": "sha256:80f737ff918f259f07e32e19a68d423b3f33bd73796c7bb42583c34ccb35351b"
+          "sha256": "sha256:2cf90731334fb1d93318477d61a5a0487dc8888bed6307514ef06d5cde62d315"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/regulations_gov_agencies.py",
-          "sha256": "sha256:b8ffb99726508caff6f91aa0eb73b9f68dfb7711fb4cc9087c0a534812318cb2"
+          "sha256": "sha256:a306b2220e33f4eaf29ba68272e57d9e801f9201b75c1730d01b31675b2a4590"
         }
       ],
       "release": null,
       "resourceId": "regulations-gov-native-controls",
-      "rowDigest": "sha256:10abe7aaf3e84de32c9ca57672f41ab5b7215d48f9cb485d07531c2540bbd8a9",
-      "rowId": "urn:ref:atlas-index-row:10abe7aaf3e84de32c9ca57672f41ab5b7215d48f9cb485d07531c2540bbd8a9",
+      "rowDigest": "sha256:4997915ca2f2ce2337d37cb15456585ac4b2f332d1d615d2c43794f41ee44e7a",
+      "rowId": "urn:ref:atlas-index-row:4997915ca2f2ce2337d37cb15456585ac4b2f332d1d615d2c43794f41ee44e7a",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.regulations_gov_agencies"
     },
@@ -3185,7 +3189,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_regulations_gov_codes.py",
-          "sha256": "sha256:5062f58e59a4e05a4d031435781703aa47139fd44c4e13d0f6d29c7205ee6dfd"
+          "sha256": "sha256:05c48ab648b5c77054d03f754b0e9208128a916f78d978259322ff661adbade5"
         },
         {
           "kind": "sourceImplementation",
@@ -3195,8 +3199,8 @@
       ],
       "release": null,
       "resourceId": "regulations-gov-native-controls",
-      "rowDigest": "sha256:859177baf62327109cd25a02cffef6dd37510576960aab08bc7590ead73f33dc",
-      "rowId": "urn:ref:atlas-index-row:859177baf62327109cd25a02cffef6dd37510576960aab08bc7590ead73f33dc",
+      "rowDigest": "sha256:443f90b9b5b7b9d85f57f329019ea98ace205396f92e519b81ebb88781cdd77f",
+      "rowId": "urn:ref:atlas-index-row:443f90b9b5b7b9d85f57f329019ea98ace205396f92e519b81ebb88781cdd77f",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.regulations_gov_codes"
     },
@@ -3213,18 +3217,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_sam_assistance_listing_codes.py",
-          "sha256": "sha256:8ec8f45fd4e9c45538ec711477f1ec460ee2f08b81c9c03b15c3c1238bf7da47"
+          "sha256": "sha256:9888d00487e2d0dfdad2ab2288f45aac679f7ce0afcb4fd540a3e1bc019769d2"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/sam_assistance_listing_codes.py",
-          "sha256": "sha256:740917e84b5394535168f5eaf6330c452c8c9ec0b1f9463c425626e950054f9b"
+          "sha256": "sha256:188a1914ed81e5c93f15c39a2a2a325ec448b80ce4eb904969ad567e39aaeb4e"
         }
       ],
       "release": null,
       "resourceId": "sam-assistance-listing-controls",
-      "rowDigest": "sha256:e6c9d41aa177279ef05fa3b502fb023748bca153d5ae187662cd0fdc8ea57c84",
-      "rowId": "urn:ref:atlas-index-row:e6c9d41aa177279ef05fa3b502fb023748bca153d5ae187662cd0fdc8ea57c84",
+      "rowDigest": "sha256:e9dae975aec832b65d5640cc224b02c70e015af2e119c03a1a89d56bfe9bf198",
+      "rowId": "urn:ref:atlas-index-row:e9dae975aec832b65d5640cc224b02c70e015af2e119c03a1a89d56bfe9bf198",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.sam_assistance_listing_codes"
     },
@@ -3241,18 +3245,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_sam_assistance_listing_codes.py",
-          "sha256": "sha256:8ec8f45fd4e9c45538ec711477f1ec460ee2f08b81c9c03b15c3c1238bf7da47"
+          "sha256": "sha256:9888d00487e2d0dfdad2ab2288f45aac679f7ce0afcb4fd540a3e1bc019769d2"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/sam_assistance_listing_codes.py",
-          "sha256": "sha256:740917e84b5394535168f5eaf6330c452c8c9ec0b1f9463c425626e950054f9b"
+          "sha256": "sha256:188a1914ed81e5c93f15c39a2a2a325ec448b80ce4eb904969ad567e39aaeb4e"
         }
       ],
       "release": null,
       "resourceId": "sam-assistance-listing-controls",
-      "rowDigest": "sha256:4ad09c6b5ced7bad47656982452d7868f9998aaff49b604599a2c1d60be3d14c",
-      "rowId": "urn:ref:atlas-index-row:4ad09c6b5ced7bad47656982452d7868f9998aaff49b604599a2c1d60be3d14c",
+      "rowDigest": "sha256:8819a716f713e6a4db47e9ca9360691abb06ce8d42e8f429dc6e5f0e6e67170f",
+      "rowId": "urn:ref:atlas-index-row:8819a716f713e6a4db47e9ca9360691abb06ce8d42e8f429dc6e5f0e6e67170f",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.sam_assistance_listing_codes"
     },
@@ -3269,18 +3273,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_sam_opportunities_codes.py",
-          "sha256": "sha256:dd428eedf984853e5dda494cbddd47e97ca70a5cb9ca2ec35798e0935ccf2cd7"
+          "sha256": "sha256:e5e957742a892e28a627da79a95ffb754d07a6f9cf0c8f52accf50285b1ce9a4"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/sam_opportunities_codes.py",
-          "sha256": "sha256:2cd65133b226f7719040183f266c48eca0f203208183e9065ebe0cce7252a4e1"
+          "sha256": "sha256:4d787bc543614bc3447aaa8f644ba099cf709cf857fda7cdb9cfa2a40d716083"
         }
       ],
       "release": null,
       "resourceId": "sam-opportunities-native-controls",
-      "rowDigest": "sha256:91f0c22b2bb47c298cd7b15b37891bb100e47940bf5535b30a58891a5bffe4eb",
-      "rowId": "urn:ref:atlas-index-row:91f0c22b2bb47c298cd7b15b37891bb100e47940bf5535b30a58891a5bffe4eb",
+      "rowDigest": "sha256:68e22d17a3290d0a20ef26aea74ee20146094b35bfe9056aa7d81d1a8fb982bd",
+      "rowId": "urn:ref:atlas-index-row:68e22d17a3290d0a20ef26aea74ee20146094b35bfe9056aa7d81d1a8fb982bd",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.sam_opportunities_codes"
     },
@@ -3297,18 +3301,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_sam_opportunities_codes.py",
-          "sha256": "sha256:dd428eedf984853e5dda494cbddd47e97ca70a5cb9ca2ec35798e0935ccf2cd7"
+          "sha256": "sha256:e5e957742a892e28a627da79a95ffb754d07a6f9cf0c8f52accf50285b1ce9a4"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/sam_opportunities_codes.py",
-          "sha256": "sha256:2cd65133b226f7719040183f266c48eca0f203208183e9065ebe0cce7252a4e1"
+          "sha256": "sha256:4d787bc543614bc3447aaa8f644ba099cf709cf857fda7cdb9cfa2a40d716083"
         }
       ],
       "release": null,
       "resourceId": "sam-opportunities-native-controls",
-      "rowDigest": "sha256:5c0a957ca9710c2ca5cdcff437403a729ad04a82673ef5149d9f42f65e63bfec",
-      "rowId": "urn:ref:atlas-index-row:5c0a957ca9710c2ca5cdcff437403a729ad04a82673ef5149d9f42f65e63bfec",
+      "rowDigest": "sha256:6c0ac42dd5df7dfbaf543b9fcc27677a1613d68495d54c4b2e0598dbe51b1380",
+      "rowId": "urn:ref:atlas-index-row:6c0ac42dd5df7dfbaf543b9fcc27677a1613d68495d54c4b2e0598dbe51b1380",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.sam_opportunities_codes"
     },
@@ -3325,18 +3329,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_treasury_tas_fast_book.py",
-          "sha256": "sha256:389443b966a75322bfe70f3331562ee4d9df7ba78515e57a8b9c86ea1aba36e6"
+          "sha256": "sha256:d7fe0d6c9b58f8d149b98728cd1dbfc7271126c54bc67c0fe16247f7b8d2f853"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/treasury_tas_fast_book.py",
-          "sha256": "sha256:83f6f9352892ece0169af8b4e639370a324aca52cb073f728e6de32cf2de5977"
+          "sha256": "sha256:bf4e58a6ec765e40f01b0db4f42d54cdf8ef3982d60064baa95c04d5d93126d4"
         }
       ],
       "release": null,
       "resourceId": "treasury-account-symbol-structure",
-      "rowDigest": "sha256:c222e7e27567490653068c97cff8cb0dc2581738dcd6e90aebef671e0bec10aa",
-      "rowId": "urn:ref:atlas-index-row:c222e7e27567490653068c97cff8cb0dc2581738dcd6e90aebef671e0bec10aa",
+      "rowDigest": "sha256:d6354d6dc1965dd378e69a3d2c03ce42a3f60c6c713c68a245eb0c18317ba19f",
+      "rowId": "urn:ref:atlas-index-row:d6354d6dc1965dd378e69a3d2c03ce42a3f60c6c713c68a245eb0c18317ba19f",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.treasury_tas_fast_book"
     },
@@ -3353,18 +3357,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_treasury_tas_fast_book.py",
-          "sha256": "sha256:389443b966a75322bfe70f3331562ee4d9df7ba78515e57a8b9c86ea1aba36e6"
+          "sha256": "sha256:d7fe0d6c9b58f8d149b98728cd1dbfc7271126c54bc67c0fe16247f7b8d2f853"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/treasury_tas_fast_book.py",
-          "sha256": "sha256:83f6f9352892ece0169af8b4e639370a324aca52cb073f728e6de32cf2de5977"
+          "sha256": "sha256:bf4e58a6ec765e40f01b0db4f42d54cdf8ef3982d60064baa95c04d5d93126d4"
         }
       ],
       "release": null,
       "resourceId": "treasury-fast-book",
-      "rowDigest": "sha256:38df52c7ac9510f3e1eca6a27abb0ddcbe9c4a454059068f779a916c92e6a499",
-      "rowId": "urn:ref:atlas-index-row:38df52c7ac9510f3e1eca6a27abb0ddcbe9c4a454059068f779a916c92e6a499",
+      "rowDigest": "sha256:d964e67c34e6b0b09a3431df2243372b9ecc8a765f6b6fdbc909cd5362a2aff7",
+      "rowId": "urn:ref:atlas-index-row:d964e67c34e6b0b09a3431df2243372b9ecc8a765f6b6fdbc909cd5362a2aff7",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.treasury_tas_fast_book"
     },
@@ -3381,7 +3385,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_uei_cage_identifiers.py",
-          "sha256": "sha256:4c898a3dc6c281cd3765ca5991b694e0bff06f5e0d885daebfce217d2783f26d"
+          "sha256": "sha256:090e4fc8375ca83c7115d8deb1ff72c37f158778bc5d0c907d7fdd4144345f2c"
         },
         {
           "kind": "sourceImplementation",
@@ -3391,8 +3395,8 @@
       ],
       "release": null,
       "resourceId": "cage-authority",
-      "rowDigest": "sha256:7103c0be79189f9905b14538939e7bc756fc91b7dc1090fd65d53031d919cee9",
-      "rowId": "urn:ref:atlas-index-row:7103c0be79189f9905b14538939e7bc756fc91b7dc1090fd65d53031d919cee9",
+      "rowDigest": "sha256:83d9b0bc1ee56dd5f2cf5eed3d61d2912e9f5f890a2371839e79a73a2bf88922",
+      "rowId": "urn:ref:atlas-index-row:83d9b0bc1ee56dd5f2cf5eed3d61d2912e9f5f890a2371839e79a73a2bf88922",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.uei_cage_identifiers"
     },
@@ -3409,7 +3413,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_uei_cage_identifiers.py",
-          "sha256": "sha256:4c898a3dc6c281cd3765ca5991b694e0bff06f5e0d885daebfce217d2783f26d"
+          "sha256": "sha256:090e4fc8375ca83c7115d8deb1ff72c37f158778bc5d0c907d7fdd4144345f2c"
         },
         {
           "kind": "sourceImplementation",
@@ -3419,8 +3423,8 @@
       ],
       "release": null,
       "resourceId": "uei-authority",
-      "rowDigest": "sha256:6a8d19122f15ed52e8897864c9ba9cac28fd9a13a697e0c57098a516a4955dbc",
-      "rowId": "urn:ref:atlas-index-row:6a8d19122f15ed52e8897864c9ba9cac28fd9a13a697e0c57098a516a4955dbc",
+      "rowDigest": "sha256:9fed762c53d1d783cf97592dae7741975989236383567cf4ae7911f5c2e52432",
+      "rowId": "urn:ref:atlas-index-row:9fed762c53d1d783cf97592dae7741975989236383567cf4ae7911f5c2e52432",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.uei_cage_identifiers"
     },
@@ -3436,12 +3440,12 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_subject.py",
-          "sha256": "sha256:c676196d082eb196659de4ddfc1ad0396fd4d0eac681634573129b3c1b116468"
+          "sha256": "sha256:9989f11d52ba4495902c903f718dafec0f8452c4440a18febf8a1872159b40e0"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_umthes_content.py",
-          "sha256": "sha256:d846d39e7a954f6d188548e501279ee62178a19dde9375d3428027ff5c78ea8e"
+          "sha256": "sha256:0468d2870b488f6813e5b2bc13355e4d5ca1a796969d2afb8fcfec9a6c8132cc"
         },
         {
           "kind": "sourceImplementation",
@@ -3456,8 +3460,8 @@
       ],
       "release": null,
       "resourceId": "umthes",
-      "rowDigest": "sha256:303581273ffdae24dce7d6ec2901cd52e41dddd20213ce00a544c2ddcfc18aa2",
-      "rowId": "urn:ref:atlas-index-row:303581273ffdae24dce7d6ec2901cd52e41dddd20213ce00a544c2ddcfc18aa2",
+      "rowDigest": "sha256:af643942b208c80d027d8470e3e992e32510a561d7074234ba250a492403a2fc",
+      "rowId": "urn:ref:atlas-index-row:af643942b208c80d027d8470e3e992e32510a561d7074234ba250a492403a2fc",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.umthes_content"
     },
@@ -3473,17 +3477,17 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments.py",
-          "sha256": "sha256:84c80ee3286ef2165c0420ac698352a9151a1c2258a93632721d12f572412f23"
+          "sha256": "sha256:9e22713297ee4810e193f56eae565e8d1346ad04aedf8d0c92a20b19d5c96101"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_gao_cra_form_codes.py",
-          "sha256": "sha256:caf96c9e3f66e90f4ccccc725bb056777d3814fce3b1c010f7501511310756e0"
+          "sha256": "sha256:61192059c7c92800844335c610eec58fe893507b350552d5f3e1424d2a3edc0f"
         },
         {
           "kind": "parserTest",
           "path": "tests/test_unified_agenda_codes.py",
-          "sha256": "sha256:6a9362125b41da6a43be7917e64216c702feba3edc2827b83fa9c189d037aea7"
+          "sha256": "sha256:3575a589a2be6bd42e115d15201578b939313afe09d49085517edb0e6d9baeb6"
         },
         {
           "kind": "sourceImplementation",
@@ -3493,18 +3497,18 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/gao_cra_form_codes.py",
-          "sha256": "sha256:b411a1547dd295b9806115cd3bf61b124bcdd9f226c55a849d3fec23eea719b1"
+          "sha256": "sha256:33f7d0052a024ae55d5060815f291b8f269bfbf3b67f87e0e61bc0313d07707b"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/unified_agenda_codes.py",
-          "sha256": "sha256:a7dae81760feb47c24d070ee268ad9d0e519f8387f34f1c9d7dbf82b906bce5c"
+          "sha256": "sha256:abf1a47e2949e43a0aa1e39ba57084d2813deb14dbb0fa86e6b4f08ff6479ead"
         }
       ],
       "release": null,
       "resourceId": "unified-agenda-gao-cra-priority-mapping",
-      "rowDigest": "sha256:61df0dccae90bc7ae47d1e93eb394464b1b2a33d7eae87be7f6942e4e8cd7491",
-      "rowId": "urn:ref:atlas-index-row:61df0dccae90bc7ae47d1e93eb394464b1b2a33d7eae87be7f6942e4e8cd7491",
+      "rowDigest": "sha256:00b2203ac536aa4147a5b71d4c741058654b462bf774a2b07a9629c4e7a065d4",
+      "rowId": "urn:ref:atlas-index-row:00b2203ac536aa4147a5b71d4c741058654b462bf774a2b07a9629c4e7a065d4",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.unified_agenda_codes"
     },
@@ -3521,18 +3525,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_unified_agenda_codes.py",
-          "sha256": "sha256:6a9362125b41da6a43be7917e64216c702feba3edc2827b83fa9c189d037aea7"
+          "sha256": "sha256:3575a589a2be6bd42e115d15201578b939313afe09d49085517edb0e6d9baeb6"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/unified_agenda_codes.py",
-          "sha256": "sha256:a7dae81760feb47c24d070ee268ad9d0e519f8387f34f1c9d7dbf82b906bce5c"
+          "sha256": "sha256:abf1a47e2949e43a0aa1e39ba57084d2813deb14dbb0fa86e6b4f08ff6479ead"
         }
       ],
       "release": null,
       "resourceId": "unified-agenda-legal-authority-citations",
-      "rowDigest": "sha256:42c98718524df3277f7d2a80a722ab22c1c1231d6226646ce629269231363fe9",
-      "rowId": "urn:ref:atlas-index-row:42c98718524df3277f7d2a80a722ab22c1c1231d6226646ce629269231363fe9",
+      "rowDigest": "sha256:5cadb315f4185f59d2628bf388a66c4ccb03180e8ef8e527d490a090a0092d3e",
+      "rowId": "urn:ref:atlas-index-row:5cadb315f4185f59d2628bf388a66c4ccb03180e8ef8e527d490a090a0092d3e",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.unified_agenda_codes"
     },
@@ -3549,18 +3553,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_unified_agenda_codes.py",
-          "sha256": "sha256:6a9362125b41da6a43be7917e64216c702feba3edc2827b83fa9c189d037aea7"
+          "sha256": "sha256:3575a589a2be6bd42e115d15201578b939313afe09d49085517edb0e6d9baeb6"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/unified_agenda_codes.py",
-          "sha256": "sha256:a7dae81760feb47c24d070ee268ad9d0e519f8387f34f1c9d7dbf82b906bce5c"
+          "sha256": "sha256:abf1a47e2949e43a0aa1e39ba57084d2813deb14dbb0fa86e6b4f08ff6479ead"
         }
       ],
       "release": null,
       "resourceId": "unified-agenda-native-controls",
-      "rowDigest": "sha256:38f48d85d19d2e82018dd18c6e6f979750e3c910c6b7e96edee5d65779f715d5",
-      "rowId": "urn:ref:atlas-index-row:38f48d85d19d2e82018dd18c6e6f979750e3c910c6b7e96edee5d65779f715d5",
+      "rowDigest": "sha256:cbb364d9042d93af9482dd1828eee36b4b556f29da99ed3329621d2064565711",
+      "rowId": "urn:ref:atlas-index-row:cbb364d9042d93af9482dd1828eee36b4b556f29da99ed3329621d2064565711",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.unified_agenda_codes"
     },
@@ -3577,7 +3581,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_usaspending_gsdm_codes.py",
-          "sha256": "sha256:60cebfe5ab3395863718c42f5992cbbc28de1bc29a7895937563f2affe0266f8"
+          "sha256": "sha256:608ae70e5a9e4a832a0fa5f42d4e37803dd6795ba3e20ed53d332d21ad40a58f"
         },
         {
           "kind": "sourceImplementation",
@@ -3587,8 +3591,8 @@
       ],
       "release": null,
       "resourceId": "governmentwide-spending-data-model",
-      "rowDigest": "sha256:d2f88660d77b35f2b19c21999dc33df4b1f1fce5aee91c0d38c69ac93485bb29",
-      "rowId": "urn:ref:atlas-index-row:d2f88660d77b35f2b19c21999dc33df4b1f1fce5aee91c0d38c69ac93485bb29",
+      "rowDigest": "sha256:8c6990630e10981f9be61efd18679c9b7f3f59a4687aa2d320470cff7423cd6f",
+      "rowId": "urn:ref:atlas-index-row:8c6990630e10981f9be61efd18679c9b7f3f59a4687aa2d320470cff7423cd6f",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.usaspending_gsdm_codes"
     },
@@ -3605,7 +3609,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_usaspending_gsdm_codes.py",
-          "sha256": "sha256:60cebfe5ab3395863718c42f5992cbbc28de1bc29a7895937563f2affe0266f8"
+          "sha256": "sha256:608ae70e5a9e4a832a0fa5f42d4e37803dd6795ba3e20ed53d332d21ad40a58f"
         },
         {
           "kind": "sourceImplementation",
@@ -3615,15 +3619,15 @@
       ],
       "release": null,
       "resourceId": "usaspending-award-type-codes",
-      "rowDigest": "sha256:0f889bd69392cd09dda739579b89659279129162b6497c4138c7c84750072e01",
-      "rowId": "urn:ref:atlas-index-row:0f889bd69392cd09dda739579b89659279129162b6497c4138c7c84750072e01",
+      "rowDigest": "sha256:e86b7a356c400ea678533ea317d345d4d4a679e6a5eb05e6cbd567c0322a5016",
+      "rowId": "urn:ref:atlas-index-row:e86b7a356c400ea678533ea317d345d4d4a679e6a5eb05e6cbd567c0322a5016",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.usaspending_gsdm_codes"
     }
   ],
   "summary": {
     "exactReleaseCount": 6,
-    "implementationModuleCount": 41,
+    "implementationModuleCount": 45,
     "participationCounts": {
       "bridge": 34,
       "core": 1,

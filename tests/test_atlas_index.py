@@ -132,7 +132,13 @@ def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
         # 40 -> 41: `term_explanation` joins as an implementation module
         # (REF-069's router). It reads the registry and publishes no atlas
         # resource, so it classifies where `act_resolution` does.
-        "implementationModuleCount": 41,
+        # 41 -> 45: the shared-reader wave's four support modules, which
+        # landed unclassified across the uscode/XML refactor commits. ecfr is
+        # the shared eCFR reader behind cfr_list_of_subjects and
+        # govinfo_collections; uscode_cache, uslm and xml_text are the U.S.
+        # Code snapshot cache, its USLM parser, and the shared publisher-XML
+        # text reader. None publishes an atlas resource.
+        "implementationModuleCount": 45,
         # REF-033: nasa-technology-taxonomy left the subject ring for the
         # value ring, taking its bridge claim with it (bridge 10 -> 9).
         # REF-035 through REF-037 add the mapping and acquisition bridges.

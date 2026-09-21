@@ -271,6 +271,13 @@ def direct_test_paths(repository_root: Path, rows: Sequence[Mapping[str, Any]]) 
                 "tests/test_cfr_subject_index.py",
             ),
             "claim_release_exports.py": ("tests/test_registry_claim_exports.py",),
+            # The shared-reader wave's support modules: none has a
+            # tests/test_<module>.py of its own, so the auditor names the
+            # suites that exercise each module directly.
+            "ecfr.py": ("tests/test_ecfr_text.py", "tests/test_ecfr_addresses.py"),
+            "uscode_cache.py": ("tests/test_uscode_acquisition_shared.py",),
+            "uslm.py": ("tests/test_uslm_text.py", "tests/test_uslm_source_paths.py"),
+            "xml_text.py": ("tests/test_xml_text_shared.py",),
             "infrastructure/pinned_acquisition.py": ("tests/test_elsst_acquisition.py",),
             "infrastructure/rdf_claim_export.py": ("tests/test_registry_claim_exports.py",),
             "managed_releases/federal_register_thesaurus_2025_managed_release.py": (
