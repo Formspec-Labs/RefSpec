@@ -7,10 +7,21 @@ comparison circular. Live types (ActResolution, ActIndex, verdicts) are
 imported, so only the two functions are pinned.
 """
 from __future__ import annotations
-from refspec.registry.act_resolution import (ActResolution, ActIndex, SourceCreditIndex,
-    SourceCreditAnswer, _PUBLIC_LAW_KEY, resolve_act_name, act_name_absence_reason,
-    _Verdict, _SILENT, canonical_usc_iri)
+
+from refspec.registry.act_resolution import (
+    _PUBLIC_LAW_KEY,
+    _SILENT,
+    ActIndex,
+    ActResolution,
+    SourceCreditAnswer,
+    SourceCreditIndex,
+    _Verdict,
+    act_name_absence_reason,
+    canonical_usc_iri,
+    resolve_act_name,
+)
 from refspec.registry.citation_grammar import ActRelativeCitation
+
 
 def _resolve_through_table3(
     citation: ActRelativeCitation, index: ActIndex, act_key: str, table3_key: str

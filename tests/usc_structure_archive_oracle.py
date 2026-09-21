@@ -11,13 +11,13 @@ import re
 from pathlib import Path
 from typing import Any
 
+from spicy_docs.reading.zip_archive import archive_members, open_archive, read_member
 from spicy_docs.sources.uscode import (
     DEFAULT_MAX_ARCHIVE_BYTES,
     DEFAULT_MAX_ARCHIVE_ENTRIES,
     DEFAULT_MAX_XML_BYTES,
     UsCodeSourceError,
 )
-from spicy_docs.reading.zip_archive import archive_members, open_archive, read_member
 
 from tools.build_usc_structure import Emit, read_annual_title, read_release_title
 

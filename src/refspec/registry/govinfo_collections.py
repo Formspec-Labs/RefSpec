@@ -30,9 +30,9 @@ from pathlib import Path
 from typing import Any, Literal, Protocol, cast
 from urllib.parse import urlsplit
 
-from spicy_docs.sources.govinfo.premis import PREMIS_NAMESPACE, GovInfoPremisError, read_govinfo_premis
 from spicy_docs.reading.xml import scan_xml
 from spicy_docs.reading.xml_tree import XmlTreeElement
+from spicy_docs.sources.govinfo.premis import PREMIS_NAMESPACE, GovInfoPremisError, read_govinfo_premis
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier, validate_identifier_date
 from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode

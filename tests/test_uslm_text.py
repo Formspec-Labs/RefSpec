@@ -1,8 +1,9 @@
 """Readable source boundaries preserve XML text and publisher element identity."""
-from pathlib import Path
 import xml.etree.ElementTree as ET
+from pathlib import Path
 
 import pytest
+
 from refspec.registry.uslm import USLM_NS, read_text
 
 FIXTURES = Path(__file__).parent / 'fixtures/uslm-source-links'

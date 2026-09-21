@@ -1,9 +1,10 @@
 """Keep distinct law/scope readings; source-row order is not identity evidence."""
-from dataclasses import asdict, replace
 import json
+from dataclasses import asdict, replace
 
-import pytest
 import act_name_multiplicity_oracle as old
+import pytest
+
 from refspec.registry import act_resolution as a
 from refspec.registry.citation_grammar import ActRelativeCitation
 
@@ -11,10 +12,10 @@ from refspec.registry.citation_grammar import ActRelativeCitation
 def row(law, division=None, *, name='Example Act of 2000', page='100'):
     """One synthetic usc-popular-names cite row, normalized on its name key."""
 
-    return dict(name=name, name_key=a.normalize_popular_name(name), content_type='cite',
-                table3_key=law, usc_title=None, usc_section=None, see_also=None,
-                see_also_key=None, release_point='test', division=division,
-                statutes_at_large_volume='100', statutes_at_large_page=page)
+    return {'name': name, 'name_key': a.normalize_popular_name(name), 'content_type': 'cite',
+            'table3_key': law, 'usc_title': None, 'usc_section': None, 'see_also': None,
+            'see_also_key': None, 'release_point': 'test', 'division': division,
+            'statutes_at_large_volume': '100', 'statutes_at_large_page': page}
 
 
 @pytest.fixture
@@ -29,8 +30,8 @@ def load(tmp_path, monkeypatch):
         tables = {
             'usc-popular-names.parquet': rows,
             'usc-act-sections.parquet': [
-                dict(table3_key=law, act_section='101', usc_title='42', usc_section=target,
-                     status=None, statutes_at_large_page=100)
+                {'table3_key': law, 'act_section': '101', 'usc_title': '42', 'usc_section': target,
+                 'status': None, 'statutes_at_large_page': 100}
                 for law, target in [('100-1', '1'), ('100-2', '2')]],
             'quarantine.parquet': [],
         }
@@ -151,8 +152,9 @@ def test_current_record_type_is_shared_by_builder():
 def test_calendar_consumer_requires_all_laws_to_supply_the_same_year(load, dates, expected):
     """The unified-agenda calendar publishes an enactment year only when every ambiguity candidate agrees."""
 
-    from refspec.registry.unified_agenda_parquet import _act_enactment_years
     from act_enactment_year_oracle import _act_enactment_years as prior_years
+
+    from refspec.registry.unified_agenda_parquet import _act_enactment_years
     rows=[row('100-1',name='Example Act'),row('100-2',name='Example Act')]
     assert prior_years(load(rows,oracle=True),(dates,{}))=={'example act':'2000'}
     assert _act_enactment_years(load(rows),(dates,{}))==expected
@@ -162,7 +164,7 @@ def test_calendar_consumer_requires_all_laws_to_supply_the_same_year(load, dates
 def test_publication_consumer_preserves_the_new_native_refusal(load):
     """The unified-agenda consumer reports act_name_ambiguous and lists the reason as a known resolution outcome."""
 
-    from refspec.registry.unified_agenda_parquet import _resolve_one_act_citation, ACT_RESOLUTION_REASONS
+    from refspec.registry.unified_agenda_parquet import ACT_RESOLUTION_REASONS, _resolve_one_act_citation
     index=load([row('100-1'),row('100-2')])
     assert _resolve_one_act_citation('example act of 2000','101',index,None)==(None,None,None,'act_name_ambiguous')
     assert _resolve_one_act_citation('example act of 2000',None,index,None)==(None,None,None,'no_section_stated')

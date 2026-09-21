@@ -1,11 +1,11 @@
 """Copied pre-extraction native checks; test-only independent oracle."""
 from __future__ import annotations
 
+import xml.etree.ElementTree as ET
 from collections import Counter
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from typing import Any
-import xml.etree.ElementTree as ET
 
 USLM_NS = "http://xml.house.gov/schemas/uslm/1.0"
 

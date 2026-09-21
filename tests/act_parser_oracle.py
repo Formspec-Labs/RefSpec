@@ -6,7 +6,8 @@ it without importing the code under replacement.
 """
 import re
 from collections.abc import Container, Mapping
-from refspec.registry.citation_grammar import ActRelativeCitation, normalize_popular_name, _usc_section
+
+from refspec.registry.citation_grammar import ActRelativeCitation, _usc_section, normalize_popular_name
 
 _ACT_SECTION = re.compile(r"(?:sec(?:tion)?s?\.?|§{1,2})\s*(?P<section>\d+[A-Za-z]?)", re.IGNORECASE)
 

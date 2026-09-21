@@ -4,14 +4,20 @@ Verdicts are compared against the copied ``act_resolution_evidence_oracle``
 over synthetic indexes and pinned real artifacts.
 """
 
+import shutil
 from dataclasses import asdict, replace
 from pathlib import Path
-import shutil
 
 import pytest
-
 from act_resolution_evidence_oracle import resolve_act_relative_citation as original
-from refspec.registry.act_resolution import ActIndex, ActResolution, Classification, SourceCreditIndex, resolve_act_relative_citation
+
+from refspec.registry.act_resolution import (
+    ActIndex,
+    ActResolution,
+    Classification,
+    SourceCreditIndex,
+    resolve_act_relative_citation,
+)
 from refspec.registry.citation_grammar import ActRelativeCitation
 
 
@@ -87,7 +93,8 @@ def test_absence_agreement_duplicate_rows_and_disagreement_keep_their_verdicts(t
     before=asdict(original(ActRelativeCitation('An Act','an act','101'),index=index,source_credits=credits))
     after=asdict(resolve(index,credits))
     for key in ('source_credit_targets','conflicting_targets','table3_candidate_iri'):
-        before.pop(key,None);after.pop(key,None)
+        before.pop(key,None)
+        after.pop(key,None)
     assert after.pop('act_division') == 'A'
     before.pop('act_division')
     assert before==after

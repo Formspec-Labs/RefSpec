@@ -3,12 +3,14 @@
 Pins the EXPECTED rows for seven real sources and proves the new reader matches
 cfr_parser_oracle everywhere else, including unicode source coordinates.
 """
-from dataclasses import asdict
 import json
+from dataclasses import asdict
 from pathlib import Path
 
 import pytest
-from cfr_parser_oracle import find_cfr_citations as old_find, parse_cfr_citations as old_parse
+from cfr_parser_oracle import find_cfr_citations as old_find
+from cfr_parser_oracle import parse_cfr_citations as old_parse
+
 from refspec.registry.citation_grammar import find_cfr_citations, parse_cfr_citations
 
 CASES = json.loads((Path(__file__).parent / 'fixtures/cfr-subparts.json').read_text())

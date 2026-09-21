@@ -6,8 +6,8 @@ support is the named change. Publisher fixtures prove the new reader mints
 still agree with the copied check.
 """
 import json
-from pathlib import Path
 import re
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest

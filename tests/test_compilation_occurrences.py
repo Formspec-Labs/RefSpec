@@ -1,15 +1,17 @@
 """Compilation pages remain locators, with independent old parsing checks."""
-from dataclasses import asdict
 import json
+from dataclasses import asdict
 from pathlib import Path
 
 import pytest
-
-from refspec.registry import citation_grammar as grammar
 from compilation_parser_oracle import (
     _excise_compilations as old_excise,
+)
+from compilation_parser_oracle import (
     parse_eo_compilation_locators as old_locators,
 )
+
+from refspec.registry import citation_grammar as grammar
 
 CASES = json.loads((Path(__file__).parent / 'fixtures/compilation-occurrences.json').read_text())['cases']
 YEAR_FIRST = [

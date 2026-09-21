@@ -3,7 +3,8 @@ import re
 
 import pytest
 from act_occurrence_spelling_oracle import find_act_relative_occurrences as original
-from refspec.registry.citation_grammar import find_act_relative_occurrences, act_name_with_trailing_year
+
+from refspec.registry.citation_grammar import act_name_with_trailing_year, find_act_relative_occurrences
 
 NAMES = {'pipes act of 2020', 'secure 2.0 act of 2022', 'clean air act', 'faa reauthorization act of 2018'}
 

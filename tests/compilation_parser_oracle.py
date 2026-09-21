@@ -1,7 +1,10 @@
 """Test-only frozen Executive Order compilation-locator oracle copied from 53c0f387; helpers unchanged."""
 import re
+
 from refspec.registry.citation_grammar import (
-    EoCompilationLocator, _ANOTHER_CITATION_AHEAD, _normalize_dashes,
+    _ANOTHER_CITATION_AHEAD,
+    EoCompilationLocator,
+    _normalize_dashes,
 )
 
 _COMPILATION_YEAR = r"(?:1[789]|20)\d{2}"

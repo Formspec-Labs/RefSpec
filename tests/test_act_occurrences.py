@@ -3,9 +3,9 @@ import json
 from pathlib import Path
 
 import pytest
+from act_parser_oracle import find_act_relative_citations as before
 
 from refspec.registry import citation_grammar as grammar
-from act_parser_oracle import find_act_relative_citations as before
 
 ROWS = json.loads((Path(__file__).parent / 'fixtures/act-occurrences.json').read_text())['cases']
 NAMES = {r['act_key'] for r in ROWS if r['act_key']} | {'clean air act', 'social security act'}

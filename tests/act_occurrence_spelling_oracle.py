@@ -2,12 +2,25 @@
 import re
 from bisect import bisect_left, bisect_right
 from collections.abc import Container, Mapping
+
 from refspec.registry.citation_grammar import (
-    _ACT_SECTION, _usc_section, _ACT_SPACE, _CITATION_PARAGRAPH_BREAK,
-    _ACT_PARENTHETICAL, _CFR_PINPOINT_LABEL, _MAX_ACT_NAME_WORDS,
-    _ACT_NAME_GAP, _ACT_SECTION_OF_THE, _CITED_DIVISION, _ACT_DIVISION_OF,
-    _NAME_EDGE, normalize_popular_name, ActRelativeCitation, ActRelativeCitationOccurrence,
+    _ACT_DIVISION_OF,
+    _ACT_NAME_GAP,
+    _ACT_PARENTHETICAL,
+    _ACT_SECTION,
+    _ACT_SECTION_OF_THE,
+    _ACT_SPACE,
+    _CFR_PINPOINT_LABEL,
+    _CITATION_PARAGRAPH_BREAK,
+    _CITED_DIVISION,
+    _MAX_ACT_NAME_WORDS,
+    _NAME_EDGE,
+    ActRelativeCitation,
+    ActRelativeCitationOccurrence,
+    _usc_section,
+    normalize_popular_name,
 )
+
 
 def _act_name_span(document: str, words: list[re.Match[str]], act_names: Container[str],
                    *, before: bool) -> tuple[int, int, str] | None:

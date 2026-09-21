@@ -1,9 +1,12 @@
 """Frozen first-selected-law enactment-year check."""
 from __future__ import annotations
-from typing import Mapping
+
 import re
+from collections.abc import Mapping
+
 from refspec.registry.act_resolution import ActIndex
-from refspec.registry.unified_agenda_parquet import _TRAILING_YEAR_DESIGNATOR, _SESSION_LAW_YEAR
+from refspec.registry.unified_agenda_parquet import _SESSION_LAW_YEAR, _TRAILING_YEAR_DESIGNATOR
+
 
 def _act_enactment_years(
     index: ActIndex | None, pl_roster: tuple[Mapping, Mapping] | None

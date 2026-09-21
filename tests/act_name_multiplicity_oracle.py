@@ -4,18 +4,32 @@ Only the replaced checks are copied. Unchanged pin readers, source verdict
 helpers and shared output types remain native; result comparison excludes new fields.
 """
 from __future__ import annotations
+
+import json
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
-from typing import Mapping
-import json
+
 from refspec.registry.act_resolution import (
-    Classification, ActResolution, SourceCreditIndex, SourceCreditAnswer,
-    normalize_popular_name, _YEAR_SUFFIX, _PAGE_RANGE_OPEN_END,
-    _artifacts_stating, _read_pinned_parquet, resolve_act_name, act_name_absence_reason,
-    _PUBLIC_LAW_KEY, _resolve_through_table3, _verdict_from_credits, _Verdict,
+    _PAGE_RANGE_OPEN_END,
+    _PUBLIC_LAW_KEY,
+    _YEAR_SUFFIX,
+    ActResolution,
+    Classification,
+    SourceCreditAnswer,
+    SourceCreditIndex,
+    _artifacts_stating,
+    _read_pinned_parquet,
+    _resolve_through_table3,
+    _Verdict,
+    _verdict_from_credits,
+    act_name_absence_reason,
+    normalize_popular_name,
+    resolve_act_name,
 )
 from refspec.registry.citation_grammar import ActRelativeCitation
+
 
 @dataclass(frozen=True)
 class ActIndex:
