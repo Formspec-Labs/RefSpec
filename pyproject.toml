@@ -9,6 +9,10 @@ dependencies = [
     "backports-zstd==1.6.0; python_version < '3.14'",
     "duckdb>=1.5.5,<2",
     "jsonschema>=4.26,<5",
+    # Imported directly by the Federal Register Topics API reader for its
+    # optional live transport; declared here so the boundary gate sees it as
+    # the direct dependency it is, not as a spicy-docs extra.
+    "httpx>=0.28,<1",
     "openpyxl>=3.1,<4",
     "pypdf>=6,<7",
     "pyarrow==25.0.1",

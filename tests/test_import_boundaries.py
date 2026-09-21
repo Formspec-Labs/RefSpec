@@ -60,13 +60,19 @@ _FROZEN_RESEARCH_TREES = (
 )
 
 
+def _requirement_dist_name(spec: str) -> str:
+    """The distribution a dependency specifier names: no extras, bounds, or marker."""
+
+    return spec.split(";")[0].split("[")[0].split("=")[0].split(">")[0].split("<")[0].strip()
+
+
 def _declared_dependency_modules() -> frozenset[str]:
     """Return the top-level import names of the project's declared dependencies."""
 
     project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
     names = set()
     for spec in project["dependencies"]:
-        dist = spec.split(";")[0].split("=")[0].split(">")[0].split("<")[0].strip()
+        dist = _requirement_dist_name(spec)
         names.add(_DIST_TO_MODULE.get(dist, dist.replace("-", "_")))
     return frozenset(names)
 
@@ -208,6 +214,19 @@ def test_no_runtime_path_escape_mechanisms() -> None:
         f"runtime path escapes: {violations}. Bring the bytes home to output/ "
         "(digest-verified) and point there instead."
     )
+
+
+def test_a_declared_requirement_resolves_to_its_import_name() -> None:
+    """Extras are stripped before the name mapping: the first version split on
+    only ``;=><``, so ``spicy-docs[acquisition,pdf-pypdf]==0.20.0`` mapped to
+    the unimportable ``spicy_docs[acquisition,pdf-pypdf]`` and every
+    ``spicy_docs`` import was reported as a boundary escape."""
+
+    assert _requirement_dist_name("spicy-docs[acquisition,pdf-pypdf]==0.20.0") == "spicy-docs"
+    assert _requirement_dist_name("backports-zstd==1.6.0; python_version < '3.14'") == "backports-zstd"
+    assert _requirement_dist_name("pyarrow==25.0.1") == "pyarrow"
+    assert _requirement_dist_name("jsonschema>=4.26,<5") == "jsonschema"
+    assert "spicy_docs" in _declared_dependency_modules()
 
 
 def test_every_detector_has_teeth() -> None:
