@@ -1,3 +1,5 @@
+"""Pin the Atlas explorer CLI argument wiring and HTTP routes, ending in real-view end-to-end runs."""
+
 from __future__ import annotations
 
 import json
@@ -35,6 +37,8 @@ _SEALED_VIEW = ROOT / "output" / "atlas-3.1-parquet-search-view-2026-08-16"
 
 
 def test_cli_serves_compact_search_view_directory(tmp_path: Path, monkeypatch) -> None:
+    """Pin that every CLI flag reaches serve_explorer unchanged and main returns 0."""
+
     search_view = tmp_path / "search-view"
     search_view.mkdir()
     called: dict[str, object] = {}
@@ -82,6 +86,8 @@ def test_cli_serves_compact_search_view_directory(tmp_path: Path, monkeypatch) -
 
 
 def test_cli_rejects_missing_artifact(tmp_path: Path, capsys) -> None:
+    """Pin exit code 2 and the "artifact does not exist" message for a missing path."""
+
     assert explorer_cli.main([str(tmp_path / "missing")]) == 2
     assert "artifact does not exist" in capsys.readouterr().err
 
@@ -154,6 +160,8 @@ class FakeExplorer:
 
 
 def test_api_search_passes_stable_page_offset() -> None:
+    """Pin search/overview/release-graph/resource routing, page offset, and active/asserted defaults."""
+
     view = FakeExplorer()
     server = ThreadingHTTPServer(("127.0.0.1", 0), explorer_cli._handler(view))
     thread = threading.Thread(target=server.serve_forever)
@@ -214,6 +222,8 @@ def test_api_search_passes_stable_page_offset() -> None:
 
 
 def test_api_endpoints_pass_through_a_show_deprecated_status_toggle() -> None:
+    """Pin that status=all reaches overview, release-graph, search, and resource unchanged."""
+
     view = FakeExplorer()
     server = ThreadingHTTPServer(("127.0.0.1", 0), explorer_cli._handler(view))
     thread = threading.Thread(target=server.serve_forever)
@@ -254,6 +264,8 @@ def test_api_endpoints_pass_through_a_show_deprecated_status_toggle() -> None:
 
 
 def test_api_endpoints_pass_through_a_show_derived_relations_toggle() -> None:
+    """Pin that relations=all reaches overview, release-graph, and resource unchanged."""
+
     view = FakeExplorer()
     server = ThreadingHTTPServer(("127.0.0.1", 0), explorer_cli._handler(view))
     thread = threading.Thread(target=server.serve_forever)
@@ -290,6 +302,8 @@ def test_api_endpoints_pass_through_a_show_derived_relations_toggle() -> None:
 
 
 def test_agencies_page_and_api_are_served() -> None:
+    """Pin that /agencies returns HTML and /api/agency-projection forwards its query."""
+
     view = FakeExplorer()
     server = ThreadingHTTPServer(("127.0.0.1", 0), explorer_cli._handler(view))
     thread = threading.Thread(target=server.serve_forever)
@@ -323,21 +337,11 @@ def test_agencies_page_and_api_are_served() -> None:
 
 
 def _build_query_ready_view(root: Path, *, resources: list[dict[str, Any]] = ()) -> AtlasDuckDBView:
-    """Build a real, query-ready ``AtlasDuckDBView`` without the digest-verified
-    ``.open()`` path -- the same construction tests/test_atlas_duckdb_view.py's
-    ``_make_view`` uses to exercise this exact production class directly.
+    """Build a query-ready ``AtlasDuckDBView`` directly, bypassing the digest-verified ``.open()``.
 
-    ``AtlasDuckDBView.open()`` cannot be used for a *populated* agency
-    fixture: ``verify_atlas_parquet_search_view`` requires the view
-    directory's file membership to be exactly the manifest plus its declared
-    members (see parquet_search_view.py's closure check), but the agency
-    projection tables ``_prepare_agency_projection`` reads are deliberately
-    unmanifested siblings under ``tables/`` (duckdb_view.py's
-    ``_agency_projection_paths``) -- present ones would fail that closure
-    check. Constructing the view directly is how this codebase already tests
-    agency-projection query behavior without a full sealed artifact; what
-    finding 6 asks this module to prove -- the HTTP routing and handler
-    wiring -- is exercised for real regardless of how the view was opened.
+    ``.open()`` cannot be used for a populated agency fixture: its manifest-closure
+    check would reject the deliberately unmanifested projection tables under
+    ``tables/``. This mirrors tests/test_atlas_duckdb_view.py's ``_make_view``.
     """
 
     connection = duckdb.connect(str(root / "test.duckdb"))
@@ -446,10 +450,9 @@ def _run_against_real_server(view, exercise) -> None:
 
 
 def test_agencies_gracefully_degrades_against_the_real_sealed_view() -> None:
-    """Start the real CLI server (``explorer_cli._handler``) against the real,
-    digest-verified sealed compact search view -- not a stub -- and prove
-    `/agencies` and `/api/agency-projection` are actually reachable and
-    degrade the way the frontend expects when a view lacks REF-038's tables.
+    """Prove /agencies and /api/agency-projection are reachable through the shipped
+    handler and degrade to available=False against the real sealed REF-038 view
+    that predates the projection tables (skipped when the view is absent).
     """
 
     if not _SEALED_VIEW.is_dir():
@@ -480,10 +483,7 @@ def test_agencies_gracefully_degrades_against_the_real_sealed_view() -> None:
 
 
 def test_agencies_populated_path_against_a_small_real_fixture_view(tmp_path: Path) -> None:
-    """Same real server, this time against a small real ``AtlasDuckDBView``
-    that does carry REF-038's agency-projection tables, proving the
-    populated path -- not just the graceful one -- is actually wired.
-    """
+    """Prove the populated path: a real view's resolved row reports org_known through the API."""
 
     _write_agency_projection_fixture(
         tmp_path,

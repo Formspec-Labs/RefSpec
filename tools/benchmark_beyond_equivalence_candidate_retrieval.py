@@ -14,7 +14,10 @@ The default run uses the official OAEI 2025 release and one local dense model::
       --wordnet /tmp/refspec-candidate-benchmark.ANhNrc/english-wordnet-2025.xml.gz \
       --output /tmp/beyond-equivalence-candidates.json
 
-No provider API or hosted inference service is used.
+No provider API or hosted inference service is used. The archive and WordNet
+inputs are refused unless their sha256 matches the pinned official release, or
+``--allow-unpinned-archive`` / ``--allow-unpinned-wordnet`` marks an intentional
+fixture.
 """
 
 from __future__ import annotations
@@ -748,6 +751,8 @@ def candidate_input_digest(cases: Sequence[TypedAlignmentCase]) -> str:
 
 
 def reference_digest(cases: Sequence[TypedAlignmentCase]) -> str:
+    """Digest the held-out reference relations, markers included."""
+
     rows = [
         {"case": case.name, "source": relation.source, "target": relation.target, "marker": relation.marker}
         for case in sorted(cases, key=lambda item: item.name)

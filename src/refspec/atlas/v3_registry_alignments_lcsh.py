@@ -7,24 +7,21 @@ and ``lcsh-mesh-mapping-endpoints-2026-08-15`` (v3_registry_alignments_subject.p
 -- and replaces them with one release minted from the single pinned LCSH bulk
 file via ``refspec.registry.lcsh_topical``.
 
-**Scope, stated exactly.** This release emits every CURRENT LCSH authority of
-every authority class the file carries (Topic, Geographic, ComplexSubject,
-CorporateName, and the rest -- LCSH mapping targets are not limited to
-topical headings), plus only the deprecated authorities that a held FAST, LC
-external-links, MeSH-LCSH, or EuroVoc-LCSH mapping candidate actually names
-as an LCSH-side IRI. A deprecated heading nothing points at is never
-emitted. Every emitted deprecated member keeps LC's own
-``madsrdf:DeprecatedAuthority`` status, ``madsrdf:useInstead`` successor
-IRIs, and ``madsrdf:deletionNote`` verbatim in its native payload; nothing
-here infers, resolves, or hides a successor -- that is a display choice for
-a consumer, not a fact this release omits. This release never assembles a
-general-purpose LCSH concept scheme: RefSpec's LCSH scope remains
-mapping-only (see ``refspec.registry.lcsh_topical``'s module docstring).
+**Scope.** This release emits every CURRENT LCSH authority of every authority
+class the file carries (Topic, Geographic, ComplexSubject, CorporateName, and
+the rest -- mapping targets are not limited to topical headings), plus only the
+deprecated authorities that a held FAST, LC external-links, MeSH-LCSH, or
+EuroVoc-LCSH mapping candidate actually names as an LCSH-side IRI. A deprecated
+heading nothing points at is never emitted. Every emitted deprecated member
+keeps LC's own ``madsrdf:DeprecatedAuthority`` status,
+``madsrdf:useInstead`` successor IRIs, and ``madsrdf:deletionNote`` verbatim in
+its native payload; nothing here infers, resolves, or hides a successor. This
+release never assembles a general-purpose LCSH concept scheme: RefSpec's LCSH
+scope remains mapping-only (see ``refspec.registry.lcsh_topical``).
 
-**Minted IRIs are byte-identical to what the three retired releases emitted.**
-Every resource this release emits keeps the exact ``id.loc.gov`` IRI the
-retired releases used, so every existing mapping assertion that names one
-still resolves; only the owning release changes.
+Every resource keeps the exact ``id.loc.gov`` IRI the retired releases used, so
+every existing mapping assertion that names one still resolves; only the owning
+release changes.
 """
 
 from __future__ import annotations
@@ -238,6 +235,10 @@ def gather_referenced_lcsh_iris(source_root: Path = DEFAULT_SOURCE_ROOT) -> froz
 
 
 def _resource_labels(record: lcsh.LcshTopicalRecord) -> tuple[RegistryLabel, ...]:
+    """Return the English preferred label plus distinct English variant labels.
+
+    Raises ValueError when the record's preferred label is not English.
+    """
     if not is_english_language_tag(record.preferred_label.language):
         raise ValueError(f"LCSH consolidated member has no English preferred label: {record.concept_iri}")
     field = "madsrdf:variantLabel" if record.is_deprecated else "madsrdf:authoritativeLabel"
@@ -267,6 +268,7 @@ def _resource_labels(record: lcsh.LcshTopicalRecord) -> tuple[RegistryLabel, ...
 
 
 def _resource(record: lcsh.LcshTopicalRecord) -> RegistryResource:
+    """Project one captured LCSH record, keeping LC's deprecation facts verbatim."""
     native_payload: dict[str, object] = {
         "authorityTypes": list(record.authority_types),
         "broaderIris": list(record.broader_iris),

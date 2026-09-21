@@ -1,25 +1,16 @@
 """Deterministic candidate generation and retrieval across two vocabularies.
 
-Two halves of one job: turn a pair of exact concept releases into the set of
-cross-release pairs worth a closer look, using nothing but the concept facts
-themselves.
-
-The *generator* is the six-class blocking recipe -- label equality, alternate
-labels, two kinds of near miss, and two kinds of negative control.  It is
-deterministic in the two concept sets alone: input order never reaches the
-result, the draw is seeded, and the classes are disjoint by construction, so
-the same releases reproduce the same population on every run.  Every pair
-carries the rule that proposed it, which is what makes a measured result
-attributable to a rule rather than to a run.
-
-The *retrieval* half optimizes for inclusive discovery: multiple independent
-sparse views and graph expansion, so callers can union its results with the
-generator's exact-label rules and their own dense-neighbor artifacts.  Scores
-are integer cosine approximations, using no process hashes, floating-point
-comparisons, or input ordering.
-
-Nothing here calls a provider or seals a record.  This module answers "which
-pairs are worth asking about", never "what is the answer".
+The generator is a six-class blocking recipe -- label equality, alternate-label
+equality, two near-miss classes, and two negative controls -- deterministic in
+the two concept sets alone: input order never reaches the result, the draw is
+seeded, the classes are disjoint by construction because each pair is claimed
+by the first class that reaches it, and every pair carries the rule that
+proposed it. The retrieval half optimizes for inclusive discovery through
+multiple independent sparse views and graph expansion, so callers can union its
+results with the generator's exact-label rules; scores are integer cosine
+approximations using no process hashes, floating-point comparisons, or input
+ordering. Nothing here calls a provider or seals a record -- it answers which
+pairs are worth asking about, never what the answer is.
 """
 
 from __future__ import annotations
@@ -962,10 +953,10 @@ def concepts_from_source_release(
 ) -> tuple[AtlasConcept, ...]:
     """Project one exact ``SourceConceptRelease`` into crosswalk concepts.
 
-    Source-scoped concept rows intentionally carry identity and provenance but
-    no duplicated labels.  Labels, definitions, and scope notes are recovered
-    from the exact source observations each row pins.  Only the subject ring is
-    accepted; other rings need source-authoritative rules.
+    Labels, definitions, and scope notes are recovered from the exact source
+    observations each row pins; only the subject ring is accepted, a row citing
+    an observation outside its exact capture is refused, and each concept must
+    carry exactly one preferred label for the requested language.
     """
 
     if getattr(view, "semantic_ring", None) != "subject":

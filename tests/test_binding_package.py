@@ -1,3 +1,10 @@
+"""The JSON binding package's public API, asset resolution, and fixture coverage.
+
+The suite proves the version matches project metadata, the retired atlas builder
+is not packaged, the legacy CLI delegates to the package, and every public REF
+record type has linked valid and invalid fixtures.
+"""
+
 from __future__ import annotations
 
 import json
@@ -19,6 +26,7 @@ LEGACY_CLI = BINDING_ROOT / "tools" / "validate.py"
 
 
 def test_public_package_version_matches_project_metadata() -> None:
+    """``refspec.__version__`` must equal the pyproject version."""
     project_text = (REFSPEC_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     match = re.search(r'(?m)^version = "([^"]+)"$', project_text)
 
@@ -27,6 +35,9 @@ def test_public_package_version_matches_project_metadata() -> None:
 
 
 def test_retired_atlas_builder_is_not_a_packaged_command() -> None:
+    """The retired vocabulary-atlas build and publish console scripts must not
+    reappear, and atlas/cli.py must stay deleted.
+    """
     project_text = (REFSPEC_ROOT / "pyproject.toml").read_text(encoding="utf-8")
 
     assert (
@@ -47,13 +58,13 @@ def test_retired_atlas_builder_is_not_a_packaged_command() -> None:
 
 
 def test_root_package_import_does_not_load_atlas_subpackage() -> None:
-    """Guard import isolation: `import refspec` must not drag in `refspec.atlas`.
+    """Guard import isolation: ``import refspec`` must not drag in ``refspec.atlas``.
 
-    `refspec.atlas` costs roughly as much import time as the rest of the
-    `refspec` package combined, so every `refspec` console script pays for it
-    unless the subpackage stays lazily loaded. This must run in a fresh
-    interpreter: asserting on `sys.modules` inside the pytest process proves
-    nothing, since other tests will already have imported `refspec.atlas`.
+    The subpackage costs roughly as much import time as the rest of the
+    ``refspec`` package combined, so every console script pays for it unless it
+    stays lazily loaded. This must run in a fresh interpreter: asserting on
+    ``sys.modules`` inside the pytest process proves nothing, since other tests
+    will already have imported ``refspec.atlas``.
     """
 
     script = """
@@ -75,6 +86,7 @@ assert not any(name == "refspec.atlas" or name.startswith("refspec.atlas.") for 
 
 
 def test_editable_checkout_resolves_binding_assets() -> None:
+    """The binding module's roots point at this checkout and its schema and fixture directories exist."""
     assert binding.REFSPEC_ROOT == REFSPEC_ROOT
     assert binding.BINDING_ROOT == BINDING_ROOT
     assert binding.SCHEMA_ROOT.is_dir()
@@ -82,6 +94,7 @@ def test_editable_checkout_resolves_binding_assets() -> None:
 
 
 def test_public_validate_api_accepts_the_valid_fixture() -> None:
+    """The public validate API returns no diagnostics for the valid vocabulary-closure fixture."""
     fixture = binding.load_fixture(VALID_FIXTURE)
 
     diagnostics = binding.validate(
@@ -126,6 +139,7 @@ def test_public_validate_api_accepts_the_valid_fixture() -> None:
 def test_concept_proposal_accepts_each_typed_placement(
     placement: dict[str, str],
 ) -> None:
+    """Each typed concept-proposal placement validates once its canonical payload digest is recomputed."""
     fixture = binding.load_fixture(BINDING_ROOT / "fixtures" / "valid" / "concept-proposal.json")
     record = fixture["records"][0]
     record["placement"] = placement
@@ -135,6 +149,9 @@ def test_concept_proposal_accepts_each_typed_placement(
 
 
 def test_expression_corpus_validator_reuses_one_schema_without_weakening_checks() -> None:
+    """The expression-corpus validator reuses the schema and still reports a
+    duplicate durable record identifier as REF-CORE-005.
+    """
     fixture = binding.load_fixture(VALID_FIXTURE)
     expressions = [
         record for record in fixture["records"] if record["type"] == "urn:ref:type:IndexedVocabularyExpression"
@@ -153,6 +170,7 @@ def test_installed_package_can_validate_from_embedded_schemas(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
+    """Validation must work when SCHEMA_ROOT points at a nonexistent directory, using the embedded schemas."""
     fixture = binding.load_fixture(VALID_FIXTURE)
     monkeypatch.setattr(binding, "SCHEMA_ROOT", tmp_path / "no-checkout-schemas")
 
@@ -170,6 +188,7 @@ def test_installed_package_can_run_embedded_conformance_suite(
     tmp_path: Path,
     capsys,
 ) -> None:
+    """The embedded conformance suite runs without checkout fixtures and prints the expected summary line."""
     missing_binding_root = tmp_path / "no-checkout-binding"
     monkeypatch.setattr(binding, "BINDING_ROOT", missing_binding_root)
     monkeypatch.setattr(
@@ -192,6 +211,7 @@ def test_installed_package_can_run_embedded_conformance_suite(
 
 
 def test_legacy_cli_delegates_to_package_cli(capsys) -> None:
+    """The legacy binding CLI must print byte-identical output to the package CLI's --print-digest."""
     package_exit_code = binding.main(["--print-digest", str(VALID_FIXTURE)])
     package_output = capsys.readouterr().out
 
@@ -209,7 +229,10 @@ def test_legacy_cli_delegates_to_package_cli(capsys) -> None:
 
 
 def test_every_ref_record_has_complete_executable_fixture_coverage() -> None:
-    """Keep every public REF record behind the same acceptance matrix."""
+    """Keep every public REF record behind the same acceptance matrix: a valid
+    and a type-specific invalid fixture, requirement linkage, and a canonical
+    digest round-trip.
+    """
 
     valid_by_type: dict[str, list[tuple[Path, dict]]] = defaultdict(list)
     for path in sorted((binding.FIXTURE_ROOT / "valid").glob("*.json")):
@@ -267,8 +290,7 @@ def test_every_ref_record_has_complete_executable_fixture_coverage() -> None:
 
 
 def test_structural_key_refuses_non_finite_numbers() -> None:
-    """Structural comparison keys use the same canonical rules as digests."""
-
+    """Structural comparison keys use the same canonical rules as digests, refusing NaN and infinities."""
     snapshot = {"id": "urn:test:release", "members": ["a", "b"]}
     assert binding.structural_key(snapshot) == '{"id":"urn:test:release","members":["a","b"]}'
 

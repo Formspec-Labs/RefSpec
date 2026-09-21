@@ -1,4 +1,9 @@
-"""LC external-links reader tests over exact excerpts and the pinned archive."""
+"""LC external-links reader tests over exact excerpts and the pinned archive.
+
+The reader preserves all four MADS predicates and the LCSH-to-target direction, and refuses
+unhandled predicates, unknown target vocabularies, duplicate claims, unsupported literal escapes,
+and archive digest or length drift; target language is tagged deterministically (publisher tag,
+authority convention, script rule, or ASCII fallback; None when ambiguous)."""
 
 from __future__ import annotations
 

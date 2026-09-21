@@ -1,100 +1,36 @@
 """Answer "what is this term I was handed", from the authority that owns it.
 
-A person is handed a term by a supplier, a colleague or an agency letter --
-"Section 232", "40 CFR 60", a docket id, a rule number -- and asks what it is.
-That is a DEFINITIONAL question wearing a search box, and no list of documents
-answers it. The 2026-09-06 persona run found the worst session in the suite was
-exactly this: a manufacturer whose supplier wrote "Section 232", whose fourth
-task was to find out what that meant, and who got nothing all night.
+A DEFINITIONAL question — "Section 232", "40 CFR 60", a docket id, a rule
+number — that no list of documents answers. This module routes rather than
+resolves: :mod:`refspec.registry.identifier_shapes` and
+:mod:`refspec.registry.citation_grammar` already recognize the families and
+each family's resolution already exists; this is the hop that sends a term to
+the authority that owns it and refuses where no authority does.
 
-**This module routes rather than resolves.** Recognition already exists --
-:mod:`refspec.registry.identifier_shapes` reads a RIN or a docket id,
-:mod:`refspec.registry.citation_grammar` reads a CFR or U.S.C. citation or an
-act-relative one -- and the resolution already exists per family. What was
-missing is the hop that sends a term to the authority that owns it and refuses
-where no authority does.
+**It says a CFR part NAMES a statute in its authority note, never that the
+part implements the section.** "Clean Air Act section 111" resolves to
+42 U.S.C. 7411, which exactly one part names in its note (40 CFR 72), while
+the part that actually implements it (40 CFR 60) writes "42 U.S.C. 7401 et
+seq." — so "implemented by" would answer confidently and wrongly, and widening
+the net only trades one wrong answer for another.
 
-**What it may assert, which is narrower than the obvious phrasing and is the
-whole of unsolved rule two.** It says a CFR part NAMES a statute in its
-authority note. It does NOT say the part implements the section, and the
-difference is not pedantry -- it is the difference between right and wrong:
+**One ambiguity rule, applied at whichever scope the ambiguity sits:** withhold
+the ambiguous claim and keep the unambiguous ones, which reduces to refusal
+when nothing is left. A CFR part keeps its name and authority text with only
+the act attribution withheld; a container rule number, where the ambiguity
+swallows the subject, refuses. Where several acts classify to one U.S.C.
+section — the original and every amendment — :func:`acts_classifying` returns
+all of them and the explainer refuses with ``act_attribution_ambiguous``
+rather than choosing, because a refusal a reader can act on beats a name they
+will quote.
 
-    "Clean Air Act section 111" resolves to 42 U.S.C. 7411. Exactly one part
-    names 7411 in its note, 40 CFR 72 "Permits Regulation". The part that
-    actually implements section 111 is 40 CFR 60, "Standards of Performance for
-    New Stationary Sources", whose note reads "42 U.S.C. 7401 et seq." and
-    never names 7411 at all.
-
-So a router that said "implemented by" would answer the acid-rain permits part
-to a question about new-source performance standards: confident, well-formed
-and wrong, which for a definition is worse than silence because it is quoted
-onward into a filing. Naming what the note says is true in both directions and
-in both cases. Section 232 works only because Commerce wrote the section number
-into 15 CFR 705's note; the Clean Air Act fails because EPA wrote "et seq." into
-40 CFR 60's. That is publisher behaviour, not an implementation gap, and no
-widening rule fixes it -- widening rescued Clean Air Act 111's document reach
-from 69 to 19,497 and diluted Section 232 by adding four parts belonging to
-other sections of the same act. The two cases disagree, so the answer is to
-weaken the claim rather than to tune the net.
-
-**One ambiguity rule, applied at whichever scope the ambiguity sits.** Where
-the source does not support a single answer, the claim is withheld rather than
-guessed — and the two directions are the same rule, not two. An act name
-resolves to something NARROWER than meant (several acts classify one U.S.C.
-section, the original and every amendment); a rule number resolves to something
-BROADER (2120-AA66 is an FAA airspace container carrying 3,561 documents from
-2000 to 2026 across three document types, measured by spicyregZ2 2026-09-07).
-Both are "the data holds many where the reader means one".
-
-They differ in WHERE the ambiguity sits, and so in what survives it. For a CFR
-part only the act attribution is ambiguous — the part's own name and its
-authority text are facts — so the field is withheld and the rest is answered,
-with the withholding stated in the sentence. For a container rule number the
-ambiguity swallows the subject itself, leaving nothing unambiguous to say, so
-it refuses. Withhold the ambiguous claim, keep the unambiguous ones; refusal is
-what that reduces to when nothing is left.
-
-**Ambiguity refuses.** Several acts classify to one U.S.C. section -- the
-original and every amending act -- and the first draft of the reverse map took
-the first, answering "Clean Air Act Amendments of 1990" where a person means
-"Clean Air Act". Taking the first available declaration is precisely what this
-repository forbids elsewhere, so :func:`acts_classifying` returns all of them
-and the explainer refuses with ``act_attribution_ambiguous`` rather than
-choosing. A refusal a reader can act on beats a name they will quote.
-
-**BEFORE YOU EXTEND THIS TO A FIFTH SHAPE, READ THIS.** Surveyed 2026-09-07
-against the question "which other identifier families could this answer", and
-the answer was DO NOT BUILD. The reasoning generalises and the conclusion may
-not, so keep the reasoning:
-
-    A family is answerable if and only if we hold a DIRECTORY OF INSTANCES.
-    Type vocabularies cannot answer "what is THIS one".
-
-The four shapes here work because an instance directory exists behind each:
-48,973 acts in the sealed act index, 8,240 authority notes, 608,755 docket ids
-carried by the corpus, and another lane's agenda table for a rule number. Of
-the other 74 registry modules, the ones that look like candidates hold closed
-TYPE lists plus acquisition code and provenance pins — they enumerate
-categories, and a person handed an identifier needs the instance. Checked by
-trying to answer rather than by confirming a module exists, which is the only
-test that separates the two: `ferc_elibrary_codes` packages a 2,202-byte
-CONSTRUCTED FIXTURE because the publisher's page returns HTTP 403 to automated
-requests, so there is no prefix table to look "CP" up in; `pra_icr_codes`
-holds the OMB control number's FORM SHAPE and states in its own gaps that the
-agency codes are generated by client-side JavaScript and were never captured;
-`nrc_adams_aps_docs` holds 22 profile property NAMES.
-
-So the ratio is not four of seventy-eight. It is four of four: every family we
-hold a directory for is already routed, and every top unanswered family is
-blocked on ACQUISITION, upstream of anything routing can fix. Extending the
-router before an acquisition lands produces "that is a FERC docket" without
-saying which — the partial shape this module already treats as its weakest
-output. See REF-070.
-
-**Coverage is not the claim.** Answering "Section 232" from 15 documents is
-answering from 0.7% of the 140 the corpus holds on that term. This route wins
-on ANSWER QUALITY -- one line that says what the term is -- and loses on
-coverage, and the argument must not drift.
+**Do not extend this to a fifth shape without an acquired instance directory.**
+A family is answerable only if we hold a directory of instances; a closed type
+vocabulary cannot answer "what is THIS one". The four shapes here are four of
+four: every family with a directory is already routed, and every top
+unanswered family is blocked on acquisition, upstream of anything routing can
+fix (REF-070). Coverage is not the claim — this route wins on answer quality,
+not on documents found.
 """
 
 from __future__ import annotations

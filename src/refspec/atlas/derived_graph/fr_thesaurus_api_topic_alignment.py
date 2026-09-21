@@ -17,55 +17,39 @@ derivation.
 
 **Why derived and not asserted.** Under REF-035 (``docs/decisions.md``)
 standing asks whether the asserter owns either endpoint vocabulary. The
-Office of the Federal Register owns both; RefSpec owns neither. A mapping
-assertion from RefSpec is therefore E4 -- RefSpec's own adjudication, the
-weakest tier, and the one REF-035 notes is outranked by E3 precisely because
-it has no external comparand. But the evidence here is not an adjudication at
-all: it is exact normalized equality between two label sets, mechanical and
-reproducible by anyone holding the same two releases. Recording a mechanical
-projection as if it were a judgement would overstate it. REF-035 tier E5 --
-"an inferred edge is never an assertion; it belongs only in the derived graph
-and remains opt-in" -- is the honest shape, admitted per-rule by the binding's
-rule registry (REF-042).
+Office of the Federal Register owns both and RefSpec owns neither, so a
+mapping assertion from RefSpec would be E4 -- RefSpec's own adjudication --
+while the evidence is exact normalized equality between two label sets,
+mechanical and reproducible by anyone holding the same two releases. REF-035
+tier E5 ("an inferred edge is never an assertion; it belongs only in the
+derived graph and remains opt-in") is the honest shape, admitted per-rule by
+the binding's rule registry (REF-042).
 
 **Why ``skos:closeMatch`` and never ``skos:exactMatch``.** SKOS S45 makes
 ``exactMatch`` transitive, so a single wrong edge contaminates every chain it
-joins; the binding already runs a corpus-wide S46 preflight because a new
-``exactMatch`` can merge components and invalidate a ``relatedMatch`` in a
-release nobody edited. Label equality between two vocabularies does not
-license that. It licenses ``closeMatch``, which SKOS S43 makes symmetric but
-**not** transitive: "sufficiently similar that they can be used
-interchangeably in some information retrieval applications" is exactly the
-claim the evidence supports, and interchangeability in retrieval is exactly
-what a tagging evaluation needs. The FAST/LCSH precedent in
-``research/vocabulary-atlas-spine-and-rings-takeaways-2026-08-06.md`` is the
-cautionary case: OCLC asserts ``schema:sameAs`` over 259,401 strictly 1:1
-links and the Library of Congress reciprocates with ``closeMatch`` and
-nothing meaning exact. 1:1 cardinality is topology, not semantics.
+joins. SKOS S43 makes ``closeMatch`` symmetric but **not** transitive --
+"sufficiently similar that they can be used interchangeably in some
+information retrieval applications" is exactly the claim label equality
+supports, and interchangeability in retrieval is what a tagging evaluation
+needs.
 
 **The population is a strict bijection.** 698 thesaurus terms match 698 API
-topics across 698 pairs -- no term reaches two topics and no topic is reached
-by two terms. That falls out of per-scheme label uniqueness, which IS checked
-and fails closed: two terms folding to one key inside either list is a finding
-about that publisher's vocabulary rather than an edge to derive. The explicit
-bijection assertion after the intersection is therefore defensive rather than
-reachable, and is documented as such where it lives.
+topics across 698 pairs, falling out of per-scheme label uniqueness, which IS
+checked and fails closed: two terms folding to one key inside either list is a
+finding about that publisher's vocabulary rather than an edge to derive. The
+explicit bijection assertion after the intersection is therefore defensive
+rather than reachable.
 
-**Scheme-scoped in both directions.** Like the EuroVoc microthesaurus rule
-and unlike the MeSH tree-number rule as first shipped, subject and object
-must sit in the two named schemes -- a matching label on a resource in any
-other scheme can never admit an edge. The MeSH rule shipped scheme-blind and
-an adversarial battery caught it proving parentage from notation shape alone
-(REF-043); every rule since is scoped from birth.
+**Scheme-scoped in both directions.** Subject and object must sit in the two
+named schemes -- a matching label on a resource in any other scheme can never
+admit an edge.
 
-**Case folding is deliberate and is the only normalization applied.** The two
-vocabularies drift in case on three terms the same publisher spells two ways
-(``Armed Forces``/``Armed forces``, ``Armed Forces Reserves``/``Armed forces
-reserves``, ``Diesel fuel``/``Diesel Fuel``). Verbatim equality yields 695
-pairs; case-folded yields 698. Case drift within one publisher's own two
-lists is not a semantic distinction. Nothing else is normalized -- no
-punctuation stripping, no NFKC, no stemming -- because every additional
-transform widens the population on evidence the label texts do not carry.
+**Case folding is the only normalization applied.** The two vocabularies
+drift in case on three terms the same publisher spells two ways; verbatim
+equality yields 695 pairs and case-folded yields 698. Nothing else is
+normalized -- no punctuation stripping, no NFKC, no stemming -- because every
+additional transform widens the population on evidence the label texts do not
+carry.
 
 Labels live behind SKOS-XL ``prefLabel``/``literalForm`` and the shared
 :class:`AssertedFactView` carries no labels, so this module collects its own

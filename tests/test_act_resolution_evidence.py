@@ -1,4 +1,8 @@
-"""Preserve competing source readings without changing resolution policy."""
+"""Pin that exposing competing source readings changed no act-resolution policy.
+
+Compares the frozen oracle in act_resolution_evidence_oracle against production
+resolve_act_relative_citation, failing on any divergence except enumerated fields.
+"""
 from dataclasses import asdict
 
 import pytest
@@ -17,6 +21,9 @@ from refspec.registry.citation_grammar import ActRelativeCitation
     ([('26','2'),('26','3')], (Classification('26','1',None,1),)),
 ])
 def test_source_targets_survive_and_policy_changes_are_explicit(rows, classifications):
+    """Fail on policy drift from the oracle beyond the enumerated new fields; an
+    ambiguous multi-row case must keep the old oracle IRI as table3_candidate_iri."""
+
     citation = ActRelativeCitation('An Act','an act','101','A')
     index = ActIndex(table3_key_by_name={'an act':'99-514'}, classifications={'99-514':{'101':classifications}})
     credits = SourceCreditIndex.from_rows([('99-514','A','101',title,section,None,None) for title,section in rows])
@@ -49,12 +56,16 @@ def test_source_targets_survive_and_policy_changes_are_explicit(rows, classifica
     {'table3':'urn:x','source_credits':'urn:x'}, {'table3':'urn:x','unknown':'urn:y'},
 ])
 def test_conflict_evidence_requires_distinct_targets_from_the_named_sources(targets):
+    """Refuse conflicting_targets whose sources repeat a target or are not named sources."""
+
     with pytest.raises(ValueError,match='conflicting targets'):
         ActResolution(ActRelativeCitation('An Act','an act','101'),
                       unresolved_reason='sources_disagree', conflicting_targets=targets)
 
 
 def test_conflict_evidence_cannot_accompany_an_accepted_answer():
+    """Refuse conflict evidence when the resolution already carries an accepted answer."""
+
     with pytest.raises(ValueError,match='conflicting targets'):
         ActResolution(ActRelativeCitation('An Act','an act','101'), iri='urn:x',answered_by='table3',
                       conflicting_targets={'table3':'urn:x','source_credits':'urn:y'})

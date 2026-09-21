@@ -44,6 +44,7 @@ FORBIDDEN_ROW_FIELDS = frozenset(
 
 
 def _selection_digest(row: Mapping[str, Any], *, seed: str) -> str:
+    """The row's selection digest: sha256 over seed and the case/source/target identity, NUL-separated."""
     value = (
         seed.encode("utf-8")
         + b"\x00"
@@ -75,6 +76,7 @@ def _population_fields(row: Mapping[str, Any]) -> dict[str, int]:
 
 
 def _validate_population(row: Mapping[str, Any]) -> dict[str, int]:
+    """Check one case's population counts against the inclusion-exclusion identities, refusing mismatches."""
     values = _population_fields(row)
     case = str(row["case"])
     if values["cartesianPairs"] != values["sourceConcepts"] * values["targetConcepts"]:
@@ -365,6 +367,7 @@ def analyze(
 
 
 def _verify_embedded_artifacts(sample: Mapping[str, Any]) -> None:
+    """Re-open the sample's embedded lean-floor, rank, and rank-manifest receipts, refusing any digest drift."""
     for name in ("leanFloorPairs", "rankArtifact", "rankManifest"):
         receipt = sample["sourceArtifacts"][name]
         path = Path(str(receipt["path"]))

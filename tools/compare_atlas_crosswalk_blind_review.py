@@ -89,6 +89,7 @@ def generation_classes(archive: Path, crosswalk: str) -> dict[str, str]:
 
 
 def analyse(directory: Path, archive: Path, crosswalk: str) -> dict[str, Any]:
+    """Join one crosswalk's independent verdicts to the sealed key and compute the five measurements."""
     _blind, key, independent = load(directory, crosswalk)
     classes = generation_classes(archive, crosswalk)
 

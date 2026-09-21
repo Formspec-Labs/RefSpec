@@ -126,6 +126,8 @@ class MeshTreeNumberCounts:
 
 
 def _mesh_resources(facts: AssertedFactView) -> frozenset[str]:
+    """Every resource the fact view places in the MeSH descriptor scheme."""
+
     return frozenset(resource for resource, scheme in facts.schemes.items() if scheme == MESH_SCHEME_IRI)
 
 
@@ -344,6 +346,8 @@ def main() -> None:
     from refspec.atlas.v3_registry_vocabularies import load_mesh_2026_release
 
     def canonical_sha256(payload: object, *, terminal_lf: bool = True) -> str:
+        """Stand-in for the binding's canonical-JSON digest: sorted keys, compact separators."""
+
         text = json.dumps(payload, sort_keys=True, separators=(",", ":"))
         if terminal_lf:
             text += "\n"

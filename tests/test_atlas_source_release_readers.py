@@ -44,6 +44,7 @@ RECORDED_BY = "urn:test:agent:atlas-source-release-reader"
 
 
 def _file_digest(path: Path) -> str:
+    """Return the ``sha256:`` digest of the file's bytes."""
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
@@ -51,6 +52,7 @@ def _federal_register_package(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> Path:
+    """Write a managed federal-register package whose fixture PDF is made to hash to the pinned sha256."""
     source_pdf = b"%PDF-1.7\ncomplete-705-concept-fixture\n"
     actual_sha256 = federal_register_release._sha256_bytes
 
@@ -71,6 +73,7 @@ def _federal_register_package(
 
 
 def _icpsr_sources() -> IcpsrManagedReleaseSources:
+    """Assemble ICPSR managed-release sources from the mini a/s/t page and XML fixtures."""
     pages = {letter: (FIXTURES / f"icpsr-subject-index-{letter}-mini.html").read_bytes() for letter in ("a", "s", "t")}
     xml_payload = (FIXTURES / "icpsr-subject-mini.xml").read_bytes()
     index = build_icpsr_subject_index(
@@ -93,6 +96,7 @@ def _icpsr_sources() -> IcpsrManagedReleaseSources:
 
 
 def _icpsr_package(tmp_path: Path) -> Path:
+    """Write the ICPSR managed release built from the mini fixtures."""
     release = build_icpsr_managed_release(
         _icpsr_sources(),
         recorded_at=RECORDED_AT,
@@ -104,12 +108,14 @@ def _icpsr_package(tmp_path: Path) -> Path:
 
 
 def _reseal(record: dict[str, object]) -> dict[str, object]:
+    """Recompute canonicalPayloadDigest over the record minus that field, for forged-manifest cases."""
     unsealed = {key: value for key, value in record.items() if key != "canonicalPayloadDigest"}
     digest = hashlib.sha256(canonical_json(unsealed).encode("utf-8")).hexdigest()
     return {**unsealed, "canonicalPayloadDigest": "sha256:" + digest}
 
 
 def _forge_artifact(root: Path, relative: str, payload: bytes) -> None:
+    """Replace an artifact payload and re-pin its descriptor, byte length and resealed manifest."""
     manifest_path = root / "managed-release.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     (root / relative).write_bytes(payload)
@@ -132,6 +138,7 @@ def test_federal_register_release_reader_exposes_the_complete_package(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pins 705 members, 705+433 expressions, the Safety member's release IRI, lookup identity and the manifest pin."""
     manifest_path = _federal_register_package(tmp_path, monkeypatch)
     source = PinnedFederalRegisterThesaurus2025AtlasRelease.open(
         manifest_path,
@@ -154,6 +161,7 @@ def test_federal_register_release_reader_exposes_the_complete_package(
 
 
 def test_icpsr_release_reader_exposes_the_verified_fixture_subset(tmp_path: Path) -> None:
+    """Pins the five-member fixture subset, its release IRI prefix, lookup identity and parent/child links."""
     manifest_path = _icpsr_package(tmp_path)
     source = PinnedIcpsrSubjectAtlasRelease.open(
         manifest_path,
@@ -180,6 +188,7 @@ def test_icpsr_release_reader_exposes_the_verified_fixture_subset(tmp_path: Path
 
 
 def test_crs_source_concept_releases_project_exact_labels_and_definitions() -> None:
+    """Pins 565 legislative and 32 policy concepts, one policy definition kept and no hierarchy projected."""
     evidence = (
         Path(__file__).resolve().parents[1]
         / "research/evidence/crs-source-concept-releases-2026-08-04"
@@ -211,6 +220,7 @@ def test_crs_source_concept_releases_project_exact_labels_and_definitions() -> N
 
 
 def test_icpsr_release_reader_refuses_a_dropped_development_marker(tmp_path: Path) -> None:
+    """Pins refusal when the development-only state is dropped without resealing the payload digest."""
     manifest_path = _icpsr_package(tmp_path)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["operationalState"] = "operational"
@@ -224,6 +234,7 @@ def test_icpsr_release_reader_refuses_a_dropped_development_marker(tmp_path: Pat
 
 
 def test_icpsr_release_reader_refuses_a_forged_release_identifier(tmp_path: Path) -> None:
+    """Pins refusal of a resealed release id that is not derived from the release's own source digests."""
     manifest_path = _icpsr_package(tmp_path)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["release"] = {
@@ -240,6 +251,7 @@ def test_icpsr_release_reader_refuses_a_forged_release_identifier(tmp_path: Path
 
 
 def test_icpsr_release_reader_refuses_record_expression_disagreement(tmp_path: Path) -> None:
+    """Pins refusal when a record label and its expression text disagree, even after the artifact is reforged."""
     manifest_path = _icpsr_package(tmp_path)
     root = manifest_path.parent
     concepts = [json.loads(line) for line in (root / "records/concepts.jsonl").read_bytes().splitlines()]
@@ -259,6 +271,7 @@ def test_icpsr_release_reader_refuses_record_expression_disagreement(tmp_path: P
 
 
 def test_icpsr_release_reader_refuses_a_wrong_external_manifest_digest(tmp_path: Path) -> None:
+    """Pins refusal when the caller's expected manifest digest differs from the package's."""
     manifest_path = _icpsr_package(tmp_path)
 
     with pytest.raises(VocabularyAtlasError, match="manifest digest differs"):

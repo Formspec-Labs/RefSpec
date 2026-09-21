@@ -1,58 +1,34 @@
 """Derived ``skos:broader`` edges from EuroVoc microthesaurus notations to domains.
 
-REF-045 (docs/decisions.md) found that the Publications Office never asserts
-the link between a EuroVoc microthesaurus and the domain it sits under
-anywhere in the pinned SKOS Core distribution: the complete predicate
-inventory on the 127 microthesauri is ``rdf:type``, ``skos:notation``, and
-labels only, ``euvoc:domain`` appears nowhere in the graph, and nothing
-points at the 21 domain concepts at all. The only linkage that exists is
-notational: every microthesaurus's four-digit publisher notation carries a
-two-digit prefix naming exactly one of the 21 domain codes. Reading that
-prefix as the microthesaurus's domain is a structural projection of the
-publisher's own numbering convention, not an invention -- but it is still
-RefSpec's act, not the Publications Office's assertion of ``skos:broader``,
-so under REF-035 tier E5 it belongs only in the derived graph, admitted
-per-rule by the binding's rule registry (REF-042 in ``docs/decisions.md``).
-REF-046 registers this module as the registry's fifth entry and promotes
-the 127 microthesauri and their 7,902 concept memberships into a real
-Atlas release alongside it.
+The Publications Office never asserts the link between a EuroVoc
+microthesaurus and the domain it sits under in the pinned SKOS Core
+distribution — ``euvoc:domain`` appears nowhere and nothing points at the 21
+domain concepts — but every microthesaurus's four-digit publisher notation
+carries a two-digit prefix naming exactly one of the 21 domain codes. Reading
+that prefix as the domain is a structural projection of the publisher's own
+numbering convention, not an invention; it is still RefSpec's act rather than
+an assertion of ``skos:broader``, so under REF-035 tier E5 it belongs only in
+the derived graph, admitted per-rule by the binding's rule registry (REF-042,
+REF-046).
 
-**The measured trap this rule refuses to repeat.** EuroVoc *concept*
-notations are opaque sequential ids, not hierarchical codes: ``1`` is "Arhus
-(county)", ``10`` is "domestic trade", ``100`` is "racial conflict". Applying
-a two-digit prefix rule at the concept level produces 1,730 confident
-nonsense claims out of 7,506 (REF-045). The prefix relationship is real only
-between a microthesaurus's own four-digit notation and a domain's two-digit
-code -- this rule reads notations from resources in exactly those two
-schemes and no others, never from bare notation shape alone.
+The rule is scheme-scoped in BOTH directions: the subject must be a resource
+in ``urn:ref:atlas-resource-scheme:eurovoc:microthesauri`` and the object one
+in ``urn:ref:atlas-resource-scheme:eurovoc:domains``, never notation shape
+alone. EuroVoc *concept* notations are opaque sequential ids (``1`` is "Arhus
+(county)", ``100`` is "racial conflict"), so a prefix rule applied at concept
+level produces nonsense — 1,730 of 7,506 claims in REF-045 — and this rule
+reads notations only from resources in those two schemes.
 
-**Cross-scheme, unlike every prior rule.** MeSH tree numbers, GCMD column
-nesting, and the Federal Register compound heading all derive an edge
-between two resources of the *same* scheme. This rule's subject (a
-microthesaurus) and object (a domain) sit in two different, already-shipped
-Atlas schemes (``urn:ref:atlas-resource-scheme:eurovoc:microthesauri`` and
-``urn:ref:atlas-resource-scheme:eurovoc:domains``), so it is scheme-scoped
-in BOTH directions rather than once: a microthesaurus-shaped four-digit
-notation on a foreign-scheme resource can never admit an edge, and neither
-can a domain-shaped two-digit notation on one. The MeSH rule shipped
-scheme-blind and an adversarial battery caught it proving parentage from
-notation shape alone; this rule does not repeat that bug.
-
-**Verified against the pinned 4.24 release**
+Verified against the pinned 4.24 release
 (``sha256:6c362f79ad03e325ba1b4818f1ca3a847bb6167c2a8f7167e2e4df91305b6620``,
 the same ``eurovoc_in_skos_core_concepts.rdf`` member ``eurovoc-4.24`` and
-``eurovoc-domains-4.24`` are already built from): all 127 microthesauri
-resolve their two-digit notation prefix to exactly one of the 21 domains --
-zero missing domains, zero ambiguous domains, zero malformed notations.
-127 derived edges, one per microthesaurus; this is the identical count and
-pair set the ``operator-derived-domain-candidates.jsonl`` sidecar layer
-(``refspec.registry.eurovoc_organization_experiment``,
-``generationMethod: microthesaurusNotationTwoDigitPrefix``) already carried
-as a non-authoritative candidate.
+``eurovoc-domains-4.24`` are built from): all 127 microthesauri resolve their
+prefix to exactly one of the 21 domains — zero missing, zero ambiguous, zero
+malformed — for 127 derived edges.
 
-This module works over the shared :mod:`refspec.atlas.derived_graph`
-machinery and mints its rows through :func:`build_derived_row`, so row
-identity and input digests match the binding's formulas exactly.
+This module works over the shared :mod:`refspec.atlas.derived_graph` machinery
+and mints its rows through :func:`build_derived_row`, so row identity and
+input digests match the binding's formulas exactly.
 """
 
 from __future__ import annotations

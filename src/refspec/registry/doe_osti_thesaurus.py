@@ -237,12 +237,16 @@ DOE_OSTI_THESAURUS_VERIFICATION_GAPS: tuple[DoeOstiVerificationGap, ...] = (
 
 
 def _require_absolute_iri(value: str, label: str) -> str:
+    """Return the value when it is an absolute IRI, refusing otherwise."""
+
     if not urllib.parse.urlsplit(value).scheme:
         raise DoeOstiThesaurusError(f"{label} must be an absolute IRI, got {value!r}")
     return value
 
 
 def _validate_source_url(value: str) -> None:
+    """Refuse a non-HTTP(S) source URL or one carrying credentials."""
+
     parsed = urllib.parse.urlsplit(value)
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         raise DoeOstiThesaurusError("source_url must be an absolute HTTP(S) URL")
@@ -251,6 +255,8 @@ def _validate_source_url(value: str) -> None:
 
 
 def _expected_hex(expected_sha256: str) -> str:
+    """Return the 64 hex characters of a canonical ``sha256:`` digest, refusing any other spelling."""
+
     if not expected_sha256.startswith(_DIGEST_PREFIX) or len(expected_sha256) != len(_DIGEST_PREFIX) + 64:
         raise DoeOstiThesaurusError("expected_sha256 must be a lowercase sha256:<64 hex> digest")
     hex_part = expected_sha256[len(_DIGEST_PREFIX) :]
@@ -260,6 +266,8 @@ def _expected_hex(expected_sha256: str) -> str:
 
 
 def _source_payload(source: str | bytes) -> bytes:
+    """Encode a str/bytes source as UTF-8 bytes, refusing a wrong type or invalid UTF-8."""
+
     if isinstance(source, bytes):
         payload = source
     elif isinstance(source, str):
@@ -276,6 +284,8 @@ def _source_payload(source: str | bytes) -> bytes:
 
 
 def _iri(term: Identifier, label: str) -> str:
+    """Decode one RDF term to an absolute IRI, refusing a literal or relative IRI."""
+
     if not isinstance(term, URIRef):
         kind = type(term).__name__
         raise DoeOstiThesaurusError(f"{label} must be an IRI, got {kind}")
@@ -400,6 +410,8 @@ class DoeOstiThesaurus:
 
     @property
     def counts(self) -> DoeOstiImportCounts:
+        """The import-coverage counters the real-data test pins."""
+
         semantics = Counter(item.predicate_iri for item in self.semantic_relations)
         structure = Counter(item.predicate_iri for item in self.structure_relations)
         notes = Counter(item.property_iri for item in self.notes)
@@ -423,6 +435,8 @@ class DoeOstiThesaurus:
 
 
 def _literal(term: Identifier, label: str) -> DoeOstiLiteral:
+    """Decode one RDF literal, refusing a non-literal and retaining language and datatype."""
+
     if not isinstance(term, Literal):
         raise DoeOstiThesaurusError(f"{label} must be an RDF literal")
     language_tag = str(term.language) if term.language is not None else None
@@ -433,6 +447,8 @@ def _literal(term: Identifier, label: str) -> DoeOstiLiteral:
 
 
 def _check_predicate_allow_list(graph: Graph) -> None:
+    """Refuse any predicate outside the reviewed allow-list, so an unverified shape change fails loudly."""
+
     for predicate in set(graph.predicates()):
         predicate_iri = str(predicate)
         if predicate_iri == RDF_TYPE_PREDICATE_IRI:
@@ -445,6 +461,8 @@ def _check_predicate_allow_list(graph: Graph) -> None:
 
 
 def _check_rdf_type_allow_list(graph: Graph) -> None:
+    """Refuse any ``rdf:type`` object that is not ``skos:Concept`` or ``skos:ConceptScheme``."""
+
     allowed_types = {SKOS.Concept, SKOS.ConceptScheme}
     for _, type_object in graph.subject_objects(RDF.type):
         if type_object not in allowed_types:
@@ -452,6 +470,8 @@ def _check_rdf_type_allow_list(graph: Graph) -> None:
 
 
 def _labels(graph: Graph) -> tuple[DoeOstiLabel, ...]:
+    """Collect preferred labels, refusing an untagged label or two same-language spellings."""
+
     labels: list[DoeOstiLabel] = []
     preferred_by_language: dict[tuple[str, str], str] = {}
     for subject, value in graph.subject_objects(SKOS.prefLabel):
@@ -478,6 +498,8 @@ def _labels(graph: Graph) -> tuple[DoeOstiLabel, ...]:
 
 
 def _notes(graph: Graph) -> tuple[DoeOstiNote, ...]:
+    """Collect definition and scope-note assertions, refusing an untagged note."""
+
     notes: list[DoeOstiNote] = []
     for predicate_iri in NOTE_PREDICATE_IRIS:
         for subject, value in graph.subject_objects(URIRef(predicate_iri)):
@@ -502,6 +524,8 @@ def _notes(graph: Graph) -> tuple[DoeOstiNote, ...]:
 
 
 def _iri_relations(graph: Graph, predicate_iris: tuple[str, ...], *, label: str) -> tuple[DoeOstiIriRelation, ...]:
+    """Collect IRI-object relations for the given predicates, sorted and lossless."""
+
     relations: list[DoeOstiIriRelation] = []
     for predicate_iri in predicate_iris:
         for subject, object_ in graph.subject_objects(URIRef(predicate_iri)):
@@ -516,6 +540,8 @@ def _iri_relations(graph: Graph, predicate_iris: tuple[str, ...], *, label: str)
 
 
 def _concepts(graph: Graph) -> tuple[DoeOstiConcept, ...]:
+    """Collect every ``skos:Concept`` with its scheme memberships and top-concept claims."""
+
     concepts: list[DoeOstiConcept] = []
     for subject in set(graph.subjects(RDF.type, SKOS.Concept)):
         concept_iri = _iri(subject, "concept")
@@ -528,6 +554,8 @@ def _concepts(graph: Graph) -> tuple[DoeOstiConcept, ...]:
 
 
 def _concept_schemes(graph: Graph) -> tuple[DoeOstiConceptScheme, ...]:
+    """Collect every ``skos:ConceptScheme`` with its explicit top concepts."""
+
     schemes: list[DoeOstiConceptScheme] = []
     for subject in set(graph.subjects(RDF.type, SKOS.ConceptScheme)):
         scheme_iri = _iri(subject, "concept scheme")
@@ -657,6 +685,8 @@ class DoeOstiThesaurusRelease:
     publisher: str = DOE_OSTI_PUBLISHER
 
     def __post_init__(self) -> None:
+        """Refuse an incomplete or unpinnable release descriptor."""
+
         if not self.version:
             raise DoeOstiThesaurusError("version must not be empty")
         _require_absolute_iri(self.concept_scheme_iri, "concept_scheme_iri")
@@ -701,6 +731,8 @@ class DoeOstiFetchedResource:
     body: bytes
 
     def __post_init__(self) -> None:
+        """Refuse a non-HTTP(S) URL, an out-of-range status, or a non-bytes body."""
+
         for value, _field in ((self.requested_url, "requested_url"), (self.resolved_url, "resolved_url")):
             _validate_source_url(value)
         if self.status_code < 100 or self.status_code > 599:
@@ -712,7 +744,10 @@ class DoeOstiFetchedResource:
 class DoeOstiThesaurusFetcher(Protocol):
     """Transport boundary used by explicit DOE OSTI Semantic Thesaurus acquisition."""
 
-    def __call__(self, url: str, *, timeout_seconds: float, max_bytes: int) -> DoeOstiFetchedResource: ...
+    def __call__(self, url: str, *, timeout_seconds: float, max_bytes: int) -> DoeOstiFetchedResource:
+        """Fetch one bounded response, refusing anything over ``max_bytes``."""
+
+        ...
 
 
 DOE_OSTI_USER_AGENT = (

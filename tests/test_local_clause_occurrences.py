@@ -6,6 +6,8 @@ from refspec.registry.citation_grammar import find_local_clause_occurrences
 
 
 def test_writing_requirement_preserves_two_exact_occurrences():
+    """Two bare clause references in ordinary IEP prose are found with exact spans and distinct starts."""
+
     # Actual 20 USC 1414(d)(1)(C)(iii) content: these are ordinary text, not
     # <ref> elements. Surrounding wording names two different parental acts.
     text = "A parent’s agreement under clause (i) and consent under clause (ii) shall be in writing."
@@ -28,6 +30,8 @@ def test_writing_requirement_preserves_two_exact_occurrences():
     "clause (i) and clause (ii) of subparagraph (D)",
 ])
 def test_unsupported_forms_do_not_become_bare_local_targets(text):
+    """Nested, ranged, enumerated, capitalized or line-broken forms are recognized only to be refused."""
+
     found = find_local_clause_occurrences(text)
     assert found
     assert all(r.refusal for r in found)
@@ -35,12 +39,16 @@ def test_unsupported_forms_do_not_become_bare_local_targets(text):
 
 
 def test_no_subclause_or_unlabelled_prose_and_no_inferred_semantics():
+    """Subclauses and stray ``(i)`` are not targets, and recognition alone asserts no operative meaning."""
+
     assert not find_local_clause_occurrences("subclause (i); a clause is text; (i).")
     found = find_local_clause_occurrences('The example says “clause (i)”.')
     assert found[0].text == "clause (i)"  # Recognition alone makes no operative assertion.
 
 
 def test_next_paragraph_label_is_not_a_citation_continuation():
+    """A new paragraph's ``(i)`` label is not a continuation, while a subparagraph container is refused."""
+
     found = find_local_clause_occurrences("See clause (i)\n\n(i) Another provision.")
     assert found[0].refusal is None
     found = find_local_clause_occurrences("subparagraph (D),\nclause (i)")

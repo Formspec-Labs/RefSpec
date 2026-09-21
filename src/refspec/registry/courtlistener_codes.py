@@ -1,36 +1,19 @@
 """Pinned CourtListener platform-normalized court identity codes.
 
-CourtListener's "Available Jurisdictions" help page enumerates every court the
-platform tracks in one settings-style table: a publisher-facing court Name, a
-live case Count, a Jurisdiction classification (for example "Federal
-Appellate" or "State Trial"), a Homepage link, an Abbreviation ("the value
-used in our URLs, bulk data, etc."), a Citation Abbreviation gathered from
-Blue Book/Cornell/ALWD, Start/End Date, an In Use flag, and a last-Modified
-timestamp.
-
-The Abbreviation and Jurisdiction classification are CourtListener's own
-platform-normalized values. The page publishes no official identifier issued
-by the court itself, so this module never treats an Abbreviation as an
-official court code and always keeps the two apart: nothing here overwrites,
-reconciles, or substitutes for an official court value obtained elsewhere.
-
-The table also bakes a continuously changing case Count and last-Modified
-timestamp into the same bytes as the stable identity fields. Unlike
-lda.gov's static JSON constants, a whole-page digest pin here marks one dated
-scrape observation, not a stable, independently re-fetchable release. A
-handful of rows also carry a malformed or empty Jurisdiction cell (an
-existing data-entry defect in CourtListener's own table, for example the bare
-fragment "St"). This module records such values exactly as published; it
-never corrects, infers, or drops a value, and it omits the jurisdiction-type
-identifier only when the cell is empty.
-
-This help page documents no opinion-type or opinion-status code list. Those
-values live under a different part of CourtListener's API surface and stay
-out of scope for this importer, which covers only the jurisdictions page.
-
-Acquisition accepts a local exact capture or an injected fetcher. Importing
-this module never opens a network connection, and no scraping provider is
-required to read the current help page.
+CourtListener's "Available Jurisdictions" help page enumerates every tracked
+court with a publisher Name, a live case Count, a Jurisdiction classification,
+an Abbreviation and Citation Abbreviation, dates, and an In Use flag; the
+classification and abbreviations are CourtListener's own platform-normalized
+values, published alongside no identifier issued by the court itself, so this
+module never treats one as an official court code and never overwrites,
+reconciles, or substitutes for an official value obtained elsewhere. The live
+Count and last-Modified timestamp share the same bytes as the stable identity
+fields, so a whole-page digest pin marks one dated scrape rather than a stable,
+independently re-fetchable release; a malformed or empty Jurisdiction cell is
+recorded exactly as published, the jurisdiction-type identifier being omitted
+only when the cell is empty. This help page documents no opinion-type or
+opinion-status code list, and acquisition accepts a local exact capture or an
+injected fetcher while importing never opens a network connection.
 """
 
 from __future__ import annotations
@@ -402,7 +385,7 @@ def _normalize_text(chunks: Sequence[str]) -> str:
 class _JurisdictionsTableParser(HTMLParser):
     """Walk exactly one ``table.settings-table`` and collect its raw cell text.
 
-    The parser never interprets any other part of the help page. It tracks a
+    The parser never interprets any other part of the help page and tracks a
     flat thead/tbody/tr/td state (no cell in this table nests another table),
     so any real structural change -- an added or removed column, a nested
     table, a missing ``tbody`` -- surfaces as a cell-count or header mismatch
@@ -495,7 +478,7 @@ class ParsedCourtListenerJurisdictionsPage:
     gaps: tuple[Mapping[str, str], ...]
 
     def by_court_id(self) -> dict[str, CourtListenerJurisdictionRow]:
-        """Index each row's platform court identifier, retaining every field."""
+        """Index each row's platform court identifier; a row without exactly one is refused."""
 
         result: dict[str, CourtListenerJurisdictionRow] = {}
         for row in self.rows:

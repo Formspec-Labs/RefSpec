@@ -84,10 +84,14 @@ class IcpsrSubjectError(ValueError):
 
 
 def _sha256(payload: bytes) -> str:
+    """Return the canonical ``sha256:`` spelling of the payload's digest."""
+
     return "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
 def _canonical_json(value: object) -> bytes:
+    """Canonical JSON bytes: sorted keys, compact separators, UTF-8."""
+
     return json.dumps(
         value,
         ensure_ascii=False,
@@ -97,10 +101,14 @@ def _canonical_json(value: object) -> bytes:
 
 
 def _index_url(letter: str) -> str:
+    """The official letter-index URL for one letter."""
+
     return ICPSR_SUBJECT_SCHEME_IRI + "?" + urllib.parse.urlencode({"letter": letter})
 
 
 def _require_nonempty_text(value: str | None, field: str) -> str:
+    """Return stripped text, refusing a missing or empty value."""
+
     if value is None:
         raise IcpsrSubjectError(f"{field} is missing")
     text = value.strip()
@@ -120,6 +128,8 @@ class IcpsrFetchedPage:
     body: bytes
 
     def __post_init__(self) -> None:
+        """Refuse a non-HTTP(S) URL, an out-of-range status, or a non-bytes body."""
+
         for value, field in (
             (self.requested_url, "requested_url"),
             (self.resolved_url, "resolved_url"),
@@ -250,10 +260,14 @@ class IcpsrSubjectIndex:
     capture_digest: str
 
     def term_by_label(self) -> dict[str, IcpsrIndexTerm]:
+        """Index terms by their exact label."""
+
         return {term.label: term for term in self.terms}
 
 
 class _IcpsrLetterIndexParser(html.parser.HTMLParser):
+    """Collect term anchors and their section headings from one letter index page."""
+
     def __init__(self, *, source_letter: str) -> None:
         super().__init__(convert_charrefs=True)
         self.source_letter = source_letter
@@ -500,6 +514,8 @@ def build_icpsr_subject_index(
 
 
 def _capture_manifest(index: IcpsrSubjectIndex) -> dict[str, object]:
+    """Render the deterministic manifest for one index capture."""
+
     return {
         "captureDigest": index.capture_digest,
         "parserVersion": ICPSR_INDEX_PARSER_VERSION,
@@ -538,6 +554,8 @@ def _capture_manifest(index: IcpsrSubjectIndex) -> dict[str, object]:
 
 
 def _publish_exact_file(path: Path, payload: bytes) -> None:
+    """Write one capture file, refusing to overwrite different bytes."""
+
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists() or path.is_symlink():
         if path.is_symlink() or not path.is_file():
@@ -610,6 +628,8 @@ def acquire_icpsr_subject_index(
     requests_made = 0
 
     def fetch(url: str) -> IcpsrFetchedPage:
+        """Fetch one page under the request bound and minimum interval."""
+
         nonlocal requests_made
         if requests_made:
             sleep(minimum_interval_seconds)
@@ -683,6 +703,8 @@ def _xml_values(
     concept: ElementTree.Element,
     tag: str,
 ) -> tuple[str, ...]:
+    """Every non-empty text under one tag, refusing a missing value."""
+
     return tuple(_require_nonempty_text(child.text, tag) for child in concept.findall(tag))
 
 
@@ -690,6 +712,8 @@ def _optional_single_xml_value(
     concept: ElementTree.Element,
     tag: str,
 ) -> str | None:
+    """Return the single value for a tag, refusing repeats."""
+
     values = _xml_values(concept, tag)
     if len(values) > 1:
         raise IcpsrSubjectError(f"ICPSR XML repeats {tag}")
@@ -906,6 +930,8 @@ def join_icpsr_xml_to_official_index(
         relation: str,
         expected_preferred: bool | None,
     ) -> tuple[IcpsrIndexTerm, ...]:
+        """Resolve each XML label to an indexed term or record why it cannot."""
+
         resolved: list[IcpsrIndexTerm] = []
         for label in labels:
             identity = identities.get(label)

@@ -36,16 +36,17 @@ def find_cfr_citations(
 ) -> tuple[CfrCitationOccurrence, ...]:
     """Read complete CFR coordinates and ranges with their exact source evidence.
 
-    Source spelling, repeated occurrences and impossible-title verdicts survive.
-    Explicit CFR citations only: no title or local paragraph target is inferred
-    from document context. Attached pinpoints and subpart qualifiers are consumed
-    before walking lists. Written range endpoints survive without expansion.
-    List connectors and parenthetical qualifications remain in the source slice;
-    their legal relationship is not inferred. Ambiguous part/subpart pairings
-    and unsupported note/open-ended scope carry refusals rather than becoming
-    definite addresses. The identity-only parser does not retain these tails.
-    ``expand_qualifiers=False`` keeps one occurrence per coordinate while still
-    consuming its complete qualifier text and retaining ambiguity verdicts.
+    Source spelling, repeated occurrences and impossible-title verdicts survive;
+    explicit CFR citations only: no title or local paragraph target is
+    inferred from document context. Attached pinpoints and subpart qualifiers are
+    consumed before walking lists, written range endpoints survive without
+    expansion, and list connectors and parenthetical qualifications remain in the
+    source slice with their legal relationship left uninferred. Ambiguous
+    part/subpart pairings and unsupported note/open-ended scope carry refusals
+    rather than becoming definite addresses; the identity-only parser does not
+    retain these tails. ``expand_qualifiers=False`` keeps one occurrence per
+    coordinate while still consuming its complete qualifier text and retaining
+    ambiguity verdicts.
     """
     found: list[CfrCitationOccurrence] = []
 

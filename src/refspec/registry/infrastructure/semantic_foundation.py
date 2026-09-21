@@ -606,6 +606,8 @@ class RightsMetadata:
 
     @classmethod
     def from_record(cls, value: Mapping[str, Any]) -> RightsMetadata:
+        """Validate one closed ``rights_metadata`` record, refusing policy fields and unknown keys."""
+
         if not isinstance(value, Mapping):
             raise SemanticFoundationError("rights_metadata must be an object")
         _forbid_policy_fields(value, label="rights_metadata")
@@ -629,6 +631,8 @@ class RightsMetadata:
         )
 
     def as_record(self) -> dict[str, Any]:
+        """The closed record form, omitting absent optional fields."""
+
         result: dict[str, Any] = {
             "type": "RightsMetadata",
             "rightsStatus": self.rights_status,
@@ -870,14 +874,20 @@ class EvidenceAssertion:
 
     @property
     def content_digest(self) -> str:
+        """Content-derived digest over this assertion's basis."""
+
         return _content_digest(self._basis())
 
     @property
     def identifier(self) -> str:
+        """The content-derived, ring-scoped assertion identifier."""
+
         return f"urn:ref:evidence-assertion:{self.semantic_ring}:{self.content_digest.removeprefix('sha256:')}"
 
     @classmethod
     def from_record(cls, value: Mapping[str, Any]) -> EvidenceAssertion:
+        """Validate a closed record, refusing policy fields, and require exact canonical re-serialization."""
+
         if not isinstance(value, Mapping):
             raise SemanticFoundationError("evidence_assertion must be an object")
         _forbid_policy_fields(value, label="evidence_assertion")
@@ -951,6 +961,8 @@ class EvidenceAssertion:
         return assertion
 
     def as_record(self) -> dict[str, Any]:
+        """The closed record form with its content-derived id and digest."""
+
         return {
             **self._basis(),
             "id": self.identifier,
@@ -1044,6 +1056,8 @@ class MappingAssertion:
 
     @classmethod
     def from_record(cls, value: Mapping[str, Any]) -> MappingAssertion:
+        """Validate a closed record, refusing policy fields, and require exact canonical re-serialization."""
+
         if not isinstance(value, Mapping):
             raise SemanticFoundationError("mapping_assertion must be an object")
         _forbid_policy_fields(value, label="mapping_assertion")
@@ -1171,13 +1185,19 @@ class MappingAssertion:
 
     @property
     def content_digest(self) -> str:
+        """Content-derived digest over this assertion's basis."""
+
         return _content_digest(self._basis())
 
     @property
     def identifier(self) -> str:
+        """The content-derived, ring-scoped assertion identifier."""
+
         return f"urn:ref:mapping-assertion:{self.semantic_ring}:{self.content_digest.removeprefix('sha256:')}"
 
     def as_record(self) -> dict[str, Any]:
+        """The closed record form with its content-derived id and digest."""
+
         return {
             **self._basis(),
             "id": self.identifier,

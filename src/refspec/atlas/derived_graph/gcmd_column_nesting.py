@@ -1,65 +1,21 @@
 """Derived ``skos:broader`` edges for GCMD Science Keywords from CSV column nesting.
 
-REF-041 (docs/decisions.md) reached the judgment this rule executes: the
-Science Keywords CSV export encodes the publisher's hierarchy positionally
-(Category > Topic > Term > Variable_Level_1..3 > Detailed_Variable), every
-ancestor prefix of every row is itself a row with its own publisher UUID,
-and NASA's own RDF export of the same scheme asserts ``skos:broader``
-between exactly the UUID pairs the nesting implies -- but the pinned CSV
-carries no relation field, so expressing that structure as ``skos:broader``
-is RefSpec's act under REF-035 tier E5: derived graph only, opt-in,
-never asserted. REF-042 then built the derived-graph rule registry that
-REF-041 said this rule required; REF-043 registers this module as its
-third entry.
-
-Unlike the MeSH tree-number rule -- whose premise (a tree number) is an
-``atlas:notation`` literal on the resource itself -- the GCMD premise is
-the *column path* of a CSV row, and the asserted graph carries that path
-exactly once: as the canonical ``atlas:nativePayload`` JSON on the
-keyword's own ``SourceRecord``, the same bytes
-``v3_registry_vocabularies._normalize_gcmd`` writes from the pinned CSV
-columns. This rule therefore reads each keyword's path out of its source
-record's native payload -- the asserted-graph bytes the validator's replay
-will later read back -- and cites the child's and parent's ``SourceRecord``
-IRIs as each edge's evidence (``EVIDENCE_INPUT_SOURCE_RECORD``): a source
-record IS the exact CSV row it receipts, so citing the two records is
-citing the two rows the edge came from. UUID notations stay unused here;
-identity is path-scoped, never label-scoped (512 same-label keywords sit
-under more than one parent in the pinned export).
-
-**Scope.** Both endpoints of every edge, and every path this rule reads,
-must sit in the GCMD Science Keywords scheme
-    (``urn:ref:atlas-resource-scheme:gcmd-science-keywords``).
-The MeSH rule shipped scheme-blind and an adversarial battery caught it
-proving parentage from notation shape alone; this rule requires the scheme
-in its producer fact selection, in the binding's row check, and in the
-binding's whole-set replay from the first line of each. A "keyword" for
-this rule is precisely: a resource in that scheme that some ``SourceRecord``
-represents. The release node also carries ``atlas:inScheme`` for the same
-scheme but represents nothing and is excluded by that same definition --
-which is why the scope is "in scheme AND represented by a record", not
-"in scheme" alone.
-
-**Verified against the real pinned 24.4 export**
+This is the derived-graph producer for the third rule REF-043 registered: each
+keyword's nesting path comes from its ``SourceRecord``'s ``atlas:nativePayload``
+bytes (the CSV columns verbatim), each edge cites the child's and parent's
+``SourceRecord`` IRIs as evidence, and both endpoints must be resources in
+``urn:ref:atlas-resource-scheme:gcmd-science-keywords`` that a record
+represents. Every premise violation -- repeated path, missing ancestor row,
+self-edge, or a derived edge duplicating an asserted relation or its
+``skos:narrower`` inverse -- raises, never silently drops, and identity is
+path-scoped, never label-scoped (512 same-label keywords sit under more than
+one parent in the pinned 24.4 export). Rows are minted through
+:func:`build_derived_row` over the shared :mod:`refspec.atlas.derived_graph`
+machinery so row identity and input digests match the binding's formulas, and
+the real-data test proves the pair set agrees with the CSV-level oracle
+``refspec.registry.gcmd_science_keywords_hierarchy`` over the pinned bytes
 (``sha256:f31d8137e860e4231ff312c89e4ffe59d12f636786a47dd2c41e28273a3f02e2``,
-504,190 bytes, 3,774 keyword rows):
-
-* 2 roots (depth-1 paths: the two Categories), 3,772 derived
-  ``skos:broader`` edges -- the identical edge count and UUID pair set
-  ``refspec.registry.gcmd_science_keywords_hierarchy`` (REF-041's
-  fail-closed CSV reader, the committed oracle for this judgment) derives
-  from the same pinned bytes; the real-data test proves the two agree
-  pair for pair rather than merely counting the same.
-* zero missing ancestors, zero repeated paths, zero self-edges -- every
-  premise violation raises (never silently drops), so a future export
-  that breaks prefix-closure fails the build loudly.
-* 512 (level, label) pairs appear under more than one parent -- counted
-  (``homonymLabels``) as the standing reminder that any label-keyed
-  derivation of this scheme would silently merge distinct concepts.
-
-This module works over the shared :mod:`refspec.atlas.derived_graph`
-machinery and mints its rows through :func:`build_derived_row`, so row
-identity and input digests match the binding's formulas exactly.
+3,774 rows, 2 roots, 3,772 edges).
 """
 
 from __future__ import annotations

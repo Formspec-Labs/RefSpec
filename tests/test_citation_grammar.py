@@ -1,4 +1,11 @@
-"""The single citation grammar, and the two defects the port fixed."""
+"""The single citation grammar, and the two defects the port fixed.
+
+Pins what `refspec.registry.citation_grammar` reads by rule rather than by shape: the CFR and
+authority families, the fail-closed boundary and range-ordering rules, popular-name capture, and
+the corpus-measured repairs, with every corpus count taken over the digest-pinned 797,170-row
+Agenda legal-authority table rather than a live build. The two defects pinned here are the
+internal-token right-edge omission: "Social Security" offered "Sec" and gave up "urity", and
+"6921through" read as section "6921thr"."""
 
 from __future__ import annotations
 
@@ -84,6 +91,8 @@ INDEX_CSV = (
 
 
 def _parts(text: str, **kwargs) -> list[str | None]:
+    """The cfr_part of each parsed CFR citation, for compact assertions."""
+
     return [citation.cfr_part for citation in parse_cfr_citations(text, **kwargs)]
 
 
@@ -101,6 +110,8 @@ def test_a_lettered_part_is_not_merged_into_its_numeric_neighbour() -> None:
 
 @pytest.mark.skipif(not INDEX_CSV.is_file(), reason="CFR subject index evidence is not present")
 def test_the_lettered_part_share_is_measured_not_asserted() -> None:
+    """Pins the lettered-part share to the OFR index, including 7 CFR 15 / 15a -- the pair that makes merging lossy."""
+
     rows = list(csv.DictReader(INDEX_CSV.open(encoding="utf-8", newline="")))
     parts = {(row["cfr_title"], row["cfr_part"]) for row in rows}
     lettered = {part for part in parts if not part[1].isdigit()}
@@ -199,6 +210,8 @@ def test_the_part_is_a_join_key_so_leading_zeros_normalize() -> None:
 
 
 def test_sections_are_read_not_discarded() -> None:
+    """A section after § is read into cfr_section, and a trailing sentence period is not part of it."""
+
     citation = parse_cfr_citations("45 C.F.R. § 302.32(b)")[0]
     assert (citation.cfr_part, citation.cfr_section) == ("302", "32")
     # A trailing period belongs to the sentence, not the section name.
@@ -206,6 +219,8 @@ def test_sections_are_read_not_discarded() -> None:
 
 
 def test_every_authority_shape_the_agenda_carries() -> None:
+    """Pins the Agenda's authority shapes -- U.S.C., public law, executive order, Statutes at Large -- as typed rows."""
+
     assert [a.authority_type for a in parse_authority_citation("5 U.S.C. 301")] == ["usc"]
     assert parse_authority_citation("PL 107-171")[0].public_law == "107-171"
     assert parse_authority_citation("E.O. 13559")[0].executive_order == "13559"
@@ -261,6 +276,8 @@ def test_usc_chapters_are_typed_rows_not_failures() -> None:
 
 
 def test_a_section_list_expands_under_its_title_and_stops_at_citations() -> None:
+    """A USC section list expands under its title, and a number leading another citation is never a list member."""
+
     listed = parse_authority_citation("42 U.S.C. 1395, 1396, 1397")
     assert [c.usc_section for c in listed] == ["1395", "1396", "1397"]
     assert {c.parse_status for c in listed} == {"partial"}
@@ -273,6 +290,8 @@ def test_a_section_list_expands_under_its_title_and_stops_at_citations() -> None
 
 
 def test_the_title_form_is_the_spelling_statutes_themselves_use() -> None:
+    """Pins "section X of title T" and its plural list form as the spelling the statutes themselves use."""
+
     single = parse_authority_citation("section 553 of title 5")[0]
     assert (single.usc_title, single.usc_section, single.parse_status) == (5, "553", "ok")
     plural = parse_authority_citation("sections 3501, 3502 and 3503 of title 44")
@@ -287,12 +306,18 @@ def test_a_named_code_supplies_its_own_title() -> None:
 
 
 def test_the_code_names_itself_three_ways() -> None:
+    """Pins "U.S. Code", "U.S.C.", and the annotated "U.S.C.A." as the same title-and-section read."""
+
     assert parse_authority_citation("49 U.S. Code 106")[0].usc_section == "106"
     annotated = parse_authority_citation("50 U.S.C.A. 4701(a)")[0]
     assert (annotated.usc_title, annotated.usc_section) == (50, "4701")
 
 
 def test_parse_status_distinguishes_covered_from_embedded() -> None:
+    """ok for covered text with ignorable tails and partial when a subsection is stripped; failed
+    text is retained, never dropped.
+    """
+
     assert parse_authority_citation("5 U.S.C. 301")[0].parse_status == "ok"
     # "et seq." and "as amended" are ignorable tails, not extra prose.
     assert parse_authority_citation("5 U.S.C. 301 et seq.")[0].parse_status == "ok"
@@ -340,6 +365,8 @@ def test_the_title_part_spelling_requires_an_anchor() -> None:
 
 
 def test_a_cfr_list_never_swallows_the_next_citations_number() -> None:
+    """With list expansion on, a CFR list stops before a following citation rather than swallowing its number."""
+
     mixed = parse_cfr_citations("17 CFR 240, 15 U.S.C. 78c", list_expansion="always")
     assert [(c.cfr_title, c.cfr_part) for c in mixed] == [(17, "240")]
 
@@ -430,6 +457,8 @@ def test_administrative_orders_are_a_department_heads_own_instrument() -> None:
 
 
 def test_treaty_series_follow_the_bluebook_preference_list() -> None:
+    """Pins UST and the S. Treaty Doc. plus UNTS combination as treaty rows in Bluebook preference order."""
+
     ust = parse_authority_citation("27 UST 1087")[0]
     assert (ust.authority_type, ust.treaty_series, ust.treaty_volume, ust.treaty_page) == (
         "treaty",
@@ -445,6 +474,10 @@ def test_treaty_series_follow_the_bluebook_preference_list() -> None:
 
 
 def test_the_constitution_family_reads_articles_and_refuses_typos() -> None:
+    """Reads an Article/Section citation as the constitution family and repairs a one-insertion
+    "Cost" only at the value's head.
+    """
+
     clause = parse_authority_citation("U.S. Const., Art. II, Sec. 2")[0]
     assert (clause.authority_type, clause.constitution_article, clause.constitution_section) == (
         "constitution",
@@ -466,6 +499,8 @@ def test_the_constitution_family_reads_articles_and_refuses_typos() -> None:
 
 
 def test_a_compilation_locator_cited_as_authority_is_typed_not_failed() -> None:
+    """A compilation locator cited as legal authority is typed as eo_compilation, not failed."""
+
     row = parse_authority_citation("3 CFR, 1949 to 1953 Comp, p 1002")[0]
     assert (row.authority_type, row.eo_compilation_start, row.eo_compilation_page) == (
         "eo_compilation",
@@ -521,6 +556,8 @@ def test_the_residue_exposed_four_more_recoverable_gaps() -> None:
 
 
 def _one(text: str):
+    """Parse exactly one authority row, failing loudly on any other count."""
+
     rows = parse_authority_citation(text)
     assert len(rows) == 1, rows
     return rows[0]
@@ -626,6 +663,8 @@ def test_a_dot_in_the_public_law_separator_slot_is_the_dashs_damage() -> None:
 
 
 def test_presidential_directives_are_typed_by_kind_like_memoranda() -> None:
+    """HSPD directives are typed by kind, and a bare lowercase token stays prose."""
+
     row = _one("Homeland Security Presidential Directive 12")
     assert (row.authority_type, row.presidential_doc_kind) == (
         "presidential_document", "directive",
@@ -781,6 +820,8 @@ def test_a_compilation_fragment_reads_whole_value_only() -> None:
 
 
 def test_omb_names_itself_longhand_too() -> None:
+    """The longhand "Office of Management and Budget Circular" reads as the same OMB Circular kind."""
+
     row = _one("Office of Management and Budget Circular No. A–25, as revised")
     assert (row.authority_type, row.admin_order_kind) == ("administrative_order", "OMB Circular")
     assert row.admin_order_number == "A-25"
@@ -815,6 +856,8 @@ def test_far_cites_title_48_by_its_own_declared_equivalence() -> None:
 
 
 def test_a_title_named_longhand_is_still_a_bare_title() -> None:
+    """A bare "title 35 of the U.S.C." names the title with no section and is partial, not dropped."""
+
     row = _one("title 35 of the U.S.C.")
     assert (row.authority_type, row.usc_title, row.parse_status) == ("usc", 35, "partial")
 
@@ -849,12 +892,16 @@ def test_the_public_law_label_tolerates_its_hyphenated_spelling() -> None:
 
 
 def test_a_subtitle_designator_does_not_hide_the_sections() -> None:
+    """A subtitle designator between the title and its section list must not hide the listed sections."""
+
     rows = parse_authority_citation("46 USC subtitle II 3301, 3305, 3306")
     assert [r.usc_section for r in rows] == ["3301", "3305", "3306"]
     assert {r.usc_title for r in rows} == {46}
 
 
 def test_the_appendix_marker_reads_in_any_case() -> None:
+    """The appendix marker is recognized in uppercase, so "5 USC APP" reads as an appendix."""
+
     row = _one("5 USC APP (Ethics in Government Act of 1978)")
     assert (row.authority_type, row.usc_title, row.usc_appendix) == ("usc", 5, True)
 
@@ -1694,6 +1741,8 @@ def test_straightening_before_stripping_changes_only_those_four() -> None:
     from refspec.registry.citation_grammar import _CURLY_APOSTROPHE, _NAME_EDGE, _normalize_dashes
 
     def strip_then_straighten(name: object) -> str:
+        """The pre-fix order copied as an oracle: strip edges, then straighten quotes, then squash."""
+
         text = _NAME_EDGE.sub("", str(name or ""))
         text = _CURLY_APOSTROPHE.sub("'", _normalize_dashes(text))
         return re.sub(r"\s+", " ", text).strip().lower()
@@ -3525,6 +3574,8 @@ def test_the_phantom_spans_are_recounted_not_restated() -> None:
             spans[key] = spans.get(key, 0) + len(rows)
 
     def members(key: tuple[int, str, str]) -> list[str]:
+        """Every integer between the span's two endpoints, as strings."""
+
         return [str(number) for number in range(int(key[1]), int(key[2]) + 1)]
 
     assert (len(spans), sum(spans.values())) == (76, 323), "the expanded spans of the pinned corpus"

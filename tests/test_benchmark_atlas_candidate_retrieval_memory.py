@@ -1,4 +1,4 @@
-"""Memory-bounded exact retrieval and compact accounting checks."""
+"""Memory-bounded exact retrieval and compact accounting checks for the crosswalk benchmark harness."""
 
 from __future__ import annotations
 
@@ -16,6 +16,8 @@ import benchmark_atlas_candidate_retrieval as benchmark
 
 
 def _concept(side: str, identifier: str, label: str) -> AtlasConcept:
+    """One minimal AtlasConcept for the synthetic alignment cases."""
+
     return AtlasConcept(
         member=f"https://example.test/{side}/{identifier}",
         release=f"urn:test:{side}",
@@ -24,6 +26,8 @@ def _concept(side: str, identifier: str, label: str) -> AtlasConcept:
 
 
 def _case(*, reverse: bool = False) -> benchmark.AlignmentCase:
+    """A two-source/three-target case whose member order can be reversed."""
+
     sources = (
         _concept("source", "b", "Conference paper"),
         _concept("source", "a", "Program chair"),
@@ -50,6 +54,8 @@ def _case(*, reverse: bool = False) -> benchmark.AlignmentCase:
 
 
 def test_blocked_exact_ranking_matches_one_block_and_uses_member_ties() -> None:
+    """A one-row query block must rank exactly as a single large block, ties broken by member id."""
+
     source_ids = ("https://example.test/source/z", "https://example.test/source/a")
     target_ids = ("https://example.test/target/z", "https://example.test/target/a")
     vectors = np.ones((2, 3), dtype=np.float32)
@@ -80,6 +86,8 @@ def test_blocked_exact_ranking_matches_one_block_and_uses_member_ties() -> None:
 
 
 def test_blocked_ranks_match_the_previous_full_matrix_semantics() -> None:
+    """Blocked ranking must reproduce the stable full-matrix top-k semantics at every block size."""
+
     random = np.random.default_rng(20260805)
     source_ids = tuple(f"source-{index:02d}" for index in range(7))
     target_ids = tuple(f"target-{index:02d}" for index in range(11))
@@ -112,6 +120,8 @@ def test_blocked_ranks_match_the_previous_full_matrix_semantics() -> None:
 
 
 def test_compact_union_summary_matches_legacy_pair_set_evidence() -> None:
+    """The compact union summary must equal the legacy pair-set summary on the same evidence."""
+
     case = _case()
     paper = (case.name, case.sources[0].member, case.targets[0].member)
     chair = (case.name, case.sources[1].member, case.targets[1].member)
@@ -144,6 +154,8 @@ def test_compact_union_summary_matches_legacy_pair_set_evidence() -> None:
 def test_dense_report_and_vector_digest_do_not_depend_on_block_or_input_order(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """The dense report modulo elapsed time and the vector digest must not depend on block size or input order."""
+
     class FakeTextEmbedding:
         def __init__(self, *, model_name: str) -> None:
             self.model_name = model_name
@@ -203,6 +215,7 @@ def test_dense_report_and_vector_digest_do_not_depend_on_block_or_input_order(
 
 
 def test_query_block_size_is_positive_and_configurable() -> None:
+    """``--query-block-size`` is configurable, and zero is rejected."""
     args = benchmark.parse_args(
         [
             "--root",
@@ -228,6 +241,8 @@ def test_query_block_size_is_positive_and_configurable() -> None:
 
 
 def test_obo_synonym_and_definition_reference_nodes_are_resolved(tmp_path: Path) -> None:
+    """OBO synonym and definition nodes referenced by URI resolve to their literal text, not their node ids."""
+
     ontology = tmp_path / "referenced-text.rdf"
     ontology.write_text(
         """\

@@ -27,18 +27,21 @@ SUGGEST_FIXTURE = Path(__file__).parent / "fixtures" / "fast_topical" / "fast-su
 
 
 def test_landing_page_capture_matches_its_reference_pin() -> None:
+    """Pins the landing-page fixture's byte length and sha256 against the reference pin."""
     payload = LANDING_PAGE_FIXTURE.read_bytes()
     assert len(payload) == fast.FAST_LANDING_PAGE_CAPTURE_BYTE_LENGTH
     assert fast.sha256_digest(payload) == fast.FAST_LANDING_PAGE_CAPTURE_SHA256
 
 
 def test_term_rdf_capture_matches_its_reference_pin() -> None:
+    """Pins the term RDF fixture's byte length and sha256 against the reference pin."""
     payload = TERM_RDF_FIXTURE.read_bytes()
     assert len(payload) == fast.FAST_TERM_RDF_CAPTURE_BYTE_LENGTH
     assert fast.sha256_digest(payload) == fast.FAST_TERM_RDF_CAPTURE_SHA256
 
 
 def test_term_rdf_capture_parses_as_xml_with_rdf_root_and_contains_the_fast_uri() -> None:
+    """Pins that the term fixture parses with an RDF root and resolves the FAST 1923093 URI via xml:base."""
     from urllib.parse import urljoin
     from xml.etree import ElementTree
 
@@ -56,12 +59,14 @@ def test_term_rdf_capture_parses_as_xml_with_rdf_root_and_contains_the_fast_uri(
 
 
 def test_suggest_capture_matches_its_reference_pin() -> None:
+    """Pins the suggest fixture's byte length and sha256 against the reference pin."""
     payload = SUGGEST_FIXTURE.read_bytes()
     assert len(payload) == fast.FAST_SUGGEST_CAPTURE_BYTE_LENGTH
     assert fast.sha256_digest(payload) == fast.FAST_SUGGEST_CAPTURE_SHA256
 
 
 def test_suggest_capture_parses_and_has_its_real_top_level_shape() -> None:
+    """Pins the observed Solr envelope: responseHeader plus response with numFound 476 and five single-key docs."""
     import json
 
     payload = json.loads(SUGGEST_FIXTURE.read_bytes())
@@ -81,10 +86,12 @@ def test_suggest_capture_parses_and_has_its_real_top_level_shape() -> None:
 
 
 def test_suggest_api_observed_daily_rate_limit_is_recorded_as_observed_not_policy() -> None:
+    """Pins the 10,000/day suggest limit as an observation rather than a policy."""
     assert fast.FAST_SUGGEST_API_OBSERVED_DAILY_RATE_LIMIT == 10_000
 
 
 def test_gaps_document_the_native_bulk_change_and_per_term_channels() -> None:
+    """Pins the gap text naming the native host, rate limit, change channel and the 441,127 measured rows."""
     joined = " ".join(fast.FAST_TOPICAL_GAPS)
     assert "id.worldcat.org" in joined
     assert "10,000" in joined
@@ -95,6 +102,7 @@ def test_gaps_document_the_native_bulk_change_and_per_term_channels() -> None:
 
 
 def _native_path(environment_name: str, fallback_name: str) -> Path:
+    """Resolve a native source from its environment variable or the cached output path, skipping when absent."""
     configured = os.environ.get(environment_name)
     path = (
         Path(configured)
@@ -123,6 +131,7 @@ def native_snapshot() -> fast.ParsedFASTTopicalNativeSnapshot:
 def test_native_sources_rebuild_the_measured_current_topical_shape(
     native_snapshot: fast.ParsedFASTTopicalNativeSnapshot,
 ) -> None:
+    """Pins the native base pin, 440,612 active terms, 441,127 rows and the per-change status counts."""
     assert native_snapshot.base_sha256 == fast.FAST_TOPICAL_NATIVE_BASE_PIN.expected_sha256
     assert native_snapshot.base_byte_length == fast.FAST_TOPICAL_NATIVE_BASE_PIN.expected_byte_length
     assert native_snapshot.base_active_count == 440_612
@@ -150,6 +159,7 @@ def test_native_sources_rebuild_the_measured_current_topical_shape(
 def test_native_snapshot_pins_current_lcsh_link_shape(
     native_snapshot: fast.ParsedFASTTopicalNativeSnapshot,
 ) -> None:
+    """Pins 427,423 rows carrying LCSH links and the schema:sameAs / skos:relatedMatch link counts."""
     counts = Counter(
         link.predicate_iri
         for row in native_snapshot.rows
@@ -167,6 +177,7 @@ def test_native_snapshot_pins_current_lcsh_link_shape(
 def test_native_snapshot_preserves_publisher_lcsh_statements_without_promotion(
     native_snapshot: fast.ParsedFASTTopicalNativeSnapshot,
 ) -> None:
+    """Pins verbatim native statements and digests, with MARC $wnnd links read as relatedMatch."""
     by_id = native_snapshot.by_numeric_id()
     base_exact = by_id["435760"].lcsh_links[0]
     changed_related = next(
@@ -197,6 +208,7 @@ def test_native_snapshot_preserves_publisher_lcsh_statements_without_promotion(
 def test_native_snapshot_preserves_real_ids_labels_synonyms_and_hierarchy(
     native_snapshot: fast.ParsedFASTTopicalNativeSnapshot,
 ) -> None:
+    """Pins real ids, labels, synonyms, broader links and the first and last rows in source order."""
     by_id = native_snapshot.by_numeric_id()
 
     assert by_id["801013"].heading == "Agricultural laborers--Wounds and injuries"
@@ -216,6 +228,7 @@ def test_native_snapshot_preserves_real_ids_labels_synonyms_and_hierarchy(
 def test_native_snapshot_preserves_replacement_and_obsolete_tombstones(
     native_snapshot: fast.ParsedFASTTopicalNativeSnapshot,
 ) -> None:
+    """Pins 65 tombstones: 62 obsolete with automatic linking and 3 deleted without replacements."""
     assert len(native_snapshot.tombstones) == 65
     assert sum(row.status == "x" for row in native_snapshot.tombstones) == 62
     assert sum(row.status == "d" for row in native_snapshot.tombstones) == 3
@@ -226,6 +239,7 @@ def test_native_snapshot_preserves_replacement_and_obsolete_tombstones(
 
 
 def test_native_parser_rejects_source_byte_drift(tmp_path: Path) -> None:
+    """Pins refusal on byte-length drift when the archive is not the pinned OCLC file."""
     changed = tmp_path / "FASTTopical.nt.zip"
     changed.write_bytes(b"not the OCLC archive")
     with pytest.raises(fast.FASTTopicalSourceDriftError, match="byte length drift"):
@@ -241,6 +255,7 @@ FIXTURE_ROW_COUNT = 6
 
 
 def _pin(**overrides: object) -> fast.FASTTopicalExtractPin:
+    """Build the mini-CSV extract pin, overriding any field with the given values."""
     values: dict[str, object] = {
         "filename": "fast-topical-mini.csv",
         "retrieved_at": "2026-08-03T15:00:00Z",
@@ -253,14 +268,17 @@ def _pin(**overrides: object) -> fast.FASTTopicalExtractPin:
 
 
 def _acquire(tmp_path: Path, pin: fast.FASTTopicalExtractPin | None = None) -> fast.AcquiredFASTTopicalExtract:
+    """Acquire the mini CSV into tmp_path under the given pin or the default one."""
     return fast.acquire_fast_topical_extract(pin or _pin(), tmp_path, source_path=FIXTURE)
 
 
 def _parsed(tmp_path: Path) -> fast.ParsedFASTTopicalExtract:
+    """Acquire and parse the mini CSV."""
     return fast.parse_fast_topical_extract(_acquire(tmp_path))
 
 
 def test_fixture_pin_matches_exact_local_bytes() -> None:
+    """Pins the mini CSV fixture's byte length and sha256."""
     payload = FIXTURE.read_bytes()
 
     assert len(payload) == FIXTURE_BYTE_LENGTH
@@ -268,6 +286,7 @@ def test_fixture_pin_matches_exact_local_bytes() -> None:
 
 
 def test_official_download_page_offers_no_csv_format() -> None:
+    """Pins the official bulk formats as marc/marcxml/ntriples with no CSV and the documented 440,599 rows."""
     # This module packages a locally supplied CSV rendering because OCLC's
     # documented bulk formats for the Topical facet are MARC, MARCXML, and
     # RDF N-Triples only.
@@ -279,6 +298,7 @@ def test_official_download_page_offers_no_csv_format() -> None:
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
     tmp_path: Path,
 ) -> None:
+    """Pins the content-addressed path and local-then-cache acquisition modes with a rechecked digest."""
     pin = _pin()
 
     acquired = _acquire(tmp_path, pin)
@@ -293,6 +313,7 @@ def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
 
 
 def test_importing_this_module_never_opens_a_network_connection() -> None:
+    """Pins that no fetcher protocol exists and the module source names no network client."""
     # No fetcher protocol exists for this source: OCLC publishes no CSV
     # endpoint to fetch. Acquisition only accepts an already-local file.
     assert not hasattr(fast, "FASTTopicalFetcher")
@@ -304,6 +325,7 @@ def test_importing_this_module_never_opens_a_network_connection() -> None:
 
 
 def test_streaming_parse_yields_every_row_in_source_order(tmp_path: Path) -> None:
+    """Pins six rows in source order with their first/last labels, ordinals and the documented total."""
     parsed = _parsed(tmp_path)
 
     assert len(parsed.rows) == FIXTURE_ROW_COUNT
@@ -317,6 +339,7 @@ def test_streaming_parse_yields_every_row_in_source_order(tmp_path: Path) -> Non
 
 
 def test_iter_rows_is_a_true_generator_not_a_materialized_list(tmp_path: Path) -> None:
+    """Pins that iter_fast_topical_rows yields a real generator rather than a materialized list."""
     acquired = _acquire(tmp_path)
     rows = fast.iter_fast_topical_rows(acquired.path)
 
@@ -328,6 +351,7 @@ def test_iter_rows_is_a_true_generator_not_a_materialized_list(tmp_path: Path) -
 
 
 def test_row_count_drift_against_the_pin_fails_closed(tmp_path: Path) -> None:
+    """Pins refusal when the parsed row count differs from the pinned count."""
     pin = _pin(expected_row_count=FIXTURE_ROW_COUNT + 1)
     acquired = fast.acquire_fast_topical_extract(pin, tmp_path, source_path=FIXTURE)
 
@@ -338,6 +362,7 @@ def test_row_count_drift_against_the_pin_fails_closed(tmp_path: Path) -> None:
 def test_digest_or_byte_length_drift_never_becomes_an_acquired_source(
     tmp_path: Path,
 ) -> None:
+    """Pins refusal when the file digest does not match the pin, before it can be acquired."""
     pin = _pin(expected_sha256=fast.sha256_digest(b"not the real fixture"))
 
     with pytest.raises(fast.FASTTopicalSourceDriftError, match="digest drift"):
@@ -345,6 +370,7 @@ def test_digest_or_byte_length_drift_never_becomes_an_acquired_source(
 
 
 def test_header_drift_fails_closed(tmp_path: Path) -> None:
+    """Pins refusal when the CSV header is not the pinned one."""
     payload = b"id,label\nfst00801013,Environmental protection\n"
     source_path = tmp_path / "bad-header.csv"
     source_path.write_bytes(payload)
@@ -362,6 +388,7 @@ def test_header_drift_fails_closed(tmp_path: Path) -> None:
 
 
 def test_malformed_fast_id_fails_closed(tmp_path: Path) -> None:
+    """Pins refusal when a fast_id does not match the pinned identifier form."""
     payload = b"fast_id,uri,heading\nnot-an-id,http://id.worldcat.org/fast/1,Widgets\n"
     source_path = tmp_path / "bad-id.csv"
     source_path.write_bytes(payload)
@@ -379,6 +406,7 @@ def test_malformed_fast_id_fails_closed(tmp_path: Path) -> None:
 
 
 def test_uri_not_derived_from_fast_id_fails_closed(tmp_path: Path) -> None:
+    """Pins refusal when the URI is not derived from its fast_id."""
     payload = b"fast_id,uri,heading\nfst00801013,http://id.worldcat.org/fast/999999,Widgets\n"
     source_path = tmp_path / "bad-uri.csv"
     source_path.write_bytes(payload)
@@ -396,6 +424,7 @@ def test_uri_not_derived_from_fast_id_fails_closed(tmp_path: Path) -> None:
 
 
 def test_duplicate_fast_id_fails_closed(tmp_path: Path) -> None:
+    """Pins refusal when the same fast_id appears on two rows."""
     payload = (
         b"fast_id,uri,heading\n"
         b"fst00801013,http://id.worldcat.org/fast/801013,Environmental protection\n"
@@ -417,6 +446,7 @@ def test_duplicate_fast_id_fails_closed(tmp_path: Path) -> None:
 
 
 def test_ragged_row_field_count_fails_closed(tmp_path: Path) -> None:
+    """Pins refusal when a row carries the wrong number of fields."""
     payload = b"fast_id,uri,heading\nfst00801013,http://id.worldcat.org/fast/801013\n"
     source_path = tmp_path / "ragged.csv"
     source_path.write_bytes(payload)
@@ -436,6 +466,7 @@ def test_ragged_row_field_count_fails_closed(tmp_path: Path) -> None:
 def test_package_is_mapping_only_and_never_reserves_a_classifier_output_slot(
     tmp_path: Path,
 ) -> None:
+    """Pins the package as a mapping/search-expansion source snapshot claiming no concept identity."""
     parsed = _parsed(tmp_path)
 
     package = fast.build_fast_topical_source_package(
@@ -463,6 +494,7 @@ def test_package_is_mapping_only_and_never_reserves_a_classifier_output_slot(
 
 
 def test_package_preserves_publisher_identifiers_exactly(tmp_path: Path) -> None:
+    """Pins the first observation's fastId/fastUri identifiers and its preferred label."""
     parsed = _parsed(tmp_path)
     package = fast.build_fast_topical_source_package(
         parsed,
@@ -481,6 +513,7 @@ def test_package_preserves_publisher_identifiers_exactly(tmp_path: Path) -> None
 
 
 def test_package_round_trips_exact_fast_source_bytes(tmp_path: Path) -> None:
+    """Pins that a written package reopens with the same digest, six observations and the exact source bytes."""
     parsed = _parsed(tmp_path)
     package = fast.build_fast_topical_source_package(
         parsed,
@@ -496,6 +529,7 @@ def test_package_round_trips_exact_fast_source_bytes(tmp_path: Path) -> None:
 
 
 def test_package_gaps_document_the_absent_official_csv_format(tmp_path: Path) -> None:
+    """Pins the three gap codes for no official CSV, the compatibility view and the development sample."""
     parsed = _parsed(tmp_path)
     package = fast.build_fast_topical_source_package(
         parsed,
@@ -510,17 +544,20 @@ def test_package_gaps_document_the_absent_official_csv_format(tmp_path: Path) ->
 
 
 def test_attribution_notice_is_recorded_for_the_odc_by_license() -> None:
+    """Pins the ODC attribution notice and the OCLC license URL."""
     assert "ODC" in fast.FAST_ATTRIBUTION_NOTICE
     assert "OCLC Online Computer Library Center" in fast.FAST_ATTRIBUTION_NOTICE
     assert fast.FAST_LICENSE_URL.startswith("https://www.oclc.org/")
 
 
 def test_acquisition_rejects_a_missing_local_source(tmp_path: Path) -> None:
+    """Pins that a missing local source raises FASTTopicalAcquisitionError."""
     with pytest.raises(fast.FASTTopicalAcquisitionError):
         fast.acquire_fast_topical_extract(_pin(), tmp_path, source_path=tmp_path / "missing.csv")
 
 
 def test_pin_rejects_nonpositive_counts() -> None:
+    """Pins that a zero expected row count or byte length is refused at pin construction."""
     with pytest.raises(fast.FASTTopicalAcquisitionError):
         _pin(expected_row_count=0)
     with pytest.raises(fast.FASTTopicalAcquisitionError):
@@ -528,6 +565,7 @@ def test_pin_rejects_nonpositive_counts() -> None:
 
 
 def test_pin_is_immutable_and_replace_still_validates() -> None:
+    """Pins that dataclasses.replace on a pin revalidates and rejects a malformed digest."""
     pin = _pin()
     with pytest.raises(fast.FASTTopicalAcquisitionError):
         replace(pin, expected_sha256="not-a-digest")

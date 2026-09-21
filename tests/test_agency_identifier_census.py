@@ -1,4 +1,8 @@
-"""Reproducibility checks for the dated REF-038 identifier census."""
+"""Reproducibility checks for the dated REF-038 identifier census.
+
+Pins per-kind counts, cross-roster equality refusals, the second-pass
+adjudication, and the census digests.
+"""
 
 from __future__ import annotations
 
@@ -10,6 +14,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_census_measures_all_identifier_kinds_and_cross_roster_equalities() -> None:
+    """Pins each roster's resource count, every identifier kind's
+    claim/collision census, and each cross-kind equality's disposition.
+    """
+
     report = census.build_census(census.load_five_agency_rosters(ROOT))
 
     assert report["method"]["nameSimilarityUsed"] is False
@@ -123,6 +131,8 @@ def test_census_measures_all_identifier_kinds_and_cross_roster_equalities() -> N
 
 
 def test_census_pins_the_regulations_gov_abstention_set() -> None:
+    """Pins the 52 abstained Regulations.gov agency values verbatim, with FS abstaining for ambiguousAcronymEquality."""
+
     report = census.build_census(census.load_five_agency_rosters(ROOT))
     coverage = report["regulationsGovCoverage"]
 
@@ -189,6 +199,10 @@ def test_census_pins_the_regulations_gov_abstention_set() -> None:
 
 
 def test_second_pass_adjudication_layers_over_the_unchanged_census() -> None:
+    """The second pass adopts 42 residue values and abstains on 10, leaving the
+    first census's resolved and abstention counts unchanged.
+    """
+
     report = census.build_census(census.load_five_agency_rosters(ROOT))
     adjudication = report["agencyIdentityAdjudication"]
 
@@ -213,6 +227,10 @@ def test_second_pass_adjudication_layers_over_the_unchanged_census() -> None:
 
 
 def test_checked_census_artifacts_are_reproducible() -> None:
+    """Rebuilding must match the checked-in census and adjudication digest
+    pins, and write=False must not modify the artifacts.
+    """
+
     report = census.build_census(census.load_five_agency_rosters(ROOT))
 
     census._write_or_check(ROOT, report, write=False)

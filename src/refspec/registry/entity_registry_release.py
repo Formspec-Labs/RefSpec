@@ -62,6 +62,7 @@ def _verified_bytes(
     sha256: str,
     byte_length: int,
 ) -> bytes:
+    """Read one pinned source file, refusing missing, wrong-length, or wrong-digest bytes."""
     path = Path(repo_root) / logical_path
     if not path.is_file():
         raise EntityRegistryError(f"pinned source is missing: {logical_path}")
@@ -142,6 +143,7 @@ def _release(
 
 
 def load_sam_registry_releases(repo_root: Path) -> list[dict[str, Any]]:
+    """Load the bounded SAM.gov UEI and CAGE releases from pinned public API bytes."""
     pin_spec = sam.SAM_ENTITY_3M_PUBLIC_PIN
     data = _verified_bytes(
         repo_root,
@@ -230,6 +232,7 @@ def load_sam_registry_releases(repo_root: Path) -> list[dict[str, Any]]:
 
 
 def load_nppes_registry_releases(repo_root: Path) -> list[dict[str, Any]]:
+    """Load the bounded NPPES provider sample from its pinned header and sample files."""
     header_bytes = _verified_bytes(
         repo_root,
         NPPES_FILEHEADER_PIN_PATH,
@@ -299,6 +302,7 @@ def load_nppes_registry_releases(repo_root: Path) -> list[dict[str, Any]]:
 
 
 def load_comptox_registry_releases(repo_root: Path) -> list[dict[str, Any]]:
+    """Load the bounded CompTox substance release from its pinned public page."""
     data = _verified_bytes(
         repo_root,
         COMPTOX_SUBSTANCE_PIN_PATH,

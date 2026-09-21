@@ -20,6 +20,7 @@ CROSSWALK = "fr-elsst"
 
 
 def _candidate(index: int, evidence_id: str) -> dict[str, Any]:
+    """Build a mapping candidate carrying one evidence artifact."""
     return {
         "id": f"urn:candidate:{index}",
         "sourceMember": f"urn:source:{index}",
@@ -29,6 +30,7 @@ def _candidate(index: int, evidence_id: str) -> dict[str, Any]:
 
 
 def _context(index: int) -> dict[str, Any]:
+    """Build the inputContext artifact carrying the task id and label pair."""
     return {
         "role": "inputContext",
         "id": f"urn:artifact:context:{index}",
@@ -43,6 +45,7 @@ def _context(index: int) -> dict[str, Any]:
 
 
 def _validation(index: int, group: str, outcome: str, relation: str | None) -> dict[str, Any]:
+    """Build a sealed machine validation for one candidate and judge group."""
     return {
         "candidate": {"id": f"urn:candidate:{index}"},
         "independenceGroup": f"urn:ref:independence-group:{group}",
@@ -133,6 +136,7 @@ POPULATION: list[dict[str, Any]] = [
 
 
 def _build(tmp_path: Path, specs: list[dict[str, Any]] | None = None) -> dict[str, list[dict[str, Any]]]:
+    """Build, partition and verify a synthetic archive, returning the decision sets."""
     archive, review = _write_archive(tmp_path, specs if specs is not None else POPULATION)
     rows = builder.build_rows(archive, review, CROSSWALK)
     sets = builder.partition(rows)
@@ -141,6 +145,7 @@ def _build(tmp_path: Path, specs: list[dict[str, Any]] | None = None) -> dict[st
 
 
 def test_membership_rules_place_each_row_in_exactly_one_decision_set(tmp_path: Path) -> None:
+    """Pins the sets of the six-row population: positives [1], controls [2, 3], disputed [4], hard negatives [5, 6]."""
     sets = _build(tmp_path)
 
     assert [row["row"] for row in sets[builder.POSITIVES]] == [1]
@@ -150,6 +155,7 @@ def test_membership_rules_place_each_row_in_exactly_one_decision_set(tmp_path: P
 
 
 def test_admission_outranks_every_other_rule(tmp_path: Path) -> None:
+    """Pins that an admitted control lands in positives, with verify_partition — not placement — refusing it."""
     # A control that was somehow admitted must not be silently reclassified; the
     # partition check is what refuses it, not the placement.
     specs = [{"generationClass": "randomNegativeControl", "admitted": True, "outcomes": ("supports", "supports")}]
@@ -163,6 +169,7 @@ def test_admission_outranks_every_other_rule(tmp_path: Path) -> None:
 
 
 def test_a_control_is_never_disputed_even_when_both_judges_support_it(tmp_path: Path) -> None:
+    """Pins that a control both judges support stays a control and never becomes disputed."""
     specs = [{"generationClass": "siblingDistractor", "admitted": False, "outcomes": ("supports", "supports")}]
     sets = _build(tmp_path, specs)
 
@@ -171,6 +178,7 @@ def test_a_control_is_never_disputed_even_when_both_judges_support_it(tmp_path: 
 
 
 def test_disputed_requires_both_judges_to_support_not_merely_one(tmp_path: Path) -> None:
+    """Pins that disputed requires both judges to support; one support plus an abstention is a hard negative."""
     specs = [
         {"generationClass": "substringNearMiss", "admitted": False, "outcomes": ("supports", "abstains")},
         {"generationClass": "substringNearMiss", "admitted": False, "outcomes": ("supports", "supports")},
@@ -182,6 +190,7 @@ def test_disputed_requires_both_judges_to_support_not_merely_one(tmp_path: Path)
 
 
 def test_row_shapes_carry_the_per_set_extras(tmp_path: Path) -> None:
+    """Pins the common row fields plus each set's extra: admittedRelation, controlKind and competingRelations."""
     sets = _build(tmp_path)
     common = {
         "crosswalk",
@@ -211,6 +220,7 @@ def test_row_shapes_carry_the_per_set_extras(tmp_path: Path) -> None:
 
 
 def test_directness_covers_every_row_while_staying_out_of_the_partition(tmp_path: Path) -> None:
+    """Pins that directness covers every row while the partition sets still cover each row once."""
     sets = _build(tmp_path)
 
     partition_rows = sum(len(sets[name]) for name in builder.PARTITION_SETS)
@@ -219,6 +229,7 @@ def test_directness_covers_every_row_while_staying_out_of_the_partition(tmp_path
 
 
 def test_verify_partition_rejects_a_row_claimed_by_two_sets(tmp_path: Path) -> None:
+    """Pins that verify_partition raises when one row is claimed by two sets."""
     archive, review = _write_archive(tmp_path, POPULATION)
     rows = builder.build_rows(archive, review, CROSSWALK)
     sets = builder.partition(rows)
@@ -229,6 +240,7 @@ def test_verify_partition_rejects_a_row_claimed_by_two_sets(tmp_path: Path) -> N
 
 
 def test_verify_partition_rejects_an_incomplete_cover(tmp_path: Path) -> None:
+    """Pins that verify_partition raises when the partition misses a population row."""
     archive, review = _write_archive(tmp_path, POPULATION)
     rows = builder.build_rows(archive, review, CROSSWALK)
     sets = builder.partition(rows)
@@ -239,6 +251,7 @@ def test_verify_partition_rejects_an_incomplete_cover(tmp_path: Path) -> None:
 
 
 def test_census_drift_fails_closed() -> None:
+    """Pins that a census count differing from the built sets raises census drift."""
     sets: dict[str, list[dict[str, Any]]] = {name: [] for name in builder.ALL_SETS}
     sets[builder.POSITIVES] = [{"row": 1}]
 
@@ -248,6 +261,7 @@ def test_census_drift_fails_closed() -> None:
 
 
 def test_the_sealed_archive_census_is_the_documented_one() -> None:
+    """Pins the frozen 582/270/86/157 census totalling 1,095 rows."""
     assert builder.EXPECTED_CENSUS == {
         builder.POSITIVES: 582,
         builder.CONTROLS: 270,
@@ -260,6 +274,7 @@ def test_the_sealed_archive_census_is_the_documented_one() -> None:
 
 
 def test_admitted_row_without_a_relation_assertion_fails_closed(tmp_path: Path) -> None:
+    """Pins refusal when an admitted row has no matching relation assertion."""
     archive, review = _write_archive(tmp_path, POPULATION)
     path = archive / CROSSWALK / "relation-assertions-v2" / "relation-assertions.json"
     path.write_text(json.dumps({"mappingAssertions": []}), encoding="utf-8")
@@ -269,6 +284,7 @@ def test_admitted_row_without_a_relation_assertion_fails_closed(tmp_path: Path) 
 
 
 def test_relation_assertion_for_a_rejected_row_fails_closed(tmp_path: Path) -> None:
+    """Pins refusal when a rejected row carries a relation assertion."""
     archive, review = _write_archive(tmp_path, POPULATION)
     path = archive / CROSSWALK / "relation-assertions-v2" / "relation-assertions.json"
     data = json.loads(path.read_text(encoding="utf-8"))
@@ -282,6 +298,7 @@ def test_relation_assertion_for_a_rejected_row_fails_closed(tmp_path: Path) -> N
 
 
 def test_a_candidate_missing_a_sealed_verdict_fails_closed(tmp_path: Path) -> None:
+    """Pins refusal when a candidate has fewer than the expected two sealed verdicts."""
     archive, review = _write_archive(tmp_path, POPULATION)
     path = archive / CROSSWALK / "crosswalk-bundle.json"
     bundle = json.loads(path.read_text(encoding="utf-8"))
@@ -295,6 +312,7 @@ def test_a_candidate_missing_a_sealed_verdict_fails_closed(tmp_path: Path) -> No
 
 
 def test_a_missing_independent_review_fails_closed(tmp_path: Path) -> None:
+    """Pins refusal when a row has no independent review line."""
     archive, review = _write_archive(tmp_path, POPULATION)
     path = review / "independent" / f"{CROSSWALK}.jsonl"
     kept = [line for line in path.read_text(encoding="utf-8").splitlines() if json.loads(line)["row"] != 3]
@@ -305,6 +323,7 @@ def test_a_missing_independent_review_fails_closed(tmp_path: Path) -> None:
 
 
 def test_a_missing_input_context_fails_closed(tmp_path: Path) -> None:
+    """Pins refusal when a candidate's inputContext artifact is missing."""
     archive, review = _write_archive(tmp_path, POPULATION)
     path = archive / CROSSWALK / "crosswalk-bundle.json"
     bundle = json.loads(path.read_text(encoding="utf-8"))
@@ -316,6 +335,7 @@ def test_a_missing_input_context_fails_closed(tmp_path: Path) -> None:
 
 
 def test_output_is_byte_identical_across_runs(tmp_path: Path) -> None:
+    """Pins that two runs over the same archive write byte-identical set files and manifest."""
     archive, review = _write_archive(tmp_path, POPULATION)
     argv = ["--archive", str(archive), "--review", str(review), "--crosswalk", CROSSWALK]
 
@@ -329,6 +349,7 @@ def test_output_is_byte_identical_across_runs(tmp_path: Path) -> None:
 
 
 def test_rows_are_sorted_by_crosswalk_then_row(tmp_path: Path) -> None:
+    """Pins that partitioned rows come out sorted by (crosswalk, row) despite a shuffled input."""
     archive, review = _write_archive(tmp_path, POPULATION)
     rows = builder.build_rows(archive, review, CROSSWALK)
     shuffled = [rows[3], rows[0], rows[5], rows[1], rows[4], rows[2]]
@@ -340,6 +361,7 @@ def test_rows_are_sorted_by_crosswalk_then_row(tmp_path: Path) -> None:
 
 
 def test_manifest_carries_the_scope_constraints_and_population_bias(tmp_path: Path) -> None:
+    """Pins the manifest's set entries, population-bias note, usableFor/notUsableFor text and file digests."""
     archive, review = _write_archive(tmp_path, POPULATION)
     output = tmp_path / "out"
     assert (

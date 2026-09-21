@@ -1,4 +1,4 @@
-"""Focused checks for the experiment-only ICPSR endpoint projection."""
+"""Experiment-only ICPSR endpoint projection: access-term chains, refusal cases, hierarchy enrichment."""
 
 from __future__ import annotations
 
@@ -15,6 +15,8 @@ def _row(
     role: str,
     *uses: str,
 ) -> dict[str, object]:
+    """Build a minimal ICPSR row with one uriVerified use relation per target."""
+
     return {
         "conceptIri": member,
         "officialLabel": label,
@@ -37,6 +39,8 @@ def _row(
 
 
 def test_projection_follows_access_term_chains_to_preferred_sink() -> None:
+    """Pins chain following to the preferred sink with hop counts, alias order, and a digest."""
+
     rows = [
         _row("urn:test:preferred", "Preferred concept", "preferred"),
         _row("urn:test:middle", "Middle alias", "alternate", "urn:test:preferred"),
@@ -54,6 +58,8 @@ def test_projection_follows_access_term_chains_to_preferred_sink() -> None:
 
 
 def test_projection_refuses_branching_cycle_and_label_ambiguity() -> None:
+    """Pins refusals of ambiguous use targets, a cycle, and one label reaching two preferred concepts."""
+
     preferred = _row("urn:test:preferred", "Preferred concept", "preferred")
     other = _row("urn:test:other", "Other concept", "preferred")
     with pytest.raises(ValueError, match="ambiguous use targets"):
@@ -79,6 +85,8 @@ def test_projection_refuses_branching_cycle_and_label_ambiguity() -> None:
 
 
 def test_case_projection_keeps_preferred_endpoints_and_enriches_hierarchy_context() -> None:
+    """Pins that projection keeps only preferred targets and carries alias labels into parents."""
+
     projection = experiment.build_endpoint_projection(
         [
             _row("urn:test:preferred", "Preferred concept", "preferred"),

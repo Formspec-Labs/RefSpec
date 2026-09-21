@@ -14,6 +14,7 @@ DOC_FIXTURE = FIXTURES / "fac-api-dictionary-2026-08-03.html"
 
 
 def _acquire(tmp_path: Path, source_path: Path = DOC_FIXTURE) -> fac.AcquiredFACSource:
+    """Acquire the pinned FAC dictionary HTML from the local fixture."""
     return fac.acquire_fac_dictionary_doc(
         fac.FAC_DICTIONARY_DOC_2026_08_03,
         tmp_path,
@@ -22,10 +23,12 @@ def _acquire(tmp_path: Path, source_path: Path = DOC_FIXTURE) -> fac.AcquiredFAC
 
 
 def _portfolio(tmp_path: Path) -> fac.FACDictionaryPortfolio:
+    """Parse the pinned fixture into a FAC dictionary portfolio."""
     return fac.parse_fac_dictionary(_acquire(tmp_path))
 
 
 def test_live_snapshot_pin_matches_exact_official_html_bytes() -> None:
+    """Pins the fixture's 74,851 bytes and sha256 and that it begins as HTML."""
     payload = DOC_FIXTURE.read_bytes()
 
     assert len(payload) == 74_851
@@ -36,6 +39,7 @@ def test_live_snapshot_pin_matches_exact_official_html_bytes() -> None:
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
     tmp_path: Path,
 ) -> None:
+    """A local capture is content-addressed under the expected digest and a cache hit is re-verified."""
     pin = fac.FAC_DICTIONARY_DOC_2026_08_03
 
     acquired = _acquire(tmp_path)
@@ -50,6 +54,7 @@ def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
 
 
 def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) -> None:
+    """Only the injected fetcher may fetch, and it reports the source URL and timeout."""
     payload = DOC_FIXTURE.read_bytes()
     calls: list[tuple[str, float]] = []
 
@@ -82,6 +87,7 @@ def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) ->
 def test_endpoints_match_the_documented_dictionary_order_and_field_counts(
     tmp_path: Path,
 ) -> None:
+    """Pins the eleven endpoints in documented order and 163 distinct field rows."""
     portfolio = _portfolio(tmp_path)
 
     assert portfolio.endpoints == (
@@ -108,6 +114,7 @@ def test_endpoints_match_the_documented_dictionary_order_and_field_counts(
 def test_field_definitions_carry_legacy_census_mapping_and_data_type(
     tmp_path: Path,
 ) -> None:
+    """Fields carry the legacy Census mapping and data type, with GSA-only endpoints left unmapped."""
     portfolio = _portfolio(tmp_path)
 
     report_id = portfolio.field("general", "report_id")
@@ -142,6 +149,9 @@ def test_field_definitions_carry_legacy_census_mapping_and_data_type(
 def test_fields_are_deterministic_metadata_not_general_subject_concepts(
     tmp_path: Path,
 ) -> None:
+    """Every field is deterministic metadata, never a general subject concept,
+    with facApiFieldName identifiers carrying the source digest.
+    """
     portfolio = _portfolio(tmp_path)
 
     assert all(field.use == "deterministicMetadata" for field in portfolio.fields)
@@ -157,6 +167,7 @@ def test_fields_are_deterministic_metadata_not_general_subject_concepts(
 def test_gaps_document_missing_requirement_code_values_and_field_only_scope(
     tmp_path: Path,
 ) -> None:
+    """Coverage gaps name the missing OMB Compliance Supplement values, audit_year, and the field-only scope."""
     portfolio = _portfolio(tmp_path)
 
     assert any("OMB Compliance Supplement" in gap for gap in portfolio.gaps)
@@ -167,6 +178,7 @@ def test_gaps_document_missing_requirement_code_values_and_field_only_scope(
 def test_reference_finding_requirement_code_requires_and_records_audit_year(
     tmp_path: Path,
 ) -> None:
+    """A finding requirement code requires a four-digit audit_year, records it, and names the supplement gap."""
     portfolio = _portfolio(tmp_path)
 
     reference = fac.reference_finding_requirement_code(
@@ -195,6 +207,7 @@ def test_reference_finding_requirement_code_requires_and_records_audit_year(
 def test_validate_fac_field_reference_fails_closed_for_unknown_field(
     tmp_path: Path,
 ) -> None:
+    """A known field resolves, while an unknown endpoint or field raises FACAssignmentError."""
     portfolio = _portfolio(tmp_path)
 
     found = fac.validate_fac_field_reference("general", "auditee_name", portfolio)
@@ -208,6 +221,7 @@ def test_validate_fac_field_reference_fails_closed_for_unknown_field(
 
 
 def test_digest_drift_never_becomes_a_parsed_portfolio(tmp_path: Path) -> None:
+    """A same-length byte change is refused as digest drift rather than parsed."""
     payload = DOC_FIXTURE.read_bytes()
     changed = payload.replace(b"entity_type", b"entitY_type", 1)
     assert len(changed) == len(payload)
@@ -236,6 +250,7 @@ def test_digest_drift_never_becomes_a_parsed_portfolio(tmp_path: Path) -> None:
 
 
 def test_shape_drift_in_endpoint_list_fails_loudly(tmp_path: Path) -> None:
+    """A one-endpoint mini page is refused for endpoint shape drift."""
     mini_html = (
         b"<!DOCTYPE html><html><body>"
         b"<h2>Dictionary by endpoint</h2>"
@@ -263,6 +278,7 @@ def test_shape_drift_in_endpoint_list_fails_loudly(tmp_path: Path) -> None:
 
 
 def test_conflicting_duplicate_field_row_fails_loudly(tmp_path: Path) -> None:
+    """A duplicate field row whose data type disagrees is refused for conflict."""
     payload = DOC_FIXTURE.read_bytes()
     # Corrupt the second (duplicate) fac_accepted_date row in the general
     # table so it disagrees with the first instead of repeating it exactly.
@@ -291,6 +307,9 @@ def test_conflicting_duplicate_field_row_fails_loudly(tmp_path: Path) -> None:
 def test_package_round_trips_through_a_closed_source_controlled_resource(
     tmp_path: Path,
 ) -> None:
+    """The findings package round-trips as a schema 2.0 controlledCodeList
+    with 15 observations and no concept identity.
+    """
     acquired = _acquire(tmp_path)
     portfolio = _portfolio(tmp_path)
 
@@ -314,6 +333,7 @@ def test_package_round_trips_through_a_closed_source_controlled_resource(
 
 
 def test_package_rejects_an_unknown_endpoint(tmp_path: Path) -> None:
+    """Packaging an unknown endpoint raises FACPackageError."""
     acquired = _acquire(tmp_path)
     portfolio = _portfolio(tmp_path)
 

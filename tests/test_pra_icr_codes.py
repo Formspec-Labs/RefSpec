@@ -1,4 +1,9 @@
-"""Official PRA ICR search controlled-value capture, parsing, and packaging tests."""
+"""PRA ICR search controlled values: pinned capture, parsing, validation and package closure.
+
+Ten request types and five ICR statuses are the publisher's genuine code
+lists; the five burden-range widgets and the OMB number field shape are parsed
+only for validation and excluded from emission (REF-032).
+"""
 
 from __future__ import annotations
 
@@ -16,14 +21,20 @@ SEARCH_PAGE_FIXTURE = FIXTURES / "pra-search-2026-08-03.html"
 
 
 def _acquire(tmp_path: Path, source_path: Path = SEARCH_PAGE_FIXTURE) -> pra.AcquiredPRASource:
+    """Acquire the pinned search-page capture from the local fixture."""
+
     return pra.acquire_pra_search_page(pra.PRA_SEARCH_PAGE_2026_08_03, tmp_path, source_path=source_path)
 
 
 def _resource(tmp_path: Path) -> pra.ParsedPRAResource:
+    """Acquire and parse the pinned search page in one step."""
+
     return pra.parse_pra_icr_controls(_acquire(tmp_path))
 
 
 def test_live_snapshot_pin_matches_exact_official_html_bytes() -> None:
+    """The fixture matches the pinned 174,551-byte length and SHA-256 digest."""
+
     payload = SEARCH_PAGE_FIXTURE.read_bytes()
 
     assert len(payload) == 174_551
@@ -33,6 +44,8 @@ def test_live_snapshot_pin_matches_exact_official_html_bytes() -> None:
 
 
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(tmp_path: Path) -> None:
+    """A local capture lands content-addressed and a cache hit is re-digested, not trusted."""
+
     pin = pra.PRA_SEARCH_PAGE_2026_08_03
 
     acquired = _acquire(tmp_path)
@@ -47,6 +60,8 @@ def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(tmp_path:
 
 
 def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) -> None:
+    """The injected fetcher is called once for the pinned URL with the caller's timeout."""
+
     payload = SEARCH_PAGE_FIXTURE.read_bytes()
     calls: list[tuple[str, float]] = []
 
@@ -72,6 +87,8 @@ def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) ->
 
 
 def test_request_types_are_deterministic_not_subject_concepts(tmp_path: Path) -> None:
+    """The ten request types carry exact publisher identity and are never subject concepts."""
+
     resource = _resource(tmp_path)
 
     assert len(resource.request_types) == 10
@@ -94,6 +111,8 @@ def test_request_types_are_deterministic_not_subject_concepts(tmp_path: Path) ->
 
 
 def test_icr_statuses_are_deterministic_not_subject_concepts(tmp_path: Path) -> None:
+    """The five ICR statuses are deterministic metadata, never subject concepts."""
+
     resource = _resource(tmp_path)
 
     assert len(resource.icr_statuses) == 5
@@ -105,6 +124,8 @@ def test_icr_statuses_are_deterministic_not_subject_concepts(tmp_path: Path) -> 
 
 
 def test_burden_measures_and_omb_control_number_shape_are_captured(tmp_path: Path) -> None:
+    """The five burden measures and the OMB control-number pattern/length are captured for validation only."""
+
     resource = _resource(tmp_path)
 
     assert len(resource.burden_measures) == 5
@@ -137,6 +158,8 @@ def test_burden_measures_and_omb_control_number_shape_are_captured(tmp_path: Pat
 
 
 def test_gaps_record_out_of_scope_controls_and_missing_release_id(tmp_path: Path) -> None:
+    """The gaps name the out-of-scope controls, JavaScript dependence, and the missing standalone release id."""
+
     resource = _resource(tmp_path)
 
     assert any("Conclusion Action" in gap for gap in resource.gaps)
@@ -146,6 +169,8 @@ def test_gaps_record_out_of_scope_controls_and_missing_release_id(tmp_path: Path
 
 
 def test_icr_record_validates_known_codes_without_becoming_subjects(tmp_path: Path) -> None:
+    """A record's request type and ICR status resolve to deterministic values with matching displays."""
+
     resource = _resource(tmp_path)
     record = {
         "omb_control_number": "0938-1236",
@@ -180,6 +205,8 @@ def test_unknown_or_malformed_icr_control_fails_closed(
     value: str,
     message: str,
 ) -> None:
+    """A malformed OMB number or an unknown request type/ICR status is refused with its field named."""
+
     resource = _resource(tmp_path)
 
     with pytest.raises(pra.PRAAssignmentError, match=message):
@@ -187,6 +214,8 @@ def test_unknown_or_malformed_icr_control_fails_closed(
 
 
 def test_display_mismatch_fails_closed(tmp_path: Path) -> None:
+    """A display string that disagrees with the code's publisher label is refused."""
+
     resource = _resource(tmp_path)
 
     with pytest.raises(pra.PRAAssignmentError, match="display mismatch"):
@@ -197,6 +226,8 @@ def test_display_mismatch_fails_closed(tmp_path: Path) -> None:
 
 
 def test_digest_or_shape_drift_never_becomes_a_parsed_resource(tmp_path: Path) -> None:
+    """A same-length byte change raises digest drift, and a removed option raises icrStatuses count drift."""
+
     payload = SEARCH_PAGE_FIXTURE.read_bytes()
     changed = payload.replace(b">Active<", b">ActivE<")
     assert len(changed) == len(payload)
@@ -234,6 +265,9 @@ def test_digest_or_shape_drift_never_becomes_a_parsed_resource(tmp_path: Path) -
 def test_build_pra_icr_controlled_value_package_produces_a_closed_deterministic_bundle(
     tmp_path: Path,
 ) -> None:
+    """The bundle emits exactly the 15 genuine codes, excludes the six form mechanics, and reopens with one logical
+    digest."""
+
     bundle = pra.build_pra_icr_controlled_value_package(SEARCH_PAGE_FIXTURE)
 
     assert bundle.resource_manifest["resourceKind"] == "controlledCodeList"

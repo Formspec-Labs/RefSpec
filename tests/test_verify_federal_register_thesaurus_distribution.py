@@ -1,3 +1,5 @@
+"""Pin the Federal Register thesaurus distribution verifier's byte pins, occurrence ledger, and failures."""
+
 from __future__ import annotations
 
 import importlib
@@ -25,6 +27,8 @@ def source_root() -> Path:
 
 
 def test_pinned_source_refuses_absent_wrong_and_truncated_bytes(tmp_path: Path) -> None:
+    """Pin the "is absent" and "digest differs" refusals for a missing or forged source file."""
+
     with pytest.raises(verifier.BoundedReleaseVerificationError, match="is absent"):
         verifier.verify_pinned_source(tmp_path)
 
@@ -37,7 +41,9 @@ def test_pinned_source_refuses_absent_wrong_and_truncated_bytes(tmp_path: Path) 
 def test_source_ledger_accounts_for_every_related_reference_occurrence(
     source_root: Path,
 ) -> None:
-    """The occurrence ledger is the count a distribution cannot state itself."""
+    """Pin the ledger counts: 705 official terms, 1,463 related-reference occurrences (1,451 resolved, 12
+    unrepresented).
+    """
 
     ledger = verifier.source_occurrence_ledger(source_root)
     statuses = ledger["relatedReferenceStatuses"]
@@ -53,7 +59,7 @@ def test_verification_fails_on_the_right_count_of_wrong_rows(
     source_root: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Counting alone would pass this; comparing identities is what refuses it."""
+    """Pin that swapping one statement for an invented target fails on identity, not count, with the exact message."""
 
     release = verifier.load_federal_register_2025_release(source_root)
     resources = {resource.iri for resource in release.resources}

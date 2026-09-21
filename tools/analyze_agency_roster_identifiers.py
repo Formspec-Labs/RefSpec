@@ -1,9 +1,13 @@
-"""Measure identifiers, then layer owner adjudication over the 52-value residue.
+"""Measure exact agency identifier equality across five rosters, then layer E4 adjudication over the 52-value residue.
 
-The first pass compares publisher identifier strings exactly. It never reads a
-label for matching, normalizes a name, or computes name similarity. The second
-pass reports the separate, per-value E4 decisions carried by the asserted
-agency identity mapping release.
+The first pass compares publisher identifier strings for Unicode code-point
+equality only -- labels, name normalization, and name similarity are never used,
+and equal strings from different identifier authorities are counted but refused
+as identity evidence. The second pass reports the E4 decisions carried by the
+asserted agency identity mapping release; ``--write`` emits the dated JSON and
+Markdown evidence under research/evidence/agency-identifier-census-2026-08-16,
+``--check`` verifies it byte-for-byte, and a drifted five-roster resource count
+raises ValueError.
 """
 
 from __future__ import annotations
@@ -68,7 +72,7 @@ def _digest(value: Any) -> str:
 
 
 def load_five_agency_rosters(repo_root: Path) -> tuple[RegistryRelease, ...]:
-    """Load exactly the five releases in the REF-038 census."""
+    """Load exactly the five releases in the REF-038 census; raises ValueError if the release set drifts."""
 
     roster_releases = v3_registry_rosters.load_registry_roster_releases(
         repo_root,
@@ -270,7 +274,11 @@ def _release_census_row(roster: str, release: RegistryRelease) -> dict[str, Any]
 
 
 def build_census(releases: Sequence[RegistryRelease]) -> dict[str, Any]:
-    """Build the unchanged census and a separate residue-adjudication layer."""
+    """Build the first-pass census plus the separate residue-adjudication layer.
+
+    Raises ValueError if the roster resource counts drift from the REF-038
+    evidence base.
+    """
 
     if tuple(len(release.resources) for release in releases) != tuple(
         EXPECTED_ROSTER_COUNTS[roster] for roster in ROSTER_ORDER

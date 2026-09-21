@@ -1,10 +1,16 @@
-"""Native XML addressing preserves source scope without guessing missing context."""
+"""Native XML addressing preserves source scope without guessing missing context.
+
+Addresses come only from native DIV8 sections: a bare section without title context and a part that
+disagrees with its section are refused, native ranges are reported as unsupported issues rather than
+expanded, and free text or lookalike attributes never yield an address."""
 import pytest
 
 from refspec.registry.ecfr import read_text, section_addresses
 
 
 def source(title='49', part='390', number='390.5', extra=''):
+    """A parsed one-title/part/section eCFR document, with optional extra sibling markup."""
+
     return read_text((f'<ECFR><DIV1 TYPE="TITLE" N="{title}">'
         f'<DIV5 TYPE="PART" N="{part}"><DIV8 TYPE="SECTION" N="{number}">'
         f'<HEAD>Section</HEAD><P>Body.</P></DIV8>{extra}</DIV5></DIV1></ECFR>').encode())

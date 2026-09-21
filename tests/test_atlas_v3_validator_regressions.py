@@ -1,3 +1,7 @@
+"""Regression tests for the Atlas 3.1 validator: SHACL conformance, streaming and cache invariants, and performance
+guards.
+"""
+
 from __future__ import annotations
 
 import gc
@@ -32,6 +36,8 @@ import validate as atlas_validate
 
 
 def test_validator_status_reporter_is_rate_limited_and_quiet_is_supported() -> None:
+    """Pin the status reporter's phase line, its 15s progress interval, and the --quiet flag."""
+
     ticks = iter((20.0, 20.0, 21.0, 36.0, 37.0))
     stream = io.StringIO()
     reporter = atlas_validate._StatusReporter(
@@ -56,6 +62,8 @@ def test_validator_status_reporter_is_rate_limited_and_quiet_is_supported() -> N
 
 
 def _sha256(payload: bytes) -> str:
+    """Return the canonical ``sha256:`` spelling of a digest."""
+
     return "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
@@ -65,6 +73,8 @@ def _sha256(payload: bytes) -> str:
 
 
 def test_construction_reused_input_paths_require_one_global_identity() -> None:
+    """Pin that one construction input path with conflicting pinned identities raises construction.release."""
+
     first = {
         "key": "first",
         "inputs": [
@@ -108,6 +118,8 @@ def test_construction_reused_input_paths_require_one_global_identity() -> None:
 def test_shacl_data_view_truth_does_not_count_the_complete_graph(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that SHACL truth-testing is O(1) and never counts every triple."""
+
     graph = Graph(store="SimpleMemory")
     graph.add((URIRef("urn:s"), URIRef("urn:p"), URIRef("urn:o")))
     view = atlas_validate._ShaclDataView([graph])
@@ -169,12 +181,16 @@ def test_linear_unique_items_preserves_json_schema_equality(
     items: list[Any],
     expected: bool,
 ) -> None:
+    """Pin that the linear uniqueItems check matches JSON Schema equality (1 differs from True, 1 equals 1.0)."""
+
     assert atlas_validate._json_items_are_unique(items) is expected
 
 
 def test_linear_unique_items_indexes_each_distinct_object_once(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that 10,000 distinct objects fingerprint once each, never by pairwise comparison."""
+
     rows = [
         {
             "atlasResources": [f"urn:ref:atlas-test:resource:{index}"],
@@ -204,6 +220,8 @@ def test_linear_unique_items_indexes_each_distinct_object_once(
 def test_linear_unique_items_checks_exact_values_after_fingerprint_collision(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that a forced fingerprint collision still resolves by exact value comparison."""
+
     monkeypatch.setattr(
         atlas_validate,
         "_json_equality_fingerprint",
@@ -217,6 +235,8 @@ def test_linear_unique_items_checks_exact_values_after_fingerprint_collision(
 
 
 def test_source_accounting_duplicate_disposition_keeps_json_schema_error() -> None:
+    """Pin that a duplicated disposition still reports json.schema at $.inputs[0].dispositions."""
+
     disposition = {
         "atlasResources": ["urn:ref:atlas-test:resource"],
         "sourceRecord": "urn:ref:atlas-test:record",
@@ -316,6 +336,10 @@ def test_source_accounting_disposition_targets_are_status_specific(
     disposition: dict[str, Any],
     valid: bool,
 ) -> None:
+    """Pin which disposition targets are valid per status: represented needs a resource or assertion, excluded a reason,
+    unresolved neither.
+    """
+
     status = disposition["status"]
     accounting = {
         "distributionId": "urn:ref:atlas-test:distribution",
@@ -569,6 +593,8 @@ def _write_distribution_json(
     manifest: dict[str, Any],
     acceptance: dict[str, Any],
 ) -> None:
+    """Recompute the acceptance gate digests and rewrite the manifest and acceptance pair."""
+
     for gate in acceptance["gates"]:
         gate["evidenceDigest"] = atlas_validate.acceptance_gate_evidence_digest(
             gate["name"],
@@ -599,6 +625,8 @@ def _install_producer_validation(
     distribution: Path,
     **overrides: Any,
 ) -> dict[str, Any]:
+    """Write a producer-validation proof and bind it into the manifest and acceptance record."""
+
     manifest = json.loads(
         (distribution / "atlas-manifest.json").read_text(encoding="utf-8")
     )
@@ -669,6 +697,8 @@ def _install_producer_validation(
 
 
 def _load_valid_graphs() -> tuple[Dataset, dict[str, Graph], Mapping[str, Any]]:
+    """Parse the valid fixture distribution into a dataset, role graphs, and its manifest."""
+
     manifest = json.loads(
         (VALID_DISTRIBUTION / "atlas-manifest.json").read_text(encoding="utf-8")
     )
@@ -680,11 +710,15 @@ def _load_valid_graphs() -> tuple[Dataset, dict[str, Graph], Mapping[str, Any]]:
 
 
 def _replace_object(graph: Graph, subject: URIRef, predicate: URIRef, replacement: URIRef) -> None:
+    """Replace one subject/predicate object in a graph."""
+
     graph.remove((subject, predicate, None))
     graph.add((subject, predicate, replacement))
 
 
 def _assert_shacl_rejects(graphs: Mapping[str, Graph], component: str) -> None:
+    """Assert that SHACL rejects the graphs with the named constraint component."""
+
     ontology, shapes = atlas_validate._parse_binding_graphs()
     with pytest.raises(atlas_validate.AtlasValidationError, match=component):
         atlas_validate._run_shacl(graphs, ontology, shapes)
@@ -739,6 +773,8 @@ def test_meta_conformance_is_proven_once_per_process_and_never_cached_as_a_pass(
 
 
 def _fresh_asserted_graph_without_assertions() -> Graph:
+    """Return the base fixture's asserted graph with all assertion and evidence nodes removed."""
+
     asserted = atlas_fixtures._base_fixture().asserted
     node_types = (
         ATLAS.RelationAssertion,
@@ -759,6 +795,8 @@ def _fresh_asserted_graph_without_assertions() -> Graph:
 
 
 def _resource_rows(asserted: Graph, ring: URIRef) -> list[tuple[URIRef, URIRef, URIRef]]:
+    """Return sorted (resource, release, sourceRecord) rows for one ring."""
+
     rows: list[tuple[URIRef, URIRef, URIRef]] = []
     for resource in asserted.subjects(ATLAS.semanticRing, ring):
         if (resource, RDF.type, ATLAS.AtlasResource) not in asserted:
@@ -773,6 +811,8 @@ def _resource_rows(asserted: Graph, ring: URIRef) -> list[tuple[URIRef, URIRef, 
 
 
 def _allowed_predicate(ring: URIRef, assertion_type: URIRef) -> URIRef:
+    """Return the lowest-IRI predicate the relation policy allows for a ring and assertion type."""
+
     predicates = atlas_validate._relation_policies()[ring][assertion_type]
     return min(predicates, key=str)
 
@@ -794,6 +834,8 @@ def test_membership_mode_admits_only_the_three_rulespec_values() -> None:
 
 
 def test_an_enumerating_membership_mode_requires_at_least_one_member() -> None:
+    """Pin that an enumerating membership mode with no prov:hadMember fails sh:xone."""
+
     _dataset, graphs, _ = _load_valid_graphs()
     asserted = graphs["asserted"]
     release = next(asserted.subjects(RDF.type, ATLAS.AtlasRelease))
@@ -820,6 +862,8 @@ def test_membership_not_enumerated_forbids_enumerating_the_members() -> None:
 
 
 def test_core_shacl_still_rejects_an_assertion_without_evidence() -> None:
+    """Pin that removing an assertion's evidence binding fails SHACL and the dataset.evidence backstop."""
+
     dataset, graphs, _ = _load_valid_graphs()
     asserted = graphs["asserted"]
     # Deleting a binding that some other binding adopts diagnoses the dangling
@@ -856,6 +900,8 @@ def test_release_reconciliation_and_core_paths_reject_cross_record_mismatches(
     mutation: str,
     expected_detail: str,
 ) -> None:
+    """Pin that release/resource profile and scheme cross-record mismatches raise the expected detail."""
+
     dataset, graphs, _ = _load_valid_graphs()
     asserted = graphs["asserted"]
     resource = next(asserted.subjects(RDF.type, ATLAS.SubjectConcept))
@@ -897,6 +943,8 @@ def test_release_reconciliation_and_core_paths_reject_cross_record_mismatches(
 
 
 def _resource_with_preferred_label(asserted: Graph) -> tuple[URIRef, URIRef]:
+    """Return the resource and label node of one SKOS-XL preferred label."""
+
     resource = next(asserted.subjects(SKOSXL.prefLabel, None))
     label = next(asserted.objects(resource, SKOSXL.prefLabel))
     assert isinstance(resource, URIRef)
@@ -905,6 +953,8 @@ def _resource_with_preferred_label(asserted: Graph) -> tuple[URIRef, URIRef]:
 
 
 def test_label_integrity_rejects_a_label_from_another_release() -> None:
+    """Pin refusal of a label whose release differs from its resource's."""
+
     dataset, graphs, _ = _load_valid_graphs()
     asserted = graphs["asserted"]
     resource, label = _resource_with_preferred_label(asserted)
@@ -922,6 +972,8 @@ def test_label_integrity_rejects_a_label_from_another_release() -> None:
 
 
 def test_label_integrity_rejects_an_unshared_source_record() -> None:
+    """Pin refusal of a label that shares no SourceRecord with its resource."""
+
     dataset, graphs, _ = _load_valid_graphs()
     asserted = graphs["asserted"]
     resource, label = _resource_with_preferred_label(asserted)
@@ -939,6 +991,8 @@ def test_label_integrity_rejects_an_unshared_source_record() -> None:
 
 
 def test_label_integrity_rejects_equal_literals_in_distinct_roles() -> None:
+    """Pin refusal when two label roles reuse one label node or literal."""
+
     dataset, graphs, _ = _load_valid_graphs()
     asserted = graphs["asserted"]
     resource, preferred = _resource_with_preferred_label(asserted)
@@ -968,6 +1022,8 @@ def test_core_paths_reject_assertion_endpoint_ring_and_release_mismatches(
     assertion_type: URIRef,
     mismatch: str,
 ) -> None:
+    """Pin that endpoint ring and release mismatches fail SHACL's EqualsConstraintComponent."""
+
     dataset, graphs, _ = _load_valid_graphs()
     asserted = graphs["asserted"]
     assertion = next(asserted.subjects(RDF.type, assertion_type))
@@ -1008,6 +1064,8 @@ def test_python_assertion_backstops_reject_ring_and_release_mismatches(
     expected_code: str,
     expected_detail: str,
 ) -> None:
+    """Pin the Python assertion backstops for ring and release mismatches with their codes and details."""
+
     asserted = _fresh_asserted_graph_without_assertions()
 
     if case == "mapping-ring":
@@ -1083,6 +1141,8 @@ def test_python_assertion_backstops_reject_ring_and_release_mismatches(
 
 
 def test_publisher_native_relation_may_cross_exact_releases_in_one_ring() -> None:
+    """Pin that a publisher native relation may cross releases within one ring."""
+
     asserted = _fresh_asserted_graph_without_assertions()
     predicate = SKOS.related
     source, source_release, evidence_record = _resource_rows(asserted, ATLAS.subject)[0]
@@ -1120,6 +1180,8 @@ def test_python_cross_ring_backstops_reject_endpoint_mismatches(
     case: str,
     expected_detail: str,
 ) -> None:
+    """Pin the cross-ring backstops for a wrong source ring and for release mismatches."""
+
     asserted = _fresh_asserted_graph_without_assertions()
     source, source_release, evidence_record = _resource_rows(
         asserted, ATLAS.entity
@@ -1159,6 +1221,8 @@ def test_python_cross_ring_backstops_reject_endpoint_mismatches(
 
 @pytest.mark.parametrize("case", ("pair", "predicate"))
 def test_python_cross_ring_policy_rejects_disallowed_cells(case: str) -> None:
+    """Pin that cross-ring policy refuses a disallowed ring/predicate cell."""
+
     asserted = _fresh_asserted_graph_without_assertions()
     source, source_release, evidence_record = _resource_rows(
         asserted, ATLAS.entity
@@ -1197,6 +1261,8 @@ def test_python_cross_ring_policy_matrix_is_closed(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that a profile whose policy list leaves the closed 3.1 matrix raises profile.policy."""
+
     profile = json.loads(atlas_validate.PROFILE_MAP_PATH.read_text(encoding="utf-8"))
     profile["crossRingRelationPolicies"][0]["predicates"] = [
         str(ATLAS.alternateCrossRingRelation)
@@ -1220,6 +1286,8 @@ def test_python_cross_ring_policy_matrix_is_closed(
 def test_identifier_pair_maps_to_exactly_one_resource(
     conflicting_target: bool,
 ) -> None:
+    """Pin that one identifier (scheme, value) pair maps to exactly one resource."""
+
     asserted = atlas_fixtures._base_fixture().asserted
     identifier = next(asserted.subjects(RDF.type, ATLAS.Identifier))
     original_resource = next(asserted.objects(identifier, ATLAS.identifies))
@@ -1296,6 +1364,8 @@ def _identifier_conflict_graph() -> tuple[Graph, URIRef, URIRef]:
 
 
 def _record_registry_conflict(asserted: Graph, *entries: URIRef) -> URIRef:
+    """Add a RegistryConflict node carrying the given entries at operational severity."""
+
     record = URIRef("urn:ref:atlas-test:registry-conflict:agency")
     asserted.add((record, RDF.type, RKAF.RegistryConflict))
     for entry in entries:
@@ -1355,6 +1425,8 @@ def test_a_published_registry_conflict_licenses_exactly_the_entries_it_names() -
 
 
 def test_identifier_uniqueness_valid_path_does_not_sort_identifiers() -> None:
+    """Pin that the valid uniqueness path never sorts identifiers (an unsortable IRI passes)."""
+
     class UnsortableIri(URIRef):
         def __lt__(self, other: object) -> bool:
             raise AssertionError(f"identifier validation must not sort {self} and {other}")
@@ -1378,6 +1450,8 @@ def test_identifier_uniqueness_valid_path_does_not_sort_identifiers() -> None:
 
 
 def test_serialized_nquads_profile_accepts_only_sorted_unique_lines(tmp_path: Path) -> None:
+    """Pin that the serialized profile accepts sorted unique lines and refuses duplicates or reordering."""
+
     first = b"<urn:a> <urn:p> <urn:o> <urn:g> .\n"
     second = b"<urn:b> <urn:p> <urn:o> <urn:g> .\n"
     dataset_path = tmp_path / "atlas.nq"
@@ -1394,6 +1468,8 @@ def test_serialized_nquads_profile_rejects_oversized_lines(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin the rdf.resource-limit refusal for a line over NQUADS_MAX_LINE_BYTES."""
+
     dataset_path = tmp_path / "atlas.nq"
     line = b"<urn:a> <urn:p> <urn:o> <urn:g> .\n"
     dataset_path.write_bytes(line)
@@ -1406,6 +1482,8 @@ def test_serialized_nquads_profile_rejects_oversized_lines(
 
 
 def test_canonical_term_comparison_rejects_an_equivalent_noncanonical_escape(tmp_path: Path) -> None:
+    """Pin refusal of a noncanonical escaped literal that is otherwise equivalent."""
+
     dataset_path = tmp_path / "atlas.nq"
     dataset_path.write_bytes(b'<urn:s> <urn:p> "\\u0061" <urn:g> .\n')
     manifest = {"graphs": [{"role": "asserted", "id": "urn:g", "quadCount": 1}]}
@@ -1418,6 +1496,8 @@ def test_parse_dataset_streams_without_path_materialization(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that dataset parsing never does a whole-file Path read and role graphs share the store."""
+
     dataset_path = tmp_path / "atlas.nq"
     dataset_path.write_bytes(b"<urn:s> <urn:p> <urn:o> <urn:g> .\n")
     manifest = {"graphs": [{"role": "asserted", "id": "urn:g", "quadCount": 1}]}
@@ -1434,6 +1514,8 @@ def test_parse_dataset_streams_without_path_materialization(
 
 
 def test_file_digest_streams_without_using_path_read_bytes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pin that file_sha256 streams instead of materializing the member."""
+
     payload = b"stream this payload\n"
     path = tmp_path / "member.bin"
     path.write_bytes(payload)
@@ -1448,6 +1530,8 @@ def test_file_digest_streams_without_using_path_read_bytes(tmp_path: Path, monke
 def test_parsed_role_graphs_are_views_over_one_dataset_store(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that role graphs are views over one dataset store, not independent Graph stores."""
+
     manifest = json.loads((VALID_DISTRIBUTION / "atlas-manifest.json").read_text(encoding="utf-8"))
     expected_ids = {row["role"]: URIRef(row["id"]) for row in manifest["graphs"]}
 
@@ -1467,6 +1551,8 @@ def test_parsed_role_graphs_are_views_over_one_dataset_store(
 def test_shacl_uses_a_read_only_ontology_view_without_cloning_data(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that SHACL clones no Atlas role graph and mutates none."""
+
     import pyshacl.validator
 
     dataset, graphs, _ = _load_valid_graphs()
@@ -1484,6 +1570,8 @@ def test_shacl_uses_a_read_only_ontology_view_without_cloning_data(
 
 
 def _shacl_conformance_pair(graphs: Mapping[str, Graph]) -> tuple[bool, bool]:
+    """Return (normative, batched) conformance for the graphs, prechecks included."""
+
     ontology, shapes = atlas_validate._parse_binding_graphs()
     ontology_view = atlas_validate.inoculate(Graph(), ontology)
     view = atlas_validate._ShaclDataView([graphs["asserted"], ontology_view])
@@ -1496,6 +1584,8 @@ def _shacl_conformance_pair(graphs: Mapping[str, Graph]) -> tuple[bool, bool]:
 
 
 def test_batched_shacl_plan_keeps_normative_shapes_and_lifts_direct_properties() -> None:
+    """Pin the batched plan: shapes unchanged, direct properties lifted, both xone guarantees captured."""
+
     _, shapes = atlas_validate._parse_binding_graphs()
     normative_triples = set(shapes)
     property_shapes = set(shapes.objects(ATLAS.SourceRecordShape, SH.property))
@@ -1603,6 +1693,8 @@ def test_batched_shacl_conformance_matches_normative_shapes(
     mutation: str,
     expected: bool,
 ) -> None:
+    """Pin that the batched plan agrees with the normative shapes on valid and mutated graphs."""
+
     _, graphs, _ = _load_valid_graphs()
     asserted = graphs["asserted"]
     if mutation == "warrant-unsanctioned":
@@ -1647,6 +1739,8 @@ def test_batched_shacl_conformance_matches_normative_shapes(
 def test_audit_mode_invalid_path_falls_back_to_exact_normative_report(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that audit mode falls back to the exact normative report when the fast path is invalid."""
+
     monkeypatch.setenv(atlas_validate.VALIDATION_MODE_ENV, atlas_validate.AUDIT_VALIDATION_MODE)
     _, graphs, _ = _load_valid_graphs()
     asserted = graphs["asserted"]
@@ -1683,6 +1777,8 @@ def test_audit_mode_invalid_path_falls_back_to_exact_normative_report(
 
 
 def _shacl_components(error: atlas_validate.AtlasValidationError) -> list[str]:
+    """Return the constraint component names named in an SHACL conformance error detail."""
+
     match = re.search(r"does not conform \[([^\]]*)\]", error.detail)
     assert match is not None, error.detail
     return match.group(1).split(", ")
@@ -1791,6 +1887,8 @@ def _shacl_data_corpus_cases() -> dict[str, list[str]]:
 
 
 def _shacl_data_corpus_case_ids() -> tuple[str, ...]:
+    """Return the case ids the SHACL data corpus declares."""
+
     return tuple(_shacl_data_corpus_cases())
 
 
@@ -2059,6 +2157,8 @@ def test_smoke_sample_takes_every_pack_kind_within_its_budget() -> None:
 def test_batched_shacl_reduces_shape_dispatches_on_valid_fixture(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that batching dispatches fewer Shape.validate calls than the normative shapes."""
+
     from pyshacl.shape import Shape
 
     _, graphs, _ = _load_valid_graphs()
@@ -2093,6 +2193,8 @@ def test_distribution_member_digests_are_reused_after_required_reads(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that each distribution member is hashed once and its digest reused by later reads."""
+
     distribution = _write_packed_distribution(tmp_path / "distribution")
     manifest = json.loads((distribution / "atlas-manifest.json").read_text(encoding="utf-8"))
     calls: list[Path] = []
@@ -2127,6 +2229,8 @@ def test_packed_distribution_validates_without_materializing_pack_content(
     monkeypatch: pytest.MonkeyPatch,
     compression: str,
 ) -> None:
+    """Pin that validation writes no uncompressed pack copy and still reports 1474 quads and 7 inferred mappings."""
+
     distribution = _write_packed_distribution(
         tmp_path / "distribution",
         compression=compression,
@@ -2145,6 +2249,8 @@ def test_packed_distribution_validates_without_materializing_pack_content(
 def test_packed_distribution_accepts_bound_compiled_producer_proof(
     tmp_path: Path,
 ) -> None:
+    """Pin that a distribution carrying a bound compiled-producer proof validates."""
+
     distribution = _write_packed_distribution(tmp_path / "distribution")
     _install_producer_validation(distribution)
 
@@ -2156,6 +2262,8 @@ def test_packed_distribution_accepts_bound_compiled_producer_proof(
 def test_publisher_only_compiled_producer_identity_is_rejected(
     tmp_path: Path,
 ) -> None:
+    """Pin that a publisher-only constructor profile is refused as json.schema."""
+
     distribution = _write_packed_distribution(tmp_path / "distribution")
     _install_producer_validation(
         distribution,
@@ -2172,6 +2280,8 @@ def test_publisher_only_compiled_producer_identity_is_rejected(
 def test_compiled_producer_proof_digest_tampering_is_rejected(
     tmp_path: Path,
 ) -> None:
+    """Pin the distribution.digest refusal for a same-length producer-proof byte change."""
+
     distribution = _write_packed_distribution(tmp_path / "distribution")
     _install_producer_validation(distribution)
     proof_path = distribution / atlas_validate.PRODUCER_VALIDATION_FILE
@@ -2190,6 +2300,8 @@ def test_compiled_producer_proof_digest_tampering_is_rejected(
 def test_compiled_producer_proof_inventory_tampering_is_rejected_when_resealed(
     tmp_path: Path,
 ) -> None:
+    """Pin producer.validation refusal when a resealed proof's asserted inventory digest is wrong."""
+
     distribution = _write_packed_distribution(tmp_path / "distribution")
     _install_producer_validation(
         distribution,
@@ -2206,6 +2318,8 @@ def test_compiled_producer_proof_inventory_tampering_is_rejected_when_resealed(
 def test_compiled_producer_acceptance_pin_without_member_is_rejected(
     tmp_path: Path,
 ) -> None:
+    """Pin producer.validation refusal when acceptance pins a producer proof the manifest lacks."""
+
     distribution = _write_packed_distribution(tmp_path / "distribution")
     manifest = json.loads(
         (distribution / "atlas-manifest.json").read_text(encoding="utf-8")
@@ -2225,6 +2339,8 @@ def test_compiled_producer_acceptance_pin_without_member_is_rejected(
 def test_compiled_producer_member_without_acceptance_pin_is_rejected(
     tmp_path: Path,
 ) -> None:
+    """Pin producer.validation refusal when the manifest carries a producer proof acceptance does not pin."""
+
     distribution = _write_packed_distribution(tmp_path / "distribution")
     _install_producer_validation(distribution)
     manifest = json.loads(
@@ -2245,6 +2361,8 @@ def test_compiled_producer_member_without_acceptance_pin_is_rejected(
 def test_declared_compiled_producer_proof_length_tamper_is_rejected(
     tmp_path: Path,
 ) -> None:
+    """Pin the distribution.length refusal for a shortened producer proof."""
+
     distribution = _write_packed_distribution(tmp_path / "distribution")
     (distribution / atlas_validate.PRODUCER_VALIDATION_FILE).write_bytes(b"{}\n")
 
@@ -2255,6 +2373,8 @@ def test_declared_compiled_producer_proof_length_tamper_is_rejected(
 
 
 def test_packed_distribution_allows_empty_optional_view_graphs(tmp_path: Path) -> None:
+    """Pin that omitting the projection and derived graphs validates at 1340 quads."""
+
     distribution = _write_packed_distribution(
         tmp_path / "distribution",
         include_projection=False,
@@ -2272,6 +2392,8 @@ def test_authenticated_cache_reuses_an_exact_complete_validation(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that an exact cache hit skips parsing, accounting, and semantic rescans."""
+
     distribution = _write_packed_distribution(tmp_path / "distribution", compression="zstd")
     cache_dir = tmp_path / "validation-cache"
     expected = atlas_validate.validate_distribution(distribution, cache_dir=cache_dir)
@@ -2297,6 +2419,8 @@ def test_authenticated_cache_reuses_an_exact_complete_validation(
 def test_cache_hit_rejects_same_length_source_accounting_tamper(
     tmp_path: Path,
 ) -> None:
+    """Pin that a same-length source-accounting edit defeats the cache with distribution.digest."""
+
     distribution = _write_packed_distribution(
         tmp_path / "distribution",
         compression="zstd",
@@ -2317,6 +2441,8 @@ def test_cache_hit_rejects_same_length_source_accounting_tamper(
 
 
 def test_cache_hit_still_hashes_every_exact_pack_transport(tmp_path: Path) -> None:
+    """Pin that a cache hit still hashes pack transport bytes and refuses a flipped byte."""
+
     distribution = _write_packed_distribution(tmp_path / "distribution", compression="zstd")
     cache_dir = tmp_path / "validation-cache"
     atlas_validate.validate_distribution(distribution, cache_dir=cache_dir)
@@ -2336,6 +2462,8 @@ def test_tampered_cache_receipt_falls_back_to_full_validation(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that a tampered cache receipt falls back to one full parse rather than being trusted."""
+
     distribution = _write_packed_distribution(tmp_path / "distribution")
     cache_dir = tmp_path / "validation-cache"
     expected = atlas_validate.validate_distribution(distribution, cache_dir=cache_dir)
@@ -2358,6 +2486,8 @@ def test_tampered_cache_receipt_falls_back_to_full_validation(
 
 
 def test_validation_cache_cannot_modify_the_closed_distribution(tmp_path: Path) -> None:
+    """Pin the cache.path refusal when the cache directory is inside the distribution."""
+
     distribution = _write_packed_distribution(tmp_path / "distribution")
 
     with pytest.raises(atlas_validate.AtlasValidationError) as raised:
@@ -2370,6 +2500,8 @@ def test_validation_cache_cannot_modify_the_closed_distribution(tmp_path: Path) 
 
 
 def test_validation_cache_key_includes_binding_and_validator_identity(tmp_path: Path) -> None:
+    """Pin that the cache key moves with the binding contract digest."""
+
     distribution = _write_packed_distribution(tmp_path / "distribution")
     manifest = json.loads((distribution / "atlas-manifest.json").read_text(encoding="utf-8"))
     original = atlas_validate._validation_cache_key(manifest)
@@ -2442,6 +2574,8 @@ def test_the_validation_cache_key_covers_the_runtime_the_verdict_ran_on(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that the cache key moves with the validator runtime versions."""
+
     distribution = _write_packed_distribution(tmp_path / "distribution")
     manifest = json.loads((distribution / "atlas-manifest.json").read_text(encoding="utf-8"))
     original = atlas_validate._validation_cache_key(manifest)
@@ -2481,6 +2615,8 @@ def test_pack_receipts_are_verified_while_streaming(
     field: str,
     expected_code: str,
 ) -> None:
+    """Pin the pack receipt checks (content/transport digest and length) during streaming."""
+
     distribution = _write_packed_distribution(
         tmp_path / "distribution",
         compression=compression,
@@ -2518,6 +2654,8 @@ def test_pack_manifest_reconciles_order_inventory_and_dependencies(
     case: str,
     expected_code: str,
 ) -> None:
+    """Pin pack-order, inventory-digest, and dependency reconciliation failures."""
+
     distribution = _write_packed_distribution(tmp_path / "distribution")
     manifest = json.loads((distribution / "atlas-manifest.json").read_text(encoding="utf-8"))
     if case == "pack-order":
@@ -2535,6 +2673,8 @@ def test_pack_manifest_reconciles_order_inventory_and_dependencies(
 
 
 def test_distribution_file_set_is_recursively_closed(tmp_path: Path) -> None:
+    """Pin the distribution.members refusal for an unlisted file."""
+
     distribution = _write_packed_distribution(tmp_path / "distribution")
     manifest = json.loads((distribution / "atlas-manifest.json").read_text(encoding="utf-8"))
     extra = distribution / "packs" / "unlisted" / "extra.nq"
@@ -2548,6 +2688,8 @@ def test_distribution_file_set_is_recursively_closed(tmp_path: Path) -> None:
 
 
 def test_one_subject_cannot_have_outgoing_facts_in_two_packs(tmp_path: Path) -> None:
+    """Pin that one subject's outgoing asserted facts must live in one pack."""
+
     graph_ids = {
         "asserted": URIRef("urn:ref:atlas-test:graph:asserted"),
         "projection": URIRef("urn:ref:atlas-test:graph:projection"),
@@ -2611,6 +2753,8 @@ def test_one_subject_cannot_have_outgoing_facts_in_two_packs(tmp_path: Path) -> 
 
 
 def test_asserted_cross_pack_dependencies_must_be_exact() -> None:
+    """Pin that a cross-pack asserted reference must declare its exact dependency."""
+
     asserted = Graph()
     first_subject = URIRef("urn:ref:atlas-test:subject:first")
     second_subject = URIRef("urn:ref:atlas-test:subject:second")
@@ -2657,6 +2801,8 @@ def test_asserted_cross_pack_dependencies_must_be_exact() -> None:
 def test_canonical_renderer_caches_repeated_iri_terms(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that repeated IRIs render from cache, one canonical call per distinct term."""
+
     original = atlas_validate._canonical_ntriples_term
     calls: list[URIRef] = []
 
@@ -2676,6 +2822,8 @@ def test_canonical_renderer_caches_repeated_iri_terms(
 
 
 def test_graph_role_pass_enforces_asserted_carrier_exclusivity() -> None:
+    """Pin dataset.graph-placement for a node carrying two concrete carrier types."""
+
     _, graphs, _ = _load_valid_graphs()
     asserted = graphs["asserted"]
     resource = next(asserted.subjects(RDF.type, ATLAS.SubjectConcept))
@@ -2689,6 +2837,8 @@ def test_graph_role_pass_enforces_asserted_carrier_exclusivity() -> None:
 
 
 def test_graph_role_pass_enforces_required_base_types() -> None:
+    """Pin dataset.graph-placement when a carrier's type set lacks its base type."""
+
     _, graphs, _ = _load_valid_graphs()
     asserted = graphs["asserted"]
     resource = next(asserted.subjects(RDF.type, ATLAS.SubjectConcept))
@@ -2702,6 +2852,8 @@ def test_graph_role_pass_enforces_required_base_types() -> None:
 
 
 def test_graph_role_pass_enforces_derived_type_exclusivity() -> None:
+    """Pin dataset.graph-placement when a derived node also carries an asserted type."""
+
     _, graphs, _ = _load_valid_graphs()
     derived = graphs["derived"]
     relation = next(derived.subjects(RDF.type, ATLAS.DerivedRelation))
@@ -2984,6 +3136,8 @@ def test_acceptance_unfreezes_even_when_a_semantic_gate_refuses(
 def test_semantic_inventory_eliminates_repeated_carrier_enumeration(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that consumers read carriers and source links from the shared inventory, never rescanning."""
+
     _, graphs, manifest = _load_valid_graphs()
     asserted = graphs["asserted"]
     accounting = json.loads(
@@ -3028,6 +3182,8 @@ def test_semantic_inventory_eliminates_repeated_carrier_enumeration(
 def test_release_metadata_is_resolved_once_per_release(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that each release's ring, profile, and scheme are read once per validation."""
+
     _, graphs, _ = _load_valid_graphs()
     asserted = graphs["asserted"]
     inventory = atlas_validate._check_graph_roles(graphs)
@@ -3066,6 +3222,8 @@ def test_release_metadata_is_resolved_once_per_release(
 
 
 def test_empty_derived_graph_skips_assertion_indexes() -> None:
+    """Pin that an empty derived graph touches no assertion indexes."""
+
     class UnreadableAssertions(Mapping):
         def __getitem__(self, key: object) -> object:
             raise AssertionError(f"empty derived validation read assertion key {key}")
@@ -3107,6 +3265,8 @@ def test_empty_derived_graph_skips_assertion_indexes() -> None:
 def test_assertion_validation_does_not_materialize_empty_successor_sets(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that successor sets are built only for asserted predecessors."""
+
     _, graphs, _ = _load_valid_graphs()
     asserted = graphs["asserted"]
     inventory = atlas_validate._check_graph_roles(graphs)
@@ -3127,6 +3287,8 @@ def test_assertion_validation_does_not_materialize_empty_successor_sets(
 
 
 def test_assertion_support_uses_compact_immutable_sequences() -> None:
+    """Pin that assertion support values are tuples."""
+
     _, graphs, _ = _load_valid_graphs()
     inventory = atlas_validate._check_graph_roles(graphs)
 
@@ -3137,6 +3299,8 @@ def test_assertion_support_uses_compact_immutable_sequences() -> None:
 
 
 def test_skos_integrity_builds_exact_index_in_its_existing_pass() -> None:
+    """Pin that SKOS integrity indexes exact-match relations in one pass."""
+
     class OnePassCurrent(dict):
         iterations = 0
 
@@ -3158,6 +3322,8 @@ def test_validate_distribution_analyzes_assertions_once(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that validate_distribution analyzes assertions once and passes the analysis to its four consumers."""
+
     distribution = _write_packed_distribution(tmp_path / "distribution")
     original = atlas_validate._validate_assertions
     analyses: list[Mapping[tuple[URIRef, URIRef, URIRef], frozenset[URIRef]]] = []
@@ -3202,6 +3368,8 @@ def test_projection_comparison_uses_membership_and_preserves_rejection(
     case: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that projection comparison uses membership and still refuses missing, substituted, and extra rows."""
+
     first = (URIRef("urn:s:1"), URIRef("urn:p"), URIRef("urn:o:1"))
     second = (URIRef("urn:s:2"), URIRef("urn:p"), URIRef("urn:o:2"))
     extra = (URIRef("urn:s:3"), URIRef("urn:p"), URIRef("urn:o:3"))
@@ -3253,6 +3421,8 @@ def test_projection_comparison_uses_membership_and_preserves_rejection(
 def test_reasoning_isolation_sends_only_mapping_triples_to_owl(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that only mapping triples reach OWL reasoning."""
+
     source = URIRef("urn:ref:atlas-test:a")
     middle = URIRef("urn:ref:atlas-test:b")
     target = URIRef("urn:ref:atlas-test:c")
@@ -3324,6 +3494,8 @@ def test_exact_match_inference_count_uses_component_arithmetic(
     edges: tuple[tuple[str, str], ...],
     expected: int,
 ) -> None:
+    """Pin the exact-match inference count against component arithmetic."""
+
     current = {
         (URIRef(f"urn:{subject}"), SKOS.exactMatch, URIRef(f"urn:{obj}")): frozenset(
             {URIRef(f"urn:assertion:{index}")}
@@ -3336,6 +3508,8 @@ def test_exact_match_inference_count_uses_component_arithmetic(
 
 
 def test_exact_match_count_deduplicates_multiple_supporting_assertions() -> None:
+    """Pin that multiple supporting assertions still count one inferred edge."""
+
     triple = (URIRef("urn:a"), SKOS.exactMatch, URIRef("urn:b"))
     current = {
         triple: frozenset({URIRef("urn:assertion:1"), URIRef("urn:assertion:2")})
@@ -3345,6 +3519,8 @@ def test_exact_match_count_deduplicates_multiple_supporting_assertions() -> None
 
 
 def test_hierarchy_queries_handle_deep_chain_without_recursion() -> None:
+    """Pin that a 2,000-node hierarchy chain is traversed without recursion."""
+
     nodes = [URIRef(f"urn:node:{index}") for index in range(2_000)]
     hierarchy = {
         node: {nodes[index + 1]}
@@ -3356,6 +3532,8 @@ def test_hierarchy_queries_handle_deep_chain_without_recursion() -> None:
 
 
 def test_hierarchy_reachability_matches_positive_path_reference() -> None:
+    """Pin reachability against a positive-path reference over random hierarchies."""
+
     random = Random(7)
     for node_count in range(1, 25):
         nodes = [URIRef(f"urn:node:{index}") for index in range(node_count)]
@@ -3379,6 +3557,8 @@ def test_hierarchy_reachability_matches_positive_path_reference() -> None:
 
 
 def test_hierarchy_reachability_preserves_positive_cycle_semantics() -> None:
+    """Pin positive-cycle semantics: a self-loop reaches itself, an absent node does not."""
+
     a, b, c, self_loop, absent = (
         URIRef("urn:a"),
         URIRef("urn:b"),
@@ -3410,6 +3590,8 @@ def test_hierarchy_reachability_preserves_positive_cycle_semantics() -> None:
 def test_hierarchy_reachability_crosses_bitset_batches(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that reachability crosses bitset batch boundaries."""
+
     hub = URIRef("urn:hub")
     sources = [URIRef(f"urn:source:{index}") for index in range(4)]
     targets = [URIRef(f"urn:target:{index}") for index in range(3)]
@@ -3431,6 +3613,8 @@ def test_hierarchy_reachability_crosses_bitset_batches(
 
 
 def test_skos_hierarchy_conflict_diagnostic_keeps_sorted_pair_order() -> None:
+    """Pin the S27 diagnostic's sorted pair order."""
+
     a, b, c, d = map(URIRef, ("urn:a", "urn:b", "urn:c", "urn:d"))
     current = {
         (c, SKOS.related, d): (),
@@ -3447,6 +3631,8 @@ def test_skos_hierarchy_conflict_diagnostic_keeps_sorted_pair_order() -> None:
 
 
 def test_thesaurus_related_diagnostic_keeps_sorted_pair_order() -> None:
+    """Pin the thesaurus-related diagnostic's sorted pair order."""
+
     a, b, c, d, child, parent = map(
         URIRef,
         ("urn:a", "urn:b", "urn:c", "urn:d", "urn:child", "urn:parent"),
@@ -3471,6 +3657,8 @@ def test_parser_counts_graphs_without_rescanning_the_dataset(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that graph counts are collected during parsing, not by rescanning the dataset."""
+
     dataset_path = tmp_path / "atlas.nq"
     dataset_path.write_bytes(
         b"<urn:a> <urn:p> <urn:o> <urn:g> .\n"
@@ -3491,6 +3679,8 @@ def test_parser_counts_graphs_without_rescanning_the_dataset(
 def test_dataset_digest_is_verified_during_the_required_line_scan(
     tmp_path: Path,
 ) -> None:
+    """Pin that the dataset digest is verified during the line scan, with distribution.digest on mismatch."""
+
     dataset_path = tmp_path / "atlas.nq"
     payload = b"<urn:a> <urn:p> <urn:o> <urn:g> .\n"
     dataset_path.write_bytes(payload)
@@ -3513,6 +3703,8 @@ def test_dataset_parser_preserves_typed_literal_lexical_form_without_global_muta
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that parsing preserves a typed literal's lexical form and leaves NORMALIZE_LITERALS alone."""
+
     dataset_path = tmp_path / "atlas.nq"
     dataset_path.write_text(
         '<urn:s> <urn:p> "01"^^<http://www.w3.org/2001/XMLSchema#integer> <urn:g> .\n',
@@ -3534,6 +3726,8 @@ def test_dataset_parser_preserves_typed_literal_lexical_form_without_global_muta
 
 
 def test_atlas_shapes_have_no_per_focus_sparql_constraints() -> None:
+    """Pin that the atlas shapes carry no sh:sparql or sh:select constraints."""
+
     shapes = Graph().parse(BINDING_ROOT / "shapes" / "atlas.shacl.ttl", format="turtle")
     shacl = Namespace("http://www.w3.org/ns/shacl#")
 
@@ -3545,6 +3739,8 @@ def test_cli_heap_freeze_happens_after_output_flush_and_not_inside_main(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
+    """Pin that gc.freeze runs after stdout/stderr flush, and not inside main."""
+
     calls: list[str] = []
 
     class FlushRecorder:

@@ -14,6 +14,7 @@ _OPENED_USCDOC = re.compile(rb"<uscDoc\b[^>]*>")
 
 
 def title_xml(body: bytes, title="26", release="119-102") -> bytes:
+    """Inject native title metadata and a main wrapper into a synthetic uscDoc body."""
     metadata = (
         f'<meta xmlns:dc="http://purl.org/dc/elements/1.1/">'
         f"<dc:title>Title {title}</dc:title><dc:type>USCTitle</dc:type>"
@@ -34,6 +35,7 @@ def title_xml(body: bytes, title="26", release="119-102") -> bytes:
 
 
 def archive(*entries):
+    """Build an in-memory zip archive from (name, body) entries."""
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as bundle:
         for name, body in entries:

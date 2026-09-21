@@ -1,4 +1,9 @@
-"""Frozen pre-occurrence matcher; normalization and data types are unchanged."""
+"""Test-only frozen pre-occurrence matcher; normalization and data types unchanged.
+
+Holds the matcher as it stood before :mod:`refspec.registry.citation_grammar`
+grew the occurrence reader, so test_act_occurrences can compare verdicts against
+it without importing the code under replacement.
+"""
 import re
 from collections.abc import Container, Mapping
 from refspec.registry.citation_grammar import ActRelativeCitation, normalize_popular_name, _usc_section
@@ -14,6 +19,8 @@ _MAX_ACT_NAME_WORDS = 24
 _NAME_EDGE = re.compile(r"^[\s(\"'“”]+|[\s,;:.)\"'“”]+$")
 
 def _longest_name_before(before: str, act_names: Container[str]) -> str | None:
+    """Return the longest trailing word run whose normalized form is an indexed act name."""
+
     words = before.split()
     for length in range(min(_MAX_ACT_NAME_WORDS, len(words)), 0, -1):
         candidate = " ".join(words[-length:])
@@ -22,6 +29,8 @@ def _longest_name_before(before: str, act_names: Container[str]) -> str | None:
     return None
 
 def _longest_name_after(after: str, act_names: Container[str]) -> str | None:
+    """Return the longest indexed act name following a section marker, past short parentheticals."""
+
     # "Sec 1886(d) of the Social Security Act": the subsection parenthetical
     # sits between the section number and "of the", and requiring adjacency
     # silently failed every such citation — 25 of the commonest single form
@@ -42,16 +51,13 @@ def find_act_relative_citations(text: object, *, act_names: Container[str]) -> t
     """Find act-relative citations whose act ``act_names`` knows.
 
     **The index is the grammar.** ``act_names`` holds normalized popular names
-    — in production, the 13,626 the OLRC publishes — and a span is an act name
-    only if the index says so. The alternative, recognizing a shape
-    (capitalized words ending in "Act"), was measured against 4,777 sealed
-    authority strings and matched "U.S.C." 108 times.
-
-    Longest match wins, because one popular name may end with another: the
-    Clean Air Act Amendments of 1977 are not the Clean Air Act. An act the
-    index does not name is not read — the corpus writes "INA sec. 103(a)(1)",
-    and inferring which act that abbreviates is precisely the guess the
-    identity fence exists to stop.
+    — in production, the 13,626 the OLRC publishes — so a span is an act name
+    only if the index says so; recognizing a shape instead was measured
+    against 4,777 sealed authority strings and matched "U.S.C." 108 times.
+    Longest match wins (the Clean Air Act Amendments of 1977 are not the Clean
+    Air Act), and an act the index does not name is not read — "INA sec.
+    103(a)(1)" is precisely the abbreviation guess the identity fence exists
+    to stop.
     """
 
     document = "" if text is None else str(text)

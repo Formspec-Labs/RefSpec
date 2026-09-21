@@ -1,63 +1,19 @@
-"""Regression coverage for tools/agenda_value_diff.py's column blindness.
+"""Regression coverage for tools/agenda_value_diff.py's column blindness and drift reporting.
 
-Review finding (2026-08-31): the tool's per-table value-column lists were
-hand-maintained tuples that had drifted from the producer's own schemas. The
-arithmetic, recomputed from ``git show HEAD:tools/agenda_value_diff.py``
-against ``LEGAL_AUTHORITIES_SCHEMA``
-(``refspec.registry.unified_agenda_parquet``):
-
-    94 schema columns (91 at the review; +3 on 2026-08-31 -- usc_slot_reading
-       and the two placeholder-candidate columns -- which the schema-derived
-       list picked up without a hand edit, the point of the rework)
-     - 4 key columns (rin, publication_id, ordinal, authority_text)
-     - 1 deliberate exclusion (citation_ordinal)
-    ------------------------------------------------------------------
-    = 89 value columns the diff owes a comparison (86 at the review)
-
-    the hand list named 41 of the 86 (all 41 real columns, none stale)
-    ------------------------------------------------------------------
-    = 45 value columns the diff was blind to
-
-So a rebuild that moved a value only in one of those 45 -- the whole join/carry
-family (``authority_source``, ``authority_box_run_start``,
-``authority_join_rule``, ``usc_title_carried_from_ordinal``,
-``superseded_by_join``, ...) included -- diffed as "no change". Confirmed by
-running the pre-fix tool (git HEAD) against a real-artifact pair that differs
-in exactly one ``superseded_by_join`` cell: it printed "VANISHED values: 0 /
-ARRIVED values: 0". The fixed tool, on the identical pair, reports the one
-VANISHED and one ARRIVED value. (An earlier revision of this docstring said
-the hand list "carried only 45 of the 86" -- 45 was the BLIND count, not the
-covered one, and 45 + 45 does not make 86. The numbers above are the measured
-ones; ``test_the_recorded_arithmetic_is_the_measured_arithmetic`` pins them.)
-
-The timetables hand list was, by contrast, complete: 16 schema columns, less
-the 4-column key and ``citation_ordinal``, is 11, and it named all 11.
-
-The fix makes each table's value columns a DERIVATION from the producer's own
-schema -- imported read-only from ``refspec.registry.unified_agenda_parquet``,
-never re-declared here -- rather than a hand list: every schema column is
-either the key, a named-and-justified exclusion (``ignore``), or a value that
-gets diffed. There is no fourth bucket. The tests below are the structural
-tripwire this buys: they fail the day a schema gains a column that lands in
-none of those three, which is exactly the failure mode a hand list cannot
-detect until someone is bitten by it in production.
-
-Review finding 11 (2026-08-31): each side intersected the expected columns
-with the physical schema and only ever reported the NEW-only ones, so a column
-DELETED from the new artifact printed "columns only in new: []" and zero
-differences -- total silence about every value that left with it. The tool now
-reports the old-only columns and their departed values symmetrically, and says
-out loud when a column the schema declares is in neither file.
-``test_a_column_removed_from_the_new_artifact_is_reported`` and
-``test_a_column_absent_from_both_sides_is_reported`` are the tripwires.
-
-Review finding 5 (2026-08-31): the diff core loaded both tables fully into
-Python objects and measured 14.428 GiB resident on the real self-diff, enough
-to OOM an 8-16 GiB host once `make test`'s `pytest -n auto` overlapped it with
-the rest of the slow tier. It is now a streaming, digest-keyed multiset diff.
-``test_the_streaming_diff_agrees_with_the_pre_rework_oracle`` is the
-verdict-agreement proof AGENTS.md requires of a replaced check, with the
-pre-rework core copied in below rather than imported.
+Review findings of 2026-08-31: the hand-maintained value lists covered 41 of
+the 86 legal-authorities value columns (45 blind; timetables' 11 of 11 were
+complete), a column removed from the new artifact or absent from both sides
+was silent, and the non-streaming core measured 14.428 GiB on the real
+self-diff. The fix DERIVES each table's value columns from the producer's
+schema -- every column is the key, a named-and-justified exclusion
+(citation_ordinal), or a compared value, with no fourth bucket -- reports
+old-only, new-only, neither-file and undeclared columns symmetrically, and
+streams 16-byte digest-keyed counters; the pinned arithmetic is 94 schema
+columns - 4 key - 1 ignored = 89 owed, 45 blind, 44 covered. These tests are
+the tripwires, the mutation battery, and the verdict-agreement proof against
+the pre-rework diff core copied in below rather than imported, with two frozen
+divergences (the example row after ``e.g.`` and the tie order) recorded in
+``_FROZEN_DIVERGENCES``.
 """
 
 from __future__ import annotations
@@ -245,6 +201,8 @@ def test_ignored_columns_are_exactly_the_documented_set() -> None:
 
 
 def test_previously_blind_columns_are_now_diffed() -> None:
+    """Pins that every one of the 45 measured-blind columns is diffed after the fix."""
+
     values = set(TABLES["legal-authorities"]["values"])
     still_blind = _PREVIOUSLY_BLIND_LEGAL_AUTHORITIES_COLUMNS - values
     assert not still_blind, f"still blind after the fix: {sorted(still_blind)}"
@@ -262,6 +220,8 @@ def test_legal_authorities_value_column_count() -> None:
 
 
 def test_timetables_value_column_count() -> None:
+    """Pins timetables at 16 schema columns and 11 diffed values."""
+
     assert len(TIMETABLES_SCHEMA.names) == 16
     assert len(TABLES["timetables"]["values"]) == 11
 
@@ -401,6 +361,8 @@ def _real_slice(rows: int) -> pa.Table:
 
 
 def _pair(tmp_path: Path, old: pa.Table, new: pa.Table) -> tuple[Path, Path]:
+    """Write an old/new table pair under separate tmp directories and return both."""
+
     old_dir, new_dir = tmp_path / "old", tmp_path / "new"
     old_dir.mkdir(parents=True)
     new_dir.mkdir(parents=True)

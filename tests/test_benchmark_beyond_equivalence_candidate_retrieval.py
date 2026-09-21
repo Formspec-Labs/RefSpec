@@ -1,4 +1,10 @@
-"""Focused checks for the typed BeyondEquivalence discovery benchmark."""
+"""Focused checks for the typed BeyondEquivalence discovery benchmark.
+
+Pins the reference-marker parser (nine markers, five families), the archive
+loader's IRI-label fallback and implicit owl:Thing, and the property that
+candidate discovery never sees reference markers while ranks and feature
+digests stay canonical under input order and score block size.
+"""
 
 from __future__ import annotations
 
@@ -13,6 +19,8 @@ from tools import benchmark_beyond_equivalence_candidate_retrieval as benchmark
 
 
 def _concept(side: str, identifier: str, label: str) -> AtlasConcept:
+    """One synthetic Atlas concept with a preferred label."""
+
     return AtlasConcept(
         member=f"https://example.test/{side}/{identifier}",
         release=f"urn:test:{side}",
@@ -21,6 +29,8 @@ def _concept(side: str, identifier: str, label: str) -> AtlasConcept:
 
 
 def _reference_xml(markers: tuple[str, ...]) -> bytes:
+    """A BeyondEquivalence reference document with one Cell per marker, XML-escaped."""
+
     cells = []
     for index, marker in enumerate(markers):
         escaped = {"<": "&lt;", ">": "&gt;"}.get(marker, marker)
@@ -46,10 +56,14 @@ def _case(
     targets: tuple[AtlasConcept, ...],
     relations: tuple[benchmark.ReferenceRelation, ...],
 ) -> benchmark.TypedAlignmentCase:
+    """A one-name typed alignment case over the given concepts and reference relations."""
+
     return benchmark.TypedAlignmentCase("fixture", sources, targets, relations)
 
 
 def test_reference_parser_preserves_every_supported_raw_marker_and_family() -> None:
+    """All nine supported markers parse verbatim and map to the five reference families."""
+
     markers = ("=", ">", "<", "Related", "~", "HasA", "PartOf", "!", "Disjoint")
 
     relations = benchmark.parse_reference(_reference_xml(markers), case_name="fixture")
@@ -69,11 +83,15 @@ def test_reference_parser_preserves_every_supported_raw_marker_and_family() -> N
 
 
 def test_reference_parser_rejects_an_unknown_relation_marker() -> None:
+    """An unsupported marker refuses, naming the marker in the error."""
+
     with pytest.raises(ValueError, match="unsupported reference relation marker 'Maybe'"):
         benchmark.parse_reference(_reference_xml(("Maybe",)), case_name="fixture")
 
 
 def test_archive_loader_uses_iri_labels_and_includes_implicit_owl_thing(tmp_path: object) -> None:
+    """A class without rdfs:label takes its IRI local name, and owl:Thing is added implicitly."""
+
     archive_path = tmp_path / "fixture.zip"
     source = b"""\
 <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
@@ -106,6 +124,8 @@ def test_archive_loader_uses_iri_labels_and_includes_implicit_owl_thing(tmp_path
 
 
 def test_candidate_discovery_inputs_do_not_include_reference_markers() -> None:
+    """Two cases differing only in reference marker share candidate inputs and pairs, not reference digests."""
+
     source = _concept("source", "alpha", "Alpha")
     target = _concept("target", "alpha", "Alpha")
     equality = _case(
@@ -128,6 +148,8 @@ def test_candidate_discovery_inputs_do_not_include_reference_markers() -> None:
 
 
 def test_summary_reports_relation_types_separately_and_keeps_zero_opportunities() -> None:
+    """Found counts are reported per marker and family, and a family with no gold reports recall None."""
+
     source_a = _concept("source", "a", "A")
     source_b = _concept("source", "b", "B")
     target_a = _concept("target", "a", "A")
@@ -154,6 +176,8 @@ def test_summary_reports_relation_types_separately_and_keeps_zero_opportunities(
 
 
 def test_rapidfuzz_ties_and_input_order_are_canonical() -> None:
+    """Tied scores and reversed input order give identical ranks and feature/ranking digests."""
+
     pytest.importorskip("rapidfuzz")
     source_a = _concept("source", "a", "Same")
     source_b = _concept("source", "b", "Same")
@@ -200,6 +224,8 @@ def test_pair_digest_is_stable_under_rank_map_order() -> None:
 
 
 def test_dense_direction_is_identical_across_score_block_sizes() -> None:
+    """Score block size changes neither the ranks nor the ranking digest."""
+
     query_ids = ("source-a", "source-b", "source-c")
     document_ids = ("target-a", "target-b", "target-c")
     query_vectors = np.asarray(((1.0, 0.0), (1.0, 0.0), (0.0, 1.0)), dtype=np.float32)
@@ -229,6 +255,8 @@ def test_dense_direction_is_identical_across_score_block_sizes() -> None:
 
 
 def test_wordnet_head_and_depth_two_taxonomy_expansion_is_relation_blind() -> None:
+    """WordNet expansion reaches head and two-hop hypernym neighbours and never consults reference relations."""
+
     coach = _concept("source", "coach", "Basketball Coaches")
     bank = _concept("source", "bank", "Bank")
     person = _concept("target", "person", "Person")

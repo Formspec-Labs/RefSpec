@@ -1,3 +1,9 @@
+"""Identity-link projection from a ManagedReleaseView's rulespec graph.
+
+``iter_identity_links`` preserves the native predicate IRIs and resolves each endpoint to its
+packaged release when the member is known, and its filters match subject and predicate exactly --
+a compact-IRI spelling like ``dcterms:replaces`` finds nothing."""
+
 from __future__ import annotations
 
 from types import MappingProxyType
@@ -23,10 +29,14 @@ STABLE_RETIRED = "https://elsst.cessda.eu/id/retired"
 
 
 def _frozen_record(values: dict[str, Any]) -> MappingProxyType[str, Any]:
+    """Wrap a member record mapping so the view sees it as frozen."""
+
     return MappingProxyType(values)
 
 
 def _view() -> ManagedReleaseView:
+    """A three-member view linked by isVersionOf, priorVersion, isReplacedBy, and replaces."""
+
     members = {
         R5_RETIRED: ManagedReleaseMember(
             member_iri=R5_RETIRED,

@@ -275,6 +275,12 @@ _DICTIONARIES = {
 
 
 def _transform(role: CompactRecordRole, row: Mapping[str, Any]) -> dict[str, Any]:
+    """Project one full-view row into its compact column set, refusing identity drift.
+
+    A Statement row's ``id`` must carry an assertion digest suffix equal to
+    ``assertion_identity_digest``, and an EvidenceBinding row's must equal its
+    ``content_digest``; a Label row must retain ``id``.
+    """
     if role is CompactRecordRole.RESOURCE:
         return {key: value for key, value in row.items() if key != "content_digest"}
     if role is CompactRecordRole.LABEL:
@@ -348,7 +354,12 @@ def build_atlas_parquet_search_view(
     *,
     expected_manifest_digest: str,
 ) -> dict[str, Any]:
-    """Build one immutable compact search view from a verified full view."""
+    """Build one immutable compact search view from a verified full view.
+
+    Refuses to replace existing output, carries the optional agency-projection
+    and derived-relation tables through by verbatim byte copy, and re-verifies
+    the assembled view before renaming it into place.
+    """
 
     if output.is_symlink() or output.exists():
         raise AtlasParquetSearchViewError(f"refusing to replace existing output: {output}")

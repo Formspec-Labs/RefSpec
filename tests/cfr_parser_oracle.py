@@ -35,6 +35,8 @@ def _excise_compilations(text: str) -> str:
     return _EO_COMPILATION.sub(_blank, text)
 
 def _part_is_plausible(part):
+    """Return whether a part holds at most five digits, preserving None."""
+
     return None if part is None else sum(c.isdigit() for c in part) <= 5
 
 
@@ -171,6 +173,8 @@ def _parse_cfr_citations(
     text: str, *, list_expansion: str,
     record: Callable[[CfrCitation, tuple[int, int], tuple[int, int] | None], int] | None = None,
 ) -> tuple[CfrCitation, ...]:
+    """Frozen occurrence reader: report each citation and span through ``record``, keeping list context."""
+
     if list_expansion not in {"plural-label", "always"}:
         raise ValueError(f"unknown list expansion policy: {list_expansion!r}")
 

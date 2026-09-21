@@ -1,18 +1,12 @@
-"""Tests for the `relatedMatch` blind-review sample builder and its comparison.
+"""`relatedMatch` blind-review sample builder and its comparison, on synthetic fixtures.
 
-The builder's whole job is to withhold an answer, so the tests that carry weight
-are the ones proving it does: that no field the key holds ever reaches the blind
-file, that presentation order carries no signal about which stratum a row is in,
-and that the sample is a census of the population under test rather than a sample
-of it.
-
-The comparison's job is to join once, in one direction.  Its tests check that a
-missing pass is reported rather than silently skipped, and that the discriminating
-figure -- the orthographic gap between ``relatedMatch`` admissions and the matched
-admissions beside them -- is computed against the right denominator.
-
-Fixtures are synthetic.  Binding to the real archive would couple these tests to
-one release of the evidence and would never exercise the failure paths.
+The builder withholds the answer, so the weight-bearing tests prove no key field reaches the blind
+file, presentation order carries no stratum signal, and the sample is a census of the
+``relatedMatch`` population rather than a sample of it. The comparison must join once in one
+direction, report a missing pass rather than skip it silently, and compute the orthographic gap
+between ``relatedMatch`` and other admissions against the right denominator. Fixtures are
+synthetic; binding to the real archive would couple the tests to one release and never exercise
+the failure paths.
 """
 
 from __future__ import annotations
@@ -99,6 +93,8 @@ def sources(tmp_path: Path) -> tuple[Path, Path]:
 
 
 def _build(sources: tuple[Path, Path], output: Path) -> tuple[list[dict], list[dict]]:
+    """Load the fixture population, draw distractors and controls, and return the (blind, sealed) rows."""
+
     benchmarks, review = sources
     population = builder.load_population(benchmarks, review)
     keys = builder.select(population, distractors_per_class=1, controls=2)
@@ -171,6 +167,8 @@ def test_missing_concept_facts_fail_closed(sources: tuple[Path, Path]) -> None:
 
 
 def _verdict(row: int, *, basis: str, relation: str = "related") -> str:
+    """One independent-pass verdict line carrying the chosen basis or relation."""
+
     return json.dumps(
         {
             "row": row,
@@ -198,6 +196,8 @@ def review_dir(sources: tuple[Path, Path], tmp_path: Path) -> Path:
 
 
 def _related_rows(directory: Path) -> list[int]:
+    """Source row numbers whose sealed key records a ``relatedMatch`` admission."""
+
     sealed = json.loads((directory / "sealed-key" / "sample.json").read_text(encoding="utf-8"))["rows"]
     return [row["row"] for row in sealed if row["admittedRelation"] == "relatedMatch"]
 

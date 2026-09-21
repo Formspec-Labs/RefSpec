@@ -1,4 +1,9 @@
-"""Tests for the fixed-decision Atlas BGE-tail audit join."""
+"""Atlas BGE-tail manual-audit join: pair/band/cutoff coverage and digest-checked refusals.
+
+The audit joins adjudicated verdicts to a stratified BGE-only tail sample,
+revalidates rank band and retrieval membership against the sample digest, and
+keeps selection metadata out of the rendered context.
+"""
 
 from __future__ import annotations
 
@@ -15,6 +20,8 @@ import analyze_atlas_candidate_tail_manual_audit as audit
 
 
 def _row(number: int, *, case: str, band: str, rank: int) -> dict[str, object]:
+    """Build one tail sample row with its case/band/rank and selection digest."""
+
     source = {
         "member": f"urn:source:{number}",
         "prefLabel": f"Source {number}",
@@ -43,6 +50,8 @@ def _row(number: int, *, case: str, band: str, rank: int) -> dict[str, object]:
 
 
 def _sample() -> dict[str, object]:
+    """Build a four-row, two-case, two-band tail sample with strata and a matching sample digest."""
+
     rows = [
         _row(1, case="case-a", band="ranks-26-30", rank=27),
         _row(2, case="case-a", band="ranks-31-35", rank=33),
@@ -72,6 +81,9 @@ def _sample() -> dict[str, object]:
 
 
 def test_tail_analysis_reports_pair_band_and_cutoff_coverage() -> None:
+    """The report aggregates potential relations overall, by case and band, with cumulative cutoff coverage and a
+    digest."""
+
     report = audit.analyze(
         _sample(),
         ("related", "unrelated", "target_is_narrower", "related"),
@@ -95,6 +107,8 @@ def test_tail_analysis_reports_pair_band_and_cutoff_coverage() -> None:
 
 
 def test_combined_coverage_separates_bge_unique_rows_from_lean_overlap() -> None:
+    """Lean-family overlap is separated from BGE-unique coverage so prefix rows are not double-counted."""
+
     prefix_rows = [
         {
             "bgeRank": 20,
@@ -131,6 +145,8 @@ def test_combined_coverage_separates_bge_unique_rows_from_lean_overlap() -> None
 
 
 def test_tail_validation_rejects_changed_rank_or_membership() -> None:
+    """A rank outside its band or a changed retrieval membership is refused even after the digest is recomputed."""
+
     sample = _sample()
     sample["rows"][0]["bgeRank"] = 31
     sample["sampleDigest"] = "sha256:" + hashlib.sha256(canonical_json(sample["rows"]).encode()).hexdigest()
@@ -145,6 +161,8 @@ def test_tail_validation_rejects_changed_rank_or_membership() -> None:
 
 
 def test_context_rendering_requires_ordered_rows_and_hides_selection_metadata() -> None:
+    """The reviewer context must present the sample rows in order and must not leak selection metadata."""
+
     sample = _sample()
     rendering = "\n".join(
         [

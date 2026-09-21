@@ -27,10 +27,12 @@ def _acquire(
     pin: cgfc.CensusFinanceSnapshotPin,
     source_path: Path,
 ) -> cgfc.AcquiredCensusFinancePage:
+    """Acquire one census page from its local fixture into the given store."""
     return cgfc.acquire_census_finance_page(pin, tmp_path, source_path=source_path)
 
 
 def _portfolio(tmp_path: Path) -> cgfc.CensusFinancePortfolio:
+    """Parse both census fixtures and assemble the two-resource portfolio."""
     functions = cgfc.parse_census_function_item_codes(
         _acquire(tmp_path, cgfc.CENSUS_FUNCTION_ITEM_CODES_2026_08_03, FUNCTION_FIXTURE)
     )
@@ -39,12 +41,14 @@ def _portfolio(tmp_path: Path) -> cgfc.CensusFinancePortfolio:
 
 
 def test_module_import_opens_no_network_connection() -> None:
+    """Pins that the fetcher boundary exists as importable attributes, so import itself performs no I/O."""
     # Importing must never perform I/O; only an explicit fetcher call may.
     assert hasattr(cgfc, "acquire_census_finance_page")
     assert hasattr(cgfc, "CensusFinancePageFetcher")
 
 
 def test_live_snapshot_pins_match_exact_official_bytes() -> None:
+    """Pins the two fixture byte lengths and sha256 digests against the live snapshot pins."""
     functions = FUNCTION_FIXTURE.read_bytes()
     flags = FLAGS_FIXTURE.read_bytes()
 
@@ -57,6 +61,7 @@ def test_live_snapshot_pins_match_exact_official_bytes() -> None:
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
     tmp_path: Path,
 ) -> None:
+    """Pins the content-addressed local path and the local-then-cache acquisition modes with a rechecked digest."""
     pin = cgfc.CENSUS_FUNCTION_ITEM_CODES_2026_08_03
 
     acquired = _acquire(tmp_path, pin, FUNCTION_FIXTURE)
@@ -71,6 +76,7 @@ def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
 
 
 def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) -> None:
+    """Pins that an injected fetcher receives the pinned source URL and timeout, and is recorded as mode 'fetcher'."""
     payload = FLAGS_FIXTURE.read_bytes()
     calls: list[tuple[str, float]] = []
 
@@ -103,6 +109,7 @@ def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) ->
 def test_function_item_codes_are_mapping_metadata_not_general_subject_concepts(
     tmp_path: Path,
 ) -> None:
+    """Pins 33 function item codes as deterministic metadata, preserving the misspelling 'Financial Adminstration'."""
     resource = cgfc.parse_census_function_item_codes(
         _acquire(tmp_path, cgfc.CENSUS_FUNCTION_ITEM_CODES_2026_08_03, FUNCTION_FIXTURE)
     )
@@ -129,6 +136,7 @@ def test_function_item_codes_are_mapping_metadata_not_general_subject_concepts(
 
 
 def test_data_flag_codes_retain_publisher_sections(tmp_path: Path) -> None:
+    """Pins 16 data flag codes with their publisher sections and the exact reported and imputed code lists."""
     resource = cgfc.parse_census_data_flag_codes(
         _acquire(tmp_path, cgfc.CENSUS_DATA_FLAG_CODES_2026_08_03, FLAGS_FIXTURE)
     )
@@ -151,6 +159,7 @@ def test_data_flag_codes_retain_publisher_sections(tmp_path: Path) -> None:
 
 
 def test_portfolio_records_the_mapping_only_role_and_pdf_gap(tmp_path: Path) -> None:
+    """Pins both resource names and the gaps for the mapping-only role and the unheld classification-manual PDF."""
     portfolio = _portfolio(tmp_path)
 
     assert portfolio.census_function_item_codes.source.resource_name == "censusFunctionItemCodes"
@@ -160,6 +169,7 @@ def test_portfolio_records_the_mapping_only_role_and_pdf_gap(tmp_path: Path) -> 
 
 
 def test_portfolio_requires_exactly_the_two_census_resources(tmp_path: Path) -> None:
+    """Pins that assembling a portfolio from only one of the two resources raises CensusFinanceSourceDriftError."""
     functions = cgfc.parse_census_function_item_codes(
         _acquire(tmp_path, cgfc.CENSUS_FUNCTION_ITEM_CODES_2026_08_03, FUNCTION_FIXTURE)
     )
@@ -171,6 +181,7 @@ def test_portfolio_requires_exactly_the_two_census_resources(tmp_path: Path) -> 
 def test_state_budget_mapping_validates_without_replacing_native_identity(
     tmp_path: Path,
 ) -> None:
+    """Pins that a validated mapping keeps the state-native reference and attaches the census code as metadata."""
     portfolio = _portfolio(tmp_path)
 
     validated = cgfc.validate_census_finance_mapping(
@@ -191,6 +202,7 @@ def test_state_budget_mapping_validates_without_replacing_native_identity(
 def test_mapping_with_only_a_native_reference_omits_optional_assignments(
     tmp_path: Path,
 ) -> None:
+    """Pins that a mapping with only the state-native reference leaves the census function item unassigned."""
     portfolio = _portfolio(tmp_path)
 
     validated = cgfc.validate_census_finance_mapping(
@@ -218,6 +230,7 @@ def test_unknown_or_missing_mapping_fails_closed(
     mapping: dict[str, object],
     message: str,
 ) -> None:
+    """Pins that a missing or blank state reference and an unknown code all raise CensusFinanceMappingError."""
     portfolio = _portfolio(tmp_path)
 
     with pytest.raises(cgfc.CensusFinanceMappingError, match=message):
@@ -225,6 +238,7 @@ def test_unknown_or_missing_mapping_fails_closed(
 
 
 def test_digest_drift_never_produces_a_parsed_resource(tmp_path: Path) -> None:
+    """Pins that a same-length byte change raises digest drift before any resource is parsed."""
     payload = FUNCTION_FIXTURE.read_bytes()
     changed = payload.replace(b"Judicial &amp; Legal", b"Judicial &amp; Legit")
     assert len(changed) == len(payload)
@@ -257,6 +271,7 @@ def _write_and_acquire(
     source: cgfc.CensusFinanceSource,
     payload: bytes,
 ) -> cgfc.AcquiredCensusFinancePage:
+    """Write crafted HTML as a local source and acquire it under a pin computed from those bytes."""
     source_path = tmp_path / "crafted.html"
     source_path.write_bytes(payload)
     pin = cgfc.CensusFinanceSnapshotPin(
@@ -269,6 +284,7 @@ def _write_and_acquire(
 
 
 def test_wrong_heading_is_rejected_as_shape_drift(tmp_path: Path) -> None:
+    """Pins refusal when the page title heading is not the pinned one."""
     payload = (
         b"<!doctype html><html><body>"
         b'<h1 class="cmp-title__text">Some Other Page</h1>'
@@ -282,6 +298,7 @@ def test_wrong_heading_is_rejected_as_shape_drift(tmp_path: Path) -> None:
 
 
 def test_missing_table_is_rejected_as_shape_drift(tmp_path: Path) -> None:
+    """Pins refusal when the page has no single function item code table."""
     payload = (
         b"<!doctype html><html><body>"
         b'<h1 class="cmp-title__text">Item Code (Functional Category)</h1>'
@@ -295,6 +312,7 @@ def test_missing_table_is_rejected_as_shape_drift(tmp_path: Path) -> None:
 
 
 def test_data_flag_row_before_any_section_header_fails_closed(tmp_path: Path) -> None:
+    """Pins refusal when a data flag row appears before any section header."""
     payload = (
         b"<!doctype html><html><body>"
         b'<h1 class="cmp-title__text">Data Flags</h1>'
@@ -311,6 +329,7 @@ def test_data_flag_row_before_any_section_header_fails_closed(tmp_path: Path) ->
 
 
 def test_data_flag_duplicate_code_fails_closed(tmp_path: Path) -> None:
+    """Pins refusal when a data flag code is defined twice in one page."""
     payload = (
         b"<!doctype html><html><body>"
         b'<h1 class="cmp-title__text">Data Flags</h1>'
@@ -328,6 +347,7 @@ def test_data_flag_duplicate_code_fails_closed(tmp_path: Path) -> None:
 
 
 def test_builds_two_distinct_controlled_code_list_packages(tmp_path: Path) -> None:
+    """Pins both packages as controlled code lists with publisher-preserved identities and distinct ids."""
     function_page = _acquire(tmp_path, cgfc.CENSUS_FUNCTION_ITEM_CODES_2026_08_03, FUNCTION_FIXTURE)
     flags_page = _acquire(tmp_path, cgfc.CENSUS_DATA_FLAG_CODES_2026_08_03, FLAGS_FIXTURE)
 
@@ -353,6 +373,7 @@ def test_builds_two_distinct_controlled_code_list_packages(tmp_path: Path) -> No
 
 
 def test_generation_is_byte_deterministic(tmp_path: Path) -> None:
+    """Pins that building the same package twice yields identical artifact bytes and logical digest."""
     page = _acquire(tmp_path, cgfc.CENSUS_FUNCTION_ITEM_CODES_2026_08_03, FUNCTION_FIXTURE)
     parsed = cgfc.parse_census_function_item_codes(page)
 
@@ -364,6 +385,7 @@ def test_generation_is_byte_deterministic(tmp_path: Path) -> None:
 
 
 def test_package_round_trips_through_a_written_closed_directory(tmp_path: Path) -> None:
+    """Pins that a written package reopens with the same logical digest, 16 observations and the pinned resource id."""
     page = _acquire(tmp_path, cgfc.CENSUS_DATA_FLAG_CODES_2026_08_03, FLAGS_FIXTURE)
     parsed = cgfc.parse_census_data_flag_codes(page)
     bundle = cgfc.build_census_data_flag_code_package(page, parsed)

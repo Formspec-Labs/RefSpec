@@ -21,14 +21,20 @@ FILINGS_FIXTURE = FIXTURES / "fcc-ecfs-filings-2026-08-03.json"
 
 
 def _acquire(tmp_path: Path, pin: fcc.FCCECFSSnapshotPin, source_path: Path) -> fcc.AcquiredFCCECFSSnapshot:
+    """Acquire one pinned snapshot from a local source path into the given store."""
+
     return fcc.acquire_fcc_ecfs_snapshot(pin, tmp_path, source_path=source_path)
 
 
 def _parsed(tmp_path: Path) -> fcc.ParsedFCCECFSSnapshot:
+    """Parse the pinned 2026-08-03 filings fixture acquired under tmp_path."""
+
     return fcc.parse_fcc_ecfs_snapshot(_acquire(tmp_path, fcc.FCC_ECFS_FILINGS_SNAPSHOT_2026_08_03, FILINGS_FIXTURE))
 
 
 def test_live_snapshot_pin_matches_exact_official_json_bytes() -> None:
+    """The fixture is exactly 51,284 bytes with the pinned digest and 25 declared filings."""
+
     payload = FILINGS_FIXTURE.read_bytes()
 
     assert len(payload) == 51_284
@@ -40,6 +46,8 @@ def test_live_snapshot_pin_matches_exact_official_json_bytes() -> None:
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
     tmp_path: Path,
 ) -> None:
+    """A local capture lands under its sha256, and the next call reports a cache hit with no fetch."""
+
     pin = fcc.FCC_ECFS_FILINGS_SNAPSHOT_2026_08_03
 
     acquired = _acquire(tmp_path, pin, FILINGS_FIXTURE)
@@ -54,6 +62,8 @@ def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
 
 
 def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) -> None:
+    """Only an injected fetcher is called, with the pin's URL and the requested timeout."""
+
     payload = FILINGS_FIXTURE.read_bytes()
     calls: list[tuple[str, float]] = []
 
@@ -79,6 +89,8 @@ def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) ->
 
 
 def test_filing_types_are_deterministic_metadata_not_subjects(tmp_path: Path) -> None:
+    """Six filing types are flagged deterministicMetadata and never general subject concepts."""
+
     parsed = _parsed(tmp_path)
 
     assert len(parsed.filing_types) == 6
@@ -97,6 +109,8 @@ def test_filing_types_are_deterministic_metadata_not_subjects(tmp_path: Path) ->
 
 
 def test_access_statuses_bureaus_and_proceedings_are_captured(tmp_path: Path) -> None:
+    """One access status, five bureaus and fifteen proceedings each keep their observed publisher identifiers."""
+
     parsed = _parsed(tmp_path)
 
     assert len(parsed.access_statuses) == 1
@@ -124,6 +138,8 @@ def test_access_statuses_bureaus_and_proceedings_are_captured(tmp_path: Path) ->
 
 
 def test_shape_drift_never_becomes_a_parsed_snapshot(tmp_path: Path) -> None:
+    """Changed byte length refuses at acquisition, and a drifted record shape refuses at parse."""
+
     payload = FILINGS_FIXTURE.read_bytes()
     changed = payload.replace(b'"COMMENT"', b'"COMMENTS"', 1)
     assert len(changed) != len(payload)
@@ -165,6 +181,8 @@ def test_shape_drift_never_becomes_a_parsed_snapshot(tmp_path: Path) -> None:
 
 
 def test_conflicting_observations_of_the_same_code_fail_closed(tmp_path: Path) -> None:
+    """One code observed with two different descriptions refuses as conflicting."""
+
     template = FILINGS_FIXTURE.read_text(encoding="utf-8")
     # "CO" (id 7) recurs across several filings; changing only its first
     # occurrence's description creates a genuine same-code conflict instead
@@ -193,6 +211,8 @@ def test_conflicting_observations_of_the_same_code_fail_closed(tmp_path: Path) -
 
 
 def test_builds_four_distinct_controlled_code_list_packages() -> None:
+    """The four code lists carry distinct ids and reproduce their expected logical digests."""
+
     filing_types = fcc.build_fcc_ecfs_filing_type_package(FILINGS_FIXTURE)
     access_statuses = fcc.build_fcc_ecfs_access_status_package(FILINGS_FIXTURE)
     bureaus = fcc.build_fcc_ecfs_bureau_package(FILINGS_FIXTURE)
@@ -228,6 +248,8 @@ def test_builds_four_distinct_controlled_code_list_packages() -> None:
 
 
 def test_coverage_report_records_excluded_duplicates_and_known_gaps() -> None:
+    """Observed, packaged and excluded counts are pinned, and both known gaps are named."""
+
     filing_types = fcc.build_fcc_ecfs_filing_type_package(FILINGS_FIXTURE)
     proceedings = fcc.build_fcc_ecfs_proceeding_package(FILINGS_FIXTURE)
 
@@ -272,6 +294,8 @@ def test_package_reopens_and_supports_exact_code_lookup(tmp_path: Path) -> None:
 
 
 def test_source_drift_cannot_produce_a_new_package(tmp_path: Path) -> None:
+    """Equal-length byte drift still refuses on the digest."""
+
     payload = FILINGS_FIXTURE.read_bytes().replace(b'"Unrestricted"', b'"unrestricted"')
     assert len(payload) == len(FILINGS_FIXTURE.read_bytes())
     changed = tmp_path / "changed.json"
@@ -282,6 +306,8 @@ def test_source_drift_cannot_produce_a_new_package(tmp_path: Path) -> None:
 
 
 def test_reader_rejects_a_self_consistent_unpinned_repackage(tmp_path: Path) -> None:
+    """A repackaged resource whose bytes do not match the external pin refuses to open."""
+
     from refspec.registry.infrastructure.source_controlled_resource import (
         build_source_controlled_resource_bundle,
     )

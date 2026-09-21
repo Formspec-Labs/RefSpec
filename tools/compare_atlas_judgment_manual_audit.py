@@ -1,9 +1,10 @@
 """Compare a sealed blind Atlas judgment audit with its historical judge key.
 
-This tool is read-only. It parses the independent verdict table, verifies its
-row identity against the blind sample and sealed key, and reports concordance.
-Concordance measures agreement with historical judges; it is not an estimate
-of objective semantic accuracy.
+This tool is read-only. It parses the independent verdict table, verifies that
+its audit IDs and order match the blind sample and that the sealed key pins the
+blind sample's canonical digest, and reports concordance. Concordance measures
+agreement with historical judges; it is not an estimate of objective semantic
+accuracy.
 """
 
 from __future__ import annotations

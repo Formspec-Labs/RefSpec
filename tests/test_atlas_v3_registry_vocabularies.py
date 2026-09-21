@@ -1,3 +1,11 @@
+"""The v3 registry vocabulary adapter: source-scoped UUID7 identity and label/relation normalization.
+
+Covers GEMET label roles and Theme handling, S27 conflicts, EuroVoc claim vs
+parser equivalence, and the large pinned vocabularies (GCMD, Federal Register
+2025, DOE OSTI, ELSST R6, MeSH 2026, NASA) whose resource/relation/label counts
+come from the module's own ``EXPECTED_*`` tables; the cached real sources are
+gitignored, so their tests skip when absent.
+"""
 from __future__ import annotations
 
 import hashlib
@@ -20,6 +28,8 @@ EUROVOC_CLAIM_ROOT = (
 
 
 def _assert_native_payload_is_english(value: object) -> None:
+    """Assert every language-tagging key anywhere in a native payload says ``en``."""
+
     if isinstance(value, dict):
         for key, child in value.items():
             if str(key).casefold() in {"@language", "lang", "language", "languagetag"}:
@@ -31,6 +41,8 @@ def _assert_native_payload_is_english(value: object) -> None:
 
 
 def test_source_scoped_identity_is_stable_readable_uuid7() -> None:
+    """Pins that one source key mints one UUID7 IRI and one source-scoped evidence mapping."""
+
     first, first_evidence = vocabularies._source_scoped_identity(
         namespace="test-source",
         source_scheme="https://example.test/scheme",
@@ -58,6 +70,8 @@ def test_source_scoped_identity_is_stable_readable_uuid7() -> None:
 
 
 def test_label_role_normalization_prefers_stronger_skos_role_and_receipts_source() -> None:
+    """Pins that a duplicate value keeps its preferred label and records the suppressed hidden one."""
+
     retained, conflicts = vocabularies._normalize_skos_label_roles(
         (
             vocabularies.RegistryLabel(
@@ -89,6 +103,8 @@ def test_label_role_normalization_prefers_stronger_skos_role_and_receipts_source
 
 
 def test_label_role_normalization_deduplicates_same_value_and_role() -> None:
+    """Pins that identical value/role pairs collapse to the first occurrence with no conflict."""
+
     retained, conflicts = vocabularies._normalize_skos_label_roles(
         (
             vocabularies.RegistryLabel(
@@ -118,6 +134,8 @@ def test_gemet_normalization_keeps_variant_synonym_and_deduplicates_twins(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
+    """Pins GEMET 4.2.3 keeps a variant synonym as alternate and counts duplicate/variant labels."""
+
     concept_iri = "https://example.test/gemet/concept/1"
 
     def label(
@@ -188,9 +206,7 @@ def _gemet_theme_parsed(
     *display_and_acronym: tuple[str, str, str],
     theme_iri: str,
 ) -> SimpleNamespace:
-    """A minimal GemetVocabulary shaped like the real Theme population: no
-    concepts, one Theme skos:Collection, and its rdfs:label/acronymLabel
-    metadata literals given as (predicate, language, text) triples."""
+    """Build a minimal GemetVocabulary with one Theme collection and its label/acronym literals."""
 
     return SimpleNamespace(
         concepts=(),
@@ -228,6 +244,8 @@ def _gemet_theme_resource(
     *,
     expected_label_count: int,
 ) -> object:
+    """Normalize a theme fixture under patched expected counts and return its one resource."""
+
     monkeypatch.setitem(vocabularies.EXPECTED_RESOURCE_COUNTS, "gemet-4.2.3", 1)
     monkeypatch.setitem(vocabularies.EXPECTED_LABEL_COUNTS, "gemet-4.2.3", expected_label_count)
     monkeypatch.setitem(vocabularies.EXPECTED_RELATION_COUNTS, "gemet-4.2.3", 0)
@@ -247,12 +265,11 @@ def test_gemet_theme_labels_are_sorted_tuples_led_by_the_display_label(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    """The acronymLabel predicate IRI is reached before rdfs:label in the
-    publisher's own row order for every Theme in the pinned release, so an
-    insertion-ordered list hands the acronym out ahead of the display label.
-    Theme labels must leave normalization exactly as the concept and
-    Group/SuperGroup paths leave theirs: a _sorted_labels tuple, preferred
-    first."""
+    """Pins that Theme labels leave normalization as a _sorted_labels tuple led by the display label.
+
+    The publisher's row order reaches acronymLabel before rdfs:label, so an
+    insertion-ordered list would hand the acronym out ahead of the display label.
+    """
 
     theme_iri = "https://example.test/gemet/theme/1"
     parsed = _gemet_theme_parsed(
@@ -282,12 +299,12 @@ def test_gemet_theme_divergent_en_us_display_label_becomes_alternate(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    """Every Theme in the pinned release tags both rdfs:label and acronymLabel
-    with en *and* en-US, and the texts happen to be identical today. The day a
-    release states different text under en-US, a per-language collapse emits
-    two preferred labels that RegistryLabel stamps `language="en"` alike, and
-    RegistryResource's one-preferred-per-language check raises. The base-en
-    precedence rule demotes the divergent variant instead."""
+    """Pins that a divergent en-US display label is demoted to alternate, keeping one preferred label.
+
+    The pinned release tags both rdfs:label and acronymLabel with en and en-US;
+    a per-language collapse would emit two preferred labels that RegistryLabel
+    stamps language="en" alike, and RegistryResource would raise on them.
+    """
 
     theme_iri = "https://example.test/gemet/theme/1"
     parsed = _gemet_theme_parsed(
@@ -310,10 +327,10 @@ def test_gemet_theme_divergent_en_us_display_label_becomes_alternate(
 
 
 def test_gemet_theme_labels_without_the_fix_would_raise_on_divergent_variants() -> None:
-    """The negative half of the fixture above: two same-language preferred
-    labels -- what the pre-fix per-language collapse produced -- is exactly
-    what RegistryResource must refuse. This pins the guard the normalization
-    is steering around, so a regression cannot pass by loosening it."""
+    """Pins the guard the normalization steers around: two same-language preferred labels raise.
+
+    This is the negative half of the divergent-variant fixture above.
+    """
 
     with pytest.raises(ValueError, match="more than one preferred label"):
         vocabularies.RegistryResource(
@@ -337,6 +354,8 @@ def test_gemet_theme_labels_without_the_fix_would_raise_on_divergent_variants() 
 
 
 def test_direct_relations_keep_only_unique_member_triples() -> None:
+    """Pins that duplicate and out-of-member relations collapse to one unique member triple."""
+
     member = SimpleNamespace(
         subject_iri="https://example.test/a",
         predicate_iri="http://www.w3.org/2004/02/skos/core#broader",
@@ -374,6 +393,8 @@ def test_direct_relations_keep_only_unique_member_triples() -> None:
     reason="verified EuroVoc source and claim bundle are not available",
 )
 def test_eurovoc_claim_views_match_parser_compatibility_releases() -> None:
+    """Pins that claim-bundle and parser EuroVoc releases agree field-for-field apart from input paths."""
+
     manifest = EUROVOC_CLAIM_ROOT / "release-manifest.json"
     claim_input = AtlasRegistryClaimInput(
         path=EUROVOC_CLAIM_ROOT,
@@ -406,6 +427,8 @@ def test_eurovoc_claim_views_match_parser_compatibility_releases() -> None:
 
 
 def test_s27_conflict_keeps_publisher_relation_as_transformation_evidence() -> None:
+    """Pins that a SKOS-S27 broader/related conflict keeps the publisher relation under thesaurusRelated."""
+
     broader = vocabularies.RegistryRelation(
         subject="https://example.test/a",
         predicate="http://www.w3.org/2004/02/skos/core#broader",
@@ -432,6 +455,8 @@ def test_s27_conflict_keeps_publisher_relation_as_transformation_evidence() -> N
     reason="exact cached GCMD 24.4 publisher source is not available",
 )
 def test_gcmd_cache_normalizes_complete_source_without_inferred_hierarchy() -> None:
+    """Pins the cached GCMD 24.4 release: expected count, English labels, no relations, no inferred hierarchy."""
+
     release = vocabularies.load_gcmd_24_4_release()
 
     assert release.resource_id == "gcmd-science-keywords"
@@ -450,6 +475,8 @@ def test_gcmd_cache_normalizes_complete_source_without_inferred_hierarchy() -> N
     reason="exact cached Federal Register 2025 PDF is not available",
 )
 def test_federal_register_cache_reads_pdf_without_managed_release_dependency() -> None:
+    """Pins the cached Federal Register 2025 PDF at 705 resources and 1,451 relations with no release dependency."""
+
     release = vocabularies.load_federal_register_2025_release()
 
     assert release.resource_id == "federal-register-thesaurus-2025"
@@ -464,6 +491,8 @@ def test_federal_register_cache_reads_pdf_without_managed_release_dependency() -
 
 
 def _skip_unless_source_present(filename: str) -> pytest.MarkDecorator:
+    """Return a skipif mark for a test that needs one exact cached publisher source."""
+
     return pytest.mark.skipif(
         not (vocabularies.DEFAULT_SOURCE_ROOT / filename).is_file(),
         reason=f"exact cached large-vocabulary publisher source is not available: {filename}",
@@ -497,6 +526,8 @@ def _skip_unless_source_present(filename: str) -> pytest.MarkDecorator:
     ),
 )
 def test_large_pinned_vocabulary_normalizes_complete_source(loader: object) -> None:
+    """Pins each large loader to its expected counts, English labels, and no SKOS Match predicate."""
+
     release = loader(Path(vocabularies.DEFAULT_SOURCE_ROOT))  # type: ignore[operator]
 
     assert len(release.resources) == vocabularies.EXPECTED_RESOURCE_COUNTS[release.key]

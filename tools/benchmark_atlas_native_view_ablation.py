@@ -71,6 +71,7 @@ def concept_texts(concept: dict[str, Any], variant: str, scheme: str) -> list[st
 
 
 def encode(model: Any, texts: list[str], batch_size: int) -> np.ndarray:
+    """Encode in fixed batches and L2-normalise for exact cosine scoring."""
     vectors = np.asarray(list(model.embed(texts, batch_size=batch_size)), dtype=np.float32)
     norms = np.linalg.norm(vectors, axis=1, keepdims=True)
     norms[norms == 0] = 1.0
@@ -78,6 +79,7 @@ def encode(model: Any, texts: list[str], batch_size: int) -> np.ndarray:
 
 
 def _ranks_from_scores(scores: np.ndarray, row_index: int, top_k: int, count: int, best: dict[int, int]) -> None:
+    """Fold one query's top ``top_k`` neighbours into the shared bidirectional best-rank map."""
     scores[row_index] = -np.inf
     depth = min(top_k, count - 1)
     candidates = np.argpartition(-scores, kth=depth - 1)[:depth]
@@ -90,6 +92,7 @@ def _ranks_from_scores(scores: np.ndarray, row_index: int, top_k: int, count: in
 
 
 def single_vector_ranks(vectors: np.ndarray, top_k: int, block: int) -> dict[int, int]:
+    """Best bidirectional rank per unordered pair, scored one query block at a time."""
     count = vectors.shape[0]
     best: dict[int, int] = {}
     for start in range(0, count, block):

@@ -1,4 +1,9 @@
-"""Export pinned EuroVoc and GEMET claim releases through one shared bundle."""
+"""Export pinned EuroVoc 4.24 and GEMET 4.2.3 claim releases through one shared bundle.
+
+Reads the pinned sources under the source root, writes each export beneath its own
+``--output-root`` subdirectory, and prints a JSON summary of claim counts and
+manifest digests; ``--only`` restricts the run to a named release.
+"""
 
 from __future__ import annotations
 

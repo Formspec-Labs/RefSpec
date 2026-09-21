@@ -32,22 +32,30 @@ def _acquire(
     pin: npc.NaicsPscSnapshotPin,
     source_path: Path,
 ) -> npc.AcquiredNaicsPscSource:
+    """Acquire one pinned NAICS or PSC source from a local fixture."""
+
     return npc.acquire_naics_psc_source(pin, tmp_path, source_path=source_path)
 
 
 def _portfolio(tmp_path: Path) -> npc.NaicsPscPortfolio:
+    """Parse both pinned fixtures and assemble the NAICS/PSC portfolio."""
+
     naics = npc.parse_naics_codes(_acquire(tmp_path, npc.NAICS_CODES_2026_08_03, NAICS_FIXTURE))
     psc = npc.parse_psc_codes(_acquire(tmp_path, npc.PSC_CODES_2026_08_03, PSC_FIXTURE))
     return npc.assemble_naics_psc_portfolio((naics, psc))
 
 
 def test_module_import_opens_no_network_connection() -> None:
+    """Importing exposes only the explicit fetcher surface and performs no I/O."""
+
     # Importing must never perform I/O; only an explicit fetcher call may.
     assert hasattr(npc, "acquire_naics_psc_source")
     assert hasattr(npc, "NaicsPscFetcher")
 
 
 def test_fixture_pins_match_exact_captured_bytes() -> None:
+    """Both constructed fixtures match their pinned byte lengths and SHA-256 digests."""
+
     naics = NAICS_FIXTURE.read_bytes()
     psc = PSC_FIXTURE.read_bytes()
 
@@ -58,6 +66,8 @@ def test_fixture_pins_match_exact_captured_bytes() -> None:
 
 
 def test_full_official_naics_workbook_shape_count_and_samples(tmp_path: Path) -> None:
+    """The configured real workbook yields 2,125 codes including range sectors, with pinned size and digest."""
+
     source_path = os.environ.get("REFSPEC_NAICS_2022_XLSX_PATH")
     if source_path is None:
         pytest.skip("full official Census NAICS workbook is not materialized")
@@ -77,6 +87,8 @@ def test_full_official_naics_workbook_shape_count_and_samples(tmp_path: Path) ->
 
 
 def test_full_official_psc_workbook_shape_count_and_samples(tmp_path: Path) -> None:
+    """The configured real April 2025 workbook yields 2,344 codes and 22 facets, with ended codes absent."""
+
     source_path = os.environ.get("REFSPEC_PSC_APRIL_2025_XLSX_PATH")
     if source_path is None:
         pytest.skip("full official PSC workbook is not materialized")
@@ -107,6 +119,8 @@ def test_full_official_psc_workbook_shape_count_and_samples(tmp_path: Path) -> N
 
 
 def test_real_psc_package_uses_workbook_without_constructed_fixture_gaps(tmp_path: Path) -> None:
+    """The real-workbook PSC package shows only the deterministic-facet gap, not the constructed-fixture gaps."""
+
     source_path = os.environ.get("REFSPEC_PSC_APRIL_2025_XLSX_PATH")
     if source_path is None:
         pytest.skip("full official PSC workbook is not materialized")
@@ -123,6 +137,8 @@ def test_real_psc_package_uses_workbook_without_constructed_fixture_gaps(tmp_pat
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
     tmp_path: Path,
 ) -> None:
+    """A local capture lands content-addressed and a cache hit is re-digested, not trusted."""
+
     pin = npc.NAICS_CODES_2026_08_03
 
     acquired = _acquire(tmp_path, pin, NAICS_FIXTURE)
@@ -137,6 +153,8 @@ def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
 
 
 def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) -> None:
+    """The injected fetcher is called once for the pinned URL with the caller's timeout."""
+
     payload = PSC_FIXTURE.read_bytes()
     calls: list[tuple[str, float]] = []
 
@@ -169,6 +187,8 @@ def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) ->
 def test_naics_codes_are_deterministic_facets_not_general_subject_concepts(
     tmp_path: Path,
 ) -> None:
+    """NAICS code levels map to their facet names and publisher identity, never to subject concepts."""
+
     resource = npc.parse_naics_codes(_acquire(tmp_path, npc.NAICS_CODES_2026_08_03, NAICS_FIXTURE))
 
     assert len(resource.codes) == 14
@@ -196,6 +216,8 @@ def test_naics_codes_are_deterministic_facets_not_general_subject_concepts(
 
 
 def test_naics_hyphenated_sector_range_is_preserved_verbatim(tmp_path: Path) -> None:
+    """Hyphenated sector ranges such as 31-33 are preserved verbatim."""
+
     resource = npc.parse_naics_codes(_acquire(tmp_path, npc.NAICS_CODES_2026_08_03, NAICS_FIXTURE))
 
     by_code = resource.by_code()
@@ -206,6 +228,8 @@ def test_naics_hyphenated_sector_range_is_preserved_verbatim(tmp_path: Path) -> 
 
 
 def test_psc_codes_retain_publisher_category_facet(tmp_path: Path) -> None:
+    """PSC codes retain the publisher's Category as their facet, never a subject concept."""
+
     resource = npc.parse_psc_codes(_acquire(tmp_path, npc.PSC_CODES_2026_08_03, PSC_FIXTURE))
 
     assert len(resource.codes) == 8
@@ -233,6 +257,8 @@ def test_psc_codes_retain_publisher_category_facet(tmp_path: Path) -> None:
 def test_portfolio_records_vintage_edition_and_capture_honesty_gaps(
     tmp_path: Path,
 ) -> None:
+    """The portfolio records the 2027-cycle, page-count and Internet Archive acquisition-honesty gaps."""
+
     portfolio = _portfolio(tmp_path)
 
     assert portfolio.naics_codes.source.resource_name == "naicsCodes"
@@ -247,6 +273,8 @@ def test_portfolio_records_vintage_edition_and_capture_honesty_gaps(
 def test_naics_psc_classification_validates_without_becoming_subjects(
     tmp_path: Path,
 ) -> None:
+    """A record's NAICS and PSC codes resolve to facets and never to subject concepts."""
+
     portfolio = _portfolio(tmp_path)
 
     validated = npc.validate_naics_psc_classification(
@@ -272,6 +300,8 @@ def test_naics_psc_classification_validates_without_becoming_subjects(
 def test_mapping_with_only_a_native_reference_omits_optional_assignments(
     tmp_path: Path,
 ) -> None:
+    """A record with only a native reference validates with both optional assignments omitted."""
+
     portfolio = _portfolio(tmp_path)
 
     validated = npc.validate_naics_psc_classification(
@@ -304,6 +334,8 @@ def test_unknown_or_missing_classification_fails_closed(
     record: dict[str, object],
     message: str,
 ) -> None:
+    """A blank/missing record reference or an unknown NAICS/PSC code is refused."""
+
     portfolio = _portfolio(tmp_path)
 
     with pytest.raises(npc.NaicsPscAssignmentError, match=message):
@@ -311,6 +343,8 @@ def test_unknown_or_missing_classification_fails_closed(
 
 
 def test_digest_drift_never_produces_a_parsed_resource(tmp_path: Path) -> None:
+    """Same-length byte tampering is refused as digest drift before parsing."""
+
     payload = NAICS_FIXTURE.read_bytes()
     changed = payload.replace(b"Public Administration", b"Public AdministratIon")
     assert len(changed) == len(payload)
@@ -343,6 +377,8 @@ def _write_and_acquire(
     source: npc.NaicsPscSource,
     payload: bytes,
 ) -> npc.AcquiredNaicsPscSource:
+    """Write crafted CSV bytes and acquire them under a matching digest pin."""
+
     source_path = tmp_path / "crafted.csv"
     source_path.write_bytes(payload)
     pin = npc.NaicsPscSnapshotPin(
@@ -355,6 +391,8 @@ def _write_and_acquire(
 
 
 def test_wrong_naics_header_is_rejected_as_shape_drift(tmp_path: Path) -> None:
+    """A CSV with a renamed column header is refused as header drift."""
+
     payload = b"Seq. No.,Wrong Column,2022 NAICS US Title\n1,11,Agriculture\n"
     acquired = _write_and_acquire(tmp_path, npc.NAICS_CODES_SOURCE, payload)
 
@@ -363,6 +401,8 @@ def test_wrong_naics_header_is_rejected_as_shape_drift(tmp_path: Path) -> None:
 
 
 def test_malformed_naics_code_is_rejected_as_shape_drift(tmp_path: Path) -> None:
+    """A non-numeric NAICS code is refused."""
+
     payload = b"Seq. No.,2022 NAICS US Code,2022 NAICS US Title\n1,1A,Agriculture\n"
     source = replace(npc.NAICS_CODES_SOURCE, expected_count=1)
     acquired = _write_and_acquire(tmp_path, source, payload)
@@ -372,6 +412,8 @@ def test_malformed_naics_code_is_rejected_as_shape_drift(tmp_path: Path) -> None
 
 
 def test_naics_out_of_sequence_row_is_rejected_as_shape_drift(tmp_path: Path) -> None:
+    """A row whose sequence number does not match its position is refused."""
+
     payload = b"Seq. No.,2022 NAICS US Code,2022 NAICS US Title\n2,11,Agriculture\n"
     source = replace(npc.NAICS_CODES_SOURCE, expected_count=1)
     acquired = _write_and_acquire(tmp_path, source, payload)
@@ -381,6 +423,8 @@ def test_naics_out_of_sequence_row_is_rejected_as_shape_drift(tmp_path: Path) ->
 
 
 def test_naics_duplicate_code_fails_closed(tmp_path: Path) -> None:
+    """Two identical rows under a matching expected count trip the duplicate check, not the count check."""
+
     # Two identical data rows under a crafted source whose expected_count
     # matches, so the duplicate check -- not the row-count check -- fires.
     payload = (
@@ -396,6 +440,8 @@ def test_naics_duplicate_code_fails_closed(tmp_path: Path) -> None:
 
 
 def test_psc_edition_mismatch_is_rejected_as_shape_drift(tmp_path: Path) -> None:
+    """A manual edition that differs from the pinned edition is refused."""
+
     payload = b"PSC Code,PSC Name,Category,Manual Edition\n1005,Guns,Product,April 2024\n"
     source = replace(npc.PSC_CODES_SOURCE, expected_count=1)
     acquired = _write_and_acquire(tmp_path, source, payload)
@@ -405,6 +451,8 @@ def test_psc_edition_mismatch_is_rejected_as_shape_drift(tmp_path: Path) -> None
 
 
 def test_psc_unknown_category_is_rejected_as_shape_drift(tmp_path: Path) -> None:
+    """A Category outside the publisher's closed set is refused."""
+
     payload = b"PSC Code,PSC Name,Category,Manual Edition\n1005,Guns,Weapons,April 2025\n"
     source = replace(npc.PSC_CODES_SOURCE, expected_count=1)
     acquired = _write_and_acquire(tmp_path, source, payload)
@@ -414,6 +462,8 @@ def test_psc_unknown_category_is_rejected_as_shape_drift(tmp_path: Path) -> None
 
 
 def test_builds_two_distinct_controlled_code_list_packages(tmp_path: Path) -> None:
+    """Each package is a closed controlled code list with its own identity, facet gap and no usage ceiling."""
+
     naics_source = _acquire(tmp_path, npc.NAICS_CODES_2026_08_03, NAICS_FIXTURE)
     psc_source = _acquire(tmp_path, npc.PSC_CODES_2026_08_03, PSC_FIXTURE)
 
@@ -440,6 +490,8 @@ def test_builds_two_distinct_controlled_code_list_packages(tmp_path: Path) -> No
 
 
 def test_generation_is_byte_deterministic(tmp_path: Path) -> None:
+    """Two builds of the same parsed source are byte-identical with one logical digest."""
+
     acquired = _acquire(tmp_path, npc.NAICS_CODES_2026_08_03, NAICS_FIXTURE)
     parsed = npc.parse_naics_codes(acquired)
 
@@ -451,6 +503,8 @@ def test_generation_is_byte_deterministic(tmp_path: Path) -> None:
 
 
 def test_package_round_trips_through_a_written_closed_directory(tmp_path: Path) -> None:
+    """A written package reopens with the same logical digest and eight observations."""
+
     acquired = _acquire(tmp_path, npc.PSC_CODES_2026_08_03, PSC_FIXTURE)
     parsed = npc.parse_psc_codes(acquired)
     bundle = npc.build_psc_code_package(acquired, parsed)

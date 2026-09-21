@@ -1,28 +1,21 @@
-"""E3 lexical half: the sealed RapidFuzz control matrix over the ablated corpus.
+"""Run the sealed RapidFuzz control matrix over the ablated Atlas corpus as E3's lexical half, writing npz ranks.
 
-The first E3 pass measured three sparse views and two hash-join anchors, and
-reported their ceiling as the deterministic floor.  That was incomplete.  The
+The first E3 pass measured three sparse views and two hash-join anchors and
+reported their ceiling as the deterministic floor, but alias WRatio was the
 candidate-retrieval ledger's strongest single deterministic control on the real
-Atlas was alias WRatio (461/582 at K1, 558/582 at K100, 43 unique top-10
-rescues), and no RapidFuzz arm had been run against the native-relation test
-sets at all.
-
-This tool closes that gap by importing ``SCORER_SPECS`` and the scoring and
-tie-break helpers from ``benchmark_lexical_candidate_controls`` unchanged, so
-every arm here is the same declared representation and metric the sealed
-receipts used.  Only the task differs: intra-vocabulary retrieval over the
-ablated corpus rather than cross-vocabulary candidate generation.
-
-Two arms are expected to be inert here rather than weak, and are reported
-rather than dropped.  ``identifier-qratio`` compares local identifiers that are
-unique inside a single release, and ``alias-bag`` variants collapse toward the
-plain label wherever a source publishes no attached alternate labels.
-
-Results are written in the same compact ``npz`` layout as the dense and hosted
-arms, so the Pareto stage consumes all three families together.
-
-Needs RapidFuzz, which is not a project dependency:
-``uv run --with rapidfuzz python tools/benchmark_atlas_native_lexical_recovery.py ...``
+Atlas (461/582 at K1, 558/582 at K100, 43 unique top-10 rescues) and no RapidFuzz
+arm had run against the native-relation test sets at all. This tool imports
+``SCORER_SPECS`` and the scoring and tie-break helpers from
+``benchmark_lexical_candidate_controls`` unchanged, so every arm is the same
+declared representation and metric the sealed receipts used; only the task
+differs -- intra-vocabulary retrieval over the ablated corpus rather than
+cross-vocabulary candidate generation. Two arms are expected to be inert here
+rather than weak, and are reported rather than dropped:
+``identifier-qratio`` compares local identifiers that are unique inside a single
+release, and ``alias-bag`` variants collapse toward the plain label wherever a
+source publishes no attached alternate labels. Needs RapidFuzz, which is not a
+project dependency:
+``uv run --with rapidfuzz python tools/benchmark_atlas_native_lexical_recovery.py ...``.
 """
 
 from __future__ import annotations

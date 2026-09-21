@@ -1,4 +1,10 @@
-"""Old archive verdicts, named stricter admission and complete cache publication."""
+"""U.S. Code acquisition on the shared readers: named stricter admissions and complete cache publication.
+
+``uscode_archive_oracle`` holds the replaced fetch/scan verdicts; the shared
+path must differ only for the frozen identity/shape checks, publish a capture
+only after byte, digest, edition and capture-evidence verification, and never
+leave staging files behind.
+"""
 
 import io
 import json
@@ -23,6 +29,8 @@ VALID = archive(("usc26.xml", XML))
 
 
 def verdict(call):
+    """Return True when the call succeeds, False for a named extraction/OS/zip refusal."""
+
     try:
         call()
     except (cache.ExtractionError, ValueError, OSError, zipfile.BadZipFile):
@@ -31,6 +39,8 @@ def verdict(call):
 
 
 def test_retained_publisher_title_has_exact_old_bytes_and_receipt(tmp_path):
+    """The shared reader returns the retained publisher bytes and an identical receipt to the oracle."""
+
     retain(tmp_path / "new", REAL, title="01", release="119-103")
     (tmp_path / "old").mkdir()
     (tmp_path / "old/xml_usc01.zip").write_bytes(REAL)
@@ -40,6 +50,9 @@ def test_retained_publisher_title_has_exact_old_bytes_and_receipt(tmp_path):
 
 
 def test_old_and_shared_archive_verdicts_differ_only_for_frozen_identity_checks(tmp_path):
+    """Ten mutations differ only for the six named identity/shape checks: wrong member/native title or release,
+    malformed XML, foreign root, extra sidecar."""
+
     mutations = {
         "valid": VALID,
         "html": b"<html>Error</html>",
@@ -73,6 +86,8 @@ def test_old_and_shared_archive_verdicts_differ_only_for_frozen_identity_checks(
 
 
 def inject(monkeypatch, payload=VALID, status=200):
+    """Install a mock transport returning one payload and return the request-URL list."""
+
     requests = []
 
     def respond(request):
@@ -84,6 +99,9 @@ def inject(monkeypatch, payload=VALID, status=200):
 
 
 def test_fresh_capture_replays_without_http_and_old_flat_cache_is_untouched(tmp_path, monkeypatch):
+    """A fresh capture replays from disk with no second HTTP call; the obsolete flat cache file is untouched and no
+    staging remains."""
+
     obsolete = tmp_path / "xml_usc26.zip"
     obsolete.write_bytes(b"old other edition")
     requests = inject(monkeypatch)
@@ -103,6 +121,8 @@ def test_fresh_capture_replays_without_http_and_old_flat_cache_is_untouched(tmp_
     ids=["html", "403", "wrong-edition"],
 )
 def test_refused_source_never_publishes_cache(tmp_path, monkeypatch, payload, status):
+    """An error page, a 403, or a wrong-edition archive is refused and publishes no cache directory."""
+
     requests = inject(monkeypatch, payload, status)
     with pytest.raises((cache.ExtractionError, CredentialRefusedError)):
         cache.fetch_title("26", "119/102", tmp_path)
@@ -126,6 +146,8 @@ def test_refused_source_never_publishes_cache(tmp_path, monkeypatch, payload, st
     ],
 )
 def test_incomplete_or_contradictory_capture_refuses_without_refetch(tmp_path, monkeypatch, change):
+    """Eleven damaged-capture shapes are refused from the pinned evidence with no HTTP refetch."""
+
     destination = retain(tmp_path, VALID)
     path = destination / "capture.json"
     evidence = json.loads(path.read_text())
@@ -160,6 +182,8 @@ def test_incomplete_or_contradictory_capture_refuses_without_refetch(tmp_path, m
 
 
 def test_late_cache_publication_error_cleans_temporary_files(tmp_path, monkeypatch):
+    """A disk-full failure while writing capture.json removes every temporary file and leaves no cache."""
+
     inject(monkeypatch)
     original = cache.write_bytes_once
 
@@ -175,6 +199,9 @@ def test_late_cache_publication_error_cleans_temporary_files(tmp_path, monkeypat
 
 
 def test_competing_cache_publisher_preserves_winner_and_refuses_losing_capture(tmp_path, monkeypatch):
+    """A racing publisher's winning files survive, the loser raises ImmutablePublicationError, and a later fetch
+    returns the winner with no new HTTP call."""
+
     from spicy_docs.storage.publication import ImmutablePublicationError
 
     requests = inject(monkeypatch)
@@ -199,6 +226,8 @@ def test_competing_cache_publisher_preserves_winner_and_refuses_losing_capture(t
 
 
 def test_source_credit_scan_preserves_old_sorted_results_and_member_pins(tmp_path):
+    """The shared credit scan reproduces the oracle's sorted results and member pins over a real two-title archive."""
+
     with zipfile.ZipFile(io.BytesIO(REAL)) as bundle:
         real = bundle.read("usc01.xml").replace(b"Online@119-103", b"Online@119-102")
     path = tmp_path / "corpus.zip"
@@ -207,6 +236,8 @@ def test_source_credit_scan_preserves_old_sorted_results_and_member_pins(tmp_pat
 
 
 def test_corpus_verdict_changes_are_only_named_source_identity_and_shape_checks(tmp_path):
+    """Seven corpus mutations yield only the five named identity/shape differences; valid and malformed XML agree."""
+
     mutations = {
         "valid": VALID,
         "malformed-xml": archive(("usc26.xml", XML[:-5])),
@@ -230,6 +261,8 @@ def test_corpus_verdict_changes_are_only_named_source_identity_and_shape_checks(
 
 
 def test_two_cached_editions_do_not_share_bytes_or_observation_evidence(tmp_path):
+    """Two editions coexist with distinct bytes and zip digests rather than overwriting one cache slot."""
+
     newer = archive(("usc26.xml", XML.replace(b"119-102", b"119-103")))
     retain(tmp_path, VALID)
     retain(tmp_path, newer, release="119-103")
@@ -242,6 +275,8 @@ def test_two_cached_editions_do_not_share_bytes_or_observation_evidence(tmp_path
 
 @pytest.mark.parametrize("mutation", ["wrong-release", "bad-late-title", "empty"])
 def test_source_credit_build_refuses_before_creating_outputs(tmp_path, mutation):
+    """A wrong release, broken late title, or empty archive refuses the build before any output directory exists."""
+
     entries = [("usc26.xml", XML)]
     if mutation == "wrong-release":
         entries[0] = ("usc26.xml", XML.replace(b"119-102", b"119-103"))

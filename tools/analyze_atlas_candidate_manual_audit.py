@@ -58,11 +58,13 @@ def parse_ordered_decisions(markdown: str, *, expected_rows: int) -> tuple[str, 
 
 
 def _selection_digest(row: Mapping[str, Any]) -> str:
+    """The row's selection digest: sha256 over ``case<TAB>sourceMember<TAB>targetMember``."""
     pair = f"{row['case']}\t{row['source']['member']}\t{row['target']['member']}\n".encode()
     return "sha256:" + hashlib.sha256(pair).hexdigest()
 
 
 def _rank_band_bounds(sample: Mapping[str, Any]) -> dict[str, tuple[int, int]]:
+    """Map each rank band to its ``(minimumRank, maximumRank)``, refusing conflicting bounds."""
     result: dict[str, tuple[int, int]] = {}
     for stratum in sample["strata"]:
         band = stratum["rankBand"]

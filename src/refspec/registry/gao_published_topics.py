@@ -1,32 +1,14 @@
 """GAO's published /topics browse index from gao.gov.
 
-REF-032 removed the observed GAO topics unit: one topic label observed on one
-report page, carrying RefSpec-minted UUIDv7 identity and
-``publisherConceptIdentityClaimed: False``. Its named follow-up is the index
-GAO itself publishes: the ``https://www.gao.gov/topics`` page, whose
-``Browse Topics Alphabetically`` listing enumerates 30 publisher topics. It is
-not the vocabulary boundary: GAO's own Science and Technology topic page is a
-31st captured term that the browse page omits (REF-060). The publisher's own
-markup states the identity this module relies on: each topic is rendered as a Drupal taxonomy term
-(``<div id="taxonomy-term-<id>" class="... taxonomy-term vocabulary-topic">``)
-with a stable ``/topics/<slug>`` path, a name field, and the publisher's own
-scope description. Slug and numeric term id are both publisher-minted; nothing
-here is RefSpec-invented identity.
-
-The same page carries a four-entry "featured topics" block of content nodes
-(``node--type-featured-topic``) that are not taxonomy terms; the parser
-counts and reports them but never emits them as topics.
-
-Publisher renderings are preserved verbatim, including the misspelled
-description class the publisher serves (``taxonomy-term-descripiton``); the
-parser targets that exact spelling and treats its absence as drift, not as
-something to repair.
-
-Importing this module performs no network access. gao.gov returns 403 to
-plain HTTP clients (an Akamai challenge); the pinned capture was fetched
-through the shared Zyte transport
-(``refspec.registry.infrastructure.zyte_transport``), which returned the
-publisher's 200 response.
+Replaces REF-032's removed observed topic unit with the index GAO publishes at
+``https://www.gao.gov/topics``: 30 Drupal taxonomy terms with publisher-minted
+``/topics/<slug>`` paths and numeric term ids, preserved verbatim, while the
+featured-topics block is counted and reported but never emitted. The 30 bounds
+the listing, not GAO's vocabulary -- GAO's own Science and Technology page is
+a 31st live term the listing omits (REF-060) -- and the parser treats absence
+of the publisher's misspelled ``taxonomy-term-descripiton`` class as drift.
+Importing performs no network access (gao.gov answers plain clients 403; the
+pinned capture came through the shared Zyte transport).
 """
 
 from __future__ import annotations
@@ -370,11 +352,11 @@ def parse_gao_topic_page(
 ) -> GaoPublishedTopicPage:
     """Parse one publisher-owned GAO topic page from exact captured bytes.
 
-    This deliberately does not infer vocabulary membership from product rows.
-    The page must independently agree on its canonical slug, visible name,
-    numeric Drupal taxonomy id, and ``vocabulary-topic`` class.  For ``B``
-    input bytes, parsing costs ``O(B)`` time and ``O(B)`` memory because
-    ``HTMLParser`` consumes decoded text; no corpus-sized state is retained.
+    Deliberately does not infer vocabulary membership from product rows: the
+    page must independently agree on its canonical slug, visible name, numeric
+    Drupal taxonomy id, and ``vocabulary-topic`` class, or the parse refuses.
+    Parsing costs ``O(B)`` time and ``O(B)`` memory for ``B`` input bytes
+    because ``HTMLParser`` consumes decoded text; no corpus-sized state is kept.
     """
 
     actual = _verified_page_digest(payload, pin, page_name="GAO topic page")
@@ -442,7 +424,7 @@ def parse_gao_published_topics(
     *,
     pin: GaoPagePin = GAO_TOPICS_2026_08_15,
 ) -> GaoPublishedTopicsIndex:
-    """Parse the publisher's browse index from exact page bytes."""
+    """Parse the pinned browse index from exact page bytes, refusing listing or field drift."""
 
     actual = _verified_page_digest(payload, pin, page_name="GAO topics page")
 

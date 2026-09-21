@@ -1,3 +1,4 @@
+"""portfolio/completed-resource-packages-v2.json: closed package-class census, exact evidence, identity claims."""
 from __future__ import annotations
 
 import json
@@ -8,6 +9,8 @@ INVENTORY = REFSPEC_ROOT / "portfolio" / "completed-resource-packages-v2.json"
 
 
 def test_completed_package_inventory_is_closed_and_honest() -> None:
+    """Pins 13 resources / 14 releases / 345,066 records and four package classes summing to the count."""
+
     inventory = json.loads(INVENTORY.read_bytes())
     resources = inventory["resources"]
     summary = inventory["summary"]
@@ -61,6 +64,8 @@ def test_completed_package_inventory_is_closed_and_honest() -> None:
 
 
 def test_completed_packages_have_exact_evidence_and_no_placeholder_digests() -> None:
+    """Pins each resource to a sha256: digest of 64 hex chars and an evidence path that exists."""
+
     resources = json.loads(INVENTORY.read_bytes())["resources"]
 
     for resource in resources:
@@ -73,6 +78,8 @@ def test_completed_packages_have_exact_evidence_and_no_placeholder_digests() -> 
 
 
 def test_non_concept_packages_never_claim_concept_identity() -> None:
+    """Pins the five source-controlled resources to capture-local or publisher-identifier identity statuses."""
+
     resources = json.loads(INVENTORY.read_bytes())["resources"]
     source_resources = [resource for resource in resources if resource["packageClass"] == "sourceControlledResource"]
 
@@ -94,6 +101,8 @@ def test_non_concept_packages_never_claim_concept_identity() -> None:
 
 
 def test_source_concept_releases_are_distinct_crs_packages() -> None:
+    """Pins the three CRS source-concept releases to one evidence file and refspecSourceScopedConceptIdentity."""
+
     resources = json.loads(INVENTORY.read_bytes())["resources"]
     source_concept_releases = [resource for resource in resources if resource["packageClass"] == "sourceConceptRelease"]
 

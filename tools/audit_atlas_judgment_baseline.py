@@ -50,6 +50,7 @@ def _read_json_lines(path: Path) -> tuple[dict[str, Any], ...]:
 
 
 def _quantiles(values: Sequence[int]) -> dict[str, int] | None:
+    """Return minimum, p50, p95, and maximum as ints, or ``None`` when ``values`` is empty."""
     if not values:
         return None
     ordered = sorted(values)
@@ -67,6 +68,7 @@ def _quantiles(values: Sequence[int]) -> dict[str, int] | None:
 
 
 def _assert_blind(value: object) -> None:
+    """Recursively refuse any mapping that carries a forbidden blind-audit field."""
     if isinstance(value, Mapping):
         leaked = FORBIDDEN_BLIND_FIELDS & value.keys()
         if leaked:
@@ -79,6 +81,7 @@ def _assert_blind(value: object) -> None:
 
 
 def _load_run(path: Path) -> dict[str, Any]:
+    """Load one qualification run, refusing mismatched candidate, accounting, receipt, or family sets."""
     catalog = _read_json(path / "candidates.json")
     run_receipt = _read_json(path / "qualification-receipt.json")
     receipts = _read_json_lines(path / "receipts.jsonl")
@@ -125,7 +128,7 @@ def build_audit(
     per_stratum: int,
     seed: str = DEFAULT_SEED,
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
-    """Return summary, blind sample, and answer key for sealed run paths."""
+    """Return summary, blind sample, and answer key for sealed run paths, refusing a short stratum."""
 
     if per_stratum < 1:
         raise ValueError("per-stratum must be positive")

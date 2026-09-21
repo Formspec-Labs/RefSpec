@@ -1,4 +1,10 @@
-"""Separate development packages for the two official LDA code lists."""
+"""Separate development packages for the two official LDA code lists.
+
+Both fixtures build to distinct controlledCodeList packages with pinned
+digests, coverage stays gap-flagged with the publisher gaps named, generation
+is byte-deterministic, and a self-consistent repackage or drifted source bytes
+refuse.
+"""
 
 from __future__ import annotations
 
@@ -27,6 +33,8 @@ EVIDENCE_ROOT = REFSPEC_ROOT / "research" / "evidence" / "lda-controlled-lists-2
 
 
 def test_builds_two_distinct_typed_development_resources() -> None:
+    """The issue-code and filing-type packages differ by id, use and count and match their expected digests."""
+
     issues = build_lda_general_issue_code_package(ISSUES_FIXTURE)
     filing_types = build_lda_filing_type_package(FILING_TYPES_FIXTURE)
 
@@ -52,6 +60,8 @@ def test_builds_two_distinct_typed_development_resources() -> None:
 
 
 def test_preserves_exact_codes_labels_identifiers_and_source_pins() -> None:
+    """Codes, labels, identifiers, source pins and ordinals are preserved verbatim from the fixtures."""
+
     issues = build_lda_general_issue_code_package(ISSUES_FIXTURE)
     filing_types = build_lda_filing_type_package(FILING_TYPES_FIXTURE)
 
@@ -96,6 +106,8 @@ def test_preserves_exact_codes_labels_identifiers_and_source_pins() -> None:
 
 
 def test_coverage_is_complete_and_keeps_publisher_gaps_explicit() -> None:
+    """Every observed row is parsed and packaged, and each package's publisher gaps are named."""
+
     issues = build_lda_general_issue_code_package(ISSUES_FIXTURE)
     filing_types = build_lda_filing_type_package(FILING_TYPES_FIXTURE)
 
@@ -116,6 +128,8 @@ def test_coverage_is_complete_and_keeps_publisher_gaps_explicit() -> None:
 
 
 def test_generation_is_byte_deterministic() -> None:
+    """Both builders reproduce byte-identical artifacts and logical digests."""
+
     for builder, fixture in (
         (build_lda_general_issue_code_package, ISSUES_FIXTURE),
         (build_lda_filing_type_package, FILING_TYPES_FIXTURE),
@@ -128,6 +142,8 @@ def test_generation_is_byte_deterministic() -> None:
 
 
 def test_tracked_packages_reopen_and_support_exact_code_lookup() -> None:
+    """The tracked evidence packages reopen and answer exact code lookups, including a miss."""
+
     issues = LDAControlledListView.open(EVIDENCE_ROOT / "general-issue-codes")
     filing_types = LDAControlledListView.open(EVIDENCE_ROOT / "filing-types")
 
@@ -145,6 +161,8 @@ def test_tracked_packages_reopen_and_support_exact_code_lookup() -> None:
 def test_lda_reader_rejects_a_self_consistent_changed_repackage(
     tmp_path: Path,
 ) -> None:
+    """A repackaged bundle without the matching external pin refuses to open."""
+
     original = build_lda_general_issue_code_package(ISSUES_FIXTURE)
     repackaged = build_source_controlled_resource_bundle(
         resource_id=LDA_GENERAL_ISSUE_CODE_PACKAGE.resource_id,
@@ -168,6 +186,8 @@ def test_lda_reader_rejects_a_self_consistent_changed_repackage(
 
 
 def test_source_drift_cannot_produce_a_new_package(tmp_path: Path) -> None:
+    """Equal-length source byte drift refuses on the digest."""
+
     payload = ISSUES_FIXTURE.read_bytes().replace(
         b'"Telecommunications"',
         b'"Telecommunicationt"',

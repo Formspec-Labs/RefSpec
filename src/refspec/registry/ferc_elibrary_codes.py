@@ -385,6 +385,8 @@ def parse_ferc_docket_prefix_pdf(payload: bytes) -> FercPublishedDocketPrefixCap
 
 
 def _list_values_after_heading(source: str, heading: str) -> tuple[str, ...]:
+    """Read the ``<ul>`` values following one exact ``<li>`` heading, refusing its absence."""
+
     match = re.search(
         r"<li>" + re.escape(heading) + r"</li>\s*<ul[^>]*>(?P<items>.*?)</ul>",
         source,
@@ -463,6 +465,8 @@ def _table_pattern(heading: str, columns: tuple[str, ...]) -> re.Pattern[str]:
 
 
 def _extract_rows(text: str, heading: str, columns: tuple[str, ...]) -> list[tuple[str, ...]]:
+    """Extract one table's rows under an exact heading, refusing a missing or reshaped table."""
+
     match = _table_pattern(heading, columns).search(text)
     if match is None:
         raise FercSourceDriftError(f"{heading!r} table was not found in the expected shape")
@@ -485,6 +489,8 @@ class FercELibrarySource:
     filename: str
 
     def __post_init__(self) -> None:
+        """Refuse a non-official URL, credentials, or a multi-component filename."""
+
         parsed = urlsplit(self.source_url)
         if parsed.scheme != "https" or parsed.hostname != "www.ferc.gov":
             raise FercAcquisitionError("source_url must be an official HTTPS www.ferc.gov URL")
@@ -517,6 +523,8 @@ class FercSnapshotPin:
     publisher_last_modified: str | None = None
 
     def __post_init__(self) -> None:
+        """Refuse a malformed digest, non-positive length, or empty retrieval time."""
+
         if _DIGEST.fullmatch(self.expected_sha256) is None:
             raise FercAcquisitionError("expected_sha256 must be a lowercase sha256:<64 hex> digest")
         if self.expected_byte_length <= 0:
@@ -680,6 +688,8 @@ def sha256_digest(payload: bytes) -> str:
 
 
 def _validate_resolved_url(value: str) -> None:
+    """Refuse a resolved URL that left official HTTPS www.ferc.gov."""
+
     parsed = urlsplit(value)
     if parsed.scheme != "https" or parsed.hostname != "www.ferc.gov":
         raise FercAcquisitionError("fetcher resolved_url must remain on official HTTPS www.ferc.gov")
@@ -688,6 +698,8 @@ def _validate_resolved_url(value: str) -> None:
 
 
 def _verify_payload(payload: bytes, pin: FercSnapshotPin, *, location: str) -> tuple[str, int]:
+    """Refuse a payload whose byte length or digest differs from the pin."""
+
     byte_length = len(payload)
     if byte_length != pin.expected_byte_length:
         raise FercSourceDriftError(
@@ -708,6 +720,8 @@ def _verify_payload(payload: bytes, pin: FercSnapshotPin, *, location: str) -> t
 
 
 def _verify_existing(path: Path, pin: FercSnapshotPin) -> AcquiredFercSource:
+    """Re-verify one cached FERC source object and return its acquisition record."""
+
     if path.is_symlink() or not path.is_file():
         raise FercAcquisitionError(f"content-addressed target is not a regular file: {path}")
     actual_sha256, byte_length = _verify_payload(
@@ -739,6 +753,8 @@ def _publish_payload(
     resolved_url: str | None,
     local_source_path: Path | None,
 ) -> AcquiredFercSource:
+    """Publish verified FERC bytes by hard link, falling back to a verified existing object."""
+
     actual_sha256, byte_length = _verify_payload(
         payload,
         pin,
@@ -836,6 +852,8 @@ def _document_class_codes(
     rows: Sequence[tuple[str, ...]],
     acquired: AcquiredFercSource,
 ) -> tuple[FercCode, ...]:
+    """Build the distinct Document Class rows from the class/type table."""
+
     seen: dict[str, FercCode] = {}
     for class_label, _type_label in rows:
         if class_label in seen:
@@ -864,6 +882,8 @@ def _document_type_codes(
     rows: Sequence[tuple[str, ...]],
     acquired: AcquiredFercSource,
 ) -> tuple[FercCode, ...]:
+    """Build the distinct Document Type rows from the class/type table."""
+
     codes: list[FercCode] = []
     seen_types: set[str] = set()
     for class_label, type_label in rows:
@@ -908,6 +928,8 @@ def _docket_prefix_codes(
     rows: Sequence[tuple[str, ...]],
     acquired: AcquiredFercSource,
 ) -> tuple[FercCode, ...]:
+    """Build docket-prefix rows, refusing a prefix outside the documented shape."""
+
     codes: list[FercCode] = []
     for prefix, description in rows:
         if _DOCKET_PREFIX_CODE.fullmatch(prefix) is None:
@@ -938,6 +960,8 @@ def _sector_codes(
     rows: Sequence[tuple[str, ...]],
     acquired: AcquiredFercSource,
 ) -> tuple[FercCode, ...]:
+    """Build sector rows from the official search-help values."""
+
     codes: list[FercCode] = []
     for (sector_label,) in rows:
         codes.append(
@@ -966,6 +990,8 @@ def _security_codes(
     rows: Sequence[tuple[str, ...]],
     acquired: AcquiredFercSource,
 ) -> tuple[FercCode, ...]:
+    """Build security-level rows, using the publisher's own level column as the code."""
+
     codes: list[FercCode] = []
     for level, _description in rows:
         # The Level column (for example "CEII") is itself the publisher's
@@ -1089,6 +1115,8 @@ def assemble_ferc_elibrary_control_portfolio(
 
 
 def _assignment(code: FercCode, source_field: str) -> FercCodeAssignment:
+    """Copy one validated code into a record-field assignment."""
+
     return FercCodeAssignment(
         source_field=source_field,
         publisher_label=code.publisher_label,

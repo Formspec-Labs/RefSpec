@@ -1,18 +1,11 @@
 """Tests for the Atlas crosswalk admission-rule replay harness.
 
-The harness exists to vary one rule and report the difference, so the tests that
-matter are the ones proving it cannot silently vary something else:
-
-* the baseline check **fails closed** when the reconstructed rule and the recorded
-  admissions disagree -- that gate is the only thing standing between "we
-  measured a lattice change" and "we measured a bug";
-* control admissions are counted with the class exclusion *lifted*, because a
-  rule that would let sibling distractors through is invisible if the exclusion
-  is still masking them;
-* ``related`` is off the granularity ladder, not a third point on it.
-
-Fixtures are synthetic.  Binding to the real archive would couple these tests to
-one release of the evidence and would never exercise the failure paths.
+The harness exists to vary one rule and report the difference, so what matters is
+that it cannot silently vary something else: the baseline fails closed when the
+reconstructed rule and the recorded admissions disagree, control admissions are
+counted with the class exclusion lifted, and ``related`` is off the granularity
+ladder rather than a third point on it. Fixtures are synthetic so the failure
+paths are exercised without binding to one release of the evidence.
 """
 
 from __future__ import annotations
@@ -70,6 +63,7 @@ SPECS = (
 
 @pytest.fixture
 def benchmarks(tmp_path: Path) -> Path:
+    """Write one JSONL file per replay set from the synthetic SPECS."""
     directory = tmp_path / "benchmarks"
     directory.mkdir()
     for name in replay.SETS:
@@ -82,12 +76,14 @@ def benchmarks(tmp_path: Path) -> Path:
 
 
 def test_load_reassembles_the_population_and_tags_each_row_with_its_set(benchmarks: Path) -> None:
+    """Every synthetic row loads once and is tagged with the set it came from."""
     population = replay.load(benchmarks)
     assert len(population) == len(SPECS)
     assert {row["set"] for row in population.values()} == {"positives", "hard-negatives", "controls", "disputed"}
 
 
 def test_load_rejects_a_row_appearing_in_two_sets(benchmarks: Path) -> None:
+    """A row id appearing in two set files raises RuntimeError."""
     duplicate = dict(SPECS[0])
     duplicate.pop("set")
     (benchmarks / "disputed.jsonl").write_text(json.dumps(duplicate, sort_keys=True) + "\n", encoding="utf-8")
@@ -96,6 +92,9 @@ def test_load_rejects_a_row_appearing_in_two_sets(benchmarks: Path) -> None:
 
 
 def test_baseline_reproduces_recorded_admissions_and_names_the_excluded_controls(benchmarks: Path) -> None:
+    """The baseline must reproduce one admission, clear one lattice-passing
+    control, and name the class exclusion that keeps it out.
+    """
     audit = replay.verify_baseline(replay.load(benchmarks))
     assert audit["recordedAdmissions"] == 1
     assert audit["mismatches"] == 0
@@ -117,6 +116,7 @@ def test_baseline_fails_closed_when_the_recorded_outcome_contradicts_the_rule(be
 
 
 def test_granularity_relaxation_recovers_the_label_equality_dispute_only(benchmarks: Path) -> None:
+    """Each rule's delta against baseline is pinned, with R3 the only one that absorbs the associative row."""
     results = {entry["rule"]: entry for entry in replay.replay(replay.load(benchmarks))}
     assert results["R0-v2-baseline"]["deltaVsBaseline"] == 0
     # Row 3 is same-versus-narrower on a label-equality candidate: one step.
@@ -129,6 +129,7 @@ def test_granularity_relaxation_recovers_the_label_equality_dispute_only(benchma
 
 
 def test_control_admissions_are_measured_with_the_class_exclusion_lifted(benchmarks: Path) -> None:
+    """The sibling distractor clears the baseline lattice, and no rule adds another control."""
     results = {entry["rule"]: entry for entry in replay.replay(replay.load(benchmarks))}
     # The sibling distractor clears the baseline lattice, so it is counted at
     # baseline and no rule here should be blamed for it.
@@ -137,6 +138,7 @@ def test_control_admissions_are_measured_with_the_class_exclusion_lifted(benchma
 
 
 def test_related_is_not_a_point_on_the_granularity_ladder() -> None:
+    """``related`` is not a GRANULARITY member, and broader against narrower is never one step."""
     assert "related" not in replay.GRANULARITY
     assert not replay._one_step("related", "target_is_narrower")
     assert replay._one_step("same", "target_is_narrower")
@@ -146,6 +148,7 @@ def test_related_is_not_a_point_on_the_granularity_ladder() -> None:
 
 
 def test_only_r3_absorbs_an_associative_verdict_into_a_direction() -> None:
+    """R3 absorbs related against a direction but never a broader/narrower contradiction, and R2 and R4 do not."""
     row = _row(9, set_name="disputed", cls="normalizedLabelEquality", judges=("related", "target_is_narrower"))
     assert not replay._r2_granularity_any_class(row)
     assert not replay._r4_granularity_principled(row)
@@ -168,10 +171,12 @@ def test_only_r3_absorbs_an_associative_verdict_into_a_direction() -> None:
     ],
 )
 def test_variant_class_separates_orthography_from_coincidence(source: str, target: str, expected: str) -> None:
+    """Spelling, number and case/diacritic variants classify as principled; coincidental pairs do not."""
     assert replay.variant_class(source, target) == expected
 
 
 def test_r4_extends_the_collapse_to_principled_variants_only() -> None:
+    """R4 reaches a principled variant that R1 misses, and not a coincidental pair that R2 reaches."""
     principled = _row(11, set_name="disputed", cls="editDistanceNearMiss", judges=("same", "target_is_narrower"))
     principled["sourceLabel"], principled["targetLabel"] = "Child labor", "CHILD LABOUR"
     coincidence = _row(12, set_name="disputed", cls="editDistanceNearMiss", judges=("same", "target_is_narrower"))
@@ -184,6 +189,7 @@ def test_r4_extends_the_collapse_to_principled_variants_only() -> None:
 
 
 def test_edit_distance_hygiene_scores_the_two_populations_separately(benchmarks: Path) -> None:
+    """The hygiene report scores unprincipled near-misses with a zero admission rate and no related-match share."""
     rows = [dict(spec) for spec in SPECS]
     coincidence = dict(SPECS[1])  # the rejected editDistanceNearMiss row
     coincidence.pop("set")
@@ -198,18 +204,23 @@ def test_edit_distance_hygiene_scores_the_two_populations_separately(benchmarks:
 
 
 def test_relation_share_reports_lift_against_the_overall_base_rate(benchmarks: Path) -> None:
+    """Relation share reports the one admission under its generation class against the overall rate."""
     share = replay.relation_share(replay.load(benchmarks))
     assert share["admissions"] == 1
     assert share["byGenerationClass"]["normalizedLabelEquality"]["admissions"] == 1
 
 
 def test_admission_does_not_depend_on_the_order_rows_are_considered(benchmarks: Path) -> None:
+    """The strictest rule admits one set regardless of the order rows are considered in."""
     order = replay.order_independence(replay.load(benchmarks), replay.RULES[-1])
     assert order["orderIndependent"] is True
     assert order["distinctAdmittedSets"] == 1
 
 
 def test_calibration_reports_judge_and_reviewer_rates_on_the_same_rows(benchmarks: Path) -> None:
+    """Calibration reports both judges and the reviewer at rate 1.0 on the
+    sibling distractor, with their supporting relations.
+    """
     cal = replay.calibration(replay.load(benchmarks))
     sibling = cal["controlSupportRates"]["siblingDistractor"]
     assert sibling["rows"] == 1
@@ -220,6 +231,7 @@ def test_calibration_reports_judge_and_reviewer_rates_on_the_same_rows(benchmark
 
 
 def test_disputed_rows_are_profiled_and_never_resolved(benchmarks: Path) -> None:
+    """Two disputed rows are profiled by verdict pair, and no rule anywhere in the payload assigns them a relation."""
     population = replay.load(benchmarks)
     profile = replay.disputed_profile(population)
     assert profile["rows"] == 2

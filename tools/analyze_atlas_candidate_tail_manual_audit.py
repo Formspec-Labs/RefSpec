@@ -1,4 +1,10 @@
-"""Join fixed Atlas tail-review decisions to their withheld BGE ranks."""
+"""Join fixed Atlas tail-review decisions to their withheld BGE ranks.
+
+Reads the sealed 60-row BGE-only tail sample, its context rendering, and the
+recorded Markdown decisions; validates all three, then optionally folds in the
+earlier ranks-1-through-25 analysis receipt. Prints one canonical JSON report
+and calls no model.
+"""
 
 from __future__ import annotations
 
@@ -107,6 +113,7 @@ def validate_rendering(rendering: str, rows: Sequence[Mapping[str, Any]]) -> Non
 
 
 def _coverage(rows: Sequence[Mapping[str, Any]], *, denominator: int) -> list[dict[str, Any]]:
+    """Cumulative potential-relation coverage of ``rows`` at each cutoff in ``CUTOFFS``."""
     result = []
     for cutoff in CUTOFFS:
         included = [row for row in rows if int(row["bgeRank"]) <= cutoff]
@@ -152,6 +159,7 @@ def analyze(
     prefix_analysis: Mapping[str, Any] | None = None,
     prefix_analysis_file_sha256: str | None = None,
 ) -> dict[str, Any]:
+    """Validate the tail sample, join decisions by row, and report tail and optional combined coverage."""
     strata = validate_tail_sample(sample)
     if len(decisions) != len(sample["rows"]):
         raise ValueError("tail decision count does not equal sample row count")

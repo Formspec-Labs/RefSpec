@@ -1,42 +1,21 @@
 """Streaming, source-faithful capture of MeSH descriptor records.
 
-The National Library of Medicine (NLM) publishes Medical Subject Headings
-(MeSH) as several separate XML files. The 2026 descriptor file
-(``desc2026.xml``) contains 31,110 ``DescriptorRecord`` elements; a much
-larger, separately published Supplemental Concept Record file holds roughly
-324,000 additional records. This module reads descriptors only. A
-``SupplementalRecordSet`` root, or any other unexpected root, fails closed
-instead of silently degrading, so the 324k supplemental concepts can never
-enter a descriptor table through this module.
-
-Every MeSH descriptor already carries a real, NLM-issued stable identifier
-(``DescriptorUI``, e.g. ``D000001``) and a published linked-data URI
-(``https://id.nlm.nih.gov/mesh/<DescriptorUI>``, verified live). This module
-preserves that publisher identity directly as a ``ControlledIdentifier``; it
-never mints one of its own, matching the project's identifier policy.
-
-The RefSpec source catalog lists MeSH descriptors as a "Pilot descriptors"
-specialist health-subject module -- a research recommendation, not an
-adoption claim. Every package this module builds is therefore a
-development-only, candidate ``sourceTermSnapshot``: it can support search
-expansion and source-assigned evidence, but it never claims concept identity
-and never authorizes accepted output. Use of MeSH data requires attribution
-to the National Library of Medicine (see ``MESH_ATTRIBUTION_NOTICE``).
-
-The production descriptor file is very large (over 300 MB for the 2026
-release), so the XML walk uses ``xml.etree.ElementTree.iterparse`` and
-releases each ``DescriptorRecord`` element's memory as soon as it is read;
-parsing memory therefore stays bounded by one record, not by file size. The
-exact SHA-256 digest of the source can only be known once every byte has
-streamed past, so this module hashes the stream as it is consumed and
-attaches that digest to each descriptor's identifier only after the walk
-completes -- the resulting descriptor rows are still an exact, verifiable
-capture of the source bytes.
-
-Importing this module never opens a network connection. Acquiring the real
-annual release is the caller's responsibility (the NLM download page is
-``MESH_DOWNLOAD_PAGE_URL``); this module only parses and packages bytes it
-is given.
+NLM publishes MeSH as several separate XML files, and this module reads
+descriptor files only -- a ``SupplementalRecordSet`` root, or any other
+unexpected root, fails closed so the supplemental concepts can never enter a
+descriptor table through this module. Every descriptor already carries NLM's
+own stable ``DescriptorUI`` and published linked-data URI
+(``https://id.nlm.nih.gov/mesh/<DescriptorUI>``, verified live), preserved
+directly as a ``ControlledIdentifier`` and never minted here; every package
+built is a development-only candidate ``sourceTermSnapshot`` that can support
+search expansion and source-assigned evidence but never claims concept
+identity or authorizes accepted output, and MeSH use requires attribution to
+the National Library of Medicine (see ``MESH_ATTRIBUTION_NOTICE``). The XML
+walk uses ``xml.etree.ElementTree.iterparse`` and releases each
+``DescriptorRecord`` as soon as it is read, so parsing memory stays bounded by
+one record rather than file size, and the stream is hashed as it is consumed
+so the digest attaches to each descriptor after the walk completes; importing
+this module never opens a network connection.
 """
 
 from __future__ import annotations

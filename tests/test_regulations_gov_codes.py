@@ -1,4 +1,9 @@
-"""Official Regulations.gov OpenAPI controlled-code capture and parsing tests."""
+"""Regulations.gov OpenAPI controlled codes: pinned capture, parsing, validation and portfolio gaps.
+
+Document type, docket type and submitter type are deterministic metadata,
+never subject concepts; the parser trims the source's trailing-space quirk
+and refuses API-version, enum-shape and count drift.
+"""
 
 from __future__ import annotations
 
@@ -15,10 +20,14 @@ OPENAPI_FIXTURE = FIXTURES / "regulations-gov-openapi-v4-2026-08-03.yaml"
 
 
 def _acquire(tmp_path: Path, source_path: Path = OPENAPI_FIXTURE) -> rgov.AcquiredRGovSource:
+    """Acquire the pinned OpenAPI capture from the local fixture."""
+
     return rgov.acquire_regulations_gov_openapi(rgov.RGOV_OPENAPI_2026_08_03, tmp_path, source_path=source_path)
 
 
 def _portfolio(tmp_path: Path) -> rgov.RegulationsGovControlPortfolio:
+    """Parse the three named resources and assemble the portfolio."""
+
     acquired = _acquire(tmp_path)
     resources = [
         rgov.parse_regulations_gov_resource(acquired, name)
@@ -28,6 +37,8 @@ def _portfolio(tmp_path: Path) -> rgov.RegulationsGovControlPortfolio:
 
 
 def test_live_snapshot_pin_matches_exact_official_yaml_bytes() -> None:
+    """The fixture matches the pinned 60,826-byte length and SHA-256 digest."""
+
     payload = OPENAPI_FIXTURE.read_bytes()
 
     assert len(payload) == 60_826
@@ -39,6 +50,8 @@ def test_live_snapshot_pin_matches_exact_official_yaml_bytes() -> None:
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
     tmp_path: Path,
 ) -> None:
+    """A local capture lands content-addressed and a cache hit is re-digested, not trusted."""
+
     pin = rgov.RGOV_OPENAPI_2026_08_03
 
     acquired = _acquire(tmp_path)
@@ -53,6 +66,8 @@ def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
 
 
 def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) -> None:
+    """The injected fetcher is called once for the pinned source URL with the caller's timeout."""
+
     payload = OPENAPI_FIXTURE.read_bytes()
     calls: list[tuple[str, float]] = []
 
@@ -85,6 +100,8 @@ def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) ->
 def test_document_type_codes_are_deterministic_not_general_subject_concepts(
     tmp_path: Path,
 ) -> None:
+    """The five document types keep exact publisher identity and deterministic use, never subject concepts."""
+
     resource = rgov.parse_regulations_gov_resource(_acquire(tmp_path), "documentType")
 
     assert len(resource.codes) == 5
@@ -122,6 +139,8 @@ def test_document_type_codes_are_deterministic_not_general_subject_concepts(
 def test_docket_type_codes_trim_the_source_trailing_whitespace_quirk(
     tmp_path: Path,
 ) -> None:
+    """The pinned source's trailing-space YAML quirk does not survive into the parsed label."""
+
     resource = rgov.parse_regulations_gov_resource(_acquire(tmp_path), "docketType")
 
     assert len(resource.codes) == 2
@@ -136,6 +155,8 @@ def test_docket_type_codes_trim_the_source_trailing_whitespace_quirk(
 def test_submitter_type_codes_remain_a_closed_deterministic_list(
     tmp_path: Path,
 ) -> None:
+    """The three submitter types stay a closed deterministic list, never subject concepts."""
+
     resource = rgov.parse_regulations_gov_resource(_acquire(tmp_path), "submitterType")
 
     assert [code.publisher_label for code in resource.codes] == [
@@ -149,6 +170,8 @@ def test_submitter_type_codes_remain_a_closed_deterministic_list(
 def test_portfolio_records_agency_configured_and_attachment_gaps(
     tmp_path: Path,
 ) -> None:
+    """The portfolio records the agency-configured fields, attachment taxonomy and release-id gaps."""
+
     portfolio = _portfolio(tmp_path)
 
     assert portfolio.agency_configured_fields == (
@@ -167,6 +190,8 @@ def test_portfolio_records_agency_configured_and_attachment_gaps(
 def test_current_document_and_docket_records_validate_without_becoming_subjects(
     tmp_path: Path,
 ) -> None:
+    """A document and a docket record validate their type codes as deterministic metadata, never as subjects."""
+
     portfolio = _portfolio(tmp_path)
     document = {
         "agencyId": "EPA",
@@ -203,6 +228,8 @@ def test_unknown_type_fails_closed(
     value: str,
     message: str,
 ) -> None:
+    """An unknown documentType or docketType is refused with that field named."""
+
     portfolio = _portfolio(tmp_path)
     validator = getattr(rgov, validator_name)
 
@@ -211,6 +238,8 @@ def test_unknown_type_fails_closed(
 
 
 def test_missing_type_field_fails_closed(tmp_path: Path) -> None:
+    """A record missing documentType or docketType is refused as not a string."""
+
     portfolio = _portfolio(tmp_path)
 
     with pytest.raises(rgov.RegulationsGovAssignmentError, match="must carry a string documentType"):
@@ -220,6 +249,8 @@ def test_missing_type_field_fails_closed(tmp_path: Path) -> None:
 
 
 def test_digest_drift_never_becomes_an_acquired_source(tmp_path: Path) -> None:
+    """Same-length byte tampering is refused as digest drift before parsing."""
+
     payload = OPENAPI_FIXTURE.read_bytes()
     changed = payload.replace(b"- Notice\n", b"- Noticx\n")
     assert len(changed) == len(payload)
@@ -248,6 +279,8 @@ def test_digest_drift_never_becomes_an_acquired_source(tmp_path: Path) -> None:
 
 
 def test_structural_shape_drift_never_becomes_a_parsed_resource(tmp_path: Path) -> None:
+    """A byte-faithful document whose DocumentType enum lost a member is refused on count drift."""
+
     # A byte-faithful but restructured document: DocumentType keeps only 4 of
     # its 5 members. The parser must reject the count drift rather than
     # silently returning a shorter list.
@@ -273,6 +306,8 @@ def test_structural_shape_drift_never_becomes_a_parsed_resource(tmp_path: Path) 
 
 
 def test_missing_enum_block_fails_closed(tmp_path: Path) -> None:
+    """A document with no enum block for the resource is refused."""
+
     mini_payload = b'openapi: 3.0.0\ninfo:\n  version: "4.0"\ncomponents:\n  schemas: {}\n'
     mini_source = replace(rgov.RGOV_OPENAPI_SOURCE, filename="no-enums.yaml")
     mini_pin = rgov.RGovSnapshotPin(
@@ -290,6 +325,8 @@ def test_missing_enum_block_fails_closed(tmp_path: Path) -> None:
 
 
 def test_api_spec_version_drift_fails_closed(tmp_path: Path) -> None:
+    """An info.version other than the reviewed 4.0 is refused at acquisition."""
+
     mini_payload = b'openapi: 3.0.0\ninfo:\n  version: "5.0"\ncomponents:\n  schemas: {}\n'
     mini_source = replace(rgov.RGOV_OPENAPI_SOURCE, filename="future-version.yaml")
     mini_pin = rgov.RGovSnapshotPin(
@@ -306,6 +343,8 @@ def test_api_spec_version_drift_fails_closed(tmp_path: Path) -> None:
 
 
 def test_portfolio_assembly_requires_all_three_resources(tmp_path: Path) -> None:
+    """Assembly refuses a portfolio that does not hold exactly one of each resource."""
+
     acquired = _acquire(tmp_path)
     document_type = rgov.parse_regulations_gov_resource(acquired, "documentType")
 

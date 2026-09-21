@@ -3,38 +3,27 @@
 The SAM.gov Federal Hierarchy (FH) Public API
 (https://open.gsa.gov/api/fh-public-api/) exposes the operational
 funding/awarding organization hierarchy behind federal procurement and
-financial data: Department/Ind. Agency and Sub-Tier organization records,
-each carrying a Federal-Hierarchy-assigned ``fhorgid``, an FPDS-origin
+financial data: Department/Ind. Agency and Sub-Tier organization records, each
+carrying a Federal-Hierarchy-assigned ``fhorgid``, an FPDS-origin
 ``agencycode``/``oldfpdsofficecode``, a Treasury CGAC code, and a dotted
-full-parent-path identifier that encodes the hierarchy level structure.
-
-This module captures only the entity IDENTITY layer for that hierarchy: the
-level structure (Department/Ind. Agency, Sub-Tier), the identifier shapes
-published for each level, and a small pinned sample of records -- never a
-bulk organization dump. No general subject concept is minted from any field;
-``fhorgname`` is retained only as the publisher's own organization label.
+full-parent-path identifier that encodes the hierarchy level structure. This
+module captures only the entity IDENTITY layer for that hierarchy — the level
+structure, the identifier shapes published for each level, and a small pinned
+sample of records, never a bulk organization dump. No general subject concept
+is minted from any field; ``fhorgname`` is retained only as the publisher's
+own organization label.
 
 Both live FH endpoints (``/v1/orgs`` and ``/v1/org/hierarchy``) require a
-registered ``api_key`` even for a GET request. RefSpec used a registered key
-to capture two exact public ``/v1/orgs`` response pages on 2026-08-03: the
-default Department/Independent Agency page and a page filtered to Sub-Tiers.
-The stored source URLs and response bytes contain no credential; the API's
-``api_key`` query parameter is supplied only by the acquisition transport.
-RefSpec pins three kinds of real GSA bytes:
-
-* the official OpenAPI parameter definitions (``fh-public.zip``, fetched
-  2026-08-03), which prove the required ``api_key`` parameter and the
-  documented request/filter fields -- the response schema in that file is
-  declared only as ``type: object``, so it carries no field-level shape; and
-* an exact 10-record default page reporting 907 Department/Independent
-  Agency records in the live public service; and
-* an exact 10-record filtered page reporting 738 Sub-Tier records.
-
-Acquisition accepts a local exact capture or an injected fetcher. The parser
-is strict, so a response that drifts from the reviewed public shape -- an
-added field, an unfamiliar ``fhorgtype``/``status`` value, more than one CGAC
-per record, or more than 25 returned records -- fails loudly instead of being
-silently accepted. Importing this module never opens a network connection.
+registered ``api_key`` even for a GET, so RefSpec used one to capture two
+exact public ``/v1/orgs`` response pages on 2026-08-03: the default
+Department/Independent Agency page and a page filtered to Sub-Tiers. The
+stored source URLs and response bytes contain no credential; the ``api_key``
+query parameter is supplied only by the acquisition transport. The parser is
+strict, so a response that drifts from the reviewed public shape — an added
+field, an unfamiliar ``fhorgtype``/``status`` value, more than one CGAC per
+record, or more than 25 returned records — fails loudly instead of being
+silently accepted. Acquisition accepts a local exact capture or an injected
+fetcher; importing this module never opens a network connection.
 """
 
 from __future__ import annotations

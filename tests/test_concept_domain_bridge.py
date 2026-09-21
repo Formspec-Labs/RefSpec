@@ -1,4 +1,11 @@
-"""Pinned development concept-domain bridge regressions."""
+"""Pinned development concept-domain bridge loader: exact shapes, release-scoped endpoints.
+
+Synthetic bridge records prove the loader is closed and fail-closed -- unknown
+fields, duplicate ids, untagged labels, a non-SKOS predicate, a non-human
+assertion posture and endpoints outside their declared releases all refuse --
+while the two tracked ICPSR/Federal Register examples pin their recorded
+digests and membership.
+"""
 
 from __future__ import annotations
 
@@ -29,10 +36,14 @@ SOURCE_SHA256 = "sha256:" + "a" * 64
 
 @dataclass(frozen=True)
 class _TargetMember:
+    """Minimal target-view member: the release it belongs to is all the loader asks."""
+
     release_iri: str
 
 
 class _TargetView:
+    """Minimal target view keyed by member IRI, standing in for a loaded target release."""
+
     def __init__(self, members: dict[str, _TargetMember]) -> None:
         self._members = members
 
@@ -45,6 +56,8 @@ def _target_view(
     release_iri: str = TARGET_RELEASE,
     include_member: bool = True,
 ) -> _TargetView:
+    """A target view holding the test concept in one release, or nothing."""
+
     return _TargetView(
         {
             TARGET_CONCEPT: _TargetMember(release_iri=release_iri),
@@ -55,6 +68,8 @@ def _target_view(
 
 
 def _bridge_record() -> dict[str, object]:
+    """One valid development bridge record: snapshot, one source concept, one closeMatch mapping."""
+
     return {
         "developmentOnly": True,
         "sourceSnapshot": {
@@ -104,6 +119,8 @@ def _bridge_record() -> dict[str, object]:
 
 
 def _write_record(path: Path, record: object) -> str:
+    """Write one record as pretty UTF-8 JSON and return its sha256 pin."""
+
     payload = (
         json.dumps(record, ensure_ascii=False, indent=2) + "\n"
     ).encode("utf-8")
@@ -117,6 +134,8 @@ def _load(
     *,
     target_view: _TargetView | None = None,
 ):
+    """Write a record, pin it by its own digest, and load it against a target view."""
+
     path = tmp_path / "bridge.json"
     digest = _write_record(path, record)
     return load_concept_domain_bridge(
@@ -129,6 +148,8 @@ def _load(
 def test_loads_pinned_bridge_without_merging_source_and_target_concepts(
     tmp_path: Path,
 ) -> None:
+    """A loaded bridge keeps source concepts and target members distinct and every result frozen."""
+
     bridge = _load(tmp_path, _bridge_record())
 
     assert bridge.development_only is True
@@ -200,6 +221,8 @@ def test_rejects_non_development_or_non_iri_wrapper_values(
     value: object,
     match: str,
 ) -> None:
+    """developmentOnly false and a non-IRI sourceScheme are each refused before use."""
+
     record = _bridge_record()
     record[field] = value
 
@@ -208,6 +231,8 @@ def test_rejects_non_development_or_non_iri_wrapper_values(
 
 
 def test_rejects_open_wrapper_and_nested_shapes(tmp_path: Path) -> None:
+    """An undeclared field at wrapper, source-concept or mapping level is refused."""
+
     wrapper = _bridge_record()
     wrapper["comment"] = "not part of the bridge shape"
     with pytest.raises(ConceptDomainBridgeError, match="unexpected"):
@@ -237,6 +262,8 @@ def test_rejects_malformed_or_untagged_preferred_labels(
     tmp_path: Path,
     pref_label: object,
 ) -> None:
+    """A bare string, an empty map, an @none tag or a list-valued label is refused as untagged."""
+
     record = _bridge_record()
     record["sourceConcepts"][0]["prefLabel"] = pref_label  # type: ignore[index]
 
@@ -247,6 +274,8 @@ def test_rejects_malformed_or_untagged_preferred_labels(
 def test_accepts_only_the_five_skos_mapping_predicates(
     tmp_path: Path,
 ) -> None:
+    """The five SKOS mapping predicates pass; skos:broader is refused."""
+
     for predicate in (
         "skos:exactMatch",
         "skos:closeMatch",
@@ -281,6 +310,8 @@ def test_rejects_mappings_outside_the_reviewed_development_posture(
     field: str,
     value: str,
 ) -> None:
+    """aiSuggested, statisticalInference, denied and notEligible are each refused, naming the field."""
+
     record = _bridge_record()
     record["mappings"][0][field] = value  # type: ignore[index]
 
@@ -294,6 +325,8 @@ def test_rejects_mappings_outside_the_reviewed_development_posture(
 def test_rejects_duplicate_source_concept_or_mapping_ids(
     tmp_path: Path,
 ) -> None:
+    """A repeated source-concept id or mapping @id is refused as duplicate ids."""
+
     duplicate_concept = _bridge_record()
     duplicate_concept["sourceConcepts"].append(  # type: ignore[union-attr]
         copy.deepcopy(duplicate_concept["sourceConcepts"][0])  # type: ignore[index]
@@ -321,6 +354,8 @@ def test_requires_source_endpoint_in_the_exact_source_release(
     mapping_field: str,
     value: str,
 ) -> None:
+    """A mapping subject outside its declared source concept or source release is refused."""
+
     record = _bridge_record()
     record["mappings"][0][mapping_field] = value  # type: ignore[index]
 
@@ -334,6 +369,8 @@ def test_requires_source_endpoint_in_the_exact_source_release(
 def test_requires_target_endpoint_in_the_exact_managed_release(
     tmp_path: Path,
 ) -> None:
+    """A target member absent from the target view, or held in a different release, is refused."""
+
     with pytest.raises(ConceptDomainBridgeError, match="target endpoint"):
         _load(
             tmp_path,
@@ -359,6 +396,8 @@ def test_requires_target_endpoint_in_the_exact_managed_release(
 
 
 def test_rejects_duplicate_json_object_fields(tmp_path: Path) -> None:
+    """A JSON object repeating a field is refused rather than silently last-one-wins."""
+
     path = tmp_path / "bridge.json"
     payload = (
         b'{"developmentOnly":true,"developmentOnly":true,'
@@ -379,6 +418,8 @@ def test_rejects_duplicate_json_object_fields(tmp_path: Path) -> None:
 
 
 def test_tracked_icpsr_federal_register_bridge_matches_its_pin() -> None:
+    """The tracked v1 bridge loads to its recorded digest with seven closeMatch targets and no "warrants" alias."""
+
     release = "urn:ref:fr-thesaurus-1995:release:1995-11-16-preview"
     target_ids = {
         "urn:ref:fr-thesaurus-1995:concept:0153",
@@ -423,6 +464,8 @@ def test_tracked_icpsr_federal_register_bridge_matches_its_pin() -> None:
 
 
 def test_tracked_icpsr_federal_register_bridge_v2_matches_its_pin() -> None:
+    """The tracked v2 bridge loads to its pin: 122 closeMatch mappings, with the "drugs" concept deliberately absent."""
+
     path = (
         Path(__file__).resolve().parents[1]
         / "examples"

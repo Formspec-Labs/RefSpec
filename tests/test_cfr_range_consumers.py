@@ -1,4 +1,8 @@
-"""Ranges survive typed output and cannot stand in for one CFR part."""
+"""Ranges survive typed output and cannot stand in for one CFR part.
+
+The range-aware consumer must carry both endpoints through the production Arrow schemas and identity
+keys, refuse flat pinpoint ranges with ``range_pinpoints_not_represented``, and diverge from the
+copied pre-range oracle exactly where ranges, multiple parts, or refused scope are involved."""
 import json
 from dataclasses import replace
 from pathlib import Path
@@ -26,6 +30,8 @@ RANGE_COLUMNS = ("cfr_part_end", "cfr_section_end", "cfr_end_part_is_plausible",
 
 
 class Notes:
+    """Minimal authority-note cache that holds every part and records each lookup."""
+
     def __init__(self):
         self.lookups = []
 
@@ -39,11 +45,15 @@ class Notes:
 
 
 def _reference(text):
+    """Agenda CFR-reference rows for text, read through the real range-aware path against pinned held parts."""
+
     return [{"rin": "1000-AA00", "publication_id": "202510", "reference_text": text, **reading}
             for reading in agenda._cfr_reference_readings(text, {(41, "101-19"), (40, "1500")})]
 
 
 def _authority(text):
+    """One joined legal-authority row built through the real field-copy path with a no-op calendar."""
+
     citation, = [row for row in parse_authority_citation(text) if row.authority_type == "cfr"]
     donor = {"rin": "1000-AA00", "publication_id": "202510", "ordinal": 0,
              "authority_text": text, "authority_source": "box"}
@@ -141,6 +151,8 @@ def test_refused_scope_is_retained_and_not_used_as_a_part(text):
 
 @pytest.mark.parametrize("text", [SECTION_RANGE, PART_RANGE])
 def test_range_part_note_comparisons_diverge_from_the_copied_first_part_check(text):
+    """The copied check holds and looks up the range's first part; the range-aware consumer holds nothing."""
+
     row, = _reference(text)
     old_notes, new_notes = Notes(), Notes()
     assert old__held_parts_by_rule([row], old_notes)
@@ -191,6 +203,8 @@ def test_unread_structured_reference_still_has_one_null_row():
     (Path(__file__).parent / "fixtures/cfr-note-range-divergences.json").read_text()
 )["cases"], ids=lambda case: case["id"])
 def test_every_reviewed_note_delta_keeps_its_exact_family_identities(case):
+    """Each reviewed case's non-CFR family identities must equal the frozen baseline, so no other family moved."""
+
     assert case["reasons"]
     actual = sorted([c.family, c.identity, c.span_end or ""]
                     for c in notes_module.read_note_citations(case["text"], oracle=None))

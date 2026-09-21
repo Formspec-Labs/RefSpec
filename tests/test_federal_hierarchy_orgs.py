@@ -27,6 +27,8 @@ REAL_DATA_DIR = Path("output/registry-real-data-sources")
 
 
 def _real_path(environment_name: str, filename: str) -> Path:
+    """Resolve an environment-named real capture or the default real-data path, skipping when absent."""
+
     configured = os.environ.get(environment_name)
     path = Path(configured) if configured else REAL_DATA_DIR / filename
     if not path.is_file():
@@ -35,10 +37,14 @@ def _real_path(environment_name: str, filename: str) -> Path:
 
 
 def _acquire(tmp_path: Path, pin: fh.FHOrgsSnapshotPin, source_path: Path) -> fh.AcquiredFHOrgsSource:
+    """Acquire a pinned Federal Hierarchy sample from a local source path."""
+
     return fh.acquire_fh_orgs_sample(pin, tmp_path, source_path=source_path)
 
 
 def _sample(tmp_path: Path) -> fh.ParsedFHOrgsSample:
+    """Parse the pinned three-record mini sample."""
+
     return fh.parse_fh_orgs_sample(_acquire(tmp_path, fh.FH_ORGS_SAMPLE_2026_08_03, SAMPLE_FIXTURE))
 
 
@@ -367,6 +373,8 @@ def test_digest_drift_never_produces_a_parsed_sample(tmp_path: Path) -> None:
 
 
 def _pinned(tmp_path: Path, payload: bytes, *, expected_count: int = 1) -> fh.AcquiredFHOrgsSource:
+    """Build and acquire a local capture pin over the payload with the given expected record count."""
+
     source = replace(fh.FH_ORGS_SAMPLE_SOURCE, expected_count=expected_count)
     pin = fh.FHOrgsSnapshotPin(
         source=source,

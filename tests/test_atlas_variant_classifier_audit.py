@@ -35,6 +35,8 @@ PAIRS = [
 
 @pytest.fixture
 def sources(tmp_path: Path) -> tuple[Path, Path]:
+    """Write a mini benchmark set and classifier replay covering the four label-sorted pairs."""
+
     benchmarks = tmp_path / "benchmarks"
     benchmarks.mkdir()
     rows = [
@@ -77,12 +79,16 @@ def sources(tmp_path: Path) -> tuple[Path, Path]:
 
 
 def test_audit_covers_every_edit_distance_pair_and_nothing_else(sources: tuple[Path, Path]) -> None:
+    """Only edit-distance pairs reach the audit; a normalized-label-equality benchmark row is excluded."""
+
     rows = builder.collect(*sources)
     assert len(rows) == len(PAIRS)
     assert {row["sourceLabel"] for row in rows} == {a for _, a, _, _ in PAIRS}
 
 
 def test_blind_rows_carry_only_the_two_labels(sources: tuple[Path, Path], tmp_path: Path) -> None:
+    """The blind file exposes only row/a/b and leaks no class or generation metadata."""
+
     rows = builder.collect(*sources)
     blind = [{"row": i, "a": r["sourceLabel"], "b": r["targetLabel"]} for i, r in enumerate(rows, start=1)]
     for row in blind:
@@ -93,6 +99,8 @@ def test_blind_rows_carry_only_the_two_labels(sources: tuple[Path, Path], tmp_pa
 
 
 def test_presentation_order_is_by_label_not_by_class(sources: tuple[Path, Path]) -> None:
+    """Rows are label-sorted so a reviewer cannot read the strata off the file."""
+
     rows = builder.collect(*sources)
     ordered = [(r["sourceLabel"].lower(), r["targetLabel"].lower()) for r in rows]
     assert ordered == sorted(ordered)
@@ -101,6 +109,8 @@ def test_presentation_order_is_by_label_not_by_class(sources: tuple[Path, Path])
 
 
 def test_a_missing_classifier_verdict_fails_closed(sources: tuple[Path, Path], tmp_path: Path) -> None:
+    """A pair with no classifier verdict refuses rather than defaulting to a class."""
+
     benchmarks, replay = sources
     replay.write_text(json.dumps({"editDistanceHygiene": {"rows": []}}), encoding="utf-8")
     with pytest.raises(RuntimeError, match="no classifier verdict"):
@@ -108,6 +118,8 @@ def test_a_missing_classifier_verdict_fails_closed(sources: tuple[Path, Path], t
 
 
 def _audit_dir(tmp_path: Path, sources: tuple[Path, Path], verdicts: dict[int, str]) -> Path:
+    """Write blind, sealed-key and independent verdict files for one audit run."""
+
     rows = builder.collect(*sources)
     directory = tmp_path / "audit"
     for part in ("blind", "sealed-key", "independent"):
@@ -130,6 +142,8 @@ def _audit_dir(tmp_path: Path, sources: tuple[Path, Path], verdicts: dict[int, s
 
 
 def test_perfect_agreement_reports_no_errors_in_either_direction(sources: tuple[Path, Path], tmp_path: Path) -> None:
+    """Perfect agreement gives 1.0 exact agreement and no error in either direction."""
+
     rows = builder.collect(*sources)
     directory = _audit_dir(tmp_path, sources, {i: r["variantClass"] for i, r in enumerate(rows, start=1)})
     result = comparer.analyse(*comparer.load(directory, "linguistic"))
@@ -166,5 +180,7 @@ def test_a_demoted_variant_is_reported_as_false_unprincipled_and_leaves_precisio
 
 
 def test_the_reviewers_diacritic_label_is_not_counted_as_a_disagreement(sources: tuple[Path, Path], tmp_path: Path) -> None:
+    """The reviewer's diacriticOrCaseOnly spelling normalises to the classifier's caseOrDiacriticOnly."""
+
     assert comparer._normalise("diacriticOrCaseOnly") == "caseOrDiacriticOnly"
     assert comparer._normalise("numberVariant") == "numberVariant"

@@ -1,33 +1,15 @@
 """The 1994 Title 49 disposition table, and what it says about the pinned corpus.
 
-Four kinds of test, the same four the section-oracle suite uses.
-
-**Pin tests** hold every file of the artifact to the digest its README states —
-the volume, the extractor, the derived Parquet and the readable rendering —
-because every number below is a statement about those exact bytes, and a
-swapped directory must fail loudly rather than answer differently.
-
-**Specimen tests** run the reader on the ten rows the human review of
-2026-08-23 read by hand (``research/evidence/sample-review-2026-08-23/review.md``
-§ F), *verbatim*: the printed former field and the printed value, not a
-paraphrase. Beside them are the rows the reader must NOT collapse — the four
-successors of ``1432``, the note row that answers ``1374`` and not ``1374(c)``,
-the ``(See § 2 of Pub. L. 97-449.)`` that is not a repeal, and a section the
-table never lists.
-
-**Corpus tests** run the whole thing over
-``agenda-legal-authorities-as-measured-797170.parquet`` — the 797,170-row build
-the section-oracle report measured, read by digest — and count how many of the
-2,548 ``title_49_appendix_not_published`` rows the table answers, by verdict.
-Ten of the answered rows are printed with the filer's own text and pinned, for
-a human to check by eye; so is every section where the table gives more than
-one successor, because that is the population a consumer must present as
-candidates rather than as an identity.
-
-**Negative tests** construct the verdict dataclasses wrong on purpose. A
-verdict that names successors and says ``not-in-table``, a successor carrying
-``repealed``, an absence without its caveat: each must raise, because the
-invariant is what stops a future edit from publishing a guess.
+Four kinds of test: PIN tests hold every artifact file (the volume, the
+extractor, the derived Parquet, the readable rendering) to the digest its
+README states; SPECIMEN tests run the reader over the ten rows the 2026-08-23
+human review read by hand, verbatim, beside the rows that must not collapse
+(1432's four successors, the note row answering 1374 and not 1374(c), the
+"(See § 2 of Pub. L. 97-449.)" that is not a repeal); CORPUS tests run the
+table over the 797,170-row measured build, read by digest, and count how many
+of the 2,548 ``title_49_appendix_not_published`` rows it answers; and
+NEGATIVE tests break the verdict dataclasses on purpose, because the invariant
+is what stops a future edit from publishing a guess.
 """
 
 from __future__ import annotations
@@ -97,6 +79,8 @@ SNAPSHOT_DIGEST = "sha256:c5c4bd1f8b70fd52491f8b22e7bc72c75287cbbf3638692210fd16
 
 @cache
 def tables() -> UscDispositionTables:
+    """The pinned disposition tables, loaded from the repository root."""
+
     return UscDispositionTables.from_repository(ROOT)
 
 
@@ -153,6 +137,8 @@ def test_the_dash_table_is_the_grammars_verbatim() -> None:
 
 
 def test_a_subsection_query_is_read_the_way_a_citation_writes_one() -> None:
+    """Pins subsection normalization for bare, parenthesized, upper-case, nested, and empty forms."""
+
     assert normalize_subsection("d") == ("d",)
     assert normalize_subsection("(d)") == ("d",)
     assert normalize_subsection("(D)") == ("d",)
@@ -408,15 +394,12 @@ def test_a_subsection_the_table_does_not_resolve_falls_back_to_the_section() -> 
 def test_a_stated_pinpoint_narrows_and_the_bare_sibling_does_not() -> None:
     """``49 USC 1651(b)(2)`` (RIN 2120-AF10, 1995-10) against bare ``1651``.
 
-    The filer's two texts, side by side, from the visual review of 2026-08-23
-    (§ J rows 13 and 14). The 1994 volume prints ``1651(a), (b)(1) -> 101``
-    and ``1651(b)(2) -> 303`` as two rows, so the pinpointed citation has ONE
-    answer and the bare one has two — and before 2026-08-24 the build gave
-    both rows the same pair, because no pinpoint reached the table.
-
-    The bare sibling is the paired negative and matters as much: a narrowing
-    that also fired without a pinpoint would be picking one of two candidates,
-    which is the thing this module exists not to do.
+    The filer's two texts, from § J rows 13-14 of the 2026-08-23 review: the
+    volume prints ``1651(a), (b)(1) -> 101`` and ``1651(b)(2) -> 303`` as two
+    rows, so the pinpointed citation has ONE answer and the bare one has two.
+    The bare sibling is the paired negative: a narrowing that fired without a
+    pinpoint would be picking one of two candidates, the thing this module
+    exists not to do.
     """
 
     pinpointed = tables().disposition(49, "1651", "(b)(2)")
@@ -440,13 +423,11 @@ def test_a_stated_pinpoint_narrows_and_the_bare_sibling_does_not() -> None:
 def test_a_stated_span_is_asked_member_by_member_and_the_union_says_so() -> None:
     """``49 USC 1421 to 1431`` (RIN 2120-AE42, 1995-10), the review's § J row 11.
 
-    The parse captured the range end and the build published bare 1421's seven
-    successors as the range's answer. Eleven former sections are cited; the
-    volume prints all eleven; the answer is their union, and ``members`` keeps
-    each one's own so the union is never read as one section's.
-
-    The paired negative is the same section without the range: asking about
-    1421 alone must still answer about 1421 alone.
+    The build used to publish bare 1421's seven successors as the range's
+    answer; now all eleven printed members are asked and the answer is their
+    union, with ``members`` keeping each one's own so the union is never read
+    as one section's. The paired negative is the same section without the
+    range.
     """
 
     span = tables().disposition(49, "1421", section_end="1431")
@@ -481,11 +462,10 @@ def test_a_stated_span_is_asked_member_by_member_and_the_union_says_so() -> None
 def test_a_spans_members_are_the_volumes_own_keys_and_never_a_count() -> None:
     """``1 to 85`` is 84 former sections, not 85, and four of them are lettered.
 
-    The Interstate Commerce Act span the Agenda writes 143 times. Counting
-    from 1 to 85 would claim ``24``, ``28`` … which the 1994 volume does not
-    print, and would MISS ``1a``, ``5a``, ``15b``, ``26c`` — real former
-    sections that no integer walk reaches. Membership by order key takes the
-    printed keys and only those.
+    Counting integers would claim ``24``, ``28`` … which the 1994 volume does
+    not print and would miss ``1a``, ``5a``, ``15b``, ``26c``; membership by
+    order key takes the printed keys and only those, and a backwards or open
+    range is no span rather than a guess.
     """
 
     span = tables().disposition(49, "1", section_end="85")
@@ -519,10 +499,9 @@ def test_a_span_the_table_lists_nothing_inside_is_an_absence_as_wide_as_the_tabl
 def test_a_pinpoint_beside_a_span_narrows_the_member_it_is_written_on() -> None:
     """One citation's ``(a)`` is not ten sections' ``(a)``.
 
-    No row of the pinned corpus states both today, which is why the rule is
-    written down here rather than left to be discovered: the pinpoint follows
-    the START token in the filer's own text, so it narrows that member and
-    every other member answers whole.
+    No row of the pinned corpus states both today, so the rule is written
+    down: the pinpoint follows the START token in the filer's own text,
+    narrowing that member while every other member answers whole.
     """
 
     span = tables().disposition(49, "1421", "(a)", section_end="1423")
@@ -536,6 +515,8 @@ def test_a_pinpoint_beside_a_span_narrows_the_member_it_is_written_on() -> None:
 
 @cache
 def _by_section() -> dict[str, tuple[dict, ...]]:
+    """Index the derived table's rows by normalized former section."""
+
     grouped: dict[str, list[dict]] = {}
     for row in rows():
         grouped.setdefault(normalize_section(row["former_section"]), []).append(row)
@@ -547,6 +528,8 @@ def _by_section() -> dict[str, tuple[dict, ...]]:
 
 
 def _row(**overrides: object) -> DispositionRow:
+    """Build a valid DispositionRow, with overrides for the invariant tests."""
+
     base = {
         "former_section": "1432",
         "former_subsection": "(d)",
@@ -562,6 +545,8 @@ def _row(**overrides: object) -> DispositionRow:
 
 
 def _disposition(**overrides: object) -> Disposition:
+    """Build a valid Disposition, with overrides for the invariant tests."""
+
     base = {
         "former_title": 49,
         "former_section": "1432",
@@ -576,6 +561,8 @@ def _disposition(**overrides: object) -> Disposition:
 
 
 def test_a_successor_cannot_carry_a_status_that_denies_it() -> None:
+    """Pins that a successor cannot carry repealed or an undeclared status."""
+
     with pytest.raises(ValueError, match="cannot carry the status"):
         Successor(title=49, section="44914", subsection=None, status="repealed")
     with pytest.raises(ValueError, match="undeclared status"):
@@ -583,6 +570,8 @@ def test_a_successor_cannot_carry_a_status_that_denies_it() -> None:
 
 
 def test_a_row_names_a_successor_exactly_when_its_status_says_so() -> None:
+    """Pins that a row carries a successor exactly when its status says so."""
+
     with pytest.raises(ValueError, match="exactly when its status"):
         _row(successor=None)
     with pytest.raises(ValueError, match="exactly when its status"):
@@ -590,6 +579,8 @@ def test_a_row_names_a_successor_exactly_when_its_status_says_so() -> None:
 
 
 def test_a_verdict_cannot_be_undeclared_or_contradict_its_own_fields() -> None:
+    """Pins the closed verdict set and each verdict/field contradiction."""
+
     with pytest.raises(ValueError, match="undeclared verdict"):
         _disposition(verdict="recodified")
     with pytest.raises(ValueError, match="names its successors"):
@@ -613,10 +604,9 @@ def test_a_span_cannot_be_published_as_anything_but_its_members_union() -> None:
     """The three ways a span answer could lie, each raising.
 
     Members without a far end would let a one-section answer wear a union's
-    clothes; a member that is itself a span would let a breakdown nest until
-    nobody reads it; and successors that are not the members' own would let
-    the flattened list drift from the breakdown that is supposed to explain
-    it — which is the exact failure this whole change is about.
+    clothes; a member that is itself a span would nest the breakdown; and
+    successors that are not the members' own would let the flattened list
+    drift from the breakdown meant to explain it.
     """
 
     member = _disposition()
@@ -687,6 +677,8 @@ def unknown_rows() -> tuple[tuple, ...]:
 
 @cache
 def _answers() -> dict[str, Disposition]:
+    """The table's answer for each distinct former section in the pinned population."""
+
     return {section: tables().disposition(49, section) for _, _, _, _, _, section in unknown_rows()}
 
 
@@ -747,11 +739,9 @@ BY_EYE = (
 def test_ten_answered_rows_a_human_can_check_by_eye() -> None:
     """The filer's text beside the disposition, for the ten drawn at seed 20260823.
 
-    Row 6 is the one to read hardest: ``49 USC 1726`` in a **2011** filing, and
-    the table prints ``1714-1730 … Rep.`` — the filer was citing a numbering
-    that had been gone for seventeen years, which is the same finding § F row 10
-    made about ``1510`` and the reason a disposition verdict is worth more here
-    than a correction.
+    Row 6 is the one to read hardest: ``49 USC 1726`` in a **2011** filing
+    while the table prints ``1714-1730 … Rep.`` -- a numbering gone for
+    seventeen years, the same finding § F row 10 made about ``1510``.
     """
 
     answered = [row for row in unknown_rows() if _answers()[row[5]].answered]
@@ -769,11 +759,10 @@ def test_ten_answered_rows_a_human_can_check_by_eye() -> None:
 def test_every_section_where_the_table_gives_several_successors() -> None:
     """1,779 of the 2,548 rows. **Candidates, never an identity.**
 
-    This is the number that decides how the next cycle may publish: on 62 of
-    the 146 sections the table names more than one successor, so a consumer
-    that keyed a tag on "the" successor would be wrong on the majority of the
-    rows this table answers. The prose in ``former_text`` is what separates
-    them, and it is not machine-decidable from the citation alone.
+    On 62 of the 146 sections the table names more than one successor, so a
+    consumer keying a tag on "the" successor would be wrong on most rows the
+    table answers; the prose in ``former_text`` is what separates them and is
+    not machine-decidable from the citation alone.
     """
 
     several = {section for section, answer in _answers().items() if len(answer.successors) > 1}
@@ -826,9 +815,10 @@ HOLD_OUT = (
 def test_the_hold_out_is_named_row_by_row() -> None:
     """177 rows the table cannot answer, and why — never a bare shortfall.
 
-    A count of what a source does not cover is only useful with the specimens
-    beside it; without them "27 sections" reads as a gap in the table, and
-    reading them shows most of it is damage in the citation instead.
+    Without the specimens "27 sections" reads as a gap in the table; reading
+    them shows most of it is damage in the citation instead (CFR part numbers
+    in the U.S.C. slot, a Privacy Act citation under the wrong title,
+    descending ranges, a Statutes page read as a section).
     """
 
     held: dict[str, list] = {}

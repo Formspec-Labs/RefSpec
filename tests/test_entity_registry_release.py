@@ -34,6 +34,8 @@ _pins_present = all(path.is_file() for path in _UNTRACKED_PINS)
 
 
 def test_missing_pins_refuse_with_the_pin_path(tmp_path: Path) -> None:
+    """An absent pinned capture refuses naming the missing pin, not an empty registry."""
+
     with pytest.raises(EntityRegistryError, match="pinned source is missing"):
         build_entity_registry_payload(tmp_path)
 
@@ -43,6 +45,9 @@ def test_missing_pins_refuse_with_the_pin_path(tmp_path: Path) -> None:
     reason="registry real-data captures are pinned outside git; build them locally first",
 )
 def test_entity_registry_builds_verifies_and_refuses_tampering(tmp_path: Path) -> None:
+    """Pinned captures build four releases with six records and one relation, are byte-stable, and refuse tampered or
+    replacement writes."""
+
     sam = load_sam_registry_releases(REPO_ROOT)
     assert [release["key"] for release in sam] == [
         "sam-uei-bounded-public-entity-2026-08-03",

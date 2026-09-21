@@ -1,4 +1,9 @@
-"""Atlas 3 release tests for bulk FAST and EuroVoc publisher alignments."""
+"""Atlas 3 tests for bulk FAST and EuroVoc publisher-alignment releases.
+
+Pins the frozen FAST bulk-only delta, capture and endpoint accounting, warrant
+handling, EuroVoc-GEMET/MeSH pair counts and refusal lists, and the three
+population-refusal guards run over real cached sources.
+"""
 
 from __future__ import annotations
 
@@ -49,6 +54,8 @@ def see_also_endpoint():
 
 @pytest.mark.slow
 def test_group_topology_is_one_fast_delta_and_two_eurovoc_pairs(releases) -> None:
+    """Pin the three bulk release keys, their exact mapping counts, and subject/captureSubset scope."""
+
     assert set(releases) == adapters.BULK_REGISTRY_MAPPING_RELEASE_KEYS
     assert {key: len(release.mappings) for key, release in releases.items()} == {
         "eurovoc-gemet-alignment-20201218": 1_998,
@@ -61,6 +68,8 @@ def test_group_topology_is_one_fast_delta_and_two_eurovoc_pairs(releases) -> Non
 
 @pytest.mark.slow
 def test_fast_bulk_release_emits_only_the_frozen_nonoverlapping_delta(releases) -> None:
+    """Pin that only the 9 bulk-only relatedMatch claims are emitted, with full reconciliation accounting."""
+
     release = releases["fast-bulk-external-links-delta-2026-07-27"]
     triples = {(row.subject, row.predicate, row.object) for row in release.mappings}
 
@@ -100,6 +109,8 @@ def test_fast_bulk_release_emits_only_the_frozen_nonoverlapping_delta(releases) 
 
 @pytest.mark.slow
 def test_fast_bulk_release_records_complete_capture_refusals_and_endpoint_accounting(releases) -> None:
+    """Pin bulk-capture predicate counts, the two refused predicates, and endpoint accounting."""
+
     metadata = releases["fast-bulk-external-links-delta-2026-07-27"].metadata
 
     assert metadata["bulkCapture"]["assertionCount"] == 935_540
@@ -126,6 +137,8 @@ def test_fast_bulk_release_records_complete_capture_refusals_and_endpoint_accoun
 
 @pytest.mark.slow
 def test_fast_warrants_preserve_related_and_record_same_as_adoption(releases) -> None:
+    """Pin publisherAssertion for relatedMatch and an explicit operatorAdoption for schema:sameAs to exactMatch."""
+
     release = releases["fast-bulk-external-links-delta-2026-07-27"]
     for row in release.mappings:
         (evidence,) = row.evidence
@@ -157,6 +170,8 @@ def test_fast_warrants_preserve_related_and_record_same_as_adoption(releases) ->
 def test_fast_see_also_keeps_content_but_emits_no_unlicensed_semantic_relation(
     see_also_endpoint,
 ) -> None:
+    """Pin that rdfs:seeAlso endpoints stay content with zero emitted assertions and the frozen S27 digest."""
+
     assert len(see_also_endpoint.resources) == 45_929
     assert Counter(resource.status for resource in see_also_endpoint.resources) == {
         "deprecatedAlignmentEndpoint": 45_927,
@@ -196,6 +211,8 @@ def test_fast_see_also_keeps_content_but_emits_no_unlicensed_semantic_relation(
 
 @pytest.mark.slow
 def test_fast_release_records_the_rolling_source_pin_and_license(releases) -> None:
+    """Pin the rolling-source byte/digest pin, license metadata, and date-only retrieval precision."""
+
     metadata = releases["fast-bulk-external-links-delta-2026-07-27"].metadata
     assert metadata["licenseStatement"] == fast.FAST_EXTERNAL_LINKS_LICENSE_ARCHIVE_STATEMENT
     assert metadata["licenseUrl"] == fast.FAST_EXTERNAL_LINKS_LICENSE_URL
@@ -216,6 +233,8 @@ def test_fast_release_records_the_rolling_source_pin_and_license(releases) -> No
 
 @pytest.mark.slow
 def test_eurovoc_gemet_and_mesh_land_every_currently_held_pair(releases) -> None:
+    """Pin GEMET and MeSH exact/close counts, their release-IRI pairs, and the 37 refused GEMET claims."""
+
     gemet = releases["eurovoc-gemet-alignment-20201218"]
     mesh = releases["eurovoc-mesh-alignment-20171215"]
 
@@ -243,6 +262,8 @@ def test_eurovoc_gemet_and_mesh_land_every_currently_held_pair(releases) -> None
 
 @pytest.mark.slow
 def test_eurovoc_warrants_are_verbatim_publisher_assertions(releases) -> None:
+    """Pin every EuroVoc warrant as the verbatim publisher claim, with MeSH HTTP-to-HTTPS resolution recorded."""
+
     gemet = releases["eurovoc-gemet-alignment-20201218"]
     mesh = releases["eurovoc-mesh-alignment-20171215"]
 
@@ -276,6 +297,8 @@ def test_eurovoc_warrants_are_verbatim_publisher_assertions(releases) -> None:
 
 @pytest.mark.slow
 def test_eurovoc_releases_record_all_17_pins_counts_and_rights(releases) -> None:
+    """Pin the 17-pin portfolio capture, aggregate counts, and the no-license/third-party-exclusion rights record."""
+
     for key in ("eurovoc-gemet-alignment-20201218", "eurovoc-mesh-alignment-20171215"):
         metadata = releases[key].metadata
         assert metadata["licenseStatement"] == "publisher states no license"
@@ -314,6 +337,8 @@ def test_eurovoc_releases_record_all_17_pins_counts_and_rights(releases) -> None
 
 @pytest.mark.slow
 def test_releases_never_mint_inverse_or_transitive_claims(releases) -> None:
+    """Fail if the emitted triple set contains any reversed triple or duplicate claim."""
+
     all_triples = {
         (row.subject, row.predicate, row.object) for release in releases.values() for row in release.mappings
     }
@@ -323,6 +348,8 @@ def test_releases_never_mint_inverse_or_transitive_claims(releases) -> None:
 
 @pytest.mark.slow
 def test_mapping_inputs_pass_all_three_population_refusal_guards(releases, see_also_endpoint) -> None:
+    """Pin that mapping-endpoint and see-also releases pass the registrant, document, and inventory guards."""
+
     generator = _generator_module()
     for release in releases.values():
         endpoints = {iri for row in release.mappings for iri in (row.subject, row.object)}
@@ -354,6 +381,8 @@ def test_mapping_inputs_pass_all_three_population_refusal_guards(releases, see_a
 
 @pytest.mark.slow
 def test_identifier_authority_tripwire_stays_empty(releases, see_also_endpoint) -> None:
+    """Pin that no bulk release mints identifier-authority payloads or resource identifiers."""
+
     for release in releases.values():
         assert release.metadata["sourceIdentifierCount"] == 0
         for row in release.mappings:
@@ -365,6 +394,8 @@ def test_identifier_authority_tripwire_stays_empty(releases, see_also_endpoint) 
 
 
 def test_group_loader_refuses_unknown_keys_without_opening_sources() -> None:
+    """Pin that an unknown only_keys value raises before any source is opened."""
+
     with pytest.raises(ValueError, match="does not know release keys"):
         adapters.load_all_registry_bulk_mapping_releases(
             ROOT,

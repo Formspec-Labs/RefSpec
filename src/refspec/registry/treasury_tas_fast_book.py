@@ -1,43 +1,26 @@
 """Treasury Account Symbol component structure and FAST Book edition capture.
 
-The Bureau of the Fiscal Service documents the Treasury Account Symbol (TAS)
-as eight named component fields ("Component TAS format") on its Central
-Accounting Reporting System (CARS) page, and documents the Federal Account
-Symbols and Titles (FAST) Book as three parts -- receipt accounts (Part I),
-appropriation and other fund accounts (Part II), and foreign currency
-accounts (Part III) -- each arranged within a documented set of fund groups,
-on its "Description of Contents" page. Neither page publishes a machine
-readable code list or a stable release identifier; each instead carries only
-a "Last Updated" date, which this module treats as that page's edition.
-
-This module captures those two pages and Treasury's official Part II and III
-Excel workbook.  It parses every published workbook account row while
-retaining Treasury's own TAS string as the account identifier.  Part I remains
-a formatted PDF and is outside the workbook reader.  It never mints concept
-identity for an account title: the rows are fiscal account metadata and the
-identifier is Treasury's published value.
-
-The workbook's own ``Intro Part II`` sheet publishes a finer fund-group
-statement than the Description of Contents page: the table headed
-"EXPENDITURE ACCOUNT SYMBOLS BY FUND GROUP" states eight named groups with
-their main-account symbol ranges, and ``Intro Part III`` states the foreign
-currency group with its 7000-7999 range. ``parse_fast_book_fund_groups``
-reads those sheets from the exact pinned bytes. ``PART_FUND_GROUPS`` below
-remains the hand transcription of the *Description of Contents page's*
-coarser five-group Part II phrasing; the two are different publisher
-statements from different publisher artifacts and are both retained -- the
-transcription is never extended to stand in for the parsed sheet.
-
-fiscal.treasury.gov pages embed per-request Akamai/Boomerang analytics
-tokens (request IDs, timestamps) directly in the page body, so two live
-captures of the identical logical page do not share one stable digest. This
-module therefore pins each capture's own observed digest for cache and
-local-file integrity, the same way every other registry acquisition module
-does, rather than asserting one eternal "the" official page hash.
-
-Live retrieval is provider-independent. Callers inject a fetcher or provide
-an already captured local file. Importing this module never opens a network
-connection.
+Treasury's CARS page documents the TAS as eight named component fields
+("Component TAS format") and its "Description of Contents" page documents the
+FAST Book as three parts -- receipt accounts, appropriation and other fund
+accounts, and foreign currency accounts -- arranged in fund groups, but neither
+publishes a machine-readable code list or a stable release identifier, only a
+"Last Updated" date that this module treats as that page's edition; so it
+captures both pages plus Treasury's official Part II and III Excel workbook,
+parses every published workbook account row while retaining Treasury's own TAS
+string as the account identifier, leaves Part I (a formatted PDF) outside the
+workbook reader, and never mints concept identity for an account title. The
+workbook's own ``Intro Part II`` sheet states a finer fund-group table (eight
+named groups with their main-account symbol ranges, plus the foreign currency
+group in ``Intro Part III``) than the Description of Contents page's coarser
+five-group Part II phrasing, and both are retained: ``PART_FUND_GROUPS`` stays
+the hand transcription of the page and is never extended to stand in for the
+parsed sheet. fiscal.treasury.gov pages embed per-request Akamai/Boomerang
+analytics tokens in the body, so two live captures of the identical logical
+page do not share one stable digest; each capture's own observed digest is
+pinned for cache and local-file integrity rather than one eternal official page
+hash, and live retrieval is provider-independent with importing never opening a
+network connection.
 """
 
 from __future__ import annotations
@@ -1007,14 +990,13 @@ def parse_fast_book_fund_groups(
 ) -> ParsedFASTBookFundGroups:
     """Parse the fund-group tables both workbook Intro sheets publish.
 
-    ``Intro Part II`` carries the table headed "EXPENDITURE ACCOUNT SYMBOLS
-    BY FUND GROUP": one row per fund group, name in column A and the
-    main-account symbol range in column B (one group states two ranges,
-    joined by the publisher's own " and "). ``Intro Part III`` publishes no
-    such heading; its single fund-group row is the one row carrying a
-    range-shaped column-B cell. Every name and range is the sheet's own
-    text; nothing is transcribed from any other publisher page, and any
-    structural drift fails closed.
+    ``Intro Part II`` carries the table headed "EXPENDITURE ACCOUNT SYMBOLS BY
+    FUND GROUP": one row per fund group, name in column A and the main-account
+    symbol range in column B (one group states two ranges joined by the
+    publisher's own " and "). ``Intro Part III`` publishes no such heading, and
+    its single fund-group row is the one row carrying a range-shaped column-B
+    cell. Every name and range is the sheet's own text -- nothing transcribed
+    from another publisher page -- and any structural drift fails closed.
     """
 
     workbook, digest, byte_length = _load_verified_workbook(source_path, pin)
@@ -1223,11 +1205,11 @@ def tas_identifier(
 ) -> ControlledIdentifier:
     """Build a capture-local, order-preserving identifier for one TAS.
 
-    The returned value is a RefSpec-local dot-joined encoding of the eight
-    Component TAS fields, in their documented order, with an absent field
-    left blank between two dots. It is not a Treasury-published display
-    string: Treasury's own systems render a TAS differently depending on the
-    reporting context, and no single canonical string format was found.
+    The value is a RefSpec-local dot-joined encoding of the eight Component
+    TAS fields in their documented order, with an absent field left blank
+    between two dots; it is not a Treasury-published display string, because
+    Treasury renders a TAS differently by reporting context and no single
+    canonical string format was found.
     """
 
     value = ".".join(

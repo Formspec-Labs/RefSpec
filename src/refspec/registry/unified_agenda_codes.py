@@ -213,6 +213,8 @@ class UASourceDocument:
     filename: str
 
     def __post_init__(self) -> None:
+        """Refuse a non-official URL, credentials, or a multi-component filename."""
+
         parsed = urlsplit(self.source_url)
         if parsed.scheme != "https" or parsed.hostname != "www.reginfo.gov":
             raise UnifiedAgendaAcquisitionError("source_url must be an official HTTPS www.reginfo.gov URL")
@@ -244,6 +246,8 @@ class UASnapshotPin:
     expected_byte_length: int
 
     def __post_init__(self) -> None:
+        """Refuse a malformed digest, non-positive length, or empty retrieval time."""
+
         if _DIGEST.fullmatch(self.expected_sha256) is None:
             raise UnifiedAgendaAcquisitionError("expected_sha256 must be a lowercase sha256:<64 hex> digest")
         if self.expected_byte_length <= 0:
@@ -411,6 +415,8 @@ def sha256_digest(payload: bytes) -> str:
 
 
 def _validate_resolved_url(value: str) -> None:
+    """Refuse a resolved URL that left official HTTPS www.reginfo.gov."""
+
     parsed = urlsplit(value)
     if parsed.scheme != "https" or parsed.hostname != "www.reginfo.gov":
         raise UnifiedAgendaAcquisitionError("fetcher resolved_url must remain on official HTTPS www.reginfo.gov")
@@ -419,6 +425,8 @@ def _validate_resolved_url(value: str) -> None:
 
 
 def _verify_payload(payload: bytes, pin: UASnapshotPin, *, location: str) -> tuple[str, int]:
+    """Refuse a payload whose byte length or digest differs from the pin."""
+
     byte_length = len(payload)
     if byte_length != pin.expected_byte_length:
         raise UnifiedAgendaSourceDriftError(
@@ -433,10 +441,14 @@ def _verify_payload(payload: bytes, pin: UASnapshotPin, *, location: str) -> tup
 
 
 def _default_content_type(document_kind: DocumentKind) -> str:
+    """The default content type for one documented document kind."""
+
     return "application/pdf" if document_kind == "riscPreamble" else "application/xml"
 
 
 def _verify_existing(path: Path, pin: UASnapshotPin) -> AcquiredUADocument:
+    """Re-verify one cached reginfo.gov object and return its acquisition record."""
+
     if path.is_symlink() or not path.is_file():
         raise UnifiedAgendaAcquisitionError(f"content-addressed target is not a regular file: {path}")
     actual_sha256, byte_length = _verify_payload(
@@ -468,6 +480,8 @@ def _publish_payload(
     resolved_url: str | None,
     local_source_path: Path | None,
 ) -> AcquiredUADocument:
+    """Publish verified reginfo.gov bytes by hard link, falling back to a verified existing object."""
+
     actual_sha256, byte_length = _verify_payload(
         payload,
         pin,
@@ -571,6 +585,8 @@ def acquire_unified_agenda_document(
 
 
 def _find_documentation(root: ET.Element, container_type: str, element_name: str) -> str:
+    """Read one element's ``xs:documentation`` text, refusing a missing type or element."""
+
     complex_type = root.find(f"./{_XS_NS}complexType[@name='{container_type}']")
     if complex_type is None:
         raise UnifiedAgendaSourceDriftError(f"reginfo schema no longer defines complexType {container_type!r}")
@@ -584,6 +600,8 @@ def _find_documentation(root: ET.Element, container_type: str, element_name: str
 
 
 def _parse_documented_options(text: str, *, quoted: bool, field_name: str) -> tuple[str, ...]:
+    """Parse one 'One of the following' option list, refusing documentation that no longer states it."""
+
     match = _OPTION_LIST.match(text.strip())
     if match is None:
         raise UnifiedAgendaSourceDriftError(
@@ -614,6 +632,8 @@ def _controlled_field(
     documentation: str,
     source_element_name: str,
 ) -> UAControlledFieldValues:
+    """Build one field's distinct documented values and identifiers."""
+
     # Fold literal duplicates (a documented publisher typo, see UA_PORTFOLIO_GAPS)
     # into one value while preserving first-seen order and the raw count.
     distinct = tuple(dict.fromkeys(raw_values))
@@ -901,6 +921,8 @@ def _assignment(
     value: str,
     identifiers_by_value: Mapping[str, ControlledIdentifier],
 ) -> UAControlledValueAssignment:
+    """Resolve one record value to its controlled identifier, refusing an unknown value."""
+
     identifier = identifiers_by_value.get(value)
     if identifier is None:
         raise UnifiedAgendaAssignmentError(f"{source_field} has unknown value {value!r}")

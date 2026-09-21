@@ -1,79 +1,18 @@
 """Derived ``skos:broader`` edges for Federal Register compound headings.
 
-The Office of the Federal Register's 2025 thesaurus
-(``federal-register-thesaurus-2025``, 705 official indexing terms) is a
-deliberately flat vocabulary: it publishes 1,451 ``skos:related``
-references and zero broader/narrower statements of any kind (the 2025
-revision expressly removed the 1995 broad document categories; see
-``refspec.registry.federal_register_thesaurus_2025``). But its own term
-list is full of compound headings whose head segment -- the text before
-the first hyphen -- is itself an official term of the same release:
-``Grant programs-agriculture`` under ``Grant programs``,
-``Loan programs-veterans`` under ``Loan programs``. Reading a compound
-heading's broader term as its head segment, where that head is an
-authorized preferred term of the same release, is a structural
-projection of the publisher's own term list, not an invention -- but it
-is still RefSpec's act, not OFR's assertion of ``skos:broader``, so
-under REF-035 tier E5 it belongs only in the derived graph, admitted
-per-rule by the binding's rule registry (REF-042 in
-``docs/decisions.md``).
-
-**Verified against the real pinned 2025 release**
-(``sha256:66dd28fff5defedfb151d04dc4ef255181085cce76618cb10c9372db6540810f``,
-1,051,423 bytes, 705 official terms, 1,451 resolved ``skos:related``
-references; preferred-label texts re-verified byte-identical against the
-real distribution pack's asserted N-Quads):
-
-* 56 preferred labels contain a hyphen.
-* 48 of those have a head segment that is itself one of the 705
-  preferred labels (19 under ``Grant programs``, 9 under ``Indians``, 14
-  under ``Loan programs``, 6 under ``Public lands``).
-* The remaining 8 are hyphenated *words*, not compound subjects:
-  ``X-rays``, ``Truth-in-lending``, ``Truth-in-savings``,
-  ``Rights-of-way``, ``Over-the-counter drugs``,
-  ``Government-sponsored enterprises``, ``Human cells and tissue-based
-  products``, ``Old-age, Survivors and Disability Insurance``. Their
-  head segments (``X``, ``Truth``, ``Old``, ...) are not preferred
-  terms, so they exclude themselves: the rule admits an edge only where
-  the head resolves to a preferred label in the same scheme, and there
-  is no hand-maintained denylist anywhere. That self-exclusion is the
-  running check -- the tests pin all 8 by name and prove the converse
-  (mint a ``X`` term and ``X-rays`` immediately derives its edge).
-* No head segment resolves only to an alternate label (``skos:altLabel``
-  text never admits an edge), no admitted head is itself hyphenated,
-  and no two resources share a preferred-label text in this release.
-
-This module follows the :mod:`refspec.atlas.derived_graph` machinery
-(REF-042's MeSH tree-number rule is the worked template): it reads the
-same canonical asserted N-Quads lines the shared collectors read, cites
-each edge's two terms' ``SourceRecord`` IRIs as evidence
-(``EVIDENCE_INPUT_SOURCE_RECORD`` -- a preferred label is a
-resource-level fact, not a relation assertion), and mints rows through
-:func:`build_derived_row` so identity and input digests match the
-binding's formulas exactly.
-
-**Scope.** The MeSH rule shipped scheme-blind and an adversarial review
-caught it; this rule is scoped from birth. The label collector keeps
-only resources whose ``atlas:inScheme`` is the Federal Register
-thesaurus scheme, and the head must resolve within that same map, so a
-``Grant programs`` resource in any other vocabulary can never admit a
-Federal Register compound. The binding's row validator and replay must
-require the same scheme (see the copy-ready admission entry this
-module's report carries).
-
-**One contract deviation, deliberate.** The shared
-``AssertedFactView`` collects notations, schemes, records, and rings --
-not labels, which live behind SKOS-XL ``prefLabel``/``literalForm``
-links. Rather than widen the shared collector for one rule, this module
-collects its own label view
-(:func:`collect_fr_preferred_labels`) over the same lines, and its
-derivation entry points take that view as a second argument next to the
-shared ``DerivationContext``. Nothing dispatches
-``DerivationRule.derive``/``evidence_nodes`` generically today (the
-producer wiring calls each rule's module functions directly, exactly as
-it calls the MeSH rule's with its own extra ``asserted_relations``
-argument); should label-shaped facts earn a shared field later, the
-second argument collapses into the context and this note goes away.
+The flat 2025 OFR thesaurus (705 preferred terms, 1,451 ``skos:related``, no
+broader/narrower statements) still names compound headings whose head segment
+-- the text before the first hyphen -- is another preferred term of the same
+scheme; this rule derives that edge as RefSpec's own structural projection,
+not an OFR assertion, so it lands only in the derived graph (REF-035 tier E5,
+admitted by REF-042's rule registry). An edge is admitted only where the head
+resolves to a preferred label of a *different* resource in that same scheme;
+alternate labels never admit one, an ambiguous preferred-label text is refused
+outright, and there is no denylist. It cites each edge's two terms'
+``SourceRecord`` IRIs as evidence and mints rows through
+:func:`build_derived_row`, and it passes its own collected label view
+(:func:`collect_fr_preferred_labels`) as a second argument beside the shared
+``DerivationContext`` because ``AssertedFactView`` carries no labels.
 """
 
 from __future__ import annotations
@@ -145,22 +84,14 @@ def compound_head(label: str) -> str:
 def resolve_compound_heading_edges_from_labels(
     preferred_labels_by_resource: Mapping[str, str],
 ) -> tuple[tuple[tuple[str, str], ...], FrCompoundHeadingCounts]:
-    """Resolve every compound heading to its head resource, or count why not.
+    """Resolve compound/head pairs and reconciling counts; refuse an ambiguous head label.
 
-    The one pure algorithm both the asserted-fact-view path
-    (:func:`_resolve_edge_pairs`, reading a real spooled N-Quads pass)
-    and the producer's prebuild count (reading in-memory release
-    resources before any spool exists) delegate to, so the row count the
-    prebuild receipt commits to and the row set the streamed build emits
-    can never independently drift.
-
-    An edge is admitted only where the compound's head segment is the
-    preferred label of a *different* resource in the same mapping --
-    which the caller has already scoped to one scheme. There is no
-    denylist: a hyphenated label whose head is not a preferred term
-    simply never resolves, and is counted as self-excluded. Refuses
-    outright when two resources share one preferred-label text, because
-    an ambiguous head must never be guessed an owner.
+    The one pure algorithm behind both the spooled N-Quads path and the
+    producer's in-memory prebuild count, so the committed row count and the
+    emitted row set cannot drift. An edge needs a *different* resource whose
+    preferred label is the head segment; a hyphenated label whose head never
+    resolves counts as self-excluded, never denied, and two resources sharing
+    one preferred-label text are refused outright.
     """
 
     resource_by_text: dict[str, str] = {}
@@ -194,19 +125,14 @@ def collect_fr_preferred_labels(
     lines: Iterable[str],
     facts: AssertedFactView,
 ) -> dict[str, str]:
-    """Read every Federal Register preferred label from asserted N-Quads lines.
+    """Read in-scheme Federal Register preferred labels from asserted N-Quads lines.
 
-    One pass over the same canonical lines the shared fact view read,
-    keeping only ``skosxl:prefLabel`` links whose subject's
-    ``atlas:inScheme`` is the Federal Register thesaurus scheme, and the
-    ``skosxl:literalForm`` text of the label nodes they point at.
-    Alternate labels are collected only to be ignored -- a head that
-    resolves to nothing but an altLabel admits no edge. For every
-    in-scheme resource that carries a preferred label, the label facts
-    must be unambiguous: exactly one ``prefLabel`` link, exactly one
-    literal form on its label node, non-empty trimmed text. A resource
-    with no preferred label at all (the scheme's own AtlasRelease node,
-    for one) is not this rule's population and passes through unheard.
+    One pass over the same canonical lines the shared fact view read, keeping
+    only ``skosxl:prefLabel`` links whose subject's ``atlas:inScheme`` is the
+    Federal Register thesaurus scheme, plus the ``skosxl:literalForm`` text of
+    the label nodes they point at. Alternate labels are collected only to be
+    ignored; each in-scheme resource must carry exactly one preferred-label
+    link with one literal form and non-empty trimmed text, or the read refuses.
     """
 
     literal_forms: dict[str, str] = {}
@@ -307,16 +233,11 @@ def derive_fr_compound_heading_broader_rows(
     """Derive every Federal Register compound-heading ``skos:broader`` row.
 
     ``preferred_labels`` is this module's own label view
-    (:func:`collect_fr_preferred_labels`) -- see the module docstring
-    for why it travels beside the shared context rather than inside it.
-    ``asserted_relations`` carries already-asserted (subject IRI,
-    predicate IRI, object IRI) triples; a derived edge that would
-    duplicate one -- or its ``skos:narrower`` inverse -- is refused,
-    never silently dropped. ``federal-register-thesaurus-2025`` asserts
-    zero hierarchical relations today, so a synthetic collision in the
-    tests exercises this; the real-data test threads the release's own
-    1,451 ``skos:related`` assertions through to prove none of them
-    collide with the 48 derived edges.
+    (:func:`collect_fr_preferred_labels`); ``asserted_relations`` carries
+    already-asserted (subject IRI, predicate IRI, object IRI) triples, and a
+    derived edge duplicating one or its ``skos:narrower`` inverse is refused,
+    never silently dropped. Endpoints outside the subject ring and terms with
+    no source record to cite as evidence are refused the same way.
     """
 
     facts = context.facts
@@ -397,15 +318,14 @@ def _escape_literal(text: str) -> str:
 
 
 def build_fr_thesaurus_asserted_nquads_lines(release: object) -> tuple[str, ...]:
-    """Project one Federal Register thesaurus release into the asserted facts this rule reads.
+    """Project one Federal Register thesaurus release into the asserted N-Quads this rule reads.
 
-    Emits scheme membership, semantic ring, one synthetic ``SourceRecord``
-    per term, and SKOS-XL label nodes for every preferred and alternate
-    label (alternates included on purpose: the rule must keep deriving
-    exactly its 48 edges over a graph that carries all 433 of them),
-    using the shapes a real asserted spool carries. Label-node IRIs are
-    synthetic content-derived digests -- stable and unique per label,
-    which is all evidence citation and joining need.
+    Emits scheme membership, semantic ring, one synthetic ``SourceRecord`` per
+    term, and SKOS-XL label nodes for every preferred and alternate label
+    (alternates included on purpose, so the rule must derive its edges over a
+    graph carrying all of them); label-node IRIs are synthetic content-derived
+    digests, stable and unique per label. Refuses a release whose scheme is
+    not the Federal Register thesaurus or whose ring is not subject.
     """
 
     if release.scheme_iri != FR_THESAURUS_SCHEME_IRI:  # type: ignore[attr-defined]

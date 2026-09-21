@@ -1,4 +1,9 @@
-"""Official GovInfo collection code and eCFR structural value capture tests."""
+"""GovInfo collection codes and eCFR structural values: pinned capture, cross-validation and packaging.
+
+The portfolio cross-checks the CFR package summary against the collection
+codes and eCFR title numbers, retains PREMIS SHA-256 fixity, and records its
+coverage gaps; holdings counts stay in the raw capture (REF-032).
+"""
 
 from __future__ import annotations
 
@@ -22,10 +27,14 @@ def _acquire(
     pin: gc.GovInfoSnapshotPin,
     source_path: Path,
 ) -> gc.AcquiredGovInfoSource:
+    """Acquire one pinned GovInfo source from a local fixture."""
+
     return gc.acquire_govinfo_source(pin, tmp_path, source_path=source_path)
 
 
 def _portfolio(tmp_path: Path) -> gc.GovInfoControlPortfolio:
+    """Parse and assemble the four pinned resources into one portfolio."""
+
     collections = gc.parse_govinfo_collections(
         _acquire(tmp_path, gc.GOVINFO_COLLECTIONS_2026_08_03, COLLECTIONS_FIXTURE)
     )
@@ -41,6 +50,8 @@ def _portfolio(tmp_path: Path) -> gc.GovInfoControlPortfolio:
 
 
 def test_live_snapshot_pins_match_exact_captured_bytes() -> None:
+    """All four fixtures match their pinned byte lengths and SHA-256 digests."""
+
     collections = COLLECTIONS_FIXTURE.read_bytes()
     titles = TITLES_FIXTURE.read_bytes()
     summary = PACKAGE_SUMMARY_FIXTURE.read_bytes()
@@ -59,6 +70,8 @@ def test_live_snapshot_pins_match_exact_captured_bytes() -> None:
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
     tmp_path: Path,
 ) -> None:
+    """A local capture lands content-addressed and a cache hit is re-digested, not trusted."""
+
     pin = gc.GOVINFO_COLLECTIONS_2026_08_03
 
     acquired = _acquire(tmp_path, pin, COLLECTIONS_FIXTURE)
@@ -73,6 +86,8 @@ def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
 
 
 def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) -> None:
+    """The injected fetcher is called once for the pinned URL with the caller's timeout."""
+
     payload = TITLES_FIXTURE.read_bytes()
     calls: list[tuple[str, float]] = []
 
@@ -103,6 +118,8 @@ def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) ->
 
 
 def test_fetcher_resolved_url_must_stay_on_the_official_host(tmp_path: Path) -> None:
+    """A fetcher result that resolved to a non-official host is refused."""
+
     payload = COLLECTIONS_FIXTURE.read_bytes()
 
     class RedirectingFetcher:
@@ -131,6 +148,8 @@ def test_fetcher_resolved_url_must_stay_on_the_official_host(tmp_path: Path) -> 
 def test_govinfo_collection_codes_are_deterministic_metadata_not_general_subject_concepts(
     tmp_path: Path,
 ) -> None:
+    """The 42 collection codes carry publisher identity and no live holdings counts, and are never subject concepts."""
+
     resource = gc.parse_govinfo_collections(_acquire(tmp_path, gc.GOVINFO_COLLECTIONS_2026_08_03, COLLECTIONS_FIXTURE))
 
     assert len(resource.collections) == 42
@@ -151,6 +170,8 @@ def test_govinfo_collection_codes_are_deterministic_metadata_not_general_subject
 def test_ecfr_cfr_titles_retain_version_fields_and_reserved_flag_not_subjects(
     tmp_path: Path,
 ) -> None:
+    """All 50 eCFR titles keep as-of dates and the reserved flag; reserved titles have null amendment fields."""
+
     resource = gc.parse_ecfr_cfr_titles(_acquire(tmp_path, gc.ECFR_CFR_TITLES_2026_08_03, TITLES_FIXTURE))
 
     assert len(resource.titles) == 50
@@ -172,6 +193,8 @@ def test_ecfr_cfr_titles_retain_version_fields_and_reserved_flag_not_subjects(
 def test_govinfo_cfr_package_summary_retains_identity_and_version_fields(
     tmp_path: Path,
 ) -> None:
+    """The CFR package summary keeps its identity, version fields and six download links."""
+
     summary = gc.parse_govinfo_cfr_package_summary(
         _acquire(tmp_path, gc.GOVINFO_CFR_PACKAGE_SUMMARY_2026_08_03, PACKAGE_SUMMARY_FIXTURE)
     )
@@ -198,6 +221,8 @@ def test_govinfo_cfr_package_summary_retains_identity_and_version_fields(
 def test_govinfo_cfr_package_fixity_retains_premis_sha256_digests(
     tmp_path: Path,
 ) -> None:
+    """Both PREMIS fixity records keep their SHA-256 digests and content-location URIs."""
+
     fixity = gc.parse_govinfo_cfr_package_fixity(
         _acquire(tmp_path, gc.GOVINFO_CFR_PACKAGE_PREMIS_2026_08_03, PACKAGE_PREMIS_FIXTURE),
         expected_package_id=gc.GOVINFO_CFR_PACKAGE_ID,
@@ -220,6 +245,8 @@ def test_govinfo_cfr_package_fixity_retains_premis_sha256_digests(
 def test_portfolio_cross_validates_package_against_collections_and_titles(
     tmp_path: Path,
 ) -> None:
+    """The portfolio cross-validates the package against collections and titles and records its coverage gaps."""
+
     portfolio = _portfolio(tmp_path)
 
     assert portfolio.cfr_hierarchy_level_types == (
@@ -241,6 +268,8 @@ def test_portfolio_cross_validates_package_against_collections_and_titles(
 
 
 def test_validators_resolve_known_codes_and_titles(tmp_path: Path) -> None:
+    """The CFR collection code and title 1 resolve to their published names."""
+
     portfolio = _portfolio(tmp_path)
 
     collection = gc.validate_collection_code("CFR", portfolio)
@@ -250,6 +279,8 @@ def test_validators_resolve_known_codes_and_titles(tmp_path: Path) -> None:
 
 
 def test_unknown_collection_or_title_reference_fails_closed(tmp_path: Path) -> None:
+    """An unknown collection code or title number is refused."""
+
     portfolio = _portfolio(tmp_path)
 
     with pytest.raises(gc.GovInfoAssignmentError, match="unknown GovInfo collection code"):
@@ -261,6 +292,9 @@ def test_unknown_collection_or_title_reference_fails_closed(tmp_path: Path) -> N
 def test_assembly_fails_closed_when_package_references_unknown_collection_or_title(
     tmp_path: Path,
 ) -> None:
+    """Assembly refuses an unknown collection code, unknown title number, or a fixity package that differs from the
+    summary."""
+
     collections = gc.parse_govinfo_collections(
         _acquire(tmp_path, gc.GOVINFO_COLLECTIONS_2026_08_03, COLLECTIONS_FIXTURE)
     )
@@ -299,6 +333,8 @@ def test_assembly_fails_closed_when_package_references_unknown_collection_or_tit
 def test_digest_or_unknown_shape_drift_never_becomes_a_parsed_resource(
     tmp_path: Path,
 ) -> None:
+    """Byte tampering raises digest drift and a record missing required fields is refused."""
+
     payload = COLLECTIONS_FIXTURE.read_bytes()
     changed = payload.replace(b'"Annual Reports"', b'"Annual Reportz"')
     assert len(changed) == len(payload)
@@ -347,6 +383,8 @@ def test_digest_or_unknown_shape_drift_never_becomes_a_parsed_resource(
 def test_parser_rejects_malformed_collection_code_and_fixity_digest(
     tmp_path: Path,
 ) -> None:
+    """A lowercase collection code and a non-hex PREMIS digest are each refused."""
+
     bad_code_payload = (
         b'{"collections":[{"collectionCode":"cfr","collectionName":"x","packageCount":1,"granuleCount":null}]}'
     )
@@ -384,6 +422,9 @@ def test_parser_rejects_malformed_collection_code_and_fixity_digest(
 def test_collection_codes_bundle_builds_a_deterministic_closed_package(
     tmp_path: Path,
 ) -> None:
+    """The collections package is byte-deterministic, closed, claims no concept identity, and round-trips 42
+    observations."""
+
     bundle_one = gc.build_govinfo_collections_package(COLLECTIONS_FIXTURE)
     bundle_two = gc.build_govinfo_collections_package(COLLECTIONS_FIXTURE)
 

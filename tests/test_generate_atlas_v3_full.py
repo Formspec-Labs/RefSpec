@@ -1,3 +1,5 @@
+"""Pin the full Atlas 3.1 generator: pack planning, compiled-producer validation, accounting, and streaming refusals."""
+
 from __future__ import annotations
 
 import dataclasses
@@ -41,6 +43,8 @@ _TEST_CREATED_AT = generator._release_instant("2026-08-06")
 
 
 def test_status_reporter_rate_limits_progress_and_keeps_phase_boundaries() -> None:
+    """Pin the build status reporter's phase line and its 15s progress interval."""
+
     ticks = iter((100.0, 100.0, 101.0, 116.0, 117.0))
     stream = io.StringIO()
     reporter = generator._StatusReporter(
@@ -64,6 +68,8 @@ def test_status_reporter_rate_limits_progress_and_keeps_phase_boundaries() -> No
 
 
 def test_status_reporter_records_portable_peak_rss_receipts() -> None:
+    """Pin the portable getrusage peak-RSS receipt and its per-phase high-water marks."""
+
     ticks = iter((10.0, 11.0, 12.0))
     reporter = generator._StatusReporter(
         enabled=False,
@@ -94,6 +100,8 @@ def test_status_reporter_records_portable_peak_rss_receipts() -> None:
 def _compiled_test_report(
     graphs: generator.BuildGraphs,
 ) -> dict[str, object]:
+    """Build a compiled-producer validation report for the test graphs."""
+
     if isinstance(graphs.asserted, generator._MutationTrackedGraph):
         graphs.sealed_asserted_revision = graphs.asserted.revision
     return {
@@ -108,6 +116,8 @@ def _compiled_test_report(
 
 
 def _compiled_test_accounting() -> dict[str, object]:
+    """Return a minimal identified source-accounting ledger for tests."""
+
     return generator._identified_source_accounting(
         {
             "inputs": [
@@ -132,6 +142,8 @@ def _compiled_test_accounting() -> dict[str, object]:
 
 
 def _test_release_plan() -> generator.ReleasePackPlan:
+    """Return a zero-resource release pack plan for tests."""
+
     return generator.ReleasePackPlan(
         key="unit-test-release",
         source_release_iri="urn:test:source-release",
@@ -142,6 +154,8 @@ def _test_release_plan() -> generator.ReleasePackPlan:
 
 
 def _test_construction_seed() -> generator.ReleaseConstructionSeed:
+    """Return a construction seed pinned to this checkout's adapter file."""
+
     adapter_path = ROOT / "src" / "refspec" / "atlas" / "v3_source_data.py"
     return generator.ReleaseConstructionSeed(
         key="unit-test-release",
@@ -170,6 +184,8 @@ def _test_construction_seed() -> generator.ReleaseConstructionSeed:
 
 
 def test_release_pack_paths_are_readable_safe_and_deterministic() -> None:
+    """Pin that a release key tokenizes into a readable, filesystem-safe pack path."""
+
     release = generator.ReleasePackPlan(
         key="gemet-4.2.3",
         source_release_iri="urn:test:source-release:gemet",
@@ -182,6 +198,8 @@ def test_release_pack_paths_are_readable_safe_and_deterministic() -> None:
 
 
 def test_release_pack_path_collisions_fail_before_graph_construction() -> None:
+    """Pin refusal when two release keys collide after safe pack-path tokenization."""
+
     first = SimpleNamespace(
         spec=SimpleNamespace(key="gemet-4.2", ring="subject"),
         source_release_iri="urn:test:source-release:one",
@@ -203,6 +221,8 @@ def test_same_release_cross_partition_reference_pins_target_pack(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that a cross-partition reference in one large release declares its target pack as a dependency."""
+
     release = generator.ReleasePackPlan(
         key="same-release",
         source_release_iri="urn:test:source-release:same",
@@ -277,6 +297,8 @@ def test_candidate_binds_compiled_proof_before_releasing_graphs(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    """Pin that the compiled proof is checked before the candidate releases its graphs."""
+
     graphs = _receipted_test_graphs()
 
     events: list[str] = []
@@ -396,6 +418,8 @@ def test_a_binding_edited_under_a_running_build_is_refused(tmp_path: Path) -> No
 
 
 def test_pack_write_receipt_matches_both_exact_byte_forms(tmp_path: Path) -> None:
+    """Pin that a compressed pack's receipt covers both content and stored transport bytes."""
+
     content = (
         b"<urn:test:a> <urn:test:p> <urn:test:o> <urn:test:graph> .\n"
         b"<urn:test:b> <urn:test:p> <urn:test:o> <urn:test:graph> .\n"
@@ -419,6 +443,8 @@ def test_pack_write_receipt_matches_both_exact_byte_forms(tmp_path: Path) -> Non
 
 
 def _receipted_test_graphs() -> generator.BuildGraphs:
+    """Return a minimal valid build-graph set with its receipts."""
+
     asserted = generator._new_build_graph()
     asserted.add(
         (
@@ -457,6 +483,8 @@ def _receipted_test_graphs() -> generator.BuildGraphs:
 
 
 def _write_receipted_test_candidate(tmp_path: Path, monkeypatch) -> dict:
+    """Write a candidate distribution from the receipted test graphs and return its manifest."""
+
     graphs = _receipted_test_graphs()
     _, manifest = generator._write_candidate_distribution(
         tmp_path,
@@ -470,6 +498,8 @@ def _write_receipted_test_candidate(tmp_path: Path, monkeypatch) -> dict:
 
 
 def test_bounded_release_keys_reach_the_loader_that_declares_them() -> None:
+    """Pin the source/mapping split of bounded release keys and its unknown-key refusal."""
+
     source_keys, mapping_keys = generator.split_construction_unit_keys(
         frozenset({"federal-register-thesaurus-2025", "eurovoc-lcsh-alignment-20240711"})
     )
@@ -516,6 +546,8 @@ def test_trusted_writer_receipts_reject_same_size_stored_pack_tampering(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    """Pin that a same-size stored pack tamper fails the trusted-writer receipt check."""
+
     manifest = _write_receipted_test_candidate(tmp_path, monkeypatch)
     pack_path = tmp_path / manifest["packs"][0]["path"]
     payload = bytearray(pack_path.read_bytes())
@@ -541,6 +573,8 @@ def test_trusted_writer_receipts_reject_manifest_inventory_mismatches(
     mismatch: str,
     message: str,
 ) -> None:
+    """Pin the trusted-writer receipt refusals for quad-count, pack-count, and inventory drift."""
+
     manifest = _write_receipted_test_candidate(tmp_path, monkeypatch)
     if mismatch == "contentQuadCount":
         manifest["packs"][0]["content"]["quadCount"] += 1
@@ -556,6 +590,8 @@ def test_trusted_writer_receipts_reject_manifest_inventory_mismatches(
 
 
 def test_distribution_identity_is_the_digest_of_the_content_it_labels() -> None:
+    """Pin that distributionId is the content digest and moves with the ledger, never a timestamp."""
+
     accounting = _compiled_test_accounting()
     identity = accounting["distributionId"]
 
@@ -631,6 +667,8 @@ def test_distribution_identity_names_its_scope_and_cannot_be_relabelled() -> Non
 
 
 def test_recorded_instant_comes_from_release_dates_not_a_clock() -> None:
+    """Pin that the recorded instant is the newest release date, refusing non-canonical spellings."""
+
     assert generator._release_instant("2025-04-01") == "2025-04-01T00:00:00+00:00"
     with pytest.raises(ValueError, match="not an ISO 8601 date"):
         generator._release_instant("2025-4-1")
@@ -645,6 +683,8 @@ def test_recorded_instant_comes_from_release_dates_not_a_clock() -> None:
 
 
 def test_fixed_distribution_inputs_are_externally_pinned_and_logical() -> None:
+    """Pin that the fixed inputs inventory is externally pinned and carries only logical paths."""
+
     # Same split as the ICPSR fixture: an absent capture skips, a moved digest
     # raises `ValueError` and fails, because that is drift rather than absence.
     try:
@@ -670,6 +710,12 @@ def test_fixed_distribution_inputs_are_externally_pinned_and_logical() -> None:
 
 
 def test_v3_fallback_identity_is_readable_deterministic_and_source_preserving() -> None:
+    """Pin that a v2 fallback IRI is readable, source-scoped, and preserves the v1 identity."
+
+    The v1 prior IRI and the source-local record id both survive in the payload, so the
+    remap is reversible.
+    """
+
     local_record_id = "urn:uuid:019fc9f2-c758-7134-9432-2a0de8fde1dd"
     source_scheme = "http://id.loc.gov/vocabulary/subjectSchemes/lst"
     prior_iri = (
@@ -718,6 +764,8 @@ def test_v3_fallback_identity_fails_closed(
     overrides: dict[str, object],
     message: str,
 ) -> None:
+    """Pin the fallback-identity refusals for each overridden input."""
+
     values: dict[str, object] = {
         "namespace_token": "loc-lst",
         "prior_iri": (
@@ -736,6 +784,8 @@ def test_v3_fallback_identity_fails_closed(
 
 
 def test_v3_fallback_identity_rejects_non_string_local_id() -> None:
+    """Pin the TypeError for a non-string localRecordId."""
+
     with pytest.raises(TypeError, match="localRecordId"):
         generator._v3_fallback_source_identity(
             namespace_token="loc-lst",
@@ -747,6 +797,8 @@ def test_v3_fallback_identity_rejects_non_string_local_id() -> None:
 
 
 def _source_spec(key: str):
+    """Return the SOURCE_SPECS entry for a key."""
+
     return next(spec for spec in generator.SOURCE_SPECS if spec.key == key)
 
 
@@ -759,6 +811,8 @@ def _source_spec(key: str):
     ),
 )
 def test_source_label_roles_map_to_skosxl(role: str, predicate: URIRef) -> None:
+    """Pin that each admitted source label role maps to its SKOS-XL predicate."""
+
     label = generator.SourceLabel(
         value="Label",
         language="en",
@@ -771,6 +825,8 @@ def test_source_label_roles_map_to_skosxl(role: str, predicate: URIRef) -> None:
 
 
 def test_source_label_roles_fail_closed() -> None:
+    """Pin the refusal of an unsupported source label role, in the type and in the mapper."""
+
     with pytest.raises(ValueError, match="unsupported source label role"):
         generator.SourceLabel(
             value="Label",
@@ -800,6 +856,8 @@ def test_ring_dispatch_uses_binding_policy(
     resource_class: URIRef,
     assignment_predicate: URIRef,
 ) -> None:
+    """Pin that each ring dispatches to the binding's resource class and assignment predicate."""
+
     ring, observed_class, observed_predicate = generator._ring_dispatch(ring_name)
 
     assert ring == generator.ATLAS[ring_name]
@@ -808,11 +866,15 @@ def test_ring_dispatch_uses_binding_policy(
 
 
 def test_ring_dispatch_fails_closed() -> None:
+    """Pin the refusal of an unsupported Atlas semantic ring."""
+
     with pytest.raises(ValueError, match="unsupported Atlas semantic ring"):
         generator._ring_dispatch("futureRing")
 
 
 def _compiled_descriptor_graph() -> Graph:
+    """Return a minimal registry-descriptor graph with one subject scheme."""
+
     graph = generator._new_build_graph()
     scheme = URIRef("urn:test:scheme:subjects")
     graph.add((scheme, RDF.type, generator.ATLAS.ResourceScheme))
@@ -826,6 +888,8 @@ def test_shared_row_validator_rejects_a_malformed_label_row(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that the shared row validator refuses a label row with an empty source_path."""
+
     monkeypatch.setattr(generator, "_registry_asserted_graph", _compiled_descriptor_graph)
     releases, _ = _compiled_mapping_case(tmp_path)
     dirty, clean = releases
@@ -845,6 +909,8 @@ def test_shared_row_validator_rejects_duplicate_cross_ring_claims(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that a duplicated cross-ring claim is refused by the shared row validator."""
+
     releases, _ = _compiled_mapping_case(tmp_path)
     dirty, clean = releases
     entity_scheme = URIRef("urn:test:scheme:entities")
@@ -898,6 +964,8 @@ def _compiled_source_release(
     labels: tuple[generator.SourceLabel, ...] | None = None,
     predicate: str | None = None,
 ) -> generator.LoadedRelease:
+    """Build a one-resource compiled source release backed by a temp JSON file."""
+
     source = tmp_path / "compiled-source.json"
     source.write_text("{}", encoding="utf-8")
     digest = "sha256:" + hashlib.sha256(source.read_bytes()).hexdigest()
@@ -964,6 +1032,8 @@ def _compiled_source_release(
 def _compiled_mapping_case(
     tmp_path: Path,
 ) -> tuple[tuple[generator.LoadedRelease, ...], RegistryMappingRelease]:
+    """Build a two-release mapping case with one evidenced mapping between them."""
+
     base = _compiled_source_release(tmp_path)
     releases = (
         dataclasses.replace(
@@ -1102,6 +1172,8 @@ def _compiled_stream_prebuild(
 
 
 def _mapping_policy_graph(resource_id: str) -> Graph:
+    """Return a descriptor graph holding one mappingAssertionsOnly registry source."""
+
     graph = generator._new_build_graph()
     source = generator._registry_source_descriptor_iri(resource_id)
     graph.add((source, RDF.type, generator.ATLAS.RegistrySource))
@@ -1135,6 +1207,8 @@ def _mapping_policy_graph(resource_id: str) -> Graph:
 def _mapping_policy_index_row(
     release: RegistryMappingRelease,
 ) -> dict[str, object]:
+    """Return the atlas-index row a mapping release must match."""
+
     return {
         "intendedUses": ["mappingReference"],
         "resourceId": release.resource_id,
@@ -1147,6 +1221,8 @@ def test_load_mapping_releases_applies_registry_policy_gate(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that loading mapping releases runs the registry descriptor policy gate."""
+
     import refspec.atlas.v3_registry_alignments as registry_alignments
 
     _, mapping_release = _compiled_mapping_case(tmp_path)
@@ -1173,6 +1249,8 @@ def _endpoint_ownership_release(
     iris: tuple[str, ...],
     preference: str,
 ) -> RegistryRelease:
+    """Build an endpoint-ownership release over a temp source file."""
+
     source = tmp_path / f"{key}.json"
     source.write_text("{}", encoding="utf-8")
     digest = "sha256:" + hashlib.sha256(source.read_bytes()).hexdigest()
@@ -1220,6 +1298,8 @@ def _endpoint_ownership_release(
 def test_endpoint_ownership_reuses_held_resources_and_drops_empty_release(
     tmp_path: Path,
 ) -> None:
+    """Pin that endpoint ownership reuses held resources and drops an all-duplicate release."""
+
     held = _endpoint_ownership_release(
         tmp_path,
         key="held-vocabulary",
@@ -1277,6 +1357,8 @@ def test_endpoint_ownership_reuses_held_resources_and_drops_empty_release(
 def test_release_resource_uniqueness_tripwire_rejects_a_duplicate(
     tmp_path: Path,
 ) -> None:
+    """Pin the tripwire refusal when two releases carry the same resource IRI."""
+
     first = _endpoint_ownership_release(
         tmp_path,
         key="first",
@@ -1297,6 +1379,8 @@ def test_release_resource_uniqueness_tripwire_rejects_a_duplicate(
 def test_mapping_endpoints_are_repinned_without_dropping_assertions(
     tmp_path: Path,
 ) -> None:
+    """Pin that endpoint releases are repinned to loaded releases without dropping assertions."""
+
     releases, mapping_release = _compiled_mapping_case(tmp_path)
     stale_mapping = dataclasses.replace(
         mapping_release.mappings[0],
@@ -1320,6 +1404,8 @@ def test_mapping_endpoints_are_repinned_without_dropping_assertions(
 
 
 def test_mapping_release_matches_mapping_only_registry_policy(tmp_path: Path) -> None:
+    """Pin that a mapping release passes the mappingAssertionsOnly registry policy gate."""
+
     _, mapping_release = _compiled_mapping_case(tmp_path)
 
     generator._validate_registry_mapping_release_policy(
@@ -1330,6 +1416,8 @@ def test_mapping_release_matches_mapping_only_registry_policy(tmp_path: Path) ->
 
 
 def test_mapping_evidence_uses_shared_registry_triple_digest(tmp_path: Path) -> None:
+    """Pin that mapping evidence carries the shared registry mapping-triple digest."""
+
     _, mapping_release = _compiled_mapping_case(tmp_path)
     mapping = mapping_release.mappings[0]
     evidence = mapping.evidence[0]
@@ -1378,6 +1466,8 @@ def test_mapping_policy_accepts_multiple_versioned_releases_for_one_source(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that one source may carry multiple versioned mapping releases through the policy gate."""
+
     _, first = _compiled_mapping_case(tmp_path)
     next_digest = "sha256:" + "a" * 64
     next_primary = dataclasses.replace(first.inputs[0], sha256=next_digest)
@@ -1417,6 +1507,8 @@ def test_registry_mapping_policy_pins_index_content_and_descriptor_proof(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that the mapping policy binds the index content digest and the descriptor proof."""
+
     index = generator._read_json(generator.ROOT / "portfolio/atlas-index-v0.json")
     proof = generator._read_json(generator.REGISTRY_DESCRIPTORS_PROOF)
     assert len(generator._validated_registry_index_rows(index, proof)) == 112
@@ -1441,6 +1533,8 @@ def test_registry_mapping_policy_pins_index_content_and_descriptor_proof(
 
 
 def test_mapping_release_pins_its_primary_source_artifact(tmp_path: Path) -> None:
+    """Pin the mapping release refusals: relative IRI, bad digest, digest mismatch, unknown scope."""
+
     _, mapping_release = _compiled_mapping_case(tmp_path)
 
     with pytest.raises(ValueError, match="not an absolute IRI"):
@@ -1459,6 +1553,8 @@ def test_mapping_release_pins_its_primary_source_artifact(tmp_path: Path) -> Non
 def test_mapping_release_rejects_unknown_or_member_registry_source(
     tmp_path: Path,
 ) -> None:
+    """Pin refusals for an unknown registry source and for a member (not mapping-only) disposition."""
+
     _, mapping_release = _compiled_mapping_case(tmp_path)
     index_rows = (_mapping_policy_index_row(mapping_release),)
 
@@ -1483,6 +1579,8 @@ def test_mapping_release_rejects_unknown_or_member_registry_source(
 def test_mapping_release_rejects_resource_scheme_and_wrong_descriptor_kind(
     tmp_path: Path,
 ) -> None:
+    """Pin refusals when a mapping source gains a ResourceScheme or the wrong descriptor kind."""
+
     _, mapping_release = _compiled_mapping_case(tmp_path)
     index_rows = (_mapping_policy_index_row(mapping_release),)
     descriptors = _mapping_policy_graph(mapping_release.resource_id)
@@ -1530,6 +1628,8 @@ def test_mapping_release_rejects_resource_scheme_and_wrong_descriptor_kind(
 def test_mapping_release_rejects_index_module_ring_or_intended_use_drift(
     tmp_path: Path,
 ) -> None:
+    """Pin refusals when a mapping release drifts from its index row's module, ring, or intended use."""
+
     _, mapping_release = _compiled_mapping_case(tmp_path)
     descriptors = _mapping_policy_graph(mapping_release.resource_id)
     index_row = _mapping_policy_index_row(mapping_release)
@@ -1559,6 +1659,8 @@ def test_mapping_emits_evidence_accounting_and_dedicated_pack(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that mappings emit evidence, accounting, and their own dedicated pack."""
+
     monkeypatch.setattr(
         generator,
         "_registry_asserted_graph",
@@ -1907,6 +2009,8 @@ def _probe_non_iri_subject(
     tmp_path: Path,
     _monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Refusal probe: a non-IRI subject must be refused by both the legacy and streamed writers."""
+
     graph = generator._new_build_graph()
     catalog = generator._new_build_graph()
     try:
@@ -1942,6 +2046,8 @@ def _probe_non_iri_subject(
 def test_streamed_statement_counter_matches_legacy_dual_type_semantics(
     tmp_path: Path,
 ) -> None:
+    """Pin that the streamed statement counter matches the legacy dual-type counting semantics."""
+
     assertion = URIRef("urn:test:dual-typed-assertion")
     graph = generator._new_build_graph()
     projection = generator._new_build_graph()
@@ -2057,6 +2163,8 @@ def _probe_count_mismatch(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Refusal probe: a wrong expected count must be refused by both constructors."""
+
     monkeypatch.setattr(
         generator,
         "_registry_asserted_graph",
@@ -2104,6 +2212,8 @@ def _probe_duplicate_claim(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Refusal probe: a duplicated mapping claim must be refused by both constructors."""
+
     monkeypatch.setattr(
         generator,
         "_registry_asserted_graph",
@@ -2140,6 +2250,8 @@ def _probe_evidence_resolution(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Refusal probe: unresolved mapping evidence must be refused by both constructors."""
+
     monkeypatch.setattr(
         generator,
         "_registry_asserted_graph",
@@ -2209,6 +2321,8 @@ def _probe_refused_release_before_write(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Refusal probe: a release refused by the loader must be refused before any write."""
+
     release = _compiled_source_release(tmp_path)
     refused = dataclasses.replace(release, resources=())
     with pytest.raises(ValueError) as legacy_error:
@@ -2283,6 +2397,8 @@ _STREAMED_WHOLE_GRAPH_DELIBERATE_DIVERGENCES = frozenset(
 
 
 def test_streamed_whole_graph_refusal_battery_has_no_missing_probe() -> None:
+    """Pin the probe roster and the one frozen same-verdict/different-message divergence."""
+
     assert set(_STREAMED_WHOLE_GRAPH_REFUSAL_PROBES) == {
         "count-mismatch",
         "duplicate-claim",
@@ -2319,6 +2435,8 @@ def test_streamed_whole_graph_refusal_probe(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Run one named streamed-whole-graph refusal probe."""
+
     probe, _reason = _STREAMED_WHOLE_GRAPH_REFUSAL_PROBES[probe_name]
     probe(tmp_path, monkeypatch)
 
@@ -2327,6 +2445,8 @@ def test_mapping_additional_evidence_keeps_claim_identity_and_mixes_methods(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that additional mapping evidence keeps claim identity while mixing review methods."""
+
     monkeypatch.setattr(
         generator,
         "_registry_asserted_graph",
@@ -2427,6 +2547,8 @@ def test_compiled_output_rejects_a_missing_mapping_evidence_binding(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that the compiled output refuses a mapping whose evidence binding is missing."""
+
     monkeypatch.setattr(
         generator,
         "_registry_asserted_graph",
@@ -2479,6 +2601,8 @@ def test_compiled_output_rejects_wrong_mapping_assertion_in_source_accounting(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that source accounting naming the wrong mapping assertion is refused."""
+
     monkeypatch.setattr(
         generator,
         "_registry_asserted_graph",
@@ -2531,6 +2655,8 @@ def test_mapping_rejects_endpoint_release_version_drift(
     release_field: str,
     message: str,
 ) -> None:
+    """Pin refusal when a mapping's endpoint release version drifts from the loaded release."""
+
     monkeypatch.setattr(
         generator,
         "_registry_asserted_graph",
@@ -2557,6 +2683,8 @@ def test_compiled_producer_validates_rows_and_constructor_output(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that the compiled producer validates both its rows and the constructor's output."""
+
     monkeypatch.setattr(
         generator,
         "_registry_asserted_graph",
@@ -2594,6 +2722,8 @@ def test_compiled_producer_retains_supplemental_source_claim_records(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that supplemental registry claim records are retained by the compiled producer."""
+
     monkeypatch.setattr(
         generator,
         "_registry_asserted_graph",
@@ -2648,6 +2778,8 @@ def test_compiled_producer_rejects_empty_release(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that a release declaring zero resources and relations is refused."""
+
     monkeypatch.setattr(
         generator,
         "_registry_asserted_graph",
@@ -2673,6 +2805,8 @@ def test_compiled_producer_rejects_subject_scheme_without_skos_type(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin refusal when a subject scheme is not typed as a SKOS ConceptScheme."""
+
     descriptor = _compiled_descriptor_graph()
     descriptor.remove(
         (
@@ -2690,6 +2824,8 @@ def test_compiled_producer_rejects_subject_scheme_without_skos_type(
 def test_asserted_pack_writer_rejects_oversized_nquads_line(
     tmp_path: Path,
 ) -> None:
+    """Pin refusal of an N-Quads line that exceeds the binding's line limit."""
+
     asserted = generator._new_build_graph()
     asserted.add(
         (
@@ -2929,6 +3065,8 @@ def test_parquet_parity_refuses_a_record_the_served_tables_cannot_reach(
 def test_candidate_rejects_asserted_mutation_after_compiled_validation(
     tmp_path: Path,
 ) -> None:
+    """Pin that an asserted-graph mutation after compiled validation is refused."""
+
     asserted = generator._new_build_graph()
     asserted.add(
         (
@@ -3016,6 +3154,8 @@ def test_compiled_producer_rejects_compact_row_mutations(
     predicate: str | None,
     message: str,
 ) -> None:
+    """Pin the compiled producer's refusals for mutated compact rows (labels and predicates)."""
+
     monkeypatch.setattr(
         generator,
         "_registry_asserted_graph",
@@ -3035,6 +3175,8 @@ def test_compiled_producer_rejects_projection_and_accounting_mutations(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that non-empty projection and accounting mutations are refused by the compiled producer."""
+
     monkeypatch.setattr(
         generator,
         "_registry_asserted_graph",
@@ -3084,6 +3226,8 @@ def test_compiled_producer_rejects_projection_and_accounting_mutations(
 
 
 def test_loaded_release_counts_fail_closed(tmp_path: Path) -> None:
+    """Pin that a loaded release's declared counts are checked against its rows."""
+
     source = tmp_path / "source.json"
     source.write_text("{}", encoding="utf-8")
     spec = generator.SourceSpec(
@@ -3116,6 +3260,8 @@ def test_crs_loader_preserves_source_label_roles(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    """Pin that the CRS loader preserves preferred and hidden source label roles."""
+
     source = tmp_path / "crs-source.json"
     source.write_text("{}", encoding="utf-8")
     digest = "sha256:" + hashlib.sha256(source.read_bytes()).hexdigest()
@@ -3168,6 +3314,8 @@ def test_elsst_loader_includes_english_hidden_labels(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    """Pin that the ELSST loader keeps English hidden labels and drops other languages."""
+
     source = tmp_path / "elsst-source.json"
     source.write_text("{}", encoding="utf-8")
     digest = "sha256:" + hashlib.sha256(source.read_bytes()).hexdigest()
@@ -3216,6 +3364,8 @@ def test_elsst_loader_includes_english_hidden_labels(
 
 @pytest.fixture(scope="module")
 def crs_releases():
+    """Return the three loaded CRS releases from the pinned source specs."""
+
     return tuple(
         generator._load_crs(_source_spec(key))
         for key in (
@@ -3229,6 +3379,8 @@ def crs_releases():
 def test_all_1075_crs_fallback_ids_are_readable_and_reversible(
     crs_releases,
 ) -> None:
+    """Pin that all 1,075 CRS fallback ids are readable v2 IRIs, reversible to their v1 prior."""
+
     resources = [(release, resource) for release in crs_releases for resource in release.resources]
     counts_by_namespace = {
         token: sum(len(release.resources) for release in crs_releases if release.spec.fallback_namespace_token == token)
@@ -3269,6 +3421,8 @@ def test_all_1075_crs_fallback_ids_are_readable_and_reversible(
 
 @pytest.fixture(scope="module")
 def icpsr_release():
+    """Return the loaded ICPSR release, skipping on an absent capture and failing on digest drift."""
+
     # The pinned capture lives under the gitignored output tree. Absence is
     # `FileNotFoundError` and skips; a digest that moved is `ValueError` and
     # still fails, which is the class this fixture exists to catch.
@@ -3280,6 +3434,8 @@ def icpsr_release():
 
 @pytest.fixture(scope="module")
 def registry_code_releases():
+    """Return the adapted registry code releases, skipping when the pinned sources are absent."""
+
     from refspec.atlas.v3_registry_codes import load_registry_code_releases
 
     if not (ROOT / "output" / "registry-real-data-sources").is_dir():
@@ -3290,6 +3446,8 @@ def registry_code_releases():
 def test_only_five_icpsr_xml_gaps_receive_readable_fallback_ids(
     icpsr_release,
 ) -> None:
+    """Pin that exactly five ICPSR XML gaps get readable fallback ids and every endpoint resolves."""
+
     fallback_resources = [
         resource
         for resource in icpsr_release.resources
@@ -3345,6 +3503,8 @@ def test_compiled_producer_matches_normative_shacl_for_real_assertion_variants(
     icpsr_release,
     entity_ring_release,
 ) -> None:
+    """Pin that the compiled producer matches normative SHACL on real native and cross-ring variants."""
+
     # This test keeps an isolated entity -> subject variant because the live
     # REF-037 carrier exercises entity -> legalIdentity. Together they cover
     # two distinct admitted cells without making the compiled-SHACL check load
@@ -3423,6 +3583,8 @@ def test_compiled_producer_matches_normative_shacl_for_real_assertion_variants(
 def test_grants_filter_codes_use_the_value_ring(
     registry_code_releases,
 ) -> None:
+    """Pin that grants filter codes emit under the value ring and validate against the binding."""
+
     releases = tuple(
         release
         for release in registry_code_releases
@@ -3469,6 +3631,8 @@ def test_grants_filter_codes_use_the_value_ring(
 
 
 def test_mapping_evidence_archive_preserves_all_exact_proof_bytes() -> None:
+    """Pin the mapping-evidence archive's manifest digest, counts, and exact proof bytes."""
+
     archive_root = ROOT / "research" / "evidence" / "atlas-3-mapping-evidence-2026-08-05"
     manifest_path = archive_root / "manifest.json"
     manifest_bytes = manifest_path.read_bytes()
@@ -3504,6 +3668,8 @@ def test_mapping_evidence_archive_preserves_all_exact_proof_bytes() -> None:
 
 
 def test_production_relation_scope_allows_pinned_mappings_and_registered_derived() -> None:
+    """Pin the production relation-scope mode for clean, mapping-only, and registered-derived graphs."""
+
     clean = generator.BuildGraphs(Graph(), Graph(), Graph(), {})
     assert generator._production_relation_scope(clean) == {
         "derivedRelations": 0,
@@ -3545,6 +3711,8 @@ def test_production_relation_scope_allows_pinned_mappings_and_registered_derived
 
 
 def test_recursive_english_normalization_covers_complete_elsst_profile() -> None:
+    """Pin that recursive English normalization keeps en/en-US/EN content and reports what it drops."""
+
     payload = {
         "nested": {
             "skos:hiddenLabel": {
@@ -3590,6 +3758,8 @@ def test_recursive_english_normalization_covers_complete_elsst_profile() -> None
 
 
 def test_english_normalization_fails_closed_for_unprofiled_language_field() -> None:
+    """Pin refusal of a language-bearing field absent from the profile's language map fields."""
+
     with pytest.raises(ValueError, match="unprofiled language-bearing field"):
         generator._normalize_english_language_content(
             {"skos:futureNote": {"en": "Known", "fr": "Inconnu"}},
@@ -3598,6 +3768,8 @@ def test_english_normalization_fails_closed_for_unprofiled_language_field() -> N
 
 
 def test_source_record_rejects_noncanonical_language_metadata() -> None:
+    """Pin refusal of noncanonical language metadata inside a native payload."""
+
     with pytest.raises(ValueError, match="invalid language metadata"):
         generator._add_source_record(
             Graph(),
@@ -3612,6 +3784,8 @@ def test_source_record_rejects_noncanonical_language_metadata() -> None:
 def test_source_record_canonicalizes_native_payload_once_and_preserves_identity(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that a native payload is canonicalized once while its digest and identity stay fixed."""
+
     graph = Graph()
     source_release = URIRef("urn:test:release")
     source_locator = URIRef("urn:test:locator")
@@ -3659,6 +3833,8 @@ def test_source_record_canonicalizes_native_payload_once_and_preserves_identity(
 
 
 def test_add_evidenced_assertion_mints_evidence_without_temporary_mutations() -> None:
+    """Pin that evidenced-assertion construction mints evidence with no temporary removals."""
+
     class RemoveRejectingGraph(Graph):
         def remove(self, triple: object) -> Graph:
             raise AssertionError(f"evidence construction must not remove {triple}")
@@ -3701,6 +3877,8 @@ def test_add_evidenced_assertion_mints_evidence_without_temporary_mutations() ->
 
 
 def test_source_and_mapping_review_methods_are_explicit_and_fail_closed() -> None:
+    """Pin the explicit source and mapping review methods and their unsupported-input refusals."""
+
     observed = {
         generator._review_method_for_assertion(generator.ATLAS.SourceAssignment),
         generator._review_method_for_assertion(generator.ATLAS.NativeRelationAssertion),
@@ -3724,6 +3902,8 @@ def test_source_and_mapping_review_methods_are_explicit_and_fail_closed() -> Non
 def test_active_editorial_policies_contain_no_serving_permission_language(
     tmp_path: Path,
 ) -> None:
+    """Pin that emitted editorial policies carry no serving-permission terms."""
+
     graph = Graph()
     emitted_payloads = []
     _, mapping_release = _compiled_mapping_case(tmp_path)
@@ -3750,6 +3930,8 @@ def test_active_editorial_policies_contain_no_serving_permission_language(
 
 
 def test_transformed_relation_evidence_is_content_derived_and_preserves_publisher_row() -> None:
+    """Pin that transformed-relation evidence is content-derived and keeps the publisher's row."""
+
     publisher_relation = {
         "relation": "related",
         "sourceLabel": "A",
@@ -3785,6 +3967,8 @@ def test_transformed_relation_evidence_is_content_derived_and_preserves_publishe
 
 
 def test_source_accounting_recounts_all_22_icpsr_remap_evidence_records() -> None:
+    """Pin that source accounting recounts all 22 ICPSR remap-evidence records as excluded."""
+
     represented = [
         {
             "atlasResources": [f"urn:test:icpsr:{index}"],
@@ -3825,6 +4009,8 @@ def test_source_accounting_recounts_all_22_icpsr_remap_evidence_records() -> Non
 def test_generation_report_uses_a_location_independent_distribution_path(
     tmp_path: Path,
 ) -> None:
+    """Pin that the generation report names the distribution by a relative path."""
+
     first = tmp_path / "checkout-a" / "distribution"
     second = tmp_path / "checkout-b" / "distribution"
 
@@ -3890,6 +4076,8 @@ def test_streamed_generation_report_records_memory_profile_shape(
 def test_external_sort_bounds_open_files_across_multiple_merge_rounds(
     tmp_path: Path,
 ) -> None:
+    """Pin that the external sort stays bounded across multiple merge rounds."""
+
     output = tmp_path / "sorted.nq"
     rows = [f"row-{index:03d}\n" for index in reversed(range(41))]
 
@@ -3904,6 +4092,8 @@ def test_external_sort_bounds_open_files_across_multiple_merge_rounds(
 
 
 def test_lean_build_graph_preserves_validator_projection_semantics() -> None:
+    """Pin that the lean build graph's projection matches the validator's expected projection."""
+
     asserted = Graph()
     resource = URIRef("urn:test:resource")
     label = URIRef("urn:test:label")
@@ -3925,6 +4115,8 @@ def test_lean_build_graph_preserves_validator_projection_semantics() -> None:
 
 
 def test_released_build_graphs_remain_lean_and_empty() -> None:
+    """Pin that released build graphs drop their accounting and empty every graph."""
+
     graphs = generator.BuildGraphs(
         asserted=generator._new_build_graph(),
         projection=generator._new_build_graph(),
@@ -3959,10 +4151,14 @@ def test_source_scope_controls_accounting_membership(
     scope: str,
     membership_mode: str,
 ) -> None:
+    """Pin that a source's scope selects its accounting membership mode."""
+
     assert generator._accounting_membership_mode(scope) == membership_mode
 
 
 def test_crs_sources_are_complete_captures_not_claimed_publisher_releases() -> None:
+    """Pin that the three CRS sources are complete captures, not claimed publisher releases."""
+
     crs = [spec for spec in generator.SOURCE_SPECS if spec.key.startswith("crs-")]
 
     assert len(crs) == 3
@@ -3973,6 +4169,8 @@ def test_build_graphs_emits_content_derived_registry_identifiers(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    """Pin that registry identifiers are content-derived and tied to their resource and scheme."""
+
     resource_scheme = URIRef("urn:test:scheme:codes")
     identifier_scheme = URIRef("urn:test:scheme:identifiers")
     descriptor_graph = generator._new_build_graph()
@@ -4076,6 +4274,8 @@ def test_build_graphs_rejects_one_authority_identifier_for_two_resources(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    """Pin refusal when one authority identifier names two different resources."""
+
     resource_scheme = URIRef("urn:test:scheme:codes")
     identifier_scheme = URIRef("urn:test:scheme:identifiers")
     descriptor_graph = generator._new_build_graph()
@@ -4160,6 +4360,8 @@ def test_identifier_emission_rejects_non_identifier_schemes(
     scheme_type: URIRef | None,
     scheme_profile: URIRef,
 ) -> None:
+    """Pin that identifier emission refuses a scheme without the identifierScheme profile."""
+
     graph = generator._new_build_graph()
     scheme = URIRef("urn:test:scheme:not-an-identifier-authority")
     if scheme_type is not None:
@@ -4232,6 +4434,8 @@ def test_every_mapping_ring_passes_producer_intake() -> None:
 
 
 def test_mapping_assertion_emits_a_content_addressed_effective_period() -> None:
+    """Pin that a dated mapping assertion emits a content-addressed effective period."""
+
     graph = generator._new_build_graph()
     policy = URIRef("urn:test:mapping-policy")
     graph.add((policy, RDF.type, generator.ATLAS.EditorialPolicy))
@@ -4258,6 +4462,8 @@ def test_mapping_assertion_emits_a_content_addressed_effective_period() -> None:
 def test_mapping_periods_are_required_exactly_for_dated_rings(
     tmp_path: Path,
 ) -> None:
+    """Pin that only value-ring mappings carry effective periods, with day-boundary instants."""
+
     _, release = _compiled_mapping_case(tmp_path)
     mapping = release.mappings[0]
 

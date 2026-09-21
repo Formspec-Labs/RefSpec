@@ -1,4 +1,4 @@
-"""Focused checks for the bounded Atlas Open English WordNet benchmark."""
+"""Bounded Atlas Open English WordNet benchmark: exact minimum distances and add-only floor contribution."""
 
 from __future__ import annotations
 
@@ -10,6 +10,8 @@ from tools import benchmark_lexical_candidate_controls as lexical
 
 
 def _concept(side: str, identifier: str, label: str) -> AtlasConcept:
+    """Build a minimal concept on the named side with the given pref label."""
+
     return AtlasConcept(
         member=f"https://example.test/{side}/{identifier}",
         release=f"urn:test:{side}",
@@ -18,6 +20,8 @@ def _concept(side: str, identifier: str, label: str) -> AtlasConcept:
 
 
 def _fixture() -> tuple[shared.AlignmentCase, wordnet.WordNetIndex]:
+    """Build one source/target alignment case and a five-step WordNet chain index."""
+
     source = _concept("source", "alpha", "Alpha")
     targets = tuple(
         _concept("target", identifier, label)
@@ -59,6 +63,8 @@ def _fixture() -> tuple[shared.AlignmentCase, wordnet.WordNetIndex]:
 
 
 def test_wordnet_frontier_finds_exact_minimum_distances_and_is_order_stable() -> None:
+    """Pins distances 0-4 over the fixture chain and identical feature/evidence digests under reversed order."""
+
     case, index = _fixture()
     codec = lexical.PairCodec.from_cases((case,))
 
@@ -80,6 +86,8 @@ def test_wordnet_frontier_finds_exact_minimum_distances_and_is_order_stable() ->
 
 
 def test_depth_summary_separates_wordnet_from_add_only_floor_contribution() -> None:
+    """Pins growing candidate counts, typed recall, incremental gold, and the union with the production floor."""
+
     case, index = _fixture()
     codec = lexical.PairCodec.from_cases((case,))
     distances, _metadata = benchmark.wordnet_minimum_distances((case,), codec=codec, index=index, maximum_depth=4)

@@ -88,6 +88,8 @@ SOURCE = b"""\
 
 
 def test_real_r6_bytes_are_censused_directly() -> None:
+    """Pin that a configured real ELSST R6 capture censuses over 100k raw feature assertions."""
+
     source_path = os.environ.get("REFSPEC_ELSST_R6_PATH")
     if source_path is None:
         pytest.skip("real ELSST R6 source is not configured")
@@ -113,6 +115,8 @@ def _source_graph(
     emitted_status_lexical: str | None,
     scheme_identifier_mode: str,
 ) -> Mapping[str, object]:
+    """Build the RDF-index fixture graph, optionally dropping the mapping or mutating the scheme identifier."""
+
     graph = Graph()
     graph.parse(data=source.decode("utf-8"), format="turtle")
     release = URIRef(RELEASE_IRI)
@@ -185,6 +189,8 @@ def _emitted_expressions(
     *,
     drop_hidden_label: bool,
 ) -> tuple[Mapping[str, object], ...]:
+    """Extract the indexed census expression records, optionally dropping hidden-label expressions."""
+
     members = {CONCEPT_A, CONCEPT_B, CONCEPT_C}
     expressions: list[Mapping[str, object]] = []
     for item in parsed.labels:
@@ -262,6 +268,8 @@ def _censuses(
     emitted_status_lexical: str | None = None,
     scheme_identifier_mode: str = "exact",
 ):
+    """Run the raw, parsed, and indexed censuses over the fixture with the requested mutations."""
+
     source_sha256 = "sha256:" + hashlib.sha256(source).hexdigest()
     parsed = parse_elsst_turtle(
         source,
@@ -301,6 +309,8 @@ def _censuses(
 
 
 def test_independent_censuses_close_every_source_assertion() -> None:
+    """Pin that raw, parsed, and indexed censuses agree per feature on counts and digests."""
+
     raw, parsed, indexed = _censuses()
 
     result = require_complete_elsst_import_coverage(
@@ -331,6 +341,8 @@ def test_independent_censuses_close_every_source_assertion() -> None:
 
 
 def test_dropped_mapping_fails_assertion_level_indexed_coverage() -> None:
+    """Pin that dropping one exactMatch fails parsedToIndexed coverage with missing=1."""
+
     raw, parsed, indexed = _censuses(drop_mapping=True)
 
     result = validate_elsst_import_coverage(raw, parsed, indexed)
@@ -353,6 +365,8 @@ def test_dropped_mapping_fails_assertion_level_indexed_coverage() -> None:
 
 
 def test_dropped_hidden_label_expression_fails_even_when_graph_retains_it() -> None:
+    """Pin that omitting one hidden-label expression fails coverage though the graph keeps it."""
+
     raw, parsed, indexed = _censuses(drop_hidden_label=True)
 
     result = validate_elsst_import_coverage(raw, parsed, indexed)
@@ -376,6 +390,8 @@ def test_omitted_or_tampered_scheme_identifier_fails_coverage(
     scheme_identifier_mode: str,
     unexpected_count: int,
 ) -> None:
+    """Pin that an omitted or tampered scheme identifier fails identifiers and languages coverage."""
+
     raw, parsed, indexed = _censuses(
         scheme_identifier_mode=scheme_identifier_mode,
     )
@@ -400,6 +416,8 @@ def test_omitted_or_tampered_scheme_identifier_fails_coverage(
 
 
 def test_raw_census_requires_exact_bytes_not_parser_output() -> None:
+    """Pin that the raw census refuses parser output and demands exact Turtle bytes."""
+
     parsed = parse_elsst_turtle(SOURCE, source_url=SOURCE_URL)
 
     with pytest.raises(
@@ -416,6 +434,8 @@ def test_raw_census_requires_exact_bytes_not_parser_output() -> None:
 
 
 def test_raw_census_wraps_turtle_syntax_errors() -> None:
+    """Pin that raw Turtle syntax errors surface as ElsstImportCoverageError."""
+
     source = b"@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n<urn:x> a skos:Concept ;\n  broken\n"
     source_sha256 = "sha256:" + hashlib.sha256(source).hexdigest()
 
@@ -435,6 +455,8 @@ def test_raw_census_wraps_turtle_syntax_errors() -> None:
 def test_raw_census_propagates_unexpected_parse_errors(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that unexpected parser failures propagate rather than being wrapped."""
+
     def boom(*_args: object, **_kwargs: object) -> object:
         raise RuntimeError("unexpected parser failure")
 
@@ -457,6 +479,8 @@ def test_raw_census_propagates_unexpected_parse_errors(
 def test_raw_census_reraises_coverage_errors_unchanged(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that an ElsstImportCoverageError is re-raised unchanged, as the same instance."""
+
     original = ElsstImportCoverageError("covered RDF assertion subject must be an IRI")
 
     def boom(*_args: object, **_kwargs: object) -> object:
@@ -480,6 +504,8 @@ def test_raw_census_reraises_coverage_errors_unchanged(
 
 
 def test_boolean_status_lexical_form_survives_all_three_stages() -> None:
+    """Pin that a boolean status lexical form "0" survives all three census stages."""
+
     source = SOURCE.replace(
         b'"false"^^xsd:boolean',
         b'"0"^^xsd:boolean',

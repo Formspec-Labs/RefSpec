@@ -30,10 +30,19 @@ _ANNUAL_SIDE = re.compile(
 
 
 def _digest(body: bytes) -> str:
+    """Return the canonical ``sha256:`` spelling of a payload."""
+
     return "sha256:" + hashlib.sha256(body).hexdigest()
 
 
 def _archive(path: Path, *, year: int | None, emit: Emit) -> dict[str, Any]:
+    """Read one structure archive into an ordered member receipt and emit selected titles.
+
+    Refuses unclassified members, a member year that differs from the archive
+    year, and an archive with no selected titles; the input is read only up to
+    the declared compressed bound even if the file grows after stat.
+    """
+
     # Read at most the declared compressed bound even if a file grows after stat.
     with path.open("rb") as stream:
         body = stream.read(DEFAULT_MAX_ARCHIVE_BYTES + 1)

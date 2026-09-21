@@ -1,7 +1,9 @@
-"""Generate the standalone entity-registry object from pinned registry captures.
+"""Generate or verify the standalone entity-registry object from pinned registry captures.
 
 Registrant populations (SAM registrants, CAGE facilities, NPI providers,
-CompTox substances) live here, not in the Atlas; see REF-030.
+CompTox substances) live here, not in the Atlas; see REF-030. A build writes the
+object under ``--output`` and then verifies it, ``--verify-only`` skips the
+write, and an EntityRegistryError exits 2.
 """
 
 from __future__ import annotations

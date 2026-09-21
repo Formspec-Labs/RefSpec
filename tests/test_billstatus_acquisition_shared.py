@@ -1,4 +1,9 @@
-"""Exact source/evidence parity when the artifact owner publishes BILLSTATUS bytes."""
+"""Exact source/evidence parity when the artifact owner publishes BILLSTATUS bytes.
+
+Runs the frozen test-only oracle in _billstatus_acquisition_oracle beside the
+production owner across local, fetcher, and cache modes, tolerating only the
+three NAMED_DIVERGENCES.
+"""
 
 from __future__ import annotations
 
@@ -24,6 +29,8 @@ NAMED_DIVERGENCES = frozenset({"owner-blob-layout", "bounded-oversize-diagnostic
 
 
 class Fetcher:
+    """Record fetch calls and return one fixed response."""
+
     def __init__(self, response: bs.FetchedBillStatusResponse) -> None:
         self.response = response
         self.calls: list[tuple[str, float]] = []
@@ -34,6 +41,8 @@ class Fetcher:
 
 
 def response(payload: bytes | None = None, **changes: object) -> bs.FetchedBillStatusResponse:
+    """Build a FetchedBillStatusResponse from the fixture, overriding named fields."""
+
     return replace(
         bs.FetchedBillStatusResponse(
             body=FIXTURE.read_bytes() if payload is None else payload,
@@ -46,6 +55,8 @@ def response(payload: bytes | None = None, **changes: object) -> bs.FetchedBillS
 
 
 def target(module: ModuleType, root: Path, pin: bs.BillStatusSnapshotPin = PIN) -> Path:
+    """Return the store path for each implementation: old named-file layout vs owner blob layout."""
+
     digest = pin.expected_sha256.removeprefix("sha256:")
     if module is old:
         return root / "sha256" / digest / pin.source.filename
@@ -53,6 +64,8 @@ def target(module: ModuleType, root: Path, pin: bs.BillStatusSnapshotPin = PIN) 
 
 
 def evidence(acquired: bs.AcquiredBillStatusSource) -> dict[str, object]:
+    """Serialize acquisition evidence minus ``path``, the one explicitly frozen layout divergence."""
+
     result = asdict(acquired)
     result.pop("path")  # The one explicitly frozen layout divergence.
     return result
@@ -60,6 +73,8 @@ def evidence(acquired: bs.AcquiredBillStatusSource) -> dict[str, object]:
 
 @pytest.mark.parametrize("mode", ["local", "fetcher", "cache"])
 def test_real_guide_evidence_and_all_code_resources_match_frozen_acquisition(tmp_path: Path, mode: str) -> None:
+    """Pin equal evidence and code resources between owner and oracle in local, fetcher, and cache modes."""
+
     results = []
     portfolios = []
     for module in (old, bs):
@@ -86,6 +101,8 @@ def test_real_guide_evidence_and_all_code_resources_match_frozen_acquisition(tmp
 @pytest.mark.parametrize("mode", ["local", "fetcher", "cache"])
 @pytest.mark.parametrize("mutation", ["short", "long", "digest", "utf8"])
 def test_source_mutations_preserve_drift_category_and_check_order(tmp_path: Path, mode: str, mutation: str) -> None:
+    """Pin the drift category/message for short, long, digest, and UTF-8 mutations in every mode."""
+
     body = FIXTURE.read_bytes()
     pin = PIN
     if mutation == "utf8":
@@ -119,6 +136,8 @@ def test_source_mutations_preserve_drift_category_and_check_order(tmp_path: Path
 @pytest.mark.parametrize("location", ["local", "cache"])
 @pytest.mark.parametrize("kind", ["symlink", "directory", "missing"])
 def test_local_and_cached_path_refusals_match_old(tmp_path: Path, location: str, kind: str) -> None:
+    """Pin symlink/directory refusals and the "not cached" message for a missing cache path."""
+
     for module in (old, bs):
         root = tmp_path / module.__name__
         path = target(module, root) if location == "cache" else tmp_path / f"{module.__name__}.md"
@@ -150,6 +169,8 @@ def test_local_and_cached_path_refusals_match_old(tmp_path: Path, location: str,
 def test_injected_response_refusals_match_old(
     tmp_path: Path, changes: dict, error: type[Exception], message: str
 ) -> None:
+    """Pin HTTP status, resolved-URL host/credential, and content-type refusals before any write."""
+
     for module in (old, bs):
         root = tmp_path / module.__name__
         fetcher = Fetcher(response(**changes))
@@ -161,6 +182,8 @@ def test_injected_response_refusals_match_old(
 
 @pytest.mark.parametrize("media_type", ["text/plain", "TEXT/MARKDOWN ; charset=utf-8"])
 def test_accepted_response_keeps_literal_media_and_resolved_url(tmp_path: Path, media_type: str) -> None:
+    """Pin that accepted media type and resolved URL are recorded verbatim, not normalized."""
+
     results = []
     for module in (old, bs):
         fetcher = Fetcher(
@@ -176,6 +199,8 @@ def test_accepted_response_keeps_literal_media_and_resolved_url(tmp_path: Path, 
 @pytest.mark.parametrize("cached", [False, True])
 @pytest.mark.parametrize("invalid", ["both-inputs", "zero-timeout", "negative-timeout"])
 def test_configuration_refused_before_cache_selection(tmp_path: Path, cached: bool, invalid: str) -> None:
+    """Pin that invalid configuration is refused before a valid cache can short-circuit acquisition."""
+
     for module in (old, bs):
         root = tmp_path / module.__name__
         if cached:
@@ -194,6 +219,8 @@ def test_configuration_refused_before_cache_selection(tmp_path: Path, cached: bo
 
 
 def test_valid_cache_precedes_invalid_local_source(tmp_path: Path) -> None:
+    """Pin that a valid cache hit answers even when the supplied source_path is missing."""
+
     for module in (old, bs):
         root = tmp_path / module.__name__
         module.acquire_billstatus_source(PIN, root, source_path=FIXTURE)
@@ -206,6 +233,9 @@ def test_valid_cache_precedes_invalid_local_source(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize("mutation", ["valid", "corrupt", "symlink"])
 def test_publication_race_preserves_winner_evidence_or_refuses(tmp_path: Path, monkeypatch, mutation: str) -> None:
+    """Pin that a lost hard-link race yields the winner's cache evidence or refuses a bad winner, with no staging left.
+    """
+
     results = []
     for module in (old, bs):
         root = tmp_path / module.__name__
@@ -242,6 +272,8 @@ def test_publication_race_preserves_winner_evidence_or_refuses(tmp_path: Path, m
 
 @pytest.mark.parametrize("corrupt", [False, True])
 def test_old_named_file_cache_is_untouched_and_never_read(tmp_path: Path, corrupt: bool) -> None:
+    """Pin that the old named-file cache is never read or modified, even while the owner cache is filled."""
+
     old_path = target(old, tmp_path)
     old_path.parent.mkdir(parents=True)
     body = b"changed old capture" if corrupt else FIXTURE.read_bytes()
@@ -256,6 +288,8 @@ def test_old_named_file_cache_is_untouched_and_never_read(tmp_path: Path, corrup
 
 
 def test_owner_partial_write_failure_removes_staging_and_publishes_nothing(tmp_path: Path, monkeypatch) -> None:
+    """Pin that a partial write failure empties the pending directory and publishes nothing."""
+
     original_write = os.write
     calls = 0
 
@@ -275,6 +309,8 @@ def test_owner_partial_write_failure_removes_staging_and_publishes_nothing(tmp_p
 
 
 def test_actual_atlas_caller_preserves_all_three_releases(tmp_path: Path, monkeypatch) -> None:
+    """Pin the real Atlas caller's three BILLSTATUS releases under owner and old acquisition."""
+
     from refspec.atlas.v3_registry_codes import _load_billstatus
 
     repo_root = Path(__file__).resolve().parents[1]
@@ -293,6 +329,8 @@ def test_actual_atlas_caller_preserves_all_three_releases(tmp_path: Path, monkey
 def test_oversized_files_use_bounded_observation_and_never_read_the_tail(
     tmp_path: Path, monkeypatch, mode: str
 ) -> None:
+    """Pin that an oversized file is refused after a bounded read of expected_length+1, never the tail."""
+
     observed = []
     body = FIXTURE.read_bytes() + b"unread tail" * 100
     for module in (old, bs):
@@ -322,6 +360,8 @@ def test_oversized_files_use_bounded_observation_and_never_read_the_tail(
 
 
 def test_owner_changed_target_refusal_survives_a_now_valid_reread(tmp_path: Path, monkeypatch) -> None:
+    """Pin that a changed-target refusal keeps its BlobIntegrityError cause even when a reread would validate."""
+
     from rulespec_artifacts import BlobIntegrityError
 
     error = BlobIntegrityError("destination changed during immutable verification")
@@ -339,6 +379,8 @@ def test_owner_changed_target_refusal_survives_a_now_valid_reread(tmp_path: Path
 
 
 def test_owner_refuses_symlinked_store_root_that_the_old_writer_followed(tmp_path: Path) -> None:
+    """Pin that the owner refuses a symlinked cache root the old writer followed, writing nothing through it."""
+
     for module in (old, bs):
         destination = tmp_path / f"{module.__name__}-destination"
         destination.mkdir()
@@ -356,6 +398,8 @@ def test_owner_refuses_symlinked_store_root_that_the_old_writer_followed(tmp_pat
 
 
 def test_owner_refuses_non_directory_staging_layout_without_replacing_it(tmp_path: Path) -> None:
+    """Pin that a file sitting at .pending is preserved and refused rather than replaced."""
+
     sentinel = tmp_path / ".pending"
     sentinel.write_bytes(b"keep existing file")
     with pytest.raises(bs.BillStatusAcquisitionError, match="cache layout is unavailable"):

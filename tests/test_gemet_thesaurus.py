@@ -1,4 +1,11 @@
-"""Lossless GEMET RDF/XML parser and acquisition tests."""
+"""Lossless GEMET RDF/XML parser and acquisition tests.
+
+The mini fixture and a synthetic Group/Source shape prove each published
+label, note, notation, relation and organization row is preserved or refused
+by name -- untagged or datatyped labels, node references, duplicate preferred
+labels and drifted pins all fail closed -- while the opt-in real 4.2.3
+distribution pins the complete import census.
+"""
 
 from __future__ import annotations
 
@@ -99,14 +106,20 @@ SYNTHETIC_PARTIALLY_MODELED_ENTITY_RDF_XML = """<?xml version="1.0" encoding="UT
 
 
 def _fixture_bytes() -> bytes:
+    """The mini GEMET RDF/XML fixture's exact bytes."""
+
     return FIXTURE_PATH.read_bytes()
 
 
 def _fixture_text() -> str:
+    """The mini fixture as UTF-8 text, for mutation."""
+
     return FIXTURE_PATH.read_text(encoding="utf-8")
 
 
 def test_parser_preserves_source_derived_multilingual_labels_notes_and_iris() -> None:
+    """Multilingual pref/alt labels, notes, source IRIs and dangling targets are preserved as published and reproducibly."""
+
     source = _fixture_bytes()
     parsed = parse_gemet_rdf_xml(source, source_url=FIXTURE_SOURCE_URL)
 
@@ -162,6 +175,8 @@ def test_parser_preserves_source_derived_multilingual_labels_notes_and_iris() ->
 
 
 def test_parser_relates_the_concept_scheme_hierarchy_and_crosswalk_mappings() -> None:
+    """Broader/narrower/related edges, four crosswalk targets, the licence and the top concepts are captured exactly."""
+
     parsed = parse_gemet_rdf_xml(_fixture_bytes(), source_url=FIXTURE_SOURCE_URL)
 
     assert {
@@ -220,6 +235,8 @@ def test_parser_relates_the_concept_scheme_hierarchy_and_crosswalk_mappings() ->
 
 
 def test_notation_is_preserved_as_a_language_tagged_literal_not_a_typed_one() -> None:
+    """The one concept notation keeps its en language tag and carries no datatype."""
+
     parsed = parse_gemet_rdf_xml(_fixture_bytes(), source_url=FIXTURE_SOURCE_URL)
 
     assert len(parsed.notations) == 1
@@ -231,6 +248,8 @@ def test_notation_is_preserved_as_a_language_tagged_literal_not_a_typed_one() ->
 
 
 def test_created_and_modified_are_preserved_as_the_empty_literal_gemet_actually_publishes() -> None:
+    """Both dcterms lifecycle literals stay empty xsd:dateTime values rather than being dropped."""
+
     parsed = parse_gemet_rdf_xml(_fixture_bytes(), source_url=FIXTURE_SOURCE_URL)
 
     lifecycle = [
@@ -247,6 +266,8 @@ def test_created_and_modified_are_preserved_as_the_empty_literal_gemet_actually_
 
 
 def test_hidden_label_is_scoped_to_the_concept_that_publishes_it() -> None:
+    """The single hidden label belongs to the chemical concept and to no other subject."""
+
     parsed = parse_gemet_rdf_xml(_fixture_bytes(), source_url=FIXTURE_SOURCE_URL)
 
     assert {
@@ -257,6 +278,8 @@ def test_hidden_label_is_scoped_to_the_concept_that_publishes_it() -> None:
 
 
 def test_scope_note_preserves_embedded_quote_characters_verbatim() -> None:
+    """Embedded quotation marks in a scope note survive verbatim."""
+
     parsed = parse_gemet_rdf_xml(_fixture_bytes(), source_url=FIXTURE_SOURCE_URL)
 
     scope_note = next(
@@ -492,11 +515,15 @@ def test_group_identity_and_label_are_modeled_but_notation_and_source_records_ar
     ],
 )
 def test_parser_rejects_lossy_or_ambiguous_skos_features(source, message: str) -> None:
+    """Untagged or datatyped labels, a duplicate preferred label and a node-reference object each refuse by name."""
+
     with pytest.raises(GemetParseError, match=message):
         parse_gemet_rdf_xml(source(), source_url=FIXTURE_SOURCE_URL)
 
 
 def test_parser_enforces_optional_distribution_digest_and_size_pins() -> None:
+    """Optional digest and byte-length pins pass when right and refuse with the matching mismatch message."""
+
     source = _fixture_bytes()
     digest = "sha256:" + hashlib.sha256(source).hexdigest()
     parsed = parse_gemet_rdf_xml(
@@ -522,6 +549,8 @@ def test_parser_enforces_optional_distribution_digest_and_size_pins() -> None:
 
 
 def test_parse_gemet_file_reads_a_local_already_decompressed_distribution(tmp_path: Path) -> None:
+    """A local decompressed .rdf file parses and reports its own sha256."""
+
     source = _fixture_bytes()
     path = tmp_path / "gemet-mini.rdf"
     path.write_bytes(source)
@@ -532,6 +561,8 @@ def test_parse_gemet_file_reads_a_local_already_decompressed_distribution(tmp_pa
 
 
 def _fixture_release(*, compressed: bool) -> tuple[GemetReleaseSource, bytes]:
+    """A test release pinning the fixture, optionally gzipped with both wrappers pinned."""
+
     source = _fixture_bytes()
     payload = gzip.compress(source) if compressed else source
     release = GemetReleaseSource(
@@ -549,6 +580,8 @@ def _fixture_release(*, compressed: bool) -> tuple[GemetReleaseSource, bytes]:
 
 
 def test_verified_local_acquisition_of_an_already_decompressed_source_parses(tmp_path: Path) -> None:
+    """An uncompressed local source acquires as local with no compressed pin and then parses."""
+
     release, payload = _fixture_release(compressed=False)
     source_path = tmp_path / "gemet-mini-source.rdf"
     source_path.write_bytes(payload)
@@ -565,6 +598,8 @@ def test_verified_local_acquisition_of_an_already_decompressed_source_parses(tmp
 
 
 def test_verified_local_acquisition_decompresses_and_pins_both_the_compressed_and_raw_payload(tmp_path: Path) -> None:
+    """A gzip source pins both wrappers on first acquisition, then hits the cache without the wrapper."""
+
     release, payload = _fixture_release(compressed=True)
     source_path = tmp_path / "gemet-mini-source.rdf.gz"
     source_path.write_bytes(payload)
@@ -586,6 +621,8 @@ def test_verified_local_acquisition_decompresses_and_pins_both_the_compressed_an
 
 
 def test_acquisition_rejects_a_compressed_payload_that_does_not_match_the_pin(tmp_path: Path) -> None:
+    """One appended byte to the gzip refuses against the compressed pin."""
+
     release, payload = _fixture_release(compressed=True)
     tampered = payload + b"\x00"
     source_path = tmp_path / "tampered.rdf.gz"
@@ -596,6 +633,8 @@ def test_acquisition_rejects_a_compressed_payload_that_does_not_match_the_pin(tm
 
 
 def test_acquisition_rejects_a_decompressed_payload_that_does_not_match_the_pin(tmp_path: Path) -> None:
+    """Same-length content drift refuses on the digest, not the separately tested length check."""
+
     release, _payload = _fixture_release(compressed=False)
     source_path = tmp_path / "tampered.rdf"
     # Same byte length, different content, so this exercises the digest
@@ -609,6 +648,8 @@ def test_acquisition_rejects_a_decompressed_payload_that_does_not_match_the_pin(
 
 
 def test_acquisition_refuses_the_network_without_explicit_opt_in(tmp_path: Path) -> None:
+    """A cache miss without allow_network refuses."""
+
     release, _payload = _fixture_release(compressed=False)
 
     with pytest.raises(GemetAcquisitionError, match="allow_network"):
@@ -616,6 +657,8 @@ def test_acquisition_refuses_the_network_without_explicit_opt_in(tmp_path: Path)
 
 
 def test_gemet_release_4_2_3_preserves_the_catalog_cited_landing_page_and_license() -> None:
+    """The 4.2.3 release pins its version, scheme IRI, catalogue landing page and licence."""
+
     assert GEMET_RELEASE_4_2_3.version == "4.2.3"
     assert GEMET_RELEASE_4_2_3.concept_scheme_iri == GEMET_CONCEPT_SCHEME_IRI
     assert GEMET_RELEASE_4_2_3.landing_page_url == "https://www.eionet.europa.eu/gemet/en/exports/rdf/latest"
@@ -664,6 +707,8 @@ PINNED_REAL_COUNTS = GemetImportCounts(
 
 
 def test_opt_in_pinned_real_distribution_counts() -> None:
+    """The env-configured real 4.2.3 distribution reproduces the full pinned import census."""
+
     source_path = os.environ.get("REFSPEC_GEMET_PATH")
     if source_path is None:
         pytest.skip(

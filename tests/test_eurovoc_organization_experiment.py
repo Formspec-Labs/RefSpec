@@ -1,4 +1,4 @@
-"""EuroVoc organization sidecar separation and integrity tests."""
+"""Pin the EuroVoc organization sidecar's publisher/operator separation, byte stability, and refusals."""
 
 from __future__ import annotations
 
@@ -110,6 +110,8 @@ METADATA_TURTLE = """\
 
 
 def _zip_payload(member: bytes) -> bytes:
+    """Wrap the serialized RDF member in a deterministic deflated zip."""
+
     output = io.BytesIO()
     info = zipfile.ZipInfo("eurovoc.rdf", date_time=(2026, 7, 7, 6, 8, 0))
     info.compress_type = zipfile.ZIP_DEFLATED
@@ -119,6 +121,8 @@ def _zip_payload(member: bytes) -> bytes:
 
 
 def _fixture_inputs(tmp_path: Path) -> tuple[EuroVocReleaseSource, Path, Path]:
+    """Write the fixture archive and metadata, returning their pin plus on-disk paths."""
+
     tmp_path.mkdir(parents=True, exist_ok=True)
     graph = Graph()
     graph.parse(data=SKOS_TURTLE, format="turtle")
@@ -164,12 +168,16 @@ def _build(tmp_path: Path):
 
 
 def _jsonl(payload: bytes) -> list[dict]:
+    """Parse a JSON-lines artifact file into rows."""
+
     return [json.loads(line) for line in payload.decode("utf-8").splitlines()]
 
 
 def test_experiment_preserves_publisher_memberships_and_separates_domain_candidates(
     tmp_path: Path,
 ) -> None:
+    """Pin 4 objects, 4 publisher inScheme assertions, and 2 operator domain candidates with unresolved lineage."""
+
     artifact = _build(tmp_path)
     objects = _jsonl(artifact.files[OBJECTS_PATH])
     assertions = _jsonl(artifact.files[ASSERTIONS_PATH])
@@ -232,6 +240,8 @@ def test_experiment_preserves_publisher_memberships_and_separates_domain_candida
 def test_experiment_build_is_byte_stable_and_materialization_is_idempotent(
     tmp_path: Path,
 ) -> None:
+    """Pin byte-identical rebuilds and idempotent materialization with empty change events."""
+
     first = _build(tmp_path / "first")
     second = _build(tmp_path / "second")
     assert dict(first.files) == dict(second.files)
@@ -247,6 +257,8 @@ def test_experiment_build_is_byte_stable_and_materialization_is_idempotent(
 
 
 def test_verifier_refuses_a_reversed_or_otherwise_changed_assertion(tmp_path: Path) -> None:
+    """Pin that a reversed assertion fails the cold-rebuild verification."""
+
     artifact = _build(tmp_path / "input")
     output = tmp_path / "experiment"
     materialize_eurovoc_organization_artifact(output, artifact)
@@ -265,6 +277,8 @@ def test_verifier_refuses_a_reversed_or_otherwise_changed_assertion(tmp_path: Pa
 
 
 def test_verifier_refuses_an_extra_member(tmp_path: Path) -> None:
+    """Pin that an unlisted file fails the directory verification."""
+
     artifact = _build(tmp_path / "input")
     output = tmp_path / "experiment"
     materialize_eurovoc_organization_artifact(output, artifact)
@@ -275,12 +289,12 @@ def test_verifier_refuses_an_extra_member(tmp_path: Path) -> None:
 
 
 def test_real_pinned_release_builds_the_frozen_organization_counts() -> None:
-    """REF-046's audit-gap closure: the module exercised over real bytes.
+    """Pin REF-046's real-byte closure: 148 objects, 7,902 assertions, 127 candidates, and a byte-identical cold
+    rebuild.
 
-    Gated on the same two publisher artifacts `claim_release_exports.py`
-    already pins (`eurovocSkosCore`/`eurovocMetadata`) -- one shared pin
-    for one shared artifact, not a second capture, mirroring how REF-043
-    closed the equivalent GCMD gap.
+    Gated on the same two publisher artifacts ``claim_release_exports.py``
+    already pins, so one shared pin covers one shared artifact rather than a
+    second capture.
     """
 
     archive_text = os.environ.get("REFSPEC_EUROVOC_SKOS_CORE_PATH")

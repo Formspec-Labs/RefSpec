@@ -1,4 +1,10 @@
-"""Provider adoption preserves RefSpec acceptance, capture and row identity."""
+"""Federal Register topics adopted from the shared source reader: acceptance, capture and row identity.
+
+The frozen ``federal_register_topics_oracle`` holds the replaced decoder's
+verdicts; the shared reader must match them everywhere except its six named
+stricter refusals (duplicate keys, BOM, UTF-16, byte/depth/node limits) and
+must publish a capture only after a fully verified response.
+"""
 
 from __future__ import annotations
 
@@ -25,6 +31,8 @@ MINI = FIXTURES / "federal-register-topics-mini.json"
 
 
 def _assert_same(payload: bytes) -> None:
+    """Compare the shared parser with the frozen oracle, or require both to refuse."""
+
     try:
         expected = frozen.parse_federal_register_topics_api(payload)
     except (ValueError, UnicodeError):
@@ -44,10 +52,14 @@ def _assert_same(payload: bytes) -> None:
 
 @pytest.mark.parametrize("path", [FULL, MINI], ids=lambda path: path.name)
 def test_all_retained_rows_native_payloads_and_digests_match_frozen_oracle(path):
+    """Every retained record's payload, digest, locator, set digest and slug collisions match the oracle."""
+
     _assert_same(path.read_bytes())
 
 
 def test_shared_reader_version_changes_atlas_release_identity_only():
+    """The v2 parser version changes only the Atlas release IRI; digests, resources and relations are unchanged."""
+
     release = atlas.load_federal_register_topics_release(FULL)
     old_snapshot = frozen.parse_federal_register_topics_api(FULL.read_bytes())
     with patch.object(current, "FEDERAL_REGISTER_TOPICS_PARSER_VERSION", frozen.FEDERAL_REGISTER_TOPICS_PARSER_VERSION):
@@ -97,6 +109,8 @@ def test_shared_reader_version_changes_atlas_release_identity_only():
     ],
 )
 def test_value_and_shape_mutations_match_frozen_verdict(path, value):
+    """Twenty-five value and shape mutations accept or refuse exactly as the frozen decoder did."""
+
     raw = json.loads(MINI.read_bytes())
     parent = raw
     for key in path[:-1]:
@@ -112,6 +126,8 @@ def test_value_and_shape_mutations_match_frozen_verdict(path, value):
                                ("name", "slug", "see", "see_also", "cfr_references"))],
 )
 def test_missing_fields_match_frozen_refusals(path):
+    """Deleting each required field refuses exactly where the frozen decoder refused."""
+
     raw = json.loads(MINI.read_bytes())
     parent = raw
     for key in path[:-1]:
@@ -121,6 +137,8 @@ def test_missing_fields_match_frozen_refusals(path):
 
 
 def test_duplicate_slugs_and_reordered_collections_preserve_capture_identity():
+    """Duplicate slugs and a reordered collection keep capture identity equal to the oracle."""
+
     raw = json.loads(MINI.read_bytes())
     raw["results"]["thesaurus"] = [copy.deepcopy(raw["results"]["thesaurus"][0])] * 2
     raw["results"] = {"ad_hoc": raw["results"]["ad_hoc"], "thesaurus": raw["results"]["thesaurus"]}
@@ -129,6 +147,8 @@ def test_duplicate_slugs_and_reordered_collections_preserve_capture_identity():
 
 
 def test_empty_collections_with_zero_counts_are_an_accepted_observation():
+    """Empty collections with zero counts are accepted, not treated as drift."""
+
     _assert_same(b'{"meta":{"count":{"thesaurus":0,"ad_hoc":0,"total":0}},"results":{"thesaurus":[],"ad_hoc":[]}}')
 
 
@@ -139,6 +159,8 @@ INTENTIONAL_REFUSALS = ("duplicate-key", "utf8-bom", "utf16", "byte-limit", "dep
 
 @pytest.mark.parametrize("mutation", INTENTIONAL_REFUSALS)
 def test_named_stricter_source_refusals(mutation):
+    """The six named stricter refusals: duplicate keys, UTF-8 BOM, UTF-16, byte, depth and node limits."""
+
     payload = MINI.read_bytes()
     raw = json.loads(payload)
     if mutation == "duplicate-key":
@@ -165,6 +187,9 @@ def test_named_stricter_source_refusals(mutation):
 
 @pytest.mark.parametrize("path", [FULL, MINI], ids=lambda path: path.name)
 def test_network_capture_uses_shared_response_and_preserves_event_and_bytes(tmp_path, path):
+    """One network response is parsed once and yields the same bytes, event, digest, URL and snapshot as the frozen
+    capture."""
+
     payload = path.read_bytes()
     requests = []
 
@@ -203,6 +228,9 @@ def test_network_capture_uses_shared_response_and_preserves_event_and_bytes(tmp_
      (403, b"refused", {}, CredentialRefusedError)],
 )
 def test_network_refusal_never_publishes_capture(tmp_path, status, body, headers, error):
+    """A challenge, empty body, wrong content type, redirect, 404 or 401/403 publishes nothing; refusals keep the
+    response bytes."""
+
     requests = []
 
     def respond(request):
@@ -220,6 +248,8 @@ def test_network_refusal_never_publishes_capture(tmp_path, status, body, headers
 
 
 def test_network_capture_still_requires_explicit_selection(tmp_path):
+    """Capture refuses without ``allow_network`` even when a transport is supplied."""
+
     def unexpected(request):
         raise AssertionError("network was not selected")
 
@@ -228,6 +258,8 @@ def test_network_capture_still_requires_explicit_selection(tmp_path):
 
 
 def test_network_byte_budget_refuses_before_publication(tmp_path):
+    """A stated content-length above the fixed byte bound refuses before the stream is consumed or published."""
+
     # Return a stated size above the receiver's fixed bound without allocating
     # a huge fixture. The shared capture checks it before consuming the stream.
     def oversized(request):
@@ -245,6 +277,8 @@ def test_network_byte_budget_refuses_before_publication(tmp_path):
 
 @pytest.mark.parametrize("failure", ["503", "timeout"])
 def test_network_request_budget_is_one_attempt_and_errors_stay_receiver_errors(tmp_path, failure):
+    """An HTTP 503 or connect timeout makes one attempt, raises the receiver's error, and publishes nothing."""
+
     requests = []
 
     def respond(request):

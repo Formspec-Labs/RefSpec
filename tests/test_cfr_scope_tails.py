@@ -1,4 +1,4 @@
-"""Source-only scope tails: constructed diagnostics and publisher controls."""
+"""CFR scope tails: written qualifiers become refusals, with prose and saved-source controls."""
 import json
 from dataclasses import asdict
 from pathlib import Path
@@ -43,6 +43,8 @@ NEGATIVE_TAILS = [' notes that the rule applies.', ' note that the rule applies.
 @pytest.mark.parametrize('anchor', ANCHORS)
 @pytest.mark.parametrize('expand', [True, False])
 def test_written_scope_is_retained_without_promoting_a_target(name, anchor, expand):
+    """Pins each written tail as a refusal reason while citation, pinpoint, and span keep the oracle reading."""
+
     tail, reason = TAILS[name]
     text = anchor + tail
     before, = before_find(text, expand_qualifiers=expand)
@@ -62,6 +64,8 @@ def test_written_scope_is_retained_without_promoting_a_target(name, anchor, expa
 @pytest.mark.parametrize('tail', NEGATIVE_TAILS)
 @pytest.mark.parametrize('anchor', ANCHORS)
 def test_prose_and_boundaries_keep_the_existing_source_reading(tail, anchor):
+    """Pins that "notes"/"et seq." prose and paragraph boundaries keep the copied oracle's verdicts."""
+
     text = anchor + tail
     assert find_cfr_citations(text) == before_find(text)
     assert parse_cfr_citations(text) == before_parse(text)
@@ -69,6 +73,8 @@ def test_prose_and_boundaries_keep_the_existing_source_reading(tail, anchor):
 
 @pytest.mark.parametrize('tail,reason', [TAILS['note'], TAILS['open_ended']])
 def test_qualifier_on_last_list_item_does_not_erase_other_items(tail, reason):
+    """Pins that a qualifier on a list's last item refuses only that item, keeping the first item's reading."""
+
     text = '49 CFR §§ 390.5(a), 390.6(b)' + tail
     old = before_find(text)
     first, last = find_cfr_citations(text)
@@ -81,6 +87,8 @@ def test_qualifier_on_last_list_item_does_not_erase_other_items(tail, reason):
 
 
 def test_qualified_list_member_keeps_next_explicit_coordinate_and_neighbor():
+    """Pins that after a refused list member the next coordinate keeps its pinpoint and a neighbor stays clean."""
+
     text = '49 CFR §§ 390.5 note, 390.6(b); 40 CFR 82.158'
     first, second, third = find_cfr_citations(text)
     assert first.refusal == 'note_target_unresolved'
@@ -93,6 +101,8 @@ def test_qualified_list_member_keeps_next_explicit_coordinate_and_neighbor():
 
 
 def test_collapsed_subpart_list_keeps_final_refusal():
+    """Pins that a collapsed subpart list keeps the final member's open-ended refusal."""
+
     text = '49 CFR part 390, subparts A and B et seq.'
     first, last = find_cfr_citations(text)
     assert first.refusal is None
@@ -103,6 +113,8 @@ def test_collapsed_subpart_list_keeps_final_refusal():
 
 
 def test_previous_ambiguity_is_not_overwritten():
+    """Pins that an ambiguous part scope survives a later note refusal rather than being overwritten."""
+
     text = '49 CFR parts 390 and 391, subpart A note'
     _, last = find_cfr_citations(text)
     assert last.qualifier_status == 'ambiguous_part_scope'
@@ -121,6 +133,8 @@ for path in sorted((FIXTURES / 'ecfr-text').glob('*.xml')):
 @pytest.mark.parametrize('mutation', ['original', 'wrapped', 'neighbor', 'paragraph'])
 @pytest.mark.parametrize('expand', [True, False])
 def test_saved_sources_and_boundary_mutations_agree_with_copied_callback(case, text, mutation, expand):
+    """Pins saved subparts/ranges/eCFR text plus three boundary mutations to the copied oracle in both modes."""
+
     if mutation == 'wrapped':
         text = text.replace(' ', '\n')
     elif mutation == 'neighbor':
@@ -134,6 +148,8 @@ def test_saved_sources_and_boundary_mutations_agree_with_copied_callback(case, t
 
 
 def test_note_is_not_reinterpreted_as_a_verb_across_a_paragraph():
+    """Pins that a following paragraph does not turn "note" into a verb or clear its refusal."""
+
     text = '49 CFR 390.5 note\n\nThat provision has a separate context.'
     row, = find_cfr_citations(text)
     assert row.text == '49 CFR 390.5 note'

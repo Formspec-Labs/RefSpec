@@ -1,13 +1,11 @@
 """Facts checked by reading the two FERC PDFs as rendered pages.
 
-`research/evidence/ferc-pdf-attestation-2026-08-21/attestation.md` records a
+``research/evidence/ferc-pdf-attestation-2026-08-21/attestation.md`` records a
 page-by-page reading of both documents, done without consulting the producer's
-parser. These tests pin what that reading established, so a change to the
-producer breaks a check rather than silently diverging from the source.
-
-They are not a substitute for a `SourceSpec`: they do not re-read the PDF, and
-a new publisher revision would need the reading done again. What they prevent
-is the extraction drifting away from a source that has been looked at.
+parser; these tests pin what that reading established so a change to the
+producer breaks a check rather than silently diverging from the source. They do
+not re-read the PDF, and a new publisher revision would need the reading done
+again.
 """
 
 from __future__ import annotations
@@ -28,6 +26,7 @@ pytestmark = pytest.mark.skipif(
 
 @pytest.fixture(scope="module")
 def docket_rows():
+    """The parsed rows of the pinned FERC docket-prefix PDF."""
     from refspec.registry import ferc_elibrary_codes as source
 
     return source.parse_ferc_docket_prefix_pdf(DOCKET_PDF.read_bytes()).rows
@@ -35,6 +34,7 @@ def docket_rows():
 
 @pytest.fixture(scope="module")
 def class_rows():
+    """The parsed rows of the pinned FERC class-type PDF."""
     from refspec.registry import ferc_elibrary_codes as source
 
     return source.parse_ferc_class_type_pdf(CLASS_PDF.read_bytes()).rows
@@ -56,6 +56,10 @@ def test_the_docket_pdf_splits_into_the_three_tables_the_pages_show(docket_rows)
 
 
 def test_the_docket_pdf_keeps_the_publishers_own_punctuation(docket_rows) -> None:
+    """Publisher punctuation survives: the bare '<', the stray space in
+    "FERC- 65B", the en dash, the apostrophe, and the one observed "Gen, RM"
+    normalisation.
+    """
     by_prefix = {row.prefix: row for row in docket_rows}
     # A bare '<' that survives unescaped.
     assert by_prefix["CD"].definition == "Conduit Determination (< than 5 MW Facility)"
@@ -89,6 +93,7 @@ def test_the_class_pdf_excludes_repeated_print_headers_and_spacer_rows(class_row
 
 
 def test_the_class_pdf_row_split_matches_the_pages(class_rows) -> None:
+    """Pins 235 rows, 54 Issuance and 181 Submittal, with the first and last descriptions."""
     issuance = [row for row in class_rows if row.category == "Issuance"]
     assert len(class_rows) == 235
     # 51 Issuance rows on page 1 and 3 on page 2, counted off the rendered pages.
@@ -101,6 +106,9 @@ def test_the_class_pdf_row_split_matches_the_pages(class_rows) -> None:
 
 
 def test_the_class_pdf_preserves_publisher_defects(class_rows) -> None:
+    """Publisher defects survive: a trailing comma, prose "and", and a
+    mid-word truncation in one Hinshaw Pipe row.
+    """
     libraries = {row.library for row in class_rows}
     # A trailing comma the publisher wrote, kept rather than stripped.
     assert "H, O, G," in libraries

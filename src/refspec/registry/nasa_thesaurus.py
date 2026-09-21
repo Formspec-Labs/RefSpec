@@ -1,35 +1,20 @@
 """Lossless RDF/XML reader and acquisition for the pinned NASA Thesaurus SKOS distribution.
 
-The NASA Thesaurus SKOS/RDF distribution is RDF/XML, not Turtle, and every
-concept, relation-edge, and term-note identifier the source assigns is a
-same-document numeric fragment (for example ``#37801``), resolved against the
-document's own download URL. The publisher supplies no externally minted
-concept IRI and no ``skos:ConceptScheme`` resource; this module does not
-invent one.
-
-RDF/XML gives an ``rdf:ID`` on a property element (used here for every
-``skos:broader``/``narrower``/``related`` and ``skm:UF``/``skm:Use`` edge, and
-every ``zthes:termNote``) an automatic reification -- ``rdf:type
-rdf:Statement`` plus ``rdf:subject``/``rdf:predicate``/``rdf:object`` -- that
-resolves against the base with a leading ``#``. The document's own
-``<rdf:Description rdf:about="...">`` blocks that carry the real
-``zthes:label`` definition/scope-note text and ``zthes:weight`` edge weight
-reuse the *identical local string*, but without a leading ``#``, which
-resolves as a same-level relative path segment, not a fragment. Verified
-against the full published distribution, these two id spaces never collide.
-This module preserves both sets of assertions exactly as given and does not
-synthesize a link between a term note or relation edge and its detached
-annotation literal by string-matching local ids; that would mint an
-association the source RDF itself does not assert.
-
-Importing this module never opens a network connection. A caller must either
-supply an existing local distribution or set ``allow_network=True``, and in
-both cases RefSpec verifies the exact published byte length and SHA-256
-digest before making the object visible in the content-addressed store.
-
-The source states no explicit reuse license for the Thesaurus data files; it
-states only a citation/attribution request. That attribution requirement is
-retained as source metadata; it does not act as a runtime authorization gate.
+Every concept, relation-edge, and term-note identifier the source assigns is a
+same-document numeric fragment resolved against the document's download URL;
+the publisher supplies no externally minted concept IRI and no
+``skos:ConceptScheme`` resource, and this module invents neither. RDF/XML
+reifies every ``rdf:ID`` property (the ``skos:broader``/``narrower``/``related``
+and ``skm:UF``/``skm:Use`` edges and the ``zthes:termNote``) into an
+``rdf:Statement`` whose detached ``zthes:label``/``weight`` annotations reuse
+the same local string without the leading ``#``; the two id spaces never
+collide on the published distribution, both assertion sets are preserved
+exactly, and no link between them is synthesized by string-matching because
+the source RDF asserts none. Importing never opens a network connection: a
+caller supplies a local distribution or sets ``allow_network=True``, and both
+paths verify the exact published byte length and SHA-256 digest before the
+object enters the content-addressed store, while the publisher's citation
+request stays source metadata rather than a runtime authorization gate.
 """
 
 from __future__ import annotations
@@ -185,9 +170,7 @@ class NasaThesaurusLabelExpression:
 
 @dataclass(frozen=True, slots=True)
 class NasaThesaurusNote:
-    """One ``zthes:termNote`` assertion. The value is a note-kind marker, not
-    the note's own text -- see the module docstring for where the real text
-    lives and why it is not joined here."""
+    """One ``zthes:termNote`` assertion whose value is a note-kind marker, not the note's own text."""
 
     subject_iri: str
     property_iri: str
@@ -214,11 +197,10 @@ class NasaThesaurusMetadataLiteral:
 
 @dataclass(frozen=True, slots=True)
 class NasaThesaurusAnnotationLiteral:
-    """One detached ``zthes:label``/``zthes:weight`` annotation literal.
+    """One detached ``zthes:label``/``zthes:weight`` literal whose subject is its own resolved IRI.
 
-    Its subject is its own resolved IRI. RefSpec does not assert this
-    resource is the same as, or linked to, any concept or relation edge; the
-    source RDF itself makes no such assertion (see module docstring).
+    RefSpec never asserts it is the same as, or linked to, any concept or
+    relation edge, because the source RDF makes no such assertion.
     """
 
     subject_iri: str
@@ -656,11 +638,12 @@ def acquire_nasa_thesaurus_release(
     allow_network: bool = False,
     timeout_seconds: float = 60.0,
 ) -> AcquiredNasaThesaurusSource:
-    """Resolve one pinned NASA Thesaurus release from cache, a local file, or the network.
+    """Resolve one pinned release from cache, a local file, or the network.
 
-    Cache lookup is always local. A supplied ``source_path`` is read locally.
-    Otherwise, a cache miss fails unless ``allow_network`` is explicitly true.
-    Every path is subject to the release's exact byte-length and digest pins.
+    Cache lookup is always local and a supplied ``source_path`` is read
+    locally; otherwise a cache miss fails unless ``allow_network`` is
+    explicitly true, and every path must match the release's exact byte-length
+    and digest pins.
     """
 
     try:
@@ -694,6 +677,8 @@ def parse_acquired_nasa_thesaurus_source(acquired: AcquiredNasaThesaurusSource) 
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Acquire one exact NASA Thesaurus distribution and print its stored path."""
+
     parser = argparse.ArgumentParser(
         description="Acquire one exact NASA Thesaurus distribution into a content-addressed local store."
     )

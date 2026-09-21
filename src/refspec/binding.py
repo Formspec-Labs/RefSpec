@@ -1,4 +1,12 @@
-"""Validate REF JSON Binding 1.0 records and conformance fixtures."""
+"""Validate REF JSON Binding 1.0 records and conformance fixtures.
+
+Loads the checkout's JSON Schemas (falling back to the embedded generated
+bundle when the binding tree is absent), checks each record's type, canonical
+payload digest, cross-record references, and per-type semantic rules, and
+compares the fixture suite against the requirements its manifest declares.
+Also serves as the binding CLI (``--record``, ``--print-digest``,
+``--refresh-fixture``).
+"""
 
 from __future__ import annotations
 
@@ -362,6 +370,7 @@ def same_reference(left: dict[str, Any], right: dict[str, Any]) -> bool:
 
 
 def references_record(reference: dict[str, Any], record: dict[str, Any]) -> bool:
+    """Whether a reference names the record's id and digest field, and version when stated."""
     if reference.get("id") != record.get("id"):
         return False
     field = digest_field(record)
@@ -2289,6 +2298,7 @@ def refresh_record_digest(record: dict[str, Any]) -> None:
 
 
 def refresh_fixture(fixture: dict[str, Any]) -> None:
+    """Refresh every digest in a self-contained fixture, refusing non-convergence."""
     records = fixture["records"]
     records_by_id = {record["id"]: record for record in records}
     for _ in range(len(records) + 2):
@@ -2396,6 +2406,11 @@ def run_fixture(
     registry: Registry,
     expect_valid: bool,
 ) -> tuple[bool, list[Diagnostic]]:
+    """Run one fixture, returning whether it behaved as expected plus its diagnostics.
+
+    A valid fixture must produce no diagnostics; an invalid one must be rejected
+    and must produce every requirement its ``expectedRequirements`` declares.
+    """
     fixture = load_fixture(path)
     diagnostics = fixture["parseDiagnostics"] or validate_records(
         fixture["records"],

@@ -1,4 +1,8 @@
-"""Atlas 3 emission coverage for previously descriptor-only sources."""
+"""Atlas 3 emission coverage for sources that were previously descriptor-only.
+
+Adapter factories are pinned against exact local publisher captures (skipped when absent), including
+the no-nulls metadata grammar; the documented successor releases are proven to pass all three Atlas
+population refusal guards (registrant, document, and observed inventory)."""
 
 from __future__ import annotations
 

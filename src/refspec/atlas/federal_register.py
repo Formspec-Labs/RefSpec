@@ -161,9 +161,8 @@ class FederalRegisterThesaurus2025AtlasView:
     def iter_relations(self) -> Iterable[ManagedReleaseRelation]:
         """The 2025 edition states no concept-to-concept relation of its own.
 
-        Its related references already ride in the source graph, and the
-        edition removed the 1995 broad categories, so there is no hierarchy
-        here to normalize.
+        Its related references ride in the source graph and the edition removed
+        the 1995 broad categories, so there is no hierarchy to normalize here.
         """
 
         return ()
@@ -480,8 +479,8 @@ def _project_view(
 class PinnedFederalRegisterThesaurus2025AtlasRelease:
     """Exact specialized package adapted to the shared atlas producer seam.
 
-    Rulespec contributes only its pinned Core publication.  Release-digest
-    computation is part of the source-pinned RefSpec producer, so no Rulespec
+    Rulespec contributes only its pinned Core publication, and release-digest
+    computation stays in the source-pinned RefSpec producer, so no Rulespec
     checkout or unrecorded validator can change this release's facts.
     """
 
@@ -495,6 +494,8 @@ class PinnedFederalRegisterThesaurus2025AtlasRelease:
         *,
         expected_manifest_digest: str,
     ) -> Self:
+        """Verify the package against the external manifest digest before selecting it."""
+
         selected = Path(manifest_path)
         _verified_package(
             selected,
@@ -506,6 +507,8 @@ class PinnedFederalRegisterThesaurus2025AtlasRelease:
         )
 
     def verified_view(self) -> FederalRegisterThesaurus2025AtlasView:
+        """Re-verify the package from disk and project its atlas view."""
+
         package = _verified_package(
             self.manifest_path,
             expected_manifest_digest=self.manifest_digest,
@@ -513,6 +516,8 @@ class PinnedFederalRegisterThesaurus2025AtlasRelease:
         return _project_view(package)
 
     def pin(self) -> dict[str, Any]:
+        """Return the release pin, re-verifying the package on every call."""
+
         view = self.verified_view()
         return {
             "role": "ManagedReleaseView",

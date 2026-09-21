@@ -12,6 +12,12 @@ _DASHES = str.maketrans(dict.fromkeys("‐‑‒–—―−\x96\x97", "-"))
 
 
 def release(data, *, appendix=False):
+    """Frozen release-XML kernel: section/range/subsection/chapter identifiers into lowercased key sets.
+
+    ``appendix=True`` skips subsections and chapters, matching the generation-2
+    reader's treatment of appendix files.
+    """
+
     exact, ranges, subsections, chapters = set(), set(), set(), set()
     for match in re.finditer(rb"<section\b[^>]*>", data):
         tag = match.group()
@@ -45,6 +51,8 @@ def release(data, *, appendix=False):
 
 
 def annual(data, *, year, title, appendix=False):
+    """Frozen annual-archive kernel: ``Secs.`` itempath comments into exact and ``X to Y`` range keys."""
+
     exact, ranges = set(), set()
     token = re.compile(r"^[0-9][0-9A-Za-z.\-]*$")
     for match in re.finditer(rb"<!-- itempath:([^>]*?) -->", data):

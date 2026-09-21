@@ -459,10 +459,10 @@ def _labels_for(view: AtlasParquetExplorer, resource_ids: set[str]) -> dict[str,
 def _lifecycle_status_ids(view: AtlasParquetExplorer) -> tuple[set[str], set[str]]:
     """Return (supersededIds, rescindedIds): assertions named by an edge.
 
-    An assertion carries no status field. A successor names its predecessor
-    via supersedes_assertion (one predecessor per successor, enforced by the
-    dataset validator), and a rkaf:rescission lifecycle event names the one
-    assertion it applies to. The validator rejects an assertion that is both,
+    An assertion carries no status field: a successor names its predecessor via
+    ``supersedes_assertion`` (one predecessor per successor, enforced by the
+    dataset validator), and a ``rkaf:rescission`` lifecycle event names the one
+    assertion it applies to; the validator rejects an assertion that is both,
     so the two sets are disjoint.
     """
 

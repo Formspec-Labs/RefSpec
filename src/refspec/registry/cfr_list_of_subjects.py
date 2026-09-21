@@ -1,37 +1,19 @@
 """Federal Register List of Subjects evidence linked to CFR references.
 
-The eCFR structure and full-text APIs publish CFR structure and regulatory
-text.  They do not publish a current ``List of Subjects`` for each CFR part.
-FederalRegister.gov document JSON is the machine-readable source that carries
-both a document's ``topics`` (the published List of Subjects terms) and its
-``cfr_references``.
-
-This module preserves that document-level shape.  It does not assign every
-topic independently to every cited CFR part when a document cites more than
-one part, and it does not turn topic labels into concept identifiers.  The
-result is source-assigned filing evidence for candidate ranking and
-evaluation, not a governed vocabulary or accepted-output authority.
-
-**Correction, 2026-08-20.**  An earlier version of this docstring let the true
-statement above about *eCFR* stand as though it were a statement about the
-world, and this module was built on that reading.  It is not true of the
-world.  The Office of the Federal Register publishes the per-part index
-directly, as fifty static HTML pages under
-``https://www.archives.gov/federal-register/cfr/subject-title-NN.html`` --
-"a list of Code of Federal Regulations (CFR) Subjects arranged by CFR Title
-and Part", revised annually.  ``parse_cfr_subject_index`` reads them.  That is
-a publisher assertion of ``(title, part) -> terms``, so it does not need the
-multi-part attribution this module refuses to invent: the publisher has
-already done it, which is the whole point of the page.
-
-The separate eCFR administrative agencies endpoint is a publisher-authored
-roster, not List of Subjects evidence. ``parse_ecfr_agency_roster`` preserves
-all 316 agency rows and their 487 CFR structure references from one exact,
-digest-pinned response. The Atlas roster adapter carries those references as
-direct agency-to-CFR-title relations without matching agencies by name to any
-other publisher's roster.
-
-Importing this module performs no network access.  Callers provide exact
+FederalRegister.gov document JSON is the machine-readable source carrying both
+a document's ``topics`` (the published List of Subjects terms) and its
+``cfr_references``; this module preserves that document-level shape, never
+assigning a topic independently to each cited CFR part when a document cites
+more than one, and never turning topic labels into concept identifiers, so the
+result is source-assigned filing evidence rather than a governed vocabulary.
+The Office of the Federal Register also publishes the per-part index directly
+as fifty static HTML pages under
+``https://www.archives.gov/federal-register/cfr/subject-title-NN.html``
+(revised annually), which ``parse_cfr_subject_index`` reads as a publisher
+assertion of ``(title, part) -> terms``; the separate eCFR administrative
+agencies endpoint is a publisher-authored roster, not List of Subjects
+evidence, and ``parse_ecfr_agency_roster`` preserves all of it as such.
+Importing this module performs no network access; callers provide exact
 publisher bytes, normally captured through the shared Zyte transport.
 """
 

@@ -42,6 +42,7 @@ CASE_SHIFT = lexical_benchmark.PAIR_SOURCE_BITS * 2
 
 
 def _pair_digest(codes: set[int] | frozenset[int], codec: lexical_benchmark.PairCodec) -> str:
+    """SHA-256 over the sorted pair lines of a candidate set."""
     digest = hashlib.sha256()
     for code in sorted(codes):
         digest.update(lexical_benchmark._pair_line(codec, code))
@@ -49,6 +50,7 @@ def _pair_digest(codes: set[int] | frozenset[int], codec: lexical_benchmark.Pair
 
 
 def _rank_digest(ranks: Mapping[int, int]) -> str:
+    """SHA-256 over ``code<TAB>rank`` lines in code order."""
     digest = hashlib.sha256()
     for code, rank in sorted(ranks.items()):
         digest.update(f"{code}\t{rank}\n".encode())
@@ -69,6 +71,7 @@ def _encode_sparse_ranks(
     ranks: Mapping[tuple[str, str, str], int],
     codec: lexical_benchmark.PairCodec,
 ) -> dict[int, int]:
+    """Re-key ``(case, source, target)`` ranks to the codec's integer pair codes."""
     case_indexes, source_indexes, target_indexes = _code_maps(codec)
     result: dict[int, int] = {}
     for (case, source, target), rank in ranks.items():
@@ -78,6 +81,7 @@ def _encode_sparse_ranks(
 
 
 def _sets_by_depth(ranks: Mapping[int, int], depths: Sequence[int]) -> dict[int, frozenset[int]]:
+    """Truncate a rank map to one candidate set per depth."""
     return {depth: frozenset(code for code, rank in ranks.items() if rank <= depth) for depth in depths}
 
 
@@ -174,6 +178,7 @@ def summarize_combination(
 
 
 def _depth_pareto_complete(combinations: Sequence[Mapping[str, Any]], gold_count: int) -> list[dict[str, int]]:
+    """Complete-recall depth pairs not dominated by a cheaper complete pair."""
     complete = [row for row in combinations if row["found"] == gold_count]
     result = []
     for row in complete:
@@ -196,6 +201,7 @@ def _depth_pareto_complete(combinations: Sequence[Mapping[str, Any]], gold_count
 
 
 def _recall_cost_pareto(combinations: Sequence[Mapping[str, Any]]) -> list[dict[str, int]]:
+    """Combinations not dominated on both candidate count and found count."""
     result = []
     for row in combinations:
         dominated = any(
@@ -226,6 +232,7 @@ def _assert_source_receipts(
     gold: frozenset[int],
     codec: lexical_benchmark.PairCodec,
 ) -> None:
+    """Recompute each depth's counts and pair-set digests, refusing any mismatch with the source receipts."""
     lexical_rows = {
         row["topK"]: row
         for union in lexical_receipt["unions"]
@@ -244,6 +251,7 @@ def _assert_source_receipts(
 
 
 def _deterministic_digest(report: Mapping[str, Any]) -> str:
+    """Report digest with the top-level, per-arm, and sparse-run ``elapsedSeconds`` fields removed."""
     stable = json.loads(canonical_json(report))
     stable.pop("elapsedSeconds", None)
     for arm in stable.get("lexicalArms", ()):
@@ -253,6 +261,7 @@ def _deterministic_digest(report: Mapping[str, Any]) -> str:
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
+    """Rebuild both families, verify the source receipts, and return the cost-frontier report."""
     started = time.monotonic()
     adapter_path = Path(shared_benchmark.__file__).resolve()
     adapter_digest_before = _sha256(adapter_path)

@@ -1,13 +1,11 @@
 """The router answers what a handed term is, or says exactly why it cannot.
 
-The verification bar this module enforces is stricter than the one the other
-readers get, and the reason is what the answer IS. A result list that is wrong
-wastes an afternoon; a definition that is wrong gets quoted into a supplier
-letter or a filing. So a definitional answer is a claim about the world, the
-same class as a coverage claim, and
-`test_every_named_part_says_so_in_the_publishers_own_words` checks the router's
-output against the publisher's RAW note text rather than against the citation
-parse that produced it -- verifying a parse against the same parse is circular
+A wrong result list wastes an afternoon, but a wrong definition gets quoted
+into a supplier letter or a filing, so a definitional answer is a claim about
+the world and the verification bar here is stricter than the other readers'.
+``test_every_named_part_says_so_in_the_publishers_own_words`` checks the
+router's output against the publisher's RAW note text rather than the citation
+parse that produced it, because verifying a parse against itself is circular
 and would pass on the day the parse breaks.
 """
 
@@ -41,11 +39,15 @@ artifact = pytest.mark.skipif(not ACT_INDEX.is_dir(), reason="the sealed act ind
 
 @pytest.fixture(scope="module")
 def index() -> ActIndex:
+    """The sealed USC act index, loaded from the pinned artifact directory."""
+
     return ActIndex.from_artifact(ACT_INDEX)
 
 
 @pytest.fixture(scope="module")
 def notes() -> CfrAuthorityNotes:
+    """The pinned eCFR authority-note cache, loaded from the repository root."""
+
     return CfrAuthorityNotes.from_repository(ROOT)
 
 

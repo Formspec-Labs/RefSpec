@@ -1,3 +1,10 @@
+"""Positive and negative fixtures for the Atlas 3.1 packed-manifest JSON Schema.
+
+Manifests are validated against the binding schemas under
+bindings/atlas/3.1/schemas with every sibling schema registered by $id, so a
+loosened or broken schema surfaces here.
+"""
+
 from __future__ import annotations
 
 import copy
@@ -14,6 +21,7 @@ DIGEST = "sha256:" + "1" * 64
 
 
 def _validator() -> Draft202012Validator:
+    """Build a Draft 2020-12 validator for atlas-manifest.schema.json with every sibling schema registered by $id."""
     registry = Registry()
     manifest_schema: dict[str, Any] | None = None
     for path in sorted(SCHEMA_ROOT.glob("*.schema.json")):
@@ -31,6 +39,7 @@ def _validator() -> Draft202012Validator:
 
 
 def _counts() -> dict[str, int]:
+    """Return a minimal counts block: every count zero except one release, resource and source record."""
     return {
         "crossRingRelationAssertions": 0,
         "derivedRelations": 0,
@@ -49,6 +58,7 @@ def _counts() -> dict[str, int]:
 
 
 def _binding() -> dict[str, str]:
+    """Return a 3.1 binding block whose six digests all use the shared fixture DIGEST."""
     return {
         "acceptanceSchemaDigest": DIGEST,
         "contractDigest": DIGEST,
@@ -62,6 +72,7 @@ def _binding() -> dict[str, str]:
 
 
 def _members() -> list[dict[str, Any]]:
+    """Return the four required members (sourceAccounting, acceptance, producerValidation, constructionSummary)."""
     return [
         {
             "byteLength": 10,
@@ -95,6 +106,7 @@ def _members() -> list[dict[str, Any]]:
 
 
 def _manifest() -> dict[str, Any]:
+    """Return a minimal valid manifest: one uncompressed aggregate pack over three graph roles."""
     return {
         "binding": _binding(),
         "canonicalPayloadDigest": DIGEST,
@@ -159,6 +171,7 @@ def _manifest() -> dict[str, Any]:
 
 
 def _zstd_manifest() -> dict[str, Any]:
+    """Return a two-pack zstd manifest: a partitioned sourceRelease pack and a dependent projection view pack."""
     manifest = _manifest()
     source_pack_id = "urn:ref:atlas-test:pack:source:00"
     manifest["packs"] = [
@@ -226,18 +239,22 @@ def _zstd_manifest() -> dict[str, Any]:
 
 
 def _errors(manifest: dict[str, Any]) -> list[Any]:
+    """Return the schema validation errors for the manifest."""
     return list(_validator().iter_errors(manifest))
 
 
 def test_one_uncompressed_aggregate_pack_is_valid() -> None:
+    """Pins that the minimal single aggregate-pack manifest validates cleanly."""
     assert _errors(_manifest()) == []
 
 
 def test_zstd_source_and_optional_projection_packs_are_valid() -> None:
+    """Pins that a zstd source-release pack plus a dependent projection view pack validates cleanly."""
     assert _errors(_zstd_manifest()) == []
 
 
 def test_view_pack_cannot_carry_authoritative_quads_or_omit_its_input_pin() -> None:
+    """Pins rejection when a view pack counts asserted quads or drops its inputAssertedDigest pin."""
     manifest = _zstd_manifest()
     manifest["packs"][1]["graphCounts"]["asserted"] = 1
     del manifest["packs"][1]["inputAssertedDigest"]
@@ -246,6 +263,7 @@ def test_view_pack_cannot_carry_authoritative_quads_or_omit_its_input_pin() -> N
 
 
 def test_source_release_pack_has_one_release_and_zstd_path() -> None:
+    """Pins rejection when a sourceRelease pack lists two releases or points at an uncompressed path."""
     manifest = _zstd_manifest()
     source_pack = manifest["packs"][0]
     source_pack["sourceReleases"].append("urn:ref:atlas-test:source-release:2")
@@ -255,6 +273,7 @@ def test_source_release_pack_has_one_release_and_zstd_path() -> None:
 
 
 def test_manifest_and_pack_records_are_closed() -> None:
+    """Pins rejection of an undeclared property, here 'authority' on a pack record."""
     manifest = copy.deepcopy(_manifest())
     manifest["packs"][0]["authority"] = "authoritative"
 
@@ -262,6 +281,7 @@ def test_manifest_and_pack_records_are_closed() -> None:
 
 
 def test_pack_path_cannot_escape_the_distribution() -> None:
+    """Pins rejection of a pack path that climbs out of the distribution with '..'."""
     manifest = _manifest()
     manifest["packs"][0]["path"] = "packs/../atlas.nq"
 
@@ -269,6 +289,7 @@ def test_pack_path_cannot_escape_the_distribution() -> None:
 
 
 def test_empty_graph_role_cannot_claim_a_pack() -> None:
+    """Pins rejection when a graph role with zero quads claims a pack."""
     manifest = _manifest()
     manifest["graphs"][1]["packCount"] = 1
 

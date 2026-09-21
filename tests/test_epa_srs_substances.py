@@ -1,8 +1,7 @@
 """Tests for EPA SRS/CompTox substance identifier shape and pinned samples.
 
-Fixture-based only: every test parses bytes already on disk or built
-in-process.  No test opens a network connection, and importing the module
-under test must not either.
+Fixture-based only: every test parses bytes already on disk or built in-process,
+and importing the module under test must not open a network connection.
 """
 
 from __future__ import annotations
@@ -33,14 +32,17 @@ FIXTURE_PATH = Path(__file__).parent / "fixtures" / "epa_srs_substances" / "subs
 
 
 def _fixture_bytes() -> bytes:
+    """The pinned substance-sample fixture's exact bytes."""
     return FIXTURE_PATH.read_bytes()
 
 
 def _fixture_mapping() -> dict:
+    """The pinned fixture parsed as JSON."""
     return json.loads(_fixture_bytes())
 
 
 def _mutated_fixture(mutate) -> bytes:
+    """Apply ``mutate`` to the fixture mapping and return re-encoded bytes."""
     value = _fixture_mapping()
     mutate(value)
     return json.dumps(value).encode("utf-8")
@@ -58,6 +60,7 @@ def _mutated_fixture(mutate) -> bytes:
     ],
 )
 def test_validate_dtxsid_accepts_the_documented_shape(value: str) -> None:
+    """Accepts DTXSID followed by at least three digits, including the real Bisphenol A value."""
     assert validate_dtxsid(value) == value
 
 
@@ -74,6 +77,7 @@ def test_validate_dtxsid_accepts_the_documented_shape(value: str) -> None:
     ],
 )
 def test_validate_dtxsid_rejects_malformed_values(value: str) -> None:
+    """Empty, short, lowercase, non-digit and whitespace-padded spellings are refused."""
     with pytest.raises(EpaSrsSubstanceError, match="DTXSID"):
         validate_dtxsid(value)
 
@@ -96,6 +100,7 @@ def test_validate_dtxsid_rejects_a_dtxcid_shaped_value() -> None:
     ],
 )
 def test_validate_dtxcid_accepts_the_documented_shape(value: str) -> None:
+    """Accepts DTXCID followed by digits, including the Bisphenol A structure identifier."""
     assert validate_dtxcid(value) == value
 
 
@@ -104,11 +109,13 @@ def test_validate_dtxcid_accepts_the_documented_shape(value: str) -> None:
     ["", "DTXCID", "DTX30182", "dtxcid30182", "DTXCID3018X"],
 )
 def test_validate_dtxcid_rejects_malformed_values(value: str) -> None:
+    """Empty, short, lowercase and non-digit DTXCID spellings are refused."""
     with pytest.raises(EpaSrsSubstanceError, match="DTXCID"):
         validate_dtxcid(value)
 
 
 def test_validate_dtxcid_rejects_a_dtxsid_shaped_value() -> None:
+    """A DTXSID value is never accepted as a DTXCID."""
     with pytest.raises(EpaSrsSubstanceError):
         validate_dtxcid("DTXSID7020182")
 
@@ -126,6 +133,7 @@ def test_validate_dtxcid_rejects_a_dtxsid_shaped_value() -> None:
     ],
 )
 def test_validate_casrn_accepts_a_valid_check_digit(value: str) -> None:
+    """Real CASRNs and one synthetic value pass the public check-digit rule."""
     assert validate_casrn(value) == value
 
 
@@ -141,6 +149,7 @@ def test_validate_casrn_accepts_a_valid_check_digit(value: str) -> None:
     ],
 )
 def test_validate_casrn_rejects_malformed_or_invalid_values(value: str) -> None:
+    """A wrong check digit, missing hyphens, wrong group widths and non-digits are refused."""
     with pytest.raises(EpaSrsSubstanceError, match="CASRN"):
         validate_casrn(value)
 
@@ -149,6 +158,7 @@ def test_validate_casrn_rejects_malformed_or_invalid_values(value: str) -> None:
 
 
 def test_parse_substance_sample_reads_the_pinned_fixture() -> None:
+    """The pinned fixture parses to three records, the first full and the third missing DTXCID and CASRN."""
     sample = parse_substance_sample(_fixture_bytes())
 
     assert isinstance(sample, SubstanceSample)
@@ -170,6 +180,7 @@ def test_parse_substance_sample_reads_the_pinned_fixture() -> None:
 
 
 def test_real_comptox_detail_page_shape_count_and_sample() -> None:
+    """An opt-in real CompTox capture pins its byte length, digest, and the single Bisphenol A record."""
     source_path = os.environ.get("REFSPEC_COMPTOX_BPA_PAGE_PATH")
     if source_path is None:
         pytest.skip("normalized real CompTox detail page is not materialized")
@@ -195,6 +206,7 @@ def test_real_comptox_detail_page_shape_count_and_sample() -> None:
 
 
 def test_parse_substance_sample_pins_the_source_digest() -> None:
+    """The sample digest is derived from the parsed bytes."""
     payload = _fixture_bytes()
     sample = parse_substance_sample(payload)
 
@@ -204,6 +216,7 @@ def test_parse_substance_sample_pins_the_source_digest() -> None:
 
 
 def test_parse_substance_sample_is_deterministic() -> None:
+    """Two parses of the same bytes produce the same native payload and digest."""
     first = parse_substance_sample(_fixture_bytes())
     second = parse_substance_sample(_fixture_bytes())
 
@@ -212,6 +225,7 @@ def test_parse_substance_sample_is_deterministic() -> None:
 
 
 def test_parse_substance_sample_never_claims_concept_identity() -> None:
+    """The sample states conceptIdentityClaimed False and its maximum sample size."""
     sample = parse_substance_sample(_fixture_bytes())
 
     assert sample.native_payload()["conceptIdentityClaimed"] is False
@@ -219,6 +233,7 @@ def test_parse_substance_sample_never_claims_concept_identity() -> None:
 
 
 def test_substance_sample_identifiers_keep_dtxsid_and_dtxcid_distinct() -> None:
+    """Identifier kinds stay distinct with their own authority URIs: three DTXSIDs and two DTXCIDs."""
     sample = parse_substance_sample(_fixture_bytes())
     identifiers = sample.identifiers
 
@@ -242,6 +257,7 @@ def test_substance_sample_identifiers_keep_dtxsid_and_dtxcid_distinct() -> None:
 
 
 def test_substance_sample_identifiers_carry_the_source_digest() -> None:
+    """Every identifier carries the sample's source digest."""
     sample = parse_substance_sample(_fixture_bytes())
 
     assert all(item.source_digest == sample.source_digest for item in sample.identifiers)
@@ -251,34 +267,40 @@ def test_substance_sample_identifiers_carry_the_source_digest() -> None:
 
 
 def test_parse_substance_sample_rejects_empty_payload() -> None:
+    """An empty payload is refused."""
     with pytest.raises(EpaSrsSubstanceError):
         parse_substance_sample(b"")
 
 
 def test_parse_substance_sample_rejects_malformed_json() -> None:
+    """Malformed JSON is refused."""
     with pytest.raises(EpaSrsSubstanceError):
         parse_substance_sample(b"{not json")
 
 
 def test_parse_substance_sample_rejects_duplicate_json_keys() -> None:
+    """A repeated JSON key is refused rather than silently overwritten."""
     payload = b'{"format":"a","format":"b","capturedAt":"x","records":[]}'
     with pytest.raises(EpaSrsSubstanceError, match="duplicate"):
         parse_substance_sample(payload)
 
 
 def test_parse_substance_sample_rejects_an_unknown_format() -> None:
+    """A mutated format URN is refused."""
     payload = _mutated_fixture(lambda value: value.__setitem__("format", "urn:ref:something-else:v1"))
     with pytest.raises(EpaSrsSubstanceError, match="format"):
         parse_substance_sample(payload)
 
 
 def test_parse_substance_sample_rejects_an_unexpected_top_level_field() -> None:
+    """An extra top-level field is refused."""
     payload = _mutated_fixture(lambda value: value.__setitem__("extra", True))
     with pytest.raises(EpaSrsSubstanceError):
         parse_substance_sample(payload)
 
 
 def test_parse_substance_sample_rejects_empty_records() -> None:
+    """An empty records list is refused."""
     payload = _mutated_fixture(lambda value: value.__setitem__("records", []))
     with pytest.raises(EpaSrsSubstanceError):
         parse_substance_sample(payload)
@@ -293,6 +315,7 @@ def test_parse_substance_sample_rejects_a_repeated_dtxsid() -> None:
 
 
 def test_substance_sample_refuses_bulk_entity_data() -> None:
+    """More than MAX_SUBSTANCE_SAMPLE_SIZE records is refused as bulk substance data."""
     record = parse_substance_sample(_fixture_bytes()).records[0]
 
     with pytest.raises(EpaSrsSubstanceError, match="refusing bulk substance data"):

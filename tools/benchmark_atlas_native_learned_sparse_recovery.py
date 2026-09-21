@@ -54,6 +54,7 @@ MODELS: tuple[dict[str, Any], ...] = (
 
 
 def view_text(concept: dict[str, Any], view: str) -> str:
+    """Render one concept as ``label`` (labels only) or the field-tagged structured text."""
     label = str(concept.get("label") or "")
     aliases = [str(value) for value in concept.get("altLabels") or ()]
     if view == "label":

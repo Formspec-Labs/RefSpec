@@ -1,28 +1,15 @@
-"""Join the blind linguistic audit to the orthographic variant classifier.
+"""Join a blind reviewer's morphological readings to the orthographic variant classifier's 165-pair verdicts.
 
 The classifier decides whether two near-identical labels differ for a reason or
-by coincidence, and R4 admits granularity-collapsed mappings on the strength of
-that decision.  It is string heuristics: case folding, one English pluralisation
-rule, a ten-entry US/UK rewrite table.  This joins its verdicts to a blind
-reviewer's morphological reading of the same 165 pairs.
-
-**The two error types are not symmetric and are never pooled here.**
-
-*False principled* -- the classifier says number or spelling variant, the
-reviewer says two different words.  These are the dangerous ones: each is a
-coincidence that R4 will admit as a collapsed mapping, and a wrong edge in a
-graph the product traverses costs more than a missing one.
-
-*False unprincipled* -- the classifier says coincidence, the reviewer says real
-variant.  These are merely wasteful: a candidate the generator restriction
-throws away that it should have kept.
-
-A single "accuracy" figure would average those two together and hide the only
-number that matters.  Precision on the principled class is reported on its own,
-with a Wilson interval, because it is small by construction -- 16 rows -- and a
-point estimate over 16 rows should never travel alone.
-
-Read-only.
+by coincidence -- case folding, one English pluralisation rule, a ten-entry US/UK
+rewrite table -- and R4 admits granularity-collapsed mappings on the strength of
+that decision. The two error types are never pooled here: *false principled*
+means R4 will admit a coincidence into a graph the product traverses, while
+*false unprincipled* merely wastes a candidate, and a single accuracy figure
+would average them together and hide the only number that matters. Precision on
+the principled class is reported on its own with a Wilson interval because it is
+small by construction (16 rows). Read-only; returns 1 when the named independent
+audit file is absent.
 """
 
 from __future__ import annotations
@@ -55,6 +42,8 @@ def _digest(path: Path) -> str:
 
 
 def load(directory: Path, pass_name: str) -> tuple[list[dict], dict[int, dict]]:
+    """Return sealed-key rows and reviewer verdicts keyed by row, each verdict carrying its label pair."""
+
     key = json.loads((directory / "sealed-key" / "pairs.json").read_text(encoding="utf-8"))["rows"]
     blind = {row["row"]: row for row in json.loads((directory / "blind" / "pairs.json").read_text(encoding="utf-8"))["rows"]}
     verdicts: dict[int, dict] = {}
@@ -67,6 +56,8 @@ def load(directory: Path, pass_name: str) -> tuple[list[dict], dict[int, dict]]:
 
 
 def analyse(key: list[dict], verdicts: dict[int, dict]) -> dict[str, Any]:
+    """Score classifier against reviewer, listing false-principled and false-unprincipled rows separately."""
+
     confusion: collections.Counter = collections.Counter()
     false_principled: list[dict[str, Any]] = []
     false_unprincipled: list[dict[str, Any]] = []

@@ -1,4 +1,11 @@
-"""Capture normalized registry output receipts while direct tests execute."""
+"""Pytest plugin capturing normalized registry output receipts while direct tests execute.
+
+Enabled by ``--registry-receipt-output``: it wraps the public functions and
+non-underscore methods of every ``refspec.registry`` module, records one execution
+per top-level test-facing call deduped by source-artifact evidence and capped at
+200 executions per function name (fail-closed rather than silent), and writes a
+``refspec-registry-execution-receipts/v1`` JSON payload when the run ends.
+"""
 
 from __future__ import annotations
 
@@ -210,6 +217,8 @@ def _source_evidence(value: object, result: dict[str, set[Any]], *, depth: int =
 
 
 def _record(module_name: str, function_name: str, arguments: tuple[Any, ...], result_value: object) -> None:
+    """Add or strengthen one deduped execution receipt, capped per function name."""
+
     module = _MODULES[module_name]
     executions = module["executions"]
     evidence: dict[str, set[Any]] = {

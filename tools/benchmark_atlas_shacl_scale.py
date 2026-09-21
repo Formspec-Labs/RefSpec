@@ -1,28 +1,20 @@
-"""Time the SHACL phase against a built distribution and gate on regression.
+"""Time the SHACL phase of a built distribution against a recorded baseline, failing beyond ``toleranceRatio``.
 
-Constraint-shape cost is emergent, not compositional. The Jena spike measured
-every constraint in `SkosXlLabelShape` individually fast at 29.3M quads
-(literalForm-only 42.3s, +closed 42.5s, sh:class over 590k instances 44.0s) and
-the same shape whole at over 1,829s -- so no review of a shapes diff, however
-careful, predicts what that diff costs at scale, and pySHACL has the same
-exposure. The only instrument that answers is a clock on real data.
-
-This is that clock. It parses one built distribution's packs the way the
-validator does, then times `_run_shacl` alone -- not the parse, not the
-semantic gates -- and compares the seconds against a recorded baseline
-(`tools/atlas-shacl-scale-baseline.json`). Over `toleranceRatio` it fails.
-
-Three honest non-failures, because a slow number is not always a regression:
-no baseline for this scale class and mode yet; a baseline whose quad count is
-more than `quadCountToleranceRatio` away from what was measured (a different
-distribution is not a comparison); and `--write-baseline`, which records the
-measurement instead of judging it. Each prints what to run to record a new
-number. A machine change invalidates a baseline just as a shapes change does,
-so `machine` and `recordedAt` travel with every entry.
-
-Measure with the mode you intend to gate: `REFSPEC_ATLAS_VALIDATION_MODE` is
-part of the baseline key, since audit mode and the default red path take
-different routes through the same shapes.
+Constraint-shape cost is emergent, not compositional: the Jena spike measured
+every constraint in ``SkosXlLabelShape`` individually fast at 29.3M quads
+(literalForm-only 42.3s, +closed 42.5s, ``sh:class`` over 590k instances 44.0s)
+and the same shape whole at over 1,829s, so no review of a shapes diff predicts
+what that diff costs at scale. This parses a built distribution's packs the way
+the validator does, times ``_run_shacl`` alone -- not the parse, not the semantic
+gates -- and compares the seconds against ``tools/atlas-shacl-scale-baseline.json``.
+Three honest non-failures print instead of a verdict: no baseline for this scale
+class and mode yet; a baseline whose quad count is more than
+``quadCountToleranceRatio`` away from what was measured (a different distribution
+is not a comparison); and ``--write-baseline``, which records the measurement
+instead of judging it. ``REFSPEC_ATLAS_VALIDATION_MODE`` is part of the baseline
+key, since audit mode and the default red path take different routes through the
+same shapes, and ``machine`` and ``recordedAt`` travel with every entry because a
+machine change invalidates a baseline just as a shapes change does.
 """
 
 from __future__ import annotations

@@ -12,6 +12,7 @@ from refspec.registry import ecfr, uslm
 FIXTURES = Path(__file__).parent / 'fixtures'
 
 def mapped(xml, reader):
+    """Read xml and assert exact source maps, node spans and text before returning the result."""
     result = reader(xml)
     original = ''.join(ET.fromstring(xml).itertext())
     assert result['source_text'] == original
@@ -36,6 +37,7 @@ def mapped(xml, reader):
 @pytest.mark.parametrize('name', ['title-05-s423', 'title-42-s242c', 'fresh-title-05-pair'])
 @pytest.mark.parametrize('mutation', ['original', 'no-newlines', 'inline', 'empty-cells', 'notes'])
 def test_uslm_matches_copied_engine_on_real_sources_and_mutations(name, mutation):
+    """Pins uslm.read_text against the copied old engine on three real sources and four XML mutations."""
     xml = (FIXTURES/'uslm-source-links'/f'{name}.xml').read_bytes()
     original = xml
     if mutation == 'no-newlines':
@@ -52,6 +54,7 @@ def test_uslm_matches_copied_engine_on_real_sources_and_mutations(name, mutation
 
 @pytest.mark.parametrize('pin', json.loads((FIXTURES/'ecfr-text/pins.json').read_text()))
 def test_actual_ecfr_bodies_preserve_all_source_and_native_selectors(pin):
+    """Pins each eCFR body's digest and byte pins, root native attributes and source-specific markers."""
     xml = (FIXTURES/'ecfr-text'/pin['file']).read_bytes()
     assert hashlib.sha256(xml).hexdigest() == pin['sha256'] and len(xml) == pin['bytes']
     result = mapped(xml, ecfr.read_text)
@@ -75,15 +78,18 @@ def test_actual_ecfr_bodies_preserve_all_source_and_native_selectors(pin):
     ('<EDNOTE><HED>Editorial Note:</HED><PSPACE>Keep this.</PSPACE></EDNOTE><EFFDNOT><HED>Effective Date:</HED><P>Suspended.</P></EFFDNOT>', 'Editorial Note:\n\nKeep this.\n\nEffective Date:\n\nSuspended.'),
 ])
 def test_readable_boundary_controls(body, expected):
+    """Pins the readable text across heading, inline, br, table and note boundaries."""
     xml = ('<DIV8 N="1.1" TYPE="SECTION">'+body+'</DIV8>').encode()
     assert mapped(xml, ecfr.read_text)['text'] == expected
 
 @pytest.mark.parametrize('xml', [b'<html><p>text</p></html>', b'<DIV8><P>untyped</P></DIV8>', b'<uscDoc/>', b'<DIV8 TYPE="SECTION">'])
 def test_wrong_or_malformed_input_refuses(xml):
+    """Pins refusal (ValueError or ParseError) for wrong-profile and malformed XML."""
     with pytest.raises((ValueError, ET.ParseError)):
         ecfr.read_text(xml)
 
 def test_native_root_title_and_empty_source_remain_uninferred():
+    """Pins that root title attributes are kept verbatim and an empty paragraph contributes no inferred span."""
     result = mapped(b'<ECFR><DIV1 N="49" TYPE="TITLE"><DIV8 N="390.5" TYPE="SECTION"><P/></DIV8></DIV1></ECFR>', ecfr.read_text)
     assert result['nodes']['/*[1]/*[1]']['attributes'] == {'N':'49','TYPE':'TITLE'}
     assert 'start' not in result['nodes']['/*[1]/*[1]/*[1]/*[1]']
@@ -91,6 +97,7 @@ def test_native_root_title_and_empty_source_remain_uninferred():
 
 
 def test_shared_dispatch_parses_once_without_changing_profile_output(monkeypatch):
+    """Pins that the shared dispatch parses the XML once and still reports the ecfr-block-boundaries/1 method."""
     from refspec.registry import xml_text
     original = xml_text.parse_xml
     calls = []

@@ -1,4 +1,9 @@
-"""Compatibility entry point for the REF JSON Binding 1.0 validator."""
+"""Compatibility entry point for the REF JSON Binding 1.0 validator.
+
+Loads ``src/refspec/binding.py`` by file location and re-exports its ``main``
+so a copied ``bindings/json/1.0`` directory can run the validator; raises
+RuntimeError when the module spec or loader cannot be created.
+"""
 
 from __future__ import annotations
 

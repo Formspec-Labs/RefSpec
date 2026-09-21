@@ -148,6 +148,8 @@ def _json_root(payload: bytes, label: str) -> Any:
 
 
 def _schema_enum(openapi_root: Mapping[str, Any], schema_name: str, pattern: re.Pattern[str]) -> tuple[str, ...]:
+    """Read one reviewed array-schema enum, refusing drift, unsupported shapes or a repeated value."""
+
     components = openapi_root.get("components")
     if not isinstance(components, Mapping) or not isinstance(components.get("schemas"), Mapping):
         raise FRSourceDriftError("FR API description has no components.schemas object")

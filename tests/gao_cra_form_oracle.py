@@ -1,5 +1,4 @@
-"""GAO's numbered CRA submission form: the documented rule types and the
-retired revision's Priority of Regulation levels.
+"""GAO Form 41217 CRA submission form: pinned rule types and retired priority levels.
 
 REF-032 removed the observed GAO CRA facet inventory: six radio-button
 widgets scraped out of the CRA *database search page*. What GAO actually
@@ -254,6 +253,8 @@ def sha256_digest(payload: bytes) -> str:
 
 
 def _verified_normalized_text(payload: bytes, pin: GaoCraFormPin) -> str:
+    """Return folded, whitespace-normalized PDF text, refusing byte, digest, header, revision, or text-layer drift."""
+
     if len(payload) != pin.expected_byte_length:
         raise GaoCraFormSourceDriftError(
             f"GAO CRA {pin.form_kind} byte length drift: "
@@ -285,6 +286,8 @@ def _verified_normalized_text(payload: bytes, pin: GaoCraFormPin) -> str:
 
 
 def _require_run(text: str, run: str, *, form_kind: str, what: str) -> None:
+    """Refuse when a reviewed exact wording run is absent from the text."""
+
     if run not in text:
         raise GaoCraFormSourceDriftError(
             f"GAO CRA {form_kind} no longer states the reviewed {what}: {run!r}"

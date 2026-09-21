@@ -127,6 +127,8 @@ class NaicsPscSource:
     edition: str
 
     def __post_init__(self) -> None:
+        """Refuse a URL outside the declared host set, credentials, or a multi-component filename."""
+
         parsed = urlsplit(self.source_url)
         if parsed.scheme != "https" or parsed.hostname not in self.hosts:
             raise NaicsPscAcquisitionError("source_url must be an official HTTPS URL on the declared host set")
@@ -194,6 +196,8 @@ class NaicsPscSnapshotPin:
     expected_byte_length: int
 
     def __post_init__(self) -> None:
+        """Refuse a malformed digest, non-positive length, or empty retrieval time."""
+
         if _DIGEST.fullmatch(self.expected_sha256) is None:
             raise NaicsPscAcquisitionError("expected_sha256 must be a lowercase sha256:<64 hex> digest")
         if self.expected_byte_length <= 0:
@@ -263,6 +267,8 @@ class AcquiredNaicsPscSource:
 
 
 def _validate_resolved_url(value: str, hosts: frozenset[str]) -> None:
+    """Refuse a resolved URL that left the official HTTPS source host set."""
+
     parsed = urlsplit(value)
     if parsed.scheme != "https" or parsed.hostname not in hosts:
         raise NaicsPscAcquisitionError("fetcher resolved_url must remain on the official HTTPS source host")
@@ -271,6 +277,8 @@ def _validate_resolved_url(value: str, hosts: frozenset[str]) -> None:
 
 
 def _verify_payload(payload: bytes, pin: NaicsPscSnapshotPin, *, location: str) -> tuple[str, int]:
+    """Refuse a payload whose byte length or digest differs from the pin."""
+
     byte_length = len(payload)
     if byte_length != pin.expected_byte_length:
         raise NaicsPscSourceDriftError(
@@ -290,6 +298,8 @@ def _verify_payload(payload: bytes, pin: NaicsPscSnapshotPin, *, location: str) 
 
 
 def _verify_existing(path: Path, pin: NaicsPscSnapshotPin) -> AcquiredNaicsPscSource:
+    """Re-verify one cached NAICS/PSC source object and return its acquisition record."""
+
     if path.is_symlink() or not path.is_file():
         raise NaicsPscAcquisitionError(f"content-addressed target is not a regular file: {path}")
     actual_sha256, byte_length = _verify_payload(
@@ -325,6 +335,8 @@ def _publish_payload(
     resolved_url: str | None,
     local_source_path: Path | None,
 ) -> AcquiredNaicsPscSource:
+    """Publish verified NAICS/PSC bytes by hard link, falling back to a verified existing object."""
+
     actual_sha256, byte_length = _verify_payload(
         payload,
         pin,
@@ -474,12 +486,16 @@ class ParsedNaicsPscResource:
 
 
 def _read_acquired_payload(acquired: AcquiredNaicsPscSource) -> bytes:
+    """Read and re-verify the acquired source before parsing."""
+
     payload = acquired.path.read_bytes()
     _verify_payload(payload, acquired.pin, location="parsed NAICS/PSC source")
     return payload
 
 
 def _csv_rows(payload: bytes) -> list[list[str]]:
+    """Decode the CSV payload into rows."""
+
     decoded = payload.decode("utf-8")
     return list(csv.reader(io.StringIO(decoded)))
 
@@ -527,6 +543,8 @@ _PSC_XLSX_SOURCE_ROW_COUNT = 6_108
 
 
 def _psc_code_cell(value: object) -> str:
+    """Render a workbook cell as its publisher code, preserving integers."""
+
     if isinstance(value, bool):
         return str(value)
     if isinstance(value, int):
@@ -537,6 +555,8 @@ def _psc_code_cell(value: object) -> str:
 
 
 def _psc_date(value: object, label: str) -> str:
+    """Return an Excel date cell as ISO text, refusing a non-date."""
+
     if isinstance(value, datetime):
         return value.date().isoformat()
     if isinstance(value, date):
@@ -548,6 +568,8 @@ def _parse_psc_xlsx(
     acquired: AcquiredNaicsPscSource,
     payload: bytes,
 ) -> ParsedNaicsPscResource:
+    """Read the PSC workbook rows into the parsed resource."""
+
     source = acquired.pin.source
     try:
         workbook = load_workbook(io.BytesIO(payload), read_only=True, data_only=True)
@@ -622,6 +644,8 @@ def _parse_psc_xlsx(
 
 
 def _naics_facet(code: str) -> str:
+    """Classify a NAICS code's level, refusing a malformed sector range."""
+
     if "-" in code:
         first, _, second = code.partition("-")
         if len(first) != 2 or len(second) != 2 or not first.isdigit() or not second.isdigit() or first >= second:
@@ -851,6 +875,8 @@ class ValidatedNaicsPscClassification:
 
 
 def _assignment(field: str, code: NaicsPscCode) -> NaicsPscAssignment:
+    """Copy one validated code into a record-field assignment."""
+
     return NaicsPscAssignment(
         field=field,
         publisher_label=code.publisher_label,
@@ -946,6 +972,8 @@ _UNVERIFIED_LIVE_CAPTURE_GAP = MappingProxyType(
 
 
 def _verified_source_payload(acquired: AcquiredNaicsPscSource) -> bytes:
+    """Read and re-verify the acquired source before packaging."""
+
     payload = acquired.path.read_bytes()
     if len(payload) != acquired.byte_length or sha256_digest(payload) != acquired.sha256:
         raise NaicsPscSourceDriftError("NAICS/PSC package source differs from its acquired pin")
@@ -958,6 +986,8 @@ def _observation(
     ordinal: int,
     code: NaicsPscCode,
 ) -> dict[str, Any]:
+    """Render one code as a package observation."""
+
     identifiers = [
         {
             "value": identifier.value,
@@ -998,6 +1028,8 @@ def _build_package(
     parsed: ParsedNaicsPscResource,
     package_gaps: Sequence[Mapping[str, Any]],
 ) -> SourceControlledResourceBundle:
+    """Build the closed NAICS/PSC package over the verified source."""
+
     if parsed.source_sha256 != acquired.sha256 or parsed.source.source_url != acquired.pin.source.source_url:
         raise NaicsPscSourceDriftError("parsed resource and acquired source describe different sources")
     payload = _verified_source_payload(acquired)

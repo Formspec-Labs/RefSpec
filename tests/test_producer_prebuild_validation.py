@@ -1,3 +1,11 @@
+"""Producer pre-build validation: fast negative oracles and real-release reconciliation pins.
+
+The synthetic release set proves every construction aggregate, wire-null, identifier-authority,
+duplicate-IRI, large-release bucketing, cross-ring, and unpinned-evidence refusal fires in seconds
+without constructing graphs; gated tests load the complete topology and the real FAST/LCSH,
+GEMET/EuroVoc, and UMTHES sources to prove the frozen SKOS S27/S46 refusal pins match what the
+binding validator actually computes."""
+
 from __future__ import annotations
 
 import dataclasses
@@ -97,6 +105,8 @@ HAS_FAST_LCSH_S27_SOURCES = all(path.is_file() for path in FAST_LCSH_S27_REQUIRE
 
 @pytest.fixture(scope="module")
 def complete_prebuild():
+    """Load and validate the complete producer topology; requires REFSPEC_PRODUCER_PREBUILD_FULL=1."""
+
     if os.environ.get("REFSPEC_PRODUCER_PREBUILD_FULL") != "1":
         pytest.skip("set REFSPEC_PRODUCER_PREBUILD_FULL=1 to load the complete producer topology")
     started_at = time.perf_counter()
@@ -232,6 +242,8 @@ def test_complete_prebuild_finishes_without_constructing_or_writing_graphs(
 def _synthetic_releases(
     tmp_path: Path,
 ) -> tuple[generator.LoadedRelease, generator.LoadedRelease]:
+    """Two one-resource synthetic releases sharing a digest, enough to validate construction counts."""
+
     source = tmp_path / "source.json"
     source.write_text("{}\n", encoding="utf-8")
     digest = "sha256:" + hashlib.sha256(source.read_bytes()).hexdigest()
@@ -280,6 +292,8 @@ def _synthetic_mapping_release(
     tmp_path: Path,
     releases: tuple[generator.LoadedRelease, generator.LoadedRelease],
 ) -> RegistryMappingRelease:
+    """A one-mapping synthetic release whose single evidence record pins the mapping's own triple digest."""
+
     source = tmp_path / "mapping.nt"
     source.write_text("synthetic mapping\n", encoding="utf-8")
     digest = "sha256:" + hashlib.sha256(source.read_bytes()).hexdigest()
@@ -337,6 +351,8 @@ def _synthetic_mapping_release(
 
 
 def _install_synthetic_release_schemes(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Declare both synthetic schemes as subject-ring concept schemes on the registry graph."""
+
     descriptors: Graph = generator._registry_asserted_graph()
     for scheme in ("urn:test:scheme:first", "urn:test:scheme:second"):
         node = URIRef(scheme)
@@ -576,16 +592,11 @@ def test_fast_lcsh_s27_reconciliation_uses_the_real_hierarchy_check(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Prove the reconciliation catches a conflict reachable only through a
-    source release's native skos:broader relation, not just through the LC
-    mapping release's own broadMatch/narrowMatch claims.
+    """Proves the reconciliation catches a conflict reachable only via a source release's native skos:broader edge.
 
-    This is the synthetic analogue of the real REF-040 build failure:
-    ``fast_iri``/``chained_lcsh_iri`` conflict only via a two-hop path (a
-    ``skos:broader`` edge the consolidated LCSH source release would carry,
-    chained into LC's own ``broadMatch`` from ``lcsh_iri`` to ``fast_iri``)
-    -- a shape the pre-fix reconciliation, which read only
-    ``lc_release.mappings``, could not see.
+    ``fast_iri``/``chained_lcsh_iri`` conflict only via a two-hop path (a consolidated-LCSH
+    ``skos:broader`` chained into LC's own ``broadMatch``) -- the synthetic analogue of the REF-040
+    build failure, invisible to the pre-fix reconciliation that read only ``lc_release.mappings``.
     """
 
     releases = _synthetic_releases(tmp_path)
@@ -738,19 +749,12 @@ def test_fast_lcsh_s27_pin_matches_the_real_widened_conflict_set(
         generator.LoadedRelease,
     ],
 ) -> None:
-    """Reproduce the S27 reconciliation over real pinned data outside a full
-    build.
+    """Reproduce the S27 reconciliation over real pinned data outside a full build.
 
-    REF-040 widened the FAST-LCSH target scope from a 1,966-concept subset to
-    every held LCSH concept, which reopens many more OCLC relatedMatch pairs
-    against LC's independent hierarchy claims -- and, separately, against the
-    consolidated LCSH release's own 301,442 native skos:broader statements,
-    which is the hierarchy source that actually caused the REF-040 build
-    failure (see
-    `test_fast_lcsh_s27_pin_would_be_wrong_under_the_old_narrower_hierarchy_scope`).
-    This is the fast, ungated check that must fail the moment the frozen
-    conflict pin drifts from that widened reality, instead of only surfacing
-    hours into a full distribution build.
+    REF-040 widened the FAST-LCSH target scope, reopening many more OCLC relatedMatch pairs against
+    the consolidated LCSH release's own 301,442 native skos:broader statements -- the hierarchy
+    source that actually caused the build failure. This ungated check fails the moment the frozen
+    conflict pin drifts, instead of surfacing hours into a distribution build.
     """
 
     fast_release, lc_release, lcsh_source_release = real_fast_lcsh_s27_inputs
@@ -779,18 +783,12 @@ def test_fast_lcsh_s27_pin_would_be_wrong_under_the_old_narrower_hierarchy_scope
         generator.LoadedRelease,
     ],
 ) -> None:
-    """Prove the corpus-scope fix actually bites: the pre-fix hierarchy scope
-    (LC's own broadMatch/narrowMatch claims alone) computes a different,
-    wrong refusal count against the same real pinned data.
+    """Prove the corpus-scope fix bites: the pre-fix scope computes 174,755 refusals, not the pinned 174,766.
 
-    This is what actually shipped the REF-040 build failure: a full build
-    reached SKOS S27 at elapsed=776s and failed on
-    (sh2008003833, fast/1910413) -- a pair hierarchy-connected only through
-    a chain of intra-LCSH skos:broader edges the consolidated LCSH release
-    contributes, which `_reconcile_fast_lcsh_s27_mapping_conflicts` never
-    consulted before this fix. Reproducing the *old* narrower computation
-    directly (not just calling the fixed function) proves this test would
-    have caught the gap without ever running a build.
+    The REF-040 build reached SKOS S27 at elapsed=776s and failed on
+    (sh2008003833, fast/1910413), a pair connected only through intra-LCSH skos:broader edges the
+    consolidated release contributes; reproducing the old narrower computation directly proves this
+    test would have caught the gap without a build.
     """
 
     fast_release, lc_release, _lcsh_source_release = real_fast_lcsh_s27_inputs
@@ -835,14 +833,10 @@ def test_fast_lcsh_s27_pin_drift_fails_fast_without_a_full_build(
     ],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Proven-biting negative: a stale pin must be refused against the real,
-    widened data, not just against a hand-built synthetic fixture.
+    """Proven-biting negative: the exact pre-REF-040 pin must be refused against the real widened data.
 
-    The pin below is the exact pre-REF-040 value -- correct for the retired
-    narrow EuroVoc-alignment target scope, wrong for the widened one this
-    release now uses. Reproducing this failure used to require a full,
-    multi-hour distribution build; this test reproduces it in the time it
-    takes to load three pinned releases.
+    That value (24,190) was correct for the retired narrow target scope; reproducing the failure
+    takes the time to load three pinned releases rather than a multi-hour build.
     """
 
     fast_release, lc_release, lcsh_source_release = real_fast_lcsh_s27_inputs
@@ -862,20 +856,12 @@ def test_fast_lcsh_s27_pin_drift_fails_fast_without_a_full_build(
 def test_fast_lcsh_s27_reconciliation_refuses_one_side_without_the_other(
     tmp_path: Path,
 ) -> None:
-    """Loading exactly one of the reconciliation's two mapping releases, or
-    omitting the consolidated LCSH source release, must refuse -- not
-    silently ship 'fast-lcsh-adopted-2026-08-15' unreconciled or reconciled
-    against a hierarchy narrower than what the corpus will carry.
+    """Loading exactly one mapping release, or both without the consolidated LCSH source, must refuse.
 
-    Before this fix, `_reconcile_fast_lcsh_s27_mapping_conflicts` returned its
-    input unchanged whenever either mapping release was missing -- including
-    when only one was missing. Any bounded/scoped build (`--only-release
-    fast-lcsh-adopted-2026-08-15` without its LC hierarchy dependency) never
-    exercised the S27 check at all, which is why the stale pin only ever
-    surfaced in the unbounded full build. A second, separate gap let both
-    mapping releases load without the consolidated LCSH source release
-    (`lcsh-subjects-consolidated-2026-08-06`) present -- the actual gap that
-    shipped the REF-040 build failure.
+    The pre-fix function returned its input unchanged whenever either mapping release was missing, so
+    bounded builds never exercised S27 and a separate gap let both load without
+    ``lcsh-subjects-consolidated-2026-08-06`` -- the gap that shipped the REF-040 build failure.
+    Only when neither key is in scope is it a legitimate no-op.
     """
 
     releases = _synthetic_releases(tmp_path)
@@ -909,6 +895,8 @@ def test_fast_lcsh_s27_reconciliation_refuses_one_side_without_the_other(
 
 @pytest.mark.slow
 def test_fast_see_also_has_no_thesaurus_related_eligible_pairs() -> None:
+    """The content-backed FAST rdfs:seeAlso population must have zero hierarchy-connected pairs."""
+
     source_root = bulk_alignments.DEFAULT_SOURCE_ROOT
     source = bulk_alignments._fast_bulk_input(source_root)
     if not source.path.is_file():
@@ -972,6 +960,8 @@ def test_fast_see_also_has_no_thesaurus_related_eligible_pairs() -> None:
 
 @pytest.mark.slow
 def test_frozen_gemet_eurovoc_s46_refusals_match_the_real_validator() -> None:
+    """Pins the 39 frozen GEMET-EuroVoc S46 triples: raw fails, removing exactly the frozen set passes."""
+
     source_root = subject_alignments.DEFAULT_SOURCE_ROOT
     if not (source_root / gemet.GEMET_ALIGNMENT_FILENAME).is_file():
         pytest.skip("pinned GEMET source is not cached")
@@ -1007,6 +997,8 @@ def test_frozen_gemet_eurovoc_s46_refusals_match_the_real_validator() -> None:
 
 @pytest.mark.slow
 def test_frozen_umthes_s27_transformations_match_the_real_validator() -> None:
+    """Pins the UMTHES S27 related-pair set and digest, then proves the untransformed relations pass."""
+
     source_root = subject_alignments.DEFAULT_SOURCE_ROOT
     if not (source_root / subject_alignments.umthes.UMTHES_CAPTURE_FILENAME).is_file():
         pytest.skip("pinned UMTHES source is not cached")
@@ -1235,6 +1227,7 @@ def test_bounded_real_releases_match_streamed_and_legacy_bytes(
     )
 
     def files(root: Path) -> dict[str, bytes]:
+        """Every file under root, keyed by relative POSIX path."""
         return {
             path.relative_to(root).as_posix(): path.read_bytes()
             for path in root.rglob("*")

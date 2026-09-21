@@ -1,26 +1,14 @@
 """Pinned FEC committee master file code imports for entity normalization.
 
-The Federal Election Commission publishes the committee master file layout,
-plus the committee type and party code lists it references, only as prose
-HTML documentation tables. There is no machine-readable code-list endpoint
-for these values. The committee designation, filing frequency, and
-organization type ("interest group category") codes are printed inline on
-the committee master file description page; the committee type and party
-codes are printed on two pages that page links to. All three pages are
-captured and pinned so committee type and party codes are not silently
-dropped just because they live behind a link.
-
-Every code here is FEC-assigned entity/structural metadata used to normalize
-committee records (committee type, designation, organization type, party,
-and filing frequency). None of it is a document subject or general subject
-concept, and the source publishes no report type code list reachable from
-these pages, so report type is recorded as an explicit gap rather than
-invented. This module captures only the published code descriptions; it
-never reads or stores committee contact, treasurer, or address fields, which
-carry their own statutory-use restrictions the code lists do not.
-
-Acquisition accepts a local exact capture or an injected fetcher. Importing
-this module never opens a network connection.
+The FEC publishes its committee type, designation, filing frequency,
+organization type, and party code lists only as prose HTML tables across three
+linked pages, all captured and pinned so linked codes are not silently dropped;
+every code is FEC-assigned entity/structural metadata, never a subject concept,
+and report type is recorded as an explicit gap because no reachable page
+documents it. This module captures only published code descriptions -- never
+committee contact, treasurer, or address fields, which carry their own
+statutory-use restrictions -- and acquisition takes a local exact capture or an
+injected fetcher; importing it never opens a network connection.
 """
 
 from __future__ import annotations
@@ -420,7 +408,11 @@ def acquire_fec_doc(
     fetcher: FECFetcher | None = None,
     timeout_seconds: float = 30.0,
 ) -> AcquiredFECSource:
-    """Acquire one exact documentation response through a provider-neutral boundary."""
+    """Acquire one exact documentation response through a provider-neutral boundary.
+
+    Callers supply source_path or fetcher on a cache miss, never both; byte
+    length, digest, UTF-8, HTML doctype, and content type are checked.
+    """
 
     if timeout_seconds <= 0:
         raise FECAcquisitionError("timeout_seconds must be positive")

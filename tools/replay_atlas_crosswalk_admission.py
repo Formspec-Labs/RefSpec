@@ -160,6 +160,7 @@ def _fold(label: str) -> str:
 
 
 def _number_forms(word: str) -> set[str]:
+    """Every singular/plural spelling of one folded word."""
     forms = {word}
     if word.endswith("ies"):
         forms.add(word[:-3] + "y")
@@ -171,6 +172,7 @@ def _number_forms(word: str) -> set[str]:
 
 
 def _spelling_forms(word: str) -> set[str]:
+    """Every US/UK rewrite of one folded word, with rewrites composed."""
     forms = {word}
     for left, right in SPELLING_PAIRS:
         # Rewrites compose, so each pair is applied to everything produced so far.
@@ -292,6 +294,7 @@ def load(benchmarks: Path) -> dict[tuple[str, int], dict[str, Any]]:
 
 
 def _both_support(row: dict[str, Any]) -> bool:
+    """Whether both sealed judges recorded ``supports`` on this row."""
     judges = row["sealedJudges"]
     return len(judges) == 2 and all(judge["outcome"] == "supports" for judge in judges)
 
@@ -538,6 +541,7 @@ def order_independence(population: dict[tuple[str, int], dict[str, Any]], rule: 
 
 
 def replay(population: dict[tuple[str, int], dict[str, Any]]) -> list[dict[str, Any]]:
+    """Admit each rule's rows and report its delta, controls, and newly admitted rows against the baseline."""
     baseline = admitted_under(population, RULES[0], controls=False)
     baseline_controls = admitted_under(population, RULES[0], controls=True)
     results = []

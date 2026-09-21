@@ -1,4 +1,10 @@
-"""Tests for the fixed-decision Atlas outside-BGE-K50 residual audit."""
+"""Fixed-decision Atlas outside-BGE-K50 residual audit: exact boundaries and blind-field refusals.
+
+The analysis recomputes population counts and shares from population evidence and names only the
+cases with observed direct relations; the validator refuses population drift, answer or rank
+metadata, changed selection digests, unbalanced facts, and selection metadata leaked into the
+rendered context."""
+
 
 from __future__ import annotations
 
@@ -18,6 +24,8 @@ VIEWS = ("label", "structured")
 
 
 def _concept(member: str, label: str) -> dict[str, object]:
+    """Minimal concept fixture carrying one BGE view text per configured view."""
+
     return {
         "member": member,
         "vocabulary": "Test vocabulary",
@@ -32,6 +40,8 @@ def _concept(member: str, label: str) -> dict[str, object]:
 
 
 def _row(number: int, case: str) -> dict[str, object]:
+    """One review row whose selectionDigest is computed the way the audit validates it."""
+
     row = {
         "case": case,
         "population": audit.EXPECTED_POPULATION,
@@ -52,6 +62,8 @@ def _population(
     overlap: int,
     sampled: int,
 ) -> dict[str, object]:
+    """Population-evidence fixture whose outside-both and overlap fields follow the audit's own arithmetic."""
+
     cartesian = sources * targets
     outside_bge = cartesian - bge
     lean_outside = lean - overlap
@@ -76,6 +88,8 @@ def _population(
 
 
 def _sample() -> dict[str, object]:
+    """Two sampled cases plus one fully covered case, with real population-evidence and sample digests."""
+
     rows = []
     for case, start in (("case-a", 1), ("case-b", 3)):
         case_rows = sorted((_row(start, case), _row(start + 1, case)), key=lambda row: row["selectionDigest"])

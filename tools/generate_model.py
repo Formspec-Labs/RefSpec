@@ -32,6 +32,7 @@ class ModelGenerationError(ValueError):
 
 
 def canonical_json_bytes(value: object) -> bytes:
+    """The generator's canonical JSON spelling: two-space indent, UTF-8, trailing newline."""
     return (
         json.dumps(
             value,
@@ -45,6 +46,7 @@ def canonical_json_bytes(value: object) -> bytes:
 
 
 def load_model(path: Path) -> dict[str, Any]:
+    """Load and validate the JSON-compatible CUE model, refusing a wrong version, schema filename, or ``$id``."""
     try:
         model = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -70,6 +72,7 @@ def load_model(path: Path) -> dict[str, Any]:
 
 
 def python_name(filename: str, schema: Mapping[str, Any]) -> str:
+    """Python class name for a schema, honouring the ``x-ref-python-name`` override."""
     explicit = schema.get("x-ref-python-name")
     if isinstance(explicit, str) and re.fullmatch(r"[A-Z][A-Za-z0-9]*", explicit):
         return explicit
@@ -78,6 +81,7 @@ def python_name(filename: str, schema: Mapping[str, Any]) -> str:
 
 
 def literal_annotation(values: list[object]) -> str:
+    """A ``Literal[...]`` annotation for an all-string value list, otherwise ``Any``."""
     if not values:
         return "Any"
     if all(isinstance(value, str) for value in values):
@@ -86,6 +90,7 @@ def literal_annotation(values: list[object]) -> str:
 
 
 def schema_annotation(schema: object) -> str:
+    """Map one JSON Schema fragment to its Python type annotation, falling back to ``Any``."""
     if not isinstance(schema, dict):
         return "Any"
     if "const" in schema:
@@ -138,6 +143,7 @@ def inherited_required(schema: Mapping[str, Any]) -> set[str]:
 
 
 def schema_properties(schema: Mapping[str, Any]) -> tuple[dict[str, Any], set[str]]:
+    """Merge ``allOf`` branch properties and required names with the schema's own."""
     properties: dict[str, Any] = {}
     required: set[str] = set()
     all_of = schema.get("allOf")
@@ -416,6 +422,7 @@ def render_embedded_conformance_assets(
 
 
 def artifact_bytes(model: Mapping[str, Any], model_bytes: bytes) -> dict[str, bytes]:
+    """Render every generated artifact, including the manifest that pins their digests."""
     schemas = model["schemas"]
     assert isinstance(schemas, dict)
     model_digest = hashlib.sha256(model_bytes).hexdigest()
@@ -454,6 +461,7 @@ def artifact_bytes(model: Mapping[str, Any], model_bytes: bytes) -> dict[str, by
 
 
 def compare_or_write(artifacts: Mapping[str, bytes], *, check: bool) -> list[str]:
+    """Compare each artifact to the worktree; in check mode return drifted paths, otherwise write them."""
     drift: list[str] = []
     for relative, expected in artifacts.items():
         path = ROOT / relative
@@ -469,6 +477,7 @@ def compare_or_write(artifacts: Mapping[str, bytes], *, check: bool) -> list[str
 
 
 def verify_idempotence(model_path: Path, artifacts: Mapping[str, bytes]) -> None:
+    """Render again from an independently parsed copy of the model, refusing non-idempotent generation."""
     # Render twice from independently parsed model values. This catches stateful
     # or ordering-dependent generation even when the current tree is in sync.
     with tempfile.TemporaryDirectory(prefix="refspec-model-") as directory:

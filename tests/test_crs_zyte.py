@@ -1,4 +1,4 @@
-"""Tests for the Zyte implementation of the CRS page-fetcher boundary."""
+"""Pin the Zyte CRS page fetcher's byte fidelity, content-type requirement, and pinned response."""
 
 from __future__ import annotations
 
@@ -26,6 +26,8 @@ class _Response(io.BytesIO):
 def test_crs_fetcher_preserves_pinned_publisher_response(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin that a configured real CRS response round-trips byte-identically through the Zyte transport."""
+
     source_path = os.environ.get("REFSPEC_CRS_LEGISLATIVE_SUBJECTS_PATH")
     if source_path is None:
         pytest.skip("real CRS publisher response is not configured")
@@ -59,6 +61,8 @@ def test_crs_fetcher_preserves_pinned_publisher_response(
 def test_crs_fetcher_returns_real_content_type_and_exact_bytes(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin exact bytes, status, resolved URL, and the publisher's real content type."""
+
     source_url = "https://www.congress.gov/help/field-values/legislative-subject-terms"
     body = b"<!doctype html><html></html>"
 
@@ -98,6 +102,8 @@ def test_crs_fetcher_returns_real_content_type_and_exact_bytes(
 def test_crs_fetcher_requires_target_content_type(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pin refusal when the Zyte response omits Content-Type."""
+
     def fake_urlopen(*args: object, **kwargs: object) -> _Response:
         return _Response(
             json.dumps(

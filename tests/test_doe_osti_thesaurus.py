@@ -41,6 +41,9 @@ from refspec.registry.doe_osti_thesaurus import (
 
 
 def test_real_full_distribution_shape_count_and_boundary_samples() -> None:
+    """The configured real 18,087,998-byte distribution yields 247,184 triples and 23,626 concepts with known boundary
+    IRIs."""
+
     source_path_text = os.environ.get("REFSPEC_DOE_OSTI_THESAURUS_PATH")
     if source_path_text is None:
         pytest.skip("real DOE OSTI distribution is not configured")
@@ -89,10 +92,15 @@ SYNTHETIC_MINIMAL_TURTLE = """\
 
 
 def _fixture_bytes() -> bytes:
+    """Return the committed real 2020-export excerpt bytes."""
+
     return FIXTURE_PATH.read_bytes()
 
 
 def test_parser_preserves_the_real_2020_export_excerpt_verbatim() -> None:
+    """The real excerpt parses deterministically to pinned counts, labels, relations, notes and one genuine dangling
+    top concept."""
+
     source = _fixture_bytes()
     thesaurus = parse_doe_osti_thesaurus_rdfxml(source, source_url=FIXTURE_SOURCE_URL)
 
@@ -157,6 +165,8 @@ def test_parser_preserves_the_real_2020_export_excerpt_verbatim() -> None:
 
 
 def test_parser_preserves_concept_scheme_and_hierarchy_structure() -> None:
+    """The single scheme's top concepts and the broader-link hierarchy survive parsing."""
+
     thesaurus = parse_doe_osti_thesaurus_rdfxml(_fixture_bytes(), source_url=FIXTURE_SOURCE_URL)
 
     assert len(thesaurus.concept_schemes) == 1
@@ -184,6 +194,8 @@ def test_parser_preserves_concept_scheme_and_hierarchy_structure() -> None:
 
 
 def test_parser_rejects_a_relative_source_url() -> None:
+    """A source URL that is not an absolute IRI is refused."""
+
     with pytest.raises(DoeOstiThesaurusError, match="absolute IRI"):
         parse_doe_osti_thesaurus_rdfxml(SYNTHETIC_MINIMAL_TURTLE, source_url="not-a-url")
 
@@ -239,11 +251,15 @@ def test_parser_rejects_a_relative_source_url() -> None:
     ],
 )
 def test_parser_rejects_lossy_or_ambiguous_skos_shapes(source: str, message: str) -> None:
+    """Untagged/duplicate labels, unsupported predicates or rdf:types, multiple schemes and non-XML are refused."""
+
     with pytest.raises(DoeOstiThesaurusError, match=message):
         parse_doe_osti_thesaurus_rdfxml(source, source_url=FIXTURE_SOURCE_URL)
 
 
 def test_parser_rejects_a_blank_node_relation_object() -> None:
+    """A blank-node relation object is refused as not an IRI."""
+
     source = SYNTHETIC_MINIMAL_TURTLE.replace(
         "</skos:Concept>",
         "  <skos:broader><rdf:Description/></skos:broader>\n  </skos:Concept>",
@@ -253,6 +269,8 @@ def test_parser_rejects_a_blank_node_relation_object() -> None:
 
 
 def test_parser_enforces_optional_distribution_digest_and_size_pins() -> None:
+    """Matching digest and byte pins pass; a wrong digest, wrong length or malformed digest spelling is refused."""
+
     source = _fixture_bytes()
     digest = "sha256:" + hashlib.sha256(source).hexdigest()
     parsed = parse_doe_osti_thesaurus_rdfxml(
@@ -284,6 +302,8 @@ def test_parser_enforces_optional_distribution_digest_and_size_pins() -> None:
 
 
 def test_parser_rejects_a_concept_scheme_iri_mismatch() -> None:
+    """A different expected concept-scheme IRI is refused."""
+
     with pytest.raises(DoeOstiThesaurusError, match="concept scheme"):
         parse_doe_osti_thesaurus_rdfxml(
             _fixture_bytes(),
@@ -293,6 +313,8 @@ def test_parser_rejects_a_concept_scheme_iri_mismatch() -> None:
 
 
 def test_parse_doe_osti_thesaurus_file_reads_a_local_pinned_fixture(tmp_path: Path) -> None:
+    """The file reader reads a digest-pinned local fixture and refuses a missing path."""
+
     source = _fixture_bytes()
     local_path = tmp_path / "capture.rdf"
     local_path.write_bytes(source)
@@ -310,11 +332,15 @@ def test_parse_doe_osti_thesaurus_file_reads_a_local_pinned_fixture(tmp_path: Pa
 
 
 def test_acquire_export_requires_an_explicit_transport() -> None:
+    """Acquisition refuses without a fetcher or allow_direct_network=True."""
+
     with pytest.raises(DoeOstiThesaurusError, match="requires fetch or allow_direct_network=True"):
         acquire_doe_osti_thesaurus_export("https://example.test/osti-thesaurus-edge.rdf")
 
 
 def test_acquire_export_uses_an_injected_fetcher_and_matches_direct_parsing() -> None:
+    """An injected fetcher receives the URL, timeout and bound, and its bytes parse identically to a direct parse."""
+
     body = _fixture_bytes()
     url = "https://example.test/osti-thesaurus-injected.rdf"
 
@@ -336,6 +362,8 @@ def test_acquire_export_uses_an_injected_fetcher_and_matches_direct_parsing() ->
 
 
 def test_acquire_export_rejects_a_non_200_response() -> None:
+    """A non-200 response is refused naming its status."""
+
     def fetch(requested_url: str, *, timeout_seconds: float, max_bytes: int) -> DoeOstiFetchedResource:
         return DoeOstiFetchedResource(
             requested_url=requested_url,
@@ -350,6 +378,8 @@ def test_acquire_export_rejects_a_non_200_response() -> None:
 
 
 def test_acquire_export_rejects_a_mismatched_requested_url() -> None:
+    """A response naming a different requested URL is refused."""
+
     def fetch(requested_url: str, *, timeout_seconds: float, max_bytes: int) -> DoeOstiFetchedResource:
         return DoeOstiFetchedResource(
             requested_url="https://example.test/wrong.rdf",
@@ -364,6 +394,8 @@ def test_acquire_export_rejects_a_mismatched_requested_url() -> None:
 
 
 def test_acquire_export_rejects_a_response_over_max_bytes() -> None:
+    """A response body above the caller's max_bytes is refused."""
+
     def fetch(requested_url: str, *, timeout_seconds: float, max_bytes: int) -> DoeOstiFetchedResource:
         return DoeOstiFetchedResource(
             requested_url=requested_url,
@@ -378,6 +410,9 @@ def test_acquire_export_rejects_a_response_over_max_bytes() -> None:
 
 
 def test_pinned_release_matches_the_committed_fixture_shape() -> None:
+    """The release pins the real distribution URL, digest, 18,087,998-byte length and 2020-09-30 date; the fixture is
+    intentionally smaller."""
+
     # DOE_OSTI_THESAURUS_V1_2020 pins the real, verified 18,087,998-byte
     # distribution this fixture was excerpted from; the fixture itself is
     # deliberately much smaller and is not expected to match those pins.
@@ -391,6 +426,9 @@ def test_pinned_release_matches_the_committed_fixture_shape() -> None:
 
 
 def test_capture_manifest_is_deterministic_and_records_every_verification_gap() -> None:
+    """The manifest is deterministic, claims native SKOS identity without authorizing candidate use, records every
+    gap, and digests retrieved_at."""
+
     thesaurus = parse_doe_osti_thesaurus_rdfxml(_fixture_bytes(), source_url=FIXTURE_SOURCE_URL)
     manifest = doe_osti_thesaurus_capture_manifest(thesaurus, retrieved_at="2026-08-03T00:00:00Z")
     assert manifest == doe_osti_thesaurus_capture_manifest(thesaurus, retrieved_at="2026-08-03T00:00:00Z")

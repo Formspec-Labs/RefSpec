@@ -1,33 +1,15 @@
 """The U.S.C. section-existence oracle, and what it says about the pinned corpus.
 
-Four kinds of test, deliberately.
-
-**Pin tests** hold the six oracle tables and the agenda snapshot to the digests
-their artifact README states, because every number below is a statement about
-those exact bytes and a swapped directory must fail loudly rather than answer
-differently.
-
-**Specimen tests** run each predicate and each correction on the citations the
-two reports name — *including the ones the reports say must NOT fire*, which
-are the load-bearing half: ``5 USC 552(a)`` and ``5 USC 552a`` are both real,
-``42 USC 2139(a)`` is an honest unknown, ``26 USC 6165`` is a real section
-OLRC's Table III does not enumerate, and ``21 USC 134a to 134d`` were real
-until 2002 with every citing row predating the repeal.
-
-**Corpus tests** run the whole thing over
-``agenda-legal-authorities-as-measured-797170.parquet`` — 797,170 rows, the
-build the oracle report measured — and compare every count to the report's own
-table. Where they differ the difference is asserted with its cause, because an
-unexplained difference is the finding this suite exists to surface.
-
-**Before/after tests** run the correction reader as it stood at ``da46f0de``
-beside the one that replaced it on 2026-08-23, over all 38,218 triples of the
-same build. The old reader is COPIED here (:func:`_head_correction_candidates`)
-and never imported, per this repository's rule for replacing a running check.
-A4 and B1 must not move by a single reading; every outcome that moved must be
-the B8 population exactly; and the readings that did move are a frozen,
-classified list (:data:`DELIBERATE_DIVERGENCES`), so an unlisted one fails here
-instead of becoming a diff nobody reads.
+Four kinds of test, deliberately: pin tests hold the six oracle tables and the
+agenda snapshot to their README digests; specimen tests run each predicate and
+correction on the reports' named citations, including the must-not-fire ones
+(``5 USC 552(a)`` and ``5 USC 552a`` are both real, ``42 USC 2139(a)`` is an
+honest unknown); corpus tests compare every count over the pinned
+797,170-row build to the report's own tables, asserting each difference with
+its cause; and before/after tests run the correction reader as it stood at
+``da46f0de`` beside its replacement over all 38,218 triples, with the old
+reader COPIED here (:func:`_head_correction_candidates`) and the moved
+readings a frozen, classified list (:data:`DELIBERATE_DIVERGENCES`).
 """
 
 from __future__ import annotations
@@ -88,6 +70,8 @@ SNAPSHOT_DIGEST = "sha256:c5c4bd1f8b70fd52491f8b22e7bc72c75287cbbf3638692210fd16
 
 @cache
 def oracle() -> UscSectionOracle:
+    """Return the repository's sealed oracle, built once per process."""
+
     return UscSectionOracle.from_repository(ROOT)
 
 
@@ -218,6 +202,8 @@ def act_claims() -> dict[tuple[int, str, str], tuple[ActSectionClaim, ...]]:
 
 @cache
 def misses() -> tuple[tuple, ...]:
+    """Every distinct corpus (title, section, appendix) the oracle says does not exist."""
+
     known = oracle()
     return tuple(key for key in corpus()["pair_rows"] if not known.section_exists(key[0], key[1], appendix=key[2]))
 
@@ -317,15 +303,12 @@ def test_the_dash_table_is_the_grammars_verbatim() -> None:
 
 @pytest.mark.slow
 def test_the_oracle_is_the_size_its_report_states() -> None:
-    """A table that changed shape changes every count in this file.
+    """Pin the oracle's generation-2 table sizes: 59,362 release-point sections, 67,022 annual sections, 49,960 range
+    stubs, 160,209 subsections, 66,780 enumerated.
 
-    Generation 2 (2026-08-24) moves exactly ONE of these: the annual range
-    stubs, 49,823 -> 49,960, +137 in (12, 2010) and (33, 2012). Every other
-    number is unchanged, and that is the finding rather than a coincidence —
-    the twelve volumes generation 1's case-sensitive matcher skipped print no
-    section that appears nowhere else, so ``enumerated`` is 66,780 in both
-    generations and no ``verdict`` can have moved. See
-    ``test_generation_2_recovered_twelve_volumes_and_moved_no_verdict``.
+    Generation 2 moves only the annual range stubs (49,823 -> 49,960, +137 in
+    (12, 2010) and (33, 2012)); the twelve recovered volumes print no section
+    that appears nowhere else, so no verdict can have moved.
     """
 
     known = oracle()
@@ -373,19 +356,13 @@ RECOVERED_VOLUMES = (
 
 
 def test_generation_2_recovered_twelve_volumes_and_moved_no_verdict() -> None:
-    """"Every year 1994-2024" is now true of every TITLE VOLUME in those years.
+    """Pin the twelve annual title volumes generation 1's case-sensitive matcher skipped, and that recovering them moved
+    no verdict.
 
-    The module docstring said "every year 1994-2024" while twelve title volumes
-    of those years had never been opened, so twelve ``(title, year)`` pairs had
-    no annual coverage and every citation filed into one of them read
-    ``attested_at_edition = false`` for the extractor's reason. This test is
-    what breaks if the case-sensitivity comes back: it asks for coverage of the
-    twelve by name, and for the row counts each recovered volume contributes.
-
-    The second half is the blast radius, and it is a NEGATIVE: the union the
-    existence test reads is 66,780 pairs in BOTH generations, so no section
-    appears only in a skipped volume and no ``verdict`` can have moved. Only
-    ``attested_at_edition``, the year-scoped question, does.
+    The union the existence test reads is 66,780 pairs in both generations, so
+    only ``attested_at_edition`` (the year-scoped question) moves; the
+    pre-recodification titles 40/41 citations stay unattested because the
+    recovered 2012 volumes do not print them at all.
     """
 
     known = oracle()
@@ -464,18 +441,12 @@ def _extractor_patterns() -> tuple[re.Pattern, list[re.Pattern]]:
 @pytest.mark.slow
 @pytest.mark.skipif(not (ANNUAL_ZIPS / "2012.zip").exists(), reason="the 31 annual zips are untracked (2.1 GB)")
 def test_the_extractors_own_matcher_classifies_every_archive_member() -> None:
-    """The case fix, tested on the EXTRACTOR rather than on its output.
+    """Pin the case fix on the extractor itself: its own FNAME/NON_TITLE, lifted from source, classify all 1,835 archive
+    members.
 
-    ``test_generation_2_recovered_twelve_volumes_and_moved_no_verdict`` reads
-    the pinned parquet, so reverting ``re.IGNORECASE`` in ``extract_annual.py``
-    while leaving the artifact alone passes it: it protects the tables, not the
-    program that makes them. This one runs the extractor's OWN ``FNAME`` and
-    ``NON_TITLE`` -- lifted from its source, not restated -- over all 1,835
-    members of all 31 zips, so the revert itself is what fails.
-
-    Every member lands in exactly one of two buckets and there is no third:
-    1,781 title volumes and 54 known non-title members. The extractor raises on
-    anything else, and so does this.
+    Reverting ``re.IGNORECASE`` in ``extract_annual.py`` while leaving the
+    artifact alone would pass the parquet-reading test; here the revert itself
+    fails, with the twelve uppercase members named and only they missed.
     """
 
     import zipfile
@@ -510,35 +481,11 @@ def test_the_extractors_own_matcher_classifies_every_archive_member() -> None:
 @pytest.mark.slow
 @pytest.mark.skipif(not (ANNUAL_ZIPS / "2012.zip").exists(), reason="the 31 annual zips are untracked (2.1 GB)")
 def test_a_bracketed_stub_is_printed_but_does_not_attest() -> None:
-    """The deliberate exclusion, pinned against the raw bytes that state it.
+    """Pin the deliberate bracketed-stub exclusion against the raw 2012 bytes: a bracketed placeholder does not attest.
 
-    OLRC prints a withdrawn section as a placeholder. UNBRACKETED placeholders
-    are kept -- ``§§3, 4. Omitted`` is in the tables as a range. BRACKETED ones
-    are not, and that is a semantic this test exists to keep honest rather than
-    an accident of ``extract_annual.py``'s ``Secs?\\.`` anchor.
-
-    The specimen is 2012/2012USC40.htm, whose bytes carry, in this order:
-
-        <!-- documentid:40_[322  usckey:400000000000000000000000000000000 ... -->
-        <!-- itempath:/400/SUBTITLE I/CHAPTER 3/SUBCHAPTER III/[Sec. 322 -->
-        <h3 class="section-head">[&sect;322. Repealed. Pub. L. 109&ndash;313,
-          &sect;3(h)(1), Oct. 6, 2006, 120 Stat. 1736]</h3>
-
-    and immediately below it the live §323 with
-    ``usckey:400000000032300000000000000000000``. **The section field of the
-    bracketed entry's key is zeroed and the live one's is not**, and over all 31
-    archives that holds 35,088 times out of 35,088 non-appendix bracketed
-    entries, against 1,585,628 unbracketed entries carrying a real key. The
-    line this extractor draws is the publisher's own.
-
-    So: 40 U.S.C. 322 EXISTS -- the release point carries it ``repealed`` and
-    1994-2005 print it unbracketed -- and is NOT attested at 2012 though the
-    2012 volume prints a stub for it. That is the cost, and it is named. The
-    benefit is the sibling assertion: 6 U.S.C. 1's only witness anywhere is
-    ``[§§1 to 5. Repealed. Pub. L. 92-310 ... June 6, 1972]`` under "TITLE
-    6-SURETY BONDS [REPEALED]", and admitting bracketed ranges would call it
-    ``exists`` for 19 rows filed 2005-2017 that mean the Homeland Security Act
-    at 6 U.S.C. 101.
+    40 U.S.C. 322 exists and 1994-2005 print it unbracketed, but the bracketed
+    2012 stub does not attest; admitting bracketed ranges would call 6 U.S.C. 1
+    ``exists`` for 19 rows that mean the Homeland Security Act at 6 U.S.C. 101.
     """
 
     import zipfile
@@ -1004,6 +951,8 @@ def test_the_subsection_oracle_says_when_it_cannot_see() -> None:
 
 @pytest.mark.slow
 def test_c0_title_impossible_and_the_edition_dated_column_that_outranks_it() -> None:
+    """Pin C0's impossible-title set and the two 2014-enacted pairs where the edition-dated column disagrees."""
+
     known = oracle()
     for title in (61, 410, 347, 166, 72, 53):
         assert known.c0_title_impossible(title), title
@@ -1023,6 +972,8 @@ def test_c0_title_impossible_and_the_edition_dated_column_that_outranks_it() -> 
 
 @pytest.mark.slow
 def test_c1_zero_padded() -> None:
+    """Pin C1 on the zero-padded title 26 sections and its refusal of an unpadded one."""
+
     known = oracle()
     for section in ("0956", "0367", "0864", "0901", "0904"):
         assert known.c1_zero_padded(26, section), section
@@ -1031,6 +982,8 @@ def test_c1_zero_padded() -> None:
 
 @pytest.mark.slow
 def test_c2_subsection_as_section_and_the_two_it_must_not_touch() -> None:
+    """Pin C2's five subsection-as-section readings and the two real sections it must not touch."""
+
     known = oracle()
     for title, section in ((21, "321p"), (21, "371a"), (21, "361a"), (12, "1828o"), (42, "7414a")):
         assert known.c2_subsection_as_section(title, section), f"{title} {section}"
@@ -1075,31 +1028,10 @@ def test_c3_paren_suffix_eaten() -> None:
 
 @pytest.mark.slow
 def test_c3_refuses_by_count_where_the_text_parenthesises_several_suffixes() -> None:
-    """303 of C3's 343 rows name more than one section, and no order picks.
+    """Pin that C3 refuses by count: 303 of its 343 rows name more than one section, so no order picks one.
 
-    The parenthesis is gone from the parse, so the text is the only witness to
-    which suffix it held — and three of the four pairs witness several. Walking
-    ``_SUFFIXES`` alphabetically published "15 USC 78a" for all 245 rows of a
-    pair whose texts name eighteen sections.
-
-    **42 U.S.C. 2000 moved from 2 candidates to 9 when the C3 tail bug was
-    fixed, and the nine are the finding.** Its 14 distinct texts include
-    ``42 U.S.C. 2000(d)-1`` through ``2000(d)-7``, the bare ``42 U.S.C.
-    2000(d)`` on 30 of its 49 rows, and ``42 U.S.C. 2000(d) to 2000(d)-7``:
-    eight distinct printed sections of the Civil Rights Act's Title VI plus
-    2000e. Two truncations were stacked here. The first: ``2000d`` is itself
-    enumerated, so the ``suffix-restored`` branch fired and the stated-tail
-    branch was unreachable behind it, collapsing 2000d-1 … 2000d-7 into the
-    single bare ``2000d``. The second, uncovered by fixing the first: reading
-    the tail per TEXT rather than per OCCURRENCE then dropped ``2000d``
-    entirely, because *some* occurrence in the pair's joined texts carried a
-    tail — so the aggregate went 2 → 8 and lost the reading 30 of the rows
-    state on their own. Judged per occurrence it is 9.
-
-    The pair refused before and refuses now — the proposal is ``None`` either
-    way — so no published value moves HERE; what moves is how many readings the
-    refusal is counting. It does move one downstream: see
-    ``test_c3_reads_the_stated_hyphen_tail_the_way_b8_does``.
+    42 U.S.C. 2000's candidate count moved 2 -> 9 when the C3 tail bug was
+    fixed -- the nine are the finding, and the pair refused before and after.
     """
 
     known, data, classified = oracle(), corpus(), triage()
@@ -1144,34 +1076,11 @@ def test_c3_refuses_by_count_where_the_text_parenthesises_several_suffixes() -> 
 
 @pytest.mark.slow
 def test_c3_reads_the_stated_hyphen_tail_the_way_b8_does() -> None:
-    """B8's ``1735f-14`` lesson, applied to the class that had the same bug.
+    """Pin B8's per-occurrence tail rule applied inside C3: a stated tail outranks the bare lettered section.
 
-    ``c3_proposals`` reached its stated-tail branch only when the bare lettered
-    section was NOT enumerated, so ``12 USC 1735(f)-14`` -- where 12 U.S.C.
-    1735f IS enumerated -- took the ``suffix-restored`` short circuit and threw
-    the ``-14`` away. That is precisely the truncation B8 was demoted to
-    candidate-only for: the release point prints 12 U.S.C. 1735f "Water and
-    sewerage facilities" and 12 U.S.C. 1735f-14 "Civil money penalties against
-    mortgagees, lenders, and other participants in FHA programs" as two
-    different sections, so the truncation swaps one real section for another
-    and nothing downstream can see it happen.
-
-    Latent inside this module -- ``classify_section_miss`` is C3's only caller
-    here -- but NOT latent downstream: ``unified_agenda_parquet``'s C3
-    promotion reads ``c3_proposals`` per row and publishes the single survivor.
-    Which is where the second half of the bug lived. The tail was read per
-    TEXT, so any occurrence carrying one suppressed the bare lettered reading
-    for the whole string, and ``42 U.S.C. 2000(d) to 2000(d)-7`` -- a span
-    named by both endpoints -- came back as the ONE reading ``2000d-7`` and was
-    promoted to it. Judged per occurrence it is two readings and the promotion
-    refuses: measured over the pinned build, 217 promoted / 14 ambiguous /
-    1,186 witnessless, from 219 / 12 / 1,186, the two moved rows both being
-    RIN 1505-AC45 at editions 201610 and 201704.
-
-    The negative fixtures are the load-bearing half: a stated tail the Code
-    does NOT print, and a text that states no tail at all, must both keep the
-    bare lettered reading exactly as before; and a text that states BOTH must
-    keep both.
+    ``12 USC 1735(f)-14`` must read 1735f-14, never 1735f (both are printed,
+    different subjects); a tail the Code does not print, or none, falls back to
+    the bare lettered reading, and a text stating both keeps both.
     """
 
     known = oracle()
@@ -1250,6 +1159,8 @@ def test_c4_fires_on_nothing_here_and_would_fire_on_the_defect_it_names() -> Non
 
 @pytest.mark.slow
 def test_c5_and_c6_split_the_appendix_by_what_was_published() -> None:
+    """Pin C5/C6 against the ten appendix-publishing titles and the non-appendix refusal."""
+
     known = oracle()
     assert APPENDIX_TITLES_PUBLISHED == frozenset({5, 10, 11, 18, 26, 28, 38, 40, 46, 50})
     assert known.c5_appendix_out_of_oracle(49, appendix=True)
@@ -1261,6 +1172,8 @@ def test_c5_and_c6_split_the_appendix_by_what_was_published() -> None:
 
 @pytest.mark.slow
 def test_c7_chapter_as_section() -> None:
+    """Pin C7's six chapter-number readings and its refusal of a real section."""
+
     known = oracle()
     for title, section in ((10, "55"), (46, "701"), (5, "89"), (41, "85"), (49, "401"), (49, "1")):
         assert known.c7_chapter_as_section(title, section), f"{title} {section}"
@@ -1269,6 +1182,8 @@ def test_c7_chapter_as_section() -> None:
 
 @pytest.mark.slow
 def test_c8_and_c8b() -> None:
+    """Pin the hyphen-child openings and C8b's letter-o-as-zero proposals."""
+
     known = oracle()
     assert known.hyphen_children[(15, "80a")][0] == "80a-1", "the Investment Company Act opens at 80a-1"
     assert known.hyphen_children[(42, "300aa")][0] == "300aa-1", "the Vaccine Act opens at 300aa-1"
@@ -1329,6 +1244,8 @@ def test_c8c_and_c8d_wear_one_shape_and_two_mechanisms() -> None:
 
 @pytest.mark.slow
 def test_c9_is_a_shape_and_the_verdict_still_answers_first() -> None:
+    """Pin C9's pre-1996 title 49 shape and that a real section answers before the shape matters."""
+
     known = oracle()
     for section in ("1421", "1354", "1371", "1381", "1386", "1502"):
         assert known.c9_title_49_pre_1996(49, section), section
@@ -1393,6 +1310,8 @@ def test_every_triage_predicate_is_reachable_from_the_classifier() -> None:
 
 @pytest.mark.slow
 def test_the_precedence_is_the_reports_order() -> None:
+    """Pin the report's class order and that a pair satisfying two predicates takes the earlier."""
+
     known = oracle()
     assert [name.split(" ", 1)[0] for name in MISS_CLASSES] == [
         "C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C8b", "C8c", "C8d", "C9", "C10", "C11", "C12",
@@ -1411,6 +1330,8 @@ def test_the_precedence_is_the_reports_order() -> None:
 
 @pytest.mark.slow
 def test_a4_a_subsection_rendered_as_a_lettered_section() -> None:
+    """Pin A4's correction to the stem plus subsection and that it keeps the section it replaces."""
+
     known = oracle()
     fix = known.corrected_section(21, "371a", "21 USC 371a", 2010)
     assert fix is not None
@@ -1794,6 +1715,8 @@ def test_b8_refuses_the_honest_unknowns_the_campaign_recorded() -> None:
 
 @pytest.mark.slow
 def test_b1_et_seq_follows_a_section_never_a_subsection() -> None:
+    """Pin B1's nine et-seq targets and that dropping the tell hands the same target to B8 as a candidate."""
+
     known = oracle()
     for title, section, letter, target in (
         (21, "346", "a", "346a"),
@@ -1884,35 +1807,11 @@ def test_the_lost_hyphen_family_the_grammar_refused() -> None:
 
 @pytest.mark.slow
 def test_a_space_before_a_lettered_suffix_needs_the_oracle_as_witness() -> None:
-    """"15 USC 78 o-10" published section 78, and title 15 has no section 78.
+    """Pin the lost-space repair's two witnesses: the published stem must be absent and the fused token enumerated.
 
-    A section's name never contains a space, so a space between a section's
-    digits and its letter suffix is a named damage operator with exactly one
-    repair: delete it. The grammar cannot make that repair --
-    ``_USC_SECTION_TOKEN`` reads the digits and leaves the letters as uncovered
-    text, which is what keeps the row partial and the letters visible -- and
-    this module is the one it may not import.
-
-    TWO witnesses, both required. The stem the grammar published must be ABSENT
-    from the oracle (no archive year, no printed range stub), so the parse as
-    filed has no witness at all; and the fused token must be enumerated
-    EXACTLY. Then exactly one reading survives.
-
-    Measured over all 38,182 (title, section, text) keys the pinned artifact
-    files: 83 write a spaced suffix at all, and exactly 3 pass both witnesses
-    -- 15 U.S.C. 78 -> 78j-1 (SEC RIN 3235-AI75, Spring 2003), 78k-1
-    (3235-AK22, Fall 2008), 78o-10 (Federal Reserve RIN 7100-AD74, Fall 2011
-    and Fall 2012): 4 rows. The oracle's title 15 runs 71...77, then 77a, 77aa,
-    77aaa, 77aaaa, 77b ... and has no section 78; the Exchange Act's sections
-    are 78a onward.
-
-    "15 USC 77 eee" is the REFUSAL, and it is why the witnesses are two rather
-    than one. 15 U.S.C. 77eee is enumerated -- and so is 15 U.S.C. 77, a
-    current section of title 15 in the pinned release point, attested in all 31
-    archive years. Two real sections, one string, and nothing this module can
-    consult separates them, so the rule offers nothing and the row keeps the
-    section its own text supports. The specimen is SEC RINs 3235-AG65 and
-    3235-AG68, Spring 1996, whose continuation writes it.
+    15 U.S.C. 78 has no section, so "15 USC 78 o-10" -> 78o-10; "15 USC 77 eee"
+    refuses because 15 U.S.C. 77 is itself a current section, and the tail is
+    part of the target (78o is real, so "78 o-10" must never read 78o).
     """
 
     known = oracle()
@@ -1961,6 +1860,8 @@ def test_a_space_before_a_lettered_suffix_needs_the_oracle_as_witness() -> None:
 
 @pytest.mark.slow
 def test_a_correction_outside_the_oracles_window_is_not_made() -> None:
+    """Pin that the edition window gates every rule and that the seven correction rules keep distinct census heads."""
+
     known = oracle()
     assert known.correction_candidates(21, "371a", "21 USC 371a", 1990) == ()
     assert known.corrected_section(21, "371a", "21 USC 371a", 2027) is None
@@ -2059,6 +1960,8 @@ def test_a_rule_publishes_only_where_its_own_inputs_can_decide() -> None:
 
 @pytest.mark.slow
 def test_the_pinned_corpus_reproduces_the_reports_headline() -> None:
+    """Pin the report's headline counts over the pinned corpus: 11,124 pairs, 1,728 misses, 13,612 ok rows."""
+
     data, keys = corpus(), misses()
     assert len(data["pair_rows"]) == 11_124, "distinct parsed (title, section, appendix)"
     assert sum(data["pair_rows"].values()) == 685_431
@@ -2172,24 +2075,12 @@ def test_what_the_oracle_refuses_to_call_absent_over_the_corpus() -> None:
 
 @pytest.mark.slow
 def test_the_edition_year_would_have_accused_eight_thousand_rows() -> None:
-    """Why an edition-scoped absence is published as a field, not a verdict.
+    """Pin why an edition-scoped absence is a field, not a verdict: 6,375 rows cite a section their own edition does not
+    yet attest.
 
-    **8,227 -> 6,375 at generation 2 of the oracle (2026-08-24).** The 1,852
-    rows / 384 pairs that left were never history: generation 1's annual
-    extractor matched archive members case-sensitively and OLRC named twelve
-    volumes ``2010USC12.htm`` / ``2012USC33.htm``, so twelve ``(title, year)``
-    pairs had no annual coverage at all and every citation filed into one of
-    them read ``attested_at_edition = false`` for the extractor's reason rather
-    than the Code's. Per (title, edition year) over this snapshot: (12, 2010)
-    1,339 rows / 223 pairs; (38, 2012) 140/70; (33, 2012) 132/44; (35, 2012)
-    86/20; (40, 2012) 72/9; (41, 2012) 66/8; (13, 2010) 10/5; (14, 2010) 5/3;
-    (39, 2012) 2/2. The distinct-pair count falls by 381 rather than 384
-    because three of those pairs are still unattested at a DIFFERENT edition
-    year, which is the fact the column exists to carry.
-
-    ``before_first`` does not move at all, and cannot: those 822 rows cite a
-    section whose FIRST attested year is later than the citing edition, and no
-    recovered volume changes a first year that lies beyond it.
+    822 of those only because the archive of the citing year predates the
+    enactment; 1,852 rows / 384 pairs left at generation 2 when the twelve
+    uppercase-named volumes were recovered.
     """
 
     known, data = oracle(), corpus()
@@ -3042,15 +2933,11 @@ def _filed_keys() -> tuple[tuple[int, str, bool, int], ...]:
 
 @pytest.mark.slow
 def test_attested_years_index_matches_the_old_linear_scan_on_every_corpus_key() -> None:
-    """The sorted-index optimization, proven against the scan it replaced -- and timed.
+    """Pin the sorted-index optimization against the linear scan it replaced, over every corpus key.
 
-    Measured on this machine, one run each, same process, back to back: the
-    old linear scan took 8.8s over the 95,492 keys below; the indexed
-    ``attested_years`` took 0.26s over the same keys -- about 34x. The module
-    docstring and :class:`_SpanIndex`'s restate these two figures. Absolute
-    seconds will drift with the machine; the equality check is what actually
-    guards behaviour, and the loose timing assertion below is a tripwire
-    against the index silently regressing back to a scan, not a benchmark.
+    The old scan took 8.8s over the 95,492 keys and the indexed
+    ``attested_years`` 0.26s (about 34x); the equality check guards behaviour
+    and the loose timing assertion is a tripwire against a silent regression.
     """
 
     known = oracle()
@@ -3070,19 +2957,11 @@ def test_attested_years_index_matches_the_old_linear_scan_on_every_corpus_key() 
 
 
 def test_span_index_matches_brute_force_on_adversarial_interval_sets() -> None:
-    """:class:`_SpanIndex` against a naive scan, on shapes the real corpus may not exercise.
+    """Pin :class:`_SpanIndex` against a brute-force scan on adversarial interval shapes the corpus may not exercise.
 
-    The corpus test above proves the index against every span OLRC actually
-    printed; it does not prove the shapes OLRC never printed -- unsorted
-    input (the raw table arrives in row order, not low order), a key exactly
-    on a ``low`` or ``high`` boundary, several spans from different years all
-    covering the same key, a key strictly between two spans neither of which
-    reaches it, an empty bucket, and a degenerate ``low > high`` stub (which
-    the old linear scan also never matched, since no key can be both ``>=
-    low`` and ``<= high`` when ``low > high``). Each is constructed here,
-    deterministically seeded, and checked one key at a time against a
-    brute-force scan -- the mutation battery AGENTS.md asks of a replaced
-    check, adapted to an algorithmic replacement rather than a judgment rule.
+    Cases include unsorted input, boundary keys, overlapping spans from
+    different years, empty buckets, and a degenerate ``low > high`` stub that
+    never matches -- the mutation battery AGENTS.md asks of a replaced check.
     """
 
     rng = random.Random(20260822)

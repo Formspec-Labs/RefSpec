@@ -1,29 +1,9 @@
-"""Structural diagnostics for the native-relation test sets.
+"""Diagnose the native-relation test sets: closure inflation, cycles, depth, and degree concentration.
 
-Recall figures against publisher relations are only interpretable if the gold
-itself is understood.  Three properties matter and none were checked before the
-E3 numbers were reported.
-
-**Transitive closure.**  SKOS ``broader`` is transitive in meaning but
-thesauri assert it sparsely.  If a publisher states ``A broader B`` and
-``B broader C`` but not ``A broader C``, then an arm that retrieves the
-``A``/``C`` pair is scored as a miss even though the relation holds.  Every
-recall number in E3 is depressed by however often that happens, and pairs
-counted as noise may be entailed rather than wrong.
-
-**Cycles and depth.**  A hierarchy with cycles is not a partial order, and
-closure over it is meaningless; depth bounds how far entailment can reach.
-
-**Degree concentration.**  If relations cluster on a few hub concepts, per-pair
-recall is largely measuring hub retrieval, and the flat per-pair framing
-overstates how broadly an arm works.
-
-The tool also cross-checks a retrieval arm: of the pairs it returns that are
-*not* in gold, how many are transitively entailed by the gold hierarchy?  Those
-are candidates being penalised for the gold's sparseness rather than for being
-wrong.
-
-Read-only.  Makes no provider call and changes no artifact.
+Read-only, with no provider call and no artifact changed. Sparse SKOS ``broader``
+assertions depress every recall figure measured against asserted gold, so the
+closure report counts implied-but-unasserted pairs and the degree report shows
+whether per-pair recall is mostly hub retrieval.
 """
 
 from __future__ import annotations
@@ -99,6 +79,8 @@ def ancestors_by_depth(edges: dict[str, set[str]], start: str, max_depth: int) -
 
 
 def closure_report(edges: dict[str, set[str]], max_depth: int) -> dict[str, Any]:
+    """Return asserted and implied-within-depth pair counts plus the implied-but-unasserted set."""
+
     asserted = {(child, parent) for child, parents in edges.items() for parent in parents}
     by_depth: dict[int, set[tuple[str, str]]] = defaultdict(set)
     for child in edges:
@@ -118,6 +100,8 @@ def closure_report(edges: dict[str, set[str]], max_depth: int) -> dict[str, Any]
 
 
 def degree_report(edges: dict[str, set[str]], concepts: int) -> dict[str, Any]:
+    """Return degree concentration: max, median, and top-decile edge share."""
+
     degree: dict[str, int] = defaultdict(int)
     for child, parents in edges.items():
         degree[child] += len(parents)

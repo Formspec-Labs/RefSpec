@@ -1,6 +1,8 @@
-"""Unified Agenda documented option list and legal-authority citation-type
-control tests. The pinned schema documents exactly twenty "One of the
-following" option lists; the parse must capture all of them."""
+"""Unified Agenda documented option lists and legal-authority citation-type tests.
+
+The pinned schema documents exactly twenty "One of the following" option lists,
+and the parse must capture all of them.
+"""
 
 from __future__ import annotations
 
@@ -22,16 +24,19 @@ def _acquire(
     pin: ua.UASnapshotPin,
     source_path: Path,
 ) -> ua.AcquiredUADocument:
+    """Acquire a source document under the given pin."""
     return ua.acquire_unified_agenda_document(pin, tmp_path, source_path=source_path)
 
 
 def _portfolio(tmp_path: Path) -> ua.UAControlPortfolio:
+    """Assemble the schema and RISC-preamble evidence into a control portfolio."""
     schema = ua.parse_reginfo_schema(_acquire(tmp_path, ua.UA_REGINFO_SCHEMA_2026_08_03, SCHEMA_FIXTURE))
     preamble = ua.pin_risc_preamble_evidence(_acquire(tmp_path, ua.UA_RISC_PREAMBLE_2026_08_03, PREAMBLE_FIXTURE))
     return ua.assemble_unified_agenda_portfolio(schema, preamble)
 
 
 def test_live_snapshot_pins_match_exact_official_bytes() -> None:
+    """Pins the schema and preamble fixture byte lengths and sha256s."""
     schema = SCHEMA_FIXTURE.read_bytes()
     preamble = PREAMBLE_FIXTURE.read_bytes()
 
@@ -44,6 +49,7 @@ def test_live_snapshot_pins_match_exact_official_bytes() -> None:
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
     tmp_path: Path,
 ) -> None:
+    """A local capture is content-addressed under the expected digest and a cache hit is re-verified."""
     pin = ua.UA_REGINFO_SCHEMA_2026_08_03
 
     acquired = _acquire(tmp_path, pin, SCHEMA_FIXTURE)
@@ -58,6 +64,7 @@ def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
 
 
 def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) -> None:
+    """Only an injected fetcher may fetch, recording the source URL and timeout."""
     payload = PREAMBLE_FIXTURE.read_bytes()
     calls: list[tuple[str, float]] = []
 
@@ -121,6 +128,7 @@ def test_reginfo_schema_serves_no_content_type_and_is_still_accepted(
 def test_rule_stage_priority_and_timetable_action_are_deterministic_not_subjects(
     tmp_path: Path,
 ) -> None:
+    """The three named accessors pin their values, raw observed counts, and identifier shape."""
     schema = ua.parse_reginfo_schema(_acquire(tmp_path, ua.UA_REGINFO_SCHEMA_2026_08_03, SCHEMA_FIXTURE))
 
     assert schema.rule_stage.values == (
@@ -212,6 +220,7 @@ def test_schema_parse_is_a_complete_capture_of_all_twenty_documented_lists(
 def test_new_documented_lists_carry_the_publishers_exact_wording(
     tmp_path: Path,
 ) -> None:
+    """Every documented list's values are pinned verbatim, and each field derives one identifier per value."""
     schema = ua.parse_reginfo_schema(_acquire(tmp_path, ua.UA_REGINFO_SCHEMA_2026_08_03, SCHEMA_FIXTURE))
     by_name = schema.by_field_name()
 
@@ -323,6 +332,7 @@ def test_documentation_prefix_drift_is_refused(tmp_path: Path) -> None:
 def test_legal_authority_citation_types_come_from_the_preamble_not_the_schema(
     tmp_path: Path,
 ) -> None:
+    """The three citation types come from the RISC preamble, each with a legalAuthorityCitationType identifier."""
     evidence = ua.pin_risc_preamble_evidence(_acquire(tmp_path, ua.UA_RISC_PREAMBLE_2026_08_03, PREAMBLE_FIXTURE))
 
     assert evidence.legal_authority_citation_types == ("U.S.C.", "Pub. L.", "E.O.")
@@ -331,6 +341,7 @@ def test_legal_authority_citation_types_come_from_the_preamble_not_the_schema(
 
 
 def test_portfolio_records_schema_and_preamble_gaps(tmp_path: Path) -> None:
+    """The portfolio keeps the schema and preamble gaps, including "Not Major", "No Stage" and the comma wording."""
     portfolio = _portfolio(tmp_path)
 
     assert any("Not Major" in gap for gap in portfolio.gaps)
@@ -342,6 +353,7 @@ def test_portfolio_records_schema_and_preamble_gaps(tmp_path: Path) -> None:
 def test_current_rin_record_validates_without_becoming_a_subject(
     tmp_path: Path,
 ) -> None:
+    """A current RIN record validates its controlled fields and parses its legal authorities, none becoming subjects."""
     rin = {
         "RULE_STAGE": "Proposed Rule Stage",
         "PRIORITY_CATEGORY": "Economically Significant",
@@ -369,6 +381,7 @@ def test_current_rin_record_validates_without_becoming_a_subject(
 def test_legal_authority_free_text_without_a_documented_prefix_does_not_fail_closed(
     tmp_path: Path,
 ) -> None:
+    """Free text with no documented prefix keeps a null citation type rather than failing."""
     rin = {
         "LEGAL_AUTHORITY_LIST": ["Reorg. Plan No. 3 of 1970"],
     }
@@ -392,6 +405,7 @@ def test_unknown_rule_stage_or_priority_fails_closed(
     value: str,
     message: str,
 ) -> None:
+    """An unknown rule stage or priority category raises with the field and value named."""
     rin = {field: value}
 
     with pytest.raises(ua.UnifiedAgendaAssignmentError, match=message):
@@ -399,6 +413,7 @@ def test_unknown_rule_stage_or_priority_fails_closed(
 
 
 def test_unknown_timetable_action_fails_closed(tmp_path: Path) -> None:
+    """An unknown timetable action raises with TTBL_ACTION named."""
     rin = {"TIMETABLE_LIST": [{"TTBL_ACTION": "Invented Action"}]}
 
     with pytest.raises(ua.UnifiedAgendaAssignmentError, match="TTBL_ACTION has unknown value"):
@@ -408,6 +423,7 @@ def test_unknown_timetable_action_fails_closed(tmp_path: Path) -> None:
 def test_digest_or_structure_drift_never_becomes_a_parsed_resource(
     tmp_path: Path,
 ) -> None:
+    """Drifted bytes fail on digest, and a schema carrying no documented option lists fails at the census."""
     payload = SCHEMA_FIXTURE.read_bytes()
     changed = payload.replace(b"Prerule Stage", b"Preruld Stage")
     assert len(changed) == len(payload)
@@ -460,6 +476,7 @@ def test_digest_or_structure_drift_never_becomes_a_parsed_resource(
 
 
 def test_option_count_drift_is_refused(tmp_path: Path) -> None:
+    """Removing one RULE_STAGE option raises option count drift."""
     payload = SCHEMA_FIXTURE.read_bytes()
     changed = payload.replace(b'"Prerule Stage", ', b"")
     assert len(changed) != len(payload)
@@ -482,6 +499,7 @@ def test_option_count_drift_is_refused(tmp_path: Path) -> None:
 
 
 def test_non_pdf_bytes_for_the_preamble_pin_are_refused(tmp_path: Path) -> None:
+    """The preamble pin requires a PDF header."""
     fake_payload = b"not actually a pdf" + (b"x" * (148_467 - 19))
     fake_pin = ua.UASnapshotPin(
         document=ua.UA_RISC_PREAMBLE,
@@ -498,6 +516,7 @@ def test_non_pdf_bytes_for_the_preamble_pin_are_refused(tmp_path: Path) -> None:
 
 
 def test_source_document_rejects_non_reginfo_host() -> None:
+    """A source URL outside reginfo.gov is refused."""
     with pytest.raises(ua.UnifiedAgendaAcquisitionError):
         replace(ua.UA_REGINFO_SCHEMA, source_url="https://example.com/reginfo.xsd")
 

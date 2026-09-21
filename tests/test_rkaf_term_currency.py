@@ -93,6 +93,8 @@ _RKAF_NAMESPACE_FSTRING = re.compile(r"\{RKAF_NAMESPACE\}([A-Za-z][A-Za-z0-9_]*)
 
 
 def _extract_rkaf_terms(text: str) -> set[str]:
+    """Every rkaf: local name one text claims, across compact, full-IRI and namespace-fstring spellings."""
+
     return (
         set(_RKAF_COMPACT_IRI.findall(text))
         | set(_RKAF_FULL_IRI.findall(text))
@@ -129,6 +131,8 @@ def rulespec_defined_local_names() -> frozenset[str]:
 
 
 def test_every_rkaf_term_refspec_uses_exists_in_the_packaged_registry() -> None:
+    """Every claimed rkaf: term outside *Shape exists in the packaged contract, or the missing names are reported."""
+
     used = refspec_rkaf_terms()
     assert used, "found no rkaf: terms in the repository -- the extraction regex is broken"
 

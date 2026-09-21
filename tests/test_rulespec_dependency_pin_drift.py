@@ -1,26 +1,12 @@
 """The Rulespec pin in the profile names the version the project installs.
 
-`profiles/rulespec-dependency.json` declares `rulespecVersion`, and
-`pyproject.toml` declares the dependency actually resolved. Nothing compared
-them, so they drifted nine pre-releases apart: the profile said `0.2.0-pre.9`
-while the project had depended on `0.2.0rc18` since the rc16 -> rc18 vendor
-bump. Closed 2026-09-04 in the seal that re-vendored from tag
-`v0.2.0-pre.18`; this file is now the guard that stops it recurring.
-
-Why it went unnoticed is the part worth keeping. The profile was never
-unverified: `generated_rulespec_dependency.py` embeds it and carries
-`RULESPEC_DEPENDENCY_SHA256` over those bytes, so the pin was tamper-evident
-throughout. But that digest is computed over the pin file itself. It proved
-nobody had edited the claim and never asked whether the claim was true -- a
-check reporting agreement with itself, which reads exactly like a passing
-check.
-
-This file was committed in `f75b4c86` as a STRICT xfail rather than a red
-test, because the fix was a sealed move that had to ride the next seal. That
-worked as designed: when the pin moved, the xfail failed "unexpectedly
-passing" and forced the marker's deletion in the same commit that fixed it,
-so the record and the code could not drift apart. The marker is gone; the
-assertion it guarded is now simply true.
+`profiles/rulespec-dependency.json`'s `rulespecVersion` and `pyproject.toml`'s
+resolved dependency went nine pre-releases apart (profile `0.2.0-pre.9` vs
+installed `0.2.0rc18`) because the profile's digest is computed over the pin
+file itself -- a check reporting agreement with itself. Closed 2026-09-04 in
+the seal re-vendored from tag `v0.2.0-pre.18`; this module is the guard,
+committed in `f75b4c86` as a strict xfail whose unexpected pass forced the
+marker's deletion in the fixing commit.
 """
 
 from __future__ import annotations
@@ -57,12 +43,11 @@ def test_the_profile_pin_names_the_installed_rulespec() -> None:
 
 
 def test_the_validator_identity_carries_the_same_version() -> None:
-    """The third place the version is written, and the one that drifted silently.
+    """Pin that validator.identity names both `rkaf-validate@<version>` and `rkaf-behavior-validate@<version>` at the
+    profile's version.
 
-    `validator.identity` names `rkaf-validate@<version>` twice. `release_graph`
-    validates its SHAPE -- that the three component names are present -- and
-    never its version, so it held `0.2.0-pre.9` for nine pre-releases beside a
-    `rulespecVersion` that was equally stale. Two wrong fields agreeing is not
+    `release_graph` validates only the identity's shape, never its version, so
+    both fields agreed while both were stale; two wrong fields agreeing is not
     corroboration.
     """
 
@@ -74,11 +59,10 @@ def test_the_validator_identity_carries_the_same_version() -> None:
 
 
 def test_the_vendored_wheel_is_the_version_the_pin_names() -> None:
-    """The pin, the vendored bytes, and the uv source path are one version.
+    """Pin that the pinned version, the vendored wheel file, and the uv source path agree.
 
-    The wheel is vendored by path, so a pin naming a version that is not in
-    `vendor/` resolves to whatever file the path points at rather than failing.
-    This is the assertion that would catch that.
+    The wheel is vendored by path, so a pin naming a version absent from
+    `vendor/` would resolve to whatever the path points at rather than fail.
     """
 
     version = _declared_dependency("rulespec-conformance")
@@ -88,7 +72,7 @@ def test_the_vendored_wheel_is_the_version_the_pin_names() -> None:
 
 
 def test_the_artifacts_floor_is_satisfied_by_the_vendored_wheel() -> None:
-    """rc18 moved `rulespec-artifacts` from `==1.0.9` to `>=1.0.11`.
+    """Pin that the exact `rulespec-artifacts` pin clears rc18's `>=1.0.11` floor and its wheel is vendored.
 
     A floor is satisfiable by a range, but this tree resolves from one vendored
     file, so the exact pin must name bytes that exist and clear the floor.
@@ -100,19 +84,12 @@ def test_the_artifacts_floor_is_satisfied_by_the_vendored_wheel() -> None:
 
 
 def test_the_profile_still_states_what_it_does_not_claim() -> None:
-    """`localUnpublished` outlived the tag on purpose, and this pins that.
+    """Pin `localUnpublished` and `productionConformanceEligible: false` as deliberate (REF-068).
 
-    rulespec published `v0.2.0-pre.18` on 2026-09-04, so a release now exists,
-    and these two fields were not moved in that seal. Ruled 2026-09-05 (REF-068)
-    that neither is stale. `releaseAvailability` is defined only by its enum and
-    by the schema conditional holding a `localUnpublished` release to
-    `deploymentClass: developmentOnly`, and that conditional only makes sense if
-    the field means a consumer can OBTAIN the dependency from a publisher.
-    `rulespec-conformance` is on no index; the wheel in `vendor/` was built here
-    from the tag. The tag moved the provenance, not the availability.
-
-    So this stays as the guard it was: the fields are correct today, and moving
-    either is a posture decision that must not ride a mechanical version bump.
+    The 2026-09-04 tag moved provenance, not availability: the field means a
+    consumer can obtain the dependency from a publisher, and the wheel in
+    `vendor/` was built here from the tag. Moving either is a posture decision
+    that must not ride a mechanical version bump.
     """
 
     profile = _profile()
@@ -121,17 +98,11 @@ def test_the_profile_still_states_what_it_does_not_claim() -> None:
 
 
 def test_the_vendor_readme_names_the_bytes_that_are_actually_vendored() -> None:
-    """`vendor/README.md` documents each wheel by digest, so it can go stale.
+    """Pin that every vendored wheel's real sha256 is named in `vendor/README.md`.
 
-    It did. The 2026-09-04 seal rebuilt rc18 from tag `v0.2.0-pre.18` and
-    replaced `rulespec-artifacts` 1.0.9 with 1.0.11, and left the README
-    describing the superseded build: a branch and worktree that no longer
-    exist, and two digests belonging to bytes no longer in the tree. Nothing
-    compared prose to bytes, so it read as current for a day.
-
-    The comparison runs in the direction that catches that -- every wheel
-    present must be named by its real digest -- rather than the reverse, so
-    the README may still discuss a SUPERSEDED digest in prose, and does.
+    The comparison runs in one direction on purpose so the README may still
+    discuss a superseded digest in prose; the 2026-09-04 seal left it describing
+    deleted bytes, and nothing compared prose to bytes.
     """
 
     readme = (ROOT / "vendor" / "README.md").read_text(encoding="utf-8")
@@ -143,12 +114,10 @@ def test_the_vendor_readme_names_the_bytes_that_are_actually_vendored() -> None:
 
 
 def test_the_vendor_readme_names_no_wheel_that_is_gone() -> None:
-    """The other half: a filename the README documents must still be there.
+    """Pin that every wheel filename the README documents still exists in `vendor/`.
 
-    This is the assertion that would have caught the 1.0.9 paragraph, which
-    survived the bump to 1.0.11 describing a file that had been deleted. It
-    means prose about a superseded wheel refers to it by PACKAGE and VERSION
-    (`rulespec-artifacts` 1.0.9) rather than by filename.
+    This is what would have caught the 1.0.9 paragraph; prose about a superseded
+    wheel must name it by package and version, not filename.
     """
 
     readme = (ROOT / "vendor" / "README.md").read_text(encoding="utf-8")
@@ -157,12 +126,8 @@ def test_the_vendor_readme_names_no_wheel_that_is_gone() -> None:
 
 
 def test_the_vendor_readme_and_the_profile_name_one_source_revision() -> None:
-    """Two documents record where the wheel came from; they must agree.
-
-    `profiles/rulespec-dependency.json` carries `validator.sourceRevision` and
-    the README carries the same commit in prose. A re-vendor that updates the
-    sealed profile and forgets the README leaves the two disagreeing about
-    provenance, which is the drift this whole module exists for.
+    """Pin that the profile's `validator.sourceRevision` appears in the vendor README, so a re-vendor cannot update one
+    without the other.
     """
 
     readme = (ROOT / "vendor" / "README.md").read_text(encoding="utf-8")

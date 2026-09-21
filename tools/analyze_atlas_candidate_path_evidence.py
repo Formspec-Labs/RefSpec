@@ -1,9 +1,11 @@
-"""Measure typed path evidence for manually reviewed Atlas candidate pairs.
+"""Measure typed path evidence for manually reviewed Atlas candidate pairs and print a canonical JSON report.
 
-The analyzer reopens the canonical six-release Atlas containing native
-relations and the 582 admitted baseline mappings. It reports only paths whose
-predicate sequence has a defensible semantic interpretation; arbitrary
-undirected graph connectivity is intentionally excluded.
+The analyzer reopens the canonical six-release Atlas (native relations plus the
+582 admitted baseline mappings) and reports only paths whose predicate sequence
+has a defensible semantic interpretation; arbitrary undirected graph connectivity
+is intentionally excluded. It refuses to run when the Atlas digest, byte length,
+concept count, native-relation count, or 582 mapping assertions differ from the
+pinned inputs, and when a decision record fails to pin its sample's sha256.
 """
 
 from __future__ import annotations
@@ -378,6 +380,12 @@ def analyze(
     max_depth: int,
     inputs: Mapping[str, Any],
 ) -> dict[str, Any]:
+    """Assemble per-row path evidence, summary counts, and digests.
+
+    Raises ValueError unless there are exactly 65 review rows and every review
+    endpoint is present in the canonical Atlas labels.
+    """
+
     if len(review_rows) != 65:
         raise ValueError(f"expected exactly 65 previously supported rows, found {len(review_rows)}")
     joined = []

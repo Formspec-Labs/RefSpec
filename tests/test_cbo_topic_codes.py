@@ -1,29 +1,13 @@
 """CBO cost-estimates XML feed Topic-evidence and fiscal-facet tests.
 
-The catalog decision for this source is explicit: CBO's 27 browse topics are
-not a published semantic vocabulary, so this module -- and these tests --
-only ever capture and parse the Topic labels the cost-estimates/xml feed
-renders about each item, packaging them as capture-local source evidence.
-Budget functions, mandate flags, and the PAYGO flag are deterministic fiscal
-facets kept on the parsed record and never promoted into a concept scheme.
-
-A direct capture attempt against the official URL during development received
-an HTTP 403 DataDome bot-challenge response instead of the feed (see
-``cbo-datadome-challenge-real-capture.html``, a byte-for-byte capture). No
-verified live feed bytes were obtainable in this environment, so
-``cbo-cost-estimates-mini.xml`` is a structural reconstruction faithful to the
-field list this catalog row documents, not an official capture.
-
-A REAL alternate discovery channel has since been captured (2026-08-04): CBO's
-per-Congress feeds at ``/rss/{congress}congress-cost-estimates.xml`` sit on a
-different CDN tier and serve plain HTTP 200 with no DataDome bot wall. The
-119th Congress feed is checked in byte-for-byte as
-``cbo-119congress-cost-estimates-2026-08-04.xml`` and pinned as
-``CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04``. Its custom ``<response>``/
-``<item>`` shape is unrelated to the RSS 2.0 shape above and carries only
-titles, dates, publication links, and bill numbers -- no Topic labels,
-budget-function codes, mandate flags, or PAYGO facets. The tests below for
-``parse_cbo_per_congress_feed`` exercise that real shape directly.
+CBO's 27 browse topics are not a published semantic vocabulary, so the reader captures only the
+Topic labels the cost-estimates/xml feed renders per item as capture-local source evidence, while
+budget functions, mandate flags, and the PAYGO flag stay deterministic fiscal facets never
+promoted into a concept scheme. The official cost-estimates/xml URL answered a byte-for-byte
+captured DataDome 403, so ``cbo-cost-estimates-mini.xml`` is a structural reconstruction rather
+than an official capture; the per-Congress channel (``/rss/{congress}congress-cost-estimates.xml``)
+is real, checked in and pinned byte-for-byte for the 119th Congress, and carries only titles,
+dates, publication links, and bill numbers -- no Topic labels or fiscal facets.
 """
 
 from __future__ import annotations
@@ -48,6 +32,8 @@ RETRIEVED_AT = "2026-08-03T19:24:47Z"
 def _acquire_per_congress_real(
     tmp_path: Path, source_path: Path = PER_CONGRESS_REAL_CAPTURE_FIXTURE
 ) -> cbo.AcquiredCBOPerCongressFeed:
+    """Acquire the pinned real 119th-Congress feed from its local capture or a replacement path."""
+
     return cbo.acquire_cbo_per_congress_feed(
         cbo.CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04, tmp_path, source_path=source_path
     )
@@ -56,10 +42,14 @@ def _acquire_per_congress_real(
 def _per_congress_real_parsed(
     tmp_path: Path, source_path: Path = PER_CONGRESS_REAL_CAPTURE_FIXTURE
 ) -> cbo.ParsedCBOPerCongressFeed:
+    """Parse the pinned real 119th-Congress feed."""
+
     return cbo.parse_cbo_per_congress_feed(_acquire_per_congress_real(tmp_path, source_path))
 
 
 def _per_congress_pin_for(payload: bytes) -> cbo.CBOPerCongressFeedSnapshotPin:
+    """A per-Congress pin that dates and digests the given payload as the 119th-Congress feed."""
+
     return cbo.CBOPerCongressFeedSnapshotPin(
         source_url=cbo.cbo_per_congress_cost_estimates_url(119),
         retrieved_at=cbo.CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04_RETRIEVED_AT,
@@ -69,6 +59,8 @@ def _per_congress_pin_for(payload: bytes) -> cbo.CBOPerCongressFeedSnapshotPin:
 
 
 def _acquire_mutated_per_congress(tmp_path: Path, mutated: bytes) -> cbo.AcquiredCBOPerCongressFeed:
+    """Pin and acquire a mutated per-Congress payload so the parser can be driven over it."""
+
     pin = _per_congress_pin_for(mutated)
     source_path = tmp_path / "mutated-per-congress.xml"
     source_path.write_bytes(mutated)
@@ -76,10 +68,14 @@ def _acquire_mutated_per_congress(tmp_path: Path, mutated: bytes) -> cbo.Acquire
 
 
 def _payload(path: Path) -> bytes:
+    """Read a fixture's exact bytes."""
+
     return path.read_bytes()
 
 
 def _pin(payload: bytes, *, source_url: str = cbo.CBO_COST_ESTIMATES_XML_URL) -> cbo.CBOCostEstimatesFeedSnapshotPin:
+    """A cost-estimates feed pin over the given payload, defaulting to the official feed URL."""
+
     return cbo.CBOCostEstimatesFeedSnapshotPin(
         source_url=source_url,
         retrieved_at=RETRIEVED_AT,
@@ -89,11 +85,15 @@ def _pin(payload: bytes, *, source_url: str = cbo.CBO_COST_ESTIMATES_XML_URL) ->
 
 
 def _acquire_fixture(tmp_path: Path, payload: bytes | None = None) -> cbo.AcquiredCBOCostEstimatesFeed:
+    """Acquire the mini feed fixture, or an explicit payload, under a matching pin."""
+
     body = payload if payload is not None else _payload(FEED_FIXTURE)
     return cbo.acquire_cbo_cost_estimates_feed(_pin(body), tmp_path, source_path=FEED_FIXTURE)
 
 
 class _StaticFetcher:
+    """A fetcher that returns fixed bytes under a chosen status code and content type."""
+
     def __init__(self, body: bytes, *, status_code: int = 200, content_type: str = "application/xml") -> None:
         self._body = body
         self._status_code = status_code

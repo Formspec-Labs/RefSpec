@@ -107,6 +107,8 @@ class FHCompletePagePin:
     expected_total: int
 
     def __post_init__(self) -> None:
+        """Refuse a non-official URL, an embedded ``api_key``, a malformed digest, or a bad timestamp."""
+
         parsed = urlsplit(self.source_url)
         if parsed.scheme != "https" or parsed.hostname != "api.sam.gov":
             raise FederalHierarchyCompleteError("source_url must be an official HTTPS api.sam.gov URL")
@@ -193,6 +195,8 @@ def sha256_digest(payload: bytes) -> str:
 
 
 def _verified_page(payload: bytes, pin: FHCompletePagePin, *, location: str) -> Mapping[str, Any]:
+    """Verify one page payload against its pin and return the decoded JSON object."""
+
     if len(payload) != pin.expected_byte_length:
         raise FHCompleteSourceDriftError(
             f"{location} byte length drift: expected {pin.expected_byte_length}, got {len(payload)}"
@@ -220,12 +224,16 @@ def _verified_page(payload: bytes, pin: FHCompletePagePin, *, location: str) -> 
 
 
 def _require_text(value: object, label: str) -> str:
+    """Return a non-empty string, refusing any other value."""
+
     if not isinstance(value, str) or not value.strip():
         raise FHCompleteSourceDriftError(f"{label} must be non-empty text")
     return value
 
 
 def _require_org_id(value: object, label: str) -> str:
+    """Return the one FH organization identifier as text, refusing a non-integer or malformed shape."""
+
     if not isinstance(value, int) or isinstance(value, bool):
         raise FHCompleteSourceDriftError(f"{label} must be a JSON integer")
     text = str(value)
@@ -268,10 +276,14 @@ class FederalHierarchyCompleteRoster:
     anomalies: Mapping[str, Any]
 
     def by_org_id(self) -> dict[str, FHCompleteOrgRecord]:
+        """Index every organization by its ``fhorgid``."""
+
         return {record.fhorgid: record for record in self.records}
 
 
 def _parse_record(entry: object, *, page_index: int, ordinal: int) -> FHCompleteOrgRecord:
+    """Parse one roster entry, refusing missing or unexpected fields."""
+
     label = f"page[{page_index}].orglist[{ordinal}]"
     if not isinstance(entry, Mapping):
         raise FHCompleteSourceDriftError(f"{label} must be an object")

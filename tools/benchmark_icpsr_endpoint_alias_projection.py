@@ -50,6 +50,7 @@ def _normalized_label(value: str) -> str:
 
 
 def _require_text(value: Any, label: str) -> str:
+    """Return non-empty trimmed text or raise ValueError naming ``label``."""
     if not isinstance(value, str) or not value.strip() or value != value.strip():
         raise ValueError(f"{label} must be non-empty trimmed text")
     return value
@@ -75,7 +76,11 @@ def build_endpoint_projection(
     expected_preferred: int | None = None,
     expected_alternate: int | None = None,
 ) -> IcpsrEndpointProjection:
-    """Follow unambiguous alternate ``use`` paths to preferred endpoints."""
+    """Follow unambiguous alternate ``use`` paths to preferred endpoints.
+
+    Refuses unverified or ambiguous use targets, cycles, label collisions, and
+    member-count drift from the sealed release.
+    """
 
     by_member: dict[str, Mapping[str, Any]] = {}
     roles: dict[str, str] = {}
@@ -192,6 +197,7 @@ def _project_context(
     context: AtlasConceptContext,
     aliases: Mapping[str, tuple[str, ...]],
 ) -> AtlasConceptContext:
+    """Add the member's access-term aliases to one context's alternate labels."""
     return replace(
         context,
         alt_labels=tuple(sorted(set(context.alt_labels) | set(aliases.get(context.member, ())))),
@@ -202,6 +208,7 @@ def _project_concept(
     concept: AtlasConcept,
     aliases: Mapping[str, tuple[str, ...]],
 ) -> AtlasConcept:
+    """Add the member's access-term aliases, recursing into parent and child contexts."""
     return replace(
         concept,
         alt_labels=tuple(sorted(set(concept.alt_labels) | set(aliases.get(concept.member, ())))),
@@ -254,6 +261,7 @@ def _read_jsonl(path: Path) -> list[Mapping[str, Any]]:
 
 
 def _verify_manifest_artifact(manifest_path: Path, concepts_path: Path) -> Mapping[str, Any]:
+    """Refuse unless exactly one manifest artifact pins the concepts file by sha256 and byte length."""
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     relative = str(concepts_path.resolve().relative_to(manifest_path.parent.resolve()))
     matches = [artifact for artifact in manifest.get("artifacts", ()) if artifact.get("path") == relative]
@@ -266,6 +274,7 @@ def _verify_manifest_artifact(manifest_path: Path, concepts_path: Path) -> Mappi
 
 
 def _read_baseline_pairs(path: Path, codec: lexical_benchmark.PairCodec) -> frozenset[int]:
+    """Read the baseline pair codes, refusing an unsorted file or one that misses the sealed floor receipt."""
     import numpy as np
 
     values = np.fromfile(path, dtype="<u8")
@@ -278,6 +287,7 @@ def _read_baseline_pairs(path: Path, codec: lexical_benchmark.PairCodec) -> froz
 
 
 def _deterministic_digest(report: Mapping[str, Any]) -> str:
+    """Report digest with the top-level, per-arm, and sparse-run ``elapsedSeconds`` fields removed."""
     stable = json.loads(canonical_json(report))
     stable.pop("elapsedSeconds", None)
     for arm in stable.get("lexicalArms", ()):
@@ -287,6 +297,7 @@ def _deterministic_digest(report: Mapping[str, Any]) -> str:
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
+    """Verify the sealed inputs, project ICPSR to preferred endpoints, and return the frontier comparison."""
     started = time.monotonic()
     manifest = _verify_manifest_artifact(args.icpsr_manifest, args.icpsr_concepts)
     projection = build_endpoint_projection(

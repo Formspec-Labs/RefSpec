@@ -148,6 +148,7 @@ def _pin(
     source_iri: str,
     role: str = "publisherSource",
 ) -> RegistryInputPin:
+    """Build one RegistryInputPin and verify its bytes before returning it."""
     pin = RegistryInputPin(
         path=root / logical_path,
         logical_path=logical_path,
@@ -177,6 +178,7 @@ def _release(
     metadata: Mapping[str, Any] | None = None,
     dropped_label_count: int = 0,
 ) -> RegistryRelease:
+    """Assemble one RegistryRelease, refusing an empty member set and re-verifying every pin."""
     if not resources:
         raise ValueError(f"registry adapter {key} emitted no members")
     for pin in inputs:

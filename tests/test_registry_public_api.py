@@ -1,3 +1,4 @@
+"""The registry package's public API: exported names, canonical semantic rings, reader/builder surface."""
 from __future__ import annotations
 
 import importlib.util
@@ -14,6 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _load_tool_module(name: str):
+    """Load a tools/ script by name as a module without importing the package."""
+
     spec = importlib.util.spec_from_file_location(name, ROOT / "tools" / f"{name}.py")
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -22,11 +25,15 @@ def _load_tool_module(name: str):
 
 
 def test_registry_exports_each_declared_public_name() -> None:
+    """Pins that __all__ carries no duplicates and every declared name resolves."""
+
     assert len(registry.__all__) == len(set(registry.__all__))
     assert all(hasattr(registry, name) for name in registry.__all__)
 
 
 def test_registry_exposes_managed_vocabulary_source_of_truth_interfaces() -> None:
+    """Pins that every non-constant name in the two adapter __all__s is re-exported by identity."""
+
     modules = (
         elsst_import_coverage,
         federal_register_topics_api,
@@ -67,6 +74,8 @@ def test_semantic_rings_agree_across_every_python_site() -> None:
 
 
 def test_registry_exposes_completed_resource_package_readers() -> None:
+    """Pins the four semantic rings, the evidence ceilings, and the package reader/builder surface."""
+
     assert registry.SEMANTIC_RINGS == {"subject", "entity", "value", "legalIdentity"}
     assert registry.RING_RELATIONS.keys() == registry.SEMANTIC_RINGS
     assert "EVIDENCE_PROOF_STATUSES" not in registry.__all__
@@ -95,6 +104,8 @@ def test_registry_exposes_completed_resource_package_readers() -> None:
 
 
 def test_importing_source_controlled_resources_does_not_load_other_adapters() -> None:
+    """Pins that importing the source-controlled-resource module loads no adapter or vocabulary module."""
+
     completed = subprocess.run(
         [
             sys.executable,

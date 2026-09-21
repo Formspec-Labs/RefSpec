@@ -1,7 +1,7 @@
-"""Frozen BILLSTATUS acquisition checks from RefSpec 6394722613873bfbbd8e68a708644e4839c38fb6.
+"""Test-only frozen BILLSTATUS acquisition oracle from RefSpec 6394722613873bfbbd8e68a708644e4839c38fb6.
 
-Only public data/error types are imported. Acquisition and verification logic
-remain the old independent implementation, including its named-file layout.
+Only public data/error types are imported; acquisition and verification stay
+the old independent implementation, including its named-file layout.
 """
 
 from __future__ import annotations
@@ -32,6 +32,8 @@ def sha256_digest(payload: bytes) -> str:
 
 
 def _validate_resolved_url(value: str) -> None:
+    """Refuse a resolved_url that leaves official HTTPS raw.githubusercontent.com or carries credentials."""
+
     parsed = urlsplit(value)
     if parsed.scheme != "https" or parsed.hostname != "raw.githubusercontent.com":
         raise BillStatusAcquisitionError("fetcher resolved_url must remain on official HTTPS raw.githubusercontent.com")
@@ -40,6 +42,8 @@ def _validate_resolved_url(value: str) -> None:
 
 
 def _verify_payload(payload: bytes, pin: BillStatusSnapshotPin, *, location: str) -> tuple[str, int]:
+    """Refuse payload drift in byte length, sha256 digest, or UTF-8 decodability."""
+
     byte_length = len(payload)
     if byte_length != pin.expected_byte_length:
         raise BillStatusSourceDriftError(
@@ -58,6 +62,8 @@ def _verify_payload(payload: bytes, pin: BillStatusSnapshotPin, *, location: str
 
 
 def _verify_existing(path: Path, pin: BillStatusSnapshotPin) -> AcquiredBillStatusSource:
+    """Return a cache-hit record for a regular file that matches the pin exactly."""
+
     if path.is_symlink() or not path.is_file():
         raise BillStatusAcquisitionError(f"content-addressed target is not a regular file: {path}")
     actual_sha256, byte_length = _verify_payload(
@@ -89,6 +95,8 @@ def _publish_payload(
     resolved_url: str | None,
     local_source_path: Path | None,
 ) -> AcquiredBillStatusSource:
+    """Publish verified bytes atomically, falling back to verifying a racing existing file."""
+
     actual_sha256, byte_length = _verify_payload(
         payload,
         pin,

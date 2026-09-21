@@ -175,6 +175,8 @@ def sha256_digest(payload: bytes) -> str:
 
 
 def _require_datetime(value: str, field: str) -> str:
+    """Validate one identifier date, re-raising the shared error as ``FACAcquisitionError``."""
+
     try:
         return validate_identifier_date(value, field)
     except ControlledIdentifierError as error:
@@ -189,6 +191,8 @@ class FACDictionaryDocSource:
     filename: str = "fac-api-dictionary.html"
 
     def __post_init__(self) -> None:
+        """Refuse a non-official URL, credentials, or a multi-component filename."""
+
         parsed = urlsplit(self.source_url)
         if parsed.scheme != "https" or parsed.hostname != "www.fac.gov":
             raise FACAcquisitionError("source_url must be an official HTTPS www.fac.gov URL")
@@ -212,6 +216,8 @@ class FACSnapshotPin:
     publisher_last_modified: str | None = None
 
     def __post_init__(self) -> None:
+        """Refuse a malformed digest, non-positive length, or bad timestamp."""
+
         if _DIGEST.fullmatch(self.expected_sha256) is None:
             raise FACAcquisitionError("expected_sha256 must be a lowercase sha256:<64 hex> digest")
         if self.expected_byte_length <= 0:
@@ -322,6 +328,8 @@ class FACRequirementCodeReference:
 
 
 def _validate_resolved_url(value: str) -> None:
+    """Refuse a resolved URL that left official HTTPS www.fac.gov."""
+
     parsed = urlsplit(value)
     if parsed.scheme != "https" or parsed.hostname != "www.fac.gov":
         raise FACAcquisitionError("fetcher resolved_url must remain on official HTTPS www.fac.gov")
@@ -330,6 +338,8 @@ def _validate_resolved_url(value: str) -> None:
 
 
 def _verify_payload(payload: bytes, pin: FACSnapshotPin, *, location: str) -> tuple[str, int]:
+    """Refuse a payload whose byte length or digest differs from the pin."""
+
     byte_length = len(payload)
     if byte_length != pin.expected_byte_length:
         raise FACSourceDriftError(
@@ -348,6 +358,8 @@ def _verify_payload(payload: bytes, pin: FACSnapshotPin, *, location: str) -> tu
 
 
 def _verify_existing(path: Path, pin: FACSnapshotPin) -> AcquiredFACSource:
+    """Re-verify one cached FAC source object and return its acquisition record."""
+
     if path.is_symlink() or not path.is_file():
         raise FACAcquisitionError(f"content-addressed target is not a regular file: {path}")
     actual_sha256, byte_length = _verify_payload(
@@ -379,6 +391,8 @@ def _publish_payload(
     resolved_url: str | None,
     local_source_path: Path | None,
 ) -> AcquiredFACSource:
+    """Publish verified FAC bytes by hard link, falling back to a verified existing object."""
+
     actual_sha256, byte_length = _verify_payload(
         payload,
         pin,
@@ -473,6 +487,8 @@ def acquire_fac_dictionary_doc(
 
 
 def _parse_endpoint_list(text: str) -> tuple[FACEndpoint, ...]:
+    """Read the documented endpoint list, refusing a reordered or incomplete roster."""
+
     match = re.search(r"<h2>Dictionary by endpoint</h2>\s*<ol>(.*?)</ol>", text, re.DOTALL)
     if match is None:
         raise FACSourceDriftError("could not locate the 'Dictionary by endpoint' endpoint list")
@@ -484,6 +500,8 @@ def _parse_endpoint_list(text: str) -> tuple[FACEndpoint, ...]:
 
 
 def _identifier(value: str, kind: str, source_uri: str, acquired: AcquiredFACSource) -> ControlledIdentifier:
+    """Build one FAC field or endpoint controlled identifier."""
+
     return ControlledIdentifier(
         value=value,
         kind=kind,
@@ -501,6 +519,8 @@ def _parse_endpoint_fields(
     table_body: str,
     acquired: AcquiredFACSource,
 ) -> tuple[FACFieldDefinition, ...]:
+    """Read one endpoint's field table, refusing a row shape the publisher did not document."""
+
     rows = _FIELD_ROW.findall(table_body)
     if not rows:
         raise FACSourceDriftError(f"FAC dictionary endpoint {endpoint!r} table has no field rows")
@@ -634,6 +654,8 @@ def _package_observations(
     fields: tuple[FACFieldDefinition, ...],
     acquired: AcquiredFACSource,
 ) -> tuple[Mapping[str, Any], ...]:
+    """Render one endpoint's field definitions as package observations."""
+
     observations: list[Mapping[str, Any]] = []
     for ordinal, field in enumerate(fields):
         identifier = field.identifiers[0]

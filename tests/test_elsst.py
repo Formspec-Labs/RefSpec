@@ -1,4 +1,4 @@
-"""Lossless ELSST RDF/SKOS parser tests."""
+"""Lossless ELSST RDF/SKOS parser: multilingual labels and notes, hierarchy/lifecycle rows, release comparison."""
 
 from __future__ import annotations
 
@@ -64,10 +64,14 @@ SYNTHETIC_FEATURE_EDGE_TURTLE = """\
 
 
 def _fixture_bytes() -> bytes:
+    """Return the pinned ELSST mini fixture bytes."""
+
     return FIXTURE_PATH.read_bytes()
 
 
 def test_parser_preserves_source_derived_multilingual_labels_notes_identifiers_and_iris() -> None:
+    """Pins the fixture's language-tagged labels, notes, identifiers, and versioned source IRIs."""
+
     source = _fixture_bytes()
     parsed = parse_elsst_turtle(source, source_url=FIXTURE_SOURCE_URL)
 
@@ -128,6 +132,8 @@ def test_parser_preserves_source_derived_multilingual_labels_notes_identifiers_a
 
 
 def test_clearly_synthetic_edge_input_covers_hidden_labels_typed_notation_and_all_notes() -> None:
+    """Pins hidden labels, a typed notation, and every declared note predicate on synthetic input."""
+
     parsed = parse_elsst_turtle(
         SYNTHETIC_FEATURE_EDGE_TURTLE,
         source_url="https://example.test/synthetic-feature-edge.ttl",
@@ -150,6 +156,8 @@ def test_clearly_synthetic_edge_input_covers_hidden_labels_typed_notation_and_al
 
 
 def test_parser_keeps_hierarchy_lifecycle_and_version_identity_as_distinct_rows() -> None:
+    """Pins broader/narrower/related, replacement, version, and deprecated claims as separate rows."""
+
     parsed = parse_elsst_turtle(_fixture_bytes(), source_url=FIXTURE_SOURCE_URL)
 
     assert {
@@ -205,6 +213,8 @@ def test_parser_keeps_hierarchy_lifecycle_and_version_identity_as_distinct_rows(
 
 
 def test_release_comparison_uses_only_exact_stable_and_prior_version_assertions() -> None:
+    """Pins that R5-to-R6 comparison reports stable identities, additions, deprecations, replacements."""
+
     previous = parse_elsst_turtle(
         R5_FIXTURE_PATH.read_bytes(),
         source_url="https://example.test/elsst-mini-r5.ttl",
@@ -295,11 +305,15 @@ def test_parser_rejects_lossy_or_ambiguous_skos_features(
     source,
     message: str,
 ) -> None:
+    """Pins refusal of an untagged label, an untyped notation, a second preferred label, a blank node."""
+
     with pytest.raises(ElsstParseError, match=message):
         parse_elsst_turtle(source(), source_url=FIXTURE_SOURCE_URL)
 
 
 def test_parser_enforces_optional_distribution_digest_and_size_pins() -> None:
+    """Pins that a wrong expected digest or byte length raises ElsstParseError."""
+
     source = _fixture_bytes()
     digest = "sha256:" + hashlib.sha256(source).hexdigest()
     parsed = parse_elsst_turtle(
@@ -325,6 +339,8 @@ def test_parser_enforces_optional_distribution_digest_and_size_pins() -> None:
 
 
 def test_verified_local_acquisition_parses_with_the_same_release_pin(tmp_path: Path) -> None:
+    """Pins that a locally acquired release parses to the same digest, byte length, and scheme IRI."""
+
     source = _fixture_bytes()
     source_path = tmp_path / "elsst-mini.ttl"
     source_path.write_bytes(source)
@@ -386,6 +402,8 @@ def test_opt_in_pinned_real_distribution_counts(
     release: ElsstReleaseSource,
     path_environment: str,
 ) -> None:
+    """Pins the opt-in real R6 distribution to PINNED_REAL_COUNTS and its 15 label languages."""
+
     source_path = os.environ.get(path_environment)
     if source_path is None:
         pytest.skip(f"set {path_environment} to the exact verified {release.filename} distribution")

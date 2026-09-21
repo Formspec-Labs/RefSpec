@@ -5,38 +5,17 @@ OPM's Federal Workforce Data downloads
 position data release
 (https://www.opm.gov/about-us/open-government/plum-reporting/plum-data/)
 publish occupational series, pay plan, appointment type, work schedule, and
-PLUM appointment-authority/incumbent-status codes. These are entity and
-observation metadata code sets, not a document-topic vocabulary: an
-occupational series or pay plan code never states what a document is about.
-
-The current real-data path parses OPM's complete three-sheet EHRI workbook
-export and PLUM all-data CSV. The older five-resource package definitions below
-remain small, documented-shape development samples for compatibility; they are
-not evidence for the real-data gate. Their strict counts and digests prevent a
-real export from being silently mistaken for one of those legacy samples.
-
-PLUM position data additionally carries statutory redaction, agency
-certification, and release-vintage rules: some incumbent identities may be
-withheld for protected positions, each release must be certified by the
-submitting agency, and a record must be checked against the exact edition
-(vintage) whose codes were pinned. This module encodes those rules as
-refusal-style checks on downstream observation records. The parser does
-ingest the bulk PLUM position rows -- ``parse_opm_plum_all_data_csv`` walks
-all 15,777 of them, including the incumbent-name columns, and returns every
-exact row in ``OPMPLUMAllDataExport.records`` alongside the sorted distinct
-appointment-authority, position-status, and pay-plan values it observed
-across them. Neither the rows nor those observed values are an Atlas unit
-(REF-032); the publisher-defined codes with their definitions come from the
-EHRI workbook instead.
-
-The EHRI workbook's AGENCY/SUBELEMENT element is not a code list like its 80
-siblings: it is the publisher's roster of federal agencies and their
-administrative subdivisions. ``split_opm_ehri_element`` separates that
-element's rows from the rest of the export so the roster can be carried as
-an institutional roster in its own right.
-
-Acquisition accepts a local exact capture or an injected fetcher. Importing
-this module never opens a network connection.
+PLUM appointment-authority/incumbent-status codes -- entity and observation
+metadata, never a document-topic vocabulary. The real-data path parses OPM's
+complete three-sheet EHRI workbook export and PLUM all-data CSV, while the
+older five-resource package definitions remain documented-shape development
+samples whose strict counts and digests prevent a real export from being
+mistaken for one; PLUM position data additionally enforces statutory
+redaction, agency certification, and release-vintage rules on downstream
+records, and the EHRI AGENCY/SUBELEMENT element is split out as the
+publisher's agency roster rather than a code list. Acquisition accepts a local
+exact capture or an injected fetcher, and importing this module never opens a
+network connection.
 """
 
 from __future__ import annotations
@@ -713,7 +692,11 @@ def acquire_opm_constants(
     fetcher: OPMFetcher | None = None,
     timeout_seconds: float = 30.0,
 ) -> AcquiredOPMSource:
-    """Acquire one exact OPM/PLUM code-list capture through a provider-neutral boundary."""
+    """Acquire one exact OPM/PLUM code-list capture through a provider-neutral boundary.
+
+    Callers supply source_path or fetcher on a cache miss, never both; byte
+    length, digest, JSON shape, and content type are checked.
+    """
 
     if timeout_seconds <= 0:
         raise OPMAcquisitionError("timeout_seconds must be positive")

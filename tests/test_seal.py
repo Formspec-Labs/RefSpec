@@ -47,6 +47,7 @@ pytestmark = pytest.mark.skipif(
 
 
 def _generate_key(directory: Path, name: str) -> Path:
+    """Generate a throwaway ed25519 signing key and return its private-key path."""
     private_key = directory / name
     subprocess.run(
         ["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-C", name, "-f", str(private_key)],
@@ -57,18 +58,21 @@ def _generate_key(directory: Path, name: str) -> Path:
 
 
 def _write_allowed_signers(path: Path, private_key: Path, identity: str = SIGNER_IDENTITY) -> Path:
+    """Write an allowed_signers file pairing identity with the key's public half."""
     public_key = Path(f"{private_key}.pub").read_text(encoding="utf-8").strip()
     path.write_text(f"{identity} {public_key}\n", encoding="utf-8")
     return path
 
 
 def _tamper_one_byte(path: Path) -> None:
+    """Flip one bit in the middle of the file's bytes."""
     payload = bytearray(path.read_bytes())
     payload[len(payload) // 2] ^= 0x01
     path.write_bytes(bytes(payload))
 
 
 def _sign_bytes(private_key: Path, payload: bytes) -> str:
+    """Sign payload with ssh-keygen under SIGNATURE_NAMESPACE, returning the armored signature."""
     completed = subprocess.run(
         ["ssh-keygen", "-Y", "sign", "-q", "-f", str(private_key), "-n", SIGNATURE_NAMESPACE, "-"],
         input=payload,
@@ -79,6 +83,7 @@ def _sign_bytes(private_key: Path, payload: bytes) -> str:
 
 
 def _read_json(path: Path) -> dict[str, Any]:
+    """Load a JSON file as a dict."""
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -123,6 +128,7 @@ def test_seal_is_written_beside_the_distribution_and_verifies_every_member_and_p
     sealed: Path,
     allowed_signers: Path,
 ) -> None:
+    """Pins the seal path and shape, all three bound digests, four members, two packs and the closed walk."""
     assert sealed == default_seal_path(distribution) == distribution.parent / "distribution-seal.json"
     assert sealed.parent == distribution.parent
     assert not sealed.is_relative_to(distribution)
@@ -198,6 +204,7 @@ def test_a_tampered_member_fails_the_member_walk_naming_the_member(
     sealed: Path,
     allowed_signers: Path,
 ) -> None:
+    """Pins refusal naming the tampered member that differs from the sealed manifest."""
     _tamper_one_byte(distribution / "atlas-source-accounting.json")
 
     with pytest.raises(SealError, match="member differs from the sealed manifest: atlas-source-accounting.json"):
@@ -209,6 +216,7 @@ def test_a_tampered_manifest_fails_before_the_member_walk(
     sealed: Path,
     allowed_signers: Path,
 ) -> None:
+    """Pins refusal when the manifest itself differs from the sealed digest, before any member walk."""
     _tamper_one_byte(distribution / MANIFEST_MEMBER)
 
     with pytest.raises(SealError, match="manifest differs from the sealed digest"):
@@ -220,6 +228,7 @@ def test_a_tampered_acceptance_receipt_fails_the_receipt_binding(
     sealed: Path,
     allowed_signers: Path,
 ) -> None:
+    """Pins refusal when the acceptance receipt differs from its sealed digest."""
     _tamper_one_byte(distribution / ACCEPTANCE_MEMBER)
 
     with pytest.raises(SealError, match="acceptance receipt differs from the sealed digest"):
@@ -231,6 +240,7 @@ def test_another_key_in_the_allowed_signers_file_fails_the_signature(
     distribution: Path,
     sealed: Path,
 ) -> None:
+    """Pins refusal when the seal is verified against a different key's allowed_signers file."""
     other_key = _generate_key(tmp_path, "other")
     other_signers = _write_allowed_signers(tmp_path / "allowed_signers", other_key)
 
@@ -242,6 +252,7 @@ def test_create_seal_refuses_a_target_inside_the_distribution(
     distribution: Path,
     signing_key: Path,
 ) -> None:
+    """Pins refusal to write the seal inside the distribution, leaving no file behind."""
     inside = distribution / "packs" / "atlas-seal.json"
 
     with pytest.raises(SealError, match="refusing to write the seal inside the distribution"):
@@ -254,6 +265,7 @@ def test_create_seal_refuses_a_distribution_with_no_acceptance_receipt(
     distribution: Path,
     signing_key: Path,
 ) -> None:
+    """Pins refusal to seal a distribution with no acceptance receipt, leaving no seal behind."""
     (distribution / ACCEPTANCE_MEMBER).unlink()
 
     with pytest.raises(SealError, match="refusing to seal a distribution with no acceptance receipt"):
@@ -266,6 +278,7 @@ def test_create_seal_refuses_a_distribution_with_no_manifest(
     distribution: Path,
     signing_key: Path,
 ) -> None:
+    """Pins refusal to seal a distribution with no manifest."""
     (distribution / MANIFEST_MEMBER).unlink()
 
     with pytest.raises(SealError, match="refusing to seal a distribution with no manifest"):
@@ -295,6 +308,7 @@ def test_a_tampered_view_manifest_fails_against_the_sealed_view_digest(
     sealed: Path,
     allowed_signers: Path,
 ) -> None:
+    """Pins refusal when the view manifest differs from the sealed view digest."""
     _tamper_one_byte(parquet_view / VIEW_MANIFEST_FILE)
 
     with pytest.raises(SealError, match="Parquet view manifest differs from the sealed digest"):
@@ -358,6 +372,7 @@ def test_a_symlinked_directory_inside_the_sealed_tree_is_refused(
     sealed: Path,
     allowed_signers: Path,
 ) -> None:
+    """Pins refusal of a symlinked directory inside the sealed tree."""
     inner = distribution / "packs" / "sources"
     outside = tmp_path / "sources"
     shutil.move(inner, outside)
@@ -404,6 +419,7 @@ def test_a_seal_carrying_an_extra_top_level_key_is_refused(
     sealed: Path,
     allowed_signers: Path,
 ) -> None:
+    """Pins refusal of an unknown top-level seal key, naming it."""
     forged = tmp_path / "forged-seal.json"
     forged.write_bytes(canonical_json_bytes(_read_json(sealed) | {"mintedAt": "2026-08-11"}) + b"\n")
 
@@ -431,6 +447,7 @@ def test_create_seal_refuses_to_sign_a_distribution_with_an_added_file(
     distribution: Path,
     signing_key: Path,
 ) -> None:
+    """Pins that minting refuses an added file and leaves no seal behind."""
     (distribution / "packs" / "extra-note.txt").write_text("added before the seal was minted\n", encoding="utf-8")
 
     with pytest.raises(SealError, match=re.escape("packs/extra-note.txt is not a member")):

@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Generate or verify RefSpec's experimental resource catalog."""
+"""Generate or verify RefSpec's experimental resource catalog.
+
+Builds the catalog from the portfolio inventory, completed-package, and
+portable-distribution JSON files; ``--check`` (the default) fails when the
+checked ``portfolio/resource-catalog-v0.json`` differs from a fresh generation,
+and ``--write`` rewrites it.
+"""
 
 from __future__ import annotations
 

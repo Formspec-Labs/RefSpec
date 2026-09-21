@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Generate or verify the Atlas 3.1 RDF descriptors for the RefSpec registry."""
+"""Generate or verify the Atlas 3.1 RDF registry descriptors and their canonical proof manifest.
+
+Reads ``portfolio/resource-catalog-v0.json``, ``portfolio/atlas-index-v0.json``,
+and the binding's registry resource profiles, re-checking every embedded digest
+and stable identity; ``--check`` (the default) fails when the checked
+``tests/registry-descriptors.nq`` or proof JSON differs from generation, and
+``--write`` rewrites both.
+"""
 
 from __future__ import annotations
 
@@ -179,6 +186,8 @@ def _validated_inputs(
     dict[str, set[str]],
     dict[str, str],
 ]:
+    """Validate catalog, index, and profile cross-links and return resources plus input digests."""
+
     catalog_digest = _verify_embedded_digest(
         catalog,
         digest_field="catalogDigest",

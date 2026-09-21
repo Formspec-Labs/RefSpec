@@ -1,31 +1,21 @@
 """Pinned OIRA EO 12866 review and meeting field imports for ``controlledCodeList``.
 
-RegInfo.gov exposes the EO 12866 Advanced Search and EO 12866 Meeting Search
-forms as HTML pages. Their Review Status, Stage of Rulemaking, Concluded
-Action, and Meeting Type controls are the only closed value sets OIRA
-publishes for review and meeting process metadata. None of these values is a
-general subject; the catalog directs subjects to the linked rule text or its
-source-assigned Federal Register/Unified Agenda topic, never to this process
-vocabulary, and there is no subject on the review or meeting event itself.
-
-Both pages embed a per-request session identifier and CSRF token throughout
-their markup, so the full page response is not byte-stable across separate
-requests even when its length happens to match. RefSpec therefore pins the
+RegInfo.gov's EO 12866 Advanced Search and Meeting Search pages publish the
+only closed value sets for Review Status, Stage of Rulemaking, Concluded
+Action, and Meeting Type; none is a general subject, so the catalog directs
+subjects to the linked rule text or its source-assigned Federal
+Register/Unified Agenda topic, never to this process vocabulary. Because both
+pages embed a per-request session identifier and CSRF token, RefSpec pins the
 exact byte span of each control's markup -- located by a literal,
-occurs-exactly-once anchor pair -- rather than the whole page. A pinned span
-that no longer occurs exactly once, or whose extracted bytes drift from the
-recorded digest, fails acquisition instead of silently reparsing a changed
-form.
-
-RegInfo.gov publishes no separate meeting-status code list, and no release
-date or revision identifier for any of these four value sets. The two pages
-also label the shared six-value Stage of Rulemaking codes differently
-("Prerule" on the review search form, "Prerule Stage" on the meeting search
-form); this module keeps each page's exact label text rather than merging
-them into one canonical label.
-
-Acquisition accepts a local exact capture or an injected fetcher. Importing
-this module never opens a network connection.
+occurs-exactly-once anchor pair -- rather than the whole page, and a span that
+no longer occurs exactly once or whose extracted bytes drift from the recorded
+digest fails acquisition instead of silently reparsing a changed form;
+RegInfo publishes no meeting-status list and no release date or revision
+identifier, so the pages' shared six-value Stage of Rulemaking codes keep each
+page's exact label text ("Prerule" vs "Prerule Stage") and retrieval time plus
+span digest are the revision pin. Acquisition accepts a local exact capture or
+an injected fetcher, and importing this module never opens a network
+connection.
 """
 
 from __future__ import annotations

@@ -95,6 +95,7 @@ def _sha256_bytes(payload: bytes) -> str:
 
 
 def _row_id(source: str, relation_class: str, subject: str, obj: str) -> str:
+    """Stable row id: sha256 over the canonical JSON of source, class, and both endpoint IRIs."""
     basis = canonical_json([source, relation_class, subject, obj]).encode("utf-8")
     return hashlib.sha256(basis).hexdigest()
 
@@ -244,13 +245,14 @@ def load_test_set_releases() -> tuple[Any, ...]:
 
 
 def _write_jsonl(path: Path, rows: Iterable[Mapping[str, Any]]) -> tuple[int, str]:
+    """Write canonical JSON Lines and return ``(byte_length, sha256)`` of the payload."""
     payload = "".join(f"{canonical_json(row)}\n" for row in rows).encode("utf-8")
     path.write_bytes(payload)
     return len(payload), _sha256_bytes(payload)
 
 
 def build_test_sets(output: Path) -> dict[str, Any]:
-    """Emit one canonical JSON Lines test set per source plus a manifest."""
+    """Emit one canonical JSON Lines test set per source plus a manifest, refusing unmapped predicates."""
     output.mkdir(parents=True, exist_ok=True)
     summaries: list[dict[str, Any]] = []
     files: list[dict[str, Any]] = []

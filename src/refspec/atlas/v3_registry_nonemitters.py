@@ -1,29 +1,23 @@
 """Finish Atlas 3 adapters for bounded descriptor-only registry sources.
 
 Every adapter consumes exact publisher bytes through its registry parser and
-states its capture scope. Partial samples remain partial samples; structural
-definitions remain structural definitions; identifiers attach to the entity or
-legal resource they identify. No adapter promotes examples into authority
-membership or creates an identifier ring.
-
-Registrant populations (SAM registrants, CAGE facilities, NPI providers,
-CompTox substances) are not loaded here: they are referents with registry
-cadence, carried by ``refspec.registry.entity_registry_release`` instead, and
-the producer refuses their authorities outright (REF-030).
-
-Observed inventories are not loaded here either (REF-032). What survives is
-publisher-*written* structure: FAC's field dictionary, NPPES's dissemination
-layout, the FAST Book's published account symbols and its own Intro-sheet
-fund-group table, GSDM's data dictionary with every domain value its
-publisher enumerates, the EHRI workbook's AGENCY/SUBELEMENT roster — the
-publisher's own list of federal agencies and subelements, carried in the
-entity ring as an institutional roster — and NRC's published APS
-documentation: the User Manual's 22-property "Properties in Profile" table
-with the official accession-number definition, corroborated by the APS API
-Developer's Guide. Set-distincts over sampled records, first-page roster
-slices, scraped search widgets, and regexed identifier shapes left the
-Atlas; the NRC and Treasury fund-group units here are the documented
-successors REF-032 named, captured from publisher-written lists.
+states its capture scope: partial samples stay partial samples, structural
+definitions stay structural definitions, identifiers attach to the entity or
+legal resource they identify, and nothing is promoted into authority
+membership or an identifier ring. Registrant populations (SAM registrants,
+CAGE facilities, NPI providers, CompTox substances) are not loaded here --
+they are referents with registry cadence carried by
+``refspec.registry.entity_registry_release`` and the producer refuses their
+authorities outright (REF-030) -- and neither are observed inventories
+(REF-032). What survives is publisher-*written* structure: FAC's field
+dictionary, NPPES's dissemination layout, the FAST Book's published account
+symbols and its own Intro-sheet fund-group table (the documented successor to
+REF-032's observed fund types), GSDM's data dictionary with every domain value
+its publisher enumerates, the EHRI workbook's AGENCY/SUBELEMENT roster carried
+in the entity ring as an institutional roster, and NRC's published APS
+documentation -- the User Manual's 22-property "Properties in Profile" table
+and official accession-number definition, corroborated by the APS API
+Developer's Guide.
 """
 
 from __future__ import annotations
@@ -83,7 +77,7 @@ def _frozen(value: Any) -> Mapping[str, Any]:
 def _without_none_fields(rows: Sequence[Any]) -> list[dict[str, Any]]:
     """Render dataclass rows for wire metadata, omitting None-valued keys.
 
-    The canonical wire grammar rejects nulls; a field the publisher does not
+    The canonical wire grammar rejects nulls, so a field the publisher does not
     print is stated by the key's absence, never by a placeholder.
     """
 
@@ -682,11 +676,11 @@ def _shared_nrc_snapshot_metadata(
 ) -> dict[str, Any]:
     """Version and snapshot markers both NRC releases carry.
 
-    The publisher's own statements place the current property list behind
-    the sign-in APS API Developer Portal, so both PDFs are point-in-time
-    documentation snapshots; their version markers are recorded verbatim.
-    The manual prints no version statement — its PDF document-information
-    timestamps are the available revision markers.
+    The publisher's own statements place the current property list behind the
+    sign-in APS API Developer Portal, so both PDFs are point-in-time
+    documentation snapshots whose version markers are recorded verbatim; the
+    manual prints no version statement, and its PDF document-information
+    timestamps stand in as the revision markers.
     """
 
     return {

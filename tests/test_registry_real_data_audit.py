@@ -1,4 +1,11 @@
-"""Acceptance gate for the executable current-module registry audit."""
+"""Acceptance gate for the executable current-module registry audit.
+
+Loads the audit, manifest and receipt-plugin tools by path, then exercises the
+manifest builder's inventory and treasury pins, the materializer's path and
+digest refusals, the receipt gate's same-execution, count and collection rules,
+and the receipt collector's per-function cap; the sealed-summary test is a
+strict xfail until the evidence artifact is regenerated.
+"""
 
 from __future__ import annotations
 
@@ -34,6 +41,8 @@ _PLUGIN_SPEC.loader.exec_module(receipt_plugin)
 
 
 def _publisher_reader_manifest(*descriptors: dict) -> dict:
+    """A one-module manifest carrying the given input descriptors under testInputs."""
+
     return {
         "modules": [
             {
@@ -48,6 +57,8 @@ def _publisher_reader_manifest(*descriptors: dict) -> dict:
 
 
 def _receipts(*executions: dict) -> dict:
+    """A receipt payload holding one module's executions."""
+
     return {
         "format": "refspec-registry-execution-receipts/v1",
         "modules": [{"module": "example_reader.py", "executions": list(executions)}],
@@ -55,6 +66,8 @@ def _receipts(*executions: dict) -> dict:
 
 
 def _execution(*, digests: list[str], counts: dict[str, int]) -> dict:
+    """One execution record with the given source digests and parsed counts."""
+
     return {
         "function": "parse_example",
         "counts": counts,
@@ -148,6 +161,8 @@ def test_registry_audit_snapshot_is_current_and_honest_about_open_gaps() -> None
 
 
 def test_registry_audit_inventory_includes_nested_runtime_modules() -> None:
+    """The audit inventory equals the manifest's module set and keeps nested runtime modules while dropping __init__.py."""
+
     modules = set(audit.registry_modules(REPOSITORY_ROOT))
     manifest = manifest_builder.build_manifest(REPOSITORY_ROOT)
 
@@ -167,6 +182,8 @@ def test_registry_audit_inventory_includes_nested_runtime_modules() -> None:
 
 
 def test_nested_data_paths_name_real_inputs_and_measured_coverage() -> None:
+    """Every audited nested data reader names an HTTPS publisher input; support modules stay notApplicable."""
+
     manifest = manifest_builder.build_manifest(REPOSITORY_ROOT)
     by_module = {row["module"]: row for row in manifest["modules"]}
 
@@ -187,6 +204,8 @@ def test_nested_data_paths_name_real_inputs_and_measured_coverage() -> None:
 
 
 def test_treasury_manifest_requires_counts_from_the_workbook_not_its_description_page() -> None:
+    """Only the Part II/III workbook input is receipt-required, pinned to its own sha256."""
+
     manifest = manifest_builder.build_manifest(REPOSITORY_ROOT)
     treasury = next(row for row in manifest["modules"] if row["module"] == "treasury_tas_fast_book.py")
     by_name = {item["name"]: item for item in treasury["testInputs"]}
@@ -199,6 +218,8 @@ def test_treasury_manifest_requires_counts_from_the_workbook_not_its_description
 
 
 def test_materializer_rejects_paths_outside_refspec(tmp_path: Path) -> None:
+    """A ../ path outside the repository refuses as not a RefSpec-owned relative path."""
+
     manifest = {
         "modules": [
             {
@@ -219,6 +240,8 @@ def test_materializer_rejects_paths_outside_refspec(tmp_path: Path) -> None:
 
 
 def test_materializer_rejects_local_bytes_that_drift_from_the_pin(tmp_path: Path) -> None:
+    """Local bytes that do not match the manifest pin refuse on digest drift."""
+
     source = tmp_path / "output" / "input.xlsx"
     source.parent.mkdir(parents=True)
     source.write_bytes(b"wrong")
@@ -242,6 +265,8 @@ def test_materializer_rejects_local_bytes_that_drift_from_the_pin(tmp_path: Path
 
 
 def test_full_suite_uses_the_same_manifest_input_environment_as_qualification() -> None:
+    """Only recognized input descriptors become REFSPEC_* environment variables."""
+
     assert audit._test_input_environment(
         {
             "ecfrTitles": "/repo/ecfr-titles.json",
@@ -251,6 +276,8 @@ def test_full_suite_uses_the_same_manifest_input_environment_as_qualification() 
 
 
 def test_receipt_gate_requires_each_pin_and_parsed_counts_in_the_same_execution() -> None:
+    """A pin in one execution and its parsed counts in another is refused as not the same execution."""
+
     pin = "sha256:" + "1" * 64
     manifest = _publisher_reader_manifest({"sha256": pin, "receiptRequired": True})
     receipts = _receipts(
@@ -264,6 +291,8 @@ def test_receipt_gate_requires_each_pin_and_parsed_counts_in_the_same_execution(
 
 
 def test_receipt_gate_allows_reference_only_secondary_pin_without_collection_counts() -> None:
+    """A non-receipt-required secondary pin may appear without substantive counts."""
+
     primary = "sha256:" + "1" * 64
     reference = "sha256:" + "2" * 64
     manifest = _publisher_reader_manifest(
@@ -279,6 +308,8 @@ def test_receipt_gate_allows_reference_only_secondary_pin_without_collection_cou
 
 
 def test_receipt_gate_rejects_gap_only_counts_as_substantive_output() -> None:
+    """Counts made only of gaps and blockers are refused as not substantive output."""
+
     pin = "sha256:" + "3" * 64
     manifest = _publisher_reader_manifest({"sha256": pin, "receiptRequired": True})
 
@@ -291,6 +322,8 @@ def test_receipt_gate_rejects_gap_only_counts_as_substantive_output() -> None:
 
 
 def test_receipt_gate_checks_collection_capture_and_member_pins() -> None:
+    """A collection receipt must carry its capture digest and every member pin."""
+
     capture = "sha256:" + "4" * 64
     member_a = "sha256:" + "5" * 64
     member_b = "sha256:" + "6" * 64
@@ -319,6 +352,8 @@ def test_receipt_gate_checks_collection_capture_and_member_pins() -> None:
 
 
 def test_receipt_collector_preserves_distinct_pinned_inputs() -> None:
+    """Five distinct payloads in five calls yield five distinct digests in the receipt."""
+
     receipt_plugin._MODULES["example"] = {"module": "example.py", "executions": []}
     payloads = [f"publisher payload {index}".encode() for index in range(5)]
 
@@ -336,6 +371,8 @@ def test_receipt_collector_preserves_distinct_pinned_inputs() -> None:
 
 
 def test_receipt_collector_covers_an_ordinary_multi_file_portfolio() -> None:
+    """Seventeen payloads inside one result are all hashed into the single execution."""
+
     receipt_plugin._MODULES["example"] = {"module": "example.py", "executions": []}
     payloads = [f"publisher payload {index}".encode() for index in range(17)]
 
@@ -353,6 +390,8 @@ def test_receipt_collector_covers_an_ordinary_multi_file_portfolio() -> None:
 
 
 def test_receipt_collector_prefers_publisher_location_for_the_same_pin() -> None:
+    """The same bytes seen under two URLs keep one execution carrying the publisher's URL."""
+
     receipt_plugin._MODULES["example"] = {"module": "example.py", "executions": []}
     payload = b"same real publisher bytes"
     result = {"records": [{"code": "A"}]}
@@ -376,13 +415,19 @@ def test_receipt_collector_prefers_publisher_location_for_the_same_pin() -> None
 
 
 def test_receipt_collector_records_only_the_outer_production_call() -> None:
+    """A nested production call records only the outer function, not the inner one."""
+
     receipt_plugin._MODULES["example"] = {"module": "example.py", "executions": []}
     payload = b"publisher bytes"
 
     def inner(value: bytes) -> dict:
+        """The nested production call whose run must not open its own receipt."""
+
         return {"records": [{"value": value.decode()}]}
 
     def outer(value: bytes) -> dict:
+        """A production call that itself invokes the nested reader."""
+
         return receipt_plugin._call_and_record("example", "inner", inner, (value,), {})
 
     result = receipt_plugin._call_and_record("example", "outer", outer, (payload,), {})

@@ -1,12 +1,10 @@
 """Development package for one exact FederalRegister.gov topics response.
 
-FederalRegister.gov topics rows have labels and mutable slugs, but no stable
-publisher term identifiers.  This package therefore mints RefSpec-owned
-UUIDv7 ``localRecordId`` values from a persisted registration event, while
-observation ``id`` values remain capture-scoped.  Those local ids are first
-registration ids for this sealed package; carrying them across later captures
-requires an explicit predecessor reconciliation step that this module does not
-perform.
+FederalRegister.gov topics rows have labels and mutable slugs but no stable
+publisher term identifiers, so this package mints RefSpec-owned UUIDv7
+``localRecordId`` values from a persisted registration event while observation
+``id`` values remain capture-scoped. Carrying a local id across later captures
+requires an explicit predecessor reconciliation this module does not perform.
 """
 
 from __future__ import annotations
@@ -140,7 +138,8 @@ def build_federal_register_topics_source_package(
 
     Fetch identity comes only from ``acquired.capture_event``. The default
     registration event is allowed only when that capture event is the
-    designated package pin.
+    designated package pin; registration and capture times must equal the
+    observation time.
     """
 
     capture_event = acquired.capture_event

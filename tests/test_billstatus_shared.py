@@ -1,4 +1,8 @@
-"""Keep old parser decisions as an oracle for shared guide-reader adoption."""
+"""Old billstatus guide parser kept as an oracle for the shared guide-reader adoption.
+
+Every mutation runs through both the frozen parser and the new shared reader; verdicts must agree
+except for the five named DELIBERATE_DIVERGENCES, where the new reader refuses ambiguous or
+malformed later blocks the old first-match parser skipped."""
 
 from pathlib import Path
 
@@ -72,6 +76,8 @@ MUTATIONS = {
 
 
 def acquired(tmp_path, payload):
+    """Pin and acquire a mutation payload so either parser can read it as the real source."""
+
     pin = bs.BillStatusSnapshotPin(
         source=bs.BILLSTATUS_USER_GUIDE,
         retrieved_at=bs.BILLSTATUS_USER_GUIDE_2026_08_03.retrieved_at,
@@ -85,6 +91,8 @@ def acquired(tmp_path, payload):
 
 @pytest.mark.parametrize("name,payload", MUTATIONS.items())
 def test_real_guide_and_mutation_verdicts_match_frozen_parser_except_named_cases(tmp_path, name, payload):
+    """Every mutation must agree with the frozen parser, except the five named divergences."""
+
     try:
         source = acquired(tmp_path, payload)
     except bs.BillStatusSourceDriftError:

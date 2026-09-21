@@ -1,20 +1,12 @@
 """FCC's published Offices & Bureaus roster from fcc.gov.
 
-REF-032 removed the observed FCC bureau inventory: a set-distinct over one
-25-filing ECFS API response that carried the abolished Common Carrier Bureau
-beside its successor. The named follow-up is the roster FCC itself publishes:
-the ``Offices & Bureaus`` page at ``https://www.fcc.gov/offices-bureaus``,
-which enumerates the Commission's offices and bureaus in two publisher-titled
-sections, each entry a linked heading followed by the publisher's own
-description paragraph.
-
-The parser preserves the publisher's rendering verbatim: the two section
-titles (``Offices``, ``Bureaus``), each entry's heading text, its fcc.gov
-path, and its description. It refuses a page whose structure or entry counts
-drift from the reviewed capture.
-
-Importing this module performs no network access. The capture was fetched
-through the shared Zyte transport because fcc.gov refuses plain clients.
+Replaces REF-032's removed observed ECFS inventory with the roster FCC itself
+publishes at ``https://www.fcc.gov/offices-bureaus``: two publisher-titled
+sections (``Offices``, ``Bureaus``), each entry a linked heading and the
+publisher's own description paragraph, preserved verbatim. The parser refuses
+structural or entry-count drift from the reviewed capture; importing performs
+no network access (the capture was fetched through the shared Zyte transport
+because fcc.gov refuses plain clients).
 """
 
 from __future__ import annotations
@@ -188,7 +180,7 @@ def parse_fcc_bureaus_offices(
     *,
     pin: FccPagePin = FCC_OFFICES_BUREAUS_2026_08_15,
 ) -> FccBureausOfficesRoster:
-    """Parse the publisher's Offices & Bureaus roster from exact page bytes."""
+    """Parse the pinned roster from exact page bytes, refusing byte-length, digest, structural, or duplicate drift."""
 
     if len(payload) != pin.expected_byte_length:
         raise FccSourceDriftError(

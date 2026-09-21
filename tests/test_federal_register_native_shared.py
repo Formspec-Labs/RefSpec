@@ -17,12 +17,14 @@ FACETS = (FIXTURES / "fr-documents-facets-type-2026-08-15.json").read_bytes()
 
 
 def _pin(module, payload, url):
+    """Build the module's snapshot pin from a payload and URL."""
     return module.FRSnapshotPin(
         url, "2026-08-15T07:50:47Z", "sha256:" + hashlib.sha256(payload).hexdigest(), len(payload)
     )
 
 
 def _verdict(module, family, payload):
+    """Return ('accept', parsed fields) or ('reject', None) from the module's parse call for a family."""
     try:
         if family == "agencies":
             result = module.parse_agencies_roster(payload, agencies_pin=_pin(module, payload, module.FR_AGENCIES_URL))
@@ -42,6 +44,7 @@ def _verdict(module, family, payload):
 
 
 def test_all_retained_accepted_fields_match_old_reader():
+    """Pins that every retained fixture accepts identically in both readers and that 472 agency slugs crosscheck."""
     for family, payload in (("agencies", AGENCIES), ("documentation", DOCUMENTATION), ("facets", FACETS)):
         before = _verdict(old, family, payload)
         assert before[0] == "accept"
@@ -85,6 +88,7 @@ def test_all_retained_accepted_fields_match_old_reader():
     ],
 )
 def test_agency_field_mutations_preserve_verdicts_and_accepted_values(field, value):
+    """Pins verdict-and-value agreement with the old reader across the parametrized agency field mutations."""
     rows = json.loads(AGENCIES)
     rows[0][field] = value
     payload = json.dumps(rows).encode()
@@ -95,6 +99,7 @@ def test_agency_field_mutations_preserve_verdicts_and_accepted_values(field, val
     "mutation", ["missing", "extra", "duplicate-id", "duplicate-slug", "parent-mismatch", "empty", "nonobject"]
 )
 def test_agency_roster_mutations_preserve_refusal(mutation):
+    """Pins that both readers refuse each roster-shape mutation identically."""
     rows = json.loads(AGENCIES)
     if mutation == "missing":
         rows[0].pop("id")
@@ -119,6 +124,7 @@ def test_agency_roster_mutations_preserve_refusal(mutation):
     [("count", True), ("count", -1), ("count", 2.5), ("name", ""), ("name", " padded "), ("name", "Literal")],
 )
 def test_facet_field_mutations_preserve_verdicts(field, value):
+    """Pins verdict agreement with the old reader across the facet count and name mutations."""
     facets = json.loads(FACETS)
     facets["RULE"][field] = value
     payload = json.dumps(facets).encode()
@@ -129,6 +135,7 @@ def test_facet_field_mutations_preserve_verdicts(field, value):
     "mutation", ["duplicate", "empty", "unknown", "bad-code", "direct", "missing-items", "version-type"]
 )
 def test_documented_enum_mutations_preserve_verdicts(mutation):
+    """Pins that both readers refuse each documented-enum mutation identically."""
     document = json.loads(DOCUMENTATION)
     schema = document["components"]["schemas"]["DocumentType"]
     if mutation == "duplicate":
@@ -150,6 +157,7 @@ def test_documented_enum_mutations_preserve_verdicts(mutation):
 
 
 def test_cross_source_agency_mismatch_still_refuses():
+    """Pins that a documented agency enum missing a roster slug raises FRSourceDriftError in both readers."""
     roster = current.parse_agencies_roster(AGENCIES)
     document = json.loads(DOCUMENTATION)
     document["components"]["schemas"]["Agency"]["items"]["enum"].pop()
@@ -174,6 +182,7 @@ INTENTIONAL_DIVERGENCES = (
 
 @pytest.mark.parametrize("name", INTENTIONAL_DIVERGENCES)
 def test_named_decoder_divergences(name):
+    """Pins the frozen decoder divergences: the old reader accepts each while the current reader refuses."""
     family = "documentation"
     if name == "duplicate-json-field":
         payload = DOCUMENTATION.replace(b'"openapi":', b'"openapi":"ignored","openapi":', 1)

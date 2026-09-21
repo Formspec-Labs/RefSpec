@@ -1,4 +1,4 @@
-"""Offline tests for ICPSR public identity acquisition and XML joins."""
+"""Pin ICPSR public identity acquisition (robots-checked, bounded) and XML-to-index joins."""
 
 from __future__ import annotations
 
@@ -15,6 +15,8 @@ ROBOTS = b"User-agent: *\nDisallow: /cgi-bin/\n"
 
 
 def test_real_commit_pinned_xml_shape_count_and_boundary_samples() -> None:
+    """Pin the configured real XML to 3,765 terms with first/last boundary samples."""
+
     source_path_text = os.environ.get("REFSPEC_ICPSR_SUBJECT_XML_PATH")
     if source_path_text is None:
         pytest.skip("real ICPSR publisher repository capture is not configured")
@@ -46,6 +48,10 @@ def _partial_index() -> icpsr.IcpsrSubjectIndex:
 
 
 def test_index_parser_uses_only_official_links_in_terms_section() -> None:
+    """Pin that only official thesaurus links inside the terms section become terms, with publisher code/URI
+    identifiers.
+    """
+
     page = icpsr.parse_icpsr_index_page(
         _fixture_pages()["a"],
         letter="a",
@@ -76,6 +82,8 @@ def test_index_parser_uses_only_official_links_in_terms_section() -> None:
 
 
 def test_capture_observation_time_is_threaded_into_every_identifier() -> None:
+    """Pin that one observation time reaches every term identifier."""
+
     observed_at = "2026-07-30T12:34:56Z"
 
     index = icpsr.build_icpsr_subject_index(
@@ -90,6 +98,8 @@ def test_capture_observation_time_is_threaded_into_every_identifier() -> None:
 
 
 def test_capture_observation_time_must_be_an_iso_date_or_date_time() -> None:
+    """Pin refusal of a non-ISO observation time."""
+
     with pytest.raises(ValueError, match="ISO 8601"):
         icpsr.build_icpsr_subject_index(
             _fixture_pages(),
@@ -100,6 +110,8 @@ def test_capture_observation_time_must_be_an_iso_date_or_date_time() -> None:
 
 
 def test_non_preferred_marker_is_role_not_part_of_label() -> None:
+    """Pin that the non-preferred marker becomes preferred=False, not label text."""
+
     page = icpsr.parse_icpsr_index_page(
         _fixture_pages()["t"],
         letter="t",
@@ -111,6 +123,8 @@ def test_non_preferred_marker_is_role_not_part_of_label() -> None:
 
 
 def test_xml_parser_preserves_authored_semantics_and_source_local_number() -> None:
+    """Pin used-for, scope notes, broader/related labels, timestamps, and the source-local record number."""
+
     snapshot = icpsr.parse_icpsr_subject_xml((FIXTURES / "icpsr-subject-mini.xml").read_bytes())
 
     ability = next(term for term in snapshot.terms if term.label == "ability")
@@ -125,6 +139,8 @@ def test_xml_parser_preserves_authored_semantics_and_source_local_number() -> No
 
 
 def test_xml_join_resolves_every_relation_to_source_published_iri() -> None:
+    """Pin that every joined relation resolves to the publisher's term IRI, never the local record number."""
+
     xml = icpsr.parse_icpsr_subject_xml((FIXTURES / "icpsr-subject-mini.xml").read_bytes())
     joined = icpsr.join_icpsr_xml_to_official_index(
         xml,
@@ -144,6 +160,8 @@ def test_xml_join_resolves_every_relation_to_source_published_iri() -> None:
 
 
 def test_compatibility_report_exposes_drift_without_guessing_identity() -> None:
+    """Pin drift counts and xml_only/index_only labels without guessing identity."""
+
     xml = icpsr.parse_icpsr_subject_xml((FIXTURES / "icpsr-subject-mini.xml").read_bytes())
     pages = _fixture_pages()
     pages["a"] = pages["a"].replace(
@@ -180,6 +198,8 @@ def test_compatibility_report_exposes_drift_without_guessing_identity() -> None:
 
 
 def test_join_fails_instead_of_deriving_identity_for_missing_label() -> None:
+    """Pin refusal when a descriptor lacks an official public identity."""
+
     xml_payload = (FIXTURES / "icpsr-subject-mini.xml").read_bytes()
     xml_payload = xml_payload.replace(
         b"<DESCRIPTOR>slavery</DESCRIPTOR>",
@@ -199,6 +219,8 @@ def test_join_fails_instead_of_deriving_identity_for_missing_label() -> None:
 
 
 def test_join_rejects_preferred_non_preferred_role_conflict() -> None:
+    """Pin refusal on a preferred/non-preferred role mismatch."""
+
     pages = _fixture_pages()
     pages["t"] = pages["t"].replace(b"talent*", b"talent")
     index = icpsr.build_icpsr_subject_index(
@@ -222,6 +244,8 @@ def test_join_rejects_preferred_non_preferred_role_conflict() -> None:
 def test_capture_digest_is_deterministic_and_capture_writes_exact_bytes(
     tmp_path: Path,
 ) -> None:
+    """Pin page-order-independent capture digest and exact capture bytes, idempotent on rewrite."""
+
     first = icpsr.build_icpsr_subject_index(
         _fixture_pages(),
         robots_body=ROBOTS,
@@ -243,6 +267,8 @@ def test_capture_digest_is_deterministic_and_capture_writes_exact_bytes(
 
 
 def test_acquisition_is_robots_checked_and_bounded_to_28_requests() -> None:
+    """Pin robots-first acquisition bounded to 28 requests with the 0.25s interval."""
+
     calls: list[str] = []
     sleeps: list[float] = []
 
@@ -289,6 +315,8 @@ def test_acquisition_is_robots_checked_and_bounded_to_28_requests() -> None:
 
 
 def test_network_is_never_implicit() -> None:
+    """Pin refusal when no fetch_page is supplied."""
+
     with pytest.raises(
         icpsr.IcpsrSubjectError,
         match="requires fetch_page",
@@ -297,6 +325,8 @@ def test_network_is_never_implicit() -> None:
 
 
 def test_pinned_xml_opener_rejects_unverified_bytes(tmp_path: Path) -> None:
+    """Pin byte-length refusal plus the XML byte-length and sha256 pins."""
+
     source = tmp_path / "subject.xml"
     source.write_bytes((FIXTURES / "icpsr-subject-mini.xml").read_bytes())
 

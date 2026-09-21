@@ -1,26 +1,17 @@
-"""E3/E5: cost-recall frontier over the deterministic and dense Atlas arms.
+"""Compute the cost-recall frontier over deterministic and dense Atlas arms from their compact rank artifacts.
 
-Consumes the compact rank artifacts written by
+Consumes the artifacts written by
 ``benchmark_atlas_native_relation_recovery.py --export-ranks`` and
-``benchmark_atlas_dense_relation_recovery.py``.  Both address pairs by the same
-``low * conceptCount + high`` code over the concept list sorted by member IRI,
-so deterministic and dense arms combine without re-deriving either.
-
-The Conference Pareto search could prove optimality by branch and bound because
-complete gold coverage was reachable there.  It is not reachable here: the
-dependency-free union tops out near 69% of publisher hierarchy.  So the
-objective is different, and the honest one is the trade-off curve rather than a
-proven minimum:
-
-* every single arm at every depth;
-* every pair of arm-depth options, exhaustively; and
-* greedy forward selection beyond two arms, which is a bound and is reported as
-  one rather than as an optimum.
-
-Each arm-depth option becomes a packed bitmap over the pair space, so a union
-is a vectorised OR and a recall is a table-driven popcount.  Combinations are
-evaluated in parallel batches over forked workers, which share the bitmaps
-copy-on-write instead of pickling them per task.
+``benchmark_atlas_dense_relation_recovery.py``. Both address pairs by the same
+``low * conceptCount + high`` code over the concept list sorted by member IRI, so
+deterministic and dense arms combine without re-deriving either. Complete gold
+coverage is not reachable here -- the dependency-free union tops out near 69% of
+publisher hierarchy -- so the report is a trade-off curve rather than a proven
+minimum: every arm at every depth, every pair of arm-depth options exhaustively,
+and greedy forward selection beyond two arms reported as a bound. Each option is
+a packed bitmap over the pair space, so unions are vectorised ORs and recall is a
+table-driven popcount, evaluated in parallel batches over forked workers that
+share the bitmaps copy-on-write.
 """
 
 from __future__ import annotations
@@ -176,6 +167,8 @@ def _pareto(rows: Sequence[dict[str, Any]], gold_key: str) -> list[dict[str, Any
 
 
 def _greedy(state: dict[str, Any], gold_key: str, limit: int) -> list[dict[str, Any]]:
+    """Greedily add the arm with the largest gold gain; the trail is a cost bound, not an optimum."""
+
     options = state["options"]
     gold = state["gold"][gold_key[len("gold.") :]]
     chosen: list[str] = []

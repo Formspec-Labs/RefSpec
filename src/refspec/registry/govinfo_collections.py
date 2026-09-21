@@ -1,28 +1,20 @@
 """Pinned GovInfo collection codes and eCFR structural values.
 
-The GovInfo API publishes a fixed short code (``collectionCode``) and display
-name for every document collection it hosts (``CFR``, ``FR``, ``USCODE``, and
-so on). The eCFR Titles API publishes the current CFR title roster with
-version-currency fields (``latest_amended_on``, ``latest_issue_date``,
-``up_to_date_as_of``) and a ``reserved`` flag. A GovInfo package summary
-publishes package identity, docket-class, and version metadata for one
-document package, and that package's PREMIS record publishes per-file
-SHA-256 fixity digests. None of these is a general-subject vocabulary: this
-module packages collection codes, CFR title/version fields, package identity
-and version fields, and package fixity digests as source-native controlled
-codes and deterministic metadata. Title, chapter, part, and section NAMES
-(``collectionName``/title ``name``) are retained as plain non-subject labels
-and never promoted to subject candidates.
-
-eCFR does not publish a standalone constants endpoint for the CFR structural
-hierarchy's node "type" values (title, chapter, subchapter, part, subpart,
-subject group, section, appendix, and heading nodes). Those level codes were
-observed directly from live eCFR structure endpoint captures for CFR titles
-1, 5, 12, and 26 made while authoring this module (2026-08-03) and are
-recorded as a fixed, non-authoritative tuple, not a governed vocabulary.
-
-Acquisition accepts a local exact capture or an injected fetcher. Importing
-this module never opens a network connection.
+The GovInfo API publishes a fixed ``collectionCode`` and display name for every
+document collection it hosts, the eCFR Titles API publishes the CFR title
+roster with version-currency fields (``latest_amended_on``,
+``latest_issue_date``, ``up_to_date_as_of``) and a ``reserved`` flag, a GovInfo
+package summary publishes package identity, classification, and version
+metadata, and the package's PREMIS record publishes per-file SHA-256 fixity
+digests; none is a general-subject vocabulary, so this module packages them as
+source-native controlled codes and deterministic metadata, retaining title,
+chapter, part, and section NAMES as plain non-subject labels that are never
+promoted to subject candidates. eCFR publishes no standalone constants
+endpoint for the CFR hierarchy's node "type" values, so the level codes
+observed from live structure captures for titles 1, 5, 12, and 26 (2026-08-03)
+are recorded as a fixed, non-authoritative tuple, not a governed vocabulary.
+Acquisition accepts a local exact capture or an injected fetcher, and
+importing never opens a network connection.
 """
 
 from __future__ import annotations
@@ -473,12 +465,10 @@ def _make_identifier(
 class GovInfoCollectionCode:
     """One official GovInfo collection code and its non-subject display name.
 
-    The API response also reports ``packageCount``/``granuleCount`` per
-    collection -- live holdings numbers that change with every harvest. Those
-    are acquisition coverage about GovInfo's corpus, not vocabulary facts
-    about the code, so this record does not carry them (REF-032); they remain
-    in the pinned raw capture bytes, where the parser still validates their
-    shape.
+    The API's live ``packageCount``/``granuleCount`` holdings change with every
+    harvest; they are acquisition coverage about the corpus, not vocabulary
+    facts about the code, so this record does not carry them (REF-032) though
+    the parser still validates their shape in the pinned raw bytes.
     """
 
     collection_code: str
@@ -773,10 +763,9 @@ _PACKAGE_DOWNLOAD_ROLES = frozenset({"premisLink", "xmlLink", "txtLink", "zipLin
 def parse_govinfo_cfr_package_summary(acquired: AcquiredGovInfoSource) -> GovInfoCFRPackageSummary:
     """Parse one CFR package summary's identity and version fields, never as subjects.
 
-    This parser certifies only the field shape GovInfo publishes for Code of
-    Federal Regulations (CFR) annual-edition packages; other GovInfo
-    collections publish different package summary shapes (see
-    GOVINFO_PORTFOLIO_GAPS).
+    Only the field shape GovInfo publishes for Code of Federal Regulations
+    annual-edition packages is certified; other collections publish different
+    package summary shapes (see GOVINFO_PORTFOLIO_GAPS).
     """
 
     payload = acquired.path.read_bytes()

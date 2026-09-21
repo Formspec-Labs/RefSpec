@@ -23,12 +23,16 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 
 def _assert_module_bytes(modules):
+    """Every named module's file bytes must match the sha256 recorded in the receipt."""
+
     for name, digest in modules.items():
         source = Path(import_module(name).__file__)
         assert digest == "sha256:" + hashlib.sha256(source.read_bytes()).hexdigest()
 
 
 def _capture(store):
+    """Capture the pinned topics fixture into the given store under the fixed capture event."""
+
     return topics.capture_federal_register_topics(
         store,
         source_path=FIXTURES / "federal_register_topics_api/federal-register-topics-2026-08-03.json",
@@ -37,6 +41,8 @@ def _capture(store):
 
 
 def test_replay_keeps_capture_and_package_identity_but_records_each_reader_run(tmp_path, monkeypatch):
+    """A changed reader gets its own run receipt while capture bytes, snapshot and package digest hold still."""
+
     first = _capture(tmp_path)
     before = json.loads(first.receipt_path.read_bytes())
     _assert_module_bytes(before["producer"]["modules"])
@@ -72,6 +78,8 @@ def test_replay_keeps_capture_and_package_identity_but_records_each_reader_run(t
 
 
 def test_topics_missing_reader_refuses_before_capture_publication(tmp_path, monkeypatch):
+    """A missing producer module refuses before anything is written to the store."""
+
     monkeypatch.setattr(import_module("spicy_docs.reading.json_input"), "__file__", str(tmp_path / "absent.py"))
     with pytest.raises(ValueError, match="producer module missing"):
         _capture(tmp_path / "store")
@@ -79,6 +87,8 @@ def test_topics_missing_reader_refuses_before_capture_publication(tmp_path, monk
 
 
 def test_topics_run_id_collision_preserves_previous_receipt(tmp_path, monkeypatch):
+    """A colliding run id raises FileExistsError and leaves the previous receipt untouched."""
+
     first = _capture(tmp_path)
     before = first.receipt_path.read_bytes()
     monkeypatch.setattr(topics, "generate_uuid7", lambda **kwargs: first.receipt_path.stem)
@@ -89,6 +99,8 @@ def test_topics_run_id_collision_preserves_previous_receipt(tmp_path, monkeypatc
 
 
 def test_source_credit_build_records_installed_reader_before_outputs(tmp_path, monkeypatch):
+    """The credit build receipts its seven producer modules by digest, and a missing one refuses before outputs exist."""
+
     archive = tmp_path / "title.zip"
     with zipfile.ZipFile(archive, "w") as bundle:
         bundle.writestr(
@@ -129,6 +141,8 @@ def _old_dependency_source(name):
 
 @pytest.mark.parametrize("mutation", ["original", "missing", "none", "unavailable"])
 def test_shared_source_resolver_matches_old_dependency_check(tmp_path, monkeypatch, mutation):
+    """The shared resolver matches the copied old check for original, missing, None-file and unavailable modules."""
+
     name = "spicy_docs.reading.xml"
     if mutation == "missing":
         monkeypatch.setattr(import_module(name), "__file__", str(tmp_path / "absent.py"))
@@ -138,6 +152,8 @@ def test_shared_source_resolver_matches_old_dependency_check(tmp_path, monkeypat
         name = "spicy_docs.nonexistent_test_module"
 
     def verdict(reader):
+        """Resolve a module name through a reader as ("ok", path) or ("refused", message)."""
+
         try:
             return "ok", reader(name)
         except ValueError as error:

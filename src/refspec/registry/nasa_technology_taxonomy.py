@@ -4,26 +4,20 @@ TechPort (https://techport.nasa.gov/) publishes the NASA Technology Taxonomy
 through two JSON endpoints: ``/api/taxonomies`` lists every taxonomy release
 and its current status, and ``/api/taxonomies/{taxonomyRootId}`` returns the
 release title plus its immediate (level 1) technology-area nodes, each with a
-publisher-assigned code (for example ``TX01``) and title. Deeper technology
-levels require additional per-node requests that this module does not perform;
-only the level 1 roster is captured, parsed, and packaged.
+publisher-assigned code (for example ``TX01``) and title. Only that level 1
+roster is captured; deeper levels require per-node requests this module does
+not perform. It is a versioned taxonomy export used as mapping input and
+deterministic metadata, not promoted to a general-subject concept scheme until
+an evaluation proves document-subject value, and the instrument and platform
+branches are excluded from any future policy-topic mapping regardless of that
+evaluation's outcome. No code here is treated as a general subject concept.
 
-Per the catalog scope decision, this is a versioned taxonomy export used as
-mapping input and deterministic metadata for NASA-sourced records. It is not
-promoted to a general-subject concept scheme until an evaluation proves
-document-subject value, and the instrument and platform branches are excluded
-from any future policy-topic mapping regardless of that evaluation's outcome.
-No code in this module is treated as a general subject concept.
-
-The API publishes no independent taxonomy revision number beyond a release
-title and status string; RefSpec identifies a source snapshot by the official
-URL, retrieval time, byte length, and SHA-256 digest. It preserves the
-publisher-issued code and node identifier as identity and does not mint or
-derive any identifier the publisher does not supply.
-
-Acquisition accepts a local exact capture or an injected fetcher. Importing
-this module never opens a network connection, and no scraping provider is
-required for the current JSON endpoints.
+The API publishes no independent revision number beyond a release title and
+status string, so RefSpec identifies a snapshot by URL, retrieval time, byte
+length, and SHA-256 digest. The publisher-issued code and node identifier are
+preserved as identity; no identifier is minted or derived. Acquisition accepts
+a local exact capture or an injected fetcher, and importing this module never
+opens a network connection.
 """
 
 from __future__ import annotations

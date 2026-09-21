@@ -1,4 +1,9 @@
-"""Tests for the secret-safe Zyte ICPSR acquisition transport."""
+"""Secret-safe Zyte ICPSR acquisition: pinned response replay, token hygiene and explicit refusals.
+
+The fetcher reads only the named ``ZYTE_TOKEN`` variable, never prints or
+embeds the token in errors, and refuses provider bodies that are not the
+expected base64/header/status shape.
+"""
 
 from __future__ import annotations
 
@@ -17,6 +22,8 @@ from refspec.registry.infrastructure import zyte_transport
 
 
 class _Response(io.BytesIO):
+    """Context-manager BytesIO standing in for a urlopen response."""
+
     def __enter__(self) -> Self:
         return self
 
@@ -27,6 +34,8 @@ class _Response(io.BytesIO):
 def test_icpsr_fetcher_preserves_pinned_publisher_response(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """A configured real publisher response replays byte-faithfully with its resolved URL."""
+
     source_path = os.environ.get("REFSPEC_ICPSR_INDEX_PAGE_A_PATH")
     if source_path is None:
         pytest.skip("real ICPSR publisher response is not configured")
@@ -61,6 +70,9 @@ def test_icpsr_fetcher_preserves_pinned_publisher_response(
 def test_zyte_fetcher_posts_expected_request_without_exposing_token(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """The POST body requests body and headers for the target URL; Basic auth carries the token and never appears in
+    the page or errors."""
+
     target_url = "https://www.icpsr.umich.edu/robots.txt"
     target_body = b"User-agent: *\n"
     seen: list[tuple[Any, float]] = []
@@ -107,6 +119,8 @@ def test_zyte_fetcher_posts_expected_request_without_exposing_token(
 def test_zyte_fetcher_reads_only_named_environment_variable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """from_environment requires ``ZYTE_TOKEN`` and refuses a dotenv-quoted value."""
+
     monkeypatch.delenv("ZYTE_TOKEN", raising=False)
     with pytest.raises(
         icpsr_zyte.IcpsrZyteError,
@@ -125,6 +139,8 @@ def test_zyte_fetcher_reads_only_named_environment_variable(
 def test_zyte_provider_error_does_not_include_body_or_secret(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """An HTTP error is reduced to its status; neither the provider's body nor the token leaks into the message."""
+
     secret = "do-not-print"
     provider_error = urllib.error.HTTPError(
         zyte_transport.ZYTE_API_URL,
@@ -170,6 +186,8 @@ def test_zyte_malformed_responses_fail_explicitly(
     monkeypatch: pytest.MonkeyPatch,
     provider_value: dict[str, object],
 ) -> None:
+    """Missing fields, a non-base64 body, or a non-integer status each raise the fetcher's own error."""
+
     def fake_urlopen(*args: object, **kwargs: object) -> _Response:
         return _Response(json.dumps(provider_value).encode())
 

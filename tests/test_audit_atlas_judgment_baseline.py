@@ -1,3 +1,9 @@
+"""Contract tests for tools/audit_atlas_judgment_baseline.py's blind-field gate and quantiles.
+
+``_assert_blind`` must reject every name in FORBIDDEN_BLIND_FIELDS -- judgment or generator
+leakage -- naming the offending field; ``_quantiles`` is a deterministic nearest-rank summary
+that returns None for an empty sample."""
+
 from __future__ import annotations
 
 import importlib.util

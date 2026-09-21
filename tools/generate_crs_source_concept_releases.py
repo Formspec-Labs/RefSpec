@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Generate or verify the full CRS source-concept release evidence."""
+"""Generate or verify the full CRS source-concept release evidence.
+
+Reads the retained 2026-07-30 Congress.gov capture (or an externally pinned
+evidence directory), rebuilds the three release bundles plus
+``release-evidence.json``, and verifies every checked byte unless ``--write``
+is passed. Refuses symlinked or filesystem-root output paths; exits 1 on any
+error.
+"""
 
 from __future__ import annotations
 
@@ -111,6 +118,7 @@ def generated_files(releases: Any) -> dict[str, bytes]:
 
 
 def _actual_files(root: Path) -> dict[str, bytes]:
+    """Every file under the evidence root, refusing a symlinked or missing root or any symlinked member."""
     if root.is_symlink() or not root.is_dir():
         raise CRSSourceConceptGenerationError(f"generated evidence directory is missing or unsafe: {root}")
     result: dict[str, bytes] = {}
@@ -128,6 +136,7 @@ def _compare_files(
     expected: Mapping[str, bytes],
     label: str,
 ) -> None:
+    """Refuse when the two file maps differ in names or bytes, naming the files."""
     if set(actual) != set(expected):
         missing = sorted(set(expected) - set(actual))
         extra = sorted(set(actual) - set(expected))
@@ -138,6 +147,7 @@ def _compare_files(
 
 
 def _read_evidence(root: Path) -> Mapping[str, Any]:
+    """Read ``release-evidence.json``, refusing non-canonical bytes or an unsupported shape or identity."""
     path = root / EVIDENCE_FILE
     if path.is_symlink() or not path.is_file():
         raise CRSSourceConceptGenerationError(f"generated evidence lacks {EVIDENCE_FILE}")
@@ -170,6 +180,7 @@ def _read_evidence(root: Path) -> Mapping[str, Any]:
 
 
 def _open_materialized(root: Path) -> dict[str, Any]:
+    """Reopen each release bundle against its external manifest digest, refusing any row or summary drift."""
     from refspec.registry.infrastructure.source_concept_release import (
         SourceConceptReleaseView,
     )
@@ -243,6 +254,7 @@ def _open_materialized(root: Path) -> dict[str, Any]:
 
 
 def _packages_from_views(views: Mapping[str, Any]) -> Any:
+    """Bind the reopened views into reconciled CRS packages, refusing mismatched captures or reconciliation records."""
     from refspec.registry.packages.crs_source_packages import (
         CRSResourceReconciliation,
         CRSSourcePackages,
@@ -325,6 +337,7 @@ def check_materialized(
 
 
 def _safe_output(path: Path) -> Path:
+    """Resolve an output path, refusing a filesystem root, a symlink, or a non-directory."""
     absolute = path.absolute()
     if absolute == Path(absolute.anchor) or absolute.parent == absolute:
         raise CRSSourceConceptGenerationError("generated evidence output must not be a filesystem root")
@@ -416,6 +429,7 @@ def _arguments() -> argparse.Namespace:
 
 
 def _selected_source(args: argparse.Namespace, *, for_write: bool) -> Any | None:
+    """Resolve which source to rebuild from: capture root, source evidence, or the checked output."""
     if args.capture_root is not None:
         return releases_from_capture_root(args.capture_root)
     if args.source_evidence is not None:

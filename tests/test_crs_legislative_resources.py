@@ -1,4 +1,10 @@
-"""CRS Legislative Subject Term and Policy Area source-foundation tests."""
+"""CRS Legislative Subject Term and Policy Area source-foundation tests.
+
+The three legislative pages (565 + 301 + 177 = 1,043 terms) assemble as one resource distinct from
+the 32-term Policy Area navigation list; CRS publishes no stable identifiers, so records preserve
+category labels under capture-local identity and readiness refuses to claim publisher identity,
+while challenge pages, digest drift, structure or count drift, and unreviewed API fields all fail
+closed."""
 
 from __future__ import annotations
 
@@ -63,10 +69,14 @@ FULL_CAPTURE_SPECS = (
 
 
 def _payload(name: str) -> bytes:
+    """Read a named CRS fixture's exact bytes."""
+
     return (FIXTURES / name).read_bytes()
 
 
 def _pin(source: crs.CRSPageSource, payload: bytes) -> crs.CRSPageSnapshotPin:
+    """A page pin over the payload with a fixture-derived deterministic fetch id."""
+
     return crs.CRSPageSnapshotPin(
         source=source,
         retrieved_at="2026-07-30T12:33:34Z",
@@ -84,6 +94,8 @@ def _acquire_fixture(
     source: crs.CRSPageSource,
     fixture_name: str,
 ) -> crs.AcquiredCRSPage:
+    """Acquire one named fixture under a pin computed from its bytes."""
+
     path = FIXTURES / fixture_name
     return crs.acquire_crs_page(
         _pin(source, path.read_bytes()),

@@ -1,3 +1,11 @@
+"""Generated Atlas 3 registry coverage report: exact, compact and closed.
+
+The checked report must equal what the generator rebuilds from the catalog,
+atlas index and profile map; the profile map itself must cover every catalog
+resource kind exactly once, and relation policies are the closed directed ring
+matrix with sorted, unique, absolute-IRI predicates.
+"""
+
 from __future__ import annotations
 
 import copy
@@ -20,16 +28,22 @@ SPEC.loader.exec_module(coverage)
 
 
 def _inputs() -> tuple[dict, dict, dict]:
+    """Load the catalog, atlas index and profile map the generator reads."""
+
     from refspec.resource_catalog import load_json
 
     return load_json(CATALOG), load_json(INDEX), load_json(PROFILES)
 
 
 def _resign(profile_map: dict) -> None:
+    """Recompute the profile-map digest after a deliberate mutation, so validation refuses rather than the digest."""
+
     profile_map["profileDigest"] = coverage._profile_digest(profile_map)
 
 
 def test_checked_registry_coverage_is_exact_and_compact() -> None:
+    """The checked report rebuilds byte-identically, and every count and resource-kind total is pinned."""
+
     from refspec.binding import canonical_json_bytes
     from refspec.resource_catalog import load_json
 
@@ -122,6 +136,8 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
 
 
 def test_profile_map_rejects_an_unmapped_catalog_kind() -> None:
+    """A catalog resource kind absent from the profile map is refused, naming the kind."""
+
     catalog, _, profiles = _inputs()
     changed = copy.deepcopy(catalog)
     changed["resources"][0]["resourceKind"] = "newRegistryShape"
@@ -131,6 +147,8 @@ def test_profile_map_rejects_an_unmapped_catalog_kind() -> None:
 
 
 def test_coverage_rejects_an_unknown_indexed_resource() -> None:
+    """An index row naming a resource outside the catalog is refused."""
+
     catalog, index, profiles = _inputs()
     changed = copy.deepcopy(index)
     changed["rows"][0]["resourceId"] = "not-in-the-resource-catalog"
@@ -145,6 +163,8 @@ def test_coverage_rejects_an_unknown_indexed_resource() -> None:
 
 
 def test_coverage_rejects_an_unknown_indexed_source_module() -> None:
+    """An index row naming a module that is not a current registry module is refused."""
+
     catalog, index, profiles = _inputs()
     changed = copy.deepcopy(index)
     changed["rows"][0]["sourceModule"] = "refspec.registry.not_a_real_module"
@@ -159,6 +179,8 @@ def test_coverage_rejects_an_unknown_indexed_source_module() -> None:
 
 
 def test_profile_map_rejects_duplicate_resource_kind_coverage() -> None:
+    """A resource kind covered by two profiles is refused."""
+
     catalog, _, profiles = _inputs()
     changed = copy.deepcopy(profiles)
     changed["profiles"][1]["resourceKinds"].append("subjectVocabulary")
@@ -169,6 +191,8 @@ def test_profile_map_rejects_duplicate_resource_kind_coverage() -> None:
 
 
 def test_profile_map_requires_relation_policies() -> None:
+    """A profile map without its relationPolicies block is refused."""
+
     catalog, _, profiles = _inputs()
     changed = copy.deepcopy(profiles)
     del changed["relationPolicies"]
@@ -178,6 +202,8 @@ def test_profile_map_requires_relation_policies() -> None:
 
 
 def test_cross_ring_relation_policy_is_the_closed_directed_matrix() -> None:
+    """The only cross-ring policies are entity to legalIdentity, entity to subject and legalIdentity to subject."""
+
     catalog, _, profiles = _inputs()
 
     coverage.validate_profile_map(profiles, catalog)
@@ -205,6 +231,8 @@ def test_cross_ring_relation_policy_is_the_closed_directed_matrix() -> None:
 
 
 def test_cross_ring_relation_policy_rejects_reversal_and_skos_predicates() -> None:
+    """A reversed ring pair or a SKOS predicate in the cross-ring matrix is refused."""
+
     catalog, _, profiles = _inputs()
     reversed_pair = copy.deepcopy(profiles)
     row = reversed_pair["crossRingRelationPolicies"][1]
@@ -227,6 +255,8 @@ def test_cross_ring_relation_policy_rejects_reversal_and_skos_predicates() -> No
 
 
 def test_relation_policies_require_four_sorted_ring_rows() -> None:
+    """The four semantic rings must each appear once, in sorted order."""
+
     catalog, _, profiles = _inputs()
     changed = copy.deepcopy(profiles)
     changed["relationPolicies"][0], changed["relationPolicies"][1] = (
@@ -240,6 +270,8 @@ def test_relation_policies_require_four_sorted_ring_rows() -> None:
 
 
 def test_relation_policy_rows_have_closed_keys() -> None:
+    """An unexpected key on a relation-policy row is refused."""
+
     catalog, _, profiles = _inputs()
     changed = copy.deepcopy(profiles)
     changed["relationPolicies"][0]["unexpected"] = True
@@ -250,6 +282,8 @@ def test_relation_policy_rows_have_closed_keys() -> None:
 
 
 def test_relation_policy_assertion_predicates_have_closed_keys() -> None:
+    """Each assertion kind must map to exactly its reviewed predicate set."""
+
     catalog, _, profiles = _inputs()
     changed = copy.deepcopy(profiles)
     del changed["relationPolicies"][0]["assertionPredicates"]["SourceAssignment"]
@@ -260,6 +294,8 @@ def test_relation_policy_assertion_predicates_have_closed_keys() -> None:
 
 
 def test_relation_policy_predicate_lists_must_not_be_empty() -> None:
+    """An empty predicate list for an assertion kind is refused."""
+
     catalog, _, profiles = _inputs()
     changed = copy.deepcopy(profiles)
     changed["relationPolicies"][0]["assertionPredicates"]["MappingAssertion"] = []
@@ -270,6 +306,8 @@ def test_relation_policy_predicate_lists_must_not_be_empty() -> None:
 
 
 def test_relation_policy_predicate_lists_must_be_unique_and_sorted() -> None:
+    """A repeated predicate refuses, and an unsorted predicate list refuses."""
+
     catalog, _, profiles = _inputs()
     changed = copy.deepcopy(profiles)
     predicates = changed["relationPolicies"][0]["assertionPredicates"]["NativeRelationAssertion"]
@@ -289,6 +327,8 @@ def test_relation_policy_predicate_lists_must_be_unique_and_sorted() -> None:
 
 
 def test_relation_policy_predicates_must_be_absolute_iris() -> None:
+    """A bare predicate name is refused as not an absolute IRI."""
+
     catalog, _, profiles = _inputs()
     changed = copy.deepcopy(profiles)
     changed["relationPolicies"][0]["assertionPredicates"]["MappingAssertion"] = ["sameEntityAs"]
@@ -299,6 +339,8 @@ def test_relation_policy_predicates_must_be_absolute_iris() -> None:
 
 
 def test_relation_policy_resource_class_must_match_its_ring() -> None:
+    """A resource class belonging to another ring is refused, naming the ring."""
+
     catalog, _, profiles = _inputs()
     changed = copy.deepcopy(profiles)
     changed["relationPolicies"][0]["resourceClass"] = coverage.ATLAS_NAMESPACE + "ValueResource"
@@ -309,6 +351,8 @@ def test_relation_policy_resource_class_must_match_its_ring() -> None:
 
 
 def test_relation_policy_rejects_predicates_outside_the_allowed_namespaces() -> None:
+    """A predicate in a foreign namespace is refused as unsupported."""
+
     catalog, _, profiles = _inputs()
     changed = copy.deepcopy(profiles)
     changed["relationPolicies"][0]["assertionPredicates"]["MappingAssertion"] = ["https://example.org/sameEntityAs"]
@@ -319,6 +363,8 @@ def test_relation_policy_rejects_predicates_outside_the_allowed_namespaces() -> 
 
 
 def test_relation_policy_allows_skos_predicates_only_in_the_subject_cell() -> None:
+    """A SKOS predicate outside the subject cell is refused."""
+
     catalog, _, profiles = _inputs()
     changed = copy.deepcopy(profiles)
     changed["relationPolicies"][0]["assertionPredicates"]["MappingAssertion"] = [coverage.SKOS_NAMESPACE + "exactMatch"]
@@ -329,6 +375,8 @@ def test_relation_policy_allows_skos_predicates_only_in_the_subject_cell() -> No
 
 
 def test_relation_policy_rejects_a_predicate_assigned_to_two_cells() -> None:
+    """One predicate claimed by two assertion kinds is refused as duplicated."""
+
     catalog, _, profiles = _inputs()
     changed = copy.deepcopy(profiles)
     duplicate = changed["relationPolicies"][0]["assertionPredicates"]["MappingAssertion"][0]

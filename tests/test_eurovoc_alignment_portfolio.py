@@ -39,6 +39,7 @@ EXPECTED_ALIGNMENT_COUNTS = {
 
 
 def _fixture_pin(payload: bytes) -> eurovoc.EuroVocAlignmentPin:
+    """Build the mini-fixture pin with digest and byte length computed from the payload."""
     return eurovoc.EuroVocAlignmentPin(
         key="fixture",
         title="Fixture",
@@ -60,6 +61,7 @@ def _fixture_pin(payload: bytes) -> eurovoc.EuroVocAlignmentPin:
 
 
 def test_fixture_reader_keeps_publisher_direction_and_counts_anomalies() -> None:
+    """Pins two mappings in publisher direction (EuroVoc subject, external object) and their predicate counts."""
     payload = FIXTURE.read_bytes()
     capture = eurovoc.parse_eurovoc_alignment_bytes(payload, pin=_fixture_pin(payload))
 
@@ -74,6 +76,7 @@ def test_fixture_reader_keeps_publisher_direction_and_counts_anomalies() -> None
 
 
 def test_reader_refuses_an_unadmitted_publisher_predicate() -> None:
+    """Pins refusal when a relatedMatch predicate is not among the admitted mapping predicates."""
     payload = FIXTURE.read_bytes().replace(
         b"</rdf:RDF>",
         b"""
@@ -93,6 +96,7 @@ def test_reader_refuses_an_unadmitted_publisher_predicate() -> None:
 
 
 def test_portfolio_pins_are_versioned_and_record_rights_ambiguity() -> None:
+    """Pins the 17 versioned cellarURL pins, the 'no license' statement and the third-party rights exclusion."""
     assert len(eurovoc.EUROVOC_ALIGNMENT_PINS) == 17
     assert set(eurovoc.EUROVOC_ALIGNMENT_PINS_BY_KEY) == set(EXPECTED_ALIGNMENT_COUNTS)
     assert all("cellarURI=" in pin.source_url for pin in eurovoc.EUROVOC_ALIGNMENT_PINS)
@@ -111,6 +115,7 @@ def portfolio():
 
 
 def test_official_portfolio_pins_every_alignment_count_and_predicate_mix(portfolio) -> None:
+    """Pins each alignment's mapping count, the 22,710 assertions and the exact/close split."""
     observed = {alignment.pin.key: len(alignment.mappings) for alignment in portfolio.alignments}
     assert observed == EXPECTED_ALIGNMENT_COUNTS
     assert all(
@@ -126,6 +131,7 @@ def test_official_portfolio_pins_every_alignment_count_and_predicate_mix(portfol
 
 
 def test_complete_catalogue_count_and_exact_percentage_include_existing_lcsh(portfolio) -> None:
+    """Pins the complete-catalogue 24,713 assertions and the 93.75% exact-match share with LCSH included."""
     assert portfolio.assertion_count + 2_003 == 24_713
     assert round((portfolio.predicate_counts[str(SKOS.exactMatch)] + 1_904) / 24_713 * 100, 2) == 93.75
     assert eurovoc.EXPECTED_COMPLETE_CATALOGUE_ASSERTION_COUNT == 24_713
@@ -133,6 +139,7 @@ def test_complete_catalogue_count_and_exact_percentage_include_existing_lcsh(por
 
 
 def test_file_reader_refuses_source_drift(tmp_path: Path) -> None:
+    """Pins that appended bytes make the input pin differ and raise EuroVocAlignmentPortfolioError."""
     pin = eurovoc.EUROVOC_ALIGNMENT_PINS_BY_KEY["esco"]
     changed = tmp_path / pin.filename
     changed.write_bytes((SOURCE_ROOT / pin.filename).read_bytes() + b"drift" if HAS_SOURCES else b"drift")

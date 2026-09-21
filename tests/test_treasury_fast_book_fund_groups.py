@@ -17,6 +17,8 @@ WORKBOOK_PATH = ROOT / "tests/fixtures/treasury_tas_fast_book/fast-book-part-ii-
 
 
 def test_intro_sheets_state_eight_part_ii_groups_and_foreign_currency() -> None:
+    """Nine groups: eight Part II rows plus one Part III, with the split Trust range kept as two ranges."""
+
     parsed = treasury.parse_fast_book_fund_groups(
         WORKBOOK_PATH,
         pin=treasury.FAST_BOOK_PART_II_III_2026_07_31,
@@ -60,6 +62,8 @@ def test_intro_sheets_state_eight_part_ii_groups_and_foreign_currency() -> None:
 
 
 def test_fund_groups_are_parsed_not_transcribed() -> None:
+    """The parsed sheet's nine names are a different publisher statement, not a revision of the five-group transcription."""
+
     # PART_FUND_GROUPS remains the hand transcription of the Description of
     # Contents *page*, whose Part II phrasing is coarser (five groups, no
     # symbol ranges). The parsed sheet is a different publisher statement
@@ -76,6 +80,8 @@ def test_fund_groups_are_parsed_not_transcribed() -> None:
 
 
 def test_fund_group_parsing_fails_closed_on_drift(tmp_path: Path) -> None:
+    """A flipped workbook byte refuses on the digest and a missing path refuses as not a regular file."""
+
     payload = bytearray(WORKBOOK_PATH.read_bytes())
     payload[-1] ^= 0xFF
     tampered = tmp_path / "fast-book-tampered.xlsx"
@@ -94,6 +100,8 @@ def test_fund_group_parsing_fails_closed_on_drift(tmp_path: Path) -> None:
 
 
 def test_fund_group_range_and_row_shapes_fail_closed() -> None:
+    """A short or non-numeric range, an inverted range and an empty range list each refuse."""
+
     with pytest.raises(treasury.TreasurySourceDriftError, match="unexpected shape"):
         treasury._parse_fund_group_ranges("0000-38", sheet="Intro Part II", row_number=7)
     with pytest.raises(treasury.TreasurySourceDriftError, match="unexpected shape"):

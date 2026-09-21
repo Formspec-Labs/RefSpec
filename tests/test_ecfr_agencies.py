@@ -15,6 +15,9 @@ FIXTURE = ROOT / "tests/fixtures/cfr_list_of_subjects/ecfr-agencies-2026-08-15.j
 
 
 def test_pinned_ecfr_agency_roster_preserves_all_publishers_references() -> None:
+    """Pins the fixture bytes and digest and the roster's 316 records, 487
+    references, 315 referenced agencies and 49 titles.
+    """
     payload = FIXTURE.read_bytes()
     roster = cfr.parse_ecfr_agency_roster(payload)
 
@@ -38,6 +41,7 @@ def test_pinned_ecfr_agency_roster_preserves_all_publishers_references() -> None
 
 
 def test_ecfr_agency_capture_records_rights_and_unversioned_source() -> None:
+    """The pin states the public-domain rights statement and the rolling, unversioned endpoint note."""
     pin = cfr.ECFR_AGENCIES_2026_08_15
 
     assert pin.license_rights_statement == ("US federal public domain (17 USC 105) with no explicit CC license")
@@ -46,6 +50,7 @@ def test_ecfr_agency_capture_records_rights_and_unversioned_source() -> None:
 
 
 def test_ecfr_agency_reader_refuses_length_and_digest_drift() -> None:
+    """A shortened payload and an equal-length byte mutation are refused for length and digest drift."""
     payload = FIXTURE.read_bytes()
 
     with pytest.raises(cfr.CFRSourceDriftError, match="byte length drift"):
@@ -58,6 +63,7 @@ def test_ecfr_agency_reader_refuses_length_and_digest_drift() -> None:
 
 
 def test_ecfr_agency_reader_refuses_shape_drift_after_repinning() -> None:
+    """After repinning to mutated bytes, a missing agency field raises fields drifted."""
     value = json.loads(FIXTURE.read_bytes())
     del value["agencies"][0]["sortable_name"]
     mutated = json.dumps(value, separators=(",", ":")).encode("utf-8")

@@ -1,4 +1,4 @@
-"""Focused checks for the per-source native-relation test-set builder."""
+"""Per-source native-relation test-set builder: hierarchy/associative/equivalence rows and canonical output."""
 
 from __future__ import annotations
 
@@ -17,10 +17,14 @@ USED_FOR = builder.THESAURUS_USED_FOR
 
 
 def _label(value: str, role: str = "preferred") -> SimpleNamespace:
+    """Build a minimal label with an English tag and a test source path."""
+
     return SimpleNamespace(value=value, role=role, language="en", source_path="test")
 
 
 def _resource(iri: str, label: str, *, role: str = "preferred", definition: str | None = None) -> SimpleNamespace:
+    """Build a minimal release resource holding one label and an optional definition."""
+
     return SimpleNamespace(
         iri=iri,
         labels=(_label(label, role),),
@@ -31,10 +35,14 @@ def _resource(iri: str, label: str, *, role: str = "preferred", definition: str 
 
 
 def _relation(subject: str, predicate: str, obj: str, marker: str = "m") -> SimpleNamespace:
+    """Build a minimal native relation whose source_payload carries a marker."""
+
     return SimpleNamespace(subject=subject, predicate=predicate, object=obj, source_payload={"marker": marker})
 
 
 def _release(resources, relations, key: str = "test-source") -> SimpleNamespace:
+    """Build a minimal release with the given resources, relations, and source key."""
+
     return SimpleNamespace(
         spec=SimpleNamespace(key=key),
         atlas_release_iri=f"urn:ref:atlas-release:3:{key}",
@@ -45,6 +53,8 @@ def _release(resources, relations, key: str = "test-source") -> SimpleNamespace:
 
 
 def test_hierarchy_collapses_both_directions_into_one_broader_oriented_row() -> None:
+    """Pins that broader and narrower statements of one pair collapse to one narrow-to-broad hierarchy row."""
+
     release = _release(
         [_resource("urn:a", "LOANS"), _resource("urn:b", "CREDIT")],
         [_relation("urn:a", BROADER, "urn:b"), _relation("urn:b", NARROWER, "urn:a")],
@@ -66,6 +76,8 @@ def test_hierarchy_collapses_both_directions_into_one_broader_oriented_row() -> 
 
 
 def test_narrower_only_hierarchy_is_still_broader_oriented_and_flagged_one_way() -> None:
+    """Pins that a narrower-only relation still orients narrow-to-broad and sets oneWayInSource."""
+
     release = _release(
         [_resource("urn:a", "CREDIT"), _resource("urn:b", "LOANS")],
         [_relation("urn:a", NARROWER, "urn:b")],
@@ -80,6 +92,8 @@ def test_narrower_only_hierarchy_is_still_broader_oriented_and_flagged_one_way()
 
 
 def test_reciprocal_associative_edges_deduplicate_and_sort_by_iri() -> None:
+    """Pins that reciprocal related edges become one undirected row with the endpoints sorted by IRI."""
+
     release = _release(
         [_resource("urn:z", "Agriculture"), _resource("urn:a", "Agricultural research")],
         [_relation("urn:z", RELATED, "urn:a"), _relation("urn:a", RELATED, "urn:z")],
@@ -94,6 +108,8 @@ def test_reciprocal_associative_edges_deduplicate_and_sort_by_iri() -> None:
 
 
 def test_one_way_associative_edge_preserves_publisher_asymmetry() -> None:
+    """Pins that a one-way related edge stays undirected yet records assertedDirectionCount 1."""
+
     release = _release(
         [_resource("urn:a", "A"), _resource("urn:z", "Z")],
         [_relation("urn:a", RELATED, "urn:z")],
@@ -108,6 +124,8 @@ def test_one_way_associative_edge_preserves_publisher_asymmetry() -> None:
 
 
 def test_equivalence_orients_access_term_to_preferred_term_from_either_predicate() -> None:
+    """Pins that an equivalence row puts the alternate access term first and the preferred term second."""
+
     release = _release(
         [
             _resource("urn:access", "abduction", role="alternate"),
@@ -126,6 +144,8 @@ def test_equivalence_orients_access_term_to_preferred_term_from_either_predicate
 
 
 def test_use_and_used_for_for_the_same_pair_collapse_to_one_row() -> None:
+    """Pins that USE and USED_FOR for one pair collapse to a single row carrying both predicates."""
+
     release = _release(
         [_resource("urn:access", "ACA", role="alternate"), _resource("urn:pref", "Affordable Care Act")],
         [_relation("urn:access", USE, "urn:pref"), _relation("urn:pref", USED_FOR, "urn:access")],
@@ -138,6 +158,8 @@ def test_use_and_used_for_for_the_same_pair_collapse_to_one_row() -> None:
 
 
 def test_hierarchy_and_association_between_the_same_pair_stay_separate_rows() -> None:
+    """Pins that a hierarchy and an associative claim on one pair stay two separate rows."""
+
     release = _release(
         [_resource("urn:a", "A"), _resource("urn:b", "B")],
         [_relation("urn:a", BROADER, "urn:b"), _relation("urn:a", RELATED, "urn:b")],
@@ -149,6 +171,8 @@ def test_hierarchy_and_association_between_the_same_pair_stay_separate_rows() ->
 
 
 def test_alternate_only_endpoint_keeps_a_display_label() -> None:
+    """Pins that an endpoint holding only an alternate label still gets that label and no altLabels."""
+
     resource = _resource("urn:access", "abduction", role="alternate")
 
     block = builder._concept_block(resource)
@@ -159,6 +183,8 @@ def test_alternate_only_endpoint_keeps_a_display_label() -> None:
 
 
 def test_definition_and_notes_survive_into_the_endpoint_block() -> None:
+    """Pins that alternate labels, definition, notes, and notations all reach the endpoint block."""
+
     resource = SimpleNamespace(
         iri="urn:a",
         labels=(_label("A"), _label("A alias", "alternate")),
@@ -176,6 +202,8 @@ def test_definition_and_notes_survive_into_the_endpoint_block() -> None:
 
 
 def test_unknown_predicate_fails_closed() -> None:
+    """Pins that an unmapped native predicate raises ValueError rather than being dropped."""
+
     release = _release(
         [_resource("urn:a", "A"), _resource("urn:b", "B")],
         [_relation("urn:a", "urn:unmapped#predicate", "urn:b")],
@@ -186,6 +214,8 @@ def test_unknown_predicate_fails_closed() -> None:
 
 
 def test_endpoint_outside_the_release_fails_closed() -> None:
+    """Pins that a relation endpoint outside the release raises ValueError."""
+
     release = _release(
         [_resource("urn:a", "A")],
         [_relation("urn:a", RELATED, "urn:missing")],
@@ -196,6 +226,8 @@ def test_endpoint_outside_the_release_fails_closed() -> None:
 
 
 def test_rows_are_emitted_in_a_stable_canonical_order() -> None:
+    """Pins that reversed input resource and relation order emits the same row ids in the same order."""
+
     resources = [_resource(f"urn:{token}", token.upper()) for token in ("c", "a", "b")]
     relations = [_relation("urn:c", RELATED, "urn:a"), _relation("urn:b", RELATED, "urn:a")]
 
@@ -206,6 +238,8 @@ def test_rows_are_emitted_in_a_stable_canonical_order() -> None:
 
 
 def test_build_writes_canonical_jsonl_and_a_reproducible_manifest(tmp_path, monkeypatch) -> None:
+    """Pins byte-identical JSONL and one manifestDigest across two builds of the same release."""
+
     release = _release(
         [_resource("urn:a", "A"), _resource("urn:b", "B")],
         [_relation("urn:a", BROADER, "urn:b")],

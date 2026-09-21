@@ -1,34 +1,14 @@
 """The Executive Order existence oracle: the window split, and what it protects.
 
-Five kinds of test.
-
-**Pin tests** hold the roster to the digest ``eo_roster._ROSTER_PIN`` states,
-and check that a drifted or swapped file refuses loudly rather than answering
-differently -- the pattern is
-:mod:`tests.test_usc_section_oracle`'s ``test_a_drifted_table_refuses_loudly``.
-
-**Coherence tests** construct :class:`~refspec.registry.eo_roster.EoVerdict`
-directly and hold every rejected shape: a window that does not contain the
-number it authorizes, a source whose capture never saw that number, an
-``absent`` outside the one window whose density licenses absence, a reason
-that contradicts the window. Each is a verdict a consumer could have read as
-coherent, so each gets its own negative fixture.
-
-**Load-time evidence tests** (finding 2's guard): the roster's absence
-authority is re-measured every time it loads. A hole in the declared dense
-window, a source range declared wider than the roster attains, or a ``window``
-column that does not contain its own number all refuse to load.
-
-**Specimen tests**, against the real pinned roster: EO 8284 (real, published
-in 4 FR 4603, whose per-order NARA route nonetheless 404s) is `exists` AND
-carries a hand-reviewed flag; EO 9397 (a real, famous 1943 order the sparse
-NARA window does not enumerate) is `unknown`, never `absent`; EO 12866 is
-`exists` sourced to the Wayback-only half of the gap closure; the three
-already-out-of-series numbers are `unknown`.
-
-**Measurement tests** reproduce the corpus-wide numbers directly from the
-shipped module, over a census bound by its own committed digest, and hold the
-re-derivation ceremony's diff report to its named deltas.
+Pin tests hold the roster to ``eo_roster._ROSTER_PIN`` and require drift to refuse loudly;
+coherence tests construct :class:`~refspec.registry.eo_roster.EoVerdict` directly and hold every
+rejected shape (a window not containing its number, a source that never saw it, an ``absent``
+outside the one absent-capable dense window, a reason that contradicts its window); load-time
+evidence tests re-measure the absence authority on every load; and specimen tests pin real orders
+(8284 exists and is flagged, 9397 unknown never absent, 12866 sourced to the Wayback gap closure,
+the three out-of-series numbers unknown). Measurement tests reproduce the corpus-wide numbers over
+a census bound by its own committed digest and hold the re-derivation ceremony's diff report to its
+named deltas.
 """
 
 from __future__ import annotations
@@ -72,9 +52,7 @@ def oracle() -> EoRosterOracle:
 def _manifested_rows(path: Path, manifest: Path, root: Path) -> list[dict[str, str]]:
     """Rows of a CSV whose bytes match the digest its manifest committed.
 
-    A measurement is only as good as the file it measured. Reading the census
-    without checking it against
-    ``inv-eo/derived/MANIFEST-sha256.csv`` would let an edited census quietly
+    Checked against ``inv-eo/derived/MANIFEST-sha256.csv`` so an edited census cannot quietly
     re-state what this suite claims to have measured.
     """
 
@@ -113,15 +91,12 @@ def _synthetic_oracle(
     windows: MappingProxyType | None = None,
     verify_density: bool = True,
 ) -> EoRosterOracle:
-    """An oracle bound to a throwaway roster, with the module's own declared
-    windows and source ranges swapped for ones this small roster satisfies.
+    """An oracle bound to a throwaway roster, with the declared windows and source ranges miniaturised.
 
-    The real roster cannot exercise ``verdict``'s branches: its sparse windows
-    span twelve thousand numbers and its dense one has no holes at all (which
-    is exactly what :func:`~refspec.registry.eo_roster._verify_density`
-    verifies). So the layout is miniaturised here, and ``verify_density`` is
-    the one switch a test may throw to reach the `absent` branch -- see
-    ``test_a_hole_in_the_dense_window_is_absent_but_only_past_the_load_guard``.
+    The real roster cannot exercise ``verdict``'s branches -- its sparse windows span twelve
+    thousand numbers and its dense one has no holes, which is exactly what
+    :func:`~refspec.registry.eo_roster._verify_density` verifies -- so ``verify_density`` is the
+    one switch a test may throw to reach the `absent` branch.
     """
 
     directory = tmp_path / "synthetic"
@@ -158,13 +133,10 @@ def test_from_repository_verifies_and_binds() -> None:
 
 
 def test_the_roster_is_parsed_from_the_very_bytes_that_were_hashed() -> None:
-    """A verifier that hands back a PATH invites its caller to re-open the file.
+    """A verifier that hands back a path invites a second read of bytes the digest never vouched for.
 
-    Between the hash and that second read the file can change, and the digest
-    would then vouch for bytes nobody parsed. The race itself is not
-    observable in a deterministic test, so what is pinned here is the shape
-    that makes it impossible: the verifier returns the buffer, and the loader
-    reads nothing else.
+    The race is unobservable in a deterministic test, so the shape that makes it impossible is
+    pinned instead: the verifier returns the buffer and the loader must not re-open the file.
     """
 
     payload = eo_roster._verify_pinned_roster(EVIDENCE_HOME)
@@ -217,12 +189,11 @@ def test_exists_and_absent_must_name_a_real_window() -> None:
 
 
 def test_a_window_must_contain_the_number_it_authorizes() -> None:
-    """The incoherence a consumer could not see: an `exists` for EO 12866
+    """An `exists` tagged to a window that does not contain its number is incoherent.
 
-    tagged ``nara_codification``, a window whose top is 12,667. The 32 gap
-    rows carried exactly that label before this check existed, so a caller
-    reading "which window vouched for this" got a window that does not
-    contain the number.
+    The 32 gap rows carried exactly the EO 12866/``nara_codification`` label before this check, so a
+    caller reading "which window vouched for this" got a window whose top is 12,667; the coherent
+    ``nara_disposition`` form loads.
     """
 
     with pytest.raises(ValueError, match="does not contain EO 12866"):
@@ -257,10 +228,8 @@ def test_exists_must_name_a_source_and_only_exists_carries_one() -> None:
 def test_an_exists_source_must_be_declared_and_must_reach_the_number() -> None:
     """A capture vouches for the range it actually saw, and no further.
 
-    ``nara-disposition-1939`` is one calendar year's table (8,031-8,316). A
-    roster row claiming it witnessed EO 12,000 is a shape error -- the kind
-    an editing mistake or a merge-order change could introduce, and the kind
-    that would otherwise publish an existence claim nothing supports.
+    ``nara-disposition-1939`` is one calendar year's table (8,031-8,316), so an undeclared source or
+    a witness to EO 12,000 is refused rather than publishing an existence claim nothing supports.
     """
 
     with pytest.raises(ValueError, match="undeclared roster source"):
@@ -320,16 +289,11 @@ def test_a_hole_in_the_dense_window_is_absent_but_only_past_the_load_guard(
 ) -> None:
     """`absent` and the density guard are two halves of one claim.
 
-    A hole in the absent-capable window is precisely the evidence that
-    licenses `absent` -- and precisely what
-    :func:`~refspec.registry.eo_roster._verify_density` refuses to load,
-    because a roster that no longer fills its declared dense window has a
-    declaration to fix, not an absence to publish. So the branch below is
-    unreachable on any roster that loads today, and reaching it here takes
-    switching the guard off deliberately. That is the honest shape of the
-    claim: `absent` is what this oracle would say if a re-derivation ever
-    re-declared a dense window around a genuine hole, and a human re-pins
-    before it ever says it.
+    A hole in the absent-capable window is what licenses `absent` and exactly what
+    :func:`~refspec.registry.eo_roster._verify_density` refuses to load -- a roster that no longer
+    fills its declared dense window has a declaration to fix, not an absence to publish. The branch
+    is unreachable on any roster that loads today; reaching it takes deliberately switching the
+    guard off, and a human re-pins before it is ever said.
     """
 
     rows = [(n, "fr_api", "fr-api") for n in (200, 201, 202, 204, 205)]
@@ -349,8 +313,8 @@ def test_a_roster_row_whose_window_does_not_contain_it_refuses_to_load(tmp_path,
 def test_a_source_range_wider_than_the_roster_attains_refuses_to_load(tmp_path, monkeypatch) -> None:
     """A declared range is a measurement, so it cannot be quietly widened.
 
-    Widening one would wave numbers through :class:`EoVerdict`'s source check
-    on the strength of a declaration rather than a capture.
+    Widening one would wave numbers through :class:`EoVerdict`'s source check on a declaration rather
+    than a capture.
     """
 
     rows = [(n, "fr_api", "fr-api") for n in range(200, 206)]
@@ -381,10 +345,10 @@ def test_windows_are_declared_disjoint_and_ordered() -> None:
 
 
 def test_the_dense_windows_upper_bound_is_the_rosters_own_measurement() -> None:
-    """``FR_API_DENSE_MAX`` restates the pinned roster, not a constant
+    """``FR_API_DENSE_MAX`` restates the pinned roster, not a constant elsewhere.
 
-    elsewhere. Read straight off the roster file here so a re-pin that moves
-    the FR-API capture's top without moving the declaration breaks.
+    Read straight off the roster file so a re-pin that moves the FR-API capture's top without moving
+    the declaration breaks.
     """
 
     rows = list(csv.DictReader(ROSTER_PATH.read_bytes().decode("utf-8").splitlines()))
@@ -398,20 +362,12 @@ def test_the_dense_windows_upper_bound_is_the_rosters_own_measurement() -> None:
 def test_the_grammar_ceiling_cannot_hand_this_oracle_absence_authority() -> None:
     """Finding 2's guard, held at the seam it would actually fail at.
 
-    ``FR_API_WINDOW``'s top once tracked ``citation_grammar.EO_HIGHEST_KNOWN``
-    while the roster stayed pinned, so a source edit advancing that constant
-    for a newly signed order would have made ``verdict(14421)`` answer
-    `absent` on evidence this module has never seen.
-
-    The failure mode is a SOURCE EDIT, not a runtime value: both the old
-    ``FR_API_WINDOW = (12_890, EO_HIGHEST_KNOWN)`` and a ``from ... import``
-    of the constant are evaluated once at import, so monkeypatching
-    ``citation_grammar`` afterwards proves nothing. What can be held is the
-    coupling itself -- this module's namespace must carry no grammar ceiling
-    under any spelling -- plus the behaviour above the measured bound. The
-    two together were verified to fail when the coupling is reintroduced and
-    the ceiling advanced (12 tests in this file break, and the load guard
-    refuses by name).
+    ``FR_API_WINDOW``'s top once tracked ``citation_grammar.EO_HIGHEST_KNOWN``, so a source edit
+    advancing that constant would have made ``verdict(14421)`` answer `absent` on evidence this
+    module never saw; the namespace must carry no grammar ceiling under any spelling, and a number
+    above the measured bound must answer ``unknown``. The failure mode is a source edit, not a
+    runtime value (both spellings evaluate once at import), so what is held is the coupling itself;
+    today's equality of the two values is a measured coincidence, not a requirement.
     """
 
     leaked = {"citation_grammar", "EO_HIGHEST_KNOWN"} & set(vars(eo_roster))
@@ -431,10 +387,8 @@ def test_the_grammar_ceiling_cannot_hand_this_oracle_absence_authority() -> None
 def test_todays_dense_window_has_no_misses_at_all() -> None:
     """The measurement behind "absent is currently unreachable".
 
-    Every integer the absent-capable window covers is on the roster, so no
-    call to ``verdict`` in that range can take the `absent` branch. Held as a
-    running fact rather than left implicit, because it is the reason the
-    wiring spec predicts zero rows flipping to False.
+    Every integer the absent-capable window covers is on the roster, so no ``verdict`` call in that
+    range can take the `absent` branch -- the reason the wiring spec predicts zero flipped rows.
     """
 
     bound = oracle()
@@ -450,16 +404,11 @@ def test_todays_dense_window_has_no_misses_at_all() -> None:
 def test_eo_8284_exists_and_is_flagged_never_corrected() -> None:
     """The finding this lane was sent back for.
 
-    EO 8284's per-order NARA route serves a Drupal "Page Not Found", and an
-    earlier draft read that as the publisher denying the order. It is a fact
-    about one route: NARA's own 1939 disposition table (pinned into this
-    lane's evidence home) lists EO 8284, "Prescribing the Duties of the
-    Librarian Emeritus of the Library of Congress", signed 1939-11-13, at
-    4 FR 4603, and this repository's committed adjudication recorded the same
-    title and date all along. So the verdict is `exists`, sourced to that
-    table. The hand-validated FLAG survives, because the corpus row is still
-    doubted -- on relevance, adjudicated elsewhere -- and a flag rides
-    ALONGSIDE the verdict, never instead of it.
+    EO 8284's per-order NARA route serves a "Page Not Found", but NARA's 1939 disposition table lists
+    it ("Prescribing the Duties of the Librarian Emeritus of the Library of Congress", signed
+    1939-11-13, 4 FR 4603), so the verdict is `exists` sourced to that table. The hand-validated
+    flag survives -- the corpus row is still doubted on relevance, adjudicated elsewhere -- and
+    rides alongside the verdict, never instead of it.
     """
 
     bound = oracle()
@@ -476,14 +425,10 @@ def test_eo_8284_exists_and_is_flagged_never_corrected() -> None:
 
 
 def test_eo_9397_amendment_chain_endpoint_is_unknown_not_absent() -> None:
-    """Cross-lane negative fixture: the prose-harvest lane's amendment-chain
+    """Cross-lane negative fixture: EO 9397 (1943, the order that created Social Security numbers).
 
-    walk cites EO 9397 (1943, the order that created Social Security
-    numbers) as a chain endpoint. It falls inside the sparse NARA
-    codification window and is NOT on the roster. A real, famous,
-    unambiguously EXISTING order must still read `unknown`, never `absent`:
-    that is exactly what the window split exists to prevent from going the
-    other way.
+    A real, famous, unambiguously existing order inside the sparse NARA window but not on the roster
+    must read `unknown`, never `absent` -- the failure the window split exists to prevent.
     """
 
     verdict = oracle().verdict(9397)
@@ -493,14 +438,11 @@ def test_eo_9397_amendment_chain_endpoint_is_unknown_not_absent() -> None:
 
 
 def test_eo_12866_exists_sourced_to_the_wayback_only_gap_closure() -> None:
-    """Regulatory Planning and Review, signed 1993-09-30 -- one of the gap
+    """Regulatory Planning and Review (1993) resolves only from a Wayback capture of a now-dead NARA page.
 
-    numbers that resolve ONLY from a Wayback capture of a NARA page now dead
-    on the live site (Durability section,
-    research/investigations-mined-2026-08-31.md). ``source`` names exactly
-    that so a caller can tell this durability profile apart from a live
-    page's, and ``window`` names the gap-closure window that contains it
-    rather than the codification window that does not.
+    ``source`` names that durability profile so a caller can tell it from a live page's, and
+    ``window`` names the gap-closure window that contains it rather than the codification window
+    that does not.
     """
 
     verdict = oracle().verdict(12_866)
@@ -510,10 +452,7 @@ def test_eo_12866_exists_sourced_to_the_wayback_only_gap_closure() -> None:
 
 
 def test_eo_8248_exists_and_carries_no_flag() -> None:
-    """The flag's named candidate is an ordinary `exists` -- the flag names
-
-    only 8284, never leaks onto 8248.
-    """
+    """The flag's named candidate is an ordinary `exists`: the flag names only 8284 and never leaks onto 8248."""
 
     verdict = oracle().verdict(8248)
     assert verdict.verdict == "exists"
@@ -522,17 +461,12 @@ def test_eo_8248_exists_and_carries_no_flag() -> None:
 
 @pytest.mark.parametrize("number", [20450, 21600, 23891])
 def test_already_out_of_series_numbers_are_unknown_not_a_crash(number: int) -> None:
-    """These three exceed the roster's ceiling and are already flagged False
+    """These three exceed the roster's ceiling and are already False under ``_SeriesCalendar.eo_in_known_series``.
 
-    by today's ``_SeriesCalendar.eo_in_known_series`` fence -- this oracle
-    agrees they are not resolvable, by the same "outside every window" reason
-    as anything else above the ceiling, not by re-deriving a second opinion
-    about the ceiling itself.
-
-    Called on an INSTANCE, not the class: the wiring spec turns
-    ``eo_in_known_series`` into an instance method that consults the oracle,
-    and a class-level call site would break with a TypeError the moment that
-    lands.
+    The oracle agrees they are not resolvable by the same "outside every window" reason as anything
+    above the ceiling, not by re-deriving a second opinion about the ceiling. Called on an instance,
+    because the wiring spec turns ``eo_in_known_series`` into an oracle-consulting instance method
+    and a class-level call site would raise TypeError.
     """
 
     from refspec.registry.unified_agenda_parquet import _SeriesCalendar
@@ -544,10 +478,8 @@ def test_already_out_of_series_numbers_are_unknown_not_a_crash(number: int) -> N
 
 
 def test_a_pre_1929_cited_number_is_unknown_with_no_special_casing_needed() -> None:
-    """EO 1205 (cited 202204-202404) is real-shaped but pre-dates the NARA
-
-    disposition-table era; the window split alone produces the right answer
-    with no pre-1929 special rule.
+    """EO 1205 (cited 202204-202404) pre-dates the NARA disposition-table era; the window split alone
+    yields ``unknown``.
     """
 
     verdict = oracle().verdict(1205)
@@ -561,10 +493,7 @@ def test_a_pre_1929_cited_number_is_unknown_with_no_special_casing_needed() -> N
 
 
 def test_flag_for_returns_none_when_no_flag_is_recorded() -> None:
-    """Documented, not incidental: ``None`` means "no hand-validated flag is
-
-    recorded for this number", which is the normal case for an EO number.
-    """
+    """Documented, not incidental: ``None`` means no hand-validated flag is recorded for this number."""
 
     assert EoRosterOracle.flag_for(13_000) is None
     with pytest.raises(hand_validated_interpretations.NotReviewed):
@@ -572,11 +501,10 @@ def test_flag_for_returns_none_when_no_flag_is_recorded() -> None:
 
 
 def test_flag_for_refuses_to_hand_back_a_correction(monkeypatch) -> None:
-    """A correction reaching a caller through a method named ``flag_for``
+    """A correction reaching a caller through ``flag_for`` would arrive under a label promising not to substitute.
 
-    would be a substitution arriving under a label that promises not to make
-    one. The table already carries a correction row (for a Federal Register
-    document number), so this is not hypothetical -- only the key differs.
+    The table already carries a correction row (for a Federal Register document number), so this is
+    not hypothetical; only the key differs.
     """
 
     correction = hand_validated_interpretations.lookup("E5-2394")
@@ -589,13 +517,10 @@ def test_flag_for_refuses_to_hand_back_a_correction(monkeypatch) -> None:
 
 
 def test_a_flag_row_cannot_be_constructed_as_a_correction() -> None:
-    """Not just an observation about today's row -- the type itself refuses.
+    """The type itself refuses, not just today's row: a "flag" disposition carrying interpreted_value is a shape error.
 
-    A disposition of "flag" carrying an interpreted_value is a shape error in
-    hand_validated_interpretations.Interpretation, so no future edit to the
-    8284 row can smuggle a correction in without changing its disposition
-    first, which is the loud, reviewable act this suite wants any such change
-    to be -- and which ``flag_for`` above then refuses to serve.
+    No future edit to the 8284 row can smuggle a correction in without a loud, reviewable disposition
+    change, which ``flag_for`` then refuses to serve.
     """
 
     with pytest.raises(hand_validated_interpretations.HandValidatedRegistryError, match="must not assert"):
@@ -616,15 +541,12 @@ def test_a_flag_row_cannot_be_constructed_as_a_correction() -> None:
 
 
 def test_measured_against_the_cited_eo_census() -> None:
-    """The corpus-wide numbers, reproduced from the SHIPPED module over a
+    """The corpus-wide numbers, reproduced from the shipped module over a census bound by its own committed digest.
 
-    census bound by the digest its own investigation committed, so neither an
-    edited census nor a silent roster promotion can restate them.
-
-    The mined note (research/investigations-mined-2026-08-31.md, item 5)
-    predicted 377 numbers / 18,951 rows and 11 unknown. This roster affirms
-    one more number than that: EO 8284, whose existence the mined note's
-    source had wrongly doubted on a route-level 404. See README.md.
+    Neither an edited census nor a silent roster promotion can restate them: 391 citations / 19,011
+    rows, 378 covered numbers / 18,954 rows, 10 unknown in range, the three out-of-series numbers,
+    and no cited number reading ``absent``. The mined note predicted one number fewer (EO 8284,
+    wrongly doubted on a route-level 404; see README.md).
     """
 
     bound = oracle()
@@ -658,11 +580,7 @@ def test_measured_against_the_cited_eo_census() -> None:
 
 
 def test_the_rederivation_ceremony_names_every_delta() -> None:
-    """Holds the evidence home's own diff report to its claims: nothing the
-
-    investigation had was lost, every added number is one of the two named
-    deltas, and EO 8284 arrives through the derivation rather than by hand.
-    """
+    """Holds the diff report to its claims: nothing lost, no unexplained additions, EO 8284 derived."""
 
     report = (EVIDENCE_HOME / "diff-report.txt").read_text()
     assert "match=False" not in report
@@ -676,8 +594,7 @@ def test_the_rederivation_ceremony_names_every_delta() -> None:
 def test_the_evidence_home_manifest_is_a_two_way_inventory() -> None:
     """Both directions, because one direction is not an inventory.
 
-    A one-way check (every manifest row hashes) passes happily over a
-    directory carrying an unlisted file -- exactly the shape by which an
+    A one-way check passes over a directory carrying an unlisted file -- the shape by which an
     unreviewed capture joins a sealed evidence home.
     """
 
@@ -702,12 +619,7 @@ def test_the_evidence_home_manifest_is_a_two_way_inventory() -> None:
 
 
 def test_the_pinned_raw_captures_back_the_8284_claim() -> None:
-    """The two captures this lane fetched, read for what they actually say.
-
-    Not a digest check (the manifest test above does that) but a content
-    check: the NARA year table has to carry the order between its neighbours,
-    and the Federal Register issue has to carry the signed text.
-    """
+    """The captures read for content, not digests: the NARA table carries the order, the FR issue the signed text."""
 
     raw = EVIDENCE_HOME / "raw"
     nara = (raw / "nara-eo-1939.html").read_text(encoding="utf-8", errors="replace")
@@ -725,13 +637,10 @@ def test_the_pinned_raw_captures_back_the_8284_claim() -> None:
 
 
 def test_the_capture_pins_agree_with_the_evidence_manifest() -> None:
-    """The module restates two digests the evidence manifest also holds.
+    """The module restates two digests the evidence manifest also holds; this is the drift tripwire.
 
-    Two copies of one fact drift, so this is the tripwire that says when they
-    have. The captures are provenance rather than a runtime input -- the reader
-    consumes the derived roster -- but their URLs reach the audit manifest's
-    ``declaredUrls`` because this module states them, which is the whole reason
-    they live here rather than only in the evidence home.
+    The captures are provenance rather than a runtime input, but their URLs reach the audit
+    manifest's ``declaredUrls`` because this module states them.
     """
 
     import csv

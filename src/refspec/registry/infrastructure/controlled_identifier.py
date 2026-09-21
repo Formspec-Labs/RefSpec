@@ -1,4 +1,10 @@
-"""Structured, repeatable identifiers retained from controlled-resource sources."""
+"""Structured, repeatable identifiers retained from controlled-resource sources.
+
+A ``ControlledIdentifier`` requires a non-empty value and kind, absolute
+authority and source URIs without credentials, ISO 8601 date fields when
+present, and a lowercase ``sha256:<64 hex>`` digest when a source digest is
+supplied.
+"""
 
 from __future__ import annotations
 
@@ -37,6 +43,8 @@ def validate_identifier_date(
     value: str,
     field: str = "identifier date",
 ) -> str:
+    """Return the trimmed date text, raising ControlledIdentifierError unless it parses as ISO 8601."""
+
     text = _require_text(value, field)
     try:
         parse_iso_date_or_datetime(text)
@@ -47,7 +55,11 @@ def validate_identifier_date(
 
 @dataclass(frozen=True, slots=True)
 class ControlledIdentifier:
-    """One publisher-observed identifier with explicit source context."""
+    """One publisher-observed identifier with explicit source context.
+
+    Construction validates the value, kind, absolute URIs, dates, and any
+    sha256 source digest.
+    """
 
     value: str
     kind: str
@@ -90,7 +102,11 @@ class ControlledIdentifier:
 def distinct_identifiers(
     values: Iterable[ControlledIdentifier],
 ) -> tuple[ControlledIdentifier, ...]:
-    """Retain ordered distinct identifier observations."""
+    """Retain ordered distinct identifier observations.
+
+    Two observations are the same only when every field, including the source
+    digest and both dates, matches.
+    """
 
     result: list[ControlledIdentifier] = []
     seen: set[tuple[str, str, str, str, str | None, str | None, str | None]] = set()

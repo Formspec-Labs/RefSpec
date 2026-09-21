@@ -51,6 +51,7 @@ CORPORATE = "http://id.loc.gov/authorities/subjects/sh00000145"
 
 
 def _fixture_lines() -> list[bytes]:
+    """Return the mini fixture's lines as bytes."""
     return FIXTURE_PATH.read_bytes().splitlines()
 
 
@@ -65,10 +66,12 @@ class _PinnedNdjsonLines:
 
 
 def _line(index: int) -> bytes:
+    """Return the fixture line at the given index."""
     return _fixture_lines()[index]
 
 
 def test_pinned_real_mini_fixture_matches_its_captured_bytes() -> None:
+    """Pins the opener's byte length and sha256, six lines, and a three-record/three-excluded capture."""
     payload = open_pinned_lcsh_topical_mini_fixture(FIXTURE_PATH)
 
     assert len(payload) == LCSH_TOPICAL_MINI_FIXTURE_BYTE_LENGTH
@@ -82,6 +85,7 @@ def test_pinned_real_mini_fixture_matches_its_captured_bytes() -> None:
 
 
 def test_pinned_fixture_opener_rejects_tampered_bytes(tmp_path: Path) -> None:
+    """Pins refusal when the fixture gains a trailing newline and drifts in byte length."""
     tampered = tmp_path / "lcsh-topical-mini.ndjson"
     tampered.write_bytes(FIXTURE_PATH.read_bytes() + b"\n")
 
@@ -90,6 +94,7 @@ def test_pinned_fixture_opener_rejects_tampered_bytes(tmp_path: Path) -> None:
 
 
 def test_parses_topical_record_with_list_valued_broader_authority_and_no_variant() -> None:
+    """Pins the ActionScript record's IRI, LCCN, preferred label, three broader IRIs and exact line provenance."""
     record = parse_lcsh_topical_ndjson_line(_line(0), source_url=SOURCE_URL, line_number=1)
 
     assert record is not None
@@ -110,6 +115,7 @@ def test_parses_topical_record_with_list_valued_broader_authority_and_no_variant
 
 
 def test_parses_topical_record_with_single_object_valued_broader_authority() -> None:
+    """Pins that a single-object broader authority is read as a one-element broader tuple."""
     record = parse_lcsh_topical_ndjson_line(_line(1), source_url=SOURCE_URL, line_number=2)
 
     assert record is not None
@@ -121,6 +127,7 @@ def test_parses_topical_record_with_single_object_valued_broader_authority() -> 
 
 
 def test_parses_topical_record_and_resolves_its_variant_labels() -> None:
+    """Pins the SAKI record's two variant labels resolved from their blank nodes."""
     record = parse_lcsh_topical_ndjson_line(_line(2), source_url=SOURCE_URL, line_number=3)
 
     assert record is not None
@@ -134,12 +141,14 @@ def test_parses_topical_record_and_resolves_its_variant_labels() -> None:
 
 @pytest.mark.parametrize("index", [3, 4, 5])
 def test_non_topical_authority_lines_are_skipped_without_erroring(index: int) -> None:
+    """Pins that non-topical authority lines parse to None rather than erroring."""
     record = parse_lcsh_topical_ndjson_line(_line(index), source_url=SOURCE_URL, line_number=index + 1)
 
     assert record is None
 
 
 def test_bare_string_typed_component_stub_nodes_are_not_mistaken_for_the_authority() -> None:
+    """Pins that component stub nodes typed bare 'madsrdf:Topic' are not mistaken for the record's authority node."""
     # Line 5 (Angiotensin II--Antagonists, a ComplexSubject) embeds two
     # madsrdf:componentList stub nodes typed bare "madsrdf:Topic" (a string,
     # not a list containing madsrdf:Authority). The parser must still find
@@ -154,26 +163,31 @@ def test_bare_string_typed_component_stub_nodes_are_not_mistaken_for_the_authori
 
 
 def test_parser_requires_bytes_input() -> None:
+    """Pins refusal when the line is a str rather than bytes."""
     with pytest.raises(LcshTopicalError, match="bytes"):
         parse_lcsh_topical_ndjson_line("not bytes", source_url=SOURCE_URL, line_number=1)  # type: ignore[arg-type]
 
 
 def test_parser_skips_blank_lines() -> None:
+    """Pins that empty and whitespace-only lines return None."""
     assert parse_lcsh_topical_ndjson_line(b"", source_url=SOURCE_URL, line_number=1) is None
     assert parse_lcsh_topical_ndjson_line(b"   ", source_url=SOURCE_URL, line_number=1) is None
 
 
 def test_parser_rejects_invalid_json() -> None:
+    """Pins refusal on invalid JSON."""
     with pytest.raises(LcshTopicalError, match="not valid JSON"):
         parse_lcsh_topical_ndjson_line(b"{not json", source_url=SOURCE_URL, line_number=1)
 
 
 def test_parser_rejects_invalid_utf8() -> None:
+    """Pins refusal on bytes that are not UTF-8."""
     with pytest.raises(LcshTopicalError, match="UTF-8"):
         parse_lcsh_topical_ndjson_line(b"\xff\xfe", source_url=SOURCE_URL, line_number=1)
 
 
 def test_parser_rejects_an_unexpected_context() -> None:
+    """Pins refusal when @context is not the pinned subjects context URL."""
     mutated = _line(0).replace(
         b'"@context": "http://id.loc.gov/authorities/subjects/context.json"',
         b'"@context": "http://id.loc.gov/authorities/names/context.json"',
@@ -183,6 +197,7 @@ def test_parser_rejects_an_unexpected_context() -> None:
 
 
 def test_parser_rejects_a_missing_graph() -> None:
+    """Pins refusal when the document has no @graph."""
     document = json.loads(_line(0))
     del document["@graph"]
     with pytest.raises(LcshTopicalError, match="@graph"):
@@ -190,6 +205,7 @@ def test_parser_rejects_a_missing_graph() -> None:
 
 
 def test_parser_selects_the_top_level_authority_when_graph_contains_other_authorities() -> None:
+    """Pins that the node matching the line's own @id is selected even when other authorities share the graph."""
     document = json.loads(_line(0))
     duplicate = dict(document["@graph"][0])
     duplicate["@id"] = "http://id.loc.gov/authorities/subjects/sh99999999"
@@ -206,6 +222,7 @@ def test_parser_selects_the_top_level_authority_when_graph_contains_other_author
 
 
 def test_parser_rejects_a_graph_without_its_top_level_authority() -> None:
+    """Pins refusal when no graph node matches the line's top-level @id."""
     document = json.loads(_line(0))
     document["@graph"][0]["@id"] = (
         "http://id.loc.gov/authorities/subjects/sh99999999"
@@ -215,6 +232,7 @@ def test_parser_rejects_a_graph_without_its_top_level_authority() -> None:
 
 
 def test_generic_authority_parser_keeps_non_topic_and_does_not_mint_missing_lccn() -> None:
+    """Pins that a non-topical authority is kept with lccn None rather than minting a missing identifier."""
     document = json.loads(_line(3))
     authority = next(
         node
@@ -237,6 +255,7 @@ def test_generic_authority_parser_keeps_non_topic_and_does_not_mint_missing_lccn
 
 
 def test_parser_rejects_a_record_missing_its_authoritative_label() -> None:
+    """Pins refusal when the authority has no authoritativeLabel."""
     document = json.loads(_line(0))
     del document["@graph"][0]["madsrdf:authoritativeLabel"]
     with pytest.raises(LcshTopicalError, match="authoritativeLabel"):
@@ -244,6 +263,7 @@ def test_parser_rejects_a_record_missing_its_authoritative_label() -> None:
 
 
 def test_parser_rejects_an_untagged_authoritative_label() -> None:
+    """Pins refusal when the authoritative label carries no language tag."""
     document = json.loads(_line(0))
     del document["@graph"][0]["madsrdf:authoritativeLabel"]["@language"]
     with pytest.raises(LcshTopicalError, match="language"):
@@ -251,6 +271,7 @@ def test_parser_rejects_an_untagged_authoritative_label() -> None:
 
 
 def test_parser_rejects_a_record_missing_its_lccn() -> None:
+    """Pins refusal when the authority has no LCCN identifier."""
     document = json.loads(_line(0))
     del document["@graph"][0]["identifiers:lccn"]
     with pytest.raises(LcshTopicalError, match="identifiers:lccn"):
@@ -258,6 +279,7 @@ def test_parser_rejects_a_record_missing_its_lccn() -> None:
 
 
 def test_parser_rejects_a_non_absolute_broader_authority_target() -> None:
+    """Pins refusal when a broader authority target is a blank node."""
     document = json.loads(_line(0))
     document["@graph"][0]["madsrdf:hasBroaderAuthority"] = {"@id": "_:nblank1"}
     with pytest.raises(LcshTopicalError, match="absolute"):
@@ -265,6 +287,7 @@ def test_parser_rejects_a_non_absolute_broader_authority_target() -> None:
 
 
 def test_parser_rejects_a_dangling_variant_reference() -> None:
+    """Pins refusal when a hasVariant reference points at a nonexistent node."""
     document = json.loads(_line(2))
     document["@graph"][0]["madsrdf:hasVariant"] = [{"@id": "_:doesNotExist"}]
     with pytest.raises(LcshTopicalError, match="hasVariant"):
@@ -272,6 +295,7 @@ def test_parser_rejects_a_dangling_variant_reference() -> None:
 
 
 def test_capture_retains_only_topical_records_and_counts_excluded_lines() -> None:
+    """Pins the capture's three topical IRIs, six scanned lines and three excluded lines."""
     capture = capture_lcsh_topical_subset(_fixture_lines(), source_url=SOURCE_URL)
 
     assert [record.concept_iri for record in capture.records] == [ACTIONSCRIPT, TACOS, SAKI]
@@ -281,6 +305,7 @@ def test_capture_retains_only_topical_records_and_counts_excluded_lines() -> Non
 
 
 def test_capture_is_bounded_and_stops_as_soon_as_max_records_is_reached() -> None:
+    """Pins that the capture stops at max_records and never reads the third fixture line."""
     capture = capture_lcsh_topical_subset(_fixture_lines(), source_url=SOURCE_URL, max_records=2)
 
     assert [record.concept_iri for record in capture.records] == [ACTIONSCRIPT, TACOS]
@@ -289,11 +314,13 @@ def test_capture_is_bounded_and_stops_as_soon_as_max_records_is_reached() -> Non
 
 
 def test_capture_rejects_a_non_positive_max_records() -> None:
+    """Pins refusal when max_records is zero."""
     with pytest.raises(LcshTopicalError, match="max_records"):
         capture_lcsh_topical_subset(_fixture_lines(), source_url=SOURCE_URL, max_records=0)
 
 
 def test_capture_refuses_a_bound_above_the_mapping_only_ceiling() -> None:
+    """Pins refusal when max_records exceeds the mapping-only ceiling."""
     with pytest.raises(LcshTopicalError, match="mapping-only ceiling"):
         capture_lcsh_topical_subset(
             _fixture_lines(),
@@ -303,12 +330,14 @@ def test_capture_refuses_a_bound_above_the_mapping_only_ceiling() -> None:
 
 
 def test_capture_rejects_a_repeated_concept_iri_within_one_stream() -> None:
+    """Pins refusal when one concept IRI repeats within a stream."""
     lines = [_line(0), _line(0)]
     with pytest.raises(LcshTopicalError, match="repeats"):
         capture_lcsh_topical_subset(lines, source_url=SOURCE_URL)
 
 
 def test_uri_selection_scans_once_and_keeps_every_requested_authority_class() -> None:
+    """Pins that URI selection scans once and returns requested authorities of any class in sorted IRI order."""
     capture = capture_lcsh_authorities_by_iri(
         _fixture_lines(),
         source_url=SOURCE_URL,
@@ -327,6 +356,7 @@ def test_uri_selection_scans_once_and_keeps_every_requested_authority_class() ->
 
 
 def test_uri_selection_fails_closed_when_a_requested_authority_is_absent() -> None:
+    """Pins refusal naming the one requested authority the stream lacks."""
     with pytest.raises(LcshTopicalError, match="lacks 1 requested authorities"):
         capture_lcsh_authorities_by_iri(
             _fixture_lines(),
@@ -353,6 +383,7 @@ def _deprecated_document(
     use_instead: bool = True,
     deletion_note: bool = True,
 ) -> dict:
+    """Build a synthetic deprecated-authority document matching the shape LC publishes."""
     authority: dict = {
         "@id": DEPRECATED_IRI,
         "@type": ["madsrdf:DeprecatedAuthority", "madsrdf:Topic", "madsrdf:Variant"],
@@ -373,10 +404,12 @@ def _deprecated_document(
 
 
 def _deprecated_line(**kwargs) -> bytes:
+    """Serialize a synthetic deprecated-authority document as UTF-8 JSON bytes."""
     return json.dumps(_deprecated_document(**kwargs)).encode("utf-8")
 
 
 def test_deprecated_authority_parses_with_variant_label_as_preferred_and_use_instead() -> None:
+    """Pins that a deprecated record's variant label becomes its preferred label, keeping use-instead IRIs."""
     record = parse_lcsh_authority_or_deprecated_ndjson_line(_deprecated_line(), source_url=SOURCE_URL, line_number=1)
 
     assert record is not None
@@ -391,6 +424,7 @@ def test_deprecated_authority_parses_with_variant_label_as_preferred_and_use_ins
 
 
 def test_deprecated_authority_without_use_instead_or_deletion_note_still_parses() -> None:
+    """Pins that a deprecated record without use-instead or a deletion note still parses."""
     record = parse_lcsh_authority_or_deprecated_ndjson_line(
         _deprecated_line(use_instead=False, deletion_note=False),
         source_url=SOURCE_URL,
@@ -404,6 +438,7 @@ def test_deprecated_authority_without_use_instead_or_deletion_note_still_parses(
 
 
 def test_active_record_parsed_by_the_deprecated_admitting_parser_carries_no_deprecation_fields() -> None:
+    """Pins that an active record through the deprecated-admitting parser carries no deprecation fields."""
     record = parse_lcsh_authority_or_deprecated_ndjson_line(_line(0), source_url=SOURCE_URL, line_number=1)
 
     assert record is not None
@@ -414,6 +449,7 @@ def test_active_record_parsed_by_the_deprecated_admitting_parser_carries_no_depr
 
 
 def test_parsers_that_never_admit_deprecated_still_reject_a_deprecated_line() -> None:
+    """Pins that the two non-opt-in parsers still refuse a deprecated authority."""
     # Callers that do not opt in see no behavior change: both existing
     # public parse functions still fail closed on a deprecated authority.
     with pytest.raises(LcshTopicalError, match="exactly one"):
@@ -423,6 +459,7 @@ def test_parsers_that_never_admit_deprecated_still_reject_a_deprecated_line() ->
 
 
 def test_authority_typed_both_active_and_deprecated_is_rejected() -> None:
+    """Pins refusal when a node is typed both Authority and DeprecatedAuthority."""
     document = _deprecated_document()
     document["@graph"][0]["@type"].append("madsrdf:Authority")
 
@@ -435,6 +472,7 @@ def test_authority_typed_both_active_and_deprecated_is_rejected() -> None:
 
 
 def test_blank_node_broader_target_is_excluded_only_when_admitting_deprecated() -> None:
+    """Pins that a blank-node broader target is dropped only by the deprecated-admitting parser."""
     document = json.loads(_line(0))
     document["@graph"][0]["madsrdf:hasBroaderAuthority"] = {"@id": "_:nblank1"}
     line = json.dumps(document).encode("utf-8")
@@ -448,6 +486,7 @@ def test_blank_node_broader_target_is_excluded_only_when_admitting_deprecated() 
 
 
 def test_repeated_variant_label_tolerated_only_when_admitting_deprecated() -> None:
+    """Pins that a duplicate variant label is deduplicated only by the deprecated-admitting parser."""
     # Line 2 (SAKI) has two madsrdf:hasVariant references, "Pale-headed saki"
     # and "Pithecia pithecia". Add a third reference to a new blank node
     # carrying an identical (value, language) pair to the first.
@@ -481,6 +520,7 @@ def test_repeated_variant_label_tolerated_only_when_admitting_deprecated() -> No
 
 
 def test_capture_current_and_referenced_deprecated_retains_only_referenced_deprecated() -> None:
+    """Pins that only referenced deprecated records are retained, with current authorities kept and misses reported."""
     # All six fixture lines are current authorities of some class (three
     # topical, three not); this reader admits every authority class, not
     # only topical headings, matching REF-040's "every authority class" scope.
@@ -506,6 +546,7 @@ def test_capture_current_and_referenced_deprecated_retains_only_referenced_depre
 
 
 def test_capture_current_and_referenced_deprecated_rejects_a_repeated_concept() -> None:
+    """Pins refusal when a concept repeats in the stream."""
     lines = [_line(0), _line(0)]
     with pytest.raises(LcshTopicalError, match="repeats concept"):
         capture_lcsh_current_and_referenced_deprecated(lines, source_url=SOURCE_URL, referenced_iris=())
@@ -521,6 +562,7 @@ PINNED_LCSH_BULK_PATH = (
 
 @pytest.mark.skipif(not PINNED_LCSH_BULK_PATH.is_file(), reason="pinned LCSH bulk file is not cached")
 def test_real_pinned_bulk_prefix_carries_a_real_deprecated_authority() -> None:
+    """Pins that a 200-line prefix of the real bulk file holds the sh00000273 deprecated record."""
     # A bounded 200-line prefix of the real pinned file, not the full
     # 521,055-line / ~15s scan: line 188 is the real sh00000273 deprecated
     # record this module's fixtures are modeled on.
@@ -542,6 +584,7 @@ def test_real_pinned_bulk_prefix_carries_a_real_deprecated_authority() -> None:
 
 
 def test_capture_from_gzip_path_streams_a_bounded_prefix(tmp_path: Path) -> None:
+    """Pins that the gzip-path capture streams a bounded two-record prefix."""
     gzip_path = tmp_path / "subjects.madsrdf.jsonld.gz"
     with gzip.open(gzip_path, "wb") as handle:
         handle.write(FIXTURE_PATH.read_bytes())
@@ -553,11 +596,13 @@ def test_capture_from_gzip_path_streams_a_bounded_prefix(tmp_path: Path) -> None
 
 
 def test_capture_from_gzip_path_rejects_a_missing_file(tmp_path: Path) -> None:
+    """Pins refusal when the gzip path is not a regular file."""
     with pytest.raises(LcshTopicalError, match="regular file"):
         capture_lcsh_topical_subset_from_gzip_path(tmp_path / "absent.gz", source_url=SOURCE_URL)
 
 
 def test_capture_from_gzip_path_rejects_a_symlink(tmp_path: Path) -> None:
+    """Pins refusal when the gzip path is a symlink, even to a regular file."""
     gzip_path = tmp_path / "subjects.madsrdf.jsonld.gz"
     with gzip.open(gzip_path, "wb") as handle:
         handle.write(FIXTURE_PATH.read_bytes())
@@ -569,11 +614,13 @@ def test_capture_from_gzip_path_rejects_a_symlink(tmp_path: Path) -> None:
 
 
 def _topical_records():
+    """Return the three topical records captured from the mini fixture."""
     capture = capture_lcsh_topical_subset(_fixture_lines(), source_url=SOURCE_URL)
     return capture.records
 
 
 def test_build_lcsh_topical_snapshot_produces_a_mapping_only_bundle(tmp_path: Path) -> None:
+    """Pins the mapping-only manifest, the coverage gap, the SAKI observation and the round-tripped bytes."""
     bundle = build_lcsh_topical_snapshot(
         _topical_records(),
         resource_id="lcsh-topical-mini-2026-08-03",
@@ -628,6 +675,7 @@ def test_build_lcsh_topical_snapshot_produces_a_mapping_only_bundle(tmp_path: Pa
 
 
 def test_build_lcsh_topical_snapshot_requires_at_least_one_record() -> None:
+    """Pins refusal when the snapshot is built with no records."""
     with pytest.raises(LcshTopicalError, match="at least one"):
         build_lcsh_topical_snapshot(
             (),
@@ -639,6 +687,7 @@ def test_build_lcsh_topical_snapshot_requires_at_least_one_record() -> None:
 
 
 def test_build_lcsh_topical_snapshot_rejects_mixed_source_urls() -> None:
+    """Pins refusal when records come from different source URLs."""
     records = list(_topical_records())
     other = parse_lcsh_topical_ndjson_line(
         _line(0),

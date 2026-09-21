@@ -1,82 +1,18 @@
 """Precompute browser-friendly artifacts for the Cloudflare Atlas explorer.
 
-Run this against the verified compact Parquet search view that already
-serves the local explorer (``refspec-atlas-explorer``). It never edits or
-reinterprets that view -- every JSON artifact below is produced by calling
-the *existing*, already-verified ``AtlasDuckDBView`` methods
+Run against the verified compact Parquet search view that already serves the
+local explorer, it writes the JSON, Parquet, NDJSON, and FTS files under
+--out without editing or reinterpreting the view -- every JSON artifact calls
+the existing, already-verified ``AtlasDuckDBView`` methods
 (``facets``/``overview``/``release_graph``) unchanged, and every reshaped
-Parquet table is produced by SQL copied verbatim (or trivially projected)
-from ``src/refspec/atlas/duckdb_view.py``. This script exists only because a
-browser cold-querying the full compact view over HTTP range requests cannot
-afford whole-corpus aggregates or an unsorted point lookup the way an
-in-process local DuckDB session can.
-
-Output layout (all under --out):
-  facets.json                          view.facets(), verbatim
-  browse-first-page.json               the ported frontend's fixed initial
-                                        search() call (q="", no filters,
-                                        status=active, limit=40, offset=0)
-                                        -- served without loading DuckDB-Wasm
-  overview-active.json                 view.overview(status="active")
-  overview-all.json                    view.overview(status="all")
-  overview-active-derived.json         view.overview(status="active", relations="all")
-                                        -- only when a REF-042 derived-
-                                        relations table is present; see
-                                        "resource-detail bundles" below
-  overview-all-derived.json            view.overview(status="all", relations="all")
-  agencies.json                        view.agency_projection(""), verbatim
-  release-graph/<slug>-active.json     view.release_graph(id, status="active")
-  release-graph/<slug>-all.json        view.release_graph(id, status="all")
-  release-graph/<slug>-active-derived.json
-                                        view.release_graph(id, status="active",
-                                        relations="all") -- same derived-table
-                                        gate as the overview *-derived.json
-  release-graph/<slug>-all-derived.json
-                                        view.release_graph(id, status="all",
-                                        relations="all")
-  release-index.json                   release id -> slug, for the frontend
-  tables/resources.parquet             atlas_resources + a denormalized best
-                                        English label, sorted by id (point
-                                        lookups for /resource and for
-                                        hydrating search-ranked ids)
-  tables/browse-order.parquet          id,label,release,ring,status sorted
-                                        by (lower(label), label, id) -- the
-                                        no-query browse/pagination path
-  tables/resource-detail/NNN.ndjson    one JSON line per resource -- the
-                                        same shape AtlasDuckDBView.resource()
-                                        returns, ALWAYS the unfiltered
-                                        status="all" relation set (each
-                                        relation additionally carries
-                                        subject_status/object_status so the
-                                        browser can derive status="active"
-                                        by filtering client-side -- see
-                                        "resource-detail bundles" below for
-                                        why one asymmetric-superset payload
-                                        replaces what used to be two
-                                        near-duplicate precomputed bodies).
-                                        Sharded into ~250MB files (wrangler's
-                                        own upload ceiling is 300MiB; the
-                                        full corpus, each resource carrying
-                                        verbose full IRIs/URNs per relation,
-                                        runs to several GB).
-  tables/resource-detail-index.parquet id -> (shard,offset,length) into the
-                                        shard directory above, sorted by id.
-                                        See "resource-detail bundles" below
-                                        for *why* this exists instead of
-                                        DuckDB-Wasm views over
-                                        labels/identifiers/statements/
-                                        evidence-bindings/source-records.
-  search/fts-dict.parquet              term,termid,df sorted by term
-  search/fts-terms.parquet             termid,docid,tf sorted by termid,docid
-  search/fts-docs.parquet              docid,id,len sorted by docid
-  search/fts-meta.json                 {numDocs, avgdl, k, b, field}
-
-The FTS export mirrors DuckDB's own bundled full-text-search extension: the
-`dict`/`terms`/`docs`/`stats` tables `PRAGMA create_fts_index` builds, and
-the exact BM25 formula its `match_bm25` SQL macro evaluates (both captured
-verbatim below). The browser reimplements that macro in plain SQL against
-these exported tables -- it never re-derives the index, so it never scans
-label text cold.
+Parquet table uses SQL copied from ``src/refspec/atlas/duckdb_view.py``.
+Resource-detail NDJSON is always the unfiltered ``status="all"`` relation set
+with per-relation endpoint statuses, sharded ~250MB under wrangler's 300MiB
+upload ceiling, and the FTS export mirrors DuckDB's bundled
+full-text-search ``dict``/``terms``/``docs``/``stats`` tables and BM25 macro
+so the browser never re-derives the index. The script exists because a
+browser cold-querying the full view over HTTP range requests cannot afford
+whole-corpus aggregates or unsorted point lookups.
 """
 
 from __future__ import annotations
@@ -238,33 +174,10 @@ _DERIVED_RELATION_COLUMNS = (
 def _remove_unwritten_map_artifacts(out: Path, written: set[Path]) -> list[Path]:
     """Delete every overview / release-graph JSON this run did not itself write.
 
-    Same reason -- and the same clear-what-you-did-not-write shape -- as the
-    stale resource-detail shards cleared further down: WHICH files a run
-    writes depends on the source view, and everything left over from a
-    previous view is unreachable but still shipped, because upload.sh walks
-    the tree with `find -type f` rather than reading an index.
-
-    Two ways a file goes unwritten, both of which used to survive:
-
-      * derived went away. Recomputing a pre-REF-042 view into a directory a
-        derived-carrying view already filled leaves ``*-derived.json`` for the
-        data layer to serve on a ``relations=all`` request the freshly written
-        facets.json says is impossible. This case had a fix -- but it ran
-        ONLY on the derived-unavailable branch, so it never covered:
-
-      * a RELEASE went away. On a derived-to-derived rebuild (derived
-        available before and after) nothing was cleaned at all, so a release
-        dropped from the view kept its whole set of map files:
-        ``release-graph/<slug>-{active,all}[-derived].json``. release-index.json
-        is rewritten from this run's releases alone, so the frontend never
-        links them -- and that is exactly what makes them invisible until they
-        show up in R2 as an orphaned copy of a retired release's graph.
-
-    So the cleanup is unconditional and set-based rather than conditional and
-    glob-based: the generation loops know precisely which paths they wrote, and
-    everything else matching the two output shapes is by definition from an
-    older run. It has to run AFTER generation for that reason -- the set of
-    written paths is not knowable before it exists.
+    Runs AFTER generation because the written-path set is not knowable before
+    it exists, and it is unconditional and set-based rather than glob-based so
+    a departed release or a dropped derived table cannot leave files that
+    ``upload.sh``'s ``find -type f`` still ships.
     """
 
     present = {*out.glob("overview-*.json"), *(out / "release-graph").glob("*.json")}
@@ -277,19 +190,10 @@ def _remove_unwritten_map_artifacts(out: Path, written: set[Path]) -> list[Path]
 def _write_overview_artifacts(view, out: Path, derived_available: bool) -> set[Path]:
     """Write overview-{active,all}[-derived].json; return the paths written.
 
-    relations="all" folds REF-042's non-authoritative derived relations into
-    BOTH halves of the map: a derived pair whose endpoints share a release
-    raises that release's internalRelations count, and a pair that crosses
-    releases (two of the five shipped rules do) becomes an extra `edges` row
-    tagged statement_type "DerivedRelation". Precomputed as a separate file,
-    exactly like the status variants already are, rather than always shipping
-    the derived-inclusive map: the toggle is opt-in and off by default, so the
-    default page load should not pay for -- or display -- volume the visitor
-    did not ask to see.
-
-    Returning the written set rather than just writing is what lets
-    _remove_unwritten_map_artifacts() work off a complement instead of a glob;
-    it is also the seam the derived-to-derived rebuild harness drives.
+    ``relations="all"`` folds REF-042's derived relations into both halves of
+    the map as a separate opt-in file, since the toggle is off by default;
+    returning the written set lets ``_remove_unwritten_map_artifacts`` work
+    off a complement instead of a glob.
     """
 
     written: set[Path] = set()
@@ -311,21 +215,11 @@ def _write_overview_artifacts(view, out: Path, derived_available: bool) -> set[P
 def _write_release_graph_artifacts(view, out: Path, derived_available: bool) -> set[Path]:
     """Write release-graph/<slug>-{status}[-derived].json + release-index.json.
 
-    relations="all" adds REF-042 derived edges whose subject AND object are
-    both members of this release, tagged statementType == "DerivedRelation" in
-    the returned `types` table (view.release_graph()'s own docstring).
-    Precomputed as separate files -- four per release instead of two -- the
-    same asymmetric-superset reasoning as the resource-detail bundle does not
-    apply here: unlike a per-resource payload the client cannot cheaply filter
-    client-side (release_graph()'s edge tuples don't carry statement_type per
-    edge, only an index into `types`, and capping/truncation runs over
-    whichever edge set was requested), so each combination is precomputed
-    outright.
-
-    release-index.json is rewritten from THIS run's releases alone, which is
-    why a departed release's own files went unnoticed for so long: the
-    frontend stops linking them the moment this file is rewritten, and the
-    only thing that still reads them is upload.sh's `find -type f`.
+    ``relations="all"`` adds REF-042 derived edges whose subject and object are
+    both members of that release; each combination is precomputed outright
+    because ``release_graph()`` edges carry only an index into ``types`` and
+    cannot be cheaply filtered client-side, and ``release-index.json`` is
+    rewritten from this run's releases alone.
     """
 
     releases = view.query_rows(
@@ -361,6 +255,8 @@ def _write_release_graph_artifacts(view, out: Path, derived_available: bool) -> 
 
 
 def _check_derived_relations_schema(con: duckdb.DuckDBPyConnection, root: Path) -> None:
+    """Refuse unless the derived-relations table carries every canonical REF-042 column this script reads."""
+
     path = root / "tables" / "derived-relations.parquet"
     described = con.execute(f"DESCRIBE SELECT * FROM read_parquet('{path.as_posix()}')").fetchall()
     found = {row[0] for row in described}
@@ -392,6 +288,8 @@ _RELEASE_GRAPH_NODE_CAP = 4000
 
 
 def _cap_release_graph(data: dict[str, object]) -> dict[str, object]:
+    """Cap a release graph to the highest-degree nodes, marking the payload truncated and counting dropped edges."""
+
     nodes = list(data["nodes"])  # type: ignore[arg-type]
     total = len(nodes)
     if total <= _RELEASE_GRAPH_NODE_CAP:

@@ -173,6 +173,8 @@ class ReferenceRuntimeError(ValueError):
 
 
 def _require_text(value: object, label: str) -> str:
+    """Return stripped text or refuse a missing value."""
+
     text = str(value or "").strip()
     if not text:
         raise ReferenceRuntimeError(f"{label} is required")
@@ -180,6 +182,8 @@ def _require_text(value: object, label: str) -> str:
 
 
 def _require_iri(value: object, label: str) -> str:
+    """Return an absolute IRI, refusing any other value."""
+
     iri = _require_text(value, label)
     parsed = urlsplit(iri)
     if not parsed.scheme:
@@ -188,6 +192,8 @@ def _require_iri(value: object, label: str) -> str:
 
 
 def _require_language_tag(value: object, label: str = "languageTag") -> str:
+    """Return a valid BCP 47 tag, refusing ``@none`` or malformed values."""
+
     tag = _require_text(value, label)
     if tag == "@none" or not _BCP47.fullmatch(tag):
         raise ReferenceRuntimeError(f"{label} must be a BCP 47 language tag")
@@ -195,6 +201,8 @@ def _require_language_tag(value: object, label: str = "languageTag") -> str:
 
 
 def _require_digest(value: object, label: str) -> str:
+    """Return a ``sha256:`` digest with lowercase hex, refusing any other spelling."""
+
     digest = _require_text(value, label)
     if not _SHA256.fullmatch(digest):
         raise ReferenceRuntimeError(f"{label} must be sha256:<lowercase hex>")
@@ -202,6 +210,8 @@ def _require_digest(value: object, label: str) -> str:
 
 
 def _require_decimal(value: object, label: str) -> Decimal:
+    """Return a finite canonical decimal, refusing any other spelling or a non-finite value."""
+
     text = _require_text(value, label)
     if not _CANONICAL_DECIMAL.fullmatch(text):
         raise ReferenceRuntimeError(f"{label} must be a canonical finite decimal string")
@@ -215,6 +225,8 @@ def _require_decimal(value: object, label: str) -> Decimal:
 
 
 def _require_datetime(value: object, label: str) -> str:
+    """Return an ISO-8601 date-time, refusing one without an RFC 3339 offset."""
+
     text = _require_text(value, label)
     try:
         parsed = datetime.fromisoformat(text)
@@ -252,6 +264,8 @@ def _require_reference(
     *,
     versioned: bool,
 ) -> None:
+    """Validate a reference mapping's exact fields and identity."""
+
     required = {"id", "digest"} | ({"version"} if versioned else set())
     _require_exact_fields(value, frozenset(required), label)
     _require_iri(value.get("id"), f"{label}.id")
@@ -264,6 +278,8 @@ def _require_component_pin(
     value: Mapping[str, Any],
     label: str,
 ) -> None:
+    """Validate a component pin's exact ``id``/``revision``/``digest`` fields."""
+
     _require_exact_fields(
         value,
         frozenset({"id", "revision", "digest"}),
@@ -282,6 +298,8 @@ def _record_base(
     recorded_by: str,
     operational_state: str,
 ) -> dict[str, Any]:
+    """Build the common REF record header fields."""
+
     return {
         "id": _require_iri(record_id, "id"),
         "type": _require_iri(record_type, "type"),
@@ -307,6 +325,8 @@ def _json_copy(value: Any) -> Any:
 
 
 def _assert_finite_json(value: object, path: str = "$") -> None:
+    """Refuse null, out-of-range integers, or non-finite floats anywhere in a record value."""
+
     if value is None:
         raise ReferenceRuntimeError(f"{path} contains null; omit optional fields")
     if isinstance(value, bool):
@@ -387,6 +407,8 @@ def require_payload_digest(
     *,
     digest_field: str | None = None,
 ) -> None:
+    """Verify a payload's stored digest, refusing a mismatch; ``digest_field`` overrides the default by record type."""
+
     resolved_digest_field = digest_field or (
         "contentDigest"
         if payload.get("type")
@@ -473,6 +495,8 @@ class ConceptLabel:
     migration_only: bool = False
 
     def __post_init__(self) -> None:
+        """Validate every label field and the reference pins."""
+
         _require_text(self.label_id, "label_id")
         _require_iri(self.concept_iri, "concept_iri")
         _require_iri(self.scheme_iri, "scheme_iri")
@@ -491,6 +515,8 @@ class ConceptLabel:
             raise ReferenceRuntimeError("migration_only must be a boolean")
 
     def to_row(self) -> dict[str, Any]:
+        """Render the label as a flat row."""
+
         return asdict(self)
 
 
@@ -511,6 +537,8 @@ class ConceptRelation:
     migration_only: bool = False
 
     def __post_init__(self) -> None:
+        """Validate every relation field and the reference pins."""
+
         _require_text(self.relation_id, "relation_id")
         _require_iri(self.release_iri, "release_iri")
         _require_text(self.import_snapshot_id, "import_snapshot_id")
@@ -531,6 +559,8 @@ class ConceptRelation:
             raise ReferenceRuntimeError("migration_only must be a boolean")
 
     def to_row(self) -> dict[str, Any]:
+        """Render the relation as a flat row."""
+
         return asdict(self)
 
 
@@ -549,6 +579,8 @@ class ConceptEventParticipant:
     migration_only: bool = False
 
     def __post_init__(self) -> None:
+        """Validate every participant field, ordinal, and membership flag."""
+
         _require_text(self.event_id, "event_id")
         _require_text(self.operation, "operation")
         _require_text(self.participant_role, "participant_role")
@@ -563,6 +595,8 @@ class ConceptEventParticipant:
             raise ReferenceRuntimeError("migration_only must be a boolean")
 
     def to_row(self) -> dict[str, Any]:
+        """Render the participant as a flat row."""
+
         return asdict(self)
 
 
@@ -694,6 +728,8 @@ def assert_managed_vocabulary_row_integrity(
 
 @dataclass(frozen=True)
 class CoverageException:
+    """One explicitly accounted coverage exception with its policy and rationale."""
+
     item_id: str
     stage: str
     count: int
@@ -701,6 +737,8 @@ class CoverageException:
     rationale: str
 
     def validate(self, *, exclusion: bool) -> None:
+        """Refuse an unknown stage, a non-positive count, or a malformed policy reference."""
+
         del exclusion
         _require_iri(self.item_id, "coverage account item id")
         if self.stage not in {"parsing", "indexing"}:
@@ -744,6 +782,8 @@ class ImportFeatureCoverage:
     index_difference_explanation: str | None = None
 
     def validate(self) -> None:
+        """Refuse an unknown feature or counts that do not reconcile."""
+
         if self.feature not in REQUIRED_IMPORT_FEATURES:
             raise ReferenceRuntimeError(f"unknown registry-import feature {self.feature!r}")
         if not isinstance(self.required_for_candidate_or_output, bool):
@@ -825,6 +865,8 @@ class ImportFeatureCoverage:
 
 @dataclass(frozen=True)
 class RegistryImportCoverageReport:
+    """Per-feature import accounting for one registry snapshot."""
+
     report_id: str
     recorded_at: str
     recorded_by: str
@@ -929,6 +971,8 @@ class RegistryImportCoverageReport:
 
 @dataclass(frozen=True)
 class IndexedVocabularyExpression:
+    """One indexed vocabulary expression bound to its import and release pins."""
+
     expression_id: str
     recorded_at: str
     recorded_by: str
@@ -1250,6 +1294,8 @@ def indexed_expression_corpus_digest(
 
 @dataclass(frozen=True)
 class RegistryReconciliationReport:
+    """The reconciled differences between a registry import and its mapped corpus."""
+
     report_id: str
     recorded_at: str
     recorded_by: str
@@ -1780,6 +1826,8 @@ class RegistryDeploymentDecision:
 
 
 def _validate_permission_use(row: Mapping[str, Any], label: str) -> None:
+    """Refuse an incoherent candidate/accepted-output pair or an unknown usage-eligibility value."""
+
     if not isinstance(row.get("candidateUse"), bool):
         raise ReferenceRuntimeError(f"{label}.candidateUse must be a boolean")
     if not isinstance(row.get("acceptedOutputUse"), bool):
@@ -1803,6 +1851,8 @@ def _require_exact_fields(
     required: frozenset[str],
     label: str,
 ) -> None:
+    """Refuse a permission row whose keys differ from the required set."""
+
     missing = sorted(required - set(row))
     extra = sorted(set(row) - required)
     if missing or extra:
@@ -1813,12 +1863,16 @@ def _require_unique_json_values(
     values: Sequence[Any],
     label: str,
 ) -> None:
+    """Refuse duplicate values after canonical JSON serialization."""
+
     serialized = [canonical_json(_json_copy(value)) for value in values]
     if len(set(serialized)) != len(serialized):
         raise ReferenceRuntimeError(f"{label} must contain unique values")
 
 
 def _require_nonempty_string_list(value: object, label: str) -> tuple[str, ...]:
+    """Require a non-empty, duplicate-free list of non-empty strings."""
+
     if not isinstance(value, Sequence) or isinstance(value, (str, bytes)) or not value:
         raise ReferenceRuntimeError(f"{label} must be a non-empty array")
     result = tuple(_require_text(item, f"{label} item") for item in value)
@@ -2229,6 +2283,8 @@ class OutputProfile:
         accepted_output: bool,
         kind: str,
     ) -> Mapping[str, Any]:
+        """Authorize one supplied permission tuple, refusing an unlisted facet, role, or route."""
+
         self.payload()
         key = "acceptedOutputUse" if accepted_output else "candidateUse"
         matches = [row for row in rows if all(row.get(name) == value for name, value in supplied.items())]
@@ -2249,6 +2305,8 @@ class OutputProfile:
         coverage_report: RegistryImportCoverageReport,
         accepted_output: bool,
     ) -> Mapping[str, Any]:
+        """Authorize one source release, refusing a permission tuple the profile does not carry."""
+
         self._resolved_enrichment_profile().require_compatible(
             facet=facet,
             assignment_role=assignment_role,
@@ -2305,6 +2363,8 @@ class OutputProfile:
         coverage_report: RegistryImportCoverageReport | None,
         accepted_output: bool,
     ) -> Mapping[str, Any]:
+        """Authorize one mapping between releases, refusing an unauthorized permission tuple."""
+
         self._resolved_enrichment_profile().require_compatible(
             facet=facet,
             assignment_role=assignment_role,
@@ -2382,6 +2442,8 @@ class OutputProfile:
         default_language: str | None,
         accepted_output: bool,
     ) -> Mapping[str, Any]:
+        """Authorize one open-label mode, refusing an unauthorized permission tuple."""
+
         self._resolved_enrichment_profile().require_compatible(
             facet=facet,
             assignment_role=assignment_role,
@@ -2539,6 +2601,8 @@ def materialize_open_label_value_assertion(
 
 
 def _require_mapping(value: object, label: str) -> Mapping[str, Any]:
+    """Require a non-empty object."""
+
     if not isinstance(value, Mapping) or not value:
         raise ReferenceRuntimeError(f"{label} must be a non-empty object")
     return cast(Mapping[str, Any], value)
@@ -2550,6 +2614,8 @@ def _require_array(
     *,
     nonempty: bool,
 ) -> Sequence[Any]:
+    """Require an array, optionally non-empty."""
+
     if isinstance(value, (str, bytes)) or not isinstance(value, Sequence):
         raise ReferenceRuntimeError(f"{label} must be an array")
     if nonempty and not value:
@@ -2559,6 +2625,8 @@ def _require_array(
 
 
 def _require_budget_limit(value: object, label: str) -> None:
+    """Require ``unlimited`` or a non-negative integer."""
+
     if value == "unlimited":
         return
     if not isinstance(value, int) or isinstance(value, bool) or value < 0:
@@ -2798,6 +2866,8 @@ def _validate_configuration_pins(
 
 @dataclass(frozen=True)
 class EnrichmentConfiguration:
+    """One sealed, pin-complete enrichment configuration."""
+
     configuration_id: str
     recorded_at: str
     recorded_by: str
@@ -3044,6 +3114,8 @@ class EnrichmentConfiguration:
 
 
 def _reference_set(values: object, label: str) -> set[str]:
+    """Require an array of reference objects and refuse a repeated one."""
+
     rows = _require_array(values, label, nonempty=False)
     result: set[str] = set()
     for index, raw in enumerate(rows):
@@ -3802,6 +3874,8 @@ class EnrichmentEvaluationResult:
 
 @dataclass(frozen=True)
 class EnrichmentDeploymentDecision:
+    """One environment's deployment decision over an evaluated configuration."""
+
     decision_id: str
     recorded_at: str
     recorded_by: str
@@ -4143,6 +4217,8 @@ class LegacyMigrationBatch:
     warnings: tuple[str, ...] = ()
 
     def assert_not_production(self) -> None:
+        """Refuse any use of a quarantined migration batch in production."""
+
         if self.production_eligible:
             raise ReferenceRuntimeError("legacy migration batches can never be production eligible")
 
@@ -4334,6 +4410,8 @@ def _legacy_iri(
     *,
     namespace: str,
 ) -> str:
+    """Return an absolute source IRI or prefix a legacy identifier for quarantine."""
+
     text = _require_text(value, "legacy identity")
     if urlsplit(text).scheme:
         return text
@@ -4644,6 +4722,8 @@ class ReferenceRuntimeStore:
         *,
         release_digest: str | None = None,
     ) -> Mapping[str, list[dict[str, Any]]]:
+        """Read the normalized vocabulary tables back, validating their scalar spellings."""
+
         directory = self.root
         if release_digest is not None:
             directory = (

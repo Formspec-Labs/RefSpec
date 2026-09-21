@@ -1,4 +1,9 @@
-"""The complete Federal Hierarchy roster: pinned pages, totals, anomalies."""
+"""The complete Federal Hierarchy roster: pinned page digests, totals, parenting and anomalies.
+
+Five pages plus the two filtered per-level witness responses pin 907 records
+(169 departments, 738 sub-tiers); publisher anomalies are recorded verbatim
+and any digest, byte-length or witness drift refuses the parse.
+"""
 
 from __future__ import annotations
 
@@ -17,10 +22,15 @@ SUB_TIER_WITNESS = (FIXTURES / "fh-orgs-total-subtier.json").read_bytes()
 
 
 def _roster() -> fh.FederalHierarchyCompleteRoster:
+    """Parse the five pinned pages and the two witness totals."""
+
     return fh.parse_complete_roster(PAGES, DEPT_WITNESS, SUB_TIER_WITNESS)
 
 
 def test_roster_is_complete_against_the_apis_own_totals() -> None:
+    """The roster matches the API's own totals: 907 records, 169 departments and 738 sub-tiers, all addressable by org
+    id."""
+
     roster = _roster()
 
     assert roster.total_records_reported == 907
@@ -34,6 +44,8 @@ def test_roster_is_complete_against_the_apis_own_totals() -> None:
 
 
 def test_every_sub_tier_parent_resolves_and_departments_self_parent() -> None:
+    """Every sub-tier's parent resolves to a department, and departments parent themselves."""
+
     roster = _roster()
     by_id = roster.by_org_id()
 
@@ -45,6 +57,8 @@ def test_every_sub_tier_parent_resolves_and_departments_self_parent() -> None:
 
 
 def test_sample_rows_preserve_publisher_identifiers() -> None:
+    """DoD keeps its name, agency code and all five published CGAC codes."""
+
     roster = _roster()
     dod = roster.by_org_id()["100000000"]
 
@@ -56,6 +70,8 @@ def test_sample_rows_preserve_publisher_identifiers() -> None:
 
 
 def test_publisher_anomalies_are_recorded_verbatim() -> None:
+    """Multi-CGAC, empty-agency-code, null-CGAC and missing-parent-history anomalies are recorded as published."""
+
     roster = _roster()
     anomalies = dict(roster.anomalies)
 
@@ -80,6 +96,8 @@ def test_publisher_anomalies_are_recorded_verbatim() -> None:
 
 
 def test_drifted_page_bytes_are_refused() -> None:
+    """A single flipped byte raises digest drift and a truncated page raises byte-length drift."""
+
     mutated = list(PAGES)
     mutated[2] = mutated[2][:-1] + bytes([mutated[2][-1] ^ 0x01])
     with pytest.raises(fh.FHCompleteSourceDriftError, match="digest drift"):
@@ -92,6 +110,8 @@ def test_drifted_page_bytes_are_refused() -> None:
 
 
 def test_swapped_or_missing_witnesses_are_refused() -> None:
+    """Swapping the per-level witnesses or supplying fewer pinned pages refuses."""
+
     with pytest.raises(fh.FHCompleteSourceDriftError):
         fh.parse_complete_roster(PAGES, SUB_TIER_WITNESS, DEPT_WITNESS)
     with pytest.raises(fh.FHCompleteSourceDriftError, match="pinned pages"):
@@ -99,6 +119,8 @@ def test_swapped_or_missing_witnesses_are_refused() -> None:
 
 
 def test_source_urls_are_credential_free() -> None:
+    """No pinned URL or payload carries an ``api_key`` credential."""
+
     for pin in (
         *fh.FH_COMPLETE_PAGES_2026_08_15,
         fh.FH_TOTAL_DEPT_WITNESS_2026_08_15,

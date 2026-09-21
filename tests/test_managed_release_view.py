@@ -1,4 +1,8 @@
-"""Immutable managed-release bundle and read-only view regressions."""
+"""Immutable managed-release bundle and read-only view regressions.
+
+Covers the graph-facts reader, the externally selected manifest digest, and the
+normalized-table round-trip checks that keep a bundle's facts and bytes aligned.
+"""
 
 from __future__ import annotations
 
@@ -72,6 +76,7 @@ _TABLE_COLUMNS_FOR_TEST = {
 
 
 def _write_json(path: Path, value: object) -> None:
+    """Write pretty, UTF-8 JSON with a trailing newline, creating parent directories."""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         json.dumps(value, ensure_ascii=False, indent=2) + "\n",
@@ -80,6 +85,7 @@ def _write_json(path: Path, value: object) -> None:
 
 
 def _descriptor(path: Path, root: Path) -> dict[str, str]:
+    """A manifest descriptor holding the root-relative posix path and the file's sha256."""
     return {
         "path": path.relative_to(root).as_posix(),
         "sha256": "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest(),
@@ -87,10 +93,12 @@ def _descriptor(path: Path, root: Path) -> dict[str, str]:
 
 
 def _manifest_digest(path: Path) -> str:
+    """The sha256 of a manifest file's exact bytes, as the caller-selected digest."""
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _open_view(path: Path) -> ManagedReleaseView:
+    """Open the full view against its own manifest digest."""
     return ManagedReleaseView.open(
         path,
         expected_manifest_digest=_manifest_digest(path),
@@ -98,6 +106,7 @@ def _open_view(path: Path) -> ManagedReleaseView:
 
 
 def _open_graph_facts(path: Path) -> ManagedReleaseGraphFactsView:
+    """Open the graph-facts reader against its own manifest digest."""
     return ManagedReleaseGraphFactsView.open(
         path,
         expected_manifest_digest=_manifest_digest(path),
@@ -111,6 +120,11 @@ def build_bundle(
     release_members: list[str] | None = None,
     scheme_prior_version: str | None = None,
 ) -> Path:
+    """Write a complete synthetic managed-release bundle and return its manifest path.
+
+    Optional flags switch the eligibility member to a local concept, override the
+    release's exact member list, or add a prior version to the scheme.
+    """
     exact_release_members = (
         [MEMBER_ID, ELIGIBILITY_MEMBER_ID]
         if release_members is None
@@ -702,6 +716,7 @@ def _replace_normalized_table(
     table_name: str,
     rows: list[dict[str, object]],
 ) -> None:
+    """Rewrite one normalized parquet table and re-describe it in the manifest."""
     table_path = manifest_path.parent / "tables" / f"{table_name}.parquet"
     write_parquet_rows(
         table_path,
@@ -717,6 +732,10 @@ def _replace_normalized_table(
 
 
 def test_view_is_exact_and_read_only_after_verified_open(tmp_path: Path) -> None:
+    """A verified open exposes exact member, expression, relation, mapping and
+    lifecycle facts, freezes every record, exposes no mutating method, and is
+    unaffected by later file tampering.
+    """
     manifest_path = build_bundle(tmp_path)
     view = _open_view(manifest_path)
 
@@ -784,6 +803,9 @@ def test_view_is_exact_and_read_only_after_verified_open(tmp_path: Path) -> None
 
 
 def test_graph_facts_view_matches_full_graph_and_members(tmp_path: Path) -> None:
+    """The graph-facts reader returns the same release id, graph, receipt and
+    members as the full view while exposing no expression API.
+    """
     manifest_path = build_bundle(tmp_path)
 
     full = _open_view(manifest_path)
@@ -811,6 +833,7 @@ def test_graph_facts_never_constructs_expression_validator(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Opening graph facts must not construct the expression-corpus validator at all."""
     manifest_path = build_bundle(tmp_path)
 
     def forbidden_validator() -> None:
@@ -828,6 +851,7 @@ def test_graph_facts_never_constructs_expression_validator(
 def test_graph_facts_rejects_corpus_byte_corruption_and_next_open_mutation(
     tmp_path: Path,
 ) -> None:
+    """Corpus byte corruption is invisible to an open reader but fails the next open with digest mismatch."""
     manifest_path = build_bundle(tmp_path)
     facts = _open_graph_facts(manifest_path)
     corpus_path = tmp_path / "corpus" / "indexed-expressions.jsonl"
@@ -842,6 +866,9 @@ def test_graph_facts_rejects_corpus_byte_corruption_and_next_open_mutation(
 def test_graph_facts_accepts_hash_consistent_semantic_corpus_corruption_only(
     tmp_path: Path,
 ) -> None:
+    """A resealed literal change passes the graph-facts reader but the full
+    view refuses it as an id not binding its exact identity.
+    """
     manifest_path = build_bundle(tmp_path)
     corpus_path = tmp_path / "corpus" / "indexed-expressions.jsonl"
     records = [
@@ -874,6 +901,7 @@ def test_graph_facts_accepts_hash_consistent_semantic_corpus_corruption_only(
 
 
 def test_graph_facts_rejects_incomplete_release(tmp_path: Path) -> None:
+    """A release with no complete-membership members is refused."""
     manifest_path = build_bundle(tmp_path, release_members=[])
 
     with pytest.raises(
@@ -886,6 +914,7 @@ def test_graph_facts_rejects_incomplete_release(tmp_path: Path) -> None:
 def test_graph_facts_rejects_graph_corruption_after_outer_repin(
     tmp_path: Path,
 ) -> None:
+    """A tampered graph fails even after the manifest is repinned, against the exact Rulespec graph digest."""
     manifest_path = build_bundle(tmp_path)
     graph_path = tmp_path / "rulespec" / "release.jsonld"
     graph = json.loads(graph_path.read_text(encoding="utf-8"))
@@ -902,6 +931,7 @@ def test_graph_facts_rejects_graph_corruption_after_outer_repin(
 def test_graph_facts_rejects_dependency_corruption_after_outer_repin(
     tmp_path: Path,
 ) -> None:
+    """A tampered dependency manifest fails against the exact RefSpec-embedded bytes even after repinning."""
     manifest_path = build_bundle(tmp_path)
     dependency_path = tmp_path / "rulespec" / "rulespec-dependency.json"
     dependency = json.loads(dependency_path.read_text(encoding="utf-8"))
@@ -921,6 +951,7 @@ def test_graph_facts_rejects_dependency_corruption_after_outer_repin(
 def test_graph_facts_rejects_receipt_corruption_after_outer_repin(
     tmp_path: Path,
 ) -> None:
+    """A receipt claiming a different gate digest fails against the installed RefSpec gate."""
     manifest_path = build_bundle(tmp_path)
     receipt_path = tmp_path / "validation" / "combined-receipt.json"
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
@@ -939,6 +970,7 @@ def test_graph_facts_rejects_receipt_corruption_after_outer_repin(
 
 
 def test_graph_facts_rejects_repeated_artifact_path(tmp_path: Path) -> None:
+    """Two manifest entries pointing at one artifact path are refused as duplicates."""
     manifest_path = build_bundle(tmp_path)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["normalizedTables"][1].update(
@@ -956,6 +988,7 @@ def test_graph_facts_rejects_repeated_artifact_path(tmp_path: Path) -> None:
 def test_graph_facts_rejects_missing_or_symlinked_artifact(
     tmp_path: Path,
 ) -> None:
+    """A missing artifact and a symlinked artifact are both refused."""
     manifest_path = build_bundle(tmp_path)
     label_path = tmp_path / "tables" / "concept_labels.parquet"
     saved_path = tmp_path / "tables" / "saved-concept-labels.parquet"
@@ -972,6 +1005,7 @@ def test_graph_facts_rejects_missing_or_symlinked_artifact(
 def test_graph_property_targets_are_indexed_once_per_node(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Each node's graph properties are read once and indexed by language literal, IRI target and IRI sequence."""
     calls = 0
     original = managed_release_module._iri_values
 
@@ -1012,6 +1046,7 @@ def test_graph_property_targets_are_indexed_once_per_node(
 
 
 def test_indexed_expression_identity_includes_semantic_property() -> None:
+    """Expression identity changes with the semantic property, so prefLabel and altLabel ids differ."""
     common = {
         "reference_resource_release": {
             "id": RELEASE_ID,
@@ -1047,6 +1082,7 @@ def test_indexed_expression_identity_includes_semantic_property() -> None:
 
 
 def test_bundle_rejects_artifact_tampering(tmp_path: Path) -> None:
+    """An appended byte to a bundled artifact fails the manifest digest at open."""
     manifest_path = build_bundle(tmp_path)
     corpus_path = tmp_path / "corpus" / "indexed-expressions.jsonl"
     corpus_path.write_bytes(corpus_path.read_bytes() + b" ")
@@ -1058,6 +1094,7 @@ def test_bundle_rejects_artifact_tampering(tmp_path: Path) -> None:
 def test_expression_corpus_record_count_is_an_independent_pin(
     tmp_path: Path,
 ) -> None:
+    """A manifest recordCount disagreeing with the corpus is refused."""
     manifest_path = build_bundle(tmp_path)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["indexedExpressionCorpus"]["recordCount"] = 3
@@ -1073,6 +1110,7 @@ def test_expression_corpus_record_count_is_an_independent_pin(
 def test_expression_corpus_identity_tamper_fails_after_file_repin(
     tmp_path: Path,
 ) -> None:
+    """A resealed literal change fails after the manifest is repinned, as an id not binding its exact identity."""
     manifest_path = build_bundle(tmp_path)
     corpus_path = tmp_path / "corpus" / "indexed-expressions.jsonl"
     records = [
@@ -1105,6 +1143,7 @@ def test_expression_corpus_identity_tamper_fails_after_file_repin(
 def test_expression_corpus_file_order_does_not_change_logical_identity(
     tmp_path: Path,
 ) -> None:
+    """Reversing the corpus lines keeps both expression identities."""
     manifest_path = build_bundle(tmp_path)
     corpus_path = tmp_path / "corpus" / "indexed-expressions.jsonl"
     lines = corpus_path.read_text(encoding="utf-8").splitlines()
@@ -1144,6 +1183,7 @@ def test_bundle_rejects_normalized_rows_that_do_not_round_trip_to_graph(
     field: str,
     replacement: str,
 ) -> None:
+    """A normalized row whose IRIs do not round-trip to the graph is refused."""
     manifest_path = build_bundle(tmp_path)
     table_path = tmp_path / "tables" / f"{table_name}.parquet"
     rows = pq.read_table(table_path).to_pylist()
@@ -1167,6 +1207,7 @@ def test_bundle_rejects_normalized_rows_that_do_not_round_trip_to_graph(
 def test_bundle_rejects_normalized_row_with_unpackaged_import_snapshot(
     tmp_path: Path,
 ) -> None:
+    """A row referencing an import snapshot absent from the bundle is refused."""
     manifest_path = build_bundle(tmp_path)
     table_path = tmp_path / "tables" / "concept_relations.parquet"
     rows = pq.read_table(table_path).to_pylist()
@@ -1187,6 +1228,7 @@ def test_bundle_rejects_normalized_row_with_unpackaged_import_snapshot(
 def test_bundle_rejects_label_role_that_disagrees_with_skos_property(
     tmp_path: Path,
 ) -> None:
+    """A label role disagreeing with its SKOS property is refused."""
     manifest_path = build_bundle(tmp_path)
     table_path = tmp_path / "tables" / "concept_labels.parquet"
     rows = pq.read_table(table_path).to_pylist()
@@ -1207,6 +1249,7 @@ def test_bundle_rejects_label_role_that_disagrees_with_skos_property(
 def test_bundle_rejects_duplicate_lifecycle_participant_role_ordinal(
     tmp_path: Path,
 ) -> None:
+    """A repeated event/role/ordinal triple is refused."""
     manifest_path = build_bundle(tmp_path)
     table_path = tmp_path / "tables" / "concept_event_participants.parquet"
     rows = pq.read_table(table_path).to_pylist()
@@ -1227,6 +1270,7 @@ def test_bundle_rejects_duplicate_lifecycle_participant_role_ordinal(
 def test_bundle_rejects_relation_lineage_that_disagrees_with_import_snapshot(
     tmp_path: Path,
 ) -> None:
+    """Relation lineage disagreeing with the import snapshot is refused."""
     manifest_path = build_bundle(tmp_path)
     table_path = tmp_path / "tables" / "concept_relations.parquet"
     rows = pq.read_table(table_path).to_pylist()
@@ -1247,6 +1291,7 @@ def test_bundle_rejects_relation_lineage_that_disagrees_with_import_snapshot(
 def test_bundle_rejects_lifecycle_participant_concept_type_mismatch(
     tmp_path: Path,
 ) -> None:
+    """A participant concept type that does not match the member graph is refused."""
     manifest_path = build_bundle(tmp_path)
     table_path = tmp_path / "tables" / "concept_event_participants.parquet"
     rows = pq.read_table(table_path).to_pylist()
@@ -1267,6 +1312,7 @@ def test_bundle_rejects_lifecycle_participant_concept_type_mismatch(
 def test_bundle_requires_the_externally_selected_manifest_digest(
     tmp_path: Path,
 ) -> None:
+    """A caller-supplied manifest digest that disagrees with the bytes raises manifest digest mismatch."""
     manifest_path = build_bundle(tmp_path)
 
     with pytest.raises(ManagedReleaseError, match="manifest digest mismatch"):
@@ -1289,6 +1335,7 @@ def test_bundle_rejects_non_relative_or_traversing_paths(
     tmp_path: Path,
     unsafe_path: str,
 ) -> None:
+    """Absolute, traversing, Windows-style and URL manifest paths are refused as not relative."""
     manifest_path = build_bundle(tmp_path)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["publicationReleaseManifest"]["path"] = unsafe_path
@@ -1299,6 +1346,7 @@ def test_bundle_rejects_non_relative_or_traversing_paths(
 
 
 def test_bundle_rejects_mutable_path_without_digest(tmp_path: Path) -> None:
+    """A manifest entry without a sha256 is refused for lacking an immutable digest."""
     manifest_path = build_bundle(tmp_path)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     del manifest["rulespecGraph"]["sha256"]
@@ -1309,6 +1357,7 @@ def test_bundle_rejects_mutable_path_without_digest(tmp_path: Path) -> None:
 
 
 def test_bundle_rejects_missing_artifact(tmp_path: Path) -> None:
+    """A missing bundled artifact is refused."""
     manifest_path = build_bundle(tmp_path)
     (tmp_path / "tables" / "concept_labels.parquet").unlink()
 
@@ -1317,6 +1366,7 @@ def test_bundle_rejects_missing_artifact(tmp_path: Path) -> None:
 
 
 def test_bundle_rejects_ref_record_reference_mismatch(tmp_path: Path) -> None:
+    """A publication referencing a ref record by the wrong digest is refused as digest-mismatched."""
     manifest_path = build_bundle(tmp_path)
     publication_path = tmp_path / "records" / "publication.json"
     publication = json.loads(publication_path.read_text(encoding="utf-8"))
@@ -1337,6 +1387,7 @@ def test_bundle_rejects_ref_record_reference_mismatch(tmp_path: Path) -> None:
 def test_bundle_rejects_digest_valid_but_schema_invalid_publication(
     tmp_path: Path,
 ) -> None:
+    """A resealed publication missing a required field still fails the REF JSON Binding."""
     manifest_path = build_bundle(tmp_path)
     publication_path = tmp_path / "records" / "publication.json"
     publication = json.loads(publication_path.read_text(encoding="utf-8"))
@@ -1360,6 +1411,7 @@ def test_bundle_rejects_digest_valid_but_schema_invalid_publication(
 def test_bundle_rejects_expression_and_lookup_identity_conflation(
     tmp_path: Path,
 ) -> None:
+    """A lookup index manifest that copies the corpus snapshot is refused as conflating the two identities."""
     manifest_path = build_bundle(tmp_path)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["lookupIndexManifest"] = dict(
@@ -1372,6 +1424,7 @@ def test_bundle_rejects_expression_and_lookup_identity_conflation(
 
 
 def test_bundle_rejects_embedded_physical_lookup_index(tmp_path: Path) -> None:
+    """A packaged lookup index is refused as consumer configuration rather than bundle content."""
     manifest_path = build_bundle(tmp_path)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["lookupIndexManifest"] = {
@@ -1387,6 +1440,7 @@ def test_bundle_rejects_embedded_physical_lookup_index(tmp_path: Path) -> None:
 def test_bundle_rejects_nonpassing_combined_validation_receipt(
     tmp_path: Path,
 ) -> None:
+    """A combined receipt carrying a failing verdict is refused."""
     manifest_path = build_bundle(tmp_path)
     receipt_path = tmp_path / "validation" / "combined-receipt.json"
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
@@ -1410,6 +1464,7 @@ def test_bundle_rejects_nonpassing_combined_validation_receipt(
 def test_bundle_rejects_combined_receipt_with_incomplete_ref_coverage(
     tmp_path: Path,
 ) -> None:
+    """A combined receipt missing a ref record digest is refused for incomplete coverage."""
     manifest_path = build_bundle(tmp_path)
     receipt_path = tmp_path / "validation" / "combined-receipt.json"
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
@@ -1434,6 +1489,7 @@ def test_bundle_rejects_combined_receipt_with_incomplete_ref_coverage(
 def test_bundle_rejects_self_consistent_alternate_rulespec_dependency(
     tmp_path: Path,
 ) -> None:
+    """A self-consistent substituted dependency manifest still fails against the exact RefSpec-embedded bytes."""
     manifest_path = build_bundle(tmp_path)
     dependency_path = tmp_path / "rulespec" / "rulespec-dependency.json"
     dependency = json.loads(dependency_path.read_text(encoding="utf-8"))
@@ -1453,6 +1509,7 @@ def test_bundle_rejects_self_consistent_alternate_rulespec_dependency(
 def test_bundle_rejects_receipt_claiming_another_gate(
     tmp_path: Path,
 ) -> None:
+    """A receipt naming a gate digest other than the installed one is refused."""
     manifest_path = build_bundle(tmp_path)
     receipt_path = tmp_path / "validation" / "combined-receipt.json"
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
@@ -1473,6 +1530,7 @@ def test_bundle_rejects_receipt_claiming_another_gate(
 def test_bundle_rejects_uncovered_authorization_evaluation(
     tmp_path: Path,
 ) -> None:
+    """An authorization evaluation naming an unpackaged deployment is refused for incomplete coverage."""
     manifest_path = build_bundle(tmp_path)
     receipt_path = tmp_path / "validation" / "combined-receipt.json"
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))

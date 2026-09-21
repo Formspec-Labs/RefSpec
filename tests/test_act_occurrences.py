@@ -1,4 +1,4 @@
-"""Exact act occurrences, frozen legacy comparisons and misleading neighbors."""
+"""Exact act occurrences: spans, pinpoints, division fencing, and verdict identity with the frozen matcher."""
 import json
 from pathlib import Path
 
@@ -16,11 +16,17 @@ ADJACENT = {
 
 
 def occurrences(text, names=NAMES):
+    """Return the current reader's act-relative occurrences for a text."""
     return grammar.find_act_relative_occurrences(text, act_names=names)
 
 
 @pytest.mark.parametrize('row', ROWS, ids=lambda r:r['rin'])
 def test_real_fields_and_mutations_preserve_legacy_except_declared_additions(row):
+    """Real rows plus three mutations keep verdict identity with the frozen matcher.
+
+    The two ADJACENT spellings are the declared exception: the legacy matcher
+    found nothing there and the new reader returns the act.
+    """
     raw = row['authority_text']
     for text in (raw, '🧭 ' + raw, raw.replace(' ', '\n'), raw + '; separate statement.'):
         old = before(text, act_names=NAMES)
@@ -36,6 +42,7 @@ def test_real_fields_and_mutations_preserve_legacy_except_declared_additions(row
 
 
 def test_repeats_pinpoints_and_line_breaks_survive():
+    """Pins that one citation repeated across a line break yields two spans, one citation, one pinpoint."""
     text = '🧭 Clean Air\nAct section 111(d); then Clean Air Act section 111(d).'
     first, second = occurrences(text)
     assert first.start < first.end < second.start < second.end
@@ -47,6 +54,7 @@ def test_repeats_pinpoints_and_line_breaks_survive():
 
 
 def test_reversed_and_spaced_pinpoints():
+    """Pins that a spaced reversed pinpoint "(d)( 2 )" still reads ('d','2') and keeps the full span."""
     item, = occurrences('Section 1886(d)( 2 ) of the Social Security Act.')
     assert item.text == 'Section 1886(d)( 2 ) of the Social Security Act'
     assert item.pinpoint == ('d','2')
@@ -58,6 +66,10 @@ def test_reversed_and_spaced_pinpoints():
     ('\n\nDivision B is unrelated.', None),
 ])
 def test_unrelated_division_is_not_borrowed(neighbor, old_division):
+    """Pins that a division label in an unrelated neighbor is not borrowed into the citation.
+
+    The old lowercase matcher did borrow it; uppercase is the no-change control.
+    """
     text = 'Clean Air Act section 111.' + neighbor
     old, = before(text, act_names=NAMES)
     item, = occurrences(text)
@@ -68,6 +80,7 @@ def test_unrelated_division_is_not_borrowed(neighbor, old_division):
 
 
 def test_explicit_division_of_named_act_remains_in_citation():
+    """Pins that an explicit "Division B of the Clean Air Act" keeps B, including across a long gap."""
     item, = occurrences('Division B of the Clean Air Act section 111.')
     assert item.citation.division == 'B'
     assert item.text == 'Division B of the Clean Air Act section 111'
@@ -79,6 +92,7 @@ def test_explicit_division_of_named_act_remains_in_citation():
 
 @pytest.mark.parametrize('qualifier', ['(2025)', '(as amended)'])
 def test_short_surrounding_qualifier_does_not_become_a_pinpoint(qualifier):
+    """Pins that a short parenthetical qualifier such as "(2025)" is not read as a pinpoint."""
     text = f'Section 111 {qualifier} of the Clean Air Act'
     assert grammar.find_act_relative_citations(text, act_names=NAMES) == before(text, act_names=NAMES)
     item, = occurrences(text)
@@ -95,10 +109,12 @@ def test_short_surrounding_qualifier_does_not_become_a_pinpoint(qualifier):
     'Section 111\n\nClean Air Act',
 ])
 def test_unknown_or_separate_name_does_not_become_a_citation(text):
+    """Pins that an unknown act name or a name across a sentence/paragraph boundary yields no occurrence."""
     assert not occurrences(text)
 
 
 def test_mapping_keys_remain_canonical():
+    """Pins that a Mapping of spelling variants still publishes the canonical popular-name key."""
     item, = occurrences('sec. 204 of the Motor Carrier Act of 1935', {'motor carrier act of 1935':'motor carrier act, 1935'})
     assert item.citation.act_key == 'motor carrier act, 1935'
     assert item.text == 'sec. 204 of the Motor Carrier Act of 1935'

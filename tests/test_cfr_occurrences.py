@@ -24,6 +24,9 @@ from refspec.registry.citation_grammar import CfrCitation, CfrCitationRange, fin
 ])
 @pytest.mark.parametrize('policy', ['plural-label', 'always'])
 def test_existing_readings_match_frozen_oracle(text, policy):
+    """Every reading matches the copied oracle except the two named compound/range changes; spans cover the matched
+    text."""
+
     expected = original_parse(text, list_expansion=policy)
     # Frozen, named changes: complete compound identity and stated range.
     if text == '41 CFR 60–1':
@@ -40,6 +43,8 @@ def test_existing_readings_match_frozen_oracle(text, policy):
 
 
 def test_repeated_occurrences_preserve_unicode_positions_and_raw_pinpoint_spacing():
+    """Repeated citations keep per-occurrence offsets after an emoji and preserve raw pinpoint spacing."""
+
     citation = '14 CFR § 91.107(a)(3)(iii)(B)( 4 )'
     text = f'😀 {citation}; then {citation}.'
     first, second = find_cfr_citations(text)
@@ -50,6 +55,8 @@ def test_repeated_occurrences_preserve_unicode_positions_and_raw_pinpoint_spacin
 
 
 def test_list_continuations_keep_the_source_that_supplied_their_title():
+    """Continuation members point their context back at the citation text that supplied the shared title."""
+
     text = '40 CFR §§ 82.155, 82.156, and 82.157'
     first, *rest = find_cfr_citations(text)
     assert first.context_start is None
@@ -58,6 +65,9 @@ def test_list_continuations_keep_the_source_that_supplied_their_title():
 
 
 def test_pinpoints_do_not_hide_the_next_member_of_a_plural_list():
+    """Attached pinpoints no longer hide the next list member; the copied oracle proves this is a named coverage
+    change."""
+
     text = '40 CFR §§ 82.155(a), 82.156(b)'
     # Both native readers now walk past pinpoints; the copied old reader
     # proves this is a named coverage change, not unchanged behavior.
@@ -70,6 +80,8 @@ def test_pinpoints_do_not_hide_the_next_member_of_a_plural_list():
 
 
 def test_separated_edition_is_not_a_pinpoint_and_invalid_title_stays_inspectable():
+    """A separated edition parenthetical is not a pinpoint, and an impossible title remains inspectable."""
+
     citation, = find_cfr_citations('40 CFR 82.154 (2025)')
     assert not citation.pinpoint and citation.text == '40 CFR 82.154'
     damaged, = find_cfr_citations('1345 CFR 1370.31(a)')
@@ -78,6 +90,8 @@ def test_separated_edition_is_not_a_pinpoint_and_invalid_title_stays_inspectable
 
 
 def test_serialized_existing_identity_fields_do_not_change():
+    """The serialized identity fields of a citation are unchanged by the occurrence work."""
+
     citation, = parse_cfr_citations('40 CFR 82.154(a)(2)')
     assert asdict(citation) == {'cfr_title': 40, 'cfr_part': '82', 'cfr_section': '154',
                                'title_is_possible': True, 'part_is_plausible': True}

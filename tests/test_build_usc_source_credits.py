@@ -1,14 +1,9 @@
 """What ``tools/build_usc_source_credits.py`` retains, refuses, and reproduces.
 
-Every credit these tests assert against is the verbatim flattened text of a real
-``<sourceCredit>`` in release point 119-102, pinned by
-``research/evidence/usc-regeneration-2026-08-31/fixtures/uslm-source-credits.json``
-and cut by that directory's ``scripts/extract_fixtures.py``. The USLM scaffold
-around a credit is built here rather than pinned, because the ancestry -- not
-the markup -- is the fact under test, and because the cases that must be refused
-(a credit under no section, a credit whose page its own citation never states)
-do not occur on this release point and can only be reached by mutating a real
-one. Each such mutation is named where it is made.
+Credits are the verbatim flattened ``<sourceCredit>`` text of release point
+119-102, pinned by research/evidence/usc-regeneration-2026-08-31/fixtures/uslm-source-credits.json;
+the USLM scaffold around them is built here because ancestry, not markup, is
+the fact under test, and the refusal cases exist only as the named mutations below.
 """
 
 from __future__ import annotations
@@ -77,6 +72,8 @@ def uslm_with_a_nested_section(outer: tuple[str, str], inner: tuple[str, str]) -
 
 
 def test_an_added_construction_is_the_only_thing_that_claims_an_enactment() -> None:
+    """Pin that an "as added" construction is the only lead that yields an enactment row."""
+
     scan = builder.scan_source_credits(uslm((identifier("added_enactment"), credit("added_enactment"))))
 
     assert scan.credits_scanned == 1
@@ -88,6 +85,8 @@ def test_an_added_construction_is_the_only_thing_that_claims_an_enactment() -> N
 
 
 def test_a_citation_with_no_construction_is_refused_even_though_it_names_a_division() -> None:
+    """Fail if a citation that matches the expression but lacks the enactment lead is retained."""
+
     # 22 U.S.C. 2714a: "(Pub. L. 114-94, div. C, title XXXII, § 32101, ...)".
     # Everything the expression needs is present and the lead is not, so this
     # index carries no row for it.
@@ -102,6 +101,8 @@ def test_a_citation_with_no_construction_is_refused_even_though_it_names_a_divis
 
 
 def test_the_measured_false_positive_the_strict_rule_removes_stays_removed() -> None:
+    """Pin that a credit naming another act's division without "amended" is not read as an enactment."""
+
     # 26 U.S.C. 7652's credit names (116-260, div. EE, § 107) -- the act section
     # that enacted 26 U.S.C. 6038E -- and never uses the word "amended", which
     # is why reading the role by proximity to that word does not work either.
@@ -116,6 +117,8 @@ def test_the_measured_false_positive_the_strict_rule_removes_stays_removed() -> 
 
 
 def test_the_lead_is_read_across_an_intervening_structural_unit() -> None:
+    """Pin that the lead is found across an intervening title, keeping the last act section."""
+
     # "as added Pub. L. 117-58, div. D, title I, § 40123" -- title I is crossed
     # and not captured, because the act section is the last one.
     scan = builder.scan_source_credits(uslm((identifier("en_dash_section"), credit("en_dash_section"))))
@@ -128,6 +131,8 @@ def test_the_lead_is_read_across_an_intervening_structural_unit() -> None:
 
 
 def test_the_page_search_stops_where_the_next_citation_begins() -> None:
+    """Pin that the enactment's own page is taken, not the later amendment's."""
+
     # 5 U.S.C. 3116: an enactment at 132 Stat. 2007 and an amendment at
     # 133 Stat. 1604, in one credit. They are not interchangeable.
     text = credit("enactment_then_amendment")
@@ -139,14 +144,11 @@ def test_the_page_search_stops_where_the_next_citation_begins() -> None:
 
 
 def test_an_enactment_stating_no_page_of_its_own_borrows_none(tmp_path: Path) -> None:
-    """The mutation the release point does not supply.
+    """Pin the bound under load: deleting the enactment's own page must refuse the row, not borrow the amendment's 133
+    Stat. 1604.
 
-    On 119-102 every retained citation states its page before the next one
-    begins, so the bound never changes an answer and cannot be shown working by
-    real data alone. Deleting the enactment's own page from the real 5 U.S.C.
-    3116 credit is what puts the rule under load: bounded, the row refuses;
-    unbounded, it would reach past the semicolon and publish the *amendment's*
-    133 Stat. 1604 as the enactment's page.
+    The release point never exercises the bound, so this mutation is what puts
+    it under load; the scan must also record pages_the_bound_changed == 1.
     """
 
     text = credit("enactment_then_amendment").replace(", Aug. 13, 2018, 132 Stat. 2007", ", Aug. 13, 2018")
@@ -167,6 +169,8 @@ def test_an_enactment_stating_no_page_of_its_own_borrows_none(tmp_path: Path) ->
 
 
 def test_a_credit_is_attributed_to_its_ancestor_not_its_nearest_preceding_tag() -> None:
+    """Fail if a credit is attributed to the nearest preceding tag instead of its actual section ancestor."""
+
     outer, inner = identifier("added_enactment"), identifier("enactment_then_amendment")
     document = uslm_with_a_nested_section(
         (outer, credit("added_enactment")),
@@ -191,6 +195,8 @@ def test_a_credit_is_attributed_to_its_ancestor_not_its_nearest_preceding_tag() 
 
 
 def test_a_uslm_en_dash_section_is_straightened_and_the_verbatim_identifier_kept() -> None:
+    """Pin that an en-dash section is straightened in usc_section while the verbatim identifier is kept."""
+
     scan = builder.scan_source_credits(uslm((identifier("en_dash_section"), credit("en_dash_section"))))
 
     (retained,) = scan.credits
@@ -200,6 +206,8 @@ def test_a_uslm_en_dash_section_is_straightened_and_the_verbatim_identifier_kept
 
 
 def test_a_credit_under_no_section_is_quarantined_rather_than_attributed() -> None:
+    """Pin that a matching credit outside any section is quarantined as credit_outside_usc_section."""
+
     # Mutation: the real enactment credit re-parented under a chapter. Release
     # point 119-102 has no such credit that also matches the strict rule
     # (``credits_outside_a_section`` is 0), so the reason code is only
@@ -214,6 +222,8 @@ def test_a_credit_under_no_section_is_quarantined_rather_than_attributed() -> No
 
 
 def test_an_appendix_section_identifier_is_quarantined_rather_than_read_as_a_section() -> None:
+    """Pin that an appendix path identifier is quarantined as section_identifier_unparsable, not read as a section."""
+
     # "/us/usc/t18a/pl/91/538/s1" is an appendix path, and t18a is not title 18.
     scan = builder.scan_source_credits(uslm(("/us/usc/t18a/pl/91/538/s1", credit("added_enactment"))))
 
@@ -225,11 +235,15 @@ def test_an_appendix_section_identifier_is_quarantined_rather_than_read_as_a_sec
 
 
 def test_a_subsection_identifier_is_not_a_section_identifier() -> None:
+    """Pin that the section pattern accepts a bare section path but refuses a subsection path."""
+
     assert builder.USC_SECTION_IDENTIFIER.fullmatch("/us/usc/t26/s6038E") is not None
     assert builder.USC_SECTION_IDENTIFIER.fullmatch("/us/usc/t26/s6038E/a") is None
 
 
 def test_a_release_point_of_any_other_shape_is_refused_rather_than_turned_into_a_url() -> None:
+    """Pin that only NNN-NNN release points build a URL; empty, truncated, or underscore shapes raise."""
+
     assert builder.uslm_release_url("119-102").endswith("/us/pl/119/102/xml_uscAll@119-102.zip")
     for refused in ("", "119", "119-", "0-1", "119_102"):
         with pytest.raises(ValueError):
@@ -243,6 +257,8 @@ def test_a_release_point_of_any_other_shape_is_refused_rather_than_turned_into_a
 @archive_required
 @frozen_required
 def test_the_derived_table_is_byte_identical_to_the_frozen_source_credit_index(tmp_path: Path) -> None:
+    """Pin 3721 identical rows and the FROZEN_DIGEST for the rebuilt parquet."""
+
     scan, _ = builder.scan_release_zip(builder.DEFAULT_ARCHIVE, release_point=builder.DEFAULT_RELEASE_POINT)
     rows = builder.credit_rows(scan.credits)
 
@@ -262,6 +278,8 @@ def test_the_derived_table_is_byte_identical_to_the_frozen_source_credit_index(t
 @archive_required
 @frozen_required
 def test_the_receipt_reproduces_every_coverage_count_the_frozen_receipt_states(tmp_path: Path) -> None:
+    """Pin that the rebuilt receipt reproduces the frozen coverage, inputs, and digest."""
+
     frozen = json.loads((FROZEN_ARTIFACT / "receipt.json").read_text(encoding="utf-8"))
     receipt = builder.build(tmp_path / "artifact", archive=builder.DEFAULT_ARCHIVE, release_point="119-102")
 
@@ -275,12 +293,11 @@ def test_the_receipt_reproduces_every_coverage_count_the_frozen_receipt_states(t
 @pytest.mark.slow
 @archive_required
 def test_bounding_the_page_search_changes_no_retained_answer_on_this_release_point() -> None:
-    """The rule's measured effect, pinned rather than assumed.
+    """Pin that bounding changes no retained answer on 119-102, so a release point where the count stops being zero
+    fails instead of renumbering a page.
 
-    Zero is a fact about release point 119-102, not about the rule: the
-    mutation above shows what the bound prevents. Pinning the count here means a
-    release point where it stops being zero fails the suite instead of arriving
-    as a quietly changed page number.
+    Zero is a fact about this release point, not about the rule; the mutation
+    above shows what the bound prevents.
     """
 
     scan, _ = builder.scan_release_zip(builder.DEFAULT_ARCHIVE, release_point=builder.DEFAULT_RELEASE_POINT)
@@ -292,15 +309,15 @@ def test_bounding_the_page_search_changes_no_retained_answer_on_this_release_poi
 
 @frozen_required
 def test_the_known_wrong_page_row_is_pinned_not_repaired() -> None:
-    """22 U.S.C. 283z-11 publishes a page belonging to a law the bound cannot
-    see: its credit's intervening ``Pub. L. 110-5, § 2`` states no division,
-    ENACTMENT requires one, so 121 Stat. 25 (the 2007 volume) is attributed
-    to the 109-289 enactment (2006, 120 Stat. era). The frozen artifact
-    carries the identical row, so this builder reproduces the wrong value
-    rather than silently diverging from what act_resolution consumes -- and
-    this pin makes the eventual fix a deliberate reseal that moves
-    KNOWN_WRONG_PAGE_ROWS_ON_119_102, the equivalence digests and this test
-    together (xhigh review catch, 2026-08-31)."""
+    """Pin that 22 U.S.C. 283z-11's known-wrong page row is reproduced, not repaired.
+
+    The credit's intervening ``Pub. L. 110-5, § 2`` states no division, which
+    ENACTMENT requires, so the bound attributes 121 Stat. 25 (the 2007 volume)
+    to the 2006 109-289 enactment; the frozen artifact carries the identical
+    row, so this builder reproduces it rather than silently diverging from what
+    act_resolution consumes, and a fix must be a deliberate reseal that moves
+    KNOWN_WRONG_PAGE_ROWS_ON_119_102 and the equivalence digests together.
+    """
 
     table = pq.read_table(FROZEN_TABLE).to_pylist()
     rows = [r for r in table if r["usc_section"] == "283z-11"]

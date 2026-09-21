@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Fetch one exact publisher artifact through Zyte into RefSpec's ignored output."""
+"""Fetch one exact publisher artifact through Zyte into RefSpec's ignored output.
+
+Loads ``ZYTE_TOKEN`` from the local dotenv without logging it, refuses a non-200
+response, a digest that drifts from ``--expected-sha256``, or a byte length that
+drifts from ``--expected-byte-length``, then saves the body under the repository
+root.
+"""
 
 from __future__ import annotations
 

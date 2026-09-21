@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Build the single source-link manifest for the current registry audit."""
+"""Build the single source-link manifest for the current registry audit.
+
+Walks every module under ``src/refspec/registry``, joins each one to its
+declared URLs, pinned test inputs, audit role, and blockers, and writes (or
+``--check``-verifies) ``research/evidence/registry-real-data-audit-2026-08-03/sources.json``.
+Fails closed when nested audit configuration drifts or a publisher input lacks
+sha256/byteLength pins; exits 1 on any generation or comparison error.
+"""
 
 from __future__ import annotations
 
@@ -1554,6 +1561,7 @@ NESTED_MODULE_AUDIT: dict[str, dict[str, Any]] = {
 
 
 def _literal_urls(path: Path) -> tuple[str, ...]:
+    """Every http(s) URL in the module's string literals, sorted; ``.test``/``.invalid`` hosts are excluded."""
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     urls: set[str] = set()
     for node in ast.walk(tree):
@@ -1571,6 +1579,7 @@ def _literal_urls(path: Path) -> tuple[str, ...]:
 
 
 def _classification(module: str) -> str:
+    """Registry classification from the module's first path segment."""
     if "/" not in module:
         return "data-registry"
     return {
@@ -1582,7 +1591,11 @@ def _classification(module: str) -> str:
 
 
 def _pinned_fixture_test_inputs(module_filename: str, repository_root: Path) -> list[dict[str, Any]]:
-    """Resolve explicitly approved publisher captures against module-owned pins."""
+    """Resolve explicitly approved publisher captures against module-owned pins.
+
+    Refuses a capture that is missing, symlinked, outside the repository, or
+    whose bytes miss the module's own sha256 and byte-length pins.
+    """
 
     specifications = PINNED_FIXTURE_INPUTS.get(module_filename, ())
     if not specifications:
@@ -1775,16 +1788,19 @@ def _icpsr_managed_release_test_inputs(
 
 
 def _icpsr_index_page_a_test_input(repository_root: Path) -> dict[str, Any]:
+    """The ICPSR capture's index page A descriptor, renamed ``icpsrManagedIndexA``."""
     collection = _icpsr_managed_release_test_inputs(repository_root)[0]
     page = next(member for member in collection["members"] if member["name"] == "indexA")
     return {**page, "name": "icpsrManagedIndexA"}
 
 
 def _registry_module_paths(registry: Path) -> tuple[Path, ...]:
+    """Every non-``__init__`` Python module under the registry, sorted."""
     return tuple(sorted(path for path in registry.rglob("*.py") if path.name != "__init__.py"))
 
 
 def build_manifest(repository_root: Path) -> dict[str, Any]:
+    """Assemble the manifest; refuses drifted nested-audit config and any input without sha256/byteLength pins."""
     registry = repository_root / "src" / "refspec" / "registry"
     paths = _registry_module_paths(registry)
     module_ids = tuple(path.relative_to(registry).as_posix() for path in paths)

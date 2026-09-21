@@ -1,35 +1,24 @@
-"""Derived-graph rule: Federal Register thesaurus compound-heading broader.
+"""Derive Federal Register compound-heading ``skos:broader`` edges and reproduce their wire rows.
 
-``federal-register-thesaurus-2025`` is a deliberately flat vocabulary: 705
-preferred terms, 1,451 ``skos:related`` assertions, and no broader or
-narrower statement of any kind.  56 preferred labels contain a hyphen, and
-in 48 of those the text before the first hyphen is itself an authorized
-preferred term of the same release (``Grant programs-agriculture`` ->
-``Grant programs``).  The remaining 8 are hyphenated words, not compound
-subjects, and the rule refuses them for exactly one reason: their head
-segment is not an authorized preferred term.  There is no denylist, so a
-future release that minted a preferred term ``X`` would immediately admit
-``X-rays`` -> ``X`` -- that self-exclusion is the running check, and the
-tests prove it by minting exactly such a term.
-
-This module is the rule, its wire shape, and its reproduction check.  It is
-deliberately standalone.  The Atlas 3.1 validator allowlists exactly one
-derivation rule today (``urn:ref:rule:skos-exact-match-closure-path`` with
-owlrl 7.1.4), so populating these rows into a distribution requires a
-binding revision that (a) allowlists this rule IRI with its engine pin,
-(b) admits label-shaped evidence for ``atlas:derivedFromAssertion`` -- the
-rule reads preferred-label text, and a label row is not a relation
-assertion -- and (c) replays this rule's semantics instead of the
-exactMatch simple-path replay.  Until that revision lands, nothing here is
-wired into ``tools/generate_atlas_v3_full.py``; the derived graph stays at
-zero quads and the producer keeps refusing to populate it.
-
-Rows follow the binding's ``atlas:DerivedRelationShape`` exactly: one
-content-derived ``urn:ref:atlas-derived:<hex>`` node per edge, carrying the
-rule IRI, engine pin, the two cited label rows as evidence, an input digest
-over that evidence, and a generation time.  The reproduction check
-regenerates the identical set -- node IRIs and digests included -- from the
-asserted graph alone.
+``federal-register-thesaurus-2025`` is deliberately flat (705 preferred terms,
+1,451 ``skos:related`` assertions, and no broader or narrower statements), so 48
+of its 56 hyphenated preferred labels name an authorized preferred term before
+the first hyphen (``Grant programs-agriculture`` -> ``Grant programs``). The
+remaining 8 are refused for exactly one reason -- their head segment is not an
+authorized preferred term -- and there is no denylist, so a future release that
+minted a preferred term ``X`` would admit ``X-rays`` -> ``X``; self-exclusion is
+the running check. Rows follow the binding's ``atlas:DerivedRelationShape`` with
+one content-derived ``urn:ref:atlas-derived:<hex>`` node per edge, and the
+reproduction check regenerates the identical set (node IRIs and digests included)
+from the asserted graph alone. Standalone on purpose: the Atlas 3.1 validator
+allowlists only one derivation rule today
+(``urn:ref:rule:skos-exact-match-closure-path`` with owlrl 7.1.4), so populating
+these rows into a distribution requires a binding revision that allowlists this
+rule IRI with its engine pin, admits label-shaped evidence for
+``atlas:derivedFromAssertion``, and replays this rule's semantics instead of the
+exactMatch simple-path replay; until then nothing here is wired into
+``tools/generate_atlas_v3_full.py``, the derived graph stays at zero quads, and
+the producer keeps refusing to populate it.
 """
 
 from __future__ import annotations
@@ -197,6 +186,8 @@ def _build_row(
     *,
     generated_at: str,
 ) -> CompoundBroaderRow:
+    """Build one derived row with evidence, input digest, and content-addressed node IRI."""
+
     evidence = tuple(sorted((compound, head), key=lambda item: str(item.resource)))
     input_digest = ATLAS_VALIDATE.canonical_sha256(
         {"labels": [item.digest_row() for item in evidence]},

@@ -28,6 +28,7 @@ EHRI_REAL_SOURCE_DEFAULT = (
 
 
 def _ehri_real_source_path() -> Path:
+    """The EHRI workbook path from the env override or the default capture."""
     return Path(os.environ.get(EHRI_REAL_SOURCE_ENV) or EHRI_REAL_SOURCE_DEFAULT)
 
 
@@ -36,10 +37,12 @@ def _acquire(
     pin: opm.OPMSnapshotPin,
     source_path: Path,
 ) -> opm.AcquiredOPMSource:
+    """Acquire a source file under the given pin."""
     return opm.acquire_opm_constants(pin, tmp_path, source_path=source_path)
 
 
 def _portfolio(tmp_path: Path) -> opm.OPMControlPortfolio:
+    """Assemble the five pinned OPM code resources into a control portfolio."""
     resources = [
         opm.parse_opm_constants(_acquire(tmp_path, opm.OPM_PAY_PLAN_CODES_2026_08_03, PAY_PLAN_FIXTURE)),
         opm.parse_opm_constants(_acquire(tmp_path, opm.OPM_WORK_SCHEDULE_CODES_2026_08_03, WORK_SCHEDULE_FIXTURE)),
@@ -55,6 +58,7 @@ def _portfolio(tmp_path: Path) -> opm.OPMControlPortfolio:
 
 
 def test_pinned_fixture_bytes_match_exact_digests() -> None:
+    """Each fixture's byte length and sha256 must match its pin."""
     pairs = (
         (PAY_PLAN_FIXTURE, opm.OPM_PAY_PLAN_CODES_2026_08_03),
         (WORK_SCHEDULE_FIXTURE, opm.OPM_WORK_SCHEDULE_CODES_2026_08_03),
@@ -73,6 +77,9 @@ def test_pinned_fixture_bytes_match_exact_digests() -> None:
     reason=(f"the exact EHRI data-standards workbook capture is not present (or set {EHRI_REAL_SOURCE_ENV})"),
 )
 def test_official_ehri_export_shape_counts_and_samples() -> None:
+    """Pins the real workbook's digest, 534 fields and 17,263 current and
+    16,425 past values, plus the agency/sub-element split.
+    """
     payload = _ehri_real_source_path().read_bytes()
     export = opm.parse_opm_ehri_data_standards_xlsx(payload)
 
@@ -110,6 +117,7 @@ def test_official_ehri_export_shape_counts_and_samples() -> None:
 
 
 def _ehri_element(name: str) -> opm.OPMEHRIDataElement:
+    """One synthetic EHRI data element."""
     return opm.OPMEHRIDataElement(
         name=name,
         description=f"{name} description",
@@ -122,6 +130,7 @@ def _ehri_element(name: str) -> opm.OPMEHRIDataElement:
 
 
 def _ehri_value(name: str, code: str, through_date: str = "PRESENT") -> opm.OPMEHRIValue:
+    """One synthetic EHRI code value."""
     return opm.OPMEHRIValue(
         name=name,
         code=code,
@@ -132,6 +141,7 @@ def _ehri_value(name: str, code: str, through_date: str = "PRESENT") -> opm.OPME
 
 
 def _ehri_export() -> opm.OPMEHRIDataStandardsExport:
+    """A two-element EHRI export with one current and one past value each."""
     return opm.OPMEHRIDataStandardsExport(
         source_sha256="sha256:" + "ab" * 32,
         source_byte_length=10,
@@ -148,6 +158,7 @@ def _ehri_export() -> opm.OPMEHRIDataStandardsExport:
 
 
 def test_split_opm_ehri_element_is_exhaustive_and_keeps_the_source_digest() -> None:
+    """The split keeps every field and value on one side, and both sides keep the source digest and byte length."""
     export = _ehri_export()
 
     split = opm.split_opm_ehri_element(export)
@@ -166,6 +177,7 @@ def test_split_opm_ehri_element_is_exhaustive_and_keeps_the_source_digest() -> N
 
 
 def test_split_opm_ehri_element_fails_closed_on_missing_or_valueless_elements() -> None:
+    """An absent element and an element with no current values are both refused."""
     export = _ehri_export()
 
     with pytest.raises(opm.OPMSourceDriftError, match="exactly once"):
@@ -187,6 +199,7 @@ def test_split_opm_ehri_element_fails_closed_on_missing_or_valueless_elements() 
     reason=f"set {PLUM_REAL_SOURCE_ENV} to the pinned official PLUM CSV export",
 )
 def test_official_plum_export_shape_counts_and_samples() -> None:
+    """An opt-in real PLUM export pins its digest, 15,777 records, appointment types, statuses and pay plans."""
     payload = Path(os.environ[PLUM_REAL_SOURCE_ENV]).read_bytes()
     export = opm.parse_opm_plum_all_data_csv(payload)
 
@@ -218,6 +231,7 @@ def test_official_plum_export_shape_counts_and_samples() -> None:
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
     tmp_path: Path,
 ) -> None:
+    """A local capture is content-addressed under the expected digest and a cache hit is re-verified."""
     pin = opm.OPM_PAY_PLAN_CODES_2026_08_03
 
     acquired = _acquire(tmp_path, pin, PAY_PLAN_FIXTURE)
@@ -232,6 +246,7 @@ def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
 
 
 def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) -> None:
+    """Only an injected fetcher may fetch, and it records the URL and timeout."""
     payload = WORK_SCHEDULE_FIXTURE.read_bytes()
     calls: list[tuple[str, float]] = []
 
@@ -262,6 +277,7 @@ def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) ->
 
 
 def test_fetcher_off_official_host_is_refused(tmp_path: Path) -> None:
+    """A resolved URL off the official HTTPS opm.gov host is refused."""
     payload = WORK_SCHEDULE_FIXTURE.read_bytes()
 
     class RogueFetcher:
@@ -290,6 +306,7 @@ def test_fetcher_off_official_host_is_refused(tmp_path: Path) -> None:
 def test_pay_plan_codes_are_deterministic_entity_metadata_not_subjects(
     tmp_path: Path,
 ) -> None:
+    """Pins the six pay plan codes, their deterministic metadata use, and the opmPayPlanCode identifier shape."""
     resource = opm.parse_opm_constants(_acquire(tmp_path, opm.OPM_PAY_PLAN_CODES_2026_08_03, PAY_PLAN_FIXTURE))
 
     assert len(resource.codes) == 6
@@ -319,6 +336,9 @@ def test_pay_plan_codes_are_deterministic_entity_metadata_not_subjects(
 
 
 def test_occupational_series_codes_validate_shape_only(tmp_path: Path) -> None:
+    """The occupational series sample is not a closed enumeration, so it
+    validates shape only and records the gap.
+    """
     resource = opm.parse_opm_constants(
         _acquire(tmp_path, opm.OPM_OCCUPATIONAL_SERIES_CODES_2026_08_03, OCCUPATIONAL_SERIES_FIXTURE)
     )
@@ -330,6 +350,9 @@ def test_occupational_series_codes_validate_shape_only(tmp_path: Path) -> None:
 
 
 def test_plum_resource_carries_certification_and_vintage_pin(tmp_path: Path) -> None:
+    """The PLUM resource requires certification, carries its 2025 vintage, and
+    marks vacant and redacted as incumbent-status markers.
+    """
     resource = opm.parse_opm_constants(_acquire(tmp_path, opm.OPM_PLUM_POSITION_STATUS_CODES_2026_08_03, PLUM_FIXTURE))
 
     assert len(resource.codes) == 7
@@ -341,6 +364,7 @@ def test_plum_resource_carries_certification_and_vintage_pin(tmp_path: Path) -> 
 
 
 def test_portfolio_requires_all_five_resources_and_keeps_gaps(tmp_path: Path) -> None:
+    """The portfolio keeps each resource's gaps and refuses anything other than exactly the five resources."""
     portfolio = _portfolio(tmp_path)
 
     assert any("not a stable per-resource" not in gap for gap in portfolio.gaps)
@@ -355,6 +379,7 @@ def test_portfolio_requires_all_five_resources_and_keeps_gaps(tmp_path: Path) ->
 def test_workforce_observation_validates_known_and_unsampled_codes(
     tmp_path: Path,
 ) -> None:
+    """Known codes resolve with their labels, and a shape-valid but unsampled series is accepted, not rejected."""
     portfolio = _portfolio(tmp_path)
 
     validated = opm.validate_workforce_observation_codes(
@@ -403,6 +428,7 @@ def test_malformed_workforce_code_shape_fails_closed(
     field: str,
     value: str,
 ) -> None:
+    """A malformed pay plan, work schedule or occupational series shape is refused."""
     portfolio = _portfolio(tmp_path)
     observation = {
         "pay_plan": "GS",
@@ -418,6 +444,7 @@ def test_malformed_workforce_code_shape_fails_closed(
 def test_plum_record_requires_certification_and_matching_vintage(
     tmp_path: Path,
 ) -> None:
+    """A PLUM record needs release_certified True and the resource's own vintage; both are refused otherwise."""
     portfolio = _portfolio(tmp_path)
     base = {
         "appointment_authority": "PAS",
@@ -443,6 +470,7 @@ def test_plum_record_requires_certification_and_matching_vintage(
 def test_plum_vacant_and_redacted_incumbent_status_preserve_redaction_rule(
     tmp_path: Path,
 ) -> None:
+    """A vacant status needs no reason, while a redacted status requires one and records it."""
     portfolio = _portfolio(tmp_path)
     base = {
         "appointment_authority": "SC",
@@ -474,6 +502,7 @@ def test_plum_vacant_and_redacted_incumbent_status_preserve_redaction_rule(
 def test_digest_or_unknown_shape_drift_never_becomes_a_parsed_resource(
     tmp_path: Path,
 ) -> None:
+    """A same-length byte change fails on digest, and an extra row field fails as fields drifted."""
     payload = PAY_PLAN_FIXTURE.read_bytes()
     changed = payload.replace(b'"General Schedule"', b'"General Schedulr"')
     assert len(changed) == len(payload)
@@ -522,6 +551,7 @@ def test_digest_or_unknown_shape_drift_never_becomes_a_parsed_resource(
 def test_a_larger_real_capture_fails_the_pin_instead_of_silently_replacing_the_sample(
     tmp_path: Path,
 ) -> None:
+    """A larger real capture is caught immediately by the byte-length or digest pin rather than silently accepted."""
     # Simulates what happens if a real, exhaustive OPM capture (many more
     # rows) is dropped in later: the byte-length pin catches it immediately,
     # rather than the parser silently accepting a differently sized list.
@@ -542,6 +572,7 @@ def test_a_larger_real_capture_fails_the_pin_instead_of_silently_replacing_the_s
 def test_package_build_is_byte_deterministic_and_carries_no_concept_identity(
     tmp_path: Path,
 ) -> None:
+    """Two builds match the pinned logical digest, carry no concept identity, and authorize no accepted output."""
     first = opm.build_opm_controlled_list_package(opm.OPM_PLUM_POSITION_STATUS_CODE_PACKAGE, PLUM_FIXTURE)
     second = opm.build_opm_controlled_list_package(opm.OPM_PLUM_POSITION_STATUS_CODE_PACKAGE, PLUM_FIXTURE)
 
@@ -555,6 +586,7 @@ def test_package_build_is_byte_deterministic_and_carries_no_concept_identity(
 
 
 def test_package_round_trips_through_write_and_open(tmp_path: Path) -> None:
+    """The written pay-plan package reopens under the same spec and looks codes up by value."""
     built = opm.build_opm_controlled_list_package(opm.OPM_PAY_PLAN_CODE_PACKAGE, PAY_PLAN_FIXTURE)
     package_path = built.write_to(tmp_path / "opm-pay-plan-codes")
 
@@ -568,6 +600,7 @@ def test_package_round_trips_through_write_and_open(tmp_path: Path) -> None:
 
 
 def test_reader_rejects_a_repackage_that_changes_factual_manifest_data(tmp_path: Path) -> None:
+    """A repackage claiming different factual manifest data is refused against the external pin."""
     original = opm.build_opm_controlled_list_package(opm.OPM_WORK_SCHEDULE_CODE_PACKAGE, WORK_SCHEDULE_FIXTURE)
     from refspec.registry.infrastructure.source_controlled_resource import (
         build_source_controlled_resource_bundle,

@@ -1,3 +1,9 @@
+"""Selective-loading tests: only_keys must parse only the requested release groups.
+
+Each loader is exercised with monkeypatched group parsers that fail if an
+unrequested or empty selection opens a source.
+"""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -14,10 +20,12 @@ from refspec.atlas import v3_registry_vocabularies as vocabularies
 
 
 def _release(key: str) -> Any:
+    """Return a minimal release stand-in carrying only its key."""
     return SimpleNamespace(key=key)
 
 
 def test_large_loader_opens_only_requested_sources(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pins that only the two requested large-release loaders run, the PSC one receiving its versioned filename."""
     called: list[tuple[str, Path]] = []
 
     for key, _loader, _filename in large._large_registry_loader_specs():
@@ -48,6 +56,7 @@ def test_large_loader_opens_only_requested_sources(monkeypatch: pytest.MonkeyPat
 def test_vocabulary_loader_parses_only_intersecting_group(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pins that the EuroVoc group loader runs once and only the requested release from that group is returned."""
     called: list[str] = []
 
     def eurovoc(
@@ -77,6 +86,7 @@ def test_vocabulary_loader_parses_only_intersecting_group(
 def test_eurovoc_domains_claim_input_skips_the_source_parser(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pins that a supplied domain claim input bypasses the EuroVoc source parser."""
     claim_input = object()
     monkeypatch.setattr(
         vocabularies,
@@ -109,6 +119,7 @@ def test_eurovoc_domains_claim_input_skips_the_source_parser(
 def test_main_eurovoc_claim_input_skips_the_source_parser(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pins that a supplied EuroVoc claim input bypasses the source parser and still returns both EuroVoc releases."""
     claim_input = object()
     monkeypatch.setattr(
         vocabularies,
@@ -142,6 +153,7 @@ def test_main_eurovoc_claim_input_skips_the_source_parser(
 def test_code_loader_parses_one_group_and_filters_its_releases(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pins that the billstatus group parses once and only the requested code release is returned."""
     called: list[str] = []
 
     def billstatus(_root: Path, _temporary: Path) -> tuple[Any, ...]:
@@ -168,6 +180,7 @@ def test_code_loader_parses_one_group_and_filters_its_releases(
 def test_nonemitter_loader_parses_one_group_and_filters_its_releases(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pins that the gsdm group parses once and only the requested nonemitter release is returned."""
     called: list[str] = []
 
     def gsdm(_root: Path) -> tuple[Any, ...]:
@@ -192,6 +205,7 @@ def test_nonemitter_loader_parses_one_group_and_filters_its_releases(
 def test_mapping_and_alignment_loaders_skip_empty_selections(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pins that an empty selection returns () without parsing any mapping or endpoint source."""
     monkeypatch.setattr(
         alignments,
         "load_eurovoc_lcsh_mapping_release",
@@ -225,6 +239,7 @@ def test_selective_loaders_reject_unknown_keys_before_parsing(
     loader: Any,
     args: tuple[Any, ...],
 ) -> None:
+    """Pins that all six selective loaders raise ValueError for an unknown key before parsing."""
     with pytest.raises(ValueError, match="does not know release keys"):
         loader(*args, only_keys={"not-a-release"})
 
@@ -232,6 +247,7 @@ def test_selective_loaders_reject_unknown_keys_before_parsing(
 def test_empty_code_and_nonemitter_selections_do_not_open_any_group(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pins that empty code and nonemitter selections return () without opening any group."""
     monkeypatch.setattr(
         codes,
         "_load_billstatus",

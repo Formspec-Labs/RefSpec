@@ -1,40 +1,21 @@
 """Source-faithful capture of Census APES/ASPEP government-finance codes.
 
-The catalog decision for this source is explicit: these are cross-state
-*mapping* references only. The Census Bureau's Government Finance and
-Employment Classification Manual (advertised at ``Class_Manual.html``, but
-delivered as a 2006 PDF) classifies government spending into statistical
-functions, objects, and fund sources so that fifty different states' budgets
-can be compared on one axis. The classification does not replace a state's
-own enacted chart of accounts or the legal identity of a state program; a
-RefSpec state-budget document must keep its own native funds, accounts,
-agencies, programs, and amounts, and may only *attach* one of these codes as
-a secondary, independently validated cross-reference. That mapping-only role
-is recorded directly in every package this module builds, not merely in code
-comments.
-
-Two small, genuinely complete HTML code lists are directly pinnable:
-
-* Census's ASPEP "Item Code (Functional Category)" list -- a closed set of
-  three-digit statistical function codes.
-* Census's ASPEP "Data Flags" list -- a closed set of single-letter codes
-  describing how one reported number was derived, grouped under the
-  publisher's own "Reported Data" / "Imputed Data" section headings.
-
-The 2006 Classification Manual PDF also documents object-of-expenditure and
-fund-source categories, but census.gov does not publish those as a small,
-independently fetchable HTML code list the way it does the two lists above;
-this module does not parse the PDF, and that gap is recorded explicitly
-rather than silently ingested from a bulk table extraction.
-
-This module once also captured the "Chapters" list from NASBO's State
-Expenditure Report landing page. That unit left under REF-032: the chapter
-titles are a serial publication's table of contents -- edition-volatile,
-identifier-less, capture-local -- not a publisher-written code list.
-
-Live retrieval is provider-independent. Callers inject a fetcher or provide
-an already captured local file. Importing this module never opens a network
-connection.
+The Census classification is a cross-state mapping reference only -- it
+replaces no state's enacted chart of accounts or a program's legal identity, so
+a RefSpec state-budget document keeps its own native funds, accounts, agencies,
+programs, and amounts and may only attach one of these codes as a secondary,
+independently validated cross-reference, a mapping-only role this module
+records in every package it builds. Two genuinely complete HTML code lists are
+directly pinnable: the ASPEP "Item Code (Functional Category)" three-digit
+function set and the ASPEP "Data Flags" single-letter set grouped under the
+publisher's "Reported Data"/"Imputed Data" headings; the 2006 Classification
+Manual PDF documents object-of-expenditure and fund-source categories but
+census.gov publishes no small pinned HTML list for them and this module does
+not parse the PDF, recording that gap explicitly instead. The former NASBO
+"Chapters" capture left under REF-032 (edition-volatile, identifier-less
+table-of-contents titles, not a publisher-written code list), and live
+retrieval is provider-independent -- callers inject a fetcher or supply a local
+capture -- with importing never opening a network connection.
 """
 
 from __future__ import annotations
@@ -384,11 +365,11 @@ def _normalize_text(chunks: Sequence[str]) -> str:
 class _LandmarkTableParser(HTMLParser):
     """Collect one page's single landmark heading and its one data table.
 
-    Only the page's declared landmark element is tracked -- an ``<h1>``
-    matched by one attribute/value pair. A page with zero or more than one
-    matching landmark, or zero or more than one ``<table>``, is left for the
-    caller to reject as drift: this parser only reports counts and row text,
-    it never guesses which element was intended.
+    Only the one ``<h1>`` matched by the configured attribute/value pair is
+    tracked; a page with zero or more than one matching landmark, or zero or
+    more than one ``<table>``, is left for the caller to reject as drift --
+    this parser reports counts and row text, never guesses which element was
+    intended.
     """
 
     def __init__(self, *, h1_attr: str, h1_value: str) -> None:

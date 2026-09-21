@@ -1,4 +1,10 @@
-"""Qualified source references and unchanged authority-field interpretation."""
+"""Qualified source references and unchanged authority-field interpretation.
+
+Fixtures pin every occurrence's written text, byte offsets, pinpoint and
+refusal against a frozen sha256; the same text is replayed through the copied
+usc_occurrence_oracle and usc_authority_oracle to prove the rewritten readers
+kept the prior interpretation verdict for verdict.
+"""
 import hashlib
 import json
 from dataclasses import asdict
@@ -18,6 +24,8 @@ FIELD_CASES = [*CASES, *(
 
 
 def reading(item):
+    """The non-empty citation parts plus pinpoint, range end, subchapter and refusal."""
+
     result = {k: v for k, v in asdict(item.citation).items()
               if v is not None and v is not False and v != () and v != {} and k != 'parse_status'}
     for name in ('pinpoint', 'range_end_pinpoint', 'subchapter', 'subchapter_end', 'refusal'):
@@ -28,6 +36,8 @@ def reading(item):
 
 
 def check_positions(text, items):
+    """Every occurrence's span and context must slice the source text exactly."""
+
     for item in items:
         assert 0 <= item.start < item.end <= len(text)
         assert text[item.start:item.end] == item.text
@@ -39,6 +49,8 @@ def check_positions(text, items):
 
 @pytest.mark.parametrize('case', CASES, ids=lambda row: row['id'])
 def test_frozen_written_targets_and_original_positions(case):
+    """Each case's raw sha256, occurrence readings, spans and context slices match the frozen record."""
+
     assert hashlib.sha256(case['raw'].encode()).hexdigest() == case['text_sha256']
     items = find_usc_citations(case['raw'])
     check_positions(case['raw'], items)
@@ -52,6 +64,8 @@ def test_frozen_written_targets_and_original_positions(case):
 
 @pytest.mark.parametrize('case', FIELD_CASES, ids=lambda row: row['id'])
 def test_existing_field_reader_matches_copied_oracle_on_source_and_mutations(case):
+    """The field reader agrees with the copied oracle on the source text and five mutations."""
+
     text = case['raw']
     variants = (text, '  '+text+'\n', 'See '+text+'; 7 U.S.C. 1.',
                 text.replace('U.S.C.', 'USC'), text.replace(' ', '\u00a0'),
@@ -63,6 +77,8 @@ def test_existing_field_reader_matches_copied_oracle_on_source_and_mutations(cas
 
 @pytest.mark.parametrize('case', FIELD_CASES, ids=lambda row: row['id'])
 def test_previous_occurrence_results_stay_identical_on_prior_sources(case):
+    """The occurrence reader agrees with the copied oracle on the source text and its mutations."""
+
     text = case['raw']
     for value in (text, '  ' + text + '\n', text.replace('U.S.C.', 'USC'),
                   text.replace(' ', '\u00a0'), 'See ' + text + '; 7 U.S.C. 1.'):
@@ -71,6 +87,8 @@ def test_previous_occurrence_results_stay_identical_on_prior_sources(case):
 
 @pytest.mark.parametrize('tail', [', et seq.', ' and following', ' ff.'])
 def test_open_ended_citation_is_not_reduced_to_its_first_section(tail):
+    """et seq., and following, and ff. extend the span and refuse as usc_open_ended_reference_unresolved."""
+
     text = 'Under 38 U.S.C. 4301' + tail + ', the employee retains rights.'
     before, = prior_occurrence_reader(text)
     after, = find_usc_citations(text)
@@ -82,11 +100,15 @@ def test_open_ended_citation_is_not_reduced_to_its_first_section(tail):
 
 
 def test_ordinary_prose_and_paragraph_boundaries_are_not_open_ranges():
+    """A sentence end or paragraph break after the section is not an open range; verdicts match the oracle."""
+
     for text in ('38 U.S.C. 4301 applies to this employee.', '38 U.S.C. 4301\n\net seq.'):
         assert find_usc_citations(text) == prior_occurrence_reader(text)
 
 
 def test_qualified_list_keeps_its_title_context_and_literal_connectors():
+    """A comma list keeps each member's literal connector and the first title as context."""
+
     text = '5 U.S.C. 552(a), 552a note, and 553(b)'
     items = find_usc_citations(text)
     check_positions(text, items)
@@ -100,6 +122,8 @@ def test_qualified_list_keeps_its_title_context_and_literal_connectors():
 
 
 def test_repeated_section_pinpoints_are_not_merged():
+    """Two mentions of one section remain two non-overlapping occurrences."""
+
     text = '5 U.S.C. 552(a); 5 U.S.C. 552(b)'
     items = find_usc_citations(text)
     check_positions(text, items)
@@ -108,6 +132,8 @@ def test_repeated_section_pinpoints_are_not_merged():
 
 
 def test_commas_separate_list_members_without_creating_token_damage():
+    """Comma-joined sections each stay their own occurrence with no refusal."""
+
     text = '12 U.S.C. 2013, 2015, 2018'
     items = find_usc_citations(text)
     check_positions(text, items)
@@ -117,6 +143,8 @@ def test_commas_separate_list_members_without_creating_token_damage():
 
 @pytest.mark.parametrize('position', ['preceding', 'following'])
 def test_positioned_note_is_retained_and_refuses_a_section_identity(position):
+    """A preceding or following note stays in the span and refuses as usc_note_position_unresolved."""
+
     text = f'49 U.S.C. 42301 {position} note'
     item, = find_usc_citations(text)
     assert item.text == text and item.citation.usc_note is True
@@ -125,6 +153,8 @@ def test_positioned_note_is_retained_and_refuses_a_section_identity(position):
 
 @pytest.mark.parametrize('case', FIELD_CASES[-2:], ids=lambda row: row['id'])
 def test_publisher_authority_lists_have_no_false_token_boundary_refusals(case):
+    """The last two authority fixtures refuse nothing beyond the known note caveat."""
+
     items = find_usc_citations(case['raw'])
     check_positions(case['raw'], items)
     assert all(c.refusal in (None, 'usc_note_position_unresolved') for c in items)
@@ -139,6 +169,8 @@ def test_publisher_authority_lists_have_no_false_token_boundary_refusals(case):
     ('5 U.S.C. 552(a) through 553(b)', ('a',), ('b',)),
 ])
 def test_pinpoints_stay_with_the_written_range_endpoint(text, first, last):
+    """552-553(a) gives the (a) pinpoint to 553, not to 552."""
+
     item, = find_usc_citations(text)
     assert item.text == text
     assert item.pinpoint == first and item.range_end_pinpoint == last
@@ -148,6 +180,8 @@ def test_pinpoints_stay_with_the_written_range_endpoint(text, first, last):
 
 
 def test_declined_range_preserves_both_written_pinpoints_and_refuses_narrowing():
+    """49 U.S.C. 1354(a) to 1354(c) keeps both written pinpoints and refuses as usc_range_unresolved."""
+
     text = '49 U.S.C. 1354(a) to 1354(c)'
     item, = find_usc_citations(text)
     assert item.text == text and item.pinpoint == ('a',) and item.range_end_pinpoint == ('c',)
@@ -160,6 +194,8 @@ def test_declined_range_preserves_both_written_pinpoints_and_refuses_narrowing()
     ('Under 5 U.S.C. App. other provisions apply.', True, '5 U.S.C. App.'),
 ])
 def test_bare_title_or_appendix_does_not_invent_a_section(text, appendix, quote):
+    """A bare title, or title plus Appendix, keeps no section and no refusal."""
+
     item, = find_usc_citations(text)
     assert item.text == quote and item.citation.usc_title == 5
     assert item.citation.usc_appendix is appendix and item.citation.usc_section is None
@@ -167,22 +203,30 @@ def test_bare_title_or_appendix_does_not_invent_a_section(text, appendix, quote)
 
 
 def test_unicode_left_boundary_is_retained_as_a_refusal():
+    """A letter before the title is kept in the span and refuses as usc_token_boundary_unresolved."""
+
     text = 'α5 USC 552'
     item, = find_usc_citations(text)
     assert item.text == text and item.refusal == 'usc_token_boundary_unresolved'
 
 
 def test_a_paragraph_break_stops_an_inherited_title():
+    """A paragraph break stops 553 from inheriting title 5 from the 552 occurrence."""
+
     assert [c.citation.usc_section for c in find_usc_citations('5 USC 552\n\nand 553')] == ['552']
 
 
 def test_subchapter_does_not_pick_a_chapter_from_a_range():
+    """A chapter range plus subchapter refuses as usc_subchapter_scope_ambiguous rather than choosing one."""
+
     item, = find_usc_citations('5 USC chapters 5-7, subchapter I')
     assert item.subchapter == 'I' and item.citation.usc_chapter_end == '7'
     assert item.refusal == 'usc_subchapter_scope_ambiguous'
 
 
 def test_declared_but_missing_subchapter_is_not_broadened_to_the_chapter():
+    """A declared but unnamed subchapter refuses as usc_subchapter_unresolved rather than widening to the chapter."""
+
     text = '5 USC chapter 81, subchapter'
     item, = find_usc_citations(text)
     assert item.text == text and item.refusal == 'usc_subchapter_unresolved'
@@ -194,12 +238,16 @@ def test_declared_but_missing_subchapter_is_not_broadened_to_the_chapter():
     ('5 USC chapter 81, subchapters I through II', 'I', 'II'),
 ])
 def test_subchapter_names_and_written_ranges_are_preserved(text, first, last):
+    """I-II, I-A and "I through II" each keep their written subchapter names and range semantics."""
+
     item, = find_usc_citations(text)
     assert item.text == text and item.subchapter == first and item.subchapter_end == last
     assert item.refusal is None
 
 
 def test_a_range_separator_does_not_steal_the_next_explicit_title():
+    """A dash between two fully written citations yields two occurrences, not one range."""
+
     items = find_usc_citations('7 U.S.C. 6501 - 7 U.S.C. 6524')
     assert [c.citation.usc_section for c in items] == ['6501', '6524']
     assert all(c.citation.usc_section_end is None and c.refusal is None for c in items)

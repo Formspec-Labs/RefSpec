@@ -1,4 +1,9 @@
-"""Atlas 3 releases derived from LC's pinned external-links archive."""
+"""Atlas 3 releases derived from LC's pinned external-links archive.
+
+The slow tests skip unless the official LC, LCSH, and FAST sources are cached; when they run they
+pin the 801,992-mapping direction and predicate mix, the REF-035 adoption evidence chain, endpoint
+accounting, zero identifier-authority rows, and that all three population refusal guards accept the
+new releases."""
 
 from __future__ import annotations
 
@@ -28,6 +33,8 @@ HAS_OFFICIAL_SOURCES = all(path.is_file() for path in REQUIRED_FILES)
 
 
 def _generator_module():
+    """Import tools/generate_atlas_v3_full with tools/ on sys.path only for the import."""
+
     sys.path.insert(0, str(ROOT / "tools"))
     try:
         return importlib.import_module("generate_atlas_v3_full")
@@ -111,6 +118,8 @@ def test_every_translated_mapping_carries_the_ref_035_adoption_chain(
 
 @pytest.mark.slow
 def test_release_accounts_for_held_absent_and_external_endpoints(mapping_release) -> None:
+    """Pins the emitted/unemitted counts and the endpoint-disposition and coverage metadata exactly."""
+
     metadata = mapping_release.metadata
 
     assert metadata["assertionCountsByTargetVocabulary"] == dict(external.EXPECTED_ASSERTION_COUNTS_BY_VOCABULARY)
@@ -274,6 +283,8 @@ def test_identifier_authority_tripwire_is_nonvacuous(
     mapping_release,
     external_target_releases,
 ) -> None:
+    """The descriptor graph really holds an identifierScheme authority, and no LC release emits identifier rows."""
+
     atlas = Namespace("https://refspec.org/ns/atlas/v3#")
     dataset = Dataset()
     dataset.parse(

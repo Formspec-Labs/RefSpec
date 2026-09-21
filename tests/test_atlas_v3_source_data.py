@@ -1,3 +1,11 @@
+"""Shape and invariant checks for the Atlas 3 mapping-release records.
+
+Every refusal here is a contract a mapping release must satisfy before it can
+be published: one preferred label per language, immutable evidence decisions
+with timezone-aware times, distinct endpoint releases, canonical dates and a
+declared editorial policy.
+"""
+
 from __future__ import annotations
 
 from dataclasses import replace
@@ -28,6 +36,8 @@ _REVIEW_METHODS = {
 
 
 def _resource(labels: tuple[RegistryLabel, ...]) -> RegistryResource:
+    """One example resource wrapping the given labels."""
+
     return RegistryResource(
         iri="urn:example:resource",
         labels=labels,
@@ -42,6 +52,8 @@ def _mapping_evidence(
     review_warrant: str = "operatorAdoption",
     attested_at: str = "2026-08-06T00:00:00+00:00",
 ) -> RegistryMappingEvidence:
+    """One operator-adopted evidence decision with overridable warrant and time."""
+
     return RegistryMappingEvidence(
         source_locator="urn:example:mapping-source",
         source_digest=_DIGEST,
@@ -59,6 +71,8 @@ def _mapping(
     effective_from: str | None = None,
     effective_through: str | None = None,
 ) -> RegistryMapping:
+    """One subject-ring closeMatch mapping between two example endpoint releases."""
+
     return RegistryMapping(
         subject="urn:example:subject",
         predicate="http://www.w3.org/2004/02/skos/core#exactMatch",
@@ -77,6 +91,8 @@ def _mapping_release(
     mappings: tuple[RegistryMapping, ...] | None = None,
     ring: str = "subject",
 ) -> RegistryMappingRelease:
+    """One pinned capture-subset release around the given mappings."""
+
     pin = RegistryInputPin(
         path=Path("mapping.json"),
         logical_path="test/mapping.json",
@@ -101,6 +117,8 @@ def _mapping_release(
 
 
 def test_registry_resource_accepts_publisher_alternate_only_identity() -> None:
+    """A resource needs labels, not a preferred one, so alternate-only identity is valid."""
+
     resource = _resource(
         (
             RegistryLabel(
@@ -125,6 +143,8 @@ def test_registry_resource_rejects_multiple_preferred_labels() -> None:
 
 
 def test_registry_resource_accepts_one_preferred_label_per_language() -> None:
+    """One preferred label per language is allowed; the set is keyed by language."""
+
     resource = _resource(
         (
             RegistryLabel(value="Environment", role="preferred", source_path="$.labels[0]"),
@@ -162,6 +182,8 @@ def test_registry_resource_rejects_duplicate_label_claim() -> None:
 
 
 def test_registry_resource_rejects_label_value_across_roles() -> None:
+    """The same label value may not appear under two roles on one resource."""
+
     with pytest.raises(ValueError, match="reuses label value.*across roles"):
         _resource(
             (
@@ -209,11 +231,15 @@ def test_registry_mapping_evidence_rejects_invalid_identity_and_decision_fields(
     value: str,
     message: str,
 ) -> None:
+    """A relative locator or reviewer IRI, malformed digest, legacy warrant and naive time each refuse."""
+
     with pytest.raises(ValueError, match=message):
         replace(_mapping_evidence(), **{field_name: value})
 
 
 def test_registry_mapping_accepts_multiple_immutable_approvals() -> None:
+    """Distinct machine and human approvals coexist on one mapping, in order."""
+
     machine = _mapping_evidence(
         review_warrant="twoMachineAdjudication",
         attested_at="2026-08-06T00:00:00+00:00",
@@ -276,6 +302,8 @@ def test_registry_mapping_rejects_a_repeated_evidence_decision() -> None:
 
 
 def test_registry_mapping_rejects_equivalent_utc_evidence_times() -> None:
+    """Z and +00:00 spellings of the same instant count as a repeated decision."""
+
     evidence = _mapping_evidence()
 
     with pytest.raises(ValueError, match="repeats an evidence decision"):
@@ -293,6 +321,8 @@ def test_registry_mapping_rejects_naive_assertion_time() -> None:
 
 
 def test_registry_mapping_requires_an_approval_no_later_than_the_assertion() -> None:
+    """A mapping asserted before any of its approving decisions is refused."""
+
     first = _mapping_evidence(attested_at="2026-08-07T00:00:00+00:00")
     second = replace(
         first,
@@ -329,6 +359,8 @@ def test_registry_mapping_release_carries_scope_and_editorial_policy() -> None:
 
 
 def test_mapping_release_requires_periods_only_for_dated_rings() -> None:
+    """A value mapping must carry an effective period; a subject mapping must not."""
+
     with pytest.raises(ValueError, match="value mapping has no effective period"):
         _mapping_release(ring="value")
 
@@ -345,6 +377,8 @@ def test_mapping_release_requires_periods_only_for_dated_rings() -> None:
 
 
 def test_mapping_release_can_pin_a_composite_source_release() -> None:
+    """A composite release digest must match its declared input roles and be refused when it does not."""
+
     release = _mapping_release()
     second = replace(
         release.inputs[0],
@@ -397,6 +431,8 @@ def test_registry_mapping_release_requires_a_canonical_issue_date(issued: str) -
 
 
 def test_registry_mapping_release_rejects_assertions_before_release() -> None:
+    """A mapping asserted before its release date is refused."""
+
     mapping = _mapping(
         asserted_at="2026-08-05T01:00:00+00:00",
         evidence=(
@@ -409,6 +445,8 @@ def test_registry_mapping_release_rejects_assertions_before_release() -> None:
 
 
 def test_registry_mapping_release_rejects_evidence_before_release() -> None:
+    """An evidence decision attested before the release date is refused."""
+
     mapping = _mapping(
         evidence=(
             _mapping_evidence(attested_at="2026-08-05T00:00:00+00:00"),

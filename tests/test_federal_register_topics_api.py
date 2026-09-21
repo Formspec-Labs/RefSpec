@@ -1,3 +1,10 @@
+"""The Federal Register topics API capture: counts, slugs, collisions and pins.
+
+Parser tests pin the thesaurus/ad_hoc split, each row's source locator and
+record digest, and slug collisions across rows; capture tests prove content
+addressing, round-trip digests, and refusal of a symlinked or wrong-pin input.
+"""
+
 from __future__ import annotations
 
 import json
@@ -20,6 +27,8 @@ def _topic(
     *,
     see_also: list[dict[str, str]] | None = None,
 ) -> dict[str, object]:
+    """One topics-API result row with the reviewed five fields."""
+
     return {
         "cfr_references": [],
         "name": name,
@@ -30,6 +39,8 @@ def _topic(
 
 
 def _payload() -> bytes:
+    """A synthetic response with three thesaurus rows (one slug collision) and one empty-slug ad_hoc row."""
+
     value = {
         "meta": {
             "count": {
@@ -60,6 +71,8 @@ def _payload() -> bytes:
 
 
 def test_real_topics_response_shape_count_and_boundary_samples() -> None:
+    """The configured real response pins 1,044 thesaurus + 6,723 ad_hoc rows plus boundary samples."""
+
     source_path_text = os.environ.get("REFSPEC_FR_TOPICS_PATH")
     if source_path_text is None:
         pytest.skip("real Federal Register topics response is not configured")
@@ -81,6 +94,8 @@ def test_real_topics_response_shape_count_and_boundary_samples() -> None:
 
 
 def test_parser_preserves_source_rows_without_promoting_slugs_to_identity() -> None:
+    """Rows keep their locators and digests; a shared slug is reported as a collision, never merged."""
+
     snapshot = parse_federal_register_topics_api(_payload())
 
     assert snapshot.counts == {
@@ -104,6 +119,8 @@ def test_parser_preserves_source_rows_without_promoting_slugs_to_identity() -> N
 
 
 def test_parser_rejects_declared_count_and_source_shape_drift() -> None:
+    """A declared total disagreeing with the rows, or an extra field, refuses."""
+
     wrong_count = json.loads(_payload())
     wrong_count["meta"]["count"]["total"] = 5
     with pytest.raises(FederalRegisterTopicsError, match="declares 5"):
@@ -122,6 +139,8 @@ def test_parser_rejects_declared_count_and_source_shape_drift() -> None:
 def test_capture_round_trips_exact_bytes_and_rejects_wrong_pins(
     tmp_path: Path,
 ) -> None:
+    """A capture reopens to the same record-set digest and refuses a wrong length or digest."""
+
     source = tmp_path / "topics-source.json"
     source.write_bytes(_payload())
     acquired = capture_federal_register_topics(
@@ -157,6 +176,8 @@ def test_capture_round_trips_exact_bytes_and_rejects_wrong_pins(
 
 
 def test_local_capture_rejects_symlink_input(tmp_path: Path) -> None:
+    """A symlinked source path is refused as not a regular file."""
+
     source = tmp_path / "topics-source.json"
     source.write_bytes(_payload())
     linked = tmp_path / "linked.json"

@@ -29,6 +29,7 @@ ORDINARY = [
 @pytest.mark.parametrize('case', CASES, ids=lambda c: c['id'])
 @pytest.mark.parametrize('mutation', ['original', 'prefix', 'linebreaks', 'ascii-dash', 'lowercase'])
 def test_printed_court_locators_preserve_fields_and_exact_source(case, mutation):
+    """Pins each locator's fields, exact source slice and CFR non-citation, plus the copied old grammar's miss."""
     text = case['text']
     if mutation == 'prefix':
         text = '🧭 Example: ' + text
@@ -54,6 +55,7 @@ def test_printed_court_locators_preserve_fields_and_exact_source(case, mutation)
 @pytest.mark.parametrize('text', YEAR_FIRST + ORDINARY)
 @pytest.mark.parametrize('mutation', ['original', 'prefix', 'linebreaks', 'unicode-dash', 'lowercase'])
 def test_old_volume_forms_and_non_locators_agree_with_copied_checks(text, mutation):
+    """Pins that old volume-first forms and ordinary forms agree with the copied old checks under every mutation."""
     if mutation == 'prefix':
         text = '🧭 ' + text + '; 40 CFR 60.'
     elif mutation == 'linebreaks':
@@ -69,11 +71,13 @@ def test_old_volume_forms_and_non_locators_agree_with_copied_checks(text, mutati
 
 @pytest.mark.parametrize('text', ORDINARY)
 def test_a_volume_label_is_required_in_the_page_first_form(text):
+    """Pins that a page-first form without a volume label is no locator and still reads as a CFR citation."""
     assert grammar.find_eo_compilation_locators(text) == ()
     assert grammar.parse_cfr_citations(text)
 
 
 def test_both_page_orderings_preserve_range_endpoints():
+    """Pins that both page orderings yield the same locator with pages 60-61 and compilation 1971-1975."""
     a, = grammar.parse_eo_compilation_locators('3 CFR 60–61 (1971–1975 Comp.)')
     b, = grammar.parse_eo_compilation_locators('3 CFR, 1971–1975 Comp., pp. 60–61')
     assert a == b
@@ -81,6 +85,7 @@ def test_both_page_orderings_preserve_range_endpoints():
 
 
 def test_unclosed_parenthetical_retains_the_refusal_and_does_not_become_a_part():
+    """Pins that an unclosed compilation parenthetical keeps its refusal and never becomes a CFR part."""
     text = '3 CFR 127 (1981 Comp.'
     found, = grammar.find_eo_compilation_locators(text)
     assert found.refusal == 'compilation_parenthetical_unclosed'
@@ -90,6 +95,7 @@ def test_unclosed_parenthetical_retains_the_refusal_and_does_not_become_a_part()
 
 
 def test_repeats_and_neighbors_remain_distinct():
+    """Pins that repeated locators keep distinct spans while neighbouring CFR and USC citations still parse."""
     quote = '3 CFR 127 (1981 Comp.)'
     text = f'{quote}; 3 CFR 100; 5 USC 552; {quote}.'
     first, second = grammar.find_eo_compilation_locators(text)
@@ -100,6 +106,7 @@ def test_repeats_and_neighbors_remain_distinct():
 
 
 def test_compilation_word_does_not_match_the_prefix_of_an_ordinary_word():
+    """Pins that 'Company' is not read as the Comp. prefix, correcting the old year-first token boundary."""
     # Deliberate correction of the old year-first token boundary.
     text = '3 CFR 1981 Company'
     assert old_locators(text)

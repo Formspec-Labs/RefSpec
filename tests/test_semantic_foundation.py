@@ -1,4 +1,10 @@
-"""The four semantic rings share immutable records but keep relation meaning separate."""
+"""The four semantic rings share immutable records but keep relation meaning separate.
+
+Synthetic evidence assertions and mappings prove each ring's admission rules:
+use ceilings and identifiers are content-derived, malformed or caller-selected
+fields refuse by name, and an entity identity claim by name equality alone is
+always rejected.
+"""
 
 from __future__ import annotations
 
@@ -28,6 +34,8 @@ DIGEST = "sha256:" + "a" * 64
 
 
 def _human(*, ring: str = "subject", decision: str = "review-1") -> EvidenceAssertion:
+    """A human-reviewed assertion in one ring, whose identifier follows its review decision."""
+
     return EvidenceAssertion(
         semantic_ring=ring,  # type: ignore[arg-type]
         evidence_class="humanReviewed",
@@ -40,6 +48,8 @@ def _human(*, ring: str = "subject", decision: str = "review-1") -> EvidenceAsse
 
 
 def _publisher(*, ring: str = "subject") -> EvidenceAssertion:
+    """A publisher-asserted assertion carrying its source artifact IRI and digest."""
+
     return EvidenceAssertion(
         semantic_ring=ring,  # type: ignore[arg-type]
         evidence_class="publisherAsserted",
@@ -58,6 +68,8 @@ def _machine(
     ring: str = "subject",
     relation: str = SUBJECT_EXACT_MATCH,
 ) -> EvidenceAssertion:
+    """A machine assertion; machineQualified holds two validation receipts, machineReviewed one."""
+
     common = {
         "semantic_ring": ring,
         "evidence_class": evidence_class,
@@ -94,6 +106,8 @@ def _mapping(
     evidence: tuple[str, ...],
     context: dict[str, str] | None = None,
 ) -> MappingAssertion:
+    """One ring mapping over synthetic endpoints, with optional time context."""
+
     return MappingAssertion(
         semantic_ring=ring,  # type: ignore[arg-type]
         source_concept=f"urn:ref:test:concept:{ring}:source",
@@ -111,6 +125,8 @@ def _mapping(
 def test_malformed_semantic_ring_is_a_domain_error(
     semantic_ring: object,
 ) -> None:
+    """A list or mapping ring is refused with the four-ring message."""
+
     with pytest.raises(
         SemanticFoundationError,
         match="must be subject, entity, value, or legalIdentity",
@@ -127,6 +143,8 @@ def test_malformed_semantic_ring_is_a_domain_error(
 
 
 def test_rights_metadata_represents_facts_and_canonicalizes_holders() -> None:
+    """Rights metadata canonicalizes holder order and refuses a licence beside notStated rights."""
+
     stated = RightsMetadata(
         rights_status="stated",
         rights_statement="https://publisher.example/terms",
@@ -171,6 +189,8 @@ def test_rights_metadata_represents_facts_and_canonicalizes_holders() -> None:
 
 
 def test_all_evidence_classes_have_closed_content_derived_shapes() -> None:
+    """All five evidence classes round-trip through their records with their declared use ceilings."""
+
     reviewed = _machine(evidence_class="machineReviewed")
     assertions = validate_evidence_assertions(
         (
@@ -208,6 +228,8 @@ def test_all_evidence_classes_have_closed_content_derived_shapes() -> None:
 
 
 def test_machine_shape_binds_candidate_endpoints_relation_and_rejects_proof_labels() -> None:
+    """Machine evidence must name a proof and two unique receipts, and refuses a caller-selected proof label."""
+
     assertion = _machine()
 
     assert assertion.relation == SUBJECT_EXACT_MATCH
@@ -223,6 +245,8 @@ def test_machine_shape_binds_candidate_endpoints_relation_and_rejects_proof_labe
 
 
 def test_evidence_and_mapping_ids_change_with_content_and_reject_aliases() -> None:
+    """Identifiers follow content; a mutable alias field or a record missing lifecycle fields refuses."""
+
     first = _human(decision="first")
     second = _human(decision="second")
     mapping = _mapping(ring="subject", relation=SUBJECT_EXACT_MATCH, evidence=(first.identifier,))
@@ -250,6 +274,8 @@ def test_evidence_and_mapping_ids_change_with_content_and_reject_aliases() -> No
 
 
 def test_mapping_supersession_is_content_derived_closed_and_preserves_disagreement() -> None:
+    """A successor names its prior assertion, disagreement stays its own mapping, and only current lifecycle passes."""
+
     evidence = _human()
     prior = _mapping(
         ring="subject",
@@ -302,6 +328,8 @@ def test_mapping_supersession_is_content_derived_closed_and_preserves_disagreeme
 
 
 def test_use_ceiling_is_derived_and_never_caller_selected() -> None:
+    """A caller-supplied useCeiling is refused as not derived from evidenceClass."""
+
     publisher = _publisher()
     assert publisher.use_ceiling == "searchOnly"
 
@@ -311,6 +339,8 @@ def test_use_ceiling_is_derived_and_never_caller_selected() -> None:
 
 
 def test_subject_exact_match_is_a_mapping_and_never_identity() -> None:
+    """Subject exactMatch stays a MappingAssertion, and the identity relation is refused in that ring."""
+
     evidence = _human()
     mapping = _mapping(ring="subject", relation=SUBJECT_EXACT_MATCH, evidence=(evidence.identifier,))
     assertion = validate_mapping_assertions(
@@ -326,6 +356,8 @@ def test_subject_exact_match_is_a_mapping_and_never_identity() -> None:
 
 
 def test_machine_evidence_cannot_be_reused_for_another_relation() -> None:
+    """Machine evidence admitted for one relation cannot back another, even in the same ring."""
+
     evidence = _machine()
     exact = _mapping(ring="subject", relation=SUBJECT_EXACT_MATCH, evidence=(evidence.identifier,))
     with pytest.raises(SemanticFoundationError, match="not admitted here"):
@@ -337,6 +369,8 @@ def test_machine_evidence_cannot_be_reused_for_another_relation() -> None:
 
 
 def test_entity_identity_requires_more_than_name_or_statistical_similarity() -> None:
+    """Entity sameIdentity accepts publisher evidence but refuses name equality and statistical inference."""
+
     generated = EvidenceAssertion(
         semantic_ring="entity",
         evidence_class="ruleGenerated",
@@ -367,6 +401,8 @@ def test_entity_identity_requires_more_than_name_or_statistical_similarity() -> 
 
 
 def test_value_crosswalk_and_legal_identity_require_typed_time_context() -> None:
+    """Value and legalIdentity mappings require a time context and carry it verbatim."""
+
     value_evidence = _publisher(ring="value")
     with pytest.raises(SemanticFoundationError, match="require context"):
         _mapping(ring="value", relation=VALUE_EXACT_CROSSWALK, evidence=(value_evidence.identifier,))
@@ -457,6 +493,8 @@ def test_a_value_crosswalk_edition_is_refused_because_the_release_pin_is_the_edi
 
 
 def test_operator_adoption_requires_one_scoped_machine_review() -> None:
+    """Operator adoption must cite exactly one machineReviewed assertion, refusing publisher, chained or candidate-only evidence."""
+
     reviewed = _machine(evidence_class="machineReviewed")
     adopted = EvidenceAssertion(
         semantic_ring="subject",
@@ -493,6 +531,8 @@ def test_operator_adoption_requires_one_scoped_machine_review() -> None:
 
 
 def test_mapping_evidence_stays_ring_scoped_and_non_authorizing() -> None:
+    """Cross-ring evidence is refused, and an emissionAuthorized field is refused as admission language."""
+
     evidence = _human(ring="entity")
     mapping = _mapping(ring="subject", relation=SUBJECT_EXACT_MATCH, evidence=(evidence.identifier,))
     with pytest.raises(SemanticFoundationError, match="crosses semantic rings"):

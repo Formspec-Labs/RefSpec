@@ -16,6 +16,8 @@ from refspec.registry.infrastructure.artifact_serialization import (
 
 
 def test_canonical_json_bytes_are_newline_terminated() -> None:
+    """Canonical JSON bytes end in a newline and carry a sha256-prefixed descriptor."""
+
     payload = canonical_json_bytes({"a": 1})
 
     assert payload.endswith(b"\n")
@@ -27,6 +29,8 @@ def test_canonical_json_bytes_are_newline_terminated() -> None:
 
 
 def test_source_artifact_path_styles_remain_distinct() -> None:
+    """The scr and mvb path styles are both content-addressed under sources/ but must not collide."""
+
     identifier = "https://example.test/source.bin"
     payload = b"exact-bytes"
 
@@ -79,6 +83,8 @@ def _parquet_artifact_file_sha256_oracle(path: Path) -> str:
 
 
 def test_file_sha256_matches_both_retired_copies_on_known_content(tmp_path: Path) -> None:
+    """The shared streaming hash matches both retired copies and an independent hashlib computation."""
+
     target = tmp_path / "known.bin"
     target.write_bytes(b"gemet-theme-label-order")
 
@@ -90,6 +96,8 @@ def test_file_sha256_matches_both_retired_copies_on_known_content(tmp_path: Path
 
 
 def test_file_sha256_matches_both_retired_copies_over_a_mutation_battery(tmp_path: Path) -> None:
+    """Chunk-boundary sizes, including a flip just past a full chunk, must agree with both oracles."""
+
     chunk = 1024 * 1024
     sizes = (0, 1, 3, chunk - 1, chunk, chunk + 1, 2 * chunk, 2 * chunk + 17)
 

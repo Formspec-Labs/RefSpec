@@ -40,6 +40,8 @@ FIXTURE_ROOT = (
 
 
 def _versioned_reference(name: str) -> dict[str, str]:
+    """Build a minimal versioned reference pin for profile fields."""
+
     return {
         "id": f"urn:test:{name}",
         "version": "1",
@@ -48,6 +50,8 @@ def _versioned_reference(name: str) -> dict[str, str]:
 
 
 def _open_label_profile() -> OutputProfile:
+    """Build an enrichment/output profile whose one permission row caps at publication use."""
+
     enrichment = EnrichmentProfile(
         profile_id="urn:test:enrichment-profile:semantic-ownership",
         version="1",
@@ -97,6 +101,8 @@ def _release_graph_receipt(
     *,
     publication: Mapping[str, Any],
 ) -> dict[str, Any]:
+    """Build a sealed gate-issued release-graph validation receipt for one publication."""
+
     return seal_payload(
         {
             "id": "urn:test:receipt:semantic-ownership",
@@ -152,6 +158,8 @@ def _release_graph_receipt(
 def _validate_binding(
     records: Sequence[Mapping[str, Any]],
 ) -> None:
+    """Raise a runtime error rendering every diagnostic the binding validator reports."""
+
     diagnostics = binding.validate(list(records))
     if diagnostics:
         raise ReferenceRuntimeError(
@@ -163,6 +171,9 @@ def _validate_binding(
 
 
 def test_normalized_rows_preserve_rulespec_fields_without_local_enums() -> None:
+    """Unknown rulespec label roles, statuses, predicates, operations and participant roles pass through without local
+    enums."""
+
     label = ConceptLabel(
         label_id="urn:test:label:future-role",
         concept_iri="urn:test:concept:one",
@@ -318,6 +329,8 @@ def test_open_label_usage_eligibility_cannot_broaden_beyond_the_permission_row()
 def test_complete_publication_store_requires_exact_gate_receipt(
     tmp_path: Path,
 ) -> None:
+    """A complete, consumer-eligible publication is refused without a gate-issued receipt and accepted with one."""
+
     fixture = json.loads(
         (FIXTURE_ROOT / "managed-release-minimal.json").read_text(
             encoding="utf-8"

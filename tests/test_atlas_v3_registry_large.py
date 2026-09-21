@@ -1,4 +1,4 @@
-"""Focused normalization checks for the large Atlas 3 registry loaders."""
+"""Large Atlas 3 registry loaders: normalization, identity, pinning and catalog-binding checks."""
 
 from __future__ import annotations
 
@@ -19,6 +19,8 @@ ROOT = Path(__file__).parents[1]
 
 
 def _input_pin(tmp_path: Path, payload: bytes = b"exact source") -> RegistryInputPin:
+    """Build a digest-pinned input pin backed by a written source file."""
+
     path = tmp_path / "source.bin"
     path.write_bytes(payload)
     return RegistryInputPin(
@@ -31,6 +33,8 @@ def _input_pin(tmp_path: Path, payload: bytes = b"exact source") -> RegistryInpu
 
 
 def _assert_readable_uuid7(iri: str, token: str) -> None:
+    """Assert the source-concept IRI carries the token and a valid UUIDv7 suffix."""
+
     prefix = f"urn:ref:source-concept:v2:{token}:"
     assert iri.startswith(prefix)
     validate_uuid7(iri.removeprefix(prefix))
@@ -39,6 +43,9 @@ def _assert_readable_uuid7(iri: str, token: str) -> None:
 def test_fast_keeps_exact_ids_and_only_active_direct_hierarchy(
     tmp_path: Path,
 ) -> None:
+    """FAST keeps publisher URIs, strips blank/duplicate alternates, emits only active direct broader links, and keeps
+    tombstones as metadata."""
+
     first = fast_topical.FASTTopicalNativeRow(
         numeric_id="100",
         legacy_fst_id="fst00000100",
@@ -129,6 +136,8 @@ def test_fast_keeps_exact_ids_and_only_active_direct_hierarchy(
 
 
 def test_naics_and_psc_use_scoped_codes_without_inventing_hierarchy() -> None:
+    """NAICS and PSC releases use scoped UUIDv7 IRIs and notations, and emit no invented hierarchy relations."""
+
     naics = large.load_naics_release(
         FIXTURES / "naics_psc_codes/naics-2022-us-structure-2026-08-03.csv",
         parser_pin=naics_psc_codes.NAICS_CODES_2026_08_03,
@@ -158,6 +167,8 @@ def test_naics_and_psc_use_scoped_codes_without_inventing_hierarchy() -> None:
 
 
 def test_courtlistener_keeps_platform_identity_and_activity() -> None:
+    """CourtListener rows keep platform identity, not official court identity, and carry active status."""
+
     pin = courtlistener.CourtListenerJurisdictionsSnapshotPin(
         source_url=courtlistener.COURTLISTENER_JURISDICTIONS_URL,
         retrieved_at="2026-08-03T00:00:00Z",
@@ -184,6 +195,8 @@ def test_courtlistener_keeps_platform_identity_and_activity() -> None:
 
 
 def test_federal_register_capture_ids_do_not_reuse_slugs_or_merge_2025() -> None:
+    """Only the published thesaurus collection is emitted; ad hoc rows are excluded and no 2025 merge happens."""
+
     path = FIXTURES / "federal-register-topics-mini.json"
     payload = path.read_bytes()
     release = large.load_federal_register_topics_release(
@@ -217,6 +230,8 @@ def test_federal_register_capture_ids_do_not_reuse_slugs_or_merge_2025() -> None
 def test_opm_ehri_uses_field_and_code_identity_and_keeps_past_as_metadata(
     tmp_path: Path,
 ) -> None:
+    """OPM E-HRI identity is the (code, field) pair; past values stay metadata and bulk plum rows stay out."""
+
     field_a = opm_workforce_codes.OPMEHRIDataElement(
         name="FIELD A",
         description="First field",
@@ -275,6 +290,8 @@ def test_opm_ehri_uses_field_and_code_identity_and_keeps_past_as_metadata(
 
 
 def test_large_loader_bindings_match_catalog_index_and_profile_map() -> None:
+    """Every large-loader binding matches the catalog resource kind, profile map and per-ring index rows."""
+
     catalog = json.loads((ROOT / "portfolio/resource-catalog-v0.json").read_bytes())
     atlas_index = json.loads((ROOT / "portfolio/atlas-index-v0.json").read_bytes())
     profile_map = json.loads((ROOT / "bindings/atlas/3.1/registry-resource-profiles.json").read_bytes())
@@ -303,6 +320,8 @@ def test_large_loader_bindings_match_catalog_index_and_profile_map() -> None:
 
 
 def test_loader_fails_closed_before_parsing_tampered_bytes(tmp_path: Path) -> None:
+    """A byte appended after the pin is refused before any parsing happens."""
+
     source = tmp_path / "naics.csv"
     source.write_bytes((FIXTURES / "naics_psc_codes/naics-2022-us-structure-2026-08-03.csv").read_bytes() + b"\n")
 

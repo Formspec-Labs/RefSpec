@@ -1,4 +1,9 @@
-"""Official SAM.gov Assistance Listings controlled-code capture, parsing, and package tests."""
+"""Official SAM.gov Assistance Listings controlled-code capture, parsing, and validation tests.
+
+The pinned 210,611-byte HTML capture yields 17 assistance types, 44 eligible-applicant, and 73
+eligible-beneficiary codes, all deterministic metadata and never subject concepts; record
+validation refuses malformed ALNs and unknown or label-mismatched codes, and packages round-trip
+as closed source-controlled resources."""
 
 from __future__ import annotations
 
@@ -14,6 +19,8 @@ DOC_FIXTURE = FIXTURES / "sam-assistance-listings-api-2026-08-03.html"
 
 
 def _acquire(tmp_path: Path, source_path: Path = DOC_FIXTURE) -> sam.AcquiredSAMAssistanceSource:
+    """Acquire the pinned SAM assistance-listing capture from the fixture or a replacement path."""
+
     return sam.acquire_sam_assistance_listing_doc(
         sam.SAM_ASSISTANCE_DOC_2026_08_03,
         tmp_path,
@@ -22,6 +29,8 @@ def _acquire(tmp_path: Path, source_path: Path = DOC_FIXTURE) -> sam.AcquiredSAM
 
 
 def _portfolio(tmp_path: Path) -> sam.SAMAssistanceListingCodePortfolio:
+    """Parse the fixture capture into the three-family code portfolio."""
+
     return sam.parse_sam_assistance_listing_codes(_acquire(tmp_path))
 
 

@@ -121,6 +121,8 @@ def sha256_digest(payload: bytes) -> str:
 
 
 def _validate_oversight_url(value: str, field: str) -> None:
+    """Refuse a value that is not on an official HTTPS oversight.gov host, or that has credentials."""
+
     parsed = urlsplit(value)
     if parsed.scheme != "https" or parsed.hostname not in OVERSIGHT_HOSTS:
         raise OversightAcquisitionError(f"{field} must be an official HTTPS oversight.gov URL")
@@ -138,6 +140,8 @@ class OversightReportTypesSnapshotPin:
     expected_byte_length: int
 
     def __post_init__(self) -> None:
+        """Refuse a URL other than the official listing page, a bad digest, length, or timestamp."""
+
         _validate_oversight_url(self.source_url, "source_url")
         if self.source_url != OVERSIGHT_REPORT_TYPES_URL:
             raise OversightAcquisitionError("source_url must be the official federal reports listing page")
@@ -196,6 +200,8 @@ class AcquiredOversightReportTypesPage:
 
 
 def _validate_html_payload(payload: bytes) -> None:
+    """Refuse an access-denied/challenge page or a body that is not HTML before any digest check."""
+
     lowered = payload[:64_000].lower()
     if any(marker in lowered for marker in _CHALLENGE_MARKERS):
         raise OversightSourceDriftError(
@@ -206,6 +212,8 @@ def _validate_html_payload(payload: bytes) -> None:
 
 
 def _validate_resolved_url(value: str) -> None:
+    """Refuse a resolved URL that left the official oversight.gov hosts."""
+
     _validate_oversight_url(value, "fetcher resolved_url")
 
 
@@ -215,6 +223,8 @@ def _verify_payload(
     *,
     location: str,
 ) -> tuple[str, int]:
+    """Refuse a payload whose shape, byte length, or digest differs from the pin."""
+
     _validate_html_payload(payload)
     byte_length = len(payload)
     if byte_length != pin.expected_byte_length:
@@ -231,6 +241,8 @@ def _verify_existing(
     path: Path,
     pin: OversightReportTypesSnapshotPin,
 ) -> AcquiredOversightReportTypesPage:
+    """Re-verify one cached page object and return its acquisition record."""
+
     if path.is_symlink() or not path.is_file():
         raise OversightAcquisitionError(f"content-addressed target is not a regular file: {path}")
     actual_sha256, byte_length = _verify_payload(
@@ -262,6 +274,8 @@ def _publish_payload(
     resolved_url: str | None,
     local_source_path: Path | None,
 ) -> AcquiredOversightReportTypesPage:
+    """Publish verified page bytes by hard link, falling back to a verified existing object."""
+
     actual_sha256, byte_length = _verify_payload(
         payload,
         pin,
@@ -461,6 +475,8 @@ class ParsedOversightReportTypesPage:
 
 
 def _read_acquired_payload(page: AcquiredOversightReportTypesPage) -> bytes:
+    """Read and re-verify the acquired page before parsing."""
+
     payload = page.path.read_bytes()
     _verify_payload(payload, page.pin, location="parsed Oversight.gov reports listing page")
     return payload
@@ -533,6 +549,8 @@ def parse_oversight_report_types_page(page: AcquiredOversightReportTypesPage) ->
 
 
 def _identifier_payload(identifier: ControlledIdentifier, *, source_path: str) -> dict[str, Any]:
+    """Render one controlled identifier as an observation field."""
+
     return {
         "value": identifier.value,
         "kind": identifier.kind,
@@ -545,6 +563,8 @@ def _identifier_payload(identifier: ControlledIdentifier, *, source_path: str) -
 
 
 def _observation_id(*, source_url: str, source_path: str, identifiers: Sequence[Mapping[str, Any]]) -> str:
+    """Mint the capture-local observation identity from the source path and identifiers."""
+
     identity = {
         "resourceId": OVERSIGHT_REPORT_TYPES_RESOURCE_ID,
         "sourceArtifact": source_url,
@@ -558,6 +578,8 @@ def _observation_id(*, source_url: str, source_path: str, identifiers: Sequence[
 
 
 def _observation(option: OversightReportTypeOption, parsed: ParsedOversightReportTypesPage) -> dict[str, Any]:
+    """Render one report-type option as a package observation."""
+
     source_path = f"filters.reportType.options[{option.source_ordinal}]"
     identifiers = [_identifier_payload(identifier, source_path=source_path) for identifier in option.identifiers]
     return {

@@ -134,6 +134,7 @@ def _parse_cfr_citations(
     text: str, *, list_expansion: str,
     record: Callable[[CfrCitationOccurrence], int] | None = None,
 ) -> tuple[CfrCitation | CfrCitationRange, ...]:
+    """Scan each CFR form in source order, delegating every occurrence's span to ``record`` when supplied."""
     if list_expansion not in {"plural-label", "always"}:
         raise ValueError(f"unknown list expansion policy: {list_expansion!r}")
     if states_nothing(text):

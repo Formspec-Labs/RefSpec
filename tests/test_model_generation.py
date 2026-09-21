@@ -1,3 +1,5 @@
+"""Pin the CUE model's generator idempotence, manifest digests, and ref-record dispatch."""
+
 from __future__ import annotations
 
 import hashlib
@@ -22,6 +24,8 @@ load_model = GENERATOR.load_model
 
 
 def test_authoritative_model_generates_without_drift() -> None:
+    """Pin that --check regenerates every artifact byte-identically with exit 0."""
+
     result = subprocess.run(
         [sys.executable, str(GENERATOR_PATH), "--check"],
         cwd=REFSPEC_ROOT,
@@ -34,6 +38,8 @@ def test_authoritative_model_generates_without_drift() -> None:
 
 
 def test_generated_manifest_binds_every_artifact_to_the_model() -> None:
+    """Pin the model sha256 and every artifact digest in the checked-in manifest."""
+
     model_bytes = MODEL_PATH.read_bytes()
     model = load_model(MODEL_PATH)
     artifacts = artifact_bytes(model, model_bytes)
@@ -46,6 +52,8 @@ def test_generated_manifest_binds_every_artifact_to_the_model() -> None:
 
 
 def test_every_dispatched_ref_record_is_generated_from_the_model() -> None:
+    """Pin that the dispatch oneOf set equals TYPE_SCHEMAS exactly."""
+
     model = load_model(MODEL_PATH)
     schemas = model["schemas"]
 

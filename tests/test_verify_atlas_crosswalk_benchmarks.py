@@ -160,14 +160,17 @@ class Fixture:
 
 
 def _canonical(value: Any) -> str:
+    """Serialize a value as compact sorted-key JSON."""
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
 def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
+    """Write rows as one canonical JSON line each."""
     path.write_text("".join(f"{_canonical(row)}\n" for row in rows), encoding="utf-8")
 
 
 def _bundle(specs: tuple[Spec, ...]) -> dict[str, Any]:
+    """Build the crosswalk bundle: evidence, context and candidate artifacts plus sealed validations."""
     artifacts: list[dict[str, Any]] = []
     seen_evidence: set[str] = set()
     candidates: list[dict[str, Any]] = []
@@ -227,6 +230,7 @@ def _bundle(specs: tuple[Spec, ...]) -> dict[str, Any]:
 
 
 def _assertions(specs: tuple[Spec, ...]) -> dict[str, Any]:
+    """Build the relation-assertion bundle for the specs that carry a relation."""
     return {
         "type": "RelationAssertionBundle",
         "schemaVersion": "2.0",
@@ -245,6 +249,7 @@ def _assertions(specs: tuple[Spec, ...]) -> dict[str, Any]:
 
 
 def _benchmark_row(spec: Spec, set_name: str) -> dict[str, Any]:
+    """Build one emitted benchmark row carrying the extra field its set requires."""
     row: dict[str, Any] = {
         "crosswalk": CROSSWALK,
         "row": spec.row,
@@ -272,11 +277,13 @@ def _benchmark_row(spec: Spec, set_name: str) -> dict[str, Any]:
 
 
 def _set_rows(specs: tuple[Spec, ...], set_name: str) -> list[dict[str, Any]]:
+    """Return the rows for one set, sorted by row number (directness covers every spec)."""
     chosen = specs if set_name == "directness" else tuple(spec for spec in specs if spec.kind == set_name)
     return [_benchmark_row(spec, set_name) for spec in sorted(chosen, key=lambda spec: spec.row)]
 
 
 def _manifest(benchmarks: Path) -> dict[str, Any]:
+    """Build a manifest with a descriptor and digest for every emitted set file."""
     return {
         "type": "AtlasCrosswalkBenchmarkManifest",
         "populationBias": "label-oriented generator; sound for precision, not a recall benchmark",
@@ -356,6 +363,7 @@ def build_fixture(tmp_path: Path, specs: tuple[Spec, ...] = SPECS) -> Fixture:
 
 
 def _read_rows(fixture: Fixture, name: str) -> list[dict[str, Any]]:
+    """Parse one emitted set file into rows."""
     path = fixture.benchmarks / f"{name}.jsonl"
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
@@ -375,11 +383,13 @@ def rewrite(
 
 
 def mutate_manifest(fixture: Fixture, mutate: Callable[[dict[str, Any]], dict[str, Any]]) -> None:
+    """Apply a mutation to the fixture's manifest file."""
     path = fixture.benchmarks / "manifest.json"
     path.write_text(json.dumps(mutate(json.loads(path.read_text(encoding="utf-8")))), encoding="utf-8")
 
 
 def result(results: list[verifier.CheckResult], name: str) -> verifier.CheckResult:
+    """Return the check result with the given name, failing when it is absent."""
     for entry in results:
         if entry.name == name:
             return entry
@@ -387,6 +397,7 @@ def result(results: list[verifier.CheckResult], name: str) -> verifier.CheckResu
 
 
 def failed(results: list[verifier.CheckResult]) -> set[str]:
+    """Return the names of the checks that did not pass."""
     return {entry.name for entry in results if not entry.passed}
 
 
@@ -401,12 +412,14 @@ def suite(tmp_path: Path) -> Fixture:
 
 
 def test_consistent_suite_passes_every_check(suite: Fixture) -> None:
+    """Pins ten checks and zero failures on a consistent synthetic suite."""
     results = suite.run()
     assert len(results) == 10
     assert failed(results) == set(), [entry.summary for entry in results if not entry.passed]
 
 
 def test_check_names_are_stable(suite: Fixture) -> None:
+    """Pins the ten check names and their order."""
     assert [entry.name for entry in suite.run()] == [
         "partition",
         "counts",
@@ -427,6 +440,7 @@ def test_check_names_are_stable(suite: Fixture) -> None:
 
 
 def test_partition_fires_when_a_candidate_lands_in_two_sets(suite: Fixture) -> None:
+    """Pins that a row claimed by two sets fails partition with an 'appears in both' detail."""
     disputed = _read_rows(suite, "disputed")[0]
     rewrite(suite, "hard-negatives", lambda rows: [*rows, disputed])
     check = result(suite.run(), "partition")
@@ -435,6 +449,7 @@ def test_partition_fires_when_a_candidate_lands_in_two_sets(suite: Fixture) -> N
 
 
 def test_partition_fires_when_a_candidate_is_never_emitted(suite: Fixture) -> None:
+    """Pins that a dropped candidate fails partition with a 'never emitted' detail."""
     rewrite(suite, "controls", lambda rows: rows[:1])
     check = result(suite.run(), "partition")
     assert not check.passed
@@ -442,6 +457,7 @@ def test_partition_fires_when_a_candidate_is_never_emitted(suite: Fixture) -> No
 
 
 def test_partition_fires_on_duplicate_rows_inside_one_set(suite: Fixture) -> None:
+    """Pins that a duplicated row fails partition with an 'appears 2 times' detail."""
     rewrite(suite, "positives", lambda rows: [rows[0], *rows])
     check = result(suite.run(), "partition")
     assert not check.passed
@@ -449,6 +465,7 @@ def test_partition_fires_on_duplicate_rows_inside_one_set(suite: Fixture) -> Non
 
 
 def test_partition_fires_when_a_row_claims_the_wrong_crosswalk(suite: Fixture) -> None:
+    """Pins that a row claiming another crosswalk fails against the archive."""
     def bend(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         rows[0]["crosswalk"] = "fr-icpsr"
         return rows
@@ -465,6 +482,7 @@ def test_partition_fires_when_a_row_claims_the_wrong_crosswalk(suite: Fixture) -
 
 
 def test_counts_fire_on_an_extra_row(suite: Fixture) -> None:
+    """Pins that an extra row fails counts against the declared expectation."""
     rewrite(suite, "disputed", lambda rows: [*rows, copy.deepcopy(rows[0])])
     check = result(suite.run(), "counts")
     assert not check.passed
@@ -472,6 +490,7 @@ def test_counts_fire_on_an_extra_row(suite: Fixture) -> None:
 
 
 def test_counts_fire_on_a_missing_file(suite: Fixture) -> None:
+    """Pins that a missing set file fails counts with a 'file missing' detail."""
     (suite.benchmarks / "controls.jsonl").unlink()
     check = result(suite.run(), "counts")
     assert not check.passed
@@ -484,6 +503,7 @@ def test_counts_fire_on_a_missing_file(suite: Fixture) -> None:
 
 
 def test_positives_fire_when_the_pair_was_never_admitted(suite: Fixture) -> None:
+    """Pins that a positive pair absent from mappingAssertions fails."""
     def bend(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         rows[0]["sourceMember"] = "urn:ref:source:fr-elsst:999"
         return rows
@@ -495,6 +515,7 @@ def test_positives_fire_when_the_pair_was_never_admitted(suite: Fixture) -> None
 
 
 def test_positives_fire_on_a_wrong_admitted_relation(suite: Fixture) -> None:
+    """Pins that an admittedRelation differing from the archive's fails."""
     def bend(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         rows[0]["admittedRelation"] = f"{SKOS}exactMatch"
         return rows
@@ -506,6 +527,7 @@ def test_positives_fire_on_a_wrong_admitted_relation(suite: Fixture) -> None:
 
 
 def test_positives_accept_the_local_name_form_of_a_relation(suite: Fixture) -> None:
+    """Pins that a bare local relation name (no namespace) is accepted."""
     def bend(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         for row in rows:
             row["admittedRelation"] = str(row["admittedRelation"]).rsplit("#", 1)[-1]
@@ -516,6 +538,7 @@ def test_positives_accept_the_local_name_form_of_a_relation(suite: Fixture) -> N
 
 
 def test_positives_fire_when_an_admitted_mapping_is_dropped(suite: Fixture) -> None:
+    """Pins that an admitted mapping never emitted as a positive fails."""
     rewrite(suite, "positives", lambda rows: rows[:1])
     check = result(suite.run(), "positives-admitted")
     assert not check.passed
@@ -528,6 +551,7 @@ def test_positives_fire_when_an_admitted_mapping_is_dropped(suite: Fixture) -> N
 
 
 def test_controls_fire_when_a_control_pair_was_admitted(suite: Fixture) -> None:
+    """Pins that a control pair present in mappingAssertions fails."""
     positive = _read_rows(suite, "positives")[0]
 
     def bend(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -542,6 +566,7 @@ def test_controls_fire_when_a_control_pair_was_admitted(suite: Fixture) -> None:
 
 
 def test_controls_fire_on_a_non_control_generation_class(suite: Fixture) -> None:
+    """Pins that a non-control generation class filed in the controls set fails."""
     def bend(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         rows[0]["generationClass"] = "normalizedLabelEquality"
         return rows
@@ -553,6 +578,7 @@ def test_controls_fire_on_a_non_control_generation_class(suite: Fixture) -> None
 
 
 def test_controls_fire_on_a_missing_control_kind(suite: Fixture) -> None:
+    """Pins that a control row without controlKind fails."""
     def bend(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         rows[0].pop("controlKind")
         return rows
@@ -564,6 +590,7 @@ def test_controls_fire_on_a_missing_control_kind(suite: Fixture) -> None:
 
 
 def test_controls_fire_when_a_control_candidate_is_filed_elsewhere(suite: Fixture) -> None:
+    """Pins that a control candidate absent from the controls set fails."""
     rewrite(suite, "controls", lambda rows: rows[:1])
     check = result(suite.run(), "controls-never-admitted")
     assert not check.passed
@@ -576,12 +603,14 @@ def test_controls_fire_when_a_control_candidate_is_filed_elsewhere(suite: Fixtur
 
 
 def test_disputed_reports_how_many_judge_pairs_differ(suite: Fixture) -> None:
+    """Pins the passing summary reporting 1/1 differing judge pairs."""
     check = result(suite.run(), "disputed-are-disputed")
     assert check.passed
     assert "1/1" in check.summary
 
 
 def test_disputed_fire_on_a_single_sealed_judge(suite: Fixture) -> None:
+    """Pins that a disputed row with only one sealed judge fails."""
     def bend(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         rows[0]["sealedJudges"] = rows[0]["sealedJudges"][:1]
         return rows
@@ -593,6 +622,7 @@ def test_disputed_fire_on_a_single_sealed_judge(suite: Fixture) -> None:
 
 
 def test_disputed_fire_when_a_judge_did_not_support(suite: Fixture) -> None:
+    """Pins that a disputed row whose judge rejects fails the both-support requirement."""
     def bend(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         rows[0]["sealedJudges"][0]["outcome"] = "rejects"
         return rows
@@ -604,6 +634,7 @@ def test_disputed_fire_when_a_judge_did_not_support(suite: Fixture) -> None:
 
 
 def test_disputed_fire_when_the_archive_judges_disagree_with_the_row(suite: Fixture) -> None:
+    """Pins that sealed judges disagreeing with the archive's verdicts fail."""
     def bend(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         rows[0]["sealedJudges"][1]["verdictRelation"] = "same"
         return rows
@@ -615,6 +646,7 @@ def test_disputed_fire_when_the_archive_judges_disagree_with_the_row(suite: Fixt
 
 
 def test_disputed_fire_when_a_rejected_candidate_is_filed_as_disputed(suite: Fixture) -> None:
+    """Pins that a candidate the archive's sealed outcomes rejected cannot be filed as disputed."""
     hard_negative = _read_rows(suite, "hard-negatives")[0]
     hard_negative["sealedJudges"] = [
         {"group": "google-gemini", "outcome": "supports", "verdictRelation": "related"},
@@ -632,6 +664,7 @@ def test_disputed_fire_when_a_rejected_candidate_is_filed_as_disputed(suite: Fix
 
 
 def test_hard_negatives_fire_when_both_judges_supported(suite: Fixture) -> None:
+    """Pins that a pair both judges supported fails as disputed, not rejected."""
     disputed = _read_rows(suite, "disputed")[0]
     disputed.pop("competingRelations", None)
     rewrite(suite, "hard-negatives", lambda rows: sorted([*rows, disputed], key=lambda row: row["row"]))
@@ -641,6 +674,7 @@ def test_hard_negatives_fire_when_both_judges_supported(suite: Fixture) -> None:
 
 
 def test_hard_negatives_fire_when_the_pair_was_admitted(suite: Fixture) -> None:
+    """Pins that an admitted pair filed as a hard negative fails."""
     positive = _read_rows(suite, "positives")[0]
 
     def bend(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -655,6 +689,7 @@ def test_hard_negatives_fire_when_the_pair_was_admitted(suite: Fixture) -> None:
 
 
 def test_hard_negatives_fire_on_a_control_class_candidate(suite: Fixture) -> None:
+    """Pins that a control-class candidate filed as a hard negative fails."""
     control = _read_rows(suite, "controls")[0]
     control.pop("controlKind", None)
     rewrite(suite, "hard-negatives", lambda rows: sorted([*rows, control], key=lambda row: row["row"]))
@@ -669,6 +704,7 @@ def test_hard_negatives_fire_on_a_control_class_candidate(suite: Fixture) -> Non
 
 
 def test_labels_fire_on_a_rewritten_pref_label(suite: Fixture) -> None:
+    """Pins that a rewritten targetLabel fails against the archive's prefLabel."""
     def bend(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         rows[0]["targetLabel"] = "Energy"
         return rows
@@ -680,6 +716,7 @@ def test_labels_fire_on_a_rewritten_pref_label(suite: Fixture) -> None:
 
 
 def test_labels_fire_on_a_mismatched_task_id(suite: Fixture) -> None:
+    """Pins that a taskId disagreeing with the archive fails."""
     def bend(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         rows[0]["taskId"] = "task-000999"
         return rows
@@ -691,6 +728,7 @@ def test_labels_fire_on_a_mismatched_task_id(suite: Fixture) -> None:
 
 
 def test_labels_fire_when_members_disagree_with_the_archive(suite: Fixture) -> None:
+    """Pins that a targetMember disagreeing with the archive fails."""
     def bend(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         rows[0]["targetMember"] = "urn:ref:target:fr-elsst:002"
         return rows
@@ -707,6 +745,7 @@ def test_labels_fire_when_members_disagree_with_the_archive(suite: Fixture) -> N
 
 
 def test_independent_verdicts_fire_on_a_changed_verdict(suite: Fixture) -> None:
+    """Pins that an independentVerdict disagreeing with the review fails."""
     def bend(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         rows[0]["independentVerdict"] = "insufficient_evidence"
         return rows
@@ -718,6 +757,7 @@ def test_independent_verdicts_fire_on_a_changed_verdict(suite: Fixture) -> None:
 
 
 def test_independent_verdicts_fire_on_a_changed_directness(suite: Fixture) -> None:
+    """Pins that an independentDirectness disagreeing with the review fails."""
     def bend(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         rows[0]["independentDirectness"] = "generic_thematic"
         rows[0]["independentVerdict"] = _VERDICTS[0]
@@ -730,6 +770,7 @@ def test_independent_verdicts_fire_on_a_changed_directness(suite: Fixture) -> No
 
 
 def test_independent_verdicts_fire_when_the_row_number_points_at_another_pair(suite: Fixture) -> None:
+    """Pins that a row number pointing at a different blind pair fails."""
     def bend(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         rows[0]["row"] = 2
         return rows
@@ -741,6 +782,7 @@ def test_independent_verdicts_fire_when_the_row_number_points_at_another_pair(su
 
 
 def test_independent_verdicts_fire_when_the_review_is_absent(suite: Fixture) -> None:
+    """Pins that a missing independent review file fails as unverifiable."""
     (suite.review / "independent" / f"{CROSSWALK}.jsonl").unlink()
     check = result(suite.run(), "independent-verdicts")
     assert not check.passed
@@ -753,6 +795,7 @@ def test_independent_verdicts_fire_when_the_review_is_absent(suite: Fixture) -> 
 
 
 def test_manifest_fires_on_a_declared_row_count_that_is_wrong(suite: Fixture) -> None:
+    """Pins that a wrong declared row count fails manifest integrity."""
     def bend(manifest: dict[str, Any]) -> dict[str, Any]:
         manifest["sets"][0]["rows"] = 99
         return manifest
@@ -764,6 +807,7 @@ def test_manifest_fires_on_a_declared_row_count_that_is_wrong(suite: Fixture) ->
 
 
 def test_manifest_fires_on_a_stale_digest(suite: Fixture) -> None:
+    """Pins that a declared set digest not matching the file fails."""
     rewrite(suite, "positives", lambda rows: rows, resync_manifest=False)
 
     def bend(manifest: dict[str, Any]) -> dict[str, Any]:
@@ -777,6 +821,7 @@ def test_manifest_fires_on_a_stale_digest(suite: Fixture) -> None:
 
 
 def test_manifest_fires_without_population_bias(suite: Fixture) -> None:
+    """Pins that a manifest with no populationBias statement fails."""
     def bend(manifest: dict[str, Any]) -> dict[str, Any]:
         manifest.pop("populationBias")
         return manifest
@@ -788,6 +833,7 @@ def test_manifest_fires_without_population_bias(suite: Fixture) -> None:
 
 
 def test_manifest_fires_on_an_empty_not_usable_for(suite: Fixture) -> None:
+    """Pins that an empty notUsableFor list fails."""
     def bend(manifest: dict[str, Any]) -> dict[str, Any]:
         manifest["sets"][2]["notUsableFor"] = []
         return manifest
@@ -799,6 +845,7 @@ def test_manifest_fires_on_an_empty_not_usable_for(suite: Fixture) -> None:
 
 
 def test_manifest_fires_on_a_missing_set_descriptor(suite: Fixture) -> None:
+    """Pins that a set with no manifest descriptor fails."""
     def bend(manifest: dict[str, Any]) -> dict[str, Any]:
         manifest["sets"] = [entry for entry in manifest["sets"] if entry["set"] != "disputed"]
         return manifest
@@ -810,6 +857,7 @@ def test_manifest_fires_on_a_missing_set_descriptor(suite: Fixture) -> None:
 
 
 def test_manifest_accepts_a_mapping_keyed_by_camel_case_set_names(suite: Fixture) -> None:
+    """Pins that a sets mapping keyed by camelCase set names is accepted."""
     def bend(manifest: dict[str, Any]) -> dict[str, Any]:
         manifest["sets"] = {
             verifier._camel(str(entry["set"])): {key: value for key, value in entry.items() if key != "set"}
@@ -822,6 +870,7 @@ def test_manifest_accepts_a_mapping_keyed_by_camel_case_set_names(suite: Fixture
 
 
 def test_manifest_fires_when_absent(suite: Fixture) -> None:
+    """Pins that an absent manifest fails manifest integrity."""
     (suite.benchmarks / "manifest.json").unlink()
     check = result(suite.run(), "manifest-integrity")
     assert not check.passed
@@ -833,6 +882,7 @@ def test_manifest_fires_when_absent(suite: Fixture) -> None:
 
 
 def test_determinism_fires_on_unsorted_rows(suite: Fixture) -> None:
+    """Pins that rows emitted out of order fail the sortedness check."""
     rewrite(suite, "directness", lambda rows: list(reversed(rows)))
     check = result(suite.run(), "determinism")
     assert not check.passed
@@ -840,6 +890,7 @@ def test_determinism_fires_on_unsorted_rows(suite: Fixture) -> None:
 
 
 def test_determinism_fires_on_a_non_canonical_line(suite: Fixture) -> None:
+    """Pins that a JSON line not in canonical form fails."""
     path = suite.benchmarks / "positives.jsonl"
     rows = _read_rows(suite, "positives")
     path.write_text(
@@ -853,6 +904,7 @@ def test_determinism_fires_on_a_non_canonical_line(suite: Fixture) -> None:
 
 
 def test_determinism_fires_without_a_trailing_newline(suite: Fixture) -> None:
+    """Pins that a set file lacking its trailing newline fails."""
     path = suite.benchmarks / "disputed.jsonl"
     path.write_text(path.read_text(encoding="utf-8").rstrip("\n"), encoding="utf-8")
     mutate_manifest(suite, lambda manifest: _manifest(suite.benchmarks))
@@ -862,6 +914,7 @@ def test_determinism_fires_without_a_trailing_newline(suite: Fixture) -> None:
 
 
 def test_determinism_fires_on_malformed_json(suite: Fixture) -> None:
+    """Pins that a malformed JSON line fails."""
     path = suite.benchmarks / "controls.jsonl"
     path.write_text(path.read_text(encoding="utf-8") + "{not json}\n", encoding="utf-8")
     mutate_manifest(suite, lambda manifest: _manifest(suite.benchmarks))
@@ -876,6 +929,7 @@ def test_determinism_fires_on_malformed_json(suite: Fixture) -> None:
 
 
 def test_render_marks_pass_and_fail(suite: Fixture) -> None:
+    """Pins that the rendered report marks FAIL and names the failing check."""
     rewrite(suite, "positives", lambda rows: rows[:1])
     text = verifier.render(suite.run())
     assert "FAIL" in text
@@ -884,16 +938,19 @@ def test_render_marks_pass_and_fail(suite: Fixture) -> None:
 
 
 def test_main_returns_two_when_the_benchmark_directory_is_absent(tmp_path: Path, capsys: Any) -> None:
+    """Pins exit 2 and a not-found message when the benchmarks directory is absent."""
     assert verifier.main(["--benchmarks", str(tmp_path / "nope"), "--archive", str(tmp_path)]) == 2
     assert "not found" in capsys.readouterr().out
 
 
 def test_main_returns_two_when_the_archive_is_absent(tmp_path: Path) -> None:
+    """Pins exit 2 when the archive directory is absent."""
     (tmp_path / "benchmarks").mkdir()
     assert verifier.main(["--benchmarks", str(tmp_path / "benchmarks"), "--archive", str(tmp_path / "nope")]) == 2
 
 
 def test_main_returns_zero_when_every_check_passes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pins exit 0 when every check passes."""
     (tmp_path / "benchmarks").mkdir()
     monkeypatch.setattr(
         verifier,
@@ -905,6 +962,7 @@ def test_main_returns_zero_when_every_check_passes(tmp_path: Path, monkeypatch: 
 
 
 def test_main_returns_one_and_writes_json_when_a_check_fails(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pins exit 1 and a JSON result file carrying the failure details."""
     (tmp_path / "benchmarks").mkdir()
     monkeypatch.setattr(
         verifier,

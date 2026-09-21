@@ -22,6 +22,7 @@ DIVERGENCES = {
 
 
 def coordinate(title, value):
+    """Partition "part.section" into an exact citation, with a section only when a dot is present."""
     part, dot, section = value.partition('.')
     return CfrCitation(title, part, section if dot else None, True, True)
 
@@ -29,6 +30,10 @@ def coordinate(title, value):
 @pytest.mark.parametrize('case', CASES, ids=lambda case: case['id'])
 @pytest.mark.parametrize('mutation', ['original', 'unicode_dash', 'linebreak', 'neighbor', 'full_paragraph'])
 def test_publisher_context_and_mutations_preserve_complete_meaning(case, mutation):
+    """Across every fixture case and five mutations, the frozen pre-change
+    reader agrees, the readable span is complete, and the frozen divergence
+    list stays exact.
+    """
     text = case['focus']
     if mutation == 'unicode_dash':
         text = text.replace('-', '–')
@@ -56,6 +61,9 @@ def test_publisher_context_and_mutations_preserve_complete_meaning(case, mutatio
 
 
 def test_cross_part_range_and_mixed_list_keep_both_pinpoints():
+    """A range with pinpoints keeps both endpoints and their pinpoints; the
+    authority reader refuses the pair as range_pinpoints_not_represented.
+    """
     text = '40 CFR §§ 60.1(a) through 61.2(b), and 63.3(c)'
     rows = find_cfr_citations(text)
     assert len(rows) == 2
@@ -69,6 +77,7 @@ def test_cross_part_range_and_mixed_list_keep_both_pinpoints():
 
 
 def test_mixed_compound_list_contains_a_range_without_expanding_it():
+    """A compound list keeps its range member as a written range rather than expanding it."""
     text = '41 CFR parts 60-1, 60-3 through 60-4, and 102-193'
     assert [r.citation for r in find_cfr_citations(text)] == [
         coordinate(41, '60-1'),
@@ -90,6 +99,9 @@ def test_mixed_compound_list_contains_a_range_without_expanding_it():
     ('40 CFR §§ 60.1-61.2', 'ambiguous_section_range'),
 ])
 def test_unknown_tails_stay_observable_and_do_not_escape_as_single_identities(text, refusal):
+    """Every refusal keeps its source text and reason, the identity-only API
+    emits no part, and the authority API repeats the refusal.
+    """
     row, = find_cfr_citations(text)
     assert row.text == text and row.refusal == refusal
     safe, = parse_cfr_citations(text)
@@ -103,6 +115,7 @@ def test_unknown_tails_stay_observable_and_do_not_escape_as_single_identities(te
     '41 CFR parts 102-117, 15 USC 78c.',
 ])
 def test_another_citation_and_singular_prose_do_not_continue_a_list(text):
+    """A following citation or singular prose must not be consumed as part of a plural list."""
     row, = find_cfr_citations(text)
     assert row.refusal is None
     assert row.text in {'40 CFR part 37', '41 CFR part 102-117', '41 CFR parts 102-117'}
@@ -110,6 +123,9 @@ def test_another_citation_and_singular_prose_do_not_continue_a_list(text):
 
 @pytest.mark.parametrize('expand', [False, True])
 def test_qualifier_mode_is_native_and_never_deduplicates_explicit_repetitions(expand):
+    """Collapsed qualifier mode keeps one occurrence per coordinate while still
+    consuming its qualifier, and repeated mentions are not deduplicated.
+    """
     mention = '49 CFR part 172, subparts E and F'
     text = mention + '; ' + mention
     rows = find_cfr_citations(text, expand_qualifiers=expand)
@@ -122,6 +138,7 @@ def test_qualifier_mode_is_native_and_never_deduplicates_explicit_repetitions(ex
 
 
 def test_collapsing_qualifiers_retains_ambiguous_part_scope():
+    """Collapsing a multi-part list keeps the whole written anchor and the ambiguous_part_scope refusal."""
     text = '45 CFR parts 160 and 164, subparts A and E'
     first, last = find_cfr_citations(text, expand_qualifiers=False)
     assert first.citation.cfr_part == '160'
@@ -130,6 +147,7 @@ def test_collapsing_qualifiers_retains_ambiguous_part_scope():
 
 
 def test_numeric_range_keeps_zero_and_five_digit_parts_remain_plausible():
+    """Zero is a valid part, five-digit parts stay plausible, and a fused 42 CFR 412106 part is implausible."""
     assert parse_cfr_citations('16 CFR pts. 0-4') == (
         CfrCitationRange(coordinate(16, '0'), coordinate(16, '4')),)
     assert parse_cfr_citations('5 CFR part 10001') == (coordinate(5, '10001'),)
@@ -137,6 +155,9 @@ def test_numeric_range_keeps_zero_and_five_digit_parts_remain_plausible():
 
 
 def test_authority_rows_keep_both_coordinates_without_asserting_range_members():
+    """The authority reader keeps both written coordinates and marks both
+    plausible without expanding the range.
+    """
     row, = parse_authority_citation('41 CFR 101-19.600 to 101-19.607')
     assert (row.cfr_part, row.cfr_section, row.cfr_part_end, row.cfr_section_end) == (
         '101-19', '600', '101-19', '607')
@@ -145,6 +166,7 @@ def test_authority_rows_keep_both_coordinates_without_asserting_range_members():
 
 
 def test_refused_end_does_not_swallow_a_neighboring_explicit_citation():
+    """An unread range end must stop at the next explicit citation instead of swallowing it."""
     text = '41 CFR parts 60-1 through 40 CFR part 60'
     first, second = find_cfr_citations(text)
     assert first.refusal == 'range_end_unread'
@@ -157,11 +179,13 @@ def test_refused_end_does_not_swallow_a_neighboring_explicit_citation():
     '40 CFR parts 60 through 61 through 62 through 63',
 ])
 def test_unresolved_label_end_and_chains_keep_full_source_without_guessing(text):
+    """An unresolved label end or a chained range keeps the full source text with a refusal."""
     row, = find_cfr_citations(text)
     assert row.refusal is not None and row.text == text
 
 
 def test_compilation_word_overrides_misleading_parts_label_in_publisher_note():
+    """A ``Comp.`` compilation locator is not a CFR range; the EO-locator reader claims it instead."""
     # Exact note under title40 XML PART110, followed by its independent Source
     # note (52 FR10719), confirms this is the EO's compilation locator.
     text = ('Authority: 33 U.S.C. 1251 et seq., 33 U.S.C. 1321(b)(3) and (b)(4) and 1361(a); '
@@ -176,6 +200,7 @@ def test_compilation_word_overrides_misleading_parts_label_in_publisher_note():
 
 
 def test_observed_no_space_after_cfr_is_preserved():
+    """The observed 49 CFR1.97 spelling without a space is read as written."""
     text = '60103-4, 60108, 60110, 60113, 60118, 49 CFR1.97'
     row, = find_cfr_citations(text)
     assert row.citation == coordinate(49, '1.97') and row.text == '49 CFR1.97'
@@ -183,6 +208,7 @@ def test_observed_no_space_after_cfr_is_preserved():
 
 @pytest.mark.parametrize('name', ['range_end', 'compound', 'pinpoint', 'plausibility'])
 def test_semantic_checks_detect_deliberately_broken_readers(name, monkeypatch):
+    """Monkeypatching each semantic guard must make its test fail, proving the checks detect breakage."""
     import re
 
     from refspec.registry import citation_grammar as grammar

@@ -1,3 +1,10 @@
+"""Synthetic-bundle tests for the relation-candidate Pareto optimizer.
+
+The synthetic bundle pins the unrestricted and constrained frontiers, the
+signature and branch-and-bound solvers' agreement with brute force, and the
+writer's reservoir and anchor-policy refusals.
+"""
+
 from __future__ import annotations
 
 import sys
@@ -17,6 +24,7 @@ from optimize_relation_candidate_pareto import (
 
 
 def _bundle(tmp_path: Path) -> Path:
+    """Write a synthetic pareto bundle with five arms and three gold pairs."""
     path = tmp_path / "synthetic-pareto.npz"
     anchor_policy = "exact normalized labels plus mutual top-1 across all declared sparse views"
     arms = [
@@ -75,6 +83,7 @@ def _bundle(tmp_path: Path) -> Path:
 
 
 def test_exact_frontiers_include_no_provider_and_no_reranker(tmp_path: Path) -> None:
+    """Pins the unrestricted front's two points and the minimum complete unions for the three constrained frontiers."""
     bundle = load_bundle(_bundle(tmp_path))
 
     result = optimize_bundle(bundle, solver="brute-force")
@@ -94,6 +103,7 @@ def test_exact_frontiers_include_no_provider_and_no_reranker(tmp_path: Path) -> 
 
 
 def test_signature_solver_matches_direct_exhaustive_union(tmp_path: Path) -> None:
+    """Pins that the signature solver's selected union matches a direct recomputation of the same five candidates."""
     bundle = load_bundle(_bundle(tmp_path))
     model = build_signature_model(bundle)
 
@@ -114,6 +124,7 @@ def test_signature_solver_matches_direct_exhaustive_union(tmp_path: Path) -> Non
 
 
 def test_branch_and_bound_matches_exhaustive_frontier(tmp_path: Path) -> None:
+    """Pins that branch-and-bound's frontiers equal brute force's candidate counts, arm counts and pair-set digests."""
     bundle = load_bundle(_bundle(tmp_path))
 
     exhaustive = optimize_bundle(bundle, solver="brute-force")
@@ -133,6 +144,7 @@ def test_branch_and_bound_matches_exhaustive_frontier(tmp_path: Path) -> None:
 
 
 def test_repeat_has_identical_frontier_and_pair_digests(tmp_path: Path) -> None:
+    """Pins that repeating the optimization yields the same result digest and pair-set digest."""
     bundle = load_bundle(_bundle(tmp_path))
 
     first = optimize_bundle(bundle, solver="brute-force")
@@ -146,6 +158,7 @@ def test_repeat_has_identical_frontier_and_pair_digests(tmp_path: Path) -> None:
 
 
 def test_rejects_reranker_candidates_outside_declared_reservoir(tmp_path: Path) -> None:
+    """Pins refusal when a reranker rank sits outside its declared reservoir."""
     path = _bundle(tmp_path)
     with np.load(path, allow_pickle=False) as archive:
         ranks = np.asarray(archive["ranks"]).copy()
@@ -166,6 +179,7 @@ def test_rejects_reranker_candidates_outside_declared_reservoir(tmp_path: Path) 
 
 
 def test_rejects_graph_arm_without_anchor_policy(tmp_path: Path) -> None:
+    """Pins refusal when a graph arm declares no anchorPolicy."""
     path = tmp_path / "bad-graph.npz"
     with pytest.raises(ValueError, match="anchorPolicy"):
         write_bundle(

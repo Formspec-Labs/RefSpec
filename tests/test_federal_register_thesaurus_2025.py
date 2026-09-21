@@ -1,3 +1,4 @@
+"""The Federal Register 2025 Thesaurus: packaged extract pins, sealed managed release, subject resolution."""
 from __future__ import annotations
 
 import os
@@ -26,6 +27,8 @@ def _write_managed_release_fixture(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> Path:
+    """Write a sealed one-concept managed release, faking the fixture PDF's digest to pass the pin."""
+
     source_pdf = b"%PDF-1.7\nverified-view-fixture\n"
     real_sha256_bytes = managed_release_module._sha256_bytes
 
@@ -145,6 +148,8 @@ def _write_complete_managed_release(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> Path:
+    """Build and write the full packaged-extract release with a fixture PDF behind the pinned digest."""
+
     source_pdf = b"%PDF-1.7\ncomplete-705-concept-atlas-fixture\n"
     actual_sha256 = managed_release_module._sha256_bytes
 
@@ -167,6 +172,8 @@ def _write_complete_managed_release(
 
 
 def test_packaged_extract_pins_complete_current_source_interpretation() -> None:
+    """Pins the packaged counts: 705 terms, 526 variants (433/90/3), 1,463 related, 14 patterns, 2+2."""
+
     thesaurus = load_packaged_federal_register_thesaurus_2025()
 
     assert thesaurus.source_sha256 == FEDERAL_REGISTER_THESAURUS_2025_SHA256
@@ -204,6 +211,8 @@ def test_complete_2025_release_accounts_for_every_related_reference(
 
 
 def test_lists_of_subjects_resolution_never_silently_mints() -> None:
+    """Pins official/variant/ambiguous/source-local classifications and that no resolution mints a concept."""
+
     thesaurus = load_packaged_federal_register_thesaurus_2025()
 
     official = resolve_list_of_subjects_term(
@@ -246,6 +255,8 @@ def test_lists_of_subjects_resolution_never_silently_mints() -> None:
 
 
 def test_exact_pdf_regenerates_checked_extract_when_available() -> None:
+    """Pins that the opt-in exact PDF regenerates the packaged counts, terms, and variants."""
+
     source_path = os.environ.get("REFSPEC_FR_THESAURUS_2025_PATH")
     if not source_path:
         pytest.skip("set REFSPEC_FR_THESAURUS_2025_PATH for the exact PDF gate")
@@ -262,6 +273,8 @@ def test_managed_release_view_deep_freezes_verified_records(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pins that the view exposes tuples and refuses mutation at every nesting level."""
+
     manifest_path = _write_managed_release_fixture(
         tmp_path,
         monkeypatch,
@@ -293,6 +306,8 @@ def test_managed_release_view_deep_freezes_verified_records(
 def test_exact_pdf_builds_and_verifies_written_managed_release(
     tmp_path: Path,
 ) -> None:
+    """Pins that an exact-PDF release writes and reopens at 705 concepts with no broader relation."""
+
     source_path = os.environ.get("REFSPEC_FR_THESAURUS_2025_PATH")
     if not source_path:
         pytest.skip(

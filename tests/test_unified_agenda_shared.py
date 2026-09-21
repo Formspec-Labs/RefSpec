@@ -1,4 +1,9 @@
-"""The shared metadata adapter against the copied reader and source mutations."""
+"""The shared metadata adapter against the copied reader and source mutations.
+
+Each fixture and mutation is parsed by both the frozen ElementTree reader and the shared adapter;
+verdicts must match except for the three named INTENTIONAL_DIVERGENCES (doctype, misplaced record,
+nested record), and the shared adapter keeps receiver-specific diagnostics for malformed XML and a
+publication mismatch while the original byte pin is checked before the known repair."""
 
 from __future__ import annotations
 
@@ -15,6 +20,8 @@ FIXTURE = Path(__file__).parent / "fixtures/unified_agenda_shared/edition-202510
 
 
 def _pin(payload: bytes, publication="202510", count=1):
+    """A one-record edition pin over the payload's digest and length at a fixed run date."""
+
     return current.UnifiedAgendaEditionPin(
         file_stem=publication,
         publication_id=publication,
@@ -26,6 +33,8 @@ def _pin(payload: bytes, publication="202510", count=1):
 
 
 def _edition(fields: bytes) -> bytes:
+    """Wrap RIN_INFO fields in the minimal edition envelope."""
+
     return b'<REGINFO_RIN_DATA RUN_DATE="2026-07-03-04:00"><RIN_INFO>' + fields + b"</RIN_INFO></REGINFO_RIN_DATA>"
 
 
@@ -33,6 +42,8 @@ IDENTITY = b"<RIN>1000-AA00</RIN><PUBLICATION><PUBLICATION_ID>202510</PUBLICATIO
 
 
 def _verdict(reader, payload, pin):
+    """Run a reader and normalize to ("accept", rows) or ("reject", None); ParseError counts as rejection."""
+
     try:
         result = reader(payload, pin=pin)
     except ValueError:

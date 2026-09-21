@@ -1,15 +1,14 @@
 """Pinned streaming reader for Library of Congress external authority links.
 
-The Library of Congress (LC) publishes one rolling N-Triples ZIP containing
-links from its authority records to external vocabularies.  This reader keeps
-only assertions whose subject is an LCSH authority, preserves the publisher's
-MADS/RDF predicate and direction, and captures target labels.  LC omits the
-language tag on those labels, so the reader retains that absence and assigns a
-language through the frozen authority and script rules below.
-
-The download URL is not versioned.  The exact retrieved bytes are therefore
-the release identity: URL, retrieval timestamp, SHA-256 digest, and byte length
-are all pinned below.  Importing this module never opens a network connection.
+LC publishes one rolling N-Triples ZIP of links from its authority records to
+external vocabularies; this reader keeps only assertions whose subject is an
+LCSH authority, preserves the publisher's MADS/RDF predicate and direction,
+and captures target labels. LC omits every target-label language tag, so that
+absence is retained and a language is assigned through the frozen authority
+and script rules below. The download URL is not versioned, so the exact
+retrieved bytes are the release identity -- URL, retrieval timestamp, SHA-256
+digest, and byte length are all pinned -- and importing never opens a network
+connection.
 """
 
 from __future__ import annotations

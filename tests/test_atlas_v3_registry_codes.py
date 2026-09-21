@@ -1,3 +1,11 @@
+"""The v3 registry code adapter: release census, profiles, rings, UUID7 identity, digests, and scopes.
+
+Loads every supported small registry source from the gitignored
+``output/registry-real-data-sources`` captures (absent is not drift) and pins
+63 releases / 1,579 resources against ``EXPECTED_RESOURCE_COUNTS``, the
+catalog profiles and semantic rings, the https/urn provenance, and the
+per-source emission boundaries such as the value ring and captureSubset.
+"""
 from __future__ import annotations
 
 import json
@@ -68,6 +76,8 @@ PROFILE_BY_RESOURCE_KIND = {
 
 
 def test_code_adapter_keeps_variant_tagged_label_and_deduplicates_twin() -> None:
+    """Pins that a variant language tag is kept as its own label and a same-value twin is dropped."""
+
     items = codes._bundle_items(
         (
             {
@@ -102,6 +112,8 @@ def test_code_adapter_keeps_variant_tagged_label_and_deduplicates_twin() -> None
 
 @pytest.fixture(scope="module")
 def releases() -> tuple[RegistryRelease, ...]:
+    """Load every pinned registry code release, skipping when the capture tree is absent."""
+
     if not REAL_DATA.is_dir():
         pytest.skip("pinned registry code sources are not present: output/registry-real-data-sources")
     return load_registry_code_releases(ROOT)
@@ -110,6 +122,8 @@ def releases() -> tuple[RegistryRelease, ...]:
 def test_loads_every_supported_small_registry_source_at_measured_counts(
     releases: tuple[RegistryRelease, ...],
 ) -> None:
+    """Pins 63 releases and 1,579 resources against the measured per-module census, with no relations."""
+
     counts = Counter()
     for release in releases:
         counts[release.source_module] += len(release.resources)
@@ -131,6 +145,8 @@ def test_loads_every_supported_small_registry_source_at_measured_counts(
 def test_releases_use_catalog_resource_ids_profiles_rings_and_scheme_iris(
     releases: tuple[RegistryRelease, ...],
 ) -> None:
+    """Pins each release's profile, ring, and scheme IRI against the catalog and atlas index."""
+
     catalog = json.loads((ROOT / "portfolio/resource-catalog-v0.json").read_text())
     catalog_by_id = {row["resourceId"]: row for row in catalog["resources"]}
     atlas_index = json.loads((ROOT / "portfolio/atlas-index-v0.json").read_text())
@@ -148,6 +164,8 @@ def test_releases_use_catalog_resource_ids_profiles_rings_and_scheme_iris(
 def test_field_values_formats_and_code_domains_use_the_value_ring(
     releases: tuple[RegistryRelease, ...],
 ) -> None:
+    """Pins the value-ring code lists and codeScheme profiles, including the NASA TX notations."""
+
     by_key = {release.key: release for release in releases}
     value_release_keys = {
         "census-tiger-geoid-structure",
@@ -182,6 +200,8 @@ def test_field_values_formats_and_code_domains_use_the_value_ring(
 def test_resources_have_english_labels_readable_uuid7_ids_and_exact_provenance(
     releases: tuple[RegistryRelease, ...],
 ) -> None:
+    """Pins one English preferred label each, unique UUID7 IRIs, and https/urn locators with sha256 digests."""
+
     iris: set[str] = set()
     for release in releases:
         date.fromisoformat(release.issued)
@@ -199,6 +219,8 @@ def test_resources_have_english_labels_readable_uuid7_ids_and_exact_provenance(
 
 
 def test_release_build_is_repeatable(releases: tuple[RegistryRelease, ...]) -> None:
+    """Pins that rebuilding the releases yields identical keys, digests, and resource IRIs."""
+
     repeated = load_registry_code_releases(ROOT)
     identity = tuple(
         (
@@ -222,6 +244,8 @@ def test_release_build_is_repeatable(releases: tuple[RegistryRelease, ...]) -> N
 
 
 def test_input_pins_fail_closed_on_digest_drift(releases: tuple[RegistryRelease, ...]) -> None:
+    """Pins that a drifted input pin raises ValueError naming the pinned input that differs."""
+
     source = releases[0].inputs[0]
     drifted = replace(source, sha256="sha256:" + "0" * 64)
 
@@ -232,6 +256,8 @@ def test_input_pins_fail_closed_on_digest_drift(releases: tuple[RegistryRelease,
 def test_normalized_native_payloads_are_immutable(
     releases: tuple[RegistryRelease, ...],
 ) -> None:
+    """Pins that a normalized native payload mapping refuses mutation with TypeError."""
+
     payload = releases[0].resources[0].native_payload
 
     with pytest.raises(TypeError):
@@ -241,6 +267,8 @@ def test_normalized_native_payloads_are_immutable(
 def test_scoped_and_non_enumerative_sources_are_not_overclaimed(
     releases: tuple[RegistryRelease, ...],
 ) -> None:
+    """Pins captureSubset/completeCapture scopes, both input-pin roles, and an enumerated status."""
+
     by_key = {release.key: release for release in releases}
 
     assert by_key["billstatus-action-codes"].scope == "captureSubset"
@@ -272,6 +300,8 @@ def test_scoped_and_non_enumerative_sources_are_not_overclaimed(
 def test_ferc_class_types_emit_type_description_labels_with_recovered_columns(
     releases: tuple[RegistryRelease, ...],
 ) -> None:
+    """Pins 235 FERC document class types labelled by Type Description, never by the flattened line."""
+
     release = next(release for release in releases if release.key == "ferc-document-class-types")
 
     assert len(release.resources) == 235
@@ -299,6 +329,8 @@ def test_ferc_class_types_emit_type_description_labels_with_recovered_columns(
 def test_tiger_geoid_structure_emits_only_the_published_composition_rows(
     releases: tuple[RegistryRelease, ...],
 ) -> None:
+    """Pins the 11 TIGER GEOID composition rows and the sampled IRIs that survive removing the examples."""
+
     release = next(release for release in releases if release.key == "census-tiger-geoid-structure")
 
     assert len(release.resources) == 11
@@ -330,6 +362,8 @@ def test_tiger_geoid_structure_emits_only_the_published_composition_rows(
 def test_gnis_release_is_the_complete_national_file_layout_in_publisher_words(
     releases: tuple[RegistryRelease, ...],
 ) -> None:
+    """Pins the 21-field GNIS layout with the publisher's own descriptions and merged-cell sharing."""
+
     release = next(release for release in releases if release.key == "usgs-gnis-identifiers")
 
     assert release.profile == "structureScheme"
@@ -355,6 +389,8 @@ def test_gnis_release_is_the_complete_national_file_layout_in_publisher_words(
 def test_pra_release_emits_publisher_codes_without_form_mechanics(
     releases: tuple[RegistryRelease, ...],
 ) -> None:
+    """Pins the 15 PRA request-type/ICR-status codes and refuses OMB control-number form mechanics."""
+
     release = next(release for release in releases if release.key == "pra-icr-controls")
 
     assert len(release.resources) == 15
@@ -496,6 +532,12 @@ def test_unified_agenda_successor_releases_state_their_ref_032_provenance(
 def test_gao_cra_releases_carry_both_form_revisions_honestly(
     releases: tuple[RegistryRelease, ...],
 ) -> None:
+    """Pins both GAO Form 41217 revisions: five current rule types and five retired priority levels.
+
+    The retired revision's bytes stay pinned as an input and the publisher's
+    own URL typo ("Sumission") and option text are preserved, not corrected.
+    """
+
     by_key = {release.key: release for release in releases}
 
     rule_types = by_key["gao-cra-rule-types"]
@@ -594,6 +636,8 @@ def test_new_releases_pass_the_ref_032_guards_and_mint_no_identifier_rows(
 def test_govinfo_collections_emit_codes_and_names_without_holdings_counts(
     releases: tuple[RegistryRelease, ...],
 ) -> None:
+    """Pins 42 govinfo collections with codes and names but no package/granule holdings counts."""
+
     release = next(release for release in releases if release.key == "govinfo-collections")
 
     assert len(release.resources) == 42

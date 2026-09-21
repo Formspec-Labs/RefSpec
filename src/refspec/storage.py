@@ -1,4 +1,4 @@
-"""Provider-neutral storage helpers for the RefSpec reference package."""
+"""Provider-neutral storage helpers: stable ids, canonical JSON, all-string Parquet rows."""
 
 from __future__ import annotations
 
@@ -67,7 +67,11 @@ def write_parquet_rows(
     rows: Iterable[dict[str, object]],
     row_group_size: int = 50_000,
 ) -> Path:
-    """Write normalized rows to an all-string Parquet table."""
+    """Write normalized rows to an all-string Parquet table.
+
+    Mapping and sequence values are serialized with canonical_json; an empty
+    input still writes a valid file.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     schema = pa.schema([(column, pa.string()) for column in columns])
     writer = pq.ParquetWriter(path, schema, compression="zstd")

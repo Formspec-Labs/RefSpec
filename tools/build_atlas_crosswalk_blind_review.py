@@ -1,32 +1,20 @@
-"""Extract cross-vocabulary crosswalk gold and sealed blind review samples.
+"""Extract cross-vocabulary crosswalk gold and sealed blind review samples from the 2026-08-05 mapping-evidence archive.
 
-The 2026-08-05 mapping-evidence archive holds three adjudicated cross-vocabulary
-crosswalks: 1,095 candidates, each judged by two independent model families,
-582 admitted and 513 rejected.  That is the only cross-vocabulary typed material
-available, and the 513 rejections are the only negative gold anywhere in the
-programme.
-
-Two artifacts come out of here.
-
-**Gold.** Positive and negative rows in the same shape as the native-relation
-test sets, so the existing frontier and evidence tooling can score against them.
-
-**Blind samples.** Each row carries exactly the ``inputContext`` payload the
-sealed judges received -- preferred labels, definitions, scope notes, vocabulary
-names -- and nothing else.  Outcomes, verdict relations, admission status,
-generation class, and provider identity are withheld into a separate key file
-that a reviewer must not open.  This reproduces the chain-of-custody pattern the
-candidate ledger used for its 108-row and 120-row manual audits: seal the sample,
-digest it, record decisions, and only then join.
-
-The gold has a known bias and it is not a recall benchmark.  Candidates came from
-the retired label-oriented generator, so the population contains only pairs that
-generator proposed.  Scoring arm *recall* against it reproduces the circularity
-that disqualified the 582 historical mappings.  It is sound for precision,
-direction, judge agreement, and directness calibration, none of which depend on
-the candidate population being unbiased.
-
-Read-only against the archive.  No release artifact is modified.
+The archive holds three adjudicated cross-vocabulary crosswalks: 1,095
+candidates, each judged by two independent model families, 582 admitted and 513
+rejected. That is the only cross-vocabulary typed material available, and the 513
+rejections are the only negative gold anywhere in the programme. Two artifacts
+come out: gold rows shaped like the native-relation test sets, and blind samples
+carrying exactly the ``inputContext`` payload the sealed judges received --
+preferred labels, definitions, scope notes, vocabulary names -- with outcomes,
+verdict relations, admission status, generation class, and provider identity
+withheld into a separate sealed key that a reviewer must not open before
+decisions are recorded; ``--key-only`` rewrites just that key mid-review. The
+gold has a known bias and is not a recall benchmark: candidates came from the
+retired label-oriented generator, so scoring arm recall against it reproduces the
+circularity that disqualified the 582 historical mappings -- it is sound for
+precision, direction, judge agreement, and directness calibration. Read-only
+against the archive; no release artifact is modified.
 """
 
 from __future__ import annotations

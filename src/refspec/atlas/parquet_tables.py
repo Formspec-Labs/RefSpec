@@ -66,6 +66,8 @@ class AtlasParquetTableError(ValueError):
 
 
 def _digest_bytes(value: object, label: str) -> bytes | None:
+    """Encode one ``sha256:`` digest as 32 bytes, refusing a malformed value; None passes through."""
+
     if value is None:
         return None
     if not isinstance(value, str) or _DIGEST.fullmatch(value) is None:
@@ -74,6 +76,8 @@ def _digest_bytes(value: object, label: str) -> bytes | None:
 
 
 def _binary_digest_field(name: str, *, nullable: bool = True) -> pa.Field:
+    """Return the 32-byte binary Arrow field every digest column uses."""
+
     return pa.field(name, pa.binary(32), nullable=nullable)
 
 
@@ -751,6 +755,8 @@ class AtlasParquetTableWriter:
             self._flush(role)
 
     def extend(self, role: CompactRecordRole, records: Iterable[Mapping[str, Any]]) -> None:
+        """Buffer every record in one iterable through :meth:`add`."""
+
         for record in records:
             self.add(role, record)
 

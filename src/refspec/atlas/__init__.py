@@ -1,4 +1,9 @@
-"""Static vocabulary atlas publication and verification."""
+"""Static vocabulary atlas publication and verification.
+
+Re-exports the atlas namespace constants, the concept-release and managed-release
+contracts, and the DuckDB view over published Atlas tables; importing the package
+performs no I/O.
+"""
 
 from .concept_release import (
     MANAGED_RELEASE_RING_ASSIGNMENT_VERSION,

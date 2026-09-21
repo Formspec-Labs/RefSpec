@@ -1,39 +1,17 @@
-"""Seal a blind sample for the judged half of E-V4, and for what is left of E-V2.
+"""Seal a blind sample for the judged half of E-V4 and the framing half of E-V2.
 
-E-V4's measurement half is answered: ``relatedMatch`` is a sink, and the sink
-belongs to the *unprincipled* portion of the edit-distance arm.  What that cannot
-tell you is whether the 35 admitted ``relatedMatch`` mappings are genuine
-associations or plausible stories attached to string coincidences after the fact.
-Only a reviewer can answer that, and only blind.
-
-The sample is built so the answer cannot be inferred from the sample:
-
-* **Every ``relatedMatch`` admission is in it** -- all 35, so this is a census of
-  the population under test, not an estimate of it.
-* **Matched distractors.**  Admissions carrying other SKOS relations are drawn
-  alongside them, stratified by generation class, so the share of the sample that
-  is ``relatedMatch`` is not something a reviewer can guess from the mix.
-* **Controls.**  Random negatives and sibling distractors ride along unlabelled.
-  A pass that calls them conceptual is a pass whose other verdicts are worth less,
-  and this is the only way to find that out from inside the sample.
-* **Nothing else travels.**  Rows carry the concept facts the sealed judges saw
-  and no more: no admitted relation, no generation class, no variant class, no
-  admission status, no set membership, no provider identity.
-
-Two questions are asked of each row rather than one.  ``basisOfAssociation`` is
-the E-V4 question -- is the connection conceptual, or is it that the two labels
-merely look alike?  ``bestRelation`` is asked at the same time because a reviewer
-who has committed to a relation type is harder to lead on the basis question, and
-because it makes the pass a second opinion on typing for free.
-
-Two independent passes are planned over this one sealed sample: a neutral
-framing, and an adversarial framing that tells the reviewer to expect
-coincidences.  That is E-V2's remaining design with one honest limitation -- the
-model *family* is the same in both, so this measures framing sensitivity and
-inter-annotator agreement, not cross-family agreement.
-
-Read-only.  No relation is asserted and no benchmark set is modified; in
-particular the 86 disputed rows are not touched.
+Every one of the 35 admitted ``relatedMatch`` mappings is included -- a census of
+the population under test, not an estimate -- alongside matched distractors
+stratified by generation class and unlabelled random-negative and sibling
+controls, so the sample's composition cannot be read off it; rows carry only the
+concept facts the sealed judges saw, with admitted relation, generation class,
+variant class, admission status, set membership, and provider identity withheld
+into the sealed key, and presentation order is by task id. Each row asks
+``basisOfAssociation`` (conceptual connection versus label likeness) and
+``bestRelation``; the planned neutral and adversarial passes share one model
+family, so agreement measures framing sensitivity and inter-annotator stability,
+not cross-family agreement. Read-only: no relation is asserted, no benchmark set
+is modified, and in particular the 86 disputed rows are not touched.
 """
 
 from __future__ import annotations

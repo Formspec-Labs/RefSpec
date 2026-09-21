@@ -39,6 +39,8 @@ SUBJECT_RING = emd.ATLAS_SUBJECT_RING
 
 
 def _canonical_sha256(payload: object, *, terminal_lf: bool = True) -> str:
+    """The binding's canonical JSON sha256 spelling, with a terminal LF unless disabled."""
+
     text = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     if terminal_lf:
         text += "\n"
@@ -52,6 +54,8 @@ def _resource_lines(
     scheme: str,
     ring: str = SUBJECT_RING,
 ) -> list[str]:
+    """Asserted N-Quads for one resource: notation, scheme, ring and a representing source record."""
+
     subject = f"<{iri}>"
     record = f"<urn:ref:atlas-test:source-record:{iri.rsplit(':', 1)[-1]}>"
     return [
@@ -63,6 +67,8 @@ def _resource_lines(
 
 
 def _facts_and_digests(lines: list[str]) -> tuple[derived_graph.AssertedFactView, dict[str, str]]:
+    """Collect the asserted fact view and the node digests for this rule's evidence nodes."""
+
     facts = derived_graph.collect_asserted_fact_view(lines)
     wanted = emd.eurovoc_microthesaurus_domain_evidence_nodes(facts)
     node_digest = derived_graph.collect_node_digests(lines, wanted)
@@ -74,6 +80,8 @@ def _context(
     *,
     generated_at: str = "2026-01-01T00:00:00+00:00",
 ) -> derived_graph.DerivationContext:
+    """A derivation context over the given asserted lines and generation time."""
+
     facts, node_digest = _facts_and_digests(lines)
     return derived_graph.DerivationContext(
         facts=facts,
@@ -89,18 +97,26 @@ DOMAIN = "urn:ref:atlas-test:eurovoc:domain-04"
 
 
 def _micro(iri: str, notation: str, *, scheme: str = MICRO_SCHEME) -> list[str]:
+    """Asserted lines for one synthetic microthesaurus under the given notation."""
+
     return _resource_lines(iri, notation=notation, scheme=scheme)
 
 
 def _domain(iri: str, notation: str, *, scheme: str = DOMAIN_SCHEME) -> list[str]:
+    """Asserted lines for one synthetic domain under the given notation."""
+
     return _resource_lines(iri, notation=notation, scheme=scheme)
 
 
 def _pair_lines() -> list[str]:
+    """One microthesaurus 0406 and its domain 04: the minimal derivable pair."""
+
     return [*_micro(MICRO_A, "0406"), *_domain(DOMAIN, "04")]
 
 
 def test_simple_microthesaurus_and_domain_derives_one_edge() -> None:
+    """One 0406 microthesaurus under domain 04 yields one skos:broader edge with rule, engine and content-derived node IRI."""
+
     outcome = emd.derive_eurovoc_microthesaurus_domain_rows(_context(_pair_lines()))
 
     assert outcome.counts == {
@@ -123,6 +139,8 @@ def test_simple_microthesaurus_and_domain_derives_one_edge() -> None:
 
 
 def test_each_edge_cites_the_two_exact_endpoint_records() -> None:
+    """The derived row's evidence is exactly the two endpoint source records, sorted."""
+
     facts, _digests = _facts_and_digests(_pair_lines())
     outcome = emd.derive_eurovoc_microthesaurus_domain_rows(_context(_pair_lines()))
 
@@ -143,6 +161,8 @@ def test_two_microthesauri_share_one_domain() -> None:
 
 
 def test_scheme_scopes_the_rule_on_both_endpoints_not_notation_shape() -> None:
+    """Foreign-scheme resources with microthesaurus- or domain-shaped notations admit nothing; only the in-scheme pair derives."""
+
     # The MeSH rule shipped scheme-blind and proved parentage from notation
     # shape alone. This rule is scoped on BOTH sides: a foreign-scheme
     # resource carrying a perfectly microthesaurus-shaped notation admits
@@ -168,6 +188,8 @@ def test_scheme_scopes_the_rule_on_both_endpoints_not_notation_shape() -> None:
 
 
 def test_release_nodes_in_scheme_without_a_record_are_not_candidates() -> None:
+    """A release node in-scheme but with no representing source record is never a candidate endpoint."""
+
     lines = [
         *_pair_lines(),
         f"<urn:ref:atlas-release:3:eurovoc-microthesauri:4.24> {derived_graph.ATLAS_IN_SCHEME_TERM} <{MICRO_SCHEME}> {GRAPH} .",
@@ -179,6 +201,8 @@ def test_release_nodes_in_scheme_without_a_record_are_not_candidates() -> None:
 
 
 def test_missing_domain_is_counted_never_guessed() -> None:
+    """A microthesaurus with no matching domain counts missingDomain=1 and emits nothing."""
+
     lines = _micro(MICRO_A, "0406")  # no domain "04" resource at all
     outcome = emd.derive_eurovoc_microthesaurus_domain_rows(_context(lines))
 
@@ -193,6 +217,8 @@ def test_missing_domain_is_counted_never_guessed() -> None:
 
 
 def test_ambiguous_domain_is_counted_never_guessed() -> None:
+    """Two domains sharing one notation count ambiguousDomain=1 and emit nothing."""
+
     lines = [
         *_micro(MICRO_A, "0406"),
         *_domain(DOMAIN, "04"),
@@ -210,6 +236,8 @@ def test_ambiguous_domain_is_counted_never_guessed() -> None:
 
 
 def test_malformed_microthesaurus_notation_is_counted_never_truncated() -> None:
+    """A notation that is not four digits counts malformedNotation=1 rather than being truncated into an edge."""
+
     lines = [*_micro(MICRO_A, "not-four-digits"), *_domain(DOMAIN, "04")]
     outcome = emd.derive_eurovoc_microthesaurus_domain_rows(_context(lines))
 
@@ -223,6 +251,8 @@ def test_malformed_microthesaurus_notation_is_counted_never_truncated() -> None:
 
 
 def test_domain_without_exactly_one_notation_fails_closed() -> None:
+    """A domain endpoint carrying no notation raises rather than being skipped."""
+
     lines = [
         *_micro(MICRO_A, "0406"),
         f"<{DOMAIN}> {derived_graph.ATLAS_IN_SCHEME_TERM} <{DOMAIN_SCHEME}> {GRAPH} .",
@@ -234,6 +264,8 @@ def test_domain_without_exactly_one_notation_fails_closed() -> None:
 
 
 def test_non_subject_ring_endpoint_raises() -> None:
+    """A microthesaurus endpoint outside the subject ring raises."""
+
     lines = [
         *_resource_lines(MICRO_A, notation="0406", scheme=MICRO_SCHEME, ring="https://refspec.org/ns/atlas/v3#value"),
         *_domain(DOMAIN, "04"),
@@ -243,6 +275,8 @@ def test_non_subject_ring_endpoint_raises() -> None:
 
 
 def test_asserted_relation_collision_fails_closed_in_both_directions() -> None:
+    """An asserted skos:broader or its reverse skos:narrower duplicate refuses; an unrelated assertion does not."""
+
     context = _context(_pair_lines())
 
     with pytest.raises(emd.EuroVocMicrothesaurusDomainDerivationError, match="duplicates an asserted"):
@@ -263,6 +297,8 @@ def test_asserted_relation_collision_fails_closed_in_both_directions() -> None:
 
 
 def test_derivation_is_reproducible_from_the_same_facts() -> None:
+    """The same context derives identical rows and node IRIs."""
+
     context = _context(_pair_lines())
     first = emd.derive_eurovoc_microthesaurus_domain_rows(context)
     second = emd.derive_eurovoc_microthesaurus_domain_rows(context)
@@ -476,6 +512,8 @@ def test_validator_row_and_replay_are_scoped_to_both_eurovoc_schemes() -> None:
     reason="exact cached EuroVoc 4.24 SKOS Core archive is not available",
 )
 def test_real_4_24_release_reproduces_the_frozen_edge_set() -> None:
+    """The cached 4.24 release derives exactly the 127 pinned edges under the pinned counts."""
+
     _concepts, domains = load_eurovoc_4_24_releases()
     microthesauri = load_eurovoc_microthesauri_4_24_release()
     lines = emd.build_eurovoc_microthesaurus_domain_asserted_nquads_lines(microthesauri, domains)

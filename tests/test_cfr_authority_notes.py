@@ -42,11 +42,19 @@ pytestmark = pytest.mark.skipif(not CACHE.is_file(), reason="the pinned eCFR aut
 
 @pytest.fixture(scope="module")
 def notes() -> CfrAuthorityNotes:
+    """The pinned authority-note cache, loaded from the repository root."""
+
     return CfrAuthorityNotes.from_repository(REPOSITORY_ROOT)
 
 
 def test_the_cache_is_the_bytes_this_module_pins(notes: CfrAuthorityNotes) -> None:
-    """Digest, byte length and record count, all three, on every load."""
+    """Digest, byte length and record count, all three, on every load.
+
+    One fetch day (2026-08-24) over 49 issue-date URLs, one per non-reserved
+    title (title 35 is reserved), spanning 2024-05-17 to 2026-08-20; no
+    generation-1 128 KB truncation survives, and one raw digest per title (49),
+    not per part.
+    """
 
     assert notes.sha256 == NOTES_SHA256
     assert notes.byte_length == NOTES_BYTE_LENGTH
@@ -135,12 +143,12 @@ def test_the_reader_reads_the_publishers_own_words_on_21_cfr_310(notes: CfrAutho
 def test_the_reader_reads_49_cfr_192_as_the_publisher_writes_it_today(notes: CfrAuthorityNotes) -> None:
     """The note review A quotes is not the note the publisher prints now.
 
-    Review A's row 6 reads the whole of RIN 2137-AE60's list -- "40 USC 5103,
-    60102 ... 60137" -- as 49 CFR 192's note verbatim, with "40" typed for
-    "49". The note as fetched 2026-08-20 no longer enumerates those sections;
-    it says "60101 et. seq." So the corrected reading is absent from the note
-    too, and this test states that rather than pretending the join confirms
-    what the reviewer confirmed by hand from the 2010 edition.
+    The 2026-08-20 fetch says "60101 et. seq." rather than enumerating 40 USC
+    5103/60102...60137, so the corrected reading is absent from the note too
+    and this test says so instead of pretending the join confirms the reviewer.
+    "et seq." is not a range (reading it as one would make every section above
+    60101 present and delete the finding), and 60102 is near-miss only because
+    it sits one edit from the 60101 the note does name.
     """
 
     note = notes.note(49, "192")
@@ -167,15 +175,12 @@ def test_the_reader_reads_49_cfr_192_as_the_publisher_writes_it_today(notes: Cfr
 def test_the_cache_now_holds_the_part_that_settled_the_opening_specimen(notes: CfrAuthorityNotes) -> None:
     """45 CFR 12a is the campaign's own headline, and the hole is closed.
 
-    The greedy set-cover selected the parts covering the most agenda rows; 45
-    CFR 12a is a tiny part it never reached, so the campaign fetched that one
-    note by hand and generation 1 never carried it. The predecessor of this
-    test asserted `not notes.holds(45, "12a")` and pinned the gap so it stayed
-    a known hole rather than an unexplained NULL. **Generation 2 reads every
-    part the register publishes, so the hole is now the finding**: the note is
-    here, in the publisher's own words, and RIN 0991-AC14 -- which names no
-    other part, and whose verdict column was NULL for that reason alone -- is
-    answered.
+    Generation 1's greedy set-cover never reached this tiny part, so the
+    campaign fetched the note by hand; generation 2 reads every part the
+    register publishes, so the note is here and RIN 0991-AC14 -- which names
+    no other part -- is answered. The verdict still is not a repair: 40:551
+    and 41:550 read near-miss (the title is a character) and 12:550, two
+    edits away, reads absent.
     """
 
     assert notes.holds(45, "12a")
@@ -216,9 +221,9 @@ def test_a_note_range_covers_the_sections_between_its_endpoints(notes: CfrAuthor
 def test_near_miss_is_one_edit_on_the_identity_including_the_title(notes: CfrAuthorityNotes) -> None:
     """The survey's definition, and the title counts as a character.
 
-    17 CFR part 1's note is a list of title SEVEN sections, and the corpus
-    writes "17 USC 12a" -- the CFR title typed where the U.S.C. title belongs.
-    Spelling the identity "title:section" is what makes that one edit.
+    17 CFR part 1's note lists title SEVEN sections while the corpus writes
+    "17 USC 12a" -- the CFR title typed where the U.S.C. title belongs -- so
+    spelling the identity "title:section" is what makes that one edit.
     """
 
     assert NEAR_MISS_MAX_EDITS == 1
@@ -234,9 +239,10 @@ def test_near_miss_is_one_edit_on_the_identity_including_the_title(notes: CfrAut
 def test_a_rule_amending_several_parts_is_authorised_by_all_of_their_notes(notes: CfrAuthorityNotes) -> None:
     """Present anywhere settles it; an absence names the first part in citation order.
 
-    RIN 2040-AD08 amends 40 CFR 122, 123, 136 and 141, and the cache holds all
-    four. `33 USC 1361a` -- review G's row 1, where the filer transcribed
-    "sec. 501(a)" into the `1361a` slot -- is in none of them.
+    RIN 2040-AD08 amends 40 CFR 122, 123, 136 and 141, and `33 USC 1361a` --
+    review G's row 1, "sec. 501(a)" transcribed into the `1361a` slot -- is in
+    none of them, so it reads absent as "40 CFR 122" while 33 U.S.C. 1251 in
+    136's note reads present out of the same list.
     """
 
     parts = [(40, "122"), (40, "123"), (40, "136"), (40, "141")]
@@ -261,9 +267,8 @@ def test_the_review_specimen_the_note_catches_is_the_one_that_passed_silently(no
     Review E's row 6: RIN 2137-AE60's whole list is title 49 typed as 40, and
     the sibling `40 U.S.C. 5103` (Capitol Grounds) is a REAL section, so the
     U.S.C. section oracle answers "exists" and nothing accuses it. Its own
-    part's note names 49 U.S.C. 5103, one edit away -- which is the class of
-    silent false presence the review flagged hardest and no other column here
-    can see.
+    part's note names 49 U.S.C. 5103 one edit away -- the silent false
+    presence no other column here can see.
     """
 
     part = [(49, "192")]
@@ -292,38 +297,16 @@ def test_the_section_order_is_the_oracles_over_every_section_the_notes_name() ->
 
     ``usc_section_oracle._section_key`` is private, so the three-line rule is
     written out again rather than imported -- the same arrangement that module
-    makes with the grammar's dash table. Run over every section the 8,240 notes
-    name, in both directions -- 5,755 of them, where generation 1's 287 notes
-    named 2,241.
-
-    It moved three times, twice on 2026-08-24 and once on 2026-09-01. The #46
-    list-tail fences took it from 5,847 to 5,802: 45 sections that were never
-    sections -- compilation years and pages ("3 CFR, 1980 Comp., p. 277"), the
-    bare part of a dotted CFR reference ("7 CFR 2.22, 2.80, and 371.4"), and
-    the VOLUME of a treaty or a case reporter behind a comma ("340 U.S. 462",
-    "19 U.S.T. 6223"); 1,282 note citations went with them, in 806 notes, and
-    none arrived. The range reader then took it to 5,820, and those 18 are
-    ENDS: a note's own spans reach their far endpoint now, so a section a note
-    covers is found where it was one edit away before.
-
-    The Statutes-at-Large gate (2026-09-01, mined ledger item 4) took it to
-    5,755: a section is a section, whether stated once or many times, so this
-    count does not track the citations removed one-for-one -- and every
-    number here is a citation the fence's own oracle gate refused, not a
-    truncation like the #46 fences'. See
+    makes with the grammar's dash table -- and run over every section the
+    8,240 notes name, in both directions: 5,755 of them. It moved three times:
+    the #46 list-tail fences removed 45 non-sections (compilation years and
+    pages, the bare part of a dotted CFR reference, treaty/reporter volumes),
+    the range reader added 18 span endpoints, and the Statutes-at-Large gate
+    (2026-09-01, mined ledger item 4) refused 266 citations across 107 notes,
+    0 added anywhere -- 35,043 to 34,777, net rather than one-directional
+    because the gate admits a genuine resumed list such as 14 CFR 121's. See
     ``test_the_statutes_at_large_gate_stops_a_pinpoint_page_from_reading_as_a_section``
-    below for the fence itself; ``research/evidence/stat-page-gate-2026-09-01/``
-    for the full measurement (a full old-vs-new diff against HEAD, not this
-    fix's own no-oracle conservative default, which a naive comparison could
-    mistake for the same question -- see that directory's DELTAS.md). The
-    citation COUNT DOES move this time -- unlike the #46 fences, which only
-    ever deleted a citation outright, this gate ADMITS some of what it marks
-    (14 CFR 121's own note genuinely resumes a real 49 U.S.C. list after a
-    Stat. citation) and refuses the rest, so the count is net rather than
-    one-directional: 35,043 to 34,777, 266 citations refused across 107
-    notes, 0 added anywhere. ``CfrAuthorityNotes``'s own docstring carries
-    the new total, and the gate's own residual (a coincidentally-real section
-    number the exact-enumeration check cannot see through).
+    below and ``research/evidence/stat-page-gate-2026-09-01/``.
     """
 
     from refspec.registry.usc_section_oracle import _section_key
@@ -340,6 +323,8 @@ def test_the_section_order_is_the_oracles_over_every_section_the_notes_name() ->
 
 
 def test_a_citation_states_a_family_this_module_declares() -> None:
+    """Pins the closed family and verdict sets and the field refusals that keep half a citation impossible."""
+
     assert set(FAMILIES) == {"usc", "public_law", "cfr", "act"}
     assert VERDICTS == ("present", "near-miss", "absent")
     with pytest.raises(ValueError, match="undeclared citation family"):
@@ -369,12 +354,11 @@ def test_an_identity_is_None_where_the_row_states_no_identity() -> None:
 def test_the_publishers_elided_title_carries_across_its_own_semicolon(notes: CfrAuthorityNotes) -> None:
     """50 CFR 17's note lists the Endangered Species Act, and it read absent.
 
-    The whole note is "16 U.S.C. 1361-1407; 1531-1544; and 4201-4245". The
-    grammar carries a title across a COMMA and not across a semicolon -- write
-    the same list with commas and it reads three ranges -- so the separator the
-    publisher happened to choose decided whether 16 U.S.C. 1531 was in its own
-    part's note. It was not: 8,126 rows citing the ESA read "absent" against a
-    note that lists it in plain sight, the largest single block in that bucket.
+    The grammar carries a title across a COMMA and not a semicolon, so the
+    separator the publisher chose decided whether 16 U.S.C. 1531 was in its own
+    part's note: it was not, and 8,126 rows citing the ESA read absent against
+    a note that lists it in plain sight. The carried range now covers
+    1531-1544 and one past 1544 is not.
     """
 
     note = notes.note(50, "17")
@@ -397,14 +381,11 @@ def test_the_title_carry_fires_on_these_segments_and_nothing_else(notes: CfrAuth
 
     A segment must state no citation of any kind on its own AND be nothing but
     section tokens and separators. Over the whole register that is 124 segments
-    in 58 parts, enumerated here so a widened guard has to say so. All 18 that
-    generation 1's 287 notes carried are in this set unchanged; the other 106
-    are what reading every part rather than a set-cover of 287 turned up.
-
-    Computed the way :func:`read_note_citations` computes it -- the FULL guard,
-    not just the section-list shape. The two differ on exactly two segments
-    (45 CFR 1616's "1006(b)(4)" and "1006(b)(6)", where no title has been
-    stated yet), which is why the shape alone is not what this test asks.
+    in 58 parts, enumerated here so a widened guard has to say so; all 18 that
+    generation 1's 287 notes carried are in the set unchanged. Computed the way
+    :func:`read_note_citations` computes it -- the FULL guard, not just the
+    section-list shape, since the two differ on exactly two segments (45 CFR
+    1616's "1006(b)(4)" and "1006(b)(6)", where no title has been stated yet).
     """
 
     from refspec.registry.cfr_authority_notes import (
@@ -580,12 +561,15 @@ def test_the_title_carry_fires_on_these_segments_and_nothing_else(notes: CfrAuth
 def test_the_two_carried_titles_the_publishers_own_elision_gets_wrong(notes: CfrAuthorityNotes) -> None:
     """Two of the 124 carries read a label the publisher elided and meant otherwise.
 
-    Recorded rather than repaired, and both are the publisher's elision rather
-    than any filer's error. A guard that could tell these two from the other
-    122 would need a Code roster and a memory of which label was elided, which
-    this reader does not have; what it does have is the measured cost of each,
-    which is what makes leaving them the cheaper error rather than the lazier
-    one.
+    Both are the publisher's elision rather than any filer's error and both are
+    recorded rather than repaired: a guard that could tell them from the other
+    122 would need a Code roster and a memory of which label was elided, and
+    the measured cost is what makes leaving them the cheaper error.
+    (1) 22 CFR 41's list changes title at "2651a", read as 8 U.S.C. -- which
+    costs nothing, since no rule in this corpus cites it; (2) 32 CFR 634
+    elides **Pub. L.**, so three Public Law numbers read as title-5 ranges and
+    5 U.S.C. 301 reads present from a note that never names it -- no corpus row
+    is judged by either false span.
     """
 
     # (1) 22 CFR 41's list changes TITLE at the last item and does not say so.
@@ -633,17 +617,20 @@ def test_the_statutes_at_large_gate_stops_a_pinpoint_page_from_reading_as_a_sect
     notes: CfrAuthorityNotes,
 ) -> None:
     """"101 Stat. 1568, 1608" published 12 U.S.C. 1608, a Public Law's own
-    pinpoint page, not a section -- mined ledger item 4
-    (research/investigations-mined-2026-08-31.md ~lines 77-85), fixed by
-    gating :attr:`AuthorityCitation.usc_section_after_statute` on
+    pinpoint page, not a section -- mined ledger item 4, fixed by gating
+    :attr:`AuthorityCitation.usc_section_after_statute` on
     ``UscSectionOracle.section_is_enumerated`` rather than refusing every
     Stat.-resumed member outright, because 14 CFR 121's own note genuinely
     resumes a real 49 U.S.C. list the same way.
 
-    ``notes`` (the module fixture) is built through
-    :meth:`CfrAuthorityNotes.from_repository`, which auto-loads the real
-    oracle -- the production default. This is the actual fix, exercised
-    against the actual pinned cache, not a synthetic string.
+    The ``notes`` fixture is the production default
+    (:meth:`CfrAuthorityNotes.from_repository`, auto-loading the real oracle),
+    so this is the fix against the actual pinned cache. 12 CFR 615's Act pages
+    12:1608/12:993 are refused while its stated 12:2154/12:2160 remain; the
+    FAA resume keeps 49:44101 and 49:44701-44732; and the documented residual
+    -- 8 CFR 281's INA page list admitted as real title-6 sections ("195",
+    "201", "203", "212", "226") while "197", "219", "227", "230" are refused
+    -- is asserted so a future change is forced to look at it.
     """
 
     farm_credit = notes.note(12, "615")
@@ -748,25 +735,15 @@ def _repository_carrying_only_the_notes_cache(tmp_path: Path) -> Path:
 def test_the_oracle_gate_is_pinned_by_the_count_it_moves(notes: CfrAuthorityNotes, tmp_path: Path) -> None:
     """30,234 USC citations with the repository's oracle, 30,123 without one.
 
-    The missing-oracle degradation is fail-CLOSED but SILENT: a tree with no
-    sealed oracle directory withholds every Statutes-at-Large-marked citation
-    and nothing in the reader, the receipt or the digest says so, which makes
-    "gated, and the marks were fine" and "never asked" read identically. Both
-    USC totals are pinned here so they cannot: the fixture is the production
-    default (:meth:`CfrAuthorityNotes.from_repository`, auto-loading the real
-    oracle) and the tmp tree is the same pinned cache with the oracle absent.
-
-    The 111 between them are the marked citations the oracle AFFIRMS, so an
-    accidentally oracle-less build loses real citations and not only
-    fabricated ones -- 14 CFR 121's genuine 49 U.S.C. resume after "126 Stat.
-    89" is in that 111, asserted below.
-    ``research/evidence/stat-page-gate-2026-09-01/`` carries the measurement.
-
-    CFR range handling changes the unrelated CFR comparison population. The
-    copied-baseline comparison preserves every changed note in
-    ``fixtures/cfr-note-range-divergences.json``; it proves that these USC
-    counts and the other families did not change. The older all-family pins
-    (34,777/34,666) already differed by one from the copied pre-range code.
+    The missing-oracle degradation is fail-CLOSED but SILENT: nothing in the
+    reader, the receipt or the digest says "never asked" rather than "gated,
+    and the marks were fine". Both totals are pinned here so they cannot read
+    alike, and the 111 between them are the marked citations the oracle
+    AFFIRMS -- 14 CFR 121's genuine 49 U.S.C. resume after "126 Stat. 89" is
+    among them, so an accidentally oracle-less build loses real citations too.
+    ``research/evidence/stat-page-gate-2026-09-01/`` carries the measurement;
+    the copied-baseline comparison in ``fixtures/cfr-note-range-divergences.json``
+    proves the other families did not change.
     """
 
     gated = sum(citation.family == "usc" for note in notes.records for citation in note.citations)
@@ -789,17 +766,14 @@ def test_the_oracle_gate_is_pinned_by_the_count_it_moves(notes: CfrAuthorityNote
 def test_a_drifted_section_oracle_refuses_instead_of_quietly_withholding(tmp_path: Path) -> None:
     """An ABSENT oracle degrades to withholding; a DRIFTED one is refused.
 
-    They are different facts and this module treats them differently on
-    purpose. Absence is a tree that never carried the artifact. Drift is a
-    corrupted artifact -- and every other pinned thing here refuses drift out
-    loud: :func:`~refspec.registry.cfr_authority_notes._verify` for the note
-    cache two lines earlier, :meth:`UscSectionOracle.verify` for the six
-    tables. Swallowing the oracle's own refusal would make a corrupted
-    artifact the single quiet failure in the repository, costing the 111
-    citations the test above pins with no receipt saying why.
-
-    The drift is built the way a real one arrives: every pinned table placed
-    genuinely, then ONE of them replaced with other bytes.
+    Absence is a tree that never carried the artifact; drift is a corrupted
+    artifact, and every other pinned thing here refuses drift out loud
+    (:func:`~refspec.registry.cfr_authority_notes._verify` for the note cache,
+    :meth:`UscSectionOracle.verify` for the six tables). Swallowing the
+    oracle's own refusal would make a corrupted artifact the single quiet
+    failure in the repository, costing the 111 citations the test above pins.
+    The drift is built as a real one arrives: every pinned table placed
+    genuinely, then ONE replaced with other bytes.
     """
 
     notes_path = _repository_carrying_only_the_notes_cache(tmp_path)
@@ -827,9 +801,11 @@ def test_the_note_body_is_the_publishers_words_with_its_entities_decoded() -> No
     splits on -- so an undecoded entity splits a segment down the middle and
     the title carry reads the tail as a section list. Generation 1's 19 CFR
     part 4 is the sharpest case: "Pub. L. 108-7, Division B, Title II,&#xA7;
-    211" segmented into a bare "211", which the carry read as 46 U.S.C. 211.
-    Decoding deletes that phantom, which is the whole reason this function
-    exists."""
+    211" segmented into a bare "211", which the carry read as 46 U.S.C. 211;
+    decoding deletes that phantom.
+    Both directions are pinned, including 36 CFR 59's "L&amp;WCF Act of 1965",
+    which reads as "WCF Act" undecoded.
+    """
 
     raw = "Authority: 19 U.S.C. 66; Pub. L. 108-7, Division B, Title II,&#xA7; 211; 46 U.S.C. 501."
     assert note_body(raw) == "19 U.S.C. 66; Pub. L. 108-7, Division B, Title II,§ 211; 46 U.S.C. 501."
@@ -850,19 +826,13 @@ def test_decoding_the_publishers_ampersand_costs_36_cfr_230_its_second_section(
 ) -> None:
     """The one place decoding LOSES a real citation, and what it costs.
 
-    36 CFR 230's whole note is "16 U.S.C. 2103(d) &amp; 2109(e)." Undecoded it
-    splits into "…2103(d) &amp" and "2109(e).", and the carry supplies title 16
-    to the tail; decoded it is one segment, and the grammar does not continue a
-    section list across "&". So the publisher's own text, spelled correctly,
-    reads one section where the mis-spelling read two.
-
-    The cost is two rows and they are named here rather than absorbed: the
-    corpus cites 16 U.S.C. 2109 exactly twice, both under rules that name 36
-    CFR 230, and the filers write it "16 U.S.C. 2103(d) and 2109(e)" -- the
-    same list the note writes with an ampersand. Both read ``near-miss``
-    against a note that names it in plain sight. The repair belongs in the
-    grammar's treatment of "&" as a list separator, not in a decision to leave
-    the publisher's words mis-spelled, so this is a candidate and not a patch.
+    36 CFR 230's whole note is "16 U.S.C. 2103(d) &amp; 2109(e)." -- undecoded
+    it splits and the carry supplies title 16 to the tail, decoded it is one
+    segment and the grammar does not continue a list across "&", so
+    16 U.S.C. 2109 reads near-miss against a note that names it. The cost is
+    the two corpus rows that write the same list with "and"; the repair belongs
+    in the grammar's "&" handling, not in leaving the publisher's words
+    mis-spelled.
     """
 
     note = notes.note(36, "230")
@@ -884,19 +854,15 @@ def test_a_subdivisions_note_is_the_parts_witness_and_says_so(notes: CfrAuthorit
     """The one judgement call the whole-register fetch forced, and its specimen.
 
     80 of the 8,240 parts state no authority under their own head and do state
-    one under their FIRST subdivision. This reader takes that note as the
-    part's witness. That is not a new behaviour: generation 1 read a per-part
-    response top-down and stored the first ``<AUTH>`` it met, so 20 CFR 404 and
-    416 and 5 CFR 550 -- three of the most-cited parts in the corpus -- were
-    already being judged against a Subpart A note without anything saying so.
-    Dropping them would have deleted verdicts rather than added any, which is
-    the opposite of what widening the cache is for.
-
-    What changed is that the arrangement is now stated: ``authority_level`` and
-    ``authority_scope`` name it, so a consumer who wants only part-level
-    authority can filter, and ``cfr_note_part`` naming "20 CFR 404" can be
-    traced to the words that actually answered. An ``<AUTH>`` under a LATER
-    subdivision is a different subdivision's authority and is not read at all.
+    one under their FIRST subdivision, and this reader takes that note as the
+    part's witness -- generation 1 already read a per-part response top-down,
+    so 20 CFR 404, 416 and 5 CFR 550 were already judged against a Subpart A
+    note. ``authority_level``/``authority_scope`` now state the arrangement so
+    a consumer can filter; 79 of the 80 name their SUBPART, and 36 CFR 704's
+    scope stays at the "part" default only because its first subdivision is
+    neither a SUBPART nor a SUBJGRP. A later subdivision's note is not read at
+    all, and 20 CFR 404 is the specimen: 42 U.S.C. 405 and 403 present from
+    Subpart A, 1320b absent from it.
     """
 
     subdivision = [note for note in notes.records if note.authority_level == "subdivision"]

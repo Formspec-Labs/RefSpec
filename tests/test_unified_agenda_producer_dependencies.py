@@ -18,6 +18,8 @@ DEPENDENCIES = {
 
 
 def test_receipt_hashes_actual_installed_parser_and_xml_dependencies():
+    """Pin that receipt module digests hash the actual installed source files."""
+
     modules = builder._producer_block()["modules"]
     assert DEPENDENCIES <= modules.keys()
     for name in DEPENDENCIES:
@@ -27,6 +29,8 @@ def test_receipt_hashes_actual_installed_parser_and_xml_dependencies():
 
 
 def test_dependency_drift_changes_receipt_without_changing_receiver(monkeypatch, tmp_path):
+    """Pin that changing one reader file moves only that module's receipt digest."""
+
     before = builder._producer_block()["modules"]
     name = "spicy_docs.sources.unified_agenda.records"
     replacement = tmp_path / "changed_reader.py"
@@ -37,6 +41,8 @@ def test_dependency_drift_changes_receipt_without_changing_receiver(monkeypatch,
 
 
 def test_missing_dependency_refuses_before_build_creates_output(monkeypatch, tmp_path):
+    """Pin refusal on a missing producer module before any output directory is created."""
+
     name = "spicy_docs.sources.unified_agenda.records"
     monkeypatch.setattr(import_module(name), "__file__", str(tmp_path / "missing_reader.py"))
     output = tmp_path / "output"

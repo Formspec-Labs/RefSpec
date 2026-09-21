@@ -107,6 +107,8 @@ class EpaSrsSubstanceError(ValueError):
 
 
 def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Parse JSON object pairs, refusing a duplicate key."""
+
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -116,22 +118,30 @@ def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 
 def _sha256_bytes(payload: bytes) -> str:
+    """Return the canonical ``sha256:`` spelling of the payload's digest."""
+
     return "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
 def _require_text(value: object, label: str) -> str:
+    """Return a non-empty string, refusing any other value."""
+
     if not isinstance(value, str) or not value.strip():
         raise EpaSrsSubstanceError(f"{label} must be non-empty text")
     return value
 
 
 def _optional_text(value: object, label: str) -> str | None:
+    """Return a non-empty string or ``None``, refusing any other non-None value."""
+
     if value is None:
         return None
     return _require_text(value, label)
 
 
 def _require_https_uri(value: object, label: str) -> str:
+    """Return the value when it is an absolute HTTPS URI, refusing otherwise."""
+
     text = _require_text(value, label)
     parsed = urlsplit(text)
     if parsed.scheme != "https" or not parsed.netloc:
@@ -140,6 +150,8 @@ def _require_https_uri(value: object, label: str) -> str:
 
 
 def _require_datetime(value: object, label: str) -> str:
+    """Return the value when it is a timezone-aware ISO 8601 date-time, refusing otherwise."""
+
     text = _require_text(value, label)
     try:
         parsed = datetime.fromisoformat(text[:-1] + "+00:00" if text.endswith("Z") else text)
@@ -151,6 +163,8 @@ def _require_datetime(value: object, label: str) -> str:
 
 
 def _exact_keys(value: Mapping[str, Any], expected: frozenset[str], label: str) -> None:
+    """Refuse a mapping whose keys differ from the expected set."""
+
     actual = set(value)
     if actual != expected:
         raise EpaSrsSubstanceError(
@@ -210,6 +224,8 @@ class SubstanceIdentifierRecord:
     source_uri: str
 
     def __post_init__(self) -> None:
+        """Validate every identifier shape and require the identifying fields."""
+
         validate_dtxsid(self.dtxsid)
         if self.dtxcid is not None:
             validate_dtxcid(self.dtxcid)
@@ -221,6 +237,8 @@ class SubstanceIdentifierRecord:
         _require_https_uri(self.source_uri, "record.sourceUri")
 
     def native_payload(self) -> dict[str, Any]:
+        """Render the record as its source-shaped payload."""
+
         return {
             "dtxsid": self.dtxsid,
             "dtxcid": self.dtxcid,
@@ -232,6 +250,8 @@ class SubstanceIdentifierRecord:
 
 
 def _parse_record(value: object, index: int) -> SubstanceIdentifierRecord:
+    """Parse one sample record object, refusing missing or extra fields."""
+
     label = f"records[{index}]"
     if not isinstance(value, Mapping):
         raise EpaSrsSubstanceError(f"{label} must be an object")
@@ -265,6 +285,8 @@ class SubstanceSample:
     records: tuple[SubstanceIdentifierRecord, ...]
 
     def __post_init__(self) -> None:
+        """Refuse a bad timestamp, digest, or a record count outside the sample bound."""
+
         _require_datetime(self.captured_at, "capturedAt")
         if not isinstance(self.source_digest, str) or _DIGEST.fullmatch(self.source_digest) is None:
             raise EpaSrsSubstanceError("sourceDigest must be a lowercase sha256:<64 hex> digest")
@@ -328,6 +350,8 @@ class SubstanceSample:
         return distinct_identifiers(built)
 
     def native_payload(self) -> dict[str, Any]:
+        """Render the sample as its pinned capture payload."""
+
         return {
             "format": SUBSTANCE_CAPTURE_FORMAT,
             "parserVersion": PARSER_VERSION,

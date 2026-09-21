@@ -1,4 +1,9 @@
-"""Shared source observations preserve the existing table policies and bounded build."""
+"""Shared US Code structure observations preserve the frozen table policies and bounded build.
+
+Two oracles hold the replaced behavior: ``usc_structure_oracle`` for the
+release/annual table kernels and ``usc_structure_archive_oracle`` for ZIP
+routing, with named intentional parser and archive-admission differences.
+"""
 
 from __future__ import annotations
 
@@ -23,12 +28,16 @@ RELEASE = ReleasePoint(119, 102)
 
 
 def release_rows(body, *, appendix=False):
+    """Read a release title through the builder, keyed by the oracle's table names."""
+
     rows = defaultdict(set)
     builder.read_release_title(body, appendix=appendix, emit=lambda name, row: rows[name].add(row))
     return {name: rows[name] for name in oracle.release(body, appendix=appendix)}
 
 
 def annual_rows(body, *, year=2012, title=40, appendix=False):
+    """Read an annual title through the builder, keeping only section and range rows."""
+
     rows = defaultdict(set)
     builder.read_annual_title(
         body, year=year, title=title, appendix=appendix, emit=lambda name, row: rows[name].add(row)
@@ -39,6 +48,8 @@ def annual_rows(body, *, year=2012, title=40, appendix=False):
 @pytest.mark.parametrize("name", ["title-05-s423.xml", "title-42-s242c.xml"])
 @pytest.mark.parametrize("appendix", [False, True])
 def test_real_xml_and_policy_mutations_match_frozen_kernels(name, appendix):
+    """Real USLM plus status, range, unicode-dash, appendix and chapter mutations match the frozen release kernel."""
+
     original = (FIXTURES / "uslm-source-links" / name).read_bytes()
     variants = {
         "original": original,
@@ -53,6 +64,9 @@ def test_real_xml_and_policy_mutations_match_frozen_kernels(name, appendix):
 
 
 def test_annual_source_context_and_policy_mutations_match_frozen_kernel():
+    """Annual HTML mutations (ranges, stubs, dash, unknown text, usckey, invalid UTF-8) match the frozen annual
+    kernel."""
+
     original = ANNUAL.read_bytes()
     variants = {
         "original": original,
@@ -79,6 +93,8 @@ PARSER_DIFFERENCES = (
 
 
 def test_only_named_parser_differences_are_intentional():
+    """Exactly the four frozen parser differences behave as recorded; anything else matches the oracle."""
+
     bodies = {
         "single-quoted-attribute": b"<uscDoc><section identifier='/us/usc/t5/s1'/></uscDoc>",
         "comment-is-not-element": b'<uscDoc><!-- <section identifier="/us/usc/t5/s1"/> --></uscDoc>',
@@ -101,12 +117,16 @@ def test_only_named_parser_differences_are_intentional():
 
 
 def test_longer_prefix_fix_preserves_alphabetic_sections_and_ch1_section_parts():
+    """Alphabetic sections and ``ch1``-suffixed parts still match the oracle after the longer-prefix fix."""
+
     body = b'<uscDoc><section identifier="/us/usc/t5/sA"/><subsection identifier="/us/usc/t5/sA/a"/><paragraph identifier="/us/usc/t5/s1/ch1"/></uscDoc>'
     assert release_rows(body) == oracle.release(body)
     assert release_rows(body)["subsections"] == {(5, "a", "a"), (5, "1", "ch1")}
 
 
 def test_frozen_source_attributed_correction_set_names_only_longer_prefixes():
+    """The frozen 364-row correction set names only longer prefixes and is a proper subset of the oracle's rows."""
+
     correction = json.loads((FIXTURES / "usc-structure/structural-prefix-corrections.json").read_text())
     expected = {tuple(entry["row"]) for entry in correction["rows"]}
     assert len(expected) == 364
@@ -124,6 +144,8 @@ def test_frozen_source_attributed_correction_set_names_only_longer_prefixes():
 
 
 def native_xml(body: bytes | None = None) -> bytes:
+    """Wrap the retained release header around a section excerpt to form a native title."""
+
     # Exact retained header plus the existing section excerpt, not a claim that
     # the assembled unit fixture is a complete publisher title.
     prefix = (FIXTURES / "usc-structure/release-119-102-title05-header.xml.part").read_bytes()
@@ -132,11 +154,15 @@ def native_xml(body: bytes | None = None) -> bytes:
 
 
 def native_annual(body: bytes | None = None) -> bytes:
+    """Wrap the retained annual header around the annual excerpt."""
+
     prefix = (FIXTURES / "usc-structure/annual-2012-title40-header.html.part").read_bytes()
     return prefix + b"<body>" + (ANNUAL.read_bytes() if body is None else body) + b"</body></html>"
 
 
 def archive(path, entries):
+    """Write the named entries into a ZIP archive and return its path."""
+
     with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as bundle:
         for name, body in entries:
             bundle.writestr(name, body)
@@ -144,6 +170,9 @@ def archive(path, entries):
 
 
 def test_candidate_has_six_existing_schemas_and_receipt_without_changing_pins(tmp_path):
+    """A build writes the six named tables plus a receipt, matches oracle rows, and refuses to overwrite an existing
+    output."""
+
     corpus = archive(tmp_path / "corpus.zip", [("usc05.xml", native_xml())])
     annual = archive(tmp_path / "2012.zip", [("2012/2012USC40.htm", native_annual()), ("2012/usc.css", b"body {}")])
     output = tmp_path / "candidate"
@@ -168,6 +197,8 @@ def test_candidate_has_six_existing_schemas_and_receipt_without_changing_pins(tm
 
 
 def test_more_than_one_insert_batch_preserves_rows_and_deduplicates(tmp_path):
+    """More sections than one insert batch keeps all 1,100 distinct rows and deduplicates repeats."""
+
     sections = b"".join(
         f'<section identifier="/us/usc/t5/s{number}"><num>{number}</num></section>'.encode() for number in range(1100)
     )
@@ -183,6 +214,8 @@ def test_more_than_one_insert_batch_preserves_rows_and_deduplicates(tmp_path):
 
 @pytest.mark.parametrize("failure", ["bad-member", "malformed-tail", "wrong-year", "repeated-year", "no-titles"])
 def test_refused_build_never_leaves_candidate_or_staging_directory(tmp_path, failure):
+    """Each named refusal leaves neither a candidate directory nor a staging directory."""
+
     xml = native_xml()[:-10] if failure == "malformed-tail" else native_xml()
     corpus = archive(tmp_path / "corpus.zip", [("usc05.xml", xml)])
     annual_entries = [("2012/2012USC40.htm", native_annual())]
@@ -201,6 +234,8 @@ def test_refused_build_never_leaves_candidate_or_staging_directory(tmp_path, fai
 
 
 def test_cli_requires_explicit_annual_year_and_reports_refusal(tmp_path, capsys):
+    """The CLI demands YEAR=PATH for --annual (exit 2) and exits 1 with a refusal message when the build fails."""
+
     with pytest.raises(SystemExit) as error:
         builder.main(
             [
@@ -223,6 +258,8 @@ def test_cli_requires_explicit_annual_year_and_reports_refusal(tmp_path, capsys)
 
 
 def archive_rows(path, *, year=None, old=False):
+    """Call the shared or copied archive reader and collect its receipt and emitted rows."""
+
     rows = []
 
     def emit(name, row):
@@ -236,6 +273,8 @@ def archive_rows(path, *, year=None, old=False):
 
 
 def test_archive_handoff_preserves_ordered_receipts_and_table_rows(tmp_path):
+    """The shared archive reader reproduces the copied reader's ordered receipts and member selection."""
+
     corpus = archive(tmp_path / "corpus.zip", [("nested/usc05.xml", native_xml())])
     annual = archive(
         tmp_path / "annual.zip",
@@ -275,6 +314,8 @@ ARCHIVE_DIFFERENCES = (
 
 
 def test_only_named_archive_admission_changes_refuse_before_output(tmp_path, monkeypatch):
+    """Exactly the twelve frozen archive-admission changes refuse, and each refusal leaves no output."""
+
     xml = native_xml()
     annual = native_annual()
     cases = {
@@ -328,6 +369,8 @@ def test_only_named_archive_admission_changes_refuse_before_output(tmp_path, mon
 
 
 def test_late_owner_refusal_discards_earlier_callback_rows(tmp_path):
+    """A late native-release refusal discards rows already emitted from earlier members."""
+
     sections = b"".join(
         f'<section identifier="/us/usc/t5/s{number}"><num>{number}</num></section>'.encode() for number in range(1100)
     )
@@ -352,6 +395,8 @@ def test_late_owner_refusal_discards_earlier_callback_rows(tmp_path):
 
 
 def test_callback_exception_keeps_identity_and_discards_candidate(tmp_path, monkeypatch):
+    """A table callback exception is re-raised unchanged and discards the candidate directory."""
+
     error = RuntimeError("receiving table insertion failed")
     corpus = archive(tmp_path / "corpus.zip", [("usc05.xml", native_xml())])
 
@@ -367,6 +412,8 @@ def test_callback_exception_keeps_identity_and_discards_candidate(tmp_path, monk
 
 
 def test_cli_requires_release_point_and_rejects_malformed_selection(tmp_path, capsys):
+    """The CLI requires --release-point and refuses a malformed selection with exit 2."""
+
     with pytest.raises(SystemExit) as error:
         builder.main(["--corpus", "missing", "--output", str(tmp_path / "new")])
     assert error.value.code == 2
@@ -378,6 +425,8 @@ def test_cli_requires_release_point_and_rejects_malformed_selection(tmp_path, ca
 
 
 def test_carried_forward_appendix_keeps_requested_year_policy_and_member_order(tmp_path):
+    """A carried-forward appendix is reselected under the requested year and keeps member order and rows."""
+
     carried = (FIXTURES / "usc-structure/annual-2016-title50a.htm").read_bytes()
     header = (FIXTURES / "usc-structure/annual-2016-title40-header.html.part").read_bytes()
     current = header + b"<body>" + ANNUAL.read_bytes() + b"</body></html>"
@@ -398,6 +447,8 @@ def test_carried_forward_appendix_keeps_requested_year_policy_and_member_order(t
 
 
 def test_wrong_filename_year_still_refuses_when_native_year_matches(tmp_path):
+    """A member filename naming the wrong year refuses for both the shared and copied readers."""
+
     annual = archive(tmp_path / "2012.zip", [("2013usc40.htm", native_annual())])
     for previous in (True, False):
         with pytest.raises(ValueError, match="year differs from member name"):

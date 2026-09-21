@@ -1,3 +1,9 @@
+"""Streamed Atlas prebuild resolves registry identifier schemes from the descriptor catalog.
+
+Deep validation must count the identifier row when its authority scheme carries the
+atlas:identifierScheme profile; the default prebuild must instead refuse that scheme when it
+carries the wrong profile, with a cause naming the required profile."""
+
 from __future__ import annotations
 
 import hashlib
@@ -20,6 +26,8 @@ RELEASE_SCHEME_IRI = "urn:test:atlas-resource-scheme:release"
 
 
 def _identifier_release(tmp_path: Path) -> generator.LoadedRelease:
+    """A synthetic one-resource release whose resource carries one identifier under the test authority scheme."""
+
     source = tmp_path / "identifier-source.json"
     source.write_text("{}\n", encoding="utf-8")
     digest = "sha256:" + hashlib.sha256(source.read_bytes()).hexdigest()
@@ -67,6 +75,12 @@ def _identifier_release(tmp_path: Path) -> generator.LoadedRelease:
 
 
 def _identifier_descriptor_graph() -> Graph:
+    """The registry descriptor graph plus the test release and identifier-authority schemes.
+
+    The release scheme is an entity-ring codeScheme; the authority scheme is an entity-ring
+    identifierScheme.
+    """
+
     descriptors: Graph = generator._registry_asserted_graph()
     release_scheme = URIRef(RELEASE_SCHEME_IRI)
     descriptors.add((release_scheme, RDF.type, generator.ATLAS.ResourceScheme))

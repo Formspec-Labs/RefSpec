@@ -1,4 +1,9 @@
-"""Official BILLSTATUS code-set capture, parsing, and record-assignment tests."""
+"""BILLSTATUS code-set capture, parsing and record assignment against pinned official bytes.
+
+The user guide's three tables are a closed 8-code bill-type enumeration, an
+open 36-code action list, and 88 summary version codes keyed by chamber; no
+code is ever promoted to a general subject concept.
+"""
 
 from __future__ import annotations
 
@@ -15,14 +20,20 @@ README_FIXTURE = FIXTURES / "billstatus-readme-2026-08-03.html"
 
 
 def _acquire(tmp_path: Path, source_path: Path = USER_GUIDE_FIXTURE) -> bs.AcquiredBillStatusSource:
+    """Acquire the pinned user-guide capture from the local fixture."""
+
     return bs.acquire_billstatus_source(bs.BILLSTATUS_USER_GUIDE_2026_08_03, tmp_path, source_path=source_path)
 
 
 def _portfolio(tmp_path: Path) -> bs.BillStatusControlPortfolio:
+    """Parse the three pinned BILLSTATUS code tables."""
+
     return bs.parse_billstatus_code_sets(_acquire(tmp_path))
 
 
 def test_live_snapshot_pin_matches_exact_official_bytes() -> None:
+    """The committed guide and README fixtures match the pinned byte lengths and SHA-256 digests."""
+
     payload = USER_GUIDE_FIXTURE.read_bytes()
 
     assert len(payload) == 38_802
@@ -37,6 +48,8 @@ def test_live_snapshot_pin_matches_exact_official_bytes() -> None:
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
     tmp_path: Path,
 ) -> None:
+    """A local capture lands content-addressed and a cache hit is re-digested, not trusted."""
+
     pin = bs.BILLSTATUS_USER_GUIDE_2026_08_03
 
     acquired = _acquire(tmp_path)
@@ -51,6 +64,8 @@ def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
 
 
 def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) -> None:
+    """The injected fetcher is called once for the pinned source URL with the caller's timeout."""
+
     payload = USER_GUIDE_FIXTURE.read_bytes()
     calls: list[tuple[str, float]] = []
 
@@ -83,6 +98,8 @@ def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) ->
 def test_bill_types_are_a_closed_enumeration_not_general_subject_concepts(
     tmp_path: Path,
 ) -> None:
+    """Bill types are a closed eight-code enumeration with exact publisher identity, never subject concepts."""
+
     portfolio = _portfolio(tmp_path)
     resource = portfolio.bill_types
 
@@ -115,6 +132,8 @@ def test_bill_types_are_a_closed_enumeration_not_general_subject_concepts(
 def test_action_codes_are_an_open_courtesy_list_not_general_subject_concepts(
     tmp_path: Path,
 ) -> None:
+    """Action codes are an open 36-code courtesy list, never subject concepts."""
+
     portfolio = _portfolio(tmp_path)
     resource = portfolio.action_codes
 
@@ -128,6 +147,8 @@ def test_action_codes_are_an_open_courtesy_list_not_general_subject_concepts(
 
 
 def test_summary_version_codes_disambiguate_by_chamber(tmp_path: Path) -> None:
+    """Summary version codes are keyed by (code, chamber); a code-only lookup is refused as not unique."""
+
     portfolio = _portfolio(tmp_path)
     resource = portfolio.summary_version_codes
 
@@ -143,6 +164,8 @@ def test_summary_version_codes_disambiguate_by_chamber(tmp_path: Path) -> None:
 
 
 def test_portfolio_records_completeness_and_schema_version_gaps(tmp_path: Path) -> None:
+    """The portfolio records the missing schema/format version and the other publisher gaps."""
+
     portfolio = _portfolio(tmp_path)
 
     assert any("does not exist" in gap for gap in portfolio.gaps)
@@ -153,6 +176,9 @@ def test_portfolio_records_completeness_and_schema_version_gaps(tmp_path: Path) 
 def test_current_billstatus_record_validates_without_becoming_subjects(
     tmp_path: Path,
 ) -> None:
+    """An unknown action code stays unmatched while a closed bill_type mismatch refuses; no assignment becomes a
+    subject."""
+
     record = {
         "schema_version": "1.10.1",
         "bill_type": "HR",
@@ -195,6 +221,8 @@ def test_unknown_closed_bill_type_fails_closed(
     value: str,
     message: str,
 ) -> None:
+    """An unknown bill type refuses rather than validating partially."""
+
     record = {
         "schema_version": "1.10.1",
         "bill_type": value,
@@ -208,6 +236,8 @@ def test_unknown_closed_bill_type_fails_closed(
 
 
 def test_unknown_summary_version_or_chamber_fails_closed(tmp_path: Path) -> None:
+    """An unknown summary version code or a chamber that does not match the pair refuses."""
+
     portfolio = _portfolio(tmp_path)
     base = {"schema_version": "1.10.1", "bill_type": "H", "actions": []}
 
@@ -224,6 +254,8 @@ def test_unknown_summary_version_or_chamber_fails_closed(tmp_path: Path) -> None
 
 
 def test_missing_schema_version_fails_closed(tmp_path: Path) -> None:
+    """A record without a schema_version refuses."""
+
     record = {"bill_type": "H", "actions": [], "summaries": []}
 
     with pytest.raises(bs.BillStatusAssignmentError, match="schema_version"):
@@ -231,6 +263,8 @@ def test_missing_schema_version_fails_closed(tmp_path: Path) -> None:
 
 
 def test_digest_drift_never_becomes_a_parsed_resource(tmp_path: Path) -> None:
+    """Same-length byte tampering is refused as digest drift before parsing."""
+
     payload = USER_GUIDE_FIXTURE.read_bytes()
     changed = payload.replace(b"Signed by President", b"Signed by Presidwnt")
     assert len(changed) == len(payload)
@@ -260,6 +294,8 @@ def test_digest_drift_never_becomes_a_parsed_resource(tmp_path: Path) -> None:
 
 
 def test_missing_section_or_malformed_table_shape_fails_closed(tmp_path: Path) -> None:
+    """A byte-faithful document without the expected section header refuses to parse."""
+
     mini_payload = b"# Some Other Document\n\nNo BILLSTATUS tables here.\n"
     mini_pin = bs.BillStatusSnapshotPin(
         source=bs.BILLSTATUS_USER_GUIDE,
@@ -277,6 +313,8 @@ def test_missing_section_or_malformed_table_shape_fails_closed(tmp_path: Path) -
 
 
 def test_source_url_and_content_type_are_pinned_to_the_official_host(tmp_path: Path) -> None:
+    """An off-host source URL and a non-text content type are refused."""
+
     with pytest.raises(bs.BillStatusAcquisitionError):
         bs.BillStatusDocumentSource(
             source_url="https://example.com/BILLSTATUS-XML_User_User-Guide.md",

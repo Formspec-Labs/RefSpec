@@ -1,3 +1,5 @@
+"""UUIDv7 source-capture and registration identity: format, timestamp binding, and repeatable derived ids."""
+
 from __future__ import annotations
 
 import uuid
@@ -19,6 +21,7 @@ FETCH_ID = "019fc9f2-c758-7b5c-9c19-f7fe5e2bf611"
 
 
 def test_capture_event_validates_uuidv7_and_explicit_time() -> None:
+    """A capture event validates its UUIDv7 id, derives the timestamp, and serializes to fetchId/fetchedAt."""
     event = SourceCaptureEvent(fetch_id=FETCH_ID, fetched_at=FETCHED_AT)
 
     parsed = uuid.UUID(event.fetch_id)
@@ -32,6 +35,7 @@ def test_capture_event_validates_uuidv7_and_explicit_time() -> None:
 
 
 def test_derived_local_ids_are_repeatable_distinct_uuidv7_urns() -> None:
+    """Derived record URNs are repeatable per source key, distinct across keys, and UUIDv7."""
     event = SourceRegistrationEvent(
         registration_id=FETCH_ID,
         registered_at=FETCHED_AT,
@@ -52,6 +56,7 @@ def test_derived_local_ids_are_repeatable_distinct_uuidv7_urns() -> None:
 
 
 def test_registration_event_uses_distinct_manifest_names() -> None:
+    """A registration event uses registrationId/registeredAt, not the capture names."""
     event = SourceRegistrationEvent(
         registration_id=FETCH_ID,
         registered_at=FETCHED_AT,
@@ -64,6 +69,7 @@ def test_registration_event_uses_distinct_manifest_names() -> None:
 
 
 def test_capture_event_rejects_non_v7_or_mismatched_timestamp() -> None:
+    """An uppercase UUID, a non-v7 UUID, and a timestamp not matching the id are each refused."""
     with pytest.raises(SourceIdentityError, match="lowercase"):
         validate_uuid7(FETCH_ID.upper())
 

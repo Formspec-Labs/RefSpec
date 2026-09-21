@@ -1,30 +1,13 @@
-"""Wave 1: closure-scored recall, class mix by depth, and unmatched-pair triage.
+"""Report closure-scored recall (E-S5), class mix by depth (E-S6), and unmatched-pair triage (E-S1a).
 
-Three experiments from the design catalogue share one pass because they need the
-same three inputs -- rank artifacts, typed gold, and the hierarchy DAG -- keyed
-to one concept index.
-
-**E-S5 closure-scored recall.**  SKOS ``broader`` is transitive in meaning but
-asserted sparsely.  ELSST states 3,393 edges and entails 7,608.  An arm that
-retrieves ``TRUCKS``/``MOTOR VEHICLES`` is scored as a miss against the asserted
-set even though the relation holds, so every recall figure measured against
-asserted gold is a lower bound.  Scoring against both golds says how much.  The
-effect is not arm-neutral: an encoder that captures taxonomic distance should
-gain more under closure than a topical one, so a change in arm *ordering*
-between the two golds would invalidate the asserted-gold rankings rather than
-merely tighten them.
-
-**E-S6 class mix by depth.**  If hierarchy and equivalence saturate early while
-the associative share keeps climbing, deep retrieval is buying candidates the
-directness rubric will discard, and the production cutoff should be shallow.
-
-**E-S1a unmatched-pair triage.**  Retrieved pairs absent from gold are not
-uniformly noise.  Partitioning them into transitively entailed, sibling (sharing
-a parent), and neither turns an undifferentiated false-positive count into a
-precision estimate plus a bounded judging queue -- only the third bucket needs
-paying for.
-
-Read-only.  No provider call, no artifact mutated.
+Three experiments share one pass over rank artifacts, typed gold, and the
+hierarchy DAG keyed to one concept index; read-only, with no provider call and no
+artifact mutated. Scoring against closure gold as well as asserted gold exposes
+the lower-bound bias of sparse SKOS ``broader`` (ELSST asserts 3,393 hierarchy
+edges but entails 7,608), and triage partitions retrieved pairs absent from gold
+into transitively entailed, sibling, and neither; ``--export-gold`` writes closure
+and sibling gold as extra classes alongside, not replacing, the asserted
+hierarchy.
 """
 
 from __future__ import annotations
@@ -63,6 +46,8 @@ def _code(index: dict[str, int], left: str, right: str, count: int) -> int | Non
 
 
 def load_index(corpus: dict[str, Any], source: str) -> tuple[dict[str, int], int]:
+    """Return the member-to-position index and concept count for one corpus source."""
+
     entry = next(item for item in corpus["sources"] if item["source"] == source)
     members = [item["member"] for item in entry["concepts"]]
     return {member: position for position, member in enumerate(members)}, len(members)

@@ -1,12 +1,9 @@
 """Tests for the REF-040 consolidated LCSH release.
 
-The real-data assertions are gated behind the pinned bulk file, LC
-external-links archive, EuroVoc-LCSH alignment, FAST archives, and the
-Northwestern MeSH-LCSH mapping (see gather_referenced_lcsh_iris), and are
-kept to one shared module-scoped fixture: this release's own full-corpus
-scan already takes tens of seconds, and every other consumer test file
-(test_atlas_v3_registry_alignments*.py) proves the same release's shape
-from its own angle.
+Real-data assertions run behind one module-scoped fixture gated on the pinned
+bulk file, LC external-links archive, EuroVoc-LCSH alignment, FAST archives and
+the Northwestern MeSH-LCSH mapping (see ``gather_referenced_lcsh_iris``), kept
+to one fixture because this release's own full-corpus scan takes tens of seconds.
 """
 
 from __future__ import annotations
@@ -37,6 +34,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _generator_module():
+    """Import ``generate_atlas_v3_full`` from tools/ with that directory temporarily on sys.path."""
+
     sys.path.insert(0, str(ROOT / "tools"))
     try:
         return importlib.import_module("generate_atlas_v3_full")
@@ -66,12 +65,16 @@ KNOWN_USE_INSTEAD = frozenset(
 
 @pytest.fixture(scope="module")
 def release():
+    """Load the consolidated release once per module, skipping when the pinned sources are not cached."""
+
     if not HAS_REAL_SOURCES:
         pytest.skip("pinned LCSH consolidation sources are not cached")
     return load_lcsh_consolidated_release(SOURCE_ROOT)
 
 
 def test_release_identity_and_shape(release) -> None:
+    """Pins the release key, IRI, ring/profile/scope, and the 514,837 unique resources and 301,442 relations."""
+
     assert release.key == LCSH_CONSOLIDATED_RELEASE_KEY
     assert release.atlas_release_iri == LCSH_CONSOLIDATED_ATLAS_RELEASE_IRI
     assert release.ring == "subject"
@@ -83,6 +86,10 @@ def test_release_identity_and_shape(release) -> None:
 
 
 def test_release_metadata_states_the_scope_honestly(release) -> None:
+    """Pins the capture-subset metadata: current and retained-deprecated
+    counts, the publisher total, and the scope statement.
+    """
+
     metadata = release.metadata
     assert metadata["currentHeadingCount"] == 513_210
     assert metadata["deprecatedHeadingsRetainedCount"] == 1_627
@@ -96,6 +103,10 @@ def test_release_metadata_states_the_scope_honestly(release) -> None:
 
 
 def test_retains_the_known_deprecated_member_with_lc_status_verbatim(release) -> None:
+    """A known deprecated heading keeps its status, useInstead targets and
+    deletion note, with its variantLabel as the only preferred label.
+    """
+
     resource = next(r for r in release.resources if r.iri == KNOWN_DEPRECATED_IRI)
 
     assert resource.status == "deprecated"
@@ -113,6 +124,8 @@ def test_retains_the_known_deprecated_member_with_lc_status_verbatim(release) ->
 
 
 def test_a_current_member_carries_no_deprecation_claim(release) -> None:
+    """A current member states deprecated False, no useInstead targets, and no deletion note."""
+
     resource = next(r for r in release.resources if r.status == "current")
 
     deprecation = resource.native_payload["deprecation"]
@@ -122,6 +135,7 @@ def test_a_current_member_carries_no_deprecation_claim(release) -> None:
 
 
 def test_referenced_deprecated_member_use_instead_targets_are_absolute_iris(release) -> None:
+    """Every useInstead target is carried verbatim under the LC authority space, unfiltered by scheme."""
     # A successor is not always another subject: LC sometimes merges a
     # deprecated subject heading into a name authority
     # (id.loc.gov/authorities/names/...). This release does not resolve or
@@ -134,20 +148,20 @@ def test_referenced_deprecated_member_use_instead_targets_are_absolute_iris(rele
 
 
 def test_consolidated_release_is_cached_across_callers(release) -> None:
+    """A second load returns the identical object rather than rebuilding the release."""
     assert load_lcsh_consolidated_release(SOURCE_ROOT) is release
 
 
 def test_release_declares_every_file_its_selection_actually_reads(release) -> None:
-    """fix4 review finding 2.
+    """The release declares all nine input pins its selection actually reads.
 
-    The retired ``load_lcsh_external_links_endpoint_release`` declared
-    ``(bulk_pin, external_pin, selection_pin, *fast_release.inputs)`` because
-    it read all of those files to decide LCSH endpoint membership.
-    ``gather_referenced_lcsh_iris`` reads the identical shape of sources --
-    the EuroVoc-LCSH alignment, LC external-links, MeSH-LCSH mapping, and
-    every pinned FAST archive -- to decide which deprecated headings are
-    referenced. Declaring only the bulk pin claimed the release read one
-    file when it read nine.
+    fix4 review finding 2: the retired endpoint loader declared the bulk pin plus
+    its external and selection pins, and ``gather_referenced_lcsh_iris`` reads the
+    same shape of sources -- the EuroVoc-LCSH alignment, LC external-links,
+    MeSH-LCSH mapping and every pinned FAST archive -- so declaring only the bulk
+    pin claimed one file where the release read nine. The bulk file stays first
+    because ``generate_atlas_v3_full``'s ``_adapt_registry_release`` keys the
+    emitted digest and path off it.
     """
 
     filenames = [Path(pin.logical_path).name for pin in release.inputs]
@@ -167,6 +181,10 @@ def test_release_declares_every_file_its_selection_actually_reads(release) -> No
 
 
 def test_referenced_selection_pins_are_cached_and_include_fast_inputs() -> None:
+    """The eight referenced-selection pins are cached across calls and ordered
+    EuroVoc, external, MeSH, then the five FAST pins.
+    """
+
     from refspec.atlas.v3_registry_alignments_lcsh import _lcsh_referenced_selection_pins
 
     if not HAS_REAL_SOURCES:
@@ -181,6 +199,8 @@ def test_referenced_selection_pins_are_cached_and_include_fast_inputs() -> None:
 
 
 def test_recipe_closure_pins_this_module() -> None:
+    """The adapter recipe's closure must list this module as one of its inputs."""
+
     generator = _generator_module()
     recipe_inputs = generator._adapter_recipe_inputs(
         key=LCSH_CONSOLIDATED_RELEASE_KEY,
@@ -192,6 +212,7 @@ def test_recipe_closure_pins_this_module() -> None:
 
 
 def test_recipe_closure_release_keys_constant_is_ready_for_the_group_wiring() -> None:
+    """The cross-file fix's constant already exists and names exactly this release, so wiring it is two lines."""
     # A narrower, always-green companion to the xfail above: the constant the
     # cross-file fix needs to import already exists and names exactly this
     # release, so wiring it up is a two-line change once made.
@@ -199,6 +220,10 @@ def test_recipe_closure_release_keys_constant_is_ready_for_the_group_wiring() ->
 
 
 def test_resource_labels_prefers_authoritative_label_and_deduplicates() -> None:
+    """Labels prefer the authoritative preferred label, deduplicate by value,
+    and demote variant labels to alternates.
+    """
+
     record = LcshTopicalRecord(
         concept_iri="https://example.test/lcsh/one",
         lccn=None,
@@ -224,6 +249,8 @@ def test_resource_labels_prefers_authoritative_label_and_deduplicates() -> None:
 
 
 def test_resource_labels_uses_variant_label_field_for_a_deprecated_record() -> None:
+    """A deprecated record's variantLabel becomes its preferred label, sourced from ``line-1:madsrdf:variantLabel``."""
+
     record = LcshTopicalRecord(
         concept_iri="https://example.test/lcsh/deprecated-one",
         lccn=None,

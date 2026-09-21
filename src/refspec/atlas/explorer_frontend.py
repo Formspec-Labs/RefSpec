@@ -1,4 +1,8 @@
-"""Storage-neutral browser for the Atlas graph explorer HTTP API."""
+"""Storage-neutral browser for the Atlas graph explorer HTTP API.
+
+Holds the graph explorer, full-vocabulary map, and agency-projection pages as
+static HTML/JS strings; the render functions return them without touching disk.
+"""
 
 _ATLAS_EXPLORER_FRONTEND = r"""<!doctype html>
 <html lang="en">

@@ -1,29 +1,15 @@
 """Derived skos:broader edges for GCMD Science Keywords from CSV column nesting.
 
-Judgment (REF-041 in docs/decisions.md): the Science Keywords CSV export
-encodes the publisher's concept hierarchy positionally. Every row is a
-path through Category > Topic > Term > Variable_Level_1..3 >
-Detailed_Variable, every ancestor prefix of every row is itself a row with
-its own publisher UUID, and NASA's own RDF export of the same scheme
-asserts ``skos:broader`` between exactly the UUID pairs this nesting
-implies. Reading one row's immediate parent as its depth-1 prefix is
-therefore a recoverable restructuring of publisher structure, not an
-invented relation.
-
-It is still not an assertion. The pinned CSV carries no relation field;
-the predicate choice (``skos:broader``) is RefSpec's, made under REF-035
-tier E5: an inferred edge is never an assertion, belongs only in the
-derived graph, and stays opt-in. Nothing in this module feeds the asserted
-graph. REF-043 registered the rule this module derives for as the Atlas
-3.1 derived graph's third admitted rule
-(``src/refspec/atlas/derived_graph/gcmd_column_nesting.py`` producer-side,
-``_DERIVED_RULE_ADMISSIONS`` binding-side); this module remains the
-CSV-level oracle its real-data tests prove that rule against, pair for
-pair over the same pinned bytes.
-
-Identity is path-scoped, never label-scoped: 512 (level, label) pairs in
-the pinned 24.4 export appear under more than one parent, so any
-label-keyed derivation would silently merge distinct publisher concepts.
+The pinned export encodes the hierarchy positionally (Category > Topic > Term >
+Variable_Level_1..3 > Detailed_Variable) and every ancestor prefix is itself a
+row with its own publisher UUID, so each row's immediate parent is its depth-1
+prefix; under REF-035 tier E5, REF-041 admits these inferred edges only to the
+opt-in derived graph, never the asserted one, and REF-043 registered the
+producer-side rule in ``src/refspec/atlas/derived_graph/gcmd_column_nesting.py``.
+Identity is path-scoped, never label-scoped -- 512 (level, label) pairs in the
+pinned 24.4 export sit under more than one parent -- and this module is the
+CSV-level oracle that rule is proven against, pair for pair over the same
+pinned bytes.
 """
 
 from __future__ import annotations

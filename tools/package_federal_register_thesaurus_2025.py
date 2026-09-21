@@ -1,4 +1,10 @@
-"""Build the pinned current Federal Register thesaurus package."""
+"""Build the pinned current Federal Register thesaurus package and its development-only evidence record.
+
+Parses the supplied PDF into the source extract, writes the managed release under
+``--release-dir``, and refuses to overwrite an existing artifact whose bytes
+differ; the evidence marks the release ``developmentOnly`` with accepted output
+disallowed.
+"""
 
 from __future__ import annotations
 
@@ -18,6 +24,8 @@ from refspec.storage import canonical_json
 
 
 def _write_exact(path: Path, payload: bytes) -> None:
+    """Write exact bytes, refusing to overwrite a file whose contents differ."""
+
     if path.exists() and path.read_bytes() != payload:
         raise FileExistsError(f"refusing to overwrite different artifact {path}")
     path.parent.mkdir(parents=True, exist_ok=True)

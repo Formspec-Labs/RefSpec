@@ -54,6 +54,7 @@ PRODUCTION_LANGUAGE_SCOPE = "English"
 
 
 def _without_runtime(value: Any) -> Any:
+    """Recursively drop every ``elapsedSeconds`` field so digests compare across runs."""
     if isinstance(value, Mapping):
         return {key: _without_runtime(item) for key, item in value.items() if key != "elapsedSeconds"}
     if isinstance(value, list):
@@ -62,11 +63,13 @@ def _without_runtime(value: Any) -> Any:
 
 
 def _deterministic_digest(report: Mapping[str, Any]) -> str:
+    """Digest of the report with all runtime fields removed."""
     stable = canonical_json(_without_runtime(report)).encode()
     return "sha256:" + hashlib.sha256(stable).hexdigest()
 
 
 def _pair_digest(pairs: frozenset[int] | set[int], codec: lexical_benchmark.PairCodec) -> str:
+    """Delegate the sorted pair-line digest to the frontier tool."""
     return floor_benchmark._pair_digest(pairs, codec)
 
 
@@ -94,6 +97,7 @@ def _gold_rows(
     relation_by_code: Mapping[int, str],
     label_by_member: Mapping[tuple[str, str], str],
 ) -> list[dict[str, str]]:
+    """Decode pair codes into labeled gold rows with their relation."""
     rows = []
     for code in sorted(codes):
         case, source, target = codec.decode(code)
@@ -125,7 +129,11 @@ def rebuild_production_floor(
     workers: int,
     block_size: int,
 ) -> tuple[frozenset[int], dict[str, Any]]:
-    """Rebuild and verify the selected lexical-K3 plus sparse-graph-K1 set."""
+    """Rebuild and verify the selected lexical-K3 plus sparse-graph-K1 set.
+
+    Refuses to return unless the rebuilt count and pair-set digest match the
+    sealed floor receipt.
+    """
 
     started = time.monotonic()
     sparse_report, sparse_string_ranks = shared_benchmark.sparse_benchmark(cases, (1,))
@@ -380,6 +388,7 @@ def summarize_depths(
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
+    """Verify the floor and WordNet pins, measure bounded distances, and return the depth report."""
     started = time.monotonic()
     adapter_path = Path(shared_benchmark.__file__).resolve()
     adapter_digest_before = _sha256(adapter_path)

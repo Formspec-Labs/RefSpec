@@ -14,6 +14,7 @@ DOC_FIXTURE = FIXTURES / "grants-gov-status-codes-2026-08-03.html"
 
 
 def _acquire(tmp_path: Path, source_path: Path = DOC_FIXTURE) -> gg.AcquiredGrantsGovSource:
+    """Acquire the pinned Grants.gov status-codes HTML from the local fixture."""
     return gg.acquire_grants_gov_status_codes(
         gg.GRANTS_GOV_STATUS_CODES_2026_08_03,
         tmp_path,
@@ -22,10 +23,12 @@ def _acquire(tmp_path: Path, source_path: Path = DOC_FIXTURE) -> gg.AcquiredGran
 
 
 def _portfolio(tmp_path: Path) -> gg.GrantsGovCodePortfolio:
+    """Parse the pinned fixture into a Grants.gov code portfolio."""
     return gg.parse_grants_gov_status_codes(_acquire(tmp_path))
 
 
 def test_live_snapshot_pin_matches_exact_official_html_bytes() -> None:
+    """Pins the fixture's 46,093 bytes and sha256 and that it begins as HTML."""
     payload = DOC_FIXTURE.read_bytes()
 
     assert len(payload) == 46_093
@@ -36,6 +39,7 @@ def test_live_snapshot_pin_matches_exact_official_html_bytes() -> None:
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
     tmp_path: Path,
 ) -> None:
+    """A local capture is content-addressed under the expected digest and a cache hit is re-verified."""
     pin = gg.GRANTS_GOV_STATUS_CODES_2026_08_03
 
     acquired = _acquire(tmp_path)
@@ -50,6 +54,7 @@ def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
 
 
 def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) -> None:
+    """Only the injected fetcher may fetch, and it reports the source URL and timeout."""
     payload = DOC_FIXTURE.read_bytes()
     calls: list[tuple[str, float]] = []
 
@@ -82,6 +87,9 @@ def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) ->
 def test_eligibility_codes_are_deterministic_metadata_not_general_subject_concepts(
     tmp_path: Path,
 ) -> None:
+    """Pins the seventeen eligibility codes, their labels, deterministic
+    metadata use, and eligibilityCode identifiers carrying the source digest.
+    """
     portfolio = _portfolio(tmp_path)
     by_code = portfolio.eligibilities_by_code()
 
@@ -118,6 +126,7 @@ def test_eligibility_codes_are_deterministic_metadata_not_general_subject_concep
 
 
 def test_funding_category_codes_are_source_assigned_evidence(tmp_path: Path) -> None:
+    """Pins the 26 funding category codes, their publisher labels, and sourceAssignedEvidence use."""
     portfolio = _portfolio(tmp_path)
     by_code = portfolio.funding_categories_by_code()
 
@@ -136,6 +145,9 @@ def test_funding_category_codes_are_source_assigned_evidence(tmp_path: Path) -> 
 def test_gaps_document_missing_instrument_status_and_revision_pin(
     tmp_path: Path,
 ) -> None:
+    """Coverage gaps name the missing instrument and statutory-initiative
+    values, the Last-Modified pin, and the HTTP status summary.
+    """
     portfolio = _portfolio(tmp_path)
 
     assert any("instrument" in gap and "statutory initiative" in gap for gap in portfolio.gaps)
@@ -144,6 +156,7 @@ def test_gaps_document_missing_instrument_status_and_revision_pin(
 
 
 def test_validate_eligibility_code_rejects_unknown(tmp_path: Path) -> None:
+    """A known eligibility code resolves, and an unknown one raises GrantsGovAssignmentError."""
     portfolio = _portfolio(tmp_path)
 
     assert gg.validate_eligibility_code("21", portfolio).publisher_label == "Individuals"
@@ -153,6 +166,7 @@ def test_validate_eligibility_code_rejects_unknown(tmp_path: Path) -> None:
 
 
 def test_validate_funding_category_code_rejects_unknown(tmp_path: Path) -> None:
+    """A known funding category resolves, and an unknown one raises GrantsGovAssignmentError."""
     portfolio = _portfolio(tmp_path)
 
     assert gg.validate_funding_category_code("HL", portfolio).publisher_label == "Health"
@@ -162,6 +176,7 @@ def test_validate_funding_category_code_rejects_unknown(tmp_path: Path) -> None:
 
 
 def test_digest_drift_never_becomes_a_parsed_portfolio(tmp_path: Path) -> None:
+    """A same-length byte change is refused as digest drift rather than parsed."""
     payload = DOC_FIXTURE.read_bytes()
     changed = payload.replace(b"Agriculture", b"AgricultuRe", 1)
     assert len(changed) == len(payload)
@@ -190,6 +205,7 @@ def test_digest_drift_never_becomes_a_parsed_portfolio(tmp_path: Path) -> None:
 
 
 def test_shape_drift_in_the_eligibility_table_fails_loudly(tmp_path: Path) -> None:
+    """A mini page whose eligibility table is only an HTTP status summary is refused."""
     mini_html = (
         b"<!DOCTYPE html><html><body>"
         b"<h3>HTTP STATUS CODE SUMMARY</h3>"
@@ -217,6 +233,9 @@ def test_shape_drift_in_the_eligibility_table_fails_loudly(tmp_path: Path) -> No
 def test_package_round_trips_through_a_closed_source_controlled_resource(
     tmp_path: Path,
 ) -> None:
+    """The eligibilities package round-trips as a schema 2.0 controlledCodeList
+    with 17 observations, all deterministic metadata.
+    """
     acquired = _acquire(tmp_path)
     portfolio = gg.parse_grants_gov_status_codes(acquired)
 
@@ -235,6 +254,7 @@ def test_package_round_trips_through_a_closed_source_controlled_resource(
 
 
 def test_package_rejects_an_unknown_resource_family(tmp_path: Path) -> None:
+    """Packaging an unknown resource family raises GrantsGovPackageError."""
     acquired = _acquire(tmp_path)
     portfolio = gg.parse_grants_gov_status_codes(acquired)
 

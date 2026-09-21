@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Capture exact UMTHES RDF responses for every distinct GEMET target."""
+"""Capture exact UMTHES RDF responses for every distinct GEMET target.
+
+Reads the GEMET alignment mapping, fetches every UMTHES record URL and the
+publisher licence page, and writes one deterministic ZIP capture (manifest,
+licence, records) next to the registry sources. Refuses to overwrite an
+existing capture and fails unless the GEMET target count and the 404-unavailable
+set match the pins in :mod:`refspec.registry.umthes_content`.
+"""
 
 from __future__ import annotations
 
@@ -23,14 +30,17 @@ USER_AGENT = "RefSpec-UMTHES-exact-byte-capture/1.0"
 
 
 def _sha256(payload: bytes) -> str:
+    """``sha256:``-prefixed digest of ``payload``."""
     return "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
 def _canonical(value: object) -> bytes:
+    """Compact sorted-key UTF-8 JSON bytes with a trailing newline."""
     return (json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True) + "\n").encode("utf-8")
 
 
 def _fetch(url: str) -> tuple[bytes, str]:
+    """Fetch one URL, retrying transient errors three times; a 404 raises FileNotFoundError."""
     request = urllib.request.Request(
         url,
         headers={"Accept": "application/n-triples,text/html;q=0.9", "User-Agent": USER_AGENT},
@@ -52,6 +62,7 @@ def _fetch(url: str) -> tuple[bytes, str]:
 
 
 def _zip_info(member: str) -> zipfile.ZipInfo:
+    """A deterministic ZIP entry: stored, fixed 1980-01-01 timestamp, mode 0644."""
     info = zipfile.ZipInfo(member, date_time=(1980, 1, 1, 0, 0, 0))
     info.compress_type = zipfile.ZIP_STORED
     info.external_attr = 0o100644 << 16
@@ -59,6 +70,11 @@ def _zip_info(member: str) -> zipfile.ZipInfo:
 
 
 def capture(*, mapping_path: Path, output: Path, retrieved_at: str, workers: int) -> None:
+    """Fetch every GEMET target and write the verified ZIP capture.
+
+    Refuses to overwrite ``output`` and fails on a target-count or
+    404-unavailable-set drift from the pinned registry constants.
+    """
     if output.exists():
         raise FileExistsError(f"refusing to overwrite existing capture: {output}")
     mapping = gemet.load_gemet_alignments(mapping_path)
@@ -76,6 +92,7 @@ def capture(*, mapping_path: Path, output: Path, retrieved_at: str, workers: int
     fetched: dict[str, tuple[bytes, str, str]] = {}
 
     def fetch_record(legacy_iri: str) -> tuple[str, bytes, str, str]:
+        """Fetch and parse one concept, retrying up to three times before raising RuntimeError."""
         concept_id = legacy_iri.removeprefix(umthes.UMTHES_LEGACY_PREFIX)
         url = umthes.UMTHES_RECORD_URL_TEMPLATE.format(concept_id=concept_id)
         last_error: Exception | None = None

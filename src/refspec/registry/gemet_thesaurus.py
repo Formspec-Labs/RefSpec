@@ -1,57 +1,35 @@
 """Lossless RDF/SKOS feature reader for pinned GEMET RDF/XML releases.
 
-GEMET (the General Multilingual Environmental Thesaurus) publishes its
-SKOS export as gzip-compressed RDF/XML, not the fully-qualified Turtle other
-RefSpec thesaurus readers consume, and its concept IRIs
-(``http://www.eionet.europa.eu/gemet/concept/<id>``) are the publisher's own
-stable identity: unlike a per-release namespace, GEMET does not emit
-``owl:deprecated``, ``owl:priorVersion``, or ``dct:isVersionOf``/
-``dct:isReplacedBy`` assertions, so there is no separate release-to-release
-identity join to model here. The reader keeps every authored concept and
-concept-scheme IRI, language tag, literal datatype, and one record per RDF
-assertion for the vocabulary features RefSpec consumes; it never mints an
-identifier the publisher did not supply.
+GEMET publishes its SKOS export as gzip-compressed RDF/XML, and its concept
+IRIs (``http://www.eionet.europa.eu/gemet/concept/<id>``) are the publisher's
+own stable identity: GEMET emits no ``owl:deprecated``, ``owl:priorVersion``,
+or version/replacement assertions, so there is no release-to-release identity
+join to model. The reader keeps every authored concept and concept-scheme IRI,
+language tag, literal datatype, and one record per RDF assertion for the
+features RefSpec consumes, and never mints an identifier the publisher did not
+supply.
 
-GEMET's RDF/XML also publishes a second, independent organizing layer above
-its concepts: 32 ``Group``, 4 ``SuperGroup``, and 40 ``Theme`` resources
-(every one of them also typed ``skos:Collection``), plus the two named
-meta-collections ``groupCollection`` and ``superGroupCollection`` that
-enumerate the Groups and SuperGroups via ``skos:member``. These are genuine
-publisher assertions -- every Group and SuperGroup carries multilingual
-``skos:prefLabel`` labels, every Theme carries a multilingual ``rdfs:label`` and
-a (narrower-coverage) GEMET-native ``acronymLabel``, every Group states
-exactly one GEMET-native ``subGroupOf`` parent SuperGroup, and Group/Theme
-membership is asserted as ``skos:member`` triples on the collection, never
-as a reverse predicate on the concept. This reader preserves all of it,
-scoped to exactly those 78 collection subjects and kept in its own
-``organization_resources``/``organization_labels``/
-``organization_metadata_literals``/``organization_membership_relations``/
-``organization_hierarchy_relations`` fields rather than mixed into the
-concept-scoped ``labels``/``metadata_literals`` above. Themes are *not*
-nested under Group/SuperGroup or vice versa -- the two hierarchies are
-parallel, disjoint classifications GEMET never links to one another, and
-neither one is built from (or even fully covers) the 112 concepts that are
-``skos:Concept`` roots under ``skos:broader``/``skos:hasTopConcept``.
+GEMET also publishes a second, independent organizing layer above its
+concepts: 32 ``Group``, 4 ``SuperGroup``, and 40 ``Theme`` resources (each
+also typed ``skos:Collection``) plus the two named meta-collections
+``groupCollection``/``superGroupCollection``. These are genuine publisher
+assertions, preserved in their own ``organization_*`` fields rather than mixed
+into the concept-scoped ones; Themes are not nested under Group/SuperGroup —
+the two hierarchies are parallel and disjoint.
 
-The one entity kind this reader still does not model is GEMET's 87
-bibliographic ``Source`` records, which reuse some SKOS predicates in ways
-inconsistent with how GEMET uses them on concepts -- most notably an
-untagged ``skos:notation`` on every record. The catalog scope for this
-source is "preserve source concept IRIs, scheme membership, and the
-publisher's Group/SuperGroup/Theme organization", so every typed feature
-extractor below is restricted to subjects that are the pinned concept
-scheme, an ``rdf:type skos:Concept`` subject, or one of the 78 organization
-subjects; nothing beyond that boundary is promoted into a modeled feature.
-No triple is silently dropped from view: ``predicate_counts`` and
-``source_iris`` census every predicate and IRI the payload actually
-contains, typed or not, so a reviewer can see what this reader chose not to
-model.
+GEMET's 87 bibliographic ``Source`` records are deliberately not modeled
+(they reuse SKOS predicates inconsistently, e.g. an untagged
+``skos:notation``), so every typed extractor is restricted to the pinned
+concept scheme, an ``rdf:type skos:Concept`` subject, or one of the 78
+organization subjects. Nothing is silently dropped from view:
+``predicate_counts`` and ``source_iris`` census every predicate and IRI the
+payload actually contains, typed or not.
 
-Importing this module never opens a network connection. A caller must either
-supply an existing local distribution or set ``allow_network=True``. Every
-acquisition path is subject to the release's exact byte-length and SHA-256
-digest pins, applied both to the compressed download (as GEMET serves it)
-and to the decompressed RDF/XML payload the parser reads.
+Importing this module never opens a network connection. A caller must supply a
+local distribution or set ``allow_network=True``, and every acquisition path
+is subject to the release's exact byte-length and SHA-256 pins, applied both
+to the compressed download (as GEMET serves it) and to the decompressed
+RDF/XML payload the parser reads.
 """
 
 from __future__ import annotations
@@ -393,6 +371,8 @@ class GemetVocabulary:
 
     @property
     def counts(self) -> GemetImportCounts:
+        """Recompute the feature counters the regression and import-coverage checks pin."""
+
         labels = Counter(item.role for item in self.labels)
         semantics = Counter(item.predicate_iri for item in self.semantic_relations)
         mappings = Counter(item.predicate_iri for item in self.mapping_relations)
@@ -1177,6 +1157,8 @@ def parse_acquired_gemet_source(acquired: AcquiredGemetSource) -> GemetVocabular
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """CLI: acquire one pinned GEMET release into a local store and print its path."""
+
     parser = argparse.ArgumentParser(
         description="Acquire one exact GEMET RDF/XML release into a content-addressed local store."
     )

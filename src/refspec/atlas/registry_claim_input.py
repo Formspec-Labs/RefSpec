@@ -1,4 +1,10 @@
-"""Parser-free Atlas input and fidelity comparison for registry claim releases."""
+"""Parser-free Atlas input and fidelity comparison for registry claim releases.
+
+Opens an authenticated RegistryClaimReleaseView, groups its exact claims into
+Atlas native source records, injects their pins into a normalized compatibility
+release, and compares expected against actual claim multisets -- all without a
+publisher-specific reader.
+"""
 
 from __future__ import annotations
 
@@ -125,6 +131,11 @@ def _compatibility_labels(
     claims: Sequence[RegistryClaim],
     rules: RegistryClaimResourceRules,
 ) -> tuple[RegistryLabel, ...]:
+    """Select English labels, demoting non-English preferred labels to alternate.
+
+    Refuses a resource with no selected English label, and deduplicates equal
+    values, keeping the first in role-then-label order.
+    """
     eligible_claims = [
         claim
         for claim in claims

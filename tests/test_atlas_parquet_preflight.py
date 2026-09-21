@@ -1,3 +1,11 @@
+"""Columnar Atlas Parquet preflight: closed relational view, authenticated pins.
+
+A hand-built closed set of compact tables passes with matching view and
+distribution counts, while dangling endpoints, duplicate preferred labels,
+stale evidence digests, cross-role or duplicate identities and drifted input
+pins all refuse; the authenticated path also normalizes the returned view digest.
+"""
+
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -21,6 +29,8 @@ REVIEW_ROLE = min(REVIEW_METHODS)
 
 
 def _tables() -> dict[str, pa.Table]:
+    """One closed compact-table set: two resources, one mapping assertion with approved evidence."""
+
     source_release = "urn:test:source-release"
     atlas_release = "urn:test:atlas-release"
     source_record = "urn:test:source-record"
@@ -106,10 +116,14 @@ def _tables() -> dict[str, pa.Table]:
 
 
 def _counts(tables: Mapping[str, pa.Table]) -> dict[str, int]:
+    """Per-role row counts, the view-side half of the preflight's count check."""
+
     return {role: table.num_rows for role, table in tables.items()}
 
 
 def _distribution_counts() -> dict[str, int]:
+    """Distribution-side counts matching _tables."""
+
     return {
         "crossRingRelationAssertions": 0,
         "identifiers": 1,
@@ -125,14 +139,20 @@ def _distribution_counts() -> dict[str, int]:
 
 
 def _replace_column(table: pa.Table, name: str, values: list[object]) -> pa.Table:
+    """One table with a single column swapped, for mutation cases."""
+
     return table.set_column(table.schema.get_field_index(name), name, pa.array(values))
 
 
 def _digest(value: str) -> str:
+    """A well-formed sha256 pin whose hex body is one repeated character."""
+
     return "sha256:" + value * 64
 
 
 def _verified_parquet_input() -> VerifiedAtlasParquetSourceMetadata:
+    """A verified source-metadata stand-in with all six pins well formed."""
+
     return VerifiedAtlasParquetSourceMetadata(
         root=Path("/test/distribution"),
         manifest={
@@ -152,6 +172,8 @@ def _verified_parquet_input() -> VerifiedAtlasParquetSourceMetadata:
 
 
 def test_columnar_preflight_accepts_closed_relational_view() -> None:
+    """A closed view passes and reports the release-only checks it defers to the full preflight."""
+
     tables = _tables()
 
     result = validate_atlas_parquet_tables(
@@ -257,6 +279,8 @@ def test_columnar_preflight_rejects_duplicate_identity_within_role() -> None:
 
 
 def test_columnar_preflight_handles_same_and_cross_ring_relations_together() -> None:
+    """Same-ring and cross-ring assertions pass together once releases and counts agree."""
+
     tables = _tables()
     resources = tables[CompactRecordRole.RESOURCE.value]
     tables[CompactRecordRole.RESOURCE.value] = pa.concat_tables(
@@ -348,6 +372,8 @@ def test_authenticated_preflight_rejects_drift_in_any_input_pin(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
+    """A tampered ontology digest in the view's input pin refuses as preflight.input-pin."""
+
     verified_input = _verified_parquet_input()
     view_input_pin = verified_input.view_input_pin
     view_input_pin["ontologyDigest"] = _digest("8")
@@ -381,6 +407,8 @@ def test_authenticated_preflight_normalizes_returned_view_digest(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
+    """A bare hex view digest is returned in canonical sha256: spelling."""
+
     verified_input = _verified_parquet_input()
     view_manifest = {
         "counts": {},

@@ -31,6 +31,8 @@ CASES = (
 
 @pytest.mark.parametrize("filename,parser_name,pin_name", CASES)
 def test_exact_pinned_pdfs_keep_all_raw_pages_and_interpreted_facts(filename, parser_name, pin_name):
+    """Every raw page text and every interpreted capture field matches the copied pre-port implementation."""
+
     payload = (FIXTURES / filename).read_bytes()
     with PypdfReader().open(payload, password="") as document:
         old_pages = [page.extract_text() for page in PdfReader(io.BytesIO(payload)).pages]
@@ -39,6 +41,8 @@ def test_exact_pinned_pdfs_keep_all_raw_pages_and_interpreted_facts(filename, pa
 
 
 def _mutation(payload, mutation):
+    """Apply one named byte- or PDF-level mutation; ``bad-pin`` leaves the pin untouched."""
+
     if mutation == "header":
         return b"!PDF-" + payload[5:]
     if mutation == "truncated":
@@ -59,6 +63,8 @@ def _mutation(payload, mutation):
 @pytest.mark.parametrize("filename,parser_name,pin_name", CASES)
 @pytest.mark.parametrize("mutation", ["header", "truncated", "bad-pin", "blank-page", "empty-password", "protected"])
 def test_pdf_mutation_verdicts_match_the_frozen_reader(filename, parser_name, pin_name, mutation):
+    """Acceptance or refusal, and the refusal message, match the frozen reader for every mutation."""
+
     payload = _mutation((FIXTURES / filename).read_bytes(), mutation)
 
     def verdict(module):
@@ -74,6 +80,8 @@ def test_pdf_mutation_verdicts_match_the_frozen_reader(filename, parser_name, pi
 
 
 def test_failed_page_refuses_the_form_with_original_failure_cause(monkeypatch):
+    """An unreadable page refuses with the page number and the original error as the cause's cause."""
+
     from pypdf._page import PageObject
 
     def fail(page):

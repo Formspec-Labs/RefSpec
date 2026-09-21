@@ -1,4 +1,4 @@
-"""Tests for the shared registry acyclicity invariant.
+"""The shared registry acyclicity invariant, its replacement oracle and its wire-in.
 
 Covers ``assert_acyclic`` directly (acyclic, empty, and diamond graphs pass; a
 2-node cycle and a self-loop fail and name the cycle they found), the
@@ -36,6 +36,8 @@ from refspec.vocabulary import seal_payload
 
 
 def _record(identifier: str) -> dict[str, object]:
+    """One sealed RunReceipt record keyed by its id."""
+
     return seal_payload(
         {
             "type": "urn:ref:type:RunReceipt",
@@ -52,10 +54,14 @@ def _reference(record: Mapping[str, object]) -> dict[str, object]:
 
 
 def test_an_acyclic_graph_passes() -> None:
+    """A chain with no back edge passes."""
+
     assert_acyclic({"a": ["b"], "b": ["c"], "c": []})
 
 
 def test_an_empty_graph_passes() -> None:
+    """An empty edge map passes."""
+
     assert_acyclic({})
 
 
@@ -66,11 +72,15 @@ def test_a_diamond_shared_descendant_passes() -> None:
 
 
 def test_a_two_node_cycle_fails_naming_the_cycle() -> None:
+    """A two-node cycle raises with the cycle path in the message."""
+
     with pytest.raises(RegistryInvariantError, match=r"a -> b -> a"):
         assert_acyclic({"a": ["b"], "b": ["a"]})
 
 
 def test_a_self_loop_fails_naming_the_node() -> None:
+    """A self-loop raises with the node naming itself."""
+
     with pytest.raises(RegistryInvariantError, match=r"a -> a"):
         assert_acyclic({"a": ["a"]})
 
@@ -117,6 +127,8 @@ def _brute_force_has_cycle(edges: Mapping[str, Iterable[str]]) -> bool:
     enumeration, with no coloring and no shared code with the DFS under test."""
 
     def walk(node: str, path: frozenset[str]) -> bool:
+        """Depth-first search over simple paths, skipping targets outside the map."""
+
         for neighbor in edges.get(node, ()):
             if neighbor not in edges:
                 continue
@@ -254,6 +266,8 @@ def test_bundle_refresh_calls_assert_acyclic(monkeypatch: pytest.MonkeyPatch) ->
     real_assert_acyclic = bundle_module.assert_acyclic
 
     def spy(edges: dict[str, frozenset[str]]) -> None:
+        """Record the graph handed to the invariant, then run the real check."""
+
         calls.append(edges)
         real_assert_acyclic(edges)
 

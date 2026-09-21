@@ -1,27 +1,16 @@
-"""Tests for the U.S. Courts JS-044 Nature of Suit code importer.
+"""Tests for the U.S. Courts JS-044 Nature of Suit code importer; no test opens a network connection.
 
-No test opens a network connection. ``SYNTHETIC_SOURCE`` is a small,
-hand-verified example of the ``pdftotext -layout`` convention this module
-depends on; it exercises every structural feature the real document uses:
-a per-page "(Rev. MM/YY)" line, a single-line category heading, a two-line
-compound heading, a title that wraps onto its own column, a title and
-description that both wrap on the very same physical line, a description
-that a page break interrupts mid-sentence, and a trailing document note.
-
-``tests/fixtures/nature_of_suit_codes/js_044_code_descriptions.layout.txt``
-is a real captured sample: the output of
-
-    pdftotext -layout js_044_code_descriptions.pdf js_044_code_descriptions.layout.txt
-
-(Poppler 26.06.0) run against the official PDF fetched from
-``NATURE_OF_SUIT_CODE_DESCRIPTIONS_URL`` on 2026-08-03. The original PDF's
-own sha256 at that date was
-``aeaff2476c8cc926191466ff571e91b0f0896858f4f00deed1117c1aa33daa95``; that
-PDF is not itself committed here; PDF-to-text extraction is a separate,
-independently pinned step per the module docstring, and this fixture is that
-step's pinned output. ``HISTORICAL_SHA256``/``HISTORICAL_COUNTS`` below pin
-that extracted text's own digest and shape, so a byte-for-byte drift in a
-future re-capture fails the regression test below rather than parsing
+``SYNTHETIC_SOURCE`` is a hand-verified example of the ``pdftotext -layout``
+convention, exercising per-page revision lines, one- and two-line headings,
+wrapped titles and descriptions, a page-break-split description and a document
+note. ``tests/fixtures/nature_of_suit_codes/js_044_code_descriptions.layout.txt``
+is the Poppler 26.06.0 ``pdftotext -layout`` output of the official PDF fetched
+from ``NATURE_OF_SUIT_CODE_DESCRIPTIONS_URL`` on 2026-08-03 (that PDF's own
+sha256 was
+``aeaff2476c8cc926191466ff571e91b0f0896858f4f00deed1117c1aa33daa95``; the PDF
+is not committed, extraction is a separate pinned step).
+``HISTORICAL_SHA256``/``HISTORICAL_COUNTS`` pin that extracted text's own digest
+and shape, so a byte-for-byte drift on re-capture fails rather than parsing
 silently.
 """
 
@@ -60,6 +49,7 @@ HISTORICAL_COUNTS = ImportCounts(
 
 
 def test_real_publisher_pdf_reproduces_the_pinned_layout_text(tmp_path: Path) -> None:
+    """Pins that a fresh pdftotext extraction equals the committed fixture byte for byte and parses to the counts."""
     source_path_text = os.environ.get("REFSPEC_NATURE_OF_SUIT_PDF_PATH")
     if source_path_text is None:
         pytest.skip("real U.S. Courts PDF is not configured")
@@ -79,16 +69,19 @@ def test_real_publisher_pdf_reproduces_the_pinned_layout_text(tmp_path: Path) ->
 
 
 def _row(code: str, title_first: str, desc_first: str, title_col: int, desc_col: int) -> str:
+    """Build one layout-formatted code row at the given column offsets."""
     left = f"  {code}".ljust(title_col)
     mid = title_first.ljust(desc_col - title_col)
     return left + mid + desc_first
 
 
 def _cont(text: str, col: int) -> str:
+    """Build a continuation line indented to the given column."""
     return " " * col + text
 
 
 def _header(title_col: int, desc_col: int) -> str:
+    """Build the Code/Title/Description column header at the given offsets."""
     left = "  Code".ljust(title_col)
     mid = "Title".ljust(desc_col - title_col)
     return left + mid + "Description"
@@ -153,6 +146,7 @@ SYNTHETIC_SOURCE = (
 
 
 def test_parser_preserves_pages_sections_entries_and_document_note() -> None:
+    """Pins the synthetic parse's counts, digest, page revisions, section headings, stitched text and note."""
     parsed = parse_nature_of_suit_code_descriptions(SYNTHETIC_SOURCE)
 
     assert parsed.counts == ImportCounts(
@@ -203,12 +197,14 @@ def test_parser_preserves_pages_sections_entries_and_document_note() -> None:
 
 
 def test_entry_by_code_raises_key_error_for_an_unknown_code() -> None:
+    """Pins that entry_by_code raises KeyError for an unlisted code."""
     parsed = parse_nature_of_suit_code_descriptions(SYNTHETIC_SOURCE)
     with pytest.raises(KeyError):
         parsed.entry_by_code("999")
 
 
 def test_two_line_heading_is_preserved_without_asserting_a_hierarchy() -> None:
+    """Pins that both heading lines are kept verbatim without promoting either to a parent or child facet."""
     parsed = parse_nature_of_suit_code_descriptions(SYNTHETIC_SOURCE)
     prisoner = parsed.sections[1]
     # Both physical lines are kept verbatim, in order; nothing here promotes
@@ -217,12 +213,14 @@ def test_two_line_heading_is_preserved_without_asserting_a_hierarchy() -> None:
 
 
 def test_missing_revision_line_after_page_title_fails_closed() -> None:
+    """Pins refusal when a page title is not followed by a (Rev. MM/YY) line."""
     source = "Civil Nature of Suit Code Descriptions\nnot a revision line\n"
     with pytest.raises(NatureOfSuitParseError, match="Rev. MM/YY"):
         parse_nature_of_suit_code_descriptions(source)
 
 
 def test_code_row_before_column_header_fails_closed() -> None:
+    """Pins refusal when a code row precedes its section's column header."""
     source = "\n".join(
         [
             "Civil Nature of Suit Code Descriptions",
@@ -237,6 +235,7 @@ def test_code_row_before_column_header_fails_closed() -> None:
 
 
 def test_column_header_without_open_section_fails_closed() -> None:
+    """Pins refusal when a column header appears with no open category section."""
     source = "\n".join(
         [
             "Civil Nature of Suit Code Descriptions",
@@ -250,6 +249,7 @@ def test_column_header_without_open_section_fails_closed() -> None:
 
 
 def test_duplicate_code_fails_closed() -> None:
+    """Pins refusal when a code repeats in the document."""
     source = "\n".join(
         [
             "Civil Nature of Suit Code Descriptions",
@@ -266,6 +266,7 @@ def test_duplicate_code_fails_closed() -> None:
 
 
 def test_unattributable_continuation_line_fails_closed() -> None:
+    """Pins refusal when an indented continuation appears with no open entry."""
     # A large-indent line appears right after a page's revision line, but no
     # entry from a previous page is open to continue -- this must refuse
     # rather than silently invent a heading or an entry.
@@ -281,6 +282,7 @@ def test_unattributable_continuation_line_fails_closed() -> None:
 
 
 def test_entry_without_a_title_fails_closed() -> None:
+    """Pins refusal when a code row's title slice is entirely blank, a column-offset mismatch."""
     # A code row whose title slice is entirely blank signals a column-offset
     # mismatch, not a legitimately titleless entry.
     source = "\n".join(
@@ -298,6 +300,7 @@ def test_entry_without_a_title_fails_closed() -> None:
 
 
 def test_parser_accepts_bytes_and_rejects_non_utf8_bytes() -> None:
+    """Pins that UTF-8 bytes parse to the same three entries while non-UTF-8 bytes refuse."""
     parsed_from_bytes = parse_nature_of_suit_code_descriptions(SYNTHETIC_SOURCE.encode("utf-8"))
     assert parsed_from_bytes.counts.entries == 3
 
@@ -306,6 +309,7 @@ def test_parser_accepts_bytes_and_rejects_non_utf8_bytes() -> None:
 
 
 def test_build_nature_of_suit_code_package_is_a_controlled_code_list_not_a_concept_scheme() -> None:
+    """Pins the package as a publisher-identified controlled code list claiming no concept identity."""
     parsed = parse_nature_of_suit_code_descriptions(SYNTHETIC_SOURCE)
 
     bundle = build_nature_of_suit_code_package(parsed, captured_at="2026-08-03T00:00:00Z")
@@ -321,6 +325,7 @@ def test_build_nature_of_suit_code_package_is_a_controlled_code_list_not_a_conce
 
 
 def test_package_keeps_the_official_code_separate_from_any_minted_identifier() -> None:
+    """Pins that the observation id is a capture-local URN while the official code lives in identifiers."""
     parsed = parse_nature_of_suit_code_descriptions(SYNTHETIC_SOURCE)
     bundle = build_nature_of_suit_code_package(parsed, captured_at="2026-08-03T00:00:00Z")
 
@@ -337,6 +342,7 @@ def test_package_keeps_the_official_code_separate_from_any_minted_identifier() -
 
 
 def test_package_round_trips_through_a_written_directory(tmp_path: Path) -> None:
+    """Pins that a written package reopens with the same digest, three observations and the pinned resource id."""
     parsed = parse_nature_of_suit_code_descriptions(SYNTHETIC_SOURCE)
     bundle = build_nature_of_suit_code_package(parsed, captured_at="2026-08-03T00:00:00Z")
 
@@ -351,6 +357,7 @@ def test_package_round_trips_through_a_written_directory(tmp_path: Path) -> None
 
 @pytest.mark.skipif(not REAL_FIXTURE_PATH.is_file(), reason="real JS-044 fixture is not present")
 def test_verified_real_full_source_counts_and_cross_page_stitch() -> None:
+    """Pins the real fixture's digest and counts, the code-893 cross-page stitch and the Continued section."""
     payload = REAL_FIXTURE_PATH.read_bytes()
 
     parsed = parse_nature_of_suit_code_descriptions(payload)
@@ -377,6 +384,7 @@ def test_verified_real_full_source_counts_and_cross_page_stitch() -> None:
 
 @pytest.mark.skipif(not REAL_FIXTURE_PATH.is_file(), reason="real JS-044 fixture is not present")
 def test_verified_real_full_source_packages_cleanly() -> None:
+    """Pins 93 unique codes and a passing coverage report from the real fixture."""
     payload = REAL_FIXTURE_PATH.read_bytes()
     parsed = parse_nature_of_suit_code_descriptions(payload)
 

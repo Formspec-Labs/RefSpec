@@ -1,4 +1,8 @@
-"""Exact-source tests for OCLC's bulk FAST external links."""
+"""Exact-source tests for OCLC's bulk FAST external links.
+
+Pins the publisher URL/digest/rights, statement classification, and the official
+capture's predicate and refusal accounting.
+"""
 
 from __future__ import annotations
 
@@ -15,6 +19,8 @@ HAS_SOURCE = SOURCE.is_file()
 
 
 def test_statement_reader_preserves_positive_predicates_and_refuses_nonmappings() -> None:
+    """Pin the four retained predicate/vocabulary pairs and that non-mapping lines parse to None."""
+
     lines = FIXTURE.read_bytes().splitlines(keepends=True)
     parsed = [
         fast.parse_oclc_fast_external_link_statement(line, line_number=index)
@@ -38,12 +44,16 @@ def test_statement_reader_preserves_positive_predicates_and_refuses_nonmappings(
 
 
 def test_statement_reader_rejects_an_unclassified_positive_target() -> None:
+    """Pin refusal of a positive predicate whose target is not a known vocabulary."""
+
     line = b"<http://id.worldcat.org/fast/1> <http://schema.org/sameAs> <http://example.test/not-a-known-target/1> .\n"
     with pytest.raises(fast.OclcFastExternalLinksError, match="unclassified"):
         fast.parse_oclc_fast_external_link_statement(line, line_number=1)
 
 
 def test_publisher_pins_and_rights_statement_are_explicit() -> None:
+    """Pin the source URL, sha256, byte length, date-only retrieval, and ODC-By rights statement."""
+
     assert fast.FAST_EXTERNAL_LINKS_SOURCE_URL == (
         "https://researchworks.oclc.org/researchdata/fast/FASTTopical.nt.zip"
     )
@@ -60,6 +70,8 @@ def test_publisher_pins_and_rights_statement_are_explicit() -> None:
 
 @pytest.fixture(scope="module")
 def capture():
+    """Parse the pinned archive retaining one subject, skipping when it is not cached."""
+
     if not HAS_SOURCE:
         pytest.skip("pinned OCLC FAST external-links archive is not cached")
     return fast.parse_oclc_fast_external_links_file(
@@ -70,6 +82,8 @@ def capture():
 
 @pytest.mark.slow
 def test_official_capture_accounts_for_every_mapping_and_refusal(capture) -> None:
+    """Pin the official capture's predicate counts, refusals, distinct subjects, and retained links."""
+
     assert capture.assertion_count == 935_540
     assert capture.predicate_counts == {
         fast.RDFS_SEE_ALSO: 155_171,
@@ -99,6 +113,8 @@ def test_official_capture_accounts_for_every_mapping_and_refusal(capture) -> Non
 
 @pytest.mark.slow
 def test_official_capture_pins_each_target_vocabulary_mix(capture) -> None:
+    """Pin the per-target predicate counts and their 935,540 total."""
+
     assert capture.target_predicate_counts == {
         target: dict(counts) for target, counts in fast.EXPECTED_TARGET_PREDICATE_COUNTS.items()
     }
@@ -113,6 +129,8 @@ def test_official_capture_pins_each_target_vocabulary_mix(capture) -> None:
 
 
 def test_file_reader_refuses_source_drift(tmp_path: Path) -> None:
+    """Pin refusal when the input bytes do not match the publisher pin."""
+
     changed = tmp_path / fast.FAST_EXTERNAL_LINKS_FILENAME
     changed.write_bytes(FIXTURE.read_bytes())
 

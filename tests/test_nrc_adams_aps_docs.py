@@ -20,6 +20,8 @@ GUIDE_PATH = ROOT / "tests/fixtures/nrc_adams_aps_docs/aps-api-guide-v1-2026-08-
 
 
 def test_user_manual_parses_all_22_documented_profile_properties() -> None:
+    """The manual's properties carry verbatim publisher descriptions, with none empty and none leaking the next section."""
+
     manual = aps.parse_aps_user_manual(MANUAL_PATH, pin=aps.APS_USER_MANUAL_2026_08_15)
 
     # The 22-property roster itself is enforced inside the parser by the
@@ -75,6 +77,8 @@ def test_property_roster_is_measured_from_the_page_not_assumed() -> None:
 
 
 def test_user_manual_descriptions_carry_no_pdf_presentation_forms() -> None:
+    """No folded PDF presentation artifact survives into a property name or description."""
+
     manual = aps.parse_aps_user_manual(MANUAL_PATH, pin=aps.APS_USER_MANUAL_2026_08_15)
 
     for prop in manual.properties:
@@ -84,6 +88,8 @@ def test_user_manual_descriptions_carry_no_pdf_presentation_forms() -> None:
 
 
 def test_official_accession_number_definition_states_exactly_two_elements() -> None:
+    """The accession definition states exactly two elements and never derives the refused MLYYDDDNNNN split."""
+
     manual = aps.parse_aps_user_manual(MANUAL_PATH, pin=aps.APS_USER_MANUAL_2026_08_15)
     accession = manual.accession_number
 
@@ -105,6 +111,8 @@ def test_official_accession_number_definition_states_exactly_two_elements() -> N
 
 
 def test_user_manual_records_its_snapshot_and_succession_markers_verbatim() -> None:
+    """The WBA replacement sentence and the five PDF document-information fields are recorded verbatim."""
+
     manual = aps.parse_aps_user_manual(MANUAL_PATH, pin=aps.APS_USER_MANUAL_2026_08_15)
 
     assert manual.wba_replacement_statement == (
@@ -122,6 +130,8 @@ def test_user_manual_records_its_snapshot_and_succession_markers_verbatim() -> N
 
 
 def test_api_guide_parses_operators_dates_and_request_parameters() -> None:
+    """Six text operators, two date properties and the request roster parse, with undescribed operators left None."""
+
     guide = aps.parse_aps_api_guide(GUIDE_PATH, pin=aps.APS_API_GUIDE_2026_08_15)
 
     assert guide.self_described_version == "Version 1.0"
@@ -215,6 +225,8 @@ def test_get_document_second_parameter_is_roster_drift_not_swallowed_text() -> N
 
 
 def test_api_guide_records_the_sign_in_portal_statements_verbatim() -> None:
+    """Three developer-portal statements and the guide's two document-information timestamps are recorded verbatim."""
+
     guide = aps.parse_aps_api_guide(GUIDE_PATH, pin=aps.APS_API_GUIDE_2026_08_15)
 
     assert guide.developer_portal_statements == (
@@ -236,6 +248,8 @@ def test_api_guide_records_the_sign_in_portal_statements_verbatim() -> None:
 
 
 def test_drifted_bytes_never_become_a_parsed_document(tmp_path: Path) -> None:
+    """A flipped byte, a truncated file and a missing path each refuse at their own gate."""
+
     payload = bytearray(MANUAL_PATH.read_bytes())
     payload[-1] ^= 0xFF
     tampered = tmp_path / "aps-user-manual-tampered.pdf"
@@ -254,6 +268,8 @@ def test_drifted_bytes_never_become_a_parsed_document(tmp_path: Path) -> None:
 
 
 def test_pins_accept_only_the_official_host() -> None:
+    """A foreign host and a malformed digest are refused when constructing a pin."""
+
     with pytest.raises(aps.NRCAPSAcquisitionError, match="official HTTPS adams-search.nrc.gov"):
         aps.NRCAPSPdfPin(
             source_url="https://example.com/APS-User-Manual.pdf",

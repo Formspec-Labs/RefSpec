@@ -1,4 +1,4 @@
-"""Offline tests for streaming MeSH descriptor parsing and packaging."""
+"""Streaming MeSH descriptor parsing and packaging: field extraction, refusal fences, offline-only transport."""
 
 from __future__ import annotations
 
@@ -17,14 +17,20 @@ SOURCE_URL = "https://nlmpubs.nlm.nih.gov/projects/mesh/MESH_FILES/xmlmesh/desc2
 
 
 def _fixture_bytes() -> bytes:
+    """Return the pinned MeSH descriptor mini fixture bytes."""
+
     return FIXTURE_PATH.read_bytes()
 
 
 def _parse(**kwargs: object) -> mesh.MeshDescriptorSnapshot:
+    """Parse the mini fixture bytes into a descriptor snapshot."""
+
     return mesh.parse_mesh_descriptor_bytes(_fixture_bytes(), source_url=SOURCE_URL, **kwargs)
 
 
 def test_real_full_distribution_shape_count_and_boundary_samples() -> None:
+    """Pins the opt-in real desc2026.xml at 312,952,703 bytes, 31,110 descriptors, and boundary UIs."""
+
     source_path_text = os.environ.get("REFSPEC_MESH_DESCRIPTORS_PATH")
     if source_path_text is None:
         pytest.skip("real MeSH descriptor distribution is not configured")
@@ -55,6 +61,8 @@ def test_real_full_distribution_shape_count_and_boundary_samples() -> None:
 
 
 def test_streaming_parser_extracts_the_descriptor_table_fields() -> None:
+    """Pins heading, class, tree numbers, entry terms (heading excluded), and the NLM concept IRI."""
+
     snapshot = _parse()
 
     assert snapshot.language_code == "eng"
@@ -92,6 +100,8 @@ def test_streaming_parser_extracts_the_descriptor_table_fields() -> None:
 
 
 def test_descriptor_ui_is_the_real_publisher_identifier_not_a_minted_one() -> None:
+    """Pins the descriptor UI as a publisherDescriptorUI under the NLM authority, never minted."""
+
     snapshot = _parse()
     calcimycin = next(d for d in snapshot.descriptors if d.descriptor_ui == "D000001")
     identifier = calcimycin.identifiers[0]
@@ -104,6 +114,8 @@ def test_descriptor_ui_is_the_real_publisher_identifier_not_a_minted_one() -> No
 
 
 def test_source_digest_and_byte_length_are_computed_from_the_exact_stream() -> None:
+    """Pins digest and byte length computed from the exact fixture bytes."""
+
     payload = _fixture_bytes()
 
     snapshot = _parse()
@@ -113,6 +125,8 @@ def test_source_digest_and_byte_length_are_computed_from_the_exact_stream() -> N
 
 
 def test_observed_at_is_threaded_into_every_identifier() -> None:
+    """Pins that observed_at reaches every descriptor identifier."""
+
     observed_at = "2026-08-03T00:00:00Z"
 
     snapshot = _parse(observed_at=observed_at)
@@ -126,11 +140,15 @@ def test_observed_at_is_threaded_into_every_identifier() -> None:
 
 
 def test_observed_at_must_be_an_iso_date_or_date_time() -> None:
+    """Pins that a non-ISO observed_at raises ValueError."""
+
     with pytest.raises(ValueError, match="ISO 8601"):
         _parse(observed_at="August 3, 2026")
 
 
 def test_supplemental_concept_record_root_is_rejected_not_silently_read() -> None:
+    """Pins that a SupplementalRecordSet root is refused rather than silently read."""
+
     payload = _fixture_bytes().replace(b"DescriptorRecordSet", b"SupplementalRecordSet")
 
     with pytest.raises(mesh.MeshDescriptorError, match="Supplemental Concept Record"):
@@ -138,6 +156,8 @@ def test_supplemental_concept_record_root_is_rejected_not_silently_read() -> Non
 
 
 def test_unexpected_root_tag_is_rejected() -> None:
+    """Pins that a root other than DescriptorRecordSet is refused."""
+
     payload = _fixture_bytes().replace(b"DescriptorRecordSet", b"QualifierRecordSet")
 
     with pytest.raises(mesh.MeshDescriptorError, match="root must be"):
@@ -145,6 +165,8 @@ def test_unexpected_root_tag_is_rejected() -> None:
 
 
 def test_non_english_language_code_is_rejected() -> None:
+    """Pins that a LanguageCode other than eng is refused."""
+
     payload = _fixture_bytes().replace(b'LanguageCode = "eng"', b'LanguageCode = "fre"')
 
     with pytest.raises(mesh.MeshDescriptorError, match="LanguageCode"):
@@ -152,6 +174,8 @@ def test_non_english_language_code_is_rejected() -> None:
 
 
 def test_duplicate_descriptor_ui_is_rejected() -> None:
+    """Pins that a repeated DescriptorUI is refused."""
+
     payload = _fixture_bytes().replace(
         b"<DescriptorUI>D000002</DescriptorUI>",
         b"<DescriptorUI>D000001</DescriptorUI>",
@@ -163,6 +187,8 @@ def test_duplicate_descriptor_ui_is_rejected() -> None:
 
 
 def test_malformed_descriptor_ui_is_rejected() -> None:
+    """Pins that a DescriptorUI not shaped D+digits is refused."""
+
     payload = _fixture_bytes().replace(
         b"<DescriptorUI>D000003</DescriptorUI>",
         b"<DescriptorUI>X000003</DescriptorUI>",
@@ -174,6 +200,8 @@ def test_malformed_descriptor_ui_is_rejected() -> None:
 
 
 def test_unsupported_descriptor_class_is_rejected() -> None:
+    """Pins that a descriptor class outside the DTD's 1-4 is refused."""
+
     payload = _fixture_bytes().replace(b'DescriptorClass = "1"', b'DescriptorClass = "9"', 1)
 
     with pytest.raises(mesh.MeshDescriptorError, match="DescriptorClass"):
@@ -181,6 +209,8 @@ def test_unsupported_descriptor_class_is_rejected() -> None:
 
 
 def test_dtd_valid_descriptor_classes_five_and_six_are_accepted() -> None:
+    """Pins that DTD-valid classes 5 and 6 are accepted even though the pinned corpus uses 1-4."""
+
     for descriptor_class in ("5", "6"):
         payload = _fixture_bytes().replace(
             b'DescriptorClass = "1"',
@@ -192,6 +222,8 @@ def test_dtd_valid_descriptor_classes_five_and_six_are_accepted() -> None:
 
 
 def test_missing_permutation_flag_fails_closed() -> None:
+    """Pins that a Term missing IsPermutedTermYN is refused."""
+
     payload = _fixture_bytes().replace(b' IsPermutedTermYN="N"', b"", 1)
 
     with pytest.raises(mesh.MeshDescriptorError, match="IsPermutedTermYN"):
@@ -199,6 +231,8 @@ def test_missing_permutation_flag_fails_closed() -> None:
 
 
 def test_empty_descriptor_record_set_is_rejected() -> None:
+    """Pins that a set carrying no DescriptorRecord is refused."""
+
     payload = b'<?xml version="1.0"?>\n<DescriptorRecordSet LanguageCode = "eng">\n</DescriptorRecordSet>\n'
 
     with pytest.raises(mesh.MeshDescriptorError, match="no DescriptorRecord"):
@@ -206,6 +240,8 @@ def test_empty_descriptor_record_set_is_rejected() -> None:
 
 
 def test_custom_xml_entity_declaration_is_rejected_before_parsing() -> None:
+    """Pins that a custom XML entity declaration is refused before parsing (the XXE fence)."""
+
     payload = (
         b'<?xml version="1.0"?>\n'
         b'<!DOCTYPE DescriptorRecordSet [<!ENTITY xxe "pwned">]>\n'
@@ -218,6 +254,8 @@ def test_custom_xml_entity_declaration_is_rejected_before_parsing() -> None:
 
 
 def test_malformed_xml_fails_loudly_instead_of_partially_parsing() -> None:
+    """Pins that truncated XML raises instead of partially parsing."""
+
     payload = _fixture_bytes()[:-40]
 
     with pytest.raises(mesh.MeshDescriptorError, match="malformed"):
@@ -225,6 +263,8 @@ def test_malformed_xml_fails_loudly_instead_of_partially_parsing() -> None:
 
 
 def test_parse_from_file_streams_without_reading_bytes_up_front(tmp_path: Path) -> None:
+    """Pins that parsing from a file path yields the three fixture descriptors."""
+
     source = tmp_path / "desc-mini.xml"
     source.write_bytes(_fixture_bytes())
 
@@ -234,6 +274,8 @@ def test_parse_from_file_streams_without_reading_bytes_up_front(tmp_path: Path) 
 
 
 def test_parse_from_file_rejects_a_symlink(tmp_path: Path) -> None:
+    """Pins that a symlinked source is refused as not a regular file."""
+
     source = tmp_path / "desc-mini.xml"
     source.write_bytes(_fixture_bytes())
     link = tmp_path / "linked.xml"
@@ -244,12 +286,16 @@ def test_parse_from_file_rejects_a_symlink(tmp_path: Path) -> None:
 
 
 def test_import_never_opens_a_network_connection() -> None:
+    """Pins that the module exposes no fetch or acquire entry point."""
+
     # The module only parses bytes it is handed; no fetcher exists to call.
     assert not hasattr(mesh, "fetch_mesh_descriptor_file")
     assert not hasattr(mesh, "acquire_mesh_descriptors")
 
 
 def test_package_build_and_reopen_round_trip(tmp_path: Path) -> None:
+    """Pins the sealed package's identity/use fields and a reopened lookup round trip."""
+
     payload = _fixture_bytes()
     snapshot = mesh.parse_mesh_descriptor_bytes(
         payload,
@@ -291,6 +337,8 @@ def test_package_build_and_reopen_round_trip(tmp_path: Path) -> None:
 
 
 def test_package_rejects_a_source_payload_that_does_not_match_the_snapshot() -> None:
+    """Pins that a source payload not matching the snapshot's digest is refused."""
+
     payload = _fixture_bytes()
     snapshot = mesh.parse_mesh_descriptor_bytes(
         payload,
@@ -309,6 +357,8 @@ def test_package_rejects_a_source_payload_that_does_not_match_the_snapshot() -> 
 
 
 def test_package_requires_a_concrete_observed_at_on_every_identifier() -> None:
+    """Pins that a snapshot without observed_at cannot be packaged."""
+
     payload = _fixture_bytes()
     snapshot = mesh.parse_mesh_descriptor_bytes(payload, source_url=SOURCE_URL)
 

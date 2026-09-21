@@ -1,4 +1,4 @@
-"""Census TIGER GEOID structure and GNIS National File layout capture tests."""
+"""Census TIGER GEOID structure and GNIS National File layout capture, drift, and package tests."""
 
 from __future__ import annotations
 
@@ -15,16 +15,19 @@ GNIS_FIXTURE = FIXTURES / "gnis-file-format-2026-08-03.pdf"
 
 
 def _geoid_structure_span(tmp_path: Path) -> geo.AcquiredCensusGeoHtmlSpan:
+    """Acquire the pinned GEOID structure table span from the local fixture."""
     return geo.acquire_census_geo_html_span(
         geo.GEOID_STRUCTURE_TABLE_SPAN_2026_08_03, tmp_path, source_path=GEOID_FIXTURE
     )
 
 
 def _gnis_pdf(tmp_path: Path) -> geo.AcquiredGNISFileFormat:
+    """Acquire the pinned GNIS file-format PDF from the local fixture."""
     return geo.acquire_gnis_file_format(geo.GNIS_FILE_FORMAT_PIN_2026_08_03, tmp_path, source_path=GNIS_FIXTURE)
 
 
 def _package(tmp_path: Path) -> geo.SourceControlledResourceBundle:
+    """Build the identifier-authority package from both pinned tables."""
     return geo.build_census_geo_identifier_authority_package(
         _geoid_structure_span(tmp_path),
         _gnis_pdf(tmp_path),
@@ -37,6 +40,7 @@ def _package(tmp_path: Path) -> geo.SourceControlledResourceBundle:
 
 
 def test_live_span_pin_matches_exact_official_html_bytes(tmp_path: Path) -> None:
+    """The pinned span's byte length and sha256 must match the captured fixture bytes."""
     geoid_struct = _geoid_structure_span(tmp_path)
 
     assert geoid_struct.byte_length == geo.GEOID_STRUCTURE_TABLE_SPAN_2026_08_03.expected_byte_length
@@ -44,6 +48,7 @@ def test_live_span_pin_matches_exact_official_html_bytes(tmp_path: Path) -> None
 
 
 def test_live_gnis_pdf_pin_matches_exact_official_bytes(tmp_path: Path) -> None:
+    """The GNIS PDF pin's byte length and sha256 must match the local capture."""
     acquired = _gnis_pdf(tmp_path)
 
     assert acquired.byte_length == geo.GNIS_FILE_FORMAT_PIN_2026_08_03.expected_byte_length
@@ -54,6 +59,7 @@ def test_live_gnis_pdf_pin_matches_exact_official_bytes(tmp_path: Path) -> None:
 def test_local_span_capture_is_content_addressed_and_rechecked_on_cache_hit(
     tmp_path: Path,
 ) -> None:
+    """A local capture lands under sha256 content addressing and a cache hit re-verifies the pin."""
     pin = geo.GEOID_STRUCTURE_TABLE_SPAN_2026_08_03
 
     acquired = geo.acquire_census_geo_html_span(pin, tmp_path, source_path=GEOID_FIXTURE)
@@ -70,6 +76,7 @@ def test_local_span_capture_is_content_addressed_and_rechecked_on_cache_hit(
 
 
 def test_injected_fetcher_is_the_only_live_transport_boundary_for_spans(tmp_path: Path) -> None:
+    """Only an injected fetcher may fetch, and it records the URL and timeout it used."""
     payload = GEOID_FIXTURE.read_bytes()
     calls: list[tuple[str, float]] = []
 
@@ -96,6 +103,7 @@ def test_injected_fetcher_is_the_only_live_transport_boundary_for_spans(tmp_path
 
 
 def test_injected_fetcher_is_the_only_live_transport_boundary_for_gnis_pdf(tmp_path: Path) -> None:
+    """The GNIS PDF path takes bytes only through the injected fetcher."""
     payload = GNIS_FIXTURE.read_bytes()
     calls: list[str] = []
 
@@ -118,6 +126,7 @@ def test_injected_fetcher_is_the_only_live_transport_boundary_for_gnis_pdf(tmp_p
 
 
 def test_acquisition_rejects_both_source_path_and_fetcher(tmp_path: Path) -> None:
+    """Passing both a local path and a fetcher is refused as not both."""
     with pytest.raises(geo.CensusGeoAcquisitionError, match="not both"):
         geo.acquire_census_geo_html_span(
             geo.GEOID_STRUCTURE_TABLE_SPAN_2026_08_03,
@@ -128,6 +137,7 @@ def test_acquisition_rejects_both_source_path_and_fetcher(tmp_path: Path) -> Non
 
 
 def test_acquisition_without_cache_local_or_fetcher_refuses(tmp_path: Path) -> None:
+    """Nothing cached, no local path, no fetcher is refused as not cached."""
     with pytest.raises(geo.CensusGeoAcquisitionError, match="not cached"):
         geo.acquire_census_geo_html_span(geo.GEOID_STRUCTURE_TABLE_SPAN_2026_08_03, tmp_path)
 
@@ -138,6 +148,7 @@ def test_acquisition_without_cache_local_or_fetcher_refuses(tmp_path: Path) -> N
 
 
 def test_geoid_structure_table_parses_all_eleven_area_types(tmp_path: Path) -> None:
+    """All eleven area types parse in order with their structure and example GEOIDs."""
     rows = geo.parse_geoid_structure_span(_geoid_structure_span(tmp_path))
     by_area = {row.area_type: row for row in rows}
 
@@ -156,6 +167,7 @@ def test_geoid_structure_table_parses_all_eleven_area_types(tmp_path: Path) -> N
 
 
 def test_gnis_file_format_parses_the_complete_national_file_layout(tmp_path: Path) -> None:
+    """The National File layout parses to exactly 21 fields, in ordinal order, matching the pinned names and widths."""
     fields = geo.parse_gnis_file_format(_gnis_pdf(tmp_path))
 
     assert len(fields) == geo.GNIS_NATIONAL_FILE_FIELD_COUNT == 21
@@ -168,6 +180,9 @@ def test_gnis_file_format_parses_the_complete_national_file_layout(tmp_path: Pat
 def test_gnis_descriptions_are_publisher_wording_with_shared_cells_recorded(
     tmp_path: Path,
 ) -> None:
+    """Descriptions are publisher wording, a shared description cell names its
+    whole group, and the two synthesized audit-flagged strings must not survive.
+    """
     fields = {field.field_name: field for field in geo.parse_gnis_file_format(_gnis_pdf(tmp_path))}
 
     # Fields with their own description cell carry it verbatim (PDF
@@ -210,6 +225,7 @@ def test_gnis_descriptions_are_publisher_wording_with_shared_cells_recorded(
 
 
 def test_gnis_table_shape_drift_fails_closed(tmp_path: Path) -> None:
+    """A shortened expected-row tuple must raise shape drifted rather than parse a changed table."""
     acquired = _gnis_pdf(tmp_path)
     original = geo.GNIS_NATIONAL_FILE_EXPECTED_ROWS
     try:
@@ -226,6 +242,7 @@ def test_gnis_table_shape_drift_fails_closed(tmp_path: Path) -> None:
 
 
 def test_span_digest_drift_is_rejected(tmp_path: Path) -> None:
+    """A wrong expected sha256 raises digest drift."""
     from dataclasses import replace
 
     bad_pin = replace(geo.GEOID_STRUCTURE_TABLE_SPAN_2026_08_03, expected_sha256="sha256:" + "0" * 64)
@@ -235,6 +252,7 @@ def test_span_digest_drift_is_rejected(tmp_path: Path) -> None:
 
 
 def test_span_byte_length_drift_is_rejected(tmp_path: Path) -> None:
+    """A wrong expected byte length raises byte length drift."""
     from dataclasses import replace
 
     bad_pin = replace(geo.GEOID_STRUCTURE_TABLE_SPAN_2026_08_03, expected_byte_length=1)
@@ -244,6 +262,7 @@ def test_span_byte_length_drift_is_rejected(tmp_path: Path) -> None:
 
 
 def test_begin_marker_repeated_in_source_fails_closed(tmp_path: Path) -> None:
+    """A source carrying the begin marker twice must fail closed on occurs 2 times."""
     doubled = GEOID_FIXTURE.read_bytes()
     doubled = doubled + doubled[len(b"<!doctype html>\n") :]
     local = tmp_path / "doubled.html"
@@ -256,6 +275,7 @@ def test_begin_marker_repeated_in_source_fails_closed(tmp_path: Path) -> None:
 
 
 def test_begin_marker_missing_from_source_fails_closed(tmp_path: Path) -> None:
+    """A source with no begin marker must fail closed on occurs 0 times."""
     empty = tmp_path / "empty.html"
     empty.write_bytes(b"<!doctype html><html><body>nothing here</body></html>")
 
@@ -264,6 +284,7 @@ def test_begin_marker_missing_from_source_fails_closed(tmp_path: Path) -> None:
 
 
 def test_gnis_pdf_page_count_drift_fails_closed(tmp_path: Path) -> None:
+    """A wrong expected page count raises page count drifted at parse time."""
     from dataclasses import replace
 
     bad_pin = replace(geo.GNIS_FILE_FORMAT_PIN_2026_08_03, expected_page_count=999)
@@ -274,6 +295,7 @@ def test_gnis_pdf_page_count_drift_fails_closed(tmp_path: Path) -> None:
 
 
 def test_gnis_non_pdf_bytes_are_rejected(tmp_path: Path) -> None:
+    """Bytes without a PDF header are rejected even when their pin matches them."""
     from dataclasses import replace
 
     not_pdf = b"not a pdf" * 10_000
@@ -290,6 +312,7 @@ def test_gnis_non_pdf_bytes_are_rejected(tmp_path: Path) -> None:
 
 
 def test_gnis_fetcher_rejects_non_official_resolved_url(tmp_path: Path) -> None:
+    """A fetcher that resolves off the official HTTPS host is refused."""
     payload = GNIS_FIXTURE.read_bytes()
 
     class Fetcher:
@@ -312,6 +335,7 @@ def test_gnis_fetcher_rejects_non_official_resolved_url(tmp_path: Path) -> None:
 
 
 def test_package_covers_exactly_the_two_publisher_tables(tmp_path: Path) -> None:
+    """The package carries exactly 32 observations: 11 GEOID composition rows and 21 GNIS field names."""
     bundle = _package(tmp_path)
 
     kinds = {identifier["kind"] for obs in bundle.observations for identifier in obs["identifiers"]}
@@ -323,6 +347,9 @@ def test_package_covers_exactly_the_two_publisher_tables(tmp_path: Path) -> None
 
 
 def test_package_never_claims_concept_identity(tmp_path: Path) -> None:
+    """Schema 2.0 and every observation state conceptIdentityClaimed False,
+    authorizing no candidate or accepted-output use.
+    """
     bundle = _package(tmp_path)
 
     assert bundle.resource_manifest["schemaVersion"] == "2.0"
@@ -333,6 +360,7 @@ def test_package_never_claims_concept_identity(tmp_path: Path) -> None:
 
 
 def test_package_preserves_every_publisher_identifier_value(tmp_path: Path) -> None:
+    """Publisher identifier values are preserved verbatim, and example GEOIDs never appear."""
     bundle = _package(tmp_path)
 
     values = {identifier["value"] for obs in bundle.observations for identifier in obs["identifiers"]}
@@ -343,6 +371,7 @@ def test_package_preserves_every_publisher_identifier_value(tmp_path: Path) -> N
 
 
 def test_package_emits_no_example_values_and_no_acs_sample(tmp_path: Path) -> None:
+    """Example-value and ACS-variable kinds are absent and reported as coverage gaps."""
     bundle = _package(tmp_path)
 
     kinds = {identifier["kind"] for obs in bundle.observations for identifier in obs["identifiers"]}
@@ -355,6 +384,9 @@ def test_package_emits_no_example_values_and_no_acs_sample(tmp_path: Path) -> No
 def test_package_gnis_observations_carry_publisher_descriptions_and_medium(
     tmp_path: Path,
 ) -> None:
+    """GNIS observations carry publisher descriptions, field type and length,
+    and pdf medium; a shared description names its group.
+    """
     bundle = _package(tmp_path)
     gnis_observations = [
         obs for obs in bundle.observations if obs["identifiers"][0]["kind"] == "gnisNationalFileFieldName"
@@ -375,6 +407,7 @@ def test_package_gnis_observations_carry_publisher_descriptions_and_medium(
 
 
 def test_package_records_geoid_composition_fields(tmp_path: Path) -> None:
+    """GEOID observations carry numberOfDigits and the tigerLineGeoid product."""
     bundle = _package(tmp_path)
 
     geoid_observations = [
@@ -386,6 +419,9 @@ def test_package_records_geoid_composition_fields(tmp_path: Path) -> None:
 
 
 def test_package_round_trips_through_a_written_and_reopened_directory(tmp_path: Path) -> None:
+    """A written package reopens with the same logical digest, resource kind,
+    identity status and source artifacts.
+    """
     bundle = _package(tmp_path)
     package_dir = tmp_path / "package"
     bundle.write_to(package_dir)
@@ -400,6 +436,7 @@ def test_package_round_trips_through_a_written_and_reopened_directory(tmp_path: 
 
 
 def test_package_is_byte_deterministic_across_rebuilds(tmp_path: Path) -> None:
+    """Two rebuilds produce identical artifact bytes and logical digests."""
     first = _package(tmp_path / "run1")
     second = _package(tmp_path / "run2")
 

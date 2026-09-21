@@ -47,6 +47,8 @@ FIXTURE_ROOT = ROOT / "bindings" / "atlas" / "3.1" / "fixtures"
 
 
 def _load_rdf_canonical():
+    """Load the binding's ``rdf_canonical`` module by file path, avoiding a package import."""
+
     if str(BINDING_TOOLS) not in sys.path:
         sys.path.insert(0, str(BINDING_TOOLS))
     spec = importlib.util.spec_from_file_location(
@@ -209,6 +211,8 @@ def _old_ntriples_term(term) -> str:
 
 
 def new_check_accepts(content: bytes) -> bool:
+    """Return whether the byte grammar accepts a line."""
+
     return RDF_CANONICAL.canonical_line_issue(content) is None
 
 
@@ -235,11 +239,15 @@ def _split(content: bytes) -> tuple[bytes, bytes, bytes, bytes] | None:
 
 
 def _object_is_literal(content: bytes) -> bool:
+    """Return whether the line's object term is a literal."""
+
     terms = _split(content)
     return terms is not None and terms[2].startswith(b'"')
 
 
 def _rebuild(terms: tuple[bytes, bytes, bytes, bytes]) -> bytes:
+    """Rejoin four split terms into one canonical line."""
+
     return b" ".join(terms) + b" ."
 
 
@@ -536,6 +544,9 @@ def test_every_sampled_fixture_line_is_canonical() -> None:
 def test_byte_grammar_agrees_with_the_render_and_compare_it_replaced(
     mutation: str,
 ) -> None:
+    """For each mutation: agreement everywhere except the six enumerated deliberate profile changes, which the old
+    check must accept and the grammar must refuse."""
+
     mutate, deliberate = MUTATIONS[mutation]
     applied = 0
     for line in _samples():

@@ -188,6 +188,12 @@ class PinnedManagedRelease:
         *,
         expected_manifest_digest: str,
     ) -> Self:
+        """Open the manifest and pin its resolved path.
+
+        Raises VocabularyAtlasError unless expected_manifest_digest is a
+        ``sha256:<64 lowercase hex>`` digest.
+        """
+
         digest = _require_digest(expected_manifest_digest, "managed release manifest digest")
         view = ManagedReleaseView.open(
             manifest_path,
@@ -204,6 +210,8 @@ class PinnedManagedRelease:
         )
 
     def pin(self) -> dict[str, Any]:
+        """Return the publication pin with the manifest and Rulespec graph digests."""
+
         view = self.verified_view()
         return {
             "role": "ManagedReleaseView",

@@ -1,3 +1,10 @@
+"""Portfolio resource-catalog tests: the exact two-tier summary, closed distributions and digest binding.
+
+The catalog is built from the three portfolio JSON documents and must refuse
+retired kinds, duplicate ids, absolute paths, byte drift and any distribution
+whose file set or logical digest differs from its completed evidence.
+"""
+
 from __future__ import annotations
 
 import copy
@@ -25,10 +32,12 @@ DISTRIBUTIONS = ROOT / "portfolio" / "portable-resource-distributions-v0.json"
 
 
 def _file_digest(path: Path) -> str:
+    """Return the ``sha256:`` digest of the file's bytes."""
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _inputs() -> tuple[dict[str, object], dict[str, object], dict[str, object]]:
+    """Load the inventory, completed-packages and distributions documents."""
     inventory = load_json(INVENTORY)
     completed = load_json(COMPLETED)
     distributions = load_json(DISTRIBUTIONS)
@@ -36,18 +45,21 @@ def _inputs() -> tuple[dict[str, object], dict[str, object], dict[str, object]]:
 
 
 def _resource_row(inventory: dict[str, object], resource_id: str) -> dict[str, Any]:
+    """Deep-copy the inventory row for a resource id."""
     return copy.deepcopy(
         next(row for row in inventory["resources"] if row["resourceId"] == resource_id)  # type: ignore[index,union-attr]
     )
 
 
 def _completed_row(completed: dict[str, object], resource_id: str) -> dict[str, Any]:
+    """Deep-copy the completed-package row for a resource id."""
     return copy.deepcopy(
         next(row for row in completed["resources"] if row["resourceId"] == resource_id)  # type: ignore[index,union-attr]
     )
 
 
 def _distribution_row(distributions: dict[str, object], package_resource_id: str) -> dict[str, Any]:
+    """Deep-copy the distribution row for a package resource id."""
     return copy.deepcopy(
         next(  # type: ignore[call-overload]
             row
@@ -62,6 +74,7 @@ def _completed_subset(
     resource_ids: tuple[str, ...],
     repository_root: Path,
 ) -> dict[str, object]:
+    """Build a completed-packages document for the given ids, writing test evidence files under repository_root."""
     rows = [_completed_row(completed, resource_id) for resource_id in resource_ids]
     evidence = repository_root / "evidence"
     evidence.mkdir()
@@ -90,6 +103,7 @@ def _portable_row_for_directory(
     package_root: Path,
     repository_root: Path,
 ) -> dict[str, Any]:
+    """Rewrite a distribution row's manifest path and file digests to point at package_root."""
     manifest_name = Path(str(template["manifestPath"])).name
     result = copy.deepcopy(template)
     result["manifestPath"] = (package_root / manifest_name).relative_to(repository_root).as_posix()
@@ -105,6 +119,7 @@ def _portable_row_for_directory(
 
 
 def test_checked_catalog_is_exact_and_two_tier() -> None:
+    """Pins the exact 117/106/7/6/4 summary and the four verified distribution ids."""
     inventory, completed, distributions = _inputs()
     catalog = build_resource_catalog(
         inventory,
@@ -150,6 +165,7 @@ def test_checked_catalog_is_exact_and_two_tier() -> None:
 
 
 def test_source_catalog_input_excludes_atlas_outputs() -> None:
+    """Pins that no refspec-vocabulary-atlas distribution is listed, avoiding a digest cycle into this inventory."""
     distributions = load_json(DISTRIBUTIONS)
 
     atlas_rows = [
@@ -163,6 +179,7 @@ def test_source_catalog_input_excludes_atlas_outputs() -> None:
 
 
 def test_catalog_rejects_retired_atlas_2_distributions() -> None:
+    """Pins refusal when a distribution declares the retired atlas 2.0 kind."""
     inventory, completed, distributions = _inputs()
     changed = copy.deepcopy(distributions)
     changed["distributions"][0]["distributionKind"] = "refspec-vocabulary-atlas-nquads-2.0"  # type: ignore[index]
@@ -172,6 +189,7 @@ def test_catalog_rejects_retired_atlas_2_distributions() -> None:
 
 
 def test_catalog_generation_is_relocatable(tmp_path: Path) -> None:
+    """Pins that the rendered JSON parses back to the generated catalog."""
     inventory, completed, distributions = _inputs()
     generated = build_resource_catalog(
         inventory,
@@ -187,6 +205,7 @@ def test_catalog_generation_is_relocatable(tmp_path: Path) -> None:
 
 
 def test_duplicate_resource_ids_are_rejected() -> None:
+    """Pins refusal when one resourceId appears twice in the inventory."""
     inventory, completed, distributions = _inputs()
     duplicate = copy.deepcopy(inventory)
     duplicate["resources"].append(copy.deepcopy(duplicate["resources"][0]))  # type: ignore[index,union-attr]
@@ -196,6 +215,7 @@ def test_duplicate_resource_ids_are_rejected() -> None:
 
 
 def test_absolute_distribution_paths_are_rejected() -> None:
+    """Pins refusal when a distribution path is absolute rather than repository-relative."""
     inventory, completed, distributions = _inputs()
     unsafe = copy.deepcopy(distributions)
     unsafe["distributions"][0]["manifestPath"] = "/tmp/atlas-manifest.json"  # type: ignore[index]
@@ -205,6 +225,7 @@ def test_absolute_distribution_paths_are_rejected() -> None:
 
 
 def test_distribution_byte_drift_is_rejected() -> None:
+    """Pins refusal when a distribution file digest no longer matches the bytes."""
     inventory, completed, distributions = _inputs()
     changed = copy.deepcopy(distributions)
     changed["distributions"][0]["files"][0]["sha256"] = "sha256:" + "0" * 64  # type: ignore[index]
@@ -214,6 +235,7 @@ def test_distribution_byte_drift_is_rejected() -> None:
 
 
 def test_source_controlled_distribution_requires_its_complete_file_inventory() -> None:
+    """Pins refusal when a source-controlled distribution omits a file from its closed package."""
     inventory, completed, distributions = _inputs()
     incomplete = copy.deepcopy(distributions)
     row = next(  # type: ignore[call-overload]
@@ -228,6 +250,7 @@ def test_source_controlled_distribution_requires_its_complete_file_inventory() -
 
 
 def test_source_controlled_distribution_binds_the_completed_logical_digest() -> None:
+    """Pins refusal when the completed logical digest differs from the distribution's package digest."""
     inventory, completed, distributions = _inputs()
     stale = copy.deepcopy(completed)
     row = next(  # type: ignore[call-overload]
@@ -244,6 +267,7 @@ def test_source_controlled_distribution_binds_the_completed_logical_digest() -> 
 def test_source_controlled_distribution_reader_rejects_a_reinventoried_extra_file(
     tmp_path: Path,
 ) -> None:
+    """Pins refusal when an extra undeclared file is added to a source-controlled package."""
     inventory, completed, distributions = _inputs()
     package_root = tmp_path / "package"
     shutil.copytree(
@@ -277,6 +301,7 @@ def test_source_controlled_distribution_reader_rejects_a_reinventoried_extra_fil
 
 
 def test_source_concept_distribution_requires_its_complete_file_inventory() -> None:
+    """Pins refusal when a source-concept distribution omits a file from its closed package."""
     inventory, completed, distributions = _inputs()
     incomplete = copy.deepcopy(distributions)
     row = next(  # type: ignore[call-overload]
@@ -291,6 +316,7 @@ def test_source_concept_distribution_requires_its_complete_file_inventory() -> N
 
 
 def test_source_concept_distribution_binds_the_completed_logical_digest() -> None:
+    """Pins refusal when the completed logical digest differs from the source-concept distribution's package digest."""
     inventory, completed, distributions = _inputs()
     stale = copy.deepcopy(completed)
     row = next(  # type: ignore[call-overload]
@@ -307,6 +333,7 @@ def test_source_concept_distribution_binds_the_completed_logical_digest() -> Non
 def test_source_concept_distribution_reader_rejects_reinventoried_payload_tampering(
     tmp_path: Path,
 ) -> None:
+    """Pins refusal when a source-concept package's payload is edited after being reinventoried."""
     inventory, completed, distributions = _inputs()
     package_id = "crs-legislative-subject-source-concepts"
     package_root = tmp_path / "release"

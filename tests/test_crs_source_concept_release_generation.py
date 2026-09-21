@@ -63,6 +63,7 @@ _EXPECTED_RELEASES = {
 
 
 def _run(*arguments: str) -> subprocess.CompletedProcess[str]:
+    """Run the CRS release generator with the given arguments from the repo root."""
     return subprocess.run(
         [sys.executable, str(GENERATOR), *arguments],
         cwd=ROOT,
@@ -73,14 +74,17 @@ def _run(*arguments: str) -> subprocess.CompletedProcess[str]:
 
 
 def _evidence(root: Path = EVIDENCE_ROOT) -> dict[str, object]:
+    """Load release-evidence.json from the given evidence root."""
     return json.loads((root / "release-evidence.json").read_text(encoding="utf-8"))
 
 
 def _files(root: Path) -> dict[str, bytes]:
+    """Map every file under root to its relative POSIX path and bytes."""
     return {path.relative_to(root).as_posix(): path.read_bytes() for path in root.rglob("*") if path.is_file()}
 
 
 def test_checked_generator_reproduces_exact_retained_capture_releases() -> None:
+    """Pins that --check succeeds against the retained capture and reports the evidence as current."""
     result = _run("--check")
 
     assert result.returncode == 0, result.stderr
@@ -88,6 +92,7 @@ def test_checked_generator_reproduces_exact_retained_capture_releases() -> None:
 
 
 def test_summary_carries_external_pins_and_all_content_derived_identities() -> None:
+    """Pins the summary counts and each release's frozen digests and sourceCapture pins."""
     evidence = _evidence()
     assert evidence["summary"] == {
         "releaseCount": 3,
@@ -114,6 +119,7 @@ def test_summary_carries_external_pins_and_all_content_derived_identities() -> N
 
 
 def test_every_package_reopens_and_preserves_the_reconciled_source_identity() -> None:
+    """Pins that every package reopens at its pinned digests with unique source-scoped concept IRIs."""
     evidence = _evidence()
     all_concept_ids: set[str] = set()
     for row in evidence["releases"]:  # type: ignore[union-attr]
@@ -154,6 +160,7 @@ def test_every_package_reopens_and_preserves_the_reconciled_source_identity() ->
 def test_write_reproduces_from_the_checked_embedded_source_packages(
     tmp_path: Path,
 ) -> None:
+    """Pins that --write reproduces the retained evidence tree byte for byte and --check then passes."""
     output = tmp_path / "generated"
 
     result = _run(
@@ -177,6 +184,7 @@ def test_write_reproduces_from_the_checked_embedded_source_packages(
 
 
 def test_check_refuses_tampered_release_bytes(tmp_path: Path) -> None:
+    """Pins that one appended line in a concept file makes --check exit 1 with 'bytes differ'."""
     output = tmp_path / "tampered"
     shutil.copytree(EVIDENCE_ROOT, output)
     concepts = output / "legislative-subjects" / "concepts.jsonl"

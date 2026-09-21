@@ -1,6 +1,6 @@
-"""Unit tests for the Atlas DuckDB query view's status filtering, satellite
-grouping, and agency-projection lookup -- the query surfaces the explorer
-tidy added on top of :mod:`refspec.atlas.duckdb_view`.
+"""Unit tests for the Atlas DuckDB query view's status filtering, satellite grouping and agency projection.
+
+The query surfaces the explorer tidy added on top of :mod:`refspec.atlas.duckdb_view`.
 
 These tests build tiny in-memory Arrow tables shaped exactly like the real
 *compact search-view* Parquet tables (the schemas
@@ -159,6 +159,8 @@ def _resource_row(
     profile: str = "conceptScheme",
     definition: str | None = None,
 ) -> dict[str, Any]:
+    """One compact resource row carrying the columns the view filters on."""
+
     return {
         "id": resource_id,
         "release": release,
@@ -180,6 +182,8 @@ def _release_row(
     ring: str = "subject",
     release_type: str = "AtlasRelease",
 ) -> dict[str, Any]:
+    """One compact release row with a default AtlasRelease type."""
+
     return {
         "id": release_id,
         "release_type": release_type,
@@ -204,6 +208,8 @@ def _statement_row(
     source_release: str,
     target_release: str,
 ) -> dict[str, Any]:
+    """One compact relation-assertion row between a source and a target release."""
+
     return {
         "id": statement_id,
         "statement_type": statement_type,
@@ -274,6 +280,8 @@ def _make_view(
 
 
 def test_search_hides_deprecated_status_by_default(tmp_path: Path) -> None:
+    """Default search keeps active and status-less resources and drops deprecated or endpoint-deprecated ones."""
+
     view = _make_view(
         tmp_path,
         releases=[_release_row("urn:r:v", "vocab")],
@@ -306,6 +314,8 @@ def test_search_hides_deprecated_status_by_default(tmp_path: Path) -> None:
 
 
 def test_search_status_filter_applies_under_full_text_query_too(tmp_path: Path) -> None:
+    """The status filter also applies inside a full-text definition query."""
+
     view = _make_view(
         tmp_path,
         releases=[_release_row("urn:r:v", "vocab")],
@@ -327,6 +337,8 @@ def test_search_status_filter_applies_under_full_text_query_too(tmp_path: Path) 
 
 
 def test_search_rejects_unknown_status_value(tmp_path: Path) -> None:
+    """An unknown status filter refuses with AtlasDuckDBViewError."""
+
     view = _make_view(tmp_path)
     try:
         with pytest.raises(AtlasDuckDBViewError):
@@ -338,6 +350,8 @@ def test_search_rejects_unknown_status_value(tmp_path: Path) -> None:
 def test_resource_always_returns_itself_even_if_deprecated_but_hides_deprecated_relations(
     tmp_path: Path,
 ) -> None:
+    """A deprecated resource still returns itself, while relations to deprecated neighbours stay hidden by default."""
+
     view = _make_view(
         tmp_path,
         releases=[_release_row("urn:r:v", "vocab")],
@@ -386,6 +400,8 @@ def test_resource_always_returns_itself_even_if_deprecated_but_hides_deprecated_
 
 
 def test_release_graph_excludes_deprecated_members_by_default(tmp_path: Path) -> None:
+    """The default release graph holds live members; status="all" restores the deprecated endpoint."""
+
     view = _make_view(
         tmp_path,
         releases=[_release_row("urn:r:v", "vocab")],
@@ -405,6 +421,8 @@ def test_release_graph_excludes_deprecated_members_by_default(tmp_path: Path) ->
 
 
 def test_overview_excludes_relations_touching_deprecated_resources(tmp_path: Path) -> None:
+    """Overview counts drop assertions whose subject or object is deprecated."""
+
     view = _make_view(
         tmp_path,
         releases=[_release_row("urn:r:a", "vocab-a"), _release_row("urn:r:b", "vocab-b")],
@@ -450,6 +468,8 @@ def test_overview_excludes_relations_touching_deprecated_resources(tmp_path: Pat
 
 
 def test_overview_rejects_unknown_status_value(tmp_path: Path) -> None:
+    """An unknown overview status refuses."""
+
     view = _make_view(tmp_path)
     try:
         with pytest.raises(AtlasDuckDBViewError):
@@ -466,6 +486,8 @@ def test_overview_rejects_unknown_status_value(tmp_path: Path) -> None:
 def test_overview_flags_majority_endpoint_status_release_as_satellite_with_mapping_partner(
     tmp_path: Path,
 ) -> None:
+    """A release mostly of alignmentEndpoint resources is a satellite whose partner is its mapping counterpart."""
+
     view = _make_view(
         tmp_path,
         releases=[
@@ -505,6 +527,8 @@ def test_overview_flags_majority_endpoint_status_release_as_satellite_with_mappi
 def test_overview_flags_satellite_by_endpoint_named_identifier_even_without_status_majority(
     tmp_path: Path,
 ) -> None:
+    """A release whose identifier names endpoints is a satellite even without a status majority."""
+
     view = _make_view(
         tmp_path,
         releases=[_release_row("urn:r:named", "lc-external-example-endpoints-2026-08-15")],
@@ -521,6 +545,8 @@ def test_overview_flags_satellite_by_endpoint_named_identifier_even_without_stat
 def test_overview_satellite_partner_falls_back_to_any_relation_type_without_mappings(
     tmp_path: Path,
 ) -> None:
+    """With no mapping assertions, the satellite partner comes from any cross-release relation."""
+
     view = _make_view(
         tmp_path,
         releases=[
@@ -555,6 +581,8 @@ def test_overview_satellite_partner_falls_back_to_any_relation_type_without_mapp
 def test_overview_satellite_with_no_cross_release_relations_has_no_partner(
     tmp_path: Path,
 ) -> None:
+    """A satellite with no cross-release relation reports a null partner."""
+
     view = _make_view(
         tmp_path,
         releases=[_release_row("urn:r:sat", "lonely-endpoints-2026-08-15")],
@@ -580,6 +608,8 @@ def _write_agency_projection_fixture(
     resolved: list[dict[str, Any]],
     unresolved: list[dict[str, Any]],
 ) -> None:
+    """Write the resolved and unresolved agency-projection tables under root/tables."""
+
     tables_dir = root / "tables"
     tables_dir.mkdir(parents=True, exist_ok=True)
     pq.write_table(
@@ -603,6 +633,8 @@ def _resolved_row(
     aliases: list[str] = (),
     parent_org: str | None = None,
 ) -> dict[str, Any]:
+    """One resolved agency-projection row with its held organisation and label variants."""
+
     return {
         "source_value_kind": "regulationsGovAgencyId",
         "source_value": source_value,
@@ -620,6 +652,8 @@ def _resolved_row(
 
 
 def _unresolved_row(source_value: str, pref_label: str, reason: str) -> dict[str, Any]:
+    """One unresolved agency-projection row carrying its reason and reasoning."""
+
     return {
         "source_value_kind": "regulationsGovAgencyId",
         "source_value": source_value,
@@ -634,6 +668,8 @@ def _unresolved_row(source_value: str, pref_label: str, reason: str) -> dict[str
 
 
 def test_agency_projection_unavailable_when_tables_are_missing(tmp_path: Path) -> None:
+    """With neither table the projection reports unavailable and an empty result."""
+
     view = _make_view(tmp_path)
     try:
         assert view.agency_projection_available() is False
@@ -644,6 +680,8 @@ def test_agency_projection_unavailable_when_tables_are_missing(tmp_path: Path) -
 
 
 def test_agency_projection_unavailable_when_only_one_table_present(tmp_path: Path) -> None:
+    """One table alone leaves the projection unavailable."""
+
     tables_dir = tmp_path / "tables"
     tables_dir.mkdir(parents=True, exist_ok=True)
     pq.write_table(
@@ -662,6 +700,8 @@ def test_agency_projection_unavailable_when_only_one_table_present(tmp_path: Pat
 
 
 def test_agency_projection_lookup_filters_and_flags_known_org(tmp_path: Path) -> None:
+    """The lookup resolves known agencies, flags held rows, and reports unresolved ones with their reason."""
+
     _write_agency_projection_fixture(
         tmp_path,
         resolved=[
@@ -741,6 +781,8 @@ def _write_derived_relations_fixture(
     rows: list[dict[str, Any]],
     schema: pa.Schema,
 ) -> None:
+    """Write one derived-relations table under root/tables with the given schema."""
+
     tables_dir = root / "tables"
     tables_dir.mkdir(parents=True, exist_ok=True)
     pq.write_table(
@@ -777,10 +819,14 @@ _ALTERNATE_DERIVED_SCHEMA = pa.schema(
 
 
 def _broader() -> str:
+    """The skos:broader predicate the derived fixtures use."""
+
     return "http://www.w3.org/2004/02/skos/core#broader"
 
 
 def test_derived_relations_unavailable_when_table_is_missing(tmp_path: Path) -> None:
+    """Without the table, facets report derived relations unavailable and relations="all" matches the default."""
+
     view = _make_view(tmp_path)
     try:
         assert view.derived_relations_available() is False
@@ -794,6 +840,8 @@ def test_derived_relations_unavailable_when_table_is_missing(tmp_path: Path) -> 
 def test_resource_hides_derived_relations_by_default_and_shows_them_opted_in(
     tmp_path: Path,
 ) -> None:
+    """Derived edges stay out of a resource by default and appear only under relations="all"."""
+
     _write_derived_relations_fixture(
         tmp_path,
         rows=[
@@ -870,6 +918,8 @@ def test_resource_hides_derived_relations_by_default_and_shows_them_opted_in(
 
 
 def test_derived_relations_discovers_alternate_column_names_at_runtime(tmp_path: Path) -> None:
+    """Alternate column spellings (rule/evidence) are discovered by runtime DESCRIBE, not a hardcoded guess."""
+
     _write_derived_relations_fixture(
         tmp_path,
         rows=[
@@ -959,6 +1009,8 @@ def test_derived_relations_reads_the_real_ref042_parquet_schema(tmp_path: Path) 
 
 
 def test_resource_rejects_unknown_relations_value(tmp_path: Path) -> None:
+    """An unknown relations filter refuses, naming the filter."""
+
     view = _make_view(tmp_path)
     try:
         with pytest.raises(AtlasDuckDBViewError, match="relations filter"):
@@ -970,6 +1022,8 @@ def test_resource_rejects_unknown_relations_value(tmp_path: Path) -> None:
 def test_release_graph_includes_derived_edges_only_within_the_release_when_opted_in(
     tmp_path: Path,
 ) -> None:
+    """Opted-in derived edges join the release graph only when both endpoints belong to that release."""
+
     _write_derived_relations_fixture(
         tmp_path,
         rows=[
@@ -1025,6 +1079,8 @@ def test_release_graph_includes_derived_edges_only_within_the_release_when_opted
 def test_overview_folds_derived_relations_into_internal_relations_when_opted_in(
     tmp_path: Path,
 ) -> None:
+    """Opted-in derived relations are counted as internal relations in the overview."""
+
     _write_derived_relations_fixture(
         tmp_path,
         rows=[

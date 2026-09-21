@@ -1,21 +1,13 @@
-"""Loud-tier additive work, 2026-08-31: the five items and two riders from
-``research/investigations-mined-2026-08-31.md``'s "Not landed, loud" section.
+"""Loud-tier additive work of 2026-08-31: the five items and two riders from the mined ledger.
 
-Five things, each additive and each with a breaking test plus a negative
-fixture, per this wave's own rule that no shape ships without a check that
-breaks when it is violated:
-
-1. Six initialism-roster retiers (``research/evidence/initialism-roster-
-   2026-08-24/roster.csv``) -- a data change, tested against the live file.
-2. The apostrophe-year shape (``_expand_apostrophe_years``) and the guard for
-   the named "BIPA' 00" defect.
-3. ``usc_slot_reading`` -- a typed, additive column naming the non-U.S.C.
-   numbering universe a U.S.C. slot holds.
-4. The paren-eaten-lettered-suffix promotion
-   (``_promote_paren_eaten_lettered_suffix``), which publishes a
-   ``c3_proposals`` answer the oracle itself only classifies.
-5. Placeholder candidate authorities (``_write_placeholder_candidates``), the
-   two-witness intersection over an "unstated" record.
+Covers the six initialism-roster retiers (tested against the live roster.csv),
+the apostrophe-year shape and its "BIPA' 00" guard, the additive
+``usc_slot_reading`` column, the paren-eaten-lettered-suffix promotion that
+publishes what the oracle's ``c3_proposals`` only classifies, and placeholder
+candidate authorities as a two-witness intersection over an "unstated" record
+-- each with a breaking test and a negative fixture, per the wave's rule that
+no shape ships without a check that breaks when it is violated. The corpus
+receipts at the bottom read the built artifact and skip where it is absent.
 """
 
 from __future__ import annotations
@@ -55,11 +47,15 @@ ARTIFACT = Path(__file__).resolve().parents[1] / "output" / "registry-real-data-
 
 @cache
 def _oracle():
+    """The pinned U.S.C. section oracle, or None where it is not in this checkout."""
+
     return _usc_section_oracle()
 
 
 @cache
 def _calendar():
+    """The public-law series calendar built from the pinned roster."""
+
     return _SeriesCalendar.build(_pl_roster())
 
 
@@ -279,17 +275,14 @@ def test_the_apostrophe_year_shape_never_publishes_the_named_defect() -> None:
 def test_both_curly_apostrophes_read_and_a_section_marked_year_does_not() -> None:
     """Both directions of the expansion, in one place.
 
-    READS: U+0027, U+2019 (the two the corpus writes -- 839 and 59 rows carry
-    the character) and U+2018, its mirror, which is unattested in the pinned
-    corpus and folded anyway, because a reader that takes one curly quote and
-    not the other is a defect waiting for its first row.
-
-    REFUSES: an apostrophe-year immediately behind a SECTION MARKER. The
-    marker is the publisher declaring the token a section, and ``marked``
-    deliberately defeats the year suppression, so expanding there would mint
-    ``act_section`` "1997" out of a year -- the very defect this shape exists
-    to stop, one slot over. Unexpanded, no shape reads it and the row stays
-    loud-failed, which is what it did before this wave."""
+    READS: U+0027 and U+2019 (the two the corpus writes -- 839 and 59 rows)
+    plus U+2018, its mirror, folded because a reader that takes one curly quote
+    and not the other is a defect waiting for its first row. REFUSES: an
+    apostrophe-year immediately behind a SECTION MARKER, because the marker
+    declares the token a section, ``marked`` defeats the year suppression, and
+    expanding there would mint ``act_section`` "1997" out of a year -- so the
+    row stays loud-failed as it did before this wave.
+    """
 
     for text in ("BBRA '99", "BBRA ’99", "BBRA ‘99"):
         assert _abbrev_act_reading(text) == ("BBRA", None, ("1999",), False), text
@@ -348,6 +341,8 @@ def test_a_wrong_century_guess_refuses_rather_than_publishes() -> None:
 
 
 def _authority(rin: str, usc_title: int | None, usc_section: str | None, verdict: str | None) -> dict:
+    """Build a legal-authorities row carrying the given U.S.C. slot fields."""
+
     row = dict.fromkeys(LEGAL_AUTHORITIES_SCHEMA.names)
     row.update(
         rin=rin,
@@ -435,6 +430,8 @@ def test_usc_slot_reading_is_null_on_every_other_row() -> None:
 
 
 def _c3_row(rin: str, title: int, section: str, text: str, corrected: str | None = None) -> dict:
+    """Build a legal-authorities row for the paren-eaten-suffix promotion tests."""
+
     row = dict.fromkeys(LEGAL_AUTHORITIES_SCHEMA.names)
     row.update(
         rin=rin,
@@ -545,15 +542,15 @@ def test_c3_refuses_a_parenthetical_belonging_to_ANOTHER_TITLE() -> None:
 
 
 def test_c3_refuses_a_stated_tail_the_surviving_reading_drops() -> None:
-    """BREAKING TEST for the 17 rows of RIN 3235-AI17 (editions 200104-200904,
-    raw ``REGINFO_RIN_DATA_*.xml``), which state ``"15 USC 78(s)-37(a)"``.
-    78s-37 is not a section, so the oracle falls back to the bare lettered
-    78s -- which is one -- and publishing it drops "-37(a)", characters the
-    filer wrote. The raw record forbids it outright: the SAME rule's later
-    editions (200910 onward) spell the box ``"15 USC 78a-37(a)"``, letter "a",
-    not "s", beside the SEC's rulemaking quintet (77s(a), 78(wa), 77sss(a)),
-    which reads the box as Investment Company Act 38(a) -- 15 U.S.C.
-    80a-37(a). Two spellings of one damaged token and neither is 78s."""
+    """BREAKING TEST for the 17 rows of RIN 3235-AI17 (editions 200104-200904), stating "15 USC 78(s)-37(a)".
+
+    78s-37 is not a section, so the oracle falls back to the bare lettered 78s
+    -- which is one -- and publishing it drops "-37(a)", characters the filer
+    wrote; the SAME rule's later editions spell the box "15 USC 78a-37(a)",
+    and neither spelling is 78s. The negative fixture is a tail the Code DOES
+    print ("15 U.S.C. 80(a)-23" is 80a-23, honoured and published), so the
+    refusal is about dropping stated characters and not about tails.
+    """
 
     row = _c3_row("3235-AI17", 15, "78", "15 USC 78(s)-37(a)")
     assert _bound_paren_suffix("78", "15 USC 78(s)-37(a)") == "78(s)-37"
@@ -597,6 +594,8 @@ def test_the_binding_is_the_pinpoint_rule_one_field_wider() -> None:
 
 
 def _stated_row(rin: str, pub: str, ordinal: int, **kwargs) -> dict:
+    """Build a stated legal-authorities row with the given extra fields."""
+
     row = dict.fromkeys(LEGAL_AUTHORITIES_SCHEMA.names)
     row.update(rin=rin, publication_id=pub, ordinal=ordinal, authority_type="usc")
     row.update(kwargs)
@@ -604,17 +603,23 @@ def _stated_row(rin: str, pub: str, ordinal: int, **kwargs) -> dict:
 
 
 def _unstated_row(rin: str, pub: str, ordinal: int) -> dict:
+    """Build an authority_type=unstated row for the placeholder tests."""
+
     row = dict.fromkeys(LEGAL_AUTHORITIES_SCHEMA.names)
     row.update(rin=rin, publication_id=pub, ordinal=ordinal, authority_type="unstated", unstated_kind="none-off-form")
     return row
 
 
 class _FakeNote:
+    """Hold one note's citations for the placeholder tests."""
+
     def __init__(self, citations):
         self.citations = citations
 
 
 class _FakeCitation:
+    """One (family, identity) citation pair for the fake note."""
+
     def __init__(self, family, identity):
         self.family = family
         self.identity = identity
@@ -685,14 +690,14 @@ def test_placeholder_candidates_refuse_a_single_witness() -> None:
 
 
 def test_placeholder_candidates_refuse_a_public_law_dated_after_the_edition() -> None:
-    """The note-date-vs-edition-year gate: a note read TODAY can name a
-    Public Law enacted after the record's own edition -- a 2007 placeholder
-    offered a later Congress by a currently-captured note is exactly the
-    trap #47/#62's sibling investigation (``inv-placeholders``) names. The
+    """The note-date-vs-edition-year gate: a note read TODAY can name a law enacted after the record's edition.
+
+    A 2007 placeholder offered a later Congress by a currently-captured note
+    is exactly the trap the inv-placeholders sibling investigation names; the
     98th Congress (1983-84) postdating a 1980 edition is the same shape at a
-    date this test can pin without a live congress.gov roster: the pinned
-    calendar refuses any congress, so every apostrophe/public-law candidate
-    here is gated and none is published."""
+    date this test can pin without a live congress.gov roster, so the pinned
+    calendar refuses it and no candidate publishes.
+    """
 
     notes = _FakeNotes(
         held={(8, "215")},
@@ -718,12 +723,14 @@ def test_placeholder_candidates_refuse_a_public_law_dated_after_the_edition() ->
 
 
 def test_placeholder_candidates_refuse_a_law_approved_after_the_edition() -> None:
-    """The gate is the APPROVAL DATE, not the congress. Pub. L. 110-20 was
-    approved 05/02/2007 and the 110th Congress had enacted laws by the end of
-    2007, so the congress bound calls it in series for the Spring 2007
-    edition (``200704``) -- an edition published a month before the law
-    existed. The pinned roster carries the date, so the finer question is
-    answerable, and the candidate is dropped."""
+    """The gate is the APPROVAL DATE, not the congress.
+
+    Pub. L. 110-20 was approved 05/02/2007 and the 110th Congress had enacted
+    laws by the end of 2007, so the congress bound calls it in series for the
+    Spring 2007 edition (``200704``) -- an edition published a month before
+    the law existed; the pinned roster carries the date, so the finer question
+    is answerable and the candidate is dropped.
+    """
 
     calendar = _calendar()
     assert calendar.pl_congress_in_series("110-20", "200704") is True, "the coarse gate passes it"
@@ -749,20 +756,18 @@ def test_placeholder_candidates_refuse_a_law_approved_after_the_edition() -> Non
 
 
 def test_placeholder_candidates_refuse_what_the_section_oracle_refutes() -> None:
-    """Two witnesses agreeing is a CARDINALITY check: it says two readers
-    produced the same string, not that the string names law. Both can carry
-    one defect -- a sibling edition restates the filer's own damaged citation,
-    a badly split note carries a number out of its neighbour -- so a U.S.C.
-    candidate is put to the oracle that exists for its kind.
+    """Two witnesses agreeing is a CARDINALITY check, not a claim that the string names law.
 
-    The synthetic case first: a section number no title prints, offered by
-    both witnesses, must not publish beside the real one. Then the case in
-    the corpus, read raw: **36 CFR 251's own authority note says "16 U.S.C.
-    472, 479b, 551, 1134, 3210, 6201-13; 30 U.S.C. 1740, 1761-1771"** -- and
-    title 30 runs 1731…1736 then jumps to 1751, so 30 U.S.C. 1740 and 1761
-    are not sections at all. They are the publisher's own title slip for
-    FLPMA's rights-of-way sections at 43 U.S.C., which the same rule's other
-    notes name correctly. Three rows of RIN 1004-AE45 published both."""
+    Both witnesses can carry one defect -- a sibling edition restating the
+    filer's damaged citation, a badly split note carrying a number from its
+    neighbour -- so a U.S.C. candidate is put to the oracle that exists for
+    its kind. The synthetic absent section is refused beside the real one, and
+    the corpus case is read raw: 36 CFR 251's own note says "16 U.S.C. 472,
+    479b, 551, 1134, 3210, 6201-13; 30 U.S.C. 1740, 1761-1771", but title 30
+    jumps 1731…1736 to 1751, so 30 U.S.C. 1740/1761 are the publisher's own
+    title slip for FLPMA's 43 U.S.C. sections, published on three rows of RIN
+    1004-AE45. The fence is one-sided: with no oracle, nothing is refused.
+    """
 
     oracle = _oracle()
     assert oracle.section_verdict(8, "1101").verdict == "exists"
@@ -842,6 +847,8 @@ def test_placeholder_candidates_gate_drops_only_the_offending_candidate() -> Non
 
 @cache
 def _receipt() -> dict:
+    """The built artifact's receipt, skipping where the artifact is not built."""
+
     path = ARTIFACT / "receipt.json"
     if not path.is_file():
         pytest.skip("the derived Parquet artifact is not built")
@@ -849,6 +856,8 @@ def _receipt() -> dict:
 
 
 def _declared(key: str):
+    """Return one declared classification from the receipt, skipping if the build predates it."""
+
     declared = _receipt()["contract"]["declaredClassifications"]
     if key not in declared:
         pytest.skip(f"the built artifact predates {key}; the integrator's rebuild writes it")
@@ -904,18 +913,15 @@ def test_the_usc_slot_reading_receipt_is_the_measured_census() -> None:
 
 
 def test_the_act_derived_unattested_rider_matches_the_current_oracle() -> None:
-    """The rider in ``_judge_act_derived_sections`` says 3 act-derived rows
-    are not attested at their citing edition, where the 2026-08-24 wave said
-    19. The 16 that moved are the CWA title-33 rows at edition 201210, which
-    the annual extractor's case fix finally reads.
+    """The rider says 3 act-derived rows are not attested at their citing edition, where the 2026-08-24 wave said 19.
 
-    The fact the prose rests on is asserted directly against the IN-TREE
-    oracle, because that is what the sentence claims and it needs no build.
-    The receipt is then read as a PAIR of exact numbers chosen by which
-    oracle wrote the artifact -- 19 before the re-cut, 3 after -- the same
-    discipline ``_act_resolution_landed`` keeps next door: both readings are
-    pins, any other number still fails, and the day the rebuild lands nothing
-    here has to be touched. Delete the first number once it has."""
+    The 16 that moved are the CWA title-33 rows at edition 201210, which the
+    annual extractor's case fix finally reads. The fact is asserted directly
+    against the IN-TREE oracle, and the receipt is read as a PAIR of exact
+    numbers chosen by which oracle wrote the artifact -- 19 before the re-cut,
+    3 after -- so any other number still fails and the day the rebuild lands
+    nothing here has to be touched; delete the first number once it has.
+    """
 
     oracle = _oracle()
     if oracle is None:

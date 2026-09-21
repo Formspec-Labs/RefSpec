@@ -1,48 +1,28 @@
 """Read-only access to one immutable RefSpec managed-release bundle.
 
 The bundle manifest is a closed JSON object with these fields:
-
-``bundleVersion``
-    The literal ``"1.0"``.
-``publicationReleaseManifest``
-    One relative-path and SHA-256 artifact descriptor.
-``refRecords``
-    One or more descriptors for individual linked REF record files.
-``rulespecGraph``
-    The exact JSON-LD release graph descriptor.
-``rulespecGraphId``
-    The external identifier for that default-graph document. The JSON-LD
-    document itself has no top-level ``@id``.
-``rulespecDependencyManifest``
-    The exact Rulespec version, revisions, generated artifacts, and validator
-    identity used by the release gate.
-``combinedValidationReceipt``
-    A content-digested receipt from the independent REF, Rulespec, and
-    cross-boundary gates.
-``normalizedTables``
-    Exactly one descriptor named ``concept_labels``, ``concept_relations``,
-    and ``concept_event_participants``.
-``indexedExpressionCorpus``
-    A JSON Lines artifact descriptor plus its exact logical snapshot,
-    record count, corpus schema version, and canonical expression-identity
-    digest. File order is physical; the logical digest is order-independent.
-``sourceArtifacts``
-    An optional mapping from each successful exact-byte
-    ``Capture.storageReference`` artifact IRI to the verified source bytes'
-    relative path, SHA-256 digest, and byte length.
+``bundleVersion`` (the literal ``"1.0"``), ``publicationReleaseManifest``,
+``refRecords`` (one or more linked REF record files), ``rulespecGraph`` and
+``rulespecGraphId`` (the JSON-LD release graph and its external identifier;
+the document itself has no top-level ``@id``), ``rulespecDependencyManifest``,
+``combinedValidationReceipt``, ``normalizedTables`` (exactly one descriptor
+each for ``concept_labels``, ``concept_relations``, and
+``concept_event_participants``), ``indexedExpressionCorpus`` (a JSON Lines
+artifact plus its logical snapshot, record count, corpus schema version, and
+order-independent canonical expression-identity digest), and optional
+``sourceArtifacts`` mapping each ``Capture.storageReference`` artifact IRI to
+the verified source bytes' relative path, SHA-256 digest, and byte length.
 
 Every descriptor is ``{"path": <relative path>, "sha256": "sha256:..."}``.
 The reader verifies all bytes before parsing them and retains only immutable
-in-memory values. Physical lookup indexes are consumer state and cannot be
-packaged as part of a managed release.
-
-This reader does not run, replace, or claim Rulespec conformance. It consumes
-an already validated release chain: the publication manifest and the modeled
-``ReleaseGraphValidationReceipt`` must pass REF JSON Binding 1.0, and the
-receipt must exactly bind the packaged graph, publication and operational
-records, validator, and covered identifiers. The aggregate corpus descriptor
-independently binds every indexed expression. The caller supplies the trusted
-bundle-manifest byte digest.
+in-memory values; physical lookup indexes are consumer state and cannot be
+packaged as part of a managed release. It does not run, replace, or claim
+Rulespec conformance: it consumes an already validated chain — the publication
+manifest and the modeled ``ReleaseGraphValidationReceipt`` must pass REF JSON
+Binding 1.0, and the receipt must exactly bind the packaged graph, publication
+and operational records, validator, and covered identifiers, while the
+aggregate corpus descriptor independently binds every indexed expression. The
+caller supplies the trusted bundle-manifest byte digest.
 """
 
 from __future__ import annotations
@@ -1235,10 +1215,14 @@ class ManagedReleaseGraphFactsView:
 
     @property
     def rulespec_graph_id(self) -> str:
+        """Return the external identifier of the verified Rulespec graph."""
+
         return self._rulespec_graph_id
 
     @property
     def rulespec_graph(self) -> Mapping[str, Any]:
+        """Return the exact immutable Rulespec JSON-LD graph."""
+
         return self._rulespec_graph
 
     @property
@@ -1249,9 +1233,13 @@ class ManagedReleaseGraphFactsView:
 
     @property
     def release_graph_validation_receipt(self) -> Mapping[str, Any]:
+        """Return the exact immutable receipt verified while opening the bundle."""
+
         return self._release_graph_validation_receipt
 
     def lookup_member(self, member_iri: str) -> ManagedReleaseMember | None:
+        """Return the member with this IRI, or ``None`` when the bundle does not hold it."""
+
         return self._members.get(member_iri)
 
     def iter_members(
@@ -1259,6 +1247,8 @@ class ManagedReleaseGraphFactsView:
         *,
         release_iri: str | None = None,
     ) -> Iterator[ManagedReleaseMember]:
+        """Yield every member, optionally narrowed to one release IRI."""
+
         for member in self._members.values():
             if release_iri is None or member.release_iri == release_iri:
                 yield member
@@ -2488,6 +2478,8 @@ class ManagedReleaseView:
 
     @property
     def release_id(self) -> str:
+        """Return the verified PublicationReleaseManifest identifier."""
+
         return self._release_id
 
     @property
@@ -2504,6 +2496,8 @@ class ManagedReleaseView:
 
     @property
     def expression_corpus_snapshot(self) -> Mapping[str, str]:
+        """Return descriptor linkage only, not corpus semantic eligibility."""
+
         return self._expression_corpus_snapshot
 
     @property

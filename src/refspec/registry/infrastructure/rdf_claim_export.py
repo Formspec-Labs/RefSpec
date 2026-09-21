@@ -1,4 +1,9 @@
-"""Source-side conversion from one parsed RDF graph to registry claim rows."""
+"""Source-side conversion from one parsed RDF graph to registry claim rows.
+
+IRI and English or untagged literal claims are retained; blank-node,
+non-English, and unsupported-term shapes stay in the closed raw input and are
+counted as omissions in the extraction result.
+"""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Official LDA code-list capture, parsing, and filing-assignment tests."""
+"""LDA code lists: pinned capture, strict parsing, and filing-code assignment without minting subjects."""
 
 from __future__ import annotations
 
@@ -20,16 +20,22 @@ def _acquire(
     pin: lda.LDASnapshotPin,
     source_path: Path,
 ) -> lda.AcquiredLDASource:
+    """Acquire one LDA pin from a local fixture into the content-addressed store."""
+
     return lda.acquire_lda_constants(pin, tmp_path, source_path=source_path)
 
 
 def _portfolio(tmp_path: Path) -> lda.LDAControlPortfolio:
+    """Parse the issue-code and filing-type fixtures into one LDA control portfolio."""
+
     issues = lda.parse_lda_constants(_acquire(tmp_path, lda.LDA_GENERAL_ISSUE_CODES_2026_07_30, ISSUES_FIXTURE))
     types = lda.parse_lda_constants(_acquire(tmp_path, lda.LDA_FILING_TYPES_2026_07_30, TYPES_FIXTURE))
     return lda.assemble_lda_control_portfolio((issues, types))
 
 
 def test_live_snapshot_pins_match_exact_official_json_bytes() -> None:
+    """Pins the two fixture byte lengths and their exact sha256 digests."""
+
     issues = ISSUES_FIXTURE.read_bytes()
     filing_types = TYPES_FIXTURE.read_bytes()
 
@@ -44,6 +50,8 @@ def test_live_snapshot_pins_match_exact_official_json_bytes() -> None:
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
     tmp_path: Path,
 ) -> None:
+    """Pins the content-addressed path, local mode, and cache-hit re-verification."""
+
     pin = lda.LDA_GENERAL_ISSUE_CODES_2026_07_30
 
     acquired = _acquire(tmp_path, pin, ISSUES_FIXTURE)
@@ -58,6 +66,8 @@ def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
 
 
 def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) -> None:
+    """Pins that only an injected fetcher is called, with the requested timeout."""
+
     payload = TYPES_FIXTURE.read_bytes()
     calls: list[tuple[str, float]] = []
 
@@ -90,6 +100,8 @@ def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) ->
 def test_general_issue_codes_are_source_evidence_not_general_subject_concepts(
     tmp_path: Path,
 ) -> None:
+    """Pins the 79 issue codes as sourceAssignedEvidence with is_general_subject_concept false."""
+
     resource = lda.parse_lda_constants(_acquire(tmp_path, lda.LDA_GENERAL_ISSUE_CODES_2026_07_30, ISSUES_FIXTURE))
 
     assert len(resource.codes) == 79
@@ -118,6 +130,8 @@ def test_general_issue_codes_are_source_evidence_not_general_subject_concepts(
 
 
 def test_filing_types_remain_deterministic_codes(tmp_path: Path) -> None:
+    """Pins the 50 filing types as deterministicMetadata and never subject concepts."""
+
     resource = lda.parse_lda_constants(_acquire(tmp_path, lda.LDA_FILING_TYPES_2026_07_30, TYPES_FIXTURE))
 
     assert len(resource.codes) == 50
@@ -128,6 +142,8 @@ def test_filing_types_remain_deterministic_codes(tmp_path: Path) -> None:
 
 
 def test_portfolio_records_period_source_and_status_release_gaps(tmp_path: Path) -> None:
+    """Pins the six filing-period values, the OpenAPI pin, and the three documented gaps."""
+
     portfolio = _portfolio(tmp_path)
 
     assert portfolio.filing_period_values == (
@@ -148,6 +164,8 @@ def test_portfolio_records_period_source_and_status_release_gaps(tmp_path: Path)
 def test_current_spicy_regs_filing_codes_validate_without_becoming_subjects(
     tmp_path: Path,
 ) -> None:
+    """Pins that a filing validates to typed identifiers with no status and no subject concept."""
+
     filing = {
         "filing_type": "Q1",
         "filing_period": "first_quarter",
@@ -187,6 +205,8 @@ def test_unknown_filing_control_fails_closed(
     value: str,
     message: str,
 ) -> None:
+    """Pins that an unknown filing type or filing period raises LDAAssignmentError."""
+
     filing = {
         "filing_type": "Q1",
         "filing_period": "first_quarter",
@@ -199,6 +219,8 @@ def test_unknown_filing_control_fails_closed(
 
 
 def test_unknown_or_mislabeled_issue_fails_closed(tmp_path: Path) -> None:
+    """Pins that an unknown issue code or a display mismatch raises LDAAssignmentError."""
+
     portfolio = _portfolio(tmp_path)
     base = {
         "filing_type": "Q1",
@@ -236,6 +258,8 @@ def test_unknown_or_mislabeled_issue_fails_closed(tmp_path: Path) -> None:
 def test_digest_or_unknown_shape_drift_never_becomes_a_parsed_resource(
     tmp_path: Path,
 ) -> None:
+    """Pins that digest drift and an unexpected JSON field set are both refused."""
+
     payload = ISSUES_FIXTURE.read_bytes()
     changed = payload.replace(b'"Accounting"', b'"Accountinh"')
     assert len(changed) == len(payload)
@@ -284,6 +308,8 @@ def test_digest_or_unknown_shape_drift_never_becomes_a_parsed_resource(
 def test_parser_retains_multiple_source_identifiers_as_structured_records(
     tmp_path: Path,
 ) -> None:
+    """Pins the five source identifiers (code, record id, identifier, legacy code, URI) as separate records."""
+
     payload = (
         b'[{"value":"TEC","name":"Telecommunications","id":42,'
         b'"identifier":"official-telecom","code":"legacy-tec",'

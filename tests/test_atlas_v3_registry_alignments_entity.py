@@ -1,4 +1,4 @@
-"""Asserted regulations.gov agency identity release checks."""
+"""Regulations.gov agency identity release: one-way same-entity assertions, E4 evidence and refusal guards."""
 
 from __future__ import annotations
 
@@ -21,6 +21,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _generator_module():
+    """Import the Atlas generator from the tools directory without disturbing sys.path."""
+
     sys.path.insert(0, str(ROOT / "tools"))
     try:
         return importlib.import_module("generate_atlas_v3_full")
@@ -29,6 +31,8 @@ def _generator_module():
 
 
 def _contains_confidence_key(value: Any) -> bool:
+    """Return whether any mapping key anywhere in the value mentions confidence."""
+
     if isinstance(value, Mapping):
         return any(
             "confidence" in str(key).lower()
@@ -44,6 +48,8 @@ def _contains_confidence_key(value: Any) -> bool:
 
 
 def _contains_none(value: Any) -> bool:
+    """Return whether ``None`` appears anywhere in the value."""
+
     if isinstance(value, Mapping):
         return any(
             item is None or _contains_none(item)
@@ -59,6 +65,8 @@ def _contains_none(value: Any) -> bool:
 
 @pytest.fixture(scope="module")
 def releases() -> tuple[RegistryRelease, ...]:
+    """Load the five pinned agency roster releases."""
+
     return census.load_five_agency_rosters(ROOT)
 
 
@@ -66,6 +74,8 @@ def releases() -> tuple[RegistryRelease, ...]:
 def mapping_release(
     releases: tuple[RegistryRelease, ...],
 ) -> RegistryMappingRelease:
+    """Build the regulations.gov agency identity mapping release from the rosters."""
+
     return alignments.load_regulations_gov_agency_identity_mapping_release(
         releases
     )
@@ -74,6 +84,8 @@ def mapping_release(
 def test_identity_release_counts_and_closed_decision_vocabulary(
     mapping_release: RegistryMappingRelease,
 ) -> None:
+    """The release pins 321 adoptions, 10 abstentions and a closed decision/reason vocabulary with no null metadata."""
+
     assert mapping_release.key == (
         "regulations-gov-agency-identity-2026-08-16"
     )
@@ -98,6 +110,8 @@ def test_identity_release_counts_and_closed_decision_vocabulary(
 def test_every_assertion_is_one_way_same_entity_e4_human_review(
     mapping_release: RegistryMappingRelease,
 ) -> None:
+    """Every mapping is one-way same-entity with two E4 endpoint evidence records and no name-similarity shortcut."""
+
     triples = {
         (mapping.subject, mapping.predicate, mapping.object)
         for mapping in mapping_release.mappings
@@ -139,6 +153,8 @@ def test_every_assertion_is_one_way_same_entity_e4_human_review(
 def test_endpoint_evidence_uses_the_exact_roster_input_subset(
     mapping_release: RegistryMappingRelease,
 ) -> None:
+    """Only the seven named roster input pins back any endpoint evidence."""
+
     used_roles = {
         pin.role
         for pin in mapping_release.inputs
@@ -166,6 +182,8 @@ def test_endpoint_evidence_uses_the_exact_roster_input_subset(
 def test_entity_ring_admits_only_same_entity_as_for_mappings(
     mapping_release: RegistryMappingRelease,
 ) -> None:
+    """The generated entity ring emits only same-entity assertions, one-way, with matching evidence bindings."""
+
     generator = _generator_module()
     policies = generator.ATLAS_VALIDATE._relation_policies()
     assert policies[generator.ATLAS.entity][generator.ATLAS.MappingAssertion] == {
@@ -199,6 +217,9 @@ def test_release_passes_refusal_guards_and_identifier_tripwire(
     mapping_release: RegistryMappingRelease,
     releases: tuple[RegistryRelease, ...],
 ) -> None:
+    """The release passes the registrant/document/observed-inventory guards and carries no identifiers or confidence
+    keys."""
+
     generator = _generator_module()
     endpoint_iris = {
         endpoint
@@ -240,6 +261,8 @@ def test_release_passes_refusal_guards_and_identifier_tripwire(
 def test_candidate_accounting_records_fs_and_subunit_non_emission(
     mapping_release: RegistryMappingRelease,
 ) -> None:
+    """Candidate decisions record FS's duplicate-name non-emissions and the withheld subunit predicate."""
+
     decisions = {
         row["sourceValue"]: row
         for row in mapping_release.metadata["candidateDecisions"]
@@ -274,6 +297,8 @@ def test_release_is_deterministic_under_roster_reordering(
     releases: tuple[RegistryRelease, ...],
     mapping_release: RegistryMappingRelease,
 ) -> None:
+    """Reversing roster, resource and relation order rebuilds the identical release."""
+
     reordered = tuple(
         dataclasses.replace(
             release,
@@ -291,6 +316,8 @@ def test_release_is_deterministic_under_roster_reordering(
 def test_release_refuses_a_reviewed_publisher_name_drift(
     releases: tuple[RegistryRelease, ...],
 ) -> None:
+    """A changed reviewed publisher name for FS refuses the mapping release."""
+
     changed: list[RegistryRelease] = []
     for release in releases:
         if release.key != "regulations-gov-agencies-roster-2026-08-16":

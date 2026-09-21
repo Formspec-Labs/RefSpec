@@ -1,4 +1,11 @@
-"""The derived Unified Agenda tables consumers actually read."""
+"""The derived Unified Agenda tables consumers actually read.
+
+Pins the producer's DuckDB/Parquet artifact queries and, without the artifact,
+the derivation helpers: act-initialism and spelling-closure rules, the U.S.C.
+section fence and its oracles, CFR-range residue continuation, and the B8
+two-witness enlargement -- each rule measured against the pinned build where
+one exists and refused rather than guessed where it does not.
+"""
 
 from __future__ import annotations
 
@@ -41,6 +48,8 @@ def _the_built_artifact(request) -> None:
 
 @pytest.fixture(scope="module")
 def con():
+    """A module-scoped DuckDB connection, skipping the test when duckdb is absent."""
+
     duckdb = pytest.importorskip("duckdb")
     return duckdb.connect()
 
@@ -1071,6 +1080,8 @@ def test_enacting_year_variants_require_agreement_and_preserve_existing_spelling
 
 
 def test_the_initialism_operator_matches_how_the_corpus_abbreviates() -> None:
+    """The initialism operator drops stop words, giving CAA, CAAA, SDWA, MIPPA and FIFRA from real act names."""
+
     from refspec.registry.unified_agenda_parquet import _act_initialism
 
     assert _act_initialism("clean air act") == "CAA"
@@ -7511,6 +7522,8 @@ _SCHEME_LABEL_SCRATCH_BUILDER = "sha256:9e78ca00"
 
 @cache
 def _label_oracles():
+    """The three label oracles: U.S.C. section existence, the series calendar, and the public-law roster names."""
+
     from refspec.registry.unified_agenda_parquet import (
         _pl_roster,
         _SeriesCalendar,
@@ -8348,6 +8361,8 @@ def _act_closure():
 
 
 def _stated_act_row(text, name, section=None, **extra):
+    """One failed-parse legal-authority row stating an act name and optional section."""
+
     row = dict.fromkeys(LEGAL_AUTHORITIES_SCHEMA.names)
     row.update(rin="9999-AA01", publication_id="201010", ordinal=0, authority_text=text,
                authority_source="box", authority_type="other", parse_status="failed",

@@ -1,4 +1,9 @@
-"""FERC eLibrary class/type, docket-prefix, sector, and security capture and parsing tests."""
+"""FERC eLibrary class/type, docket-prefix, sector, and security capture and parsing tests.
+
+A constructed 2,202-byte reference fixture (the real pages answered HTTP 403) plus optional
+official PDFs and help pages pin the five resource tables and the accession-number pattern;
+unknown field values, missing fields, count drift, missing tables or title markers, non-ferc.gov
+URLs, and digest drift all fail closed."""
 
 from __future__ import annotations
 
@@ -16,10 +21,14 @@ PAGE_FIXTURE = FIXTURES / "ferc-elibrary-classtype-information-fixture.html"
 
 
 def _acquire(tmp_path: Path, source_path: Path = PAGE_FIXTURE) -> ferc.AcquiredFercSource:
+    """Acquire the pinned eLibrary class/type fixture from the default or a replacement path."""
+
     return ferc.acquire_ferc_elibrary_page(ferc.FERC_ELIBRARY_2026_08_03_FIXTURE, tmp_path, source_path=source_path)
 
 
 def _portfolio(tmp_path: Path) -> ferc.FercELibraryControlPortfolio:
+    """Parse the five resource tables and the accession-number format and assemble the portfolio."""
+
     acquired = _acquire(tmp_path)
     resources = [
         ferc.parse_ferc_elibrary_resource(acquired, name)

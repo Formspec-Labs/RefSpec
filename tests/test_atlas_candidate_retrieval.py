@@ -19,6 +19,7 @@ def _concept(
     label: str,
     **values: object,
 ) -> AtlasConcept:
+    """Build a concept on the source or target test release from a short side/identifier pair."""
     return AtlasConcept(
         member=f"https://example.test/{side}/{identifier}",
         release=SOURCE_RELEASE if side == "source" else TARGET_RELEASE,
@@ -28,10 +29,12 @@ def _concept(
 
 
 def _keys(hits: tuple[retrieval.RetrievalHit, ...]) -> set[tuple[str, str]]:
+    """Collect the (source member, target member) keys of the hits."""
     return {hit.key for hit in hits}
 
 
 def test_context_view_discovers_a_definition_only_relation() -> None:
+    """Pins that shared definition wording alone recovers a candidate the label view misses."""
     source = _concept(
         "source",
         "s1",
@@ -69,6 +72,7 @@ def test_context_view_discovers_a_definition_only_relation() -> None:
 
 
 def test_context_view_discovers_parent_and_child_signals() -> None:
+    """Pins that shared parent and child context labels recover a pair whose own labels share no wording."""
     source = _concept(
         "source",
         "s2",
@@ -101,6 +105,7 @@ def test_context_view_discovers_parent_and_child_signals() -> None:
 
 
 def test_identifier_equality_is_a_candidate_signal_not_a_mapping() -> None:
+    """Pins a shared normalized local identifier yields one candidate under normalized-local-identifier-equality."""
     source = _concept("source", "ABC-104", "Coastal resilience")
     target = _concept("target", "ABC-104", "Shoreline adaptation")
     distractor = _concept("target", "XYZ-999", "Coastal resilience")
@@ -112,6 +117,7 @@ def test_identifier_equality_is_a_candidate_signal_not_a_mapping() -> None:
 
 
 def test_character_view_discovers_spelling_variants() -> None:
+    """Pins that the character view recovers a British/American spelling variant that shares no whole token."""
     source = _concept("source", "s4", "Paediatric cardiology")
     target = _concept("target", "t4", "Pediatric cardiology")
     distractor = _concept("target", "t5", "Agricultural exports")
@@ -127,6 +133,7 @@ def test_character_view_discovers_spelling_variants() -> None:
 
 
 def test_graph_expansion_adds_directional_and_aligned_neighbors() -> None:
+    """Pins that graph expansion around one aligned anchor adds directional parent/anchor and aligned child pairs."""
     source_parent = _concept("source", "parent", "Transport")
     source_child = _concept("source", "child", "Electric buses")
     source = _concept(
@@ -162,6 +169,7 @@ def test_graph_expansion_adds_directional_and_aligned_neighbors() -> None:
 
 
 def test_sparse_retrieval_digest_is_input_order_independent() -> None:
+    """Pins that reversing source and target order yields identical hits and an identical retrieval digest."""
     sources = (
         _concept("source", "a", "Labor unions", alt_labels=("Trade unions",)),
         _concept("source", "b", "Water quality", definition="Pollution in rivers and lakes"),
@@ -197,6 +205,7 @@ GENERATION_TARGET_RELEASE = "urn:ref:test:beta:reference-resource-release"
 
 
 def _source(member: str, label: str, **kwargs: Any) -> AtlasConcept:
+    """Build a source-release concept for the pinned generation fixtures."""
     return AtlasConcept(
         member=member,
         release=GENERATION_SOURCE_RELEASE,
@@ -206,6 +215,7 @@ def _source(member: str, label: str, **kwargs: Any) -> AtlasConcept:
 
 
 def _target(member: str, label: str, **kwargs: Any) -> AtlasConcept:
+    """Build a target-release concept for the pinned generation fixtures."""
     return AtlasConcept(
         member=member,
         release=GENERATION_TARGET_RELEASE,
@@ -239,6 +249,7 @@ def targets() -> tuple[AtlasConcept, ...]:
 
 
 def test_generation_is_deterministic_and_order_independent(sources, targets) -> None:
+    """Pins that candidate generation repeats exactly and ignores source/target input order."""
     first = retrieval.generate_candidate_pairs(sources, targets)
     second = retrieval.generate_candidate_pairs(tuple(reversed(sources)), tuple(reversed(targets)))
     assert first == second
@@ -246,12 +257,14 @@ def test_generation_is_deterministic_and_order_independent(sources, targets) -> 
 
 
 def test_generation_produces_every_declared_class(sources, targets) -> None:
+    """Pins that the fixtures yield every class in GENERATION_CLASSES, so no class can be silently dropped."""
     pairs = retrieval.generate_candidate_pairs(sources, targets)
     observed = {pair.generation_class for pair in pairs}
     assert observed == set(retrieval.GENERATION_CLASSES), sorted(observed)
 
 
 def test_label_equality_uses_the_atlas_normalizer(sources, targets) -> None:
+    """Pins that case and trailing-space differences still pair under normalizedLabelEquality."""
     pairs = retrieval.generate_candidate_pairs(sources, targets)
     equal = {
         (pair.source.member, pair.target.member)
@@ -263,6 +276,7 @@ def test_label_equality_uses_the_atlas_normalizer(sources, targets) -> None:
 
 
 def test_alternate_label_equality_is_its_own_class(sources, targets) -> None:
+    """Pins that an alternate-label match is classed alternateLabelEquality rather than folded into label equality."""
     pairs = retrieval.generate_candidate_pairs(sources, targets)
     alternates = {
         (pair.source.member, pair.target.member)
@@ -273,6 +287,7 @@ def test_alternate_label_equality_is_its_own_class(sources, targets) -> None:
 
 
 def test_sibling_distractor_shares_a_parent_with_a_label_match(sources, targets) -> None:
+    """Pins that every siblingDistractor pair cites a sibling of the target, never the target itself."""
     pairs = retrieval.generate_candidate_pairs(sources, targets)
     siblings = [pair for pair in pairs if pair.generation_class == "siblingDistractor"]
     assert siblings
@@ -281,6 +296,7 @@ def test_sibling_distractor_shares_a_parent_with_a_label_match(sources, targets)
 
 
 def test_negative_controls_share_no_label_token(sources, targets) -> None:
+    """Pins that every randomNegativeControl pair shares no normalized label token."""
     pairs = retrieval.generate_candidate_pairs(sources, targets)
     controls = [pair for pair in pairs if pair.generation_class == "randomNegativeControl"]
     assert controls
@@ -291,7 +307,7 @@ def test_negative_controls_share_no_label_token(sources, targets) -> None:
 
 
 def test_no_pair_repeats_across_or_within_classes(sources, targets) -> None:
-    """A repeated pair is two identical candidates a reader cannot tell apart."""
+    """Pins no pair repeats within or across classes; a repeat is two candidates a reader cannot tell apart."""
 
     doubled = (
         *targets,
@@ -304,6 +320,7 @@ def test_no_pair_repeats_across_or_within_classes(sources, targets) -> None:
 
 
 def test_class_limits_bound_each_class(sources, targets) -> None:
+    """Pins that a per-class limit of 1 caps every generation class at one pair."""
     limits = dict.fromkeys(retrieval.GENERATION_CLASSES, 1)
     pairs = retrieval.generate_candidate_pairs(sources, targets, limits=limits)
     counts: dict[str, int] = {}
@@ -313,6 +330,7 @@ def test_class_limits_bound_each_class(sources, targets) -> None:
 
 
 def test_production_generation_has_no_pilot_class_caps(sources, targets) -> None:
+    """Pins production generation exceeds the pilot caps, stamps the production policy, and refuses pilot limits."""
     production = retrieval.generate_candidate_pairs(sources, targets, production=True)
     pilot = retrieval.generate_candidate_pairs(
         sources,
@@ -337,5 +355,6 @@ def test_production_generation_has_no_pilot_class_caps(sources, targets) -> None
 
 
 def test_generation_refuses_a_source_and_target_in_one_release(sources) -> None:
+    """Pins that a source and target drawn from one release raises CandidateGenerationError."""
     with pytest.raises(retrieval.CandidateGenerationError, match="must cross releases"):
         retrieval.generate_candidate_pairs(sources, sources)

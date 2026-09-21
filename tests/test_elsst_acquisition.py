@@ -16,6 +16,8 @@ from refspec.registry.infrastructure import pinned_acquisition
 
 
 def _release(payload: bytes) -> acquisition.ElsstReleaseSource:
+    """One test release pinning the given payload by its digest and byte length."""
+
     return acquisition.ElsstReleaseSource(
         version="test",
         release_iri="https://example.test/elsst/test",
@@ -28,6 +30,8 @@ def _release(payload: bytes) -> acquisition.ElsstReleaseSource:
 
 
 def test_pinned_release_metadata_records_exact_sources_and_non_gating_license() -> None:
+    """R6 pins its byte length and digest and its CC BY-SA licence without any use_authorized claim."""
+
     assert acquisition.ELSST_R6.expected_byte_length == 19_915_491
     assert (
         acquisition.ELSST_R6.expected_sha256
@@ -39,6 +43,8 @@ def test_pinned_release_metadata_records_exact_sources_and_non_gating_license() 
 
 
 def test_real_r6_source_is_verified_and_content_addressed(tmp_path: Path) -> None:
+    """The configured real R6 file verifies through both the adapter and the shared pinned acquisition."""
+
     source_path = os.environ.get("REFSPEC_ELSST_R6_PATH")
     if source_path is None:
         pytest.skip("real ELSST R6 source is not configured")
@@ -73,6 +79,8 @@ def test_local_source_is_verified_then_cached_without_network(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """A local source is stored under its sha256 and a second call hits the cache with urlopen never called."""
+
     payload = b"@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n"
     release = _release(payload)
     source_path = tmp_path / "source.ttl"
@@ -110,6 +118,8 @@ def test_cache_miss_requires_explicit_local_or_network_choice(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """A cache miss without allow_network=True refuses and opens no socket."""
+
     release = _release(b"source")
     calls: list[object] = []
 
@@ -127,6 +137,8 @@ def test_explicit_network_path_can_be_exercised_without_real_network(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """The network path accepts injected bytes and reports the resolved URL and one request."""
+
     payload = b"exact source"
     release = _release(payload)
 
@@ -173,6 +185,8 @@ def test_local_source_must_match_both_size_and_digest(
     release_payload: bytes,
     message: str,
 ) -> None:
+    """A short or wrong local file refuses, leaving no cached file or temp file behind."""
+
     source_path = tmp_path / "source.ttl"
     source_path.write_bytes(payload)
     release = _release(release_payload)
@@ -191,6 +205,8 @@ def test_local_source_must_match_both_size_and_digest(
 def test_module_import_has_no_network_side_effect(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Reloading the module opens no URL."""
+
     calls: list[object] = []
 
     def fail_if_called(*args: object, **kwargs: object) -> object:

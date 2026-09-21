@@ -1,4 +1,9 @@
-"""Official OIRA EO 12866 review/meeting field capture, parsing, and validation tests."""
+"""OIRA EO 12866 review/meeting fields: pinned captures, parsing, validation and package closure.
+
+Review status, rule stage, concluded action and meeting status are
+deterministic metadata, never subject concepts; blank placeholder options are
+excluded and the portfolio records its label-mismatch and release gaps.
+"""
 
 from __future__ import annotations
 
@@ -23,15 +28,21 @@ _FIXTURE_BY_FIELD = {
 
 
 def _acquire(tmp_path: Path, pin: oira.OIRAFieldSnapshotPin) -> oira.AcquiredOIRAField:
+    """Acquire one pinned field capture from the fixture matching its field name."""
+
     return oira.acquire_oira_field(pin, tmp_path, source_path=_FIXTURE_BY_FIELD[pin.field.field_name])
 
 
 def _portfolio(tmp_path: Path) -> oira.OIRAControlPortfolio:
+    """Parse all four pinned fields and assemble the OIRA portfolio."""
+
     parsed = [oira.parse_oira_field(_acquire(tmp_path, pin)) for pin in oira.OIRA_FIELD_PINS_2026_08_03]
     return oira.assemble_oira_control_portfolio(parsed)
 
 
 def test_live_snapshot_pins_match_exact_official_html_bytes(tmp_path: Path) -> None:
+    """Every pinned field capture matches its byte length and SHA-256 digest."""
+
     for pin in oira.OIRA_FIELD_PINS_2026_08_03:
         acquired = _acquire(tmp_path, pin)
         assert acquired.byte_length == pin.expected_byte_length
@@ -41,6 +52,8 @@ def test_live_snapshot_pins_match_exact_official_html_bytes(tmp_path: Path) -> N
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
     tmp_path: Path,
 ) -> None:
+    """A local capture lands content-addressed and a cache hit is re-digested, not trusted."""
+
     pin = oira.OIRA_REVIEW_STATUS_2026_08_03
 
     acquired = _acquire(tmp_path, pin)
@@ -55,6 +68,8 @@ def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
 
 
 def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) -> None:
+    """The injected fetcher is called once for the pinned page URL with the caller's timeout."""
+
     pin = oira.OIRA_MEETING_STATUS_2026_08_03
     payload = MEETING_SEARCH_FIXTURE.read_bytes()
     calls: list[tuple[str, float]] = []
@@ -89,6 +104,8 @@ def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) ->
 def test_review_status_is_source_evidence_not_a_general_subject_concept(
     tmp_path: Path,
 ) -> None:
+    """Pending Review and Concluded carry publisher identity as deterministic evidence, never subject concepts."""
+
     resource = oira.parse_oira_field(_acquire(tmp_path, oira.OIRA_REVIEW_STATUS_2026_08_03))
 
     assert len(resource.values) == 2
@@ -115,6 +132,8 @@ def test_review_status_is_source_evidence_not_a_general_subject_concept(
 
 
 def test_rule_stage_retains_six_codes_and_deterministic_use(tmp_path: Path) -> None:
+    """All six rule stages are retained for deterministic use and never as subjects."""
+
     resource = oira.parse_oira_field(_acquire(tmp_path, oira.OIRA_RULE_STAGE_2026_08_03))
 
     assert len(resource.values) == 6
@@ -126,6 +145,8 @@ def test_rule_stage_retains_six_codes_and_deterministic_use(tmp_path: Path) -> N
 
 
 def test_concluded_action_excludes_the_blank_placeholder_option(tmp_path: Path) -> None:
+    """The blank placeholder option is excluded, leaving nine published actions."""
+
     resource = oira.parse_oira_field(_acquire(tmp_path, oira.OIRA_CONCLUDED_ACTION_2026_08_03))
 
     assert len(resource.values) == 9
@@ -135,6 +156,8 @@ def test_concluded_action_excludes_the_blank_placeholder_option(tmp_path: Path) 
 
 
 def test_meeting_status_excludes_the_select_placeholder_option(tmp_path: Path) -> None:
+    """The select placeholder is excluded, leaving the three meeting statuses."""
+
     resource = oira.parse_oira_field(_acquire(tmp_path, oira.OIRA_MEETING_STATUS_2026_08_03))
 
     assert len(resource.values) == 3
@@ -145,6 +168,8 @@ def test_meeting_status_excludes_the_select_placeholder_option(tmp_path: Path) -
 
 
 def test_portfolio_records_label_mismatch_and_release_gaps(tmp_path: Path) -> None:
+    """The portfolio keeps all four code sets and records its no-release-date, label-mismatch and no-subject gaps."""
+
     portfolio = _portfolio(tmp_path)
 
     assert set(portfolio.review_status.by_code()) == {"PR", "CD"}
@@ -157,6 +182,8 @@ def test_portfolio_records_label_mismatch_and_release_gaps(tmp_path: Path) -> No
 
 
 def test_validated_record_codes_do_not_become_subjects(tmp_path: Path) -> None:
+    """A fully populated record validates each field as deterministic metadata, never as a subject."""
+
     record = {
         "review_status": "CD",
         "rule_stages": ["4", "5"],
@@ -188,6 +215,8 @@ def test_validated_record_codes_do_not_become_subjects(tmp_path: Path) -> None:
 
 
 def test_validated_record_codes_allow_absent_optional_fields(tmp_path: Path) -> None:
+    """A record with only review_status leaves the optional fields empty, not defaulted."""
+
     validated = oira.validate_oira_record_codes({"review_status": "PR"}, _portfolio(tmp_path))
 
     assert validated.review_status.publisher_label == "Pending Review"
@@ -211,11 +240,15 @@ def test_unknown_or_missing_control_fails_closed(
     record: dict[str, object],
     message: str,
 ) -> None:
+    """An unknown code in any field, or a missing review_status, is refused with that field named."""
+
     with pytest.raises(oira.OIRAAssignmentError, match=message):
         oira.validate_oira_record_codes(record, _portfolio(tmp_path))
 
 
 def test_digest_drift_never_becomes_a_parsed_resource(tmp_path: Path) -> None:
+    """Byte tampering is refused on byte-length drift before parsing."""
+
     payload = ADVANCED_SEARCH_FIXTURE.read_bytes()
     changed = payload.replace(b"Pending Review", b"Pending Reviewx")
 
@@ -243,6 +276,8 @@ def test_digest_drift_never_becomes_a_parsed_resource(tmp_path: Path) -> None:
 
 
 def test_ambiguous_or_missing_anchor_fails_closed(tmp_path: Path) -> None:
+    """A field anchor occurring twice or a missing end marker is refused."""
+
     duplicated = ADVANCED_SEARCH_FIXTURE.read_bytes()
     duplicated = (
         duplicated + duplicated[duplicated.index(b'<label style="font-weight:100"><input id="eoStatusCode1"') :]
@@ -270,6 +305,8 @@ def test_ambiguous_or_missing_anchor_fails_closed(tmp_path: Path) -> None:
 
 
 def test_option_count_drift_fails_closed(tmp_path: Path) -> None:
+    """A select block missing one option is refused on count drift."""
+
     payload = ADVANCED_SEARCH_FIXTURE.read_bytes()
     dropped = payload.replace(
         b'<option value="WD">Withdrawn</option>',
@@ -308,6 +345,8 @@ def test_option_count_drift_fails_closed(tmp_path: Path) -> None:
 def test_build_oira_review_and_meeting_package_is_closed_and_reopens_cleanly(
     tmp_path: Path,
 ) -> None:
+    """The package is a closed controlled code list with 20 observations, two excluded placeholders, and round-trips."""
+
     acquired = {pin.field.field_name: _acquire(tmp_path / "acquire", pin) for pin in oira.OIRA_FIELD_PINS_2026_08_03}
 
     bundle = oira.build_oira_review_and_meeting_package(

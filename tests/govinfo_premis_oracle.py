@@ -28,6 +28,8 @@ _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 
 
 def _verify_payload(payload: bytes, pin: GovInfoSnapshotPin, *, location: str) -> tuple[str, int]:
+    """Raise GovInfoSourceDriftError unless payload matches the pin's byte length, digest, and content kind."""
+
     byte_length = len(payload)
     if byte_length != pin.expected_byte_length:
         raise GovInfoSourceDriftError(

@@ -1,4 +1,9 @@
-"""CourtListener jurisdictions-page capture, parsing, and packaging tests."""
+"""CourtListener jurisdictions: pinned page capture, parsing and package closure.
+
+Courts are platform identity, never official court identifiers; malformed or
+blank cells are preserved verbatim and the pinned digest, column shape and
+court-id uniqueness are all enforced.
+"""
 
 from __future__ import annotations
 
@@ -26,14 +31,20 @@ MINI_PIN = cl.CourtListenerJurisdictionsSnapshotPin(
 
 
 def _acquire(tmp_path: Path) -> cl.AcquiredCourtListenerJurisdictionsPage:
+    """Acquire the mini pinned jurisdictions fixture from disk."""
+
     return cl.acquire_courtlistener_jurisdictions_page(MINI_PIN, tmp_path, source_path=JURISDICTIONS_FIXTURE)
 
 
 def _parsed(tmp_path: Path) -> cl.ParsedCourtListenerJurisdictionsPage:
+    """Parse the mini fixture into jurisdictions rows."""
+
     return cl.parse_courtlistener_jurisdictions_page(_acquire(tmp_path))
 
 
 def test_real_publisher_table_shape_count_and_boundary_samples(tmp_path: Path) -> None:
+    """The configured real 3,156,029-byte capture yields 3,359 rows with known first/last courts."""
+
     source_path_text = os.environ.get("REFSPEC_COURTLISTENER_JURISDICTIONS_PATH")
     if source_path_text is None:
         pytest.skip("real CourtListener publisher capture is not configured")
@@ -62,6 +73,8 @@ def test_real_publisher_table_shape_count_and_boundary_samples(tmp_path: Path) -
 
 
 def test_fixture_pin_matches_exact_bytes() -> None:
+    """The mini fixture matches its pinned 7,152-byte length and digest."""
+
     payload = JURISDICTIONS_FIXTURE.read_bytes()
 
     assert len(payload) == 7_152
@@ -69,6 +82,8 @@ def test_fixture_pin_matches_exact_bytes() -> None:
 
 
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(tmp_path: Path) -> None:
+    """A local capture lands content-addressed and a cache hit is re-digested, not trusted."""
+
     acquired = _acquire(tmp_path)
     cached = cl.acquire_courtlistener_jurisdictions_page(MINI_PIN, tmp_path)
 
@@ -83,6 +98,8 @@ def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(tmp_path:
 
 
 def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) -> None:
+    """The injected fetcher is called once for the pinned URL with the caller's timeout."""
+
     payload = JURISDICTIONS_FIXTURE.read_bytes()
     calls: list[tuple[str, float]] = []
 
@@ -109,6 +126,9 @@ def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) ->
 
 
 def test_courts_are_captured_as_platform_identity_not_official_values(tmp_path: Path) -> None:
+    """SCOTUS carries only platform court id, jurisdiction type and citation abbreviation, never an official court
+    identifier."""
+
     parsed = _parsed(tmp_path)
     by_id = parsed.by_court_id()
 
@@ -152,6 +172,8 @@ def test_courts_are_captured_as_platform_identity_not_official_values(tmp_path: 
 
 
 def test_malformed_jurisdiction_cell_is_captured_verbatim_not_corrected(tmp_path: Path) -> None:
+    """A truncated jurisdiction cell like ``St`` is preserved as published, not repaired."""
+
     parsed = _parsed(tmp_path)
     sussex = parsed.by_court_id()["njcirctsussex"]
 
@@ -161,6 +183,8 @@ def test_malformed_jurisdiction_cell_is_captured_verbatim_not_corrected(tmp_path
 
 
 def test_blank_jurisdiction_cell_omits_identifier_but_keeps_court_identity(tmp_path: Path) -> None:
+    """A blank jurisdiction or citation cell drops that identifier but the court row survives with its name."""
+
     parsed = _parsed(tmp_path)
     ohio = parsed.by_court_id()["ohctapp1"]
 
@@ -171,6 +195,8 @@ def test_blank_jurisdiction_cell_omits_identifier_but_keeps_court_identity(tmp_p
 
 
 def test_row_without_citation_abbreviation_or_homepage_still_parses(tmp_path: Path) -> None:
+    """A row missing citation abbreviation and homepage still parses with its known values."""
+
     parsed = _parsed(tmp_path)
     swinomish = parsed.by_court_id()["swinomishtr"]
 
@@ -181,6 +207,8 @@ def test_row_without_citation_abbreviation_or_homepage_still_parses(tmp_path: Pa
 
 
 def test_package_is_a_controlled_code_list_not_a_concept_scheme(tmp_path: Path) -> None:
+    """The package is a controlled code list claiming no concept identity and preserving publisher identifiers."""
+
     acquired = _acquire(tmp_path)
     parsed = cl.parse_courtlistener_jurisdictions_page(acquired)
 
@@ -199,6 +227,9 @@ def test_package_is_a_controlled_code_list_not_a_concept_scheme(tmp_path: Path) 
 def test_package_gaps_document_official_vs_platform_separation_and_missing_opinion_types(
     tmp_path: Path,
 ) -> None:
+    """The coverage report records platform-vs-official separation, no opinion-type list, no stable release, and the
+    data-entry defect."""
+
     acquired = _acquire(tmp_path)
     parsed = cl.parse_courtlistener_jurisdictions_page(acquired)
     bundle = cl.build_courtlistener_jurisdictions_package(acquired, parsed)
@@ -211,6 +242,8 @@ def test_package_gaps_document_official_vs_platform_separation_and_missing_opini
 
 
 def test_package_round_trips_through_a_written_directory(tmp_path: Path) -> None:
+    """A written package reopens with the same logical digest and six observations."""
+
     acquired = _acquire(tmp_path)
     parsed = cl.parse_courtlistener_jurisdictions_page(acquired)
     bundle = cl.build_courtlistener_jurisdictions_package(acquired, parsed)
@@ -224,6 +257,8 @@ def test_package_round_trips_through_a_written_directory(tmp_path: Path) -> None
 
 
 def test_digest_drift_never_becomes_a_parsed_resource(tmp_path: Path) -> None:
+    """Same-length byte tampering is refused as digest drift before parsing."""
+
     payload = JURISDICTIONS_FIXTURE.read_bytes()
     changed = payload.replace(b"scotus", b"SCOTUS")
     assert len(changed) == len(payload)
@@ -243,6 +278,8 @@ def test_digest_drift_never_becomes_a_parsed_resource(tmp_path: Path) -> None:
 
 
 def test_column_shape_drift_fails_closed(tmp_path: Path) -> None:
+    """Dropping the Name column refuses with a columns-drifted error."""
+
     payload = JURISDICTIONS_FIXTURE.read_bytes()
     dropped = payload.replace(b"<th>Name</th>", b"")
     pin = replace(
@@ -260,6 +297,8 @@ def test_column_shape_drift_fails_closed(tmp_path: Path) -> None:
 
 
 def test_challenge_response_fails_closed(tmp_path: Path) -> None:
+    """A bot-challenge interstitial is refused even when digest-pinned."""
+
     challenge = b"<!doctype html><html><head><title>Just a moment...</title></head></html>"
 
     class ChallengeFetcher:
@@ -283,6 +322,8 @@ def test_challenge_response_fails_closed(tmp_path: Path) -> None:
 
 
 def test_off_host_source_url_is_rejected() -> None:
+    """A source URL outside the official HTTPS courtlistener.com host is refused."""
+
     with pytest.raises(cl.CourtListenerAcquisitionError, match="official HTTPS courtlistener.com URL"):
         cl.CourtListenerJurisdictionsSnapshotPin(
             source_url="https://example.com/help/api/jurisdictions/",
@@ -293,6 +334,8 @@ def test_off_host_source_url_is_rejected() -> None:
 
 
 def test_duplicate_court_ids_fail_closed(tmp_path: Path) -> None:
+    """A duplicated platform court id is refused as duplicate identifiers."""
+
     payload = JURISDICTIONS_FIXTURE.read_bytes()
     duplicated = payload.replace(b">ca1</a>", b">scotus</a>")
     pin = replace(

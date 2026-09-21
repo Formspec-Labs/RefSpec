@@ -9,7 +9,8 @@ removes coverage looks exactly like a pass.
 The budget is the number of skips a clean clone produces, recorded in
 ``plans/atlas-3.0-lineage.md`` item 5 beside how it was measured. This script reads the JUnit XML
 that ``pytest --junitxml`` writes -- a structured count rather than a parse of
-the summary line -- and fails when the run skipped more tests than that.
+the summary line, refusing a missing or symlinked report -- and fails when the
+run skipped more tests than that.
 
 Under budget is not a failure: it means coverage grew, and the budget should be
 lowered in the same commit that earns it.

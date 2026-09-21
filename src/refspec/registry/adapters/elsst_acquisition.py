@@ -47,12 +47,16 @@ class ElsstAcquisitionError(ValueError):
 
 
 def _require_absolute_iri(value: str, label: str) -> None:
+    """Refuse a value that is not an absolute IRI."""
+
     parsed = urllib.parse.urlsplit(value)
     if not parsed.scheme:
         raise ElsstAcquisitionError(f"{label} must be an absolute IRI")
 
 
 def _expected_hex(expected_sha256: str) -> str:
+    """Return the bare hex digest, re-raising the shared acquisition error as ``ElsstAcquisitionError``."""
+
     try:
         return expected_digest_hex(expected_sha256)
     except PinnedAcquisitionError as error:
@@ -60,6 +64,8 @@ def _expected_hex(expected_sha256: str) -> str:
 
 
 def _validate_source_url(source_url: str) -> None:
+    """Refuse a non-HTTP(S) source URL or one carrying embedded credentials."""
+
     parsed = urllib.parse.urlsplit(source_url)
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         raise ElsstAcquisitionError("source_url must be an absolute HTTP(S) URL")
@@ -84,6 +90,8 @@ class ElsstReleaseSource:
     license_label: str = ELSST_LICENSE_LABEL
 
     def __post_init__(self) -> None:
+        """Refuse an incomplete or unpinnable release descriptor."""
+
         if not self.version:
             raise ElsstAcquisitionError("version must not be empty")
         _require_absolute_iri(self.release_iri, "release_iri")
@@ -127,6 +135,8 @@ class AcquiredElsstSource:
 
 
 def _as_acquired_elsst(release: ElsstReleaseSource, acquired: AcquiredPinnedSource) -> AcquiredElsstSource:
+    """Adapt the shared acquisition result to the ELSST-specific record."""
+
     return AcquiredElsstSource(
         release=release,
         path=acquired.path,
@@ -170,6 +180,8 @@ def acquire_elsst_release(
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Acquire one release from the command line and print its stored path."""
+
     parser = argparse.ArgumentParser(
         description="Acquire one exact ELSST Turtle release into a content-addressed local store."
     )

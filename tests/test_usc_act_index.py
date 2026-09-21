@@ -95,6 +95,7 @@ EXCERPT = (
 
 
 def test_the_reader_splits_a_rootless_excerpt_into_its_acts() -> None:
+    """Pins two fragments split from a rootless excerpt and both acts' keys, attributes and stated records."""
     fragments = list(iter_act_fragments(__import__("io").BytesIO(EXCERPT)))
     assert len(fragments) == 2
     assert all(fragment.startswith(b"<act ") and fragment.endswith(b"</act>") for fragment in fragments)
@@ -207,6 +208,7 @@ def test_a_table3_key_is_the_stated_search_key_with_the_date_narrowed() -> None:
 @source
 @pytest.mark.slow
 def test_the_bulk_source_is_the_pinned_bytes() -> None:
+    """Pins the zip's byte length and sha256, its single member's size, and a clean verify_source."""
     assert ZIP_PATH.stat().st_size == BULK_SOURCE_BYTES
     assert f"sha256:{hashlib.sha256(ZIP_PATH.read_bytes()).hexdigest()}" == BULK_SOURCE_DIGEST
     with zipfile.ZipFile(ZIP_PATH) as archive:
@@ -603,6 +605,7 @@ def test_the_popular_name_cite_coverage_is_order_free() -> None:
 @artifact
 @pytest.mark.slow
 def test_verify_passes_the_sealed_artifact_and_names_every_drift() -> None:
+    """Pins clean verification for the sealed and copied artifact and drift problems for tampering."""
     assert verify_artifact(NEW_DIR, zip_path=ZIP_PATH) == []
     with tempfile.TemporaryDirectory() as scratch:
         copy = Path(scratch) / "artifact"

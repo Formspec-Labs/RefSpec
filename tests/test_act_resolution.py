@@ -60,6 +60,8 @@ artifact = pytest.mark.skipif(
 
 
 def _citation(act: str, section: str, division: str | None = None) -> ActRelativeCitation:
+    """One act-relative citation whose key is the normalized act name."""
+
     return ActRelativeCitation(
         act_name=act, act_key=normalize_popular_name(act), section=section, division=division
     )
@@ -67,11 +69,15 @@ def _citation(act: str, section: str, division: str | None = None) -> ActRelativ
 
 @pytest.fixture(scope="module")
 def index() -> ActIndex:
+    """The pinned 2026-08-02 per-page act-index artifact."""
+
     return ActIndex.from_artifact(ACT_DIR)
 
 
 @pytest.fixture(scope="module")
 def credits() -> SourceCreditIndex:
+    """The pinned 2026-08-02 source-credit index artifact."""
+
     return SourceCreditIndex.from_artifact(CREDIT_DIR)
 
 
@@ -424,6 +430,8 @@ def test_ambiguity_is_decided_before_currency_and_that_is_load_bearing() -> None
 
 
 def test_two_sources_agreeing_says_both_and_disagreeing_refuses() -> None:
+    """Agreement publishes both sources' provenance; disagreement refuses as sources_disagree while recording each side."""
+
     citation = _citation("ERISA", "101")
     agreeing = SourceCreditIndex.from_rows([("93-406", "A", "101", "29", "1021", "88", "840")])
     # ERISA states no division in the fixture, so the credit key falls back to
@@ -574,6 +582,8 @@ def test_multi_target_is_recorded_and_never_resolved() -> None:
 
 
 def test_a_resolution_states_an_identifier_or_a_reason_never_both() -> None:
+    """Neither an identifier and a reason, an undeclared reason, source, credit status or Table III reason is admitted."""
+
     with pytest.raises(ValueError, match="never both or neither"):
         ActResolution(_citation("ERISA", "2"))
     with pytest.raises(ValueError, match="undeclared unresolved reason"):
@@ -691,6 +701,8 @@ def test_a_parenthetical_is_dropped_not_refused() -> None:
 
 @artifact
 def test_the_pinned_artifacts_load_and_carry_their_receipted_coverage(index, credits) -> None:
+    """Both artifacts load: the index holds over 10,000 keys and one recorded incomplete source."""
+
     assert len(index.table3_key_by_name) > 10_000
     assert len(credits.targets) > 0
     # The receipt's one quarantine row is a Table III page that could not be
@@ -732,6 +744,8 @@ def test_only_a_pinned_table_can_be_read_through_this_door(tmp_path) -> None:
 
 @artifact
 def test_a_drifted_artifact_refuses_to_load() -> None:
+    """One appended byte to a pinned table refuses with the drifted-artifact error."""
+
     with tempfile.TemporaryDirectory() as scratch:
         copy = Path(scratch) / "artifact"
         shutil.copytree(ACT_DIR, copy)
@@ -803,6 +817,8 @@ def test_a_directory_that_is_not_the_artifact_fails_loudly() -> None:
 
 @artifact
 def test_clean_air_act_section_111_resolves_from_the_real_tables(index, credits) -> None:
+    """Clean Air Act section 111 resolves to 42 U.S.C. 7411 via Table III alone; its chapter key is no_key for credits."""
+
     resolution = resolve_act_relative_citation(
         _citation("Clean Air Act", "111"), index=index, source_credits=credits
     )
@@ -907,6 +923,8 @@ def test_the_longest_stated_chain_in_the_pinned_index_is_two_hops(index) -> None
     """
 
     def hops(name: str) -> int:
+        """Alias-chain length from one name until the index no longer aliases it."""
+
         seen: set[str] = set()
         current, walked = name, 0
         while current not in seen:
@@ -1043,6 +1061,8 @@ def test_the_article_strip_moves_exactly_four_names_and_nothing_else(index, ever
     """
 
     def resolve_before(name: str) -> str | None:
+        """The pre-article-strip resolver, re-implemented as an oracle over the stated-name chain."""
+
         chain = stated_name_chain(name, index)
         for step in chain:
             if step in index.table3_key_by_name:

@@ -1,4 +1,10 @@
-"""Atlas 3 mapping releases backed by bulk FAST and EuroVoc alignments."""
+"""Atlas 3 mapping releases backed by bulk FAST and EuroVoc alignments.
+
+Each loader verifies its pinned captures, reconciles observed counts against
+frozen expectations, and refuses drift; unsupported shapes (owl:sameAs,
+non-exact SKOS S46 conflicts, unheld endpoints) are counted and refused
+explicitly rather than filtered silently.
+"""
 
 from __future__ import annotations
 
@@ -196,6 +202,8 @@ def _source_capture_payload(
     retrieved_at: str,
     source_version_note: str,
 ) -> dict[str, object]:
+    """Render the ``sourceCapture`` metadata block for one verified input pin."""
+
     return {
         "byteLength": pin.byte_length,
         "retrievedAt": retrieved_at,
@@ -206,6 +214,8 @@ def _source_capture_payload(
 
 
 def _input_set_digest(inputs: tuple[RegistryInputPin, ...], roles: frozenset[str]) -> str:
+    """Digest the identity fields of every input pin whose role is in ``roles``."""
+
     return canonical_digest(
         [
             {
@@ -221,6 +231,8 @@ def _input_set_digest(inputs: tuple[RegistryInputPin, ...], roles: frozenset[str
 
 
 def _claim_predicate_counts(claims: Collection[tuple[str, str, str]]) -> dict[str, int]:
+    """Count claims per predicate IRI, sorted by predicate."""
+
     counts: dict[str, int] = {}
     for _subject, predicate, _object in claims:
         counts[predicate] = counts.get(predicate, 0) + 1
@@ -228,6 +240,8 @@ def _claim_predicate_counts(claims: Collection[tuple[str, str, str]]) -> dict[st
 
 
 def _fast_bulk_input(source_root: Path) -> RegistryInputPin:
+    """Pin the OCLC FAST bulk external-links capture by its frozen digest and length."""
+
     return RegistryInputPin(
         path=Path(source_root) / fast_bulk.FAST_EXTERNAL_LINKS_FILENAME,
         logical_path=f"refspec/output/registry-real-data-sources/{fast_bulk.FAST_EXTERNAL_LINKS_FILENAME}",
@@ -239,6 +253,8 @@ def _fast_bulk_input(source_root: Path) -> RegistryInputPin:
 
 
 def _lcsh_endpoint_input(source_root: Path) -> RegistryInputPin:
+    """Pin the EuroVoc--LCSH capture whose concept IRIs select the held LCSH endpoints."""
+
     return RegistryInputPin(
         path=Path(source_root) / EUROVOC_LCSH_ALIGNMENT_FILENAME,
         logical_path=f"refspec/output/registry-real-data-sources/{EUROVOC_LCSH_ALIGNMENT_FILENAME}",
@@ -253,6 +269,8 @@ def _current_fast_lcsh_claims(
     fast_release: object,
     target_iris: frozenset[str],
 ) -> set[tuple[str, str, str]]:
+    """Collect current FAST-to-LCSH claims within ``target_iris``, refusing a predicate this module does not adopt."""
+
     claims: set[tuple[str, str, str]] = set()
     for resource in fast_release.resources:  # type: ignore[attr-defined]
         raw_links = resource.native_payload["lcshLinks"]
@@ -283,6 +301,8 @@ def _fast_bulk_evidence(
     mapping_predicate: str,
     source_pin: RegistryInputPin,
 ) -> RegistryMappingEvidence:
+    """Evidence for one bulk FAST link, recording the operator adoption on ``schema:sameAs`` rows."""
+
     native_payload: dict[str, object] = {
         "mappingTripleDigest": mapping_triple_digest(
             subject_iri=link.subject_iri,
@@ -509,6 +529,8 @@ def load_fast_bulk_external_links_delta_release(
 def _fast_bulk_see_also_assets(
     source_root: Path,
 ) -> RegistryRelease:
+    """Build the contentful FAST-endpoint release, which emits no relation because ``rdfs:seeAlso`` has no Atlas 3.1 predicate."""
+
     source_root = Path(source_root)
     bulk_pin = _fast_bulk_input(source_root)
     fast_release = load_fast_topical_release(source_root)
@@ -663,10 +685,14 @@ def _fast_bulk_see_also_assets(
 def load_fast_bulk_see_also_endpoint_release(
     source_root: Path = DEFAULT_SOURCE_ROOT,
 ) -> RegistryRelease:
+    """Load the FAST see-also endpoint release over the default or given source root."""
+
     return _fast_bulk_see_also_assets(Path(source_root))
 
 
 def _eurovoc_input(source_root: Path, pin: EuroVocAlignmentPin) -> RegistryInputPin:
+    """Pin one EuroVoc alignment distribution from its portfolio pin."""
+
     return RegistryInputPin(
         path=Path(source_root) / pin.filename,
         logical_path=f"refspec/output/registry-real-data-sources/{pin.filename}",
@@ -678,6 +704,8 @@ def _eurovoc_input(source_root: Path, pin: EuroVocAlignmentPin) -> RegistryInput
 
 
 def _subject_release_map(source_root: Path) -> dict[str, str]:
+    """Map every EuroVoc concept IRI to the Atlas release IRI carrying it."""
+
     return {
         resource.iri: release.atlas_release_iri
         for release in load_eurovoc_4_24_releases(source_root)
@@ -690,6 +718,8 @@ def _portfolio_accounting(
     subject_releases: Mapping[str, str],
     held_target_iris_by_key: Mapping[str, Collection[str]],
 ) -> list[dict[str, object]]:
+    """Per-alignment held/external endpoint counters for the portfolio metadata."""
+
     accounting: list[dict[str, object]] = []
     for alignment in portfolio.alignments:
         held_targets = held_target_iris_by_key.get(alignment.pin.key, ())
@@ -745,6 +775,8 @@ def _eurovoc_evidence(
     reviewer_iri: str,
     endpoint_resolution: Mapping[str, object] | None = None,
 ) -> RegistryMappingEvidence:
+    """Evidence for one EuroVoc mapping, recording the published object IRI beside the emitted one."""
+
     native_payload: dict[str, object] = {
         "mappingTripleDigest": mapping_triple_digest(
             subject_iri=mapping.subject_iri,
@@ -780,6 +812,8 @@ def _common_eurovoc_metadata(
     subject_releases: Mapping[str, str],
     held_target_iris_by_key: Mapping[str, Collection[str]],
 ) -> dict[str, object]:
+    """The catalogue, reuse-basis, and portfolio-accounting block shared by both EuroVoc releases."""
+
     return {
         "catalogueAssertionCountIncludingLcsh": EXPECTED_COMPLETE_CATALOGUE_ASSERTION_COUNT,
         "catalogueExactMatchRatio": {"denominator": 10_000, "numerator": 9_375},
@@ -800,6 +834,8 @@ def _common_eurovoc_metadata(
 
 
 def _alignment_by_key(portfolio: EuroVocAlignmentPortfolio, key: str) -> EuroVocAlignmentCapture:
+    """Return the one portfolio capture whose key is ``key``."""
+
     return next(alignment for alignment in portfolio.alignments if alignment.pin.key == key)
 
 
@@ -809,6 +845,8 @@ def _load_eurovoc_gemet_release(
     subject_releases: Mapping[str, str],
     held_target_iris_by_key: Mapping[str, Collection[str]],
 ) -> RegistryMappingRelease:
+    """Build the EuroVoc--GEMET release, refusing unless the frozen counts and SKOS S46 refusals hold."""
+
     alignment = _alignment_by_key(portfolio, "gemet")
     held_objects = held_target_iris_by_key["gemet"]
     held_claims = tuple(
@@ -899,6 +937,8 @@ def _load_eurovoc_gemet_release(
 
 
 def _mesh_held_iri(object_iri: str, held_objects: Collection[str]) -> str | None:
+    """Resolve an alignment's http MeSH IRI to the held https spelling, or None when not held."""
+
     if not object_iri.startswith(MESH_HTTP_IRI_PREFIX):
         return None
     candidate = MESH_HTTPS_IRI_PREFIX + object_iri.removeprefix(MESH_HTTP_IRI_PREFIX)
@@ -911,6 +951,8 @@ def _load_eurovoc_mesh_release(
     subject_releases: Mapping[str, str],
     held_target_iris_by_key: Mapping[str, Collection[str]],
 ) -> RegistryMappingRelease:
+    """Build the EuroVoc--MeSH release, refusing unless exactly five held mappings survive resolution."""
+
     alignment = _alignment_by_key(portfolio, "mesh")
     held_objects = held_target_iris_by_key["mesh"]
     selected = tuple(

@@ -1,4 +1,10 @@
-"""Tests for the fixed-decision Atlas candidate audit join."""
+"""The fixed-decision Atlas candidate audit join: row order, digests, refusal.
+
+Rebuilds the audit tool's sample validation and decision parsing from a small
+synthetic sample, pinning restored row order from the wide decision table,
+per-dimension summaries and the refusal of changed sample bytes or a missing
+decision.
+"""
 
 from __future__ import annotations
 
@@ -23,6 +29,8 @@ def _row(
     lexical: bool,
     sparse: bool,
 ) -> dict[str, object]:
+    """One synthetic audit row whose selection digest is its own case/source/target line."""
+
     case = "case-a" if row <= 2 else "case-b"
     source = {"member": f"urn:source:{row}", "prefLabel": f"Source {row}"}
     target = {"member": f"urn:target:{row}", "prefLabel": f"Target {row}"}
@@ -48,6 +56,8 @@ def _row(
 
 
 def _sample() -> dict[str, object]:
+    """A three-row sample spanning the three review rank bands."""
+
     rows = [
         _row(1, category="bge-only", rank=1, band="rank-1", lexical=False, sparse=False),
         _row(2, category="three-family-overlap", rank=3, band="ranks-2-3", lexical=True, sparse=True),
@@ -68,6 +78,8 @@ def _sample() -> dict[str, object]:
 
 
 def test_parse_ordered_decisions_restores_row_order_from_wide_table() -> None:
+    """A shuffled three-column markdown table is read back into row order and verdicts are validated."""
+
     markdown = """
 | Row | Decision | Row | Decision | Row | Decision |
 | ---: | --- | ---: | --- | ---: | --- |
@@ -82,6 +94,8 @@ def test_parse_ordered_decisions_restores_row_order_from_wide_table() -> None:
 
 
 def test_analyze_joins_fixed_decisions_and_summarizes_each_requested_dimension() -> None:
+    """The join emits overall, by-case, by-category, cutoff and BGE-vs-overlap summaries with pinned digests."""
+
     report = audit.analyze(
         _sample(),
         ("related", "unrelated", "target_is_narrower"),
@@ -109,6 +123,8 @@ def test_analyze_joins_fixed_decisions_and_summarizes_each_requested_dimension()
 
 
 def test_validation_rejects_changed_sample_or_missing_decision() -> None:
+    """A changed row fails the sample digest, and a decision table missing row 3 names it."""
+
     sample = _sample()
     sample["rows"][0]["bgeRank"] = 2
     with pytest.raises(ValueError, match="sampleDigest"):

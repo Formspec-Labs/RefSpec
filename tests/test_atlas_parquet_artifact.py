@@ -1,3 +1,4 @@
+"""Atlas parquet artifact helpers: file inventory, manifest member fields, and sha256 prefix normalization."""
 from __future__ import annotations
 
 from refspec.atlas.parquet_artifact import (
@@ -8,6 +9,8 @@ from refspec.atlas.parquet_artifact import (
 
 
 def test_artifact_file_paths_includes_nested_files_and_symlinks(tmp_path) -> None:
+    """Pins that nested files and a dangling symlink are both listed, as relative POSIX paths."""
+
     nested = tmp_path / "tables"
     nested.mkdir()
     (nested / "resources.parquet").write_bytes(b"parquet")
@@ -22,6 +25,8 @@ def test_artifact_file_paths_includes_nested_files_and_symlinks(tmp_path) -> Non
 
 
 def test_parquet_member_fields_match_the_shared_manifest_shape() -> None:
+    """Pins PARQUET_MEMBER_FIELDS to the shared manifest's seven member fields."""
+
     assert PARQUET_MEMBER_FIELDS == {
         "byteLength",
         "mediaType",
@@ -34,6 +39,8 @@ def test_parquet_member_fields_match_the_shared_manifest_shape() -> None:
 
 
 def test_normalize_sha256_prefix_accepts_bare_and_prefixed_digests() -> None:
+    """Pins that a bare 64-hex digest gains the sha256: prefix and a prefixed one passes through."""
+
     bare = "a" * 64
 
     assert normalize_sha256_prefix(bare) == "sha256:" + bare

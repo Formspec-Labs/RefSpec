@@ -53,6 +53,7 @@ def _sha256_bytes(value: bytes) -> str:
 
 
 def _array_digest(value: np.ndarray) -> str:
+    """Digest over an array's dtype, shape, and raw C-order bytes."""
     array = np.ascontiguousarray(value)
     header = _canonical_json({"dtype": array.dtype.str, "shape": list(array.shape)}).encode()
     return _sha256_bytes(header + b"\n" + array.tobytes(order="C"))
@@ -189,6 +190,7 @@ def write_bundle(
 
 
 def _parse_layouts(raw_layouts: Sequence[Mapping[str, Any]]) -> tuple[CaseLayout, ...]:
+    """Parse case layouts, refusing non-ascending names, unsorted endpoints, or out-of-range gold indexes."""
     result = []
     offset = 0
     previous_name: str | None = None
@@ -215,6 +217,7 @@ def _parse_layouts(raw_layouts: Sequence[Mapping[str, Any]]) -> tuple[CaseLayout
 
 
 def _parse_arms(raw_arms: Sequence[Mapping[str, Any]]) -> tuple[Arm, ...]:
+    """Parse arms, refusing duplicate ids, non-ascending depths, or a graph/reranker arm missing its declaration."""
     result = []
     identifiers: set[str] = set()
     for raw in raw_arms:
@@ -362,6 +365,7 @@ def build_signature_model(bundle: Bundle) -> SignatureModel:
 
 
 def _iter_set_bits(value: int) -> Iterable[int]:
+    """Yield the positions of an integer's set bits, lowest first."""
     while value:
         low = value & -value
         yield low.bit_length() - 1
@@ -374,6 +378,7 @@ def _eligible_option_mask(
     allow_provider: bool,
     allow_reranker: bool,
 ) -> int:
+    """Bit mask of the options permitted under the provider and reranker switches."""
     result = 0
     for option in model.options:
         if option.kind == PROVIDER_KIND and not allow_provider:
@@ -385,6 +390,7 @@ def _eligible_option_mask(
 
 
 def _selection_key(model: SignatureModel, selected_mask: int, candidate_count: int) -> tuple[Any, ...]:
+    """Deterministic ordering key: candidate count, active arms, provider/reranker counts, then arm/depth order."""
     selected = [model.options[index] for index in _iter_set_bits(selected_mask)]
     return (
         candidate_count,
@@ -404,6 +410,7 @@ def _selected_candidate_count(model: SignatureModel, selected_mask: int) -> int:
 
 
 def _covers_gold(model: SignatureModel, selected_mask: int) -> bool:
+    """Whether the selected mask hits every distinct gold membership signature."""
     return all(signature & selected_mask for signature in model.gold_signatures)
 
 
@@ -474,6 +481,7 @@ def _better_selection(
     candidate_count: int,
     incumbent: tuple[int, int] | None,
 ) -> bool:
+    """Whether the selection beats the incumbent under :func:`_selection_key`."""
     if incumbent is None:
         return True
     return _selection_key(model, selected_mask, candidate_count) < _selection_key(
@@ -690,6 +698,7 @@ def solve_branch_and_bound(
 
 
 def _secondary_objective(model: SignatureModel) -> np.ndarray:
+    """Tie-break cost vector preferring fewer active arms, then fewer provider and reranker arms."""
     option_count = len(model.options)
     arm_count = len(model.bundle.arms)
     maximum_index_sum = option_count * max(arm_count, 1)
@@ -886,6 +895,7 @@ def solve_configuration(
 
 
 def _decode_pair(bundle: Bundle, pair_index: int) -> tuple[str, str, str]:
+    """Decode one global pair index into ``(case, source, target)``."""
     for layout in bundle.layouts:
         if pair_index >= layout.offset + layout.pair_count:
             continue
@@ -896,6 +906,7 @@ def _decode_pair(bundle: Bundle, pair_index: int) -> tuple[str, str, str]:
 
 
 def _pair_set_digest(bundle: Bundle, selected_pair_indexes: Iterable[int]) -> str:
+    """SHA-256 over the sorted selected pairs' ``case<TAB>source<TAB>target`` lines."""
     digest = hashlib.sha256()
     for pair_index in sorted(selected_pair_indexes):
         case, source, target = _decode_pair(bundle, pair_index)
@@ -904,6 +915,7 @@ def _pair_set_digest(bundle: Bundle, selected_pair_indexes: Iterable[int]) -> st
 
 
 def _challenge_coverage(bundle: Bundle, selected_pairs: set[int]) -> dict[str, Mapping[str, Any]]:
+    """Recall per challenge group over the selected gold pairs; unchallenged gold is counted as ``unlabeled``."""
     groups: dict[str, set[int]] = {}
     for pair_index in bundle.gold_indexes:
         for challenge in bundle.challenges.get(pair_index, ("unlabeled",)):
@@ -1015,6 +1027,7 @@ def summarize_solution(model: SignatureModel, selected_mask: int, candidate_coun
 
 
 def _dominates(left: Mapping[str, Any], right: Mapping[str, Any]) -> bool:
+    """Whether left Pareto-dominates right on candidate count and active-arm count."""
     left_values = (left["candidateCount"], left["activeArmCount"])
     right_values = (right["candidateCount"], right["activeArmCount"])
     return all(a <= b for a, b in zip(left_values, right_values, strict=True)) and any(

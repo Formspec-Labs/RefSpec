@@ -1,3 +1,10 @@
+"""Closed-layout, determinism and digest-resealing tests for ManagedVocabularyBundle.
+
+The bundle's manifest key set is pinned exactly, artifact paths must be stable
+under record reordering, the expression corpus must stream, and resealing must
+propagate input digests in dependency order while refusing cycles.
+"""
+
 from __future__ import annotations
 
 import hashlib
@@ -28,10 +35,12 @@ from refspec.vocabulary import (
 
 
 def _digest(value: str) -> str:
+    """Return the ``sha256:`` digest of a UTF-8 string."""
     return "sha256:" + hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
 def _record(record_type: str, identifier: str, marker: str) -> dict[str, object]:
+    """Seal a minimal ref record of the given type carrying a marker."""
     return seal_payload(
         {
             "type": record_type,
@@ -43,6 +52,7 @@ def _record(record_type: str, identifier: str, marker: str) -> dict[str, object]
 
 
 def _bundle() -> ManagedVocabularyBundle:
+    """Build the fixture bundle: two sealed receipts, one expression and one source artifact."""
     first_receipt = _record(
         "urn:ref:type:RunReceipt",
         "urn:test:run-receipt:first",
@@ -100,10 +110,12 @@ def _bundle() -> ManagedVocabularyBundle:
 
 
 def _descriptor_digest(payload: bytes) -> str:
+    """Return the ``sha256:`` digest of raw bytes."""
     return "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
 def test_bundle_serializer_emits_the_closed_managed_release_layout() -> None:
+    """Pins the exact manifest key set, unique runreceipt paths and the three normalized tables' columns."""
     bundle = _bundle()
     artifacts = bundle.artifact_bytes()
     manifest = bundle.manifest()
@@ -160,6 +172,7 @@ def test_bundle_serializer_emits_the_closed_managed_release_layout() -> None:
 def test_repeated_record_types_have_stable_order_independent_paths(
     tmp_path,
 ) -> None:
+    """Pins that reversing the records leaves artifact bytes identical and that two writes agree."""
     bundle = _bundle()
     reordered = replace(
         bundle,
@@ -176,6 +189,7 @@ def test_write_streams_expression_corpus_without_building_one_bytes_object(
     tmp_path,
     monkeypatch,
 ) -> None:
+    """Pins that write_to streams the expression corpus rather than calling the materializing jsonl helper."""
     bundle = _bundle()
 
     def reject_materialization(_rows):
@@ -194,6 +208,7 @@ def test_write_streams_expression_corpus_without_building_one_bytes_object(
 
 
 def test_bundle_rejects_duplicate_records_and_stale_record_digests() -> None:
+    """Pins refusal for a repeated record identifier and for a payload edited without resealing."""
     bundle = _bundle()
 
     with pytest.raises(
@@ -215,6 +230,7 @@ def test_bundle_rejects_duplicate_records_and_stale_record_digests() -> None:
 
 
 def test_managed_ref_record_artifact_path_matches_bundle_layout() -> None:
+    """Pins that the helper's path is the one the bundle's artifact bytes use."""
     bundle = _bundle()
 
     assert managed_ref_record_artifact_path(
@@ -223,6 +239,7 @@ def test_managed_ref_record_artifact_path_matches_bundle_layout() -> None:
 
 
 def test_reseal_linked_ref_records_propagates_digest_changes_in_dependency_order() -> None:
+    """Pins that resealing updates dependent input digests in dependency order regardless of input order."""
     source = _record(
         "urn:ref:type:RunReceipt",
         "urn:test:record:source",
@@ -269,6 +286,7 @@ def test_reseal_linked_ref_records_propagates_digest_changes_in_dependency_order
 
 
 def test_reseal_linked_ref_records_rejects_digest_cycles() -> None:
+    """Pins refusal when two records' input digests form a cycle."""
     first = _record(
         "urn:ref:type:RunReceipt",
         "urn:test:record:first",

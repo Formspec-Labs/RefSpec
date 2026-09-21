@@ -1,19 +1,14 @@
 """Generate the full Atlas 3.1 distribution from pinned registry data.
 
-The generator reads every supported complete release or explicitly bounded
-capture whose exact bytes are available locally. It preserves publisher label
-roles, authority-scoped identifiers, globally reusable document identities,
+Every build is cold: it parses each pinned input, reconstructs the whole graph,
+and rewrites every pack as a digest-pinned, compressed, release-local
+distribution, preserving publisher label roles, authority-scoped identifiers,
 semantic rings, direct authored relations, release provenance, and separately
 evidenced mapping releases. It never invents inverse, transitive, or similarity
-mappings.
-
-Every build is cold: it parses each pinned input, reconstructs the whole graph,
-and rewrites every pack. Output is a digest-pinned, compressed, release-local distribution. Explorer
-indexes remain optional reproducible views, and no database service is needed.
-The generator validates normalized rows and fixed constructors against the
-pinned compiled SHACL profile; independent consumers still validate serialized
-RDF. It never consumes an Atlas 1.x or Atlas 2.x graph, and it never imports the
-archived generated mapping pairs under ``research/evidence``.
+mappings, never consumes an Atlas 1.x or Atlas 2.x graph, and never imports the
+archived generated mapping pairs under ``research/evidence``; normalized rows and
+fixed constructors are validated against the pinned compiled SHACL profile while
+independent consumers still validate the serialized RDF.
 """
 
 from __future__ import annotations
@@ -341,6 +336,8 @@ _STATUS = _StatusReporter(enabled=False)
 
 @dataclass(frozen=True, slots=True)
 class SourceSpec:
+    """One pinned source release's key, kind, locality, expected scale, profile, and ring."""
+
     key: str
     kind: str
     path: Path
@@ -361,6 +358,8 @@ class SourceSpec:
 
 @dataclass(frozen=True, slots=True)
 class SourceLabel:
+    """One publisher label with its language, role, and the exact source path it came from."""
+
     value: str
     language: str | None
     role: SourceLabelRole
@@ -373,6 +372,8 @@ class SourceLabel:
 
 @dataclass(frozen=True, slots=True)
 class SourceResource:
+    """One normalized source resource with its labels, native payload, provenance, and identifiers."""
+
     iri: str
     labels: tuple[SourceLabel, ...]
     native_payload: Mapping[str, Any] | None
@@ -387,6 +388,8 @@ class SourceResource:
 
 @dataclass(frozen=True, slots=True)
 class SourceRelation:
+    """One direct authored relation together with the publisher payload that asserted it."""
+
     subject: str
     predicate: str
     object: str
@@ -395,6 +398,8 @@ class SourceRelation:
 
 @dataclass(frozen=True, slots=True)
 class LoadedRelease:
+    """One fully loaded release: its pinned spec, resources, direct relations, and provenance."""
+
     spec: SourceSpec
     source_release_iri: str
     source_release_digest: str
@@ -506,6 +511,8 @@ class ProducerPrebuildValidation:
 
 @dataclass(slots=True)
 class BuildGraphs:
+    """The three in-memory build graphs and their construction accounting."""
+
     asserted: Graph
     projection: Graph
     derived: Graph
@@ -761,6 +768,8 @@ REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:a4b85bbeaa0919c8305a1b53924
 
 
 def _load_validator() -> Any:
+    """Import the Atlas 3.1 binding validator by file path and return the module."""
+
     path = BINDING_ROOT / "tools" / "validate.py"
     spec = importlib.util.spec_from_file_location("refspec_atlas_v3_validate", path)
     if spec is None or spec.loader is None:
@@ -4032,6 +4041,8 @@ def _validate_compiled_evidence_output(
 
 
 def _registry_asserted_graph() -> Graph:
+    """Verify the pinned registry descriptor and proof digests, then parse the descriptors."""
+
     _verify_pinned_file(
         REGISTRY_DESCRIPTORS,
         logical_path=REGISTRY_DESCRIPTORS_LOGICAL_PATH,
@@ -4106,6 +4117,8 @@ def _expected_projection_graph(asserted: Graph) -> Graph:
 
 
 def _english_only_scan(releases: tuple[LoadedRelease, ...]) -> dict[str, Any]:
+    """Scan labels and payloads for lowercase language tags and unique release and resource identities."""
+
     release_keys = {release.spec.key for release in releases}
     for label, values in {
         "source key": [release.spec.key for release in releases],
@@ -4186,6 +4199,8 @@ def _english_only_scan(releases: tuple[LoadedRelease, ...]) -> dict[str, Any]:
 
 
 def _require_absolute_iri(value: object, *, context: str) -> str:
+    """Return value if it matches the binding's absolute-IRI pattern; raises ValueError otherwise."""
+
     if not isinstance(value, str) or ATLAS_VALIDATE.ABSOLUTE_IRI_RE.fullmatch(value) is None:
         raise ValueError(f"{context} must be an absolute IRI")
     return value
@@ -10161,6 +10176,8 @@ def build_distribution(
 
 
 def main() -> int:
+    """Parse the CLI, then verify pinned inputs or build, validate, and promote the distribution."""
+
     global _STATUS
 
     parser = argparse.ArgumentParser(description=__doc__)

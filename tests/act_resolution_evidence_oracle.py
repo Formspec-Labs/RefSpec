@@ -1,4 +1,11 @@
-"""Frozen resolver and lookup before retaining unresolved source evidence."""
+"""Frozen pre-evidence-copy of the act resolver and the source-credit lookup.
+
+Copied from 31ca84c2^:src/refspec/registry/act_resolution.py -- the resolver as
+it stood before production began retaining competing source readings -- and
+kept test-only, since importing the thing under comparison would make the
+comparison circular. Live types (ActResolution, ActIndex, verdicts) are
+imported, so only the two functions are pinned.
+"""
 from __future__ import annotations
 from refspec.registry.act_resolution import (ActResolution, ActIndex, SourceCreditIndex,
     SourceCreditAnswer, _PUBLIC_LAW_KEY, resolve_act_name, act_name_absence_reason,
@@ -158,9 +165,8 @@ def lookup(self, public_law: str | None, division: str | None, act_section: str)
         """This source's answer, with "nothing to look under" kept distinct.
 
         The division is part of the key, not a filter applied afterwards, so a
-        citation with no division has no key here at all. That costs nothing:
-        every one of the 3,721 credit rows names a division, and every one of
-        the 109 laws they cover is also a Table III key.
+        citation with no division has no key here at all; every credit row in
+        the pinned index names a division, so nothing is lost to that.
         """
 
         if not public_law or not division:

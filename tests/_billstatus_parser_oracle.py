@@ -52,16 +52,22 @@ _EXPECTED_COUNTS: dict[ResourceName, int] = {
 }
 
 def _split_row(line: str, header_line: str) -> list[str]:
+    """Return one pipe-table row's trimmed cells, refusing a malformed row."""
+
     stripped = line.strip()
     if len(stripped) < 2 or not (stripped.startswith("|") and stripped.endswith("|")):
         raise BillStatusSourceDriftError(f"malformed table row under {header_line!r}: {line!r}")
     return [cell.strip() for cell in stripped[1:-1].split("|")]
 
 def _is_separator_row(line: str, column_count: int, header_line: str) -> bool:
+    """Return whether a row is a column-aligned markdown separator."""
+
     cells = _split_row(line, header_line)
     return len(cells) == column_count and all(_SEPARATOR_CELL.fullmatch(cell) for cell in cells)
 
 def _strip_bold(cell: str, header_line: str) -> str:
+    """Return the code inside a bold cell, refusing a missing or empty one."""
+
     match = _BOLD_CELL.fullmatch(cell)
     if match is None:
         raise BillStatusSourceDriftError(f"expected a bold code cell under {header_line!r}: {cell!r}")
@@ -71,6 +77,8 @@ def _strip_bold(cell: str, header_line: str) -> str:
     return value
 
 def _parse_pipe_table(lines: Sequence[str], header_line: str, column_count: int) -> list[list[str]]:
+    """Return data rows under a header, refusing a missing header, wrong column count, or no data rows."""
+
     try:
         start = lines.index(header_line)
     except ValueError as error:
@@ -110,6 +118,8 @@ def _identifier(
     kind: str,
     acquired: AcquiredBillStatusSource,
 ) -> ControlledIdentifier:
+    """Build a controlled identifier carrying the pinned source's provenance."""
+
     return ControlledIdentifier(
         value=value,
         kind=kind,
@@ -121,6 +131,8 @@ def _identifier(
     )
 
 def _parse_bill_types(lines: Sequence[str], acquired: AcquiredBillStatusSource) -> tuple[BillStatusCode, ...]:
+    """Parse the bill-type sentence, refusing wording drift, a malformed code, or a duplicate."""
+
     try:
         header_index = lines.index(_HEADER_BILL_TYPE)
     except ValueError as error:
@@ -159,6 +171,8 @@ def _parse_bill_types(lines: Sequence[str], acquired: AcquiredBillStatusSource) 
     return tuple(codes)
 
 def _parse_action_codes(lines: Sequence[str], acquired: AcquiredBillStatusSource) -> tuple[BillStatusCode, ...]:
+    """Parse the action-code table, refusing a malformed code, an empty label, or a duplicate."""
+
     rows = _parse_pipe_table(lines, _HEADER_ACTION_CODES, 2)
     codes: list[BillStatusCode] = []
     seen: set[str] = set()
@@ -188,6 +202,8 @@ def _parse_summary_version_codes(
     lines: Sequence[str],
     acquired: AcquiredBillStatusSource,
 ) -> tuple[BillStatusCode, ...]:
+    """Parse the summary version table, refusing a bad code, unknown chamber, empty label, or duplicate pair."""
+
     rows = _parse_pipe_table(lines, _HEADER_VERSION_CODES, 3)
     codes: list[BillStatusCode] = []
     seen: set[tuple[str, str]] = set()
@@ -226,6 +242,8 @@ def _resource(
     codes: tuple[BillStatusCode, ...],
     acquired: AcquiredBillStatusSource,
 ) -> ParsedBillStatusResource:
+    """Wrap the parsed codes, refusing any count drift from the pinned expectation."""
+
     expected_count = _EXPECTED_COUNTS[name]
     if len(codes) != expected_count:
         raise BillStatusSourceDriftError(f"{name} count drift: expected {expected_count}, parsed {len(codes)}")

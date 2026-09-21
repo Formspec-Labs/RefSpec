@@ -1,4 +1,10 @@
-"""Part zero is published and fits the existing Rulespec identifier space."""
+"""Part zero is published and fits the existing Rulespec identifier space.
+
+The oracle ``old_cfr_part`` is the check copied from 566df1d4; zero-part
+support is the named change. Publisher fixtures prove the new reader mints
+``:0`` without inventing a different part, while every other part form must
+still agree with the copied check.
+"""
 import json
 from pathlib import Path
 import re
@@ -24,6 +30,9 @@ def old_cfr_part(value):
 @pytest.mark.parametrize('case', CASES, ids=lambda case: str(case['title']))
 @pytest.mark.parametrize('part', [0, '0', '00', ' 000 '])
 def test_publisher_part_zero_mints_without_inventing_a_different_part(case, part):
+    """A publisher ``PART 0`` head mints ``urn:rkaf:us:cfr:<title>:0`` and extends the first section, where the copied
+    check refuses it."""
+
     assert case['head'].startswith('PART 0')
     assert 'N="0" TYPE="PART"' in case['opening_and_head']
     with patch.object(minting, '_cfr_part', old_cfr_part):
@@ -39,15 +48,21 @@ def test_publisher_part_zero_mints_without_inventing_a_different_part(case, part
 @pytest.mark.parametrize('value', [None, '', ' ', '-0', '0.0', '0/1', '0-1', '0aa', '٠', '０', True,
                                   '1', 1, '01', ' 15a ', '016A', '101-1', '16a3'])
 def test_other_part_forms_agree_with_the_copied_check(value):
+    """Every non-zero part form, including Unicode digits, booleans and separators, keeps the copied verdict."""
+
     assert minting._cfr_part(value) == old_cfr_part(value)
 
 
 @pytest.mark.parametrize('value', ['0a', '000A'])
 def test_zero_stem_letter_follows_the_existing_space_without_an_issuance_claim(value):
+    """``0a`` stays inside the existing identifier space even though it makes no claim that the part was issued."""
+
     assert old_cfr_part(value) is None
     assert minting.mint_cfr_iri(16, value).iri == 'urn:rkaf:us:cfr:16:0a'
 
 
 @pytest.mark.parametrize('title', [0, '00', -1, 51, None, '٠'])
 def test_title_validation_is_still_independent_of_zero_part_support(title):
+    """Invalid titles are refused whatever the zero-part change did."""
+
     assert minting.mint_cfr_iri(title, '0') is None

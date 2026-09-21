@@ -25,6 +25,8 @@ INSTITUTIONAL_BRIDGE_FIXTURE = (
 
 
 def test_pins_match_the_exact_captured_bytes() -> None:
+    """Both captured revisions pin their exact byte length and sha256."""
+
     current = CURRENT_FIXTURE.read_bytes()
     retired = RETIRED_FIXTURE.read_bytes()
 
@@ -71,6 +73,8 @@ def test_current_form_url_preserves_the_publishers_own_typo() -> None:
 
 
 def test_current_form_documents_five_rule_types_and_no_priority_item() -> None:
+    """Five rule-type options on item 6, with the Priority of Regulation item measured absent."""
+
     capture = gao.parse_gao_cra_current_form(CURRENT_FIXTURE.read_bytes())
 
     assert [option.value for option in capture.rule_types] == [
@@ -91,6 +95,8 @@ def test_current_form_documents_five_rule_types_and_no_priority_item() -> None:
 
 
 def test_retired_form_documents_the_five_priority_levels_verbatim() -> None:
+    """The five retired priority levels keep their printed "; or" / "or" joiners and item 8."""
+
     capture = gao.parse_gao_cra_retired_form(RETIRED_FIXTURE.read_bytes())
 
     assert [option.value for option in capture.priority_levels] == [
@@ -149,6 +155,8 @@ def test_current_form_refuses_if_priority_of_regulation_reappears() -> None:
 
 
 def test_byte_drift_is_refused_before_any_text_is_parsed() -> None:
+    """One flipped byte and one appended byte each refuse on the pin before text parsing."""
+
     payload = bytearray(CURRENT_FIXTURE.read_bytes())
     payload[1000] ^= 0xFF
 
@@ -187,6 +195,8 @@ def test_wording_drift_in_a_repinned_revision_is_refused() -> None:
 
 
 def test_non_pdf_bytes_are_refused() -> None:
+    """Bytes without a PDF header refuse even under a reassigned matching pin."""
+
     fake = b"not a pdf" + b"x" * (354_320 - 9)
     pin = replace(
         gao.GAO_CRA_CURRENT_FORM_2026_08_15,
@@ -199,6 +209,8 @@ def test_non_pdf_bytes_are_refused() -> None:
 
 
 def test_pin_shape_is_validated() -> None:
+    """A non-GAO URL, a short digest, and a current/retired pin swap each refuse."""
+
     with pytest.raises(gao.GaoCraFormError, match="gao.gov"):
         replace(gao.GAO_CRA_CURRENT_FORM_2026_08_15, source_url="https://example.com/form.pdf")
     with pytest.raises(gao.GaoCraFormError, match="sha256"):

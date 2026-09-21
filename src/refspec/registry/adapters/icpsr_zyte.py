@@ -83,6 +83,8 @@ class ZyteIcpsrPageFetcher:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Capture the official ICPSR Subject Thesaurus index through Zyte and write a snapshot."""
+
     parser = argparse.ArgumentParser(
         description=(
             "Capture the 27-page official ICPSR Subject Thesaurus index "

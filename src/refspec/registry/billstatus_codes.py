@@ -1,39 +1,22 @@
 """Pinned Congress.gov BILLSTATUS code-set imports.
 
-The govinfo BILLSTATUS bulk-data readme names the ``usgpo/bill-status``
-GitHub user guide as the source of code-table documentation. That guide
-publishes three controlled code sets used by Bill Status XML records:
-``<billType>`` values, ``<actionCode>`` values, and the Library of
-Congress summary ``<versionCode>`` values. All three are source-native
-deterministic metadata and transport schema, not general subject
-concepts, per the catalog decision for this source; none of them is
-promoted into a concept scheme here.
+The govinfo-endorsed usgpo/bill-status user guide publishes three controlled
+code sets -- ``<billType>``, ``<actionCode>``, and Library of Congress summary
+``<versionCode>`` values -- imported here as source-native deterministic
+metadata, never as general subject concepts or a concept scheme. The action
+code table carries the publisher's completeness disclaimer ("a complete,
+authoritative list of action codes does not exist"), so unmatched action codes
+are preserved as raw source values, while bill types and summary version codes
+are closed enumerations that fail closed on an unknown value; the per-document
+XML ``<version>`` is required from the caller and threaded through unchanged.
 
-The action code table carries the publisher's own completeness
-disclaimer -- "a complete, authoritative list of action codes does not
-exist" -- so this module treats it as an open courtesy list: unmatched
-action codes are preserved as raw source values rather than refused.
-Bill types and summary version codes carry no such disclaimer and are
-treated as closed enumerations that fail closed on an unknown value.
-
-The Congress.gov API (https://api.congress.gov/) requires a caller-
-supplied API key for every endpoint, including ``/v3/bill``, and does
-not publish a separate constants endpoint for these three code sets;
-this module therefore acquires the code sets from the govinfo-endorsed
-GitHub user guide only.
-
-The Bill Status XML ``<version>`` element is a per-document schema
-version supplied by the Library of Congress, not an enumerated code.
-Record validation here pins it by requiring callers to supply it and
-threading it through unchanged -- never inferring or validating it
-against a fixed set, and never inferring a subject from an XML element
-name.
-
-Acquisition accepts a local exact capture or an injected fetcher.
-Importing this module never opens a network connection. Rulespec Artifacts
-publishes exact captures at ``objects/sha256/<digest>``; old named-file cache
-directories are neither read nor changed. See ``docs/billstatus-acquisition.md``
-for cache and attempt-evidence semantics.
+The Congress.gov API (https://api.congress.gov/) requires a caller-supplied API
+key and publishes no constants endpoint for these code sets, so acquisition
+reads only the govinfo-endorsed GitHub user guide, from a local exact capture
+or an injected fetcher; importing this module never opens a network connection.
+Rulespec Artifacts publishes exact captures at ``objects/sha256/<digest>``; old
+named-file cache directories are neither read nor changed. See
+``docs/billstatus-acquisition.md`` for cache and attempt-evidence semantics.
 """
 
 from __future__ import annotations
@@ -420,7 +403,12 @@ def acquire_billstatus_source(
     fetcher: BillStatusFetcher | None = None,
     timeout_seconds: float = 30.0,
 ) -> AcquiredBillStatusSource:
-    """Acquire the exact user-guide response through a provider-neutral boundary."""
+    """Acquire the exact user-guide response through a provider-neutral boundary.
+
+    Callers supply source_path or fetcher on a cache miss, never both; byte
+    length, digest, UTF-8, and content type are checked and drift raises
+    BillStatusSourceDriftError.
+    """
 
     if timeout_seconds <= 0:
         raise BillStatusAcquisitionError("timeout_seconds must be positive")

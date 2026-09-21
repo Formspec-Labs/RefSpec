@@ -100,6 +100,7 @@ def bulk_tier(repo: Path) -> Tier:
 
 
 def session_tier(repo: Path, scratchpad: Path | None) -> Tier | None:
+    """The session tier, or ``None`` when no scratchpad directory is given or it does not exist."""
     if scratchpad is None or not scratchpad.exists():
         return None
     return Tier(
@@ -121,6 +122,7 @@ def digest(path: Path) -> str:
 
 
 def select(source: Path, tier: Tier) -> list[Path]:
+    """Every file matched by the tier's patterns and directory roots, sorted."""
     chosen: set[Path] = set()
     for pattern in tier.patterns:
         chosen.update(path for path in source.glob(pattern) if path.is_file())
@@ -132,6 +134,7 @@ def select(source: Path, tier: Tier) -> list[Path]:
 
 
 def promote(source: Path, tier: Tier, *, dry_run: bool) -> dict[str, Any]:
+    """Copy the tier's files, skipping same-digest destinations and refusing a post-copy digest mismatch."""
     files = select(source, tier)
     records: list[dict[str, Any]] = []
     copied = skipped = 0

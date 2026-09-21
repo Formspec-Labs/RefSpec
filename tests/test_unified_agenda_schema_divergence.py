@@ -32,10 +32,14 @@ EVIDENCE = (
 
 @pytest.fixture(scope="module")
 def divergence() -> dict:
+    """Load the committed 60-edition divergence evidence file."""
+
     return json.loads(EVIDENCE.read_text(encoding="utf-8"))
 
 
 def _field(divergence: dict, name: str) -> dict:
+    """Return the divergence row for one controlled field."""
+
     return next(row for row in divergence["fields"] if row["field"] == name)
 
 
@@ -91,6 +95,8 @@ def test_the_remaining_divergences_are_publisher_defects_not_codes(divergence: d
 
 
 def test_the_witness_covers_the_whole_published_series(divergence: dict) -> None:
+    """The evidence covers 60 editions and 241,726 records, all declaring the 2011 schema."""
+
     assert divergence["editions"] == 60
     assert divergence["records"] == 241_726
     assert divergence["schema"] == "REGINFO_XML_Ver10262011.xsd"

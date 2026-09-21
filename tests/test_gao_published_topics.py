@@ -16,6 +16,8 @@ SCIENCE_PAGE = (
 
 
 def test_index_carries_the_thirty_published_topics() -> None:
+    """Pin 30 alphabetized topics with the pinned digest and byte length."""
+
     index = gao.parse_gao_published_topics(PAGE)
 
     assert len(index.topics) == 30
@@ -34,6 +36,8 @@ def test_index_carries_the_thirty_published_topics() -> None:
 
 
 def test_topics_carry_publisher_identity_not_minted_identity() -> None:
+    """Pin the publisher's path and persistent Drupal term id as identity, not a minted UUID."""
+
     # The REF-032-deleted unit carried one observed label with RefSpec-minted
     # UUIDv7 identity. Here both identifiers are the publisher's own: the
     # /topics/<slug> path and the numeric Drupal taxonomy term id rendered in
@@ -59,12 +63,12 @@ def test_topics_carry_publisher_identity_not_minted_identity() -> None:
 
 
 def test_topic_page_supplies_the_publisher_identity_missing_from_the_browse_listing() -> None:
-    """A publisher topic page is vocabulary evidence; product rows alone are not.
+    """Pin that GAO's own topic page independently states the slug, label, Drupal taxonomy-term id, and
+    ``vocabulary-topic`` class.
 
-    The old 30-row browse adapter existed to avoid turning observed product
-    assignments into a vocabulary.  Keep that reason.  This addition is
-    admissible because GAO's own topic page independently states the slug,
-    label, Drupal taxonomy-term id, and ``vocabulary-topic`` class.
+    The old browse adapter's refusal to read observed product rows as a
+    vocabulary is retained; this page is admissible because the publisher
+    states the identity itself.
     """
 
     topic = gao.parse_gao_topic_page(
@@ -82,6 +86,8 @@ def test_topic_page_supplies_the_publisher_identity_missing_from_the_browse_list
 
 
 def test_topic_page_identity_drift_is_refused() -> None:
+    """Pin refusal when the page's taxonomy-term id no longer matches the pin."""
+
     text = SCIENCE_PAGE.decode("utf-8")
     drifted = text.replace('id="taxonomy-term-276"', 'id="taxonomy-term-277"', 1).encode("utf-8")
 
@@ -106,6 +112,8 @@ def test_topic_page_label_must_come_from_the_declared_page_title_block() -> None
 
 
 def test_featured_content_nodes_are_reported_but_not_topics() -> None:
+    """Pin the featured hrefs and prove none of them is parsed as a topic."""
+
     index = gao.parse_gao_published_topics(PAGE)
 
     assert index.featured_entry_hrefs == (
@@ -119,6 +127,8 @@ def test_featured_content_nodes_are_reported_but_not_topics() -> None:
 
 
 def test_drifted_page_bytes_are_refused() -> None:
+    """Pin digest and byte-length drift refusals."""
+
     with pytest.raises(gao.GaoSourceDriftError, match="digest drift"):
         gao.parse_gao_published_topics(PAGE[:-1] + bytes([PAGE[-1] ^ 0x01]))
     with pytest.raises(gao.GaoSourceDriftError, match="byte length drift"):
@@ -126,6 +136,8 @@ def test_drifted_page_bytes_are_refused() -> None:
 
 
 def test_structural_drift_is_refused_not_repaired() -> None:
+    """Pin refusals for a drifted listing title, a shrunken browse listing, and non-alphabetical order."""
+
     # A page that lost its listing title, or whose topic count moved, must be
     # re-reviewed rather than silently re-parsed.
     text = PAGE.decode("utf-8")
@@ -153,6 +165,8 @@ def test_structural_drift_is_refused_not_repaired() -> None:
 
 
 def _repinned(payload: bytes, *, source_url: str = gao.GAO_TOPICS_URL) -> gao.GaoPagePin:
+    """Repin a GAO page identity to the mutated payload's bytes."""
+
     return gao.GaoPagePin(
         source_url=source_url,
         retrieved_at=gao.GAO_TOPICS_2026_08_15.retrieved_at,

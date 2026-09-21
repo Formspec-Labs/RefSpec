@@ -1,3 +1,11 @@
+"""Contract tests for the shared source-controlled resource package (schema 2.0).
+
+The builder must produce deeply immutable, byte-deterministic packages whose manifests carry no
+permission or concept-identity fields and whose observations reject governance fields recursively;
+the view reopens a package only when every artifact pin and the file set match and schema versions
+agree, refusing version 1.0, tampering, extra files, and a source scheme whose authority record is
+absent."""
+
 from __future__ import annotations
 
 import json
@@ -31,6 +39,8 @@ SCHEME_FETCH_ID = "019fc9f2-c758-728f-8dbb-232379d1c9a3"
 
 
 def _observation() -> dict[str, object]:
+    """One minimal publisher-identified observation over SOURCE_BYTES."""
+
     return {
         "id": "urn:ref:source-record:example:c01e5feb:0",
         "sourceArtifact": SOURCE_ID,
@@ -60,6 +70,8 @@ def _observation() -> dict[str, object]:
 
 
 def _bundle():
+    """A one-observation controlledCodeList bundle used by most tests."""
+
     return build_source_controlled_resource_bundle(
         resource_id="example-terms",
         title="Example terms",

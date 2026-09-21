@@ -1,4 +1,10 @@
-"""Current List of Subjects matching against the 2025 Federal Register thesaurus."""
+"""Current List of Subjects matching against the 2025 Federal Register thesaurus.
+
+Resolutions are explicit -- officialTerm, recognizedVariant,
+sourceLocalOpenTerm, or unresolved -- under a pinned policy version and never
+mint a concept; a source-local open term requires both source_record_id and
+source_path.
+"""
 
 from __future__ import annotations
 
@@ -59,7 +65,11 @@ def resolve_list_of_subjects_term(
     source_path: str | None = None,
     allow_source_local_open_term: bool = False,
 ) -> ListsOfSubjectsResolution:
-    """Classify one current List of Subjects value without minting a concept."""
+    """Classify one current List of Subjects value without minting a concept.
+
+    Raises FederalRegisterListsOfSubjectsError for empty text, or for a
+    source-local open term missing source_record_id or source_path.
+    """
 
     if not isinstance(literal, str) or not literal.strip():
         raise FederalRegisterListsOfSubjectsError(

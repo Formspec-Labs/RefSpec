@@ -94,10 +94,10 @@ def _text(element: ET.Element | None) -> str:
 def _raw_text(element: ET.Element | None) -> str:
     """Everything an element holds, whitespace intact.
 
-    ``itertext`` rather than ``.text`` so that a child element could never take
-    its tail text away with it. Measured over all 241,726 records of the 60
-    pinned editions: no ``ADDITIONAL_INFO`` element has a child, so today the
-    two spellings agree -- and if one ever grows one, nothing vanishes.
+    ``itertext`` rather than ``.text`` so a child element could never take its
+    tail text away with it; measured over all 241,726 records of the 60 pinned
+    editions, no ``ADDITIONAL_INFO`` element has a child, so the two spellings
+    agree today -- and if one ever grows one, nothing vanishes.
     """
 
     return "" if element is None else "".join(element.itertext())
@@ -110,10 +110,9 @@ def parse_unified_agenda_edition(
 ) -> tuple[UnifiedAgendaRecord, ...]:
     """Read one pinned edition, refusing anything that is not exactly it.
 
-    The digest is taken over the bytes as served, before the apostrophe
-    repair, so a capture can always be re-verified against what the endpoint
-    returned. The repair is applied only to the in-memory copy handed to the
-    parser.
+    The digest is taken over the bytes as served, before the apostrophe repair,
+    so a capture can always be re-verified against what the endpoint returned.
+    The repair is applied only to the in-memory copy handed to the parser.
     """
 
     if len(payload) != pin.expected_byte_length:

@@ -1,4 +1,8 @@
-"""Official OMB Circular A-11 fiscal code capture, parsing, and validation tests."""
+"""Official OMB Circular A-11 fiscal code capture, parsing, and validation tests.
+
+The three pinned page extracts (Exhibits 79A and 83A and Section 120.13) parse into one control
+portfolio requiring a single shared fiscal-year edition; fiscal records map onto deterministic
+metadata codes, with unknown codes, another edition's codes, and unrecognized trailer rows refused."""
 
 from __future__ import annotations
 
@@ -44,10 +48,14 @@ def _acquire(
     pin: a11.OMBA11PageSnapshotPin,
     source_path: Path,
 ) -> a11.AcquiredOMBA11Page:
+    """Acquire one pinned A-11 page extract from a local fixture path."""
+
     return a11.acquire_omb_a11_page(pin, tmp_path, source_path=source_path)
 
 
 def _portfolio(tmp_path: Path) -> a11.OMBA11ControlPortfolio:
+    """Parse all three 2025 page extracts and assemble the shared-edition portfolio."""
+
     functional = a11.parse_omb_a11_functional_classification(
         _acquire(tmp_path, a11.OMB_A11_FUNCTIONAL_CLASSIFICATION_2025, FUNCTIONAL_FIXTURE)
     )

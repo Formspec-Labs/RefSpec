@@ -79,6 +79,8 @@ _SCHEMA_MEMBERS = (
 
 
 def _schema_payload(logical_path: str) -> Mapping[str, Any]:
+    """Load one bundled claim/manifest JSON schema, refusing an unavailable or invalid file."""
+
     source = _SCHEMA_SOURCE_ROOT / PurePosixPath(logical_path).name
     try:
         payload = json.loads(source.read_bytes())
@@ -100,6 +102,8 @@ def _schema_payload(logical_path: str) -> Mapping[str, Any]:
 
 
 def _schema_bytes(logical_path: str) -> bytes:
+    """Canonical JSON bytes of one bundled schema."""
+
     return canonical_json_bytes(_schema_payload(logical_path))
 
 
@@ -108,6 +112,8 @@ MANIFEST_JSON_SCHEMA = _schema_payload(MANIFEST_SCHEMA_FILE)
 
 
 def _claim_schema() -> pa.Schema:
+    """The Arrow schema of the claims Parquet table."""
+
     return pa.schema(
         [
             pa.field("release_id", pa.string(), nullable=False),
@@ -135,6 +141,8 @@ CLAIM_COLUMNS = tuple(field.name for field in CLAIM_SCHEMA)
 
 
 def _schema_descriptor(schema: pa.Schema) -> list[dict[str, Any]]:
+    """Render an Arrow schema as its digest input descriptor."""
+
     return [
         {
             "name": item.name,
@@ -146,6 +154,8 @@ def _schema_descriptor(schema: pa.Schema) -> list[dict[str, Any]]:
 
 
 def _schema_digest(schema: pa.Schema) -> str:
+    """Digest one Arrow schema descriptor."""
+
     return sha256_digest(canonical_json_bytes(_schema_descriptor(schema)))
 
 
@@ -153,12 +163,16 @@ CLAIM_SCHEMA_DIGEST = _schema_digest(CLAIM_SCHEMA)
 
 
 def _require_text(value: object, label: str) -> str:
+    """Return a non-empty string, refusing any other value."""
+
     if not isinstance(value, str) or not value:
         raise RegistryClaimReleaseError(f"{label} must be non-empty text")
     return value
 
 
 def _require_iri(value: object, label: str) -> str:
+    """Return an absolute IRI, refusing any other value."""
+
     iri = _require_text(value, label)
     if _ABSOLUTE_IRI.fullmatch(iri) is None:
         raise RegistryClaimReleaseError(f"{label} must be an absolute IRI")
@@ -166,6 +180,8 @@ def _require_iri(value: object, label: str) -> str:
 
 
 def _require_digest(value: object, label: str) -> str:
+    """Return a lowercase ``sha256:<64 hex>`` digest, refusing any other spelling."""
+
     if not isinstance(value, str) or _SHA256.fullmatch(value) is None:
         raise RegistryClaimReleaseError(
             f"{label} must be sha256:<64 lowercase hex>"
@@ -174,6 +190,8 @@ def _require_digest(value: object, label: str) -> str:
 
 
 def _safe_relative_path(value: object, label: str) -> PurePosixPath:
+    """Return a relative POSIX path, refusing absolute, parent-escaping, or Windows-disk forms."""
+
     text = _require_text(value, label)
     posix = PurePosixPath(text)
     windows = PureWindowsPath(text)
@@ -190,6 +208,8 @@ def _safe_relative_path(value: object, label: str) -> PurePosixPath:
 
 
 def _file_digest(path: Path) -> str:
+    """Streaming ``sha256:`` digest of one file."""
+
     digest = hashlib.sha256()
     with path.open("rb") as stream:
         for block in iter(lambda: stream.read(1024 * 1024), b""):
@@ -198,6 +218,8 @@ def _file_digest(path: Path) -> str:
 
 
 def _logical_rows_digest(rows: Sequence[RegistryClaim]) -> str:
+    """Digest claims in their declared sort order."""
+
     digest = hashlib.sha256()
     for row in rows:
         digest.update(canonical_json_bytes(row.as_record()))
@@ -226,6 +248,8 @@ class RegistryClaim:
     limitation_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
+        """Validate every claim field and the object-kind/IRI pairing."""
+
         _require_iri(self.release_id, "claim release_id")
         _require_iri(self.subject, "claim subject")
         _require_iri(self.predicate, "claim predicate")
@@ -276,6 +300,8 @@ class RegistryClaim:
             _require_iri(limitation_id, "claim limitation_id")
 
     def sort_key(self) -> tuple[Any, ...]:
+        """The stable total order claims are written and digested in."""
+
         return (
             self.release_id,
             self.subject,
@@ -296,6 +322,8 @@ class RegistryClaim:
         )
 
     def as_record(self) -> dict[str, Any]:
+        """Render the claim as its Parquet row."""
+
         return {
             "release_id": self.release_id,
             "subject": self.subject,
@@ -317,6 +345,8 @@ class RegistryClaim:
 
     @classmethod
     def from_record(cls, value: Mapping[str, Any]) -> RegistryClaim:
+        """Rebuild a claim from its Parquet row, refusing a field-set mismatch."""
+
         if set(value) != set(CLAIM_COLUMNS):
             raise RegistryClaimReleaseError(
                 "claim row fields differ from the declared schema"
@@ -357,6 +387,8 @@ class RegistryRawInput:
     archive_members: tuple[Mapping[str, Any], ...] = ()
 
     def __post_init__(self) -> None:
+        """Refuse an unsafe path, a reserved member path, or a missing role."""
+
         _safe_relative_path(self.logical_path, "raw input logical_path")
         if self.logical_path in {MANIFEST_FILE, CLAIMS_FILE}:
             raise RegistryClaimReleaseError(
@@ -375,6 +407,8 @@ def _normalized_named_rows(
     *,
     label: str,
 ) -> tuple[dict[str, Any], ...]:
+    """Normalize named rows and refuse a repeated identifier."""
+
     rows: list[dict[str, Any]] = []
     identifiers: set[str] = set()
     for index, value in enumerate(values):
@@ -390,6 +424,8 @@ def _normalized_named_rows(
 
 
 def _write_claims(path: Path, claims: Sequence[RegistryClaim]) -> None:
+    """Write the claims table with its declared schema."""
+
     table = pa.Table.from_pylist(
         [claim.as_record() for claim in claims],
         schema=CLAIM_SCHEMA,
@@ -408,6 +444,8 @@ def _write_claims(path: Path, claims: Sequence[RegistryClaim]) -> None:
 
 
 def _raw_descriptor(value: RegistryRawInput, root: Path) -> dict[str, Any]:
+    """Describe one raw archive member for the manifest."""
+
     target = root / value.logical_path
     descriptor: dict[str, Any] = {
         "byteLength": target.stat().st_size,
@@ -429,6 +467,8 @@ def _verify_archive_members(
     path: Path,
     values: Sequence[Mapping[str, Any]],
 ) -> list[dict[str, Any]]:
+    """Verify the zip members against the manifest descriptors."""
+
     descriptors: list[dict[str, Any]] = []
     try:
         with zipfile.ZipFile(path) as archive:
@@ -505,6 +545,8 @@ def _manifest_payload(
     root: Path,
     metadata: Mapping[str, Any],
 ) -> dict[str, Any]:
+    """Assemble the release manifest payload."""
+
     claims_path = root / CLAIMS_FILE
     origin_counts = Counter(claim.origin for claim in claims)
     object_counts = Counter(claim.object_kind for claim in claims)
@@ -644,6 +686,8 @@ def build_registry_claim_release(
 
 
 def _strict_json(path: Path, *, expected_digest: str) -> Mapping[str, Any]:
+    """Read the manifest after digest verification, refusing duplicate keys."""
+
     if path.is_symlink() or not path.is_file():
         raise RegistryClaimReleaseError("registry claim release manifest is missing")
     if _file_digest(path) != expected_digest:
@@ -651,6 +695,8 @@ def _strict_json(path: Path, *, expected_digest: str) -> Mapping[str, Any]:
     payload = path.read_bytes()
 
     def pairs(values: Sequence[tuple[str, Any]]) -> dict[str, Any]:
+        """JSON object hook, refusing a duplicate key."""
+
         result: dict[str, Any] = {}
         for key, value in values:
             if key in result:
@@ -678,6 +724,8 @@ def _strict_json(path: Path, *, expected_digest: str) -> Mapping[str, Any]:
 
 
 def _verify_member(root: Path, descriptor: Mapping[str, Any]) -> Path:
+    """Verify one unpacked member's path, size, and digest."""
+
     relative = _safe_relative_path(descriptor.get("path"), "member path")
     path = root.joinpath(*relative.parts)
     if path.is_symlink() or not path.is_file():
@@ -706,6 +754,8 @@ class RegistryClaimReleaseView:
         *,
         expected_manifest_digest: str,
     ) -> RegistryClaimReleaseView:
+        """Open and verify a release at an externally supplied manifest digest."""
+
         expected = _require_digest(
             expected_manifest_digest,
             "expected registry claim release manifest digest",

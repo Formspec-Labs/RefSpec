@@ -1,4 +1,8 @@
-"""Exact-response tests for the UMTHES content capture."""
+"""Exact-response tests for the UMTHES content capture.
+
+The record parser keeps multilingual preferred/alternate labels, definitions, and broader
+relations and refuses a payload whose concept IRI is not the requested one; the pinned capture is
+pinned by digest and byte length, with 13 documented 404 records."""
 
 from __future__ import annotations
 

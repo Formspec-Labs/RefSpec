@@ -57,10 +57,14 @@ pinned_html_required = pytest.mark.skipif(
 
 
 def records(fixture: str) -> tuple[builder.PopularNameRecord, ...]:
+    """Parse one pinned fixture entry into popular-name records."""
+
     return builder.parse_popular_names(ENTRIES[fixture]).records
 
 
 def only(fixture: str, content_type: str) -> list[builder.PopularNameRecord]:
+    """The records of one content type in a fixture."""
+
     return [record for record in records(fixture) if record.content_type == content_type]
 
 
@@ -68,6 +72,8 @@ def only(fixture: str, content_type: str) -> list[builder.PopularNameRecord]:
 
 
 def test_the_statutes_at_large_place_is_read_from_the_statviewer_query_and_the_prose_agrees() -> None:
+    """Both witnesses state the same volume and page, and the row records that both spoke."""
+
     (cite,) = only("statviewer_and_stated_citation_agree", "cite")
 
     assert (cite.name, cite.table3_key) == ("1921 Silver Dollar Coin Anniversary Act", "116-286")
@@ -78,6 +84,8 @@ def test_the_statutes_at_large_place_is_read_from_the_statviewer_query_and_the_p
 
 
 def test_a_cite_stating_no_statviewer_query_falls_back_to_the_prose_citation() -> None:
+    """A cite with only the prose citation still states its place, witnessed as "stated"."""
+
     # The 21st Century Cures Act states two cites: the first links a statviewer
     # page, the second states only "130 Stat. 1039". One of the 56 such rows.
     first, second = only("stated_citation_only", "cite")
@@ -91,6 +99,8 @@ def test_a_cite_stating_no_statviewer_query_falls_back_to_the_prose_citation() -
 def test_a_cite_stating_neither_place_mints_no_volume() -> None:
     # The negative fixture: the real entry with both statements deleted. The
     # rule must refuse, not reach for the volume of some other citation.
+    """Neither witness present means no volume or page, never another citation's."""
+
     mutilated = (
         ENTRIES["statviewer_and_stated_citation_agree"]
         .replace("statviewer.htm?volume=134&amp;page=4879", "statviewer.htm")
@@ -105,6 +115,8 @@ def test_a_cite_stating_neither_place_mints_no_volume() -> None:
 
 
 def test_a_table3_link_is_not_mistaken_for_a_statviewer_link() -> None:
+    """Only a statviewer query states a place; the entry's /table3/ link never matches."""
+
     # The same entry also links "/table3/116_286.htm". Only the statviewer link
     # states a place, and only its query is read.
     entry = ENTRIES["statviewer_and_stated_citation_agree"]
@@ -116,6 +128,8 @@ def test_a_table3_link_is_not_mistaken_for_a_statviewer_link() -> None:
 
 
 def test_the_tools_own_kinds_are_kept_distinct_and_verbatim() -> None:
+    """The builder's five content types are kept as stated, never merged into cite."""
+
     assert [r.content_type for r in records("statviewer_and_stated_citation_agree")] == ["cite"]
     assert [r.content_type for r in records("see")] == ["see"]
     assert [r.content_type for r in records("renamed")] == ["renamed"]
@@ -124,6 +138,8 @@ def test_the_tools_own_kinds_are_kept_distinct_and_verbatim() -> None:
 
 
 def test_a_target_is_read_only_out_of_a_see_or_renamed_construction() -> None:
+    """see and renamed each state one see_also target; no other kind mints one."""
+
     (see,) = only("see", "see")
     (renamed,) = only("renamed", "renamed")
 
@@ -132,6 +148,8 @@ def test_a_target_is_read_only_out_of_a_see_or_renamed_construction() -> None:
 
 
 def test_also_known_as_reads_like_a_redirect_and_mints_none() -> None:
+    """An also-known-as paragraph states a naming fact, so it yields no see_also target."""
+
     # The negative fixture, published verbatim by OLRC: "Also known as the 21st
     # Century IDEA" is a naming fact, not a cross-reference, and the kind is
     # what says so.
@@ -143,6 +161,8 @@ def test_also_known_as_reads_like_a_redirect_and_mints_none() -> None:
 
 
 def test_a_short_title_reference_contributes_no_act_identity() -> None:
+    """A short-title-ref keeps its U.S.C. anchor but states no act key, division or place."""
+
     # It anchors a section and states nothing about which act was enacted where.
     (reference,) = only("stated_citation_only", "short-title-ref")
 
@@ -153,6 +173,8 @@ def test_a_short_title_reference_contributes_no_act_identity() -> None:
 
 
 def test_an_information_paragraph_without_a_kind_is_refused_rather_than_read() -> None:
+    """Stripping content-type from a real entry quarantines it as information_without_a_content_type."""
+
     # Mutation of a real entry: OLRC states a content-type on all 20,865
     # paragraphs, so the only way to see the refusal is to remove one.
     mutilated = ENTRIES["see"].replace("content-type='see'", "")
@@ -164,6 +186,8 @@ def test_an_information_paragraph_without_a_kind_is_refused_rather_than_read() -
 
 
 def test_an_entry_without_a_name_is_quarantined_rather_than_read() -> None:
+    """An empty popular-name paragraph is quarantined as entry_without_a_name."""
+
     mutilated = ENTRIES["see"].replace("<p class='popular-name'>Clean Water Act</p>", "<p class='popular-name'></p>")
     scan = builder.parse_popular_names(mutilated)
 
@@ -175,6 +199,8 @@ def test_an_entry_without_a_name_is_quarantined_rather_than_read() -> None:
 
 
 def test_a_usc_anchor_is_read_only_in_the_title_colon_section_shape() -> None:
+    """18:App.) is kept verbatim as stated, while 18A:1 is refused as an appendix title."""
+
     # One entry states both: "18:App.)" is title 18 with a section suffix the
     # identifier grammar excludes -- the source speaking, and kept -- while
     # "18A:1" names an appendix title, which is not U.S. Code title 18.
@@ -187,6 +213,8 @@ def test_a_usc_anchor_is_read_only_in_the_title_colon_section_shape() -> None:
 
 
 def test_a_refused_anchor_is_quarantined_with_the_value_it_refused() -> None:
+    """A refused anchor leaves a usc_anchor_unparsable defect and does not drop the row."""
+
     scan = builder.parse_popular_names(ENTRIES["usckey_accepted_and_refused"])
 
     assert [(d.reason, d.raw_value) for d in scan.defects] == [("usc_anchor_unparsable", "18A:1")]
@@ -198,6 +226,8 @@ def test_a_refused_anchor_is_quarantined_with_the_value_it_refused() -> None:
 
 
 def test_a_name_stating_several_enacting_acts_keeps_every_row_and_is_counted() -> None:
+    """One name with two enacting acts keeps both cite rows and reports both keys."""
+
     found = records("ambiguous_name")
     cites = [r for r in found if r.content_type == "cite"]
 
@@ -206,6 +236,8 @@ def test_a_name_stating_several_enacting_acts_keeps_every_row_and_is_counted() -
 
 
 def test_a_name_stating_one_enacting_act_is_not_reported_as_ambiguous() -> None:
+    """Repeated cite rows for one act are repetition, not ambiguity."""
+
     assert builder.ambiguous_names(records("statviewer_and_stated_citation_agree")) == {}
     # Two cite rows, one act: repetition is not ambiguity.
     assert builder.ambiguous_names(records("stated_citation_only")) == {}
@@ -218,6 +250,8 @@ def test_a_name_stating_one_enacting_act_is_not_reported_as_ambiguous() -> None:
 @pinned_html_required
 @frozen_table_required
 def test_every_row_this_build_parses_is_a_row_the_frozen_table_states() -> None:
+    """All 20,865 derived rows match the frozen table; the only deltas are the four name_key spellings."""
+
     rows = builder.table_rows(builder.parse_popular_names(builder.read_pinned_html()).records)
     report = builder.compare_to_frozen(rows, FROZEN_TABLE)
 
@@ -280,6 +314,8 @@ def test_the_derived_table_is_the_frozen_one_after_the_loaders_own_normalization
 @pytest.mark.slow
 @pinned_html_required
 def test_the_receipt_states_the_measurements_the_rules_were_derived_from(tmp_path: Path) -> None:
+    """The sealed receipt carries every count and each measured two-witness fact the rules rest on."""
+
     receipt = builder.build(tmp_path / "artifact", html_path=builder.PINNED_HTML)
 
     assert receipt["coverage"]["entries"] == 13628

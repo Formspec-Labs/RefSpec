@@ -1,210 +1,61 @@
 """A small table of hand-validated interpretations, consulted, never applied.
 
-Some source values are malformed in a way no grammar should generalise from:
-a document number with a word fused onto it because one printer's composition
-run dropped a space; an Executive Order number that three corpus rows cite as
-complete and in-series, which is a real order that has nothing to do with the
-authority the citing rule needed. A person (or an agent, acting for one) can
-look at the raw
-bytes, work out what the bytes do and do not establish, and be right -- but
-that judgment is only worth having if it arrives with the same receipt
-discipline as everything else this platform mints: named witnesses, pointing
-at committed bytes, that a future reviewer can re-open and check.
+Some source values are malformed in a way no grammar should generalise from: a
+document number with a word fused onto it, an Executive Order number three
+corpus rows cite as complete and in-series that is a real order unrelated to
+the authority the citing rule needed. This module records those judgments in a
+typed shape with named witnesses pointing at committed bytes a future reviewer
+can re-open, and is not a grammar, a normaliser, or an importer of the
+un-versioned ``research/evidence/hand-attestations-2026-08-31/`` prose; its
+:data:`_TABLE` restates that founding row the way
+:mod:`refspec.registry.usc_section_oracle` restates the dash table it does not
+import.
 
-That is what this module is. It is not a grammar, not a normaliser, and not
-an importer of ``research/evidence/hand-attestations-2026-08-31/`` (that
-evidence home is deliberately un-versioned prose plus JSON, kept exactly as
-written; this module's :data:`_TABLE` restates its founding row in a typed
-shape, the way :mod:`refspec.registry.usc_section_oracle` restates the dash
-table it does not import). Structure earns its keep here by having exactly
-one behaviour a test can break: no accessor -- :func:`lookup` for either
-table, :func:`is_a_refused_federal_register_collision` for
-:data:`_FR_COLLISION_TABLE` (REF-066, below) -- may ever hand back a
-correction, a flag, a refusal or a consulted row that is not backed by at
-least one witness pointing at bytes this repository has actually committed.
-Read that sentence with the deployment scope below: the check is against
-the checkout this file lives in, so it is the checkout, and every CI run,
-that holds a row to its witnesses. An installed wheel carries the rows and
-no evidence tree, and REF-066's refusal set -- and only that -- is designed
-to keep working there.
+Dispositions mean different things. ``correction`` asserts a replacement
+(:attr:`Interpretation.interpreted_value` is set) and needs at least
+:data:`MINIMUM_WITNESSES_FOR_CORRECTION` distinct witnesses; ``flag``,
+``refusal-to-interpret``, and ``consulted`` must leave ``interpreted_value``
+``None``, because a lighter label carrying a replacement would be a correction
+in disguise. A refusal records a value spelled as published that must not
+settle into one identity; a consulted row records a candidate correction
+examined and deliberately not applied because the value was already right.
+Every row needs at least one witness (:data:`MINIMUM_WITNESSES`) and a row with
+none refuses to load; :func:`build_interpretation` additionally holds each
+witness to committed bytes.
 
-Disposition typing
--------------------
-Four dispositions, and they mean different things:
+A committed witness means git, not the filesystem: the path must appear in
+``git ls-files`` byte-exactly, be absent from ``git diff --name-only HEAD``,
+resolve through symlinks to a path strictly inside the repository root, and be
+a regular file there -- ``Path.is_file()`` alone would accept untracked,
+case-misspelled, locally edited, or symlinked paths a reviewer cannot re-open.
+:func:`lookup` always returns the full interpretation alongside the value and
+raises :class:`NotReviewed` rather than returning ``None``; no public helper
+hands back an ``interpreted_value`` alone. Its consumers are
+:meth:`refspec.registry.eo_roster.EoRosterOracle.flag_for`, which surfaces
+hand-reviewed doubt alongside its own verdict, and
+:func:`refspec.registry.iri_minting.mint_federal_register_document_iri`, which
+checks :func:`is_a_refused_federal_register_collision` before minting
+``rkaf:us-frdoc`` at all.
 
-* **correction** -- asserts a replacement (:attr:`Interpretation.interpreted_value`
-  is set) and requires at least :data:`MINIMUM_WITNESSES_FOR_CORRECTION`
-  independent witnesses, because asserting that two spellings name the same
-  thing is the strongest claim this table makes. Independence is enforced at
-  the floor a table can enforce it: two witnesses must be two distinct files
-  (distinct spellings AND distinct resolved paths), so one file cited twice
-  can never satisfy a floor of two. Independence of *origin* -- the founding
-  row's own warning that a print page, a granule id and an API record can be
-  one defect inherited twice -- is a judgment the row's prose must state; no
-  type can check it.
-* **flag** -- doubts the publisher's own value without asserting what it
-  should have been. ``interpreted_value`` stays ``None``: a flag that quietly
-  carried a replacement value would be a correction wearing a lighter label.
-* **refusal-to-interpret** -- a value was looked at and deliberately left
-  unresolved; the witnesses record why, not what. Unlike a flag, this is not
-  doubt about the publisher's spelling -- the value is spelled exactly as
-  published -- it is a refusal to let that value settle into ONE identity,
-  because the evidence shows it would have to stand for more than one thing.
-* **consulted** -- a value was examined and a candidate correction or refusal
-  was deliberately NOT applied, because the evidence showed the value was
-  already right. ``interpreted_value`` stays ``None``, the same as a flag: a
-  consulted row is not a correction wearing a lighter label either. It exists
-  so "we looked at this and it was fine" is a recorded fact rather than a
-  silence a later reviewer cannot tell apart from "nobody looked".
-
-Every disposition needs at least one witness (:data:`MINIMUM_WITNESSES`); a
-row with none refuses to load, and so does a row whose witness fails the
-committed-bytes check below (:func:`build_interpretation`).
-
-What "a committed file" means here
------------------------------------
-The check is against **git**, not against the filesystem, because
-``Path.is_file()`` answers a weaker question than this table needs. On a
-case-insensitive volume (APFS, NTFS) it says yes to ``readme.md`` when the
-repository committed ``README.md``; it says yes to a file nobody ever added;
-it says yes to a tracked file whose working bytes a reviewer edited after
-reading them; and it follows symlinks out of the tree. Each of those is a
-witness that a future reviewer cannot re-open and see what this row's author
-saw. So a witness path must, all four:
-
-1. appear in ``git ls-files`` **byte-exactly** -- membership and spelling in
-   one check, since the index stores the one spelling that was committed;
-2. be absent from ``git diff --name-only HEAD`` -- working bytes equal to
-   HEAD, so what the row cites is what the repository carries;
-3. resolve (through every symlink, via ``os.path.realpath``) to a path still
-   strictly inside the repository root; and
-4. be a regular file at that resolved path.
-
-Both git calls are made once per root and cached; this is repo tooling and
-the cost is two subprocesses per process, ~25ms on this repository.
-
-Deployment scope (adjudicated 2026-08-31, split 2026-09-02)
------------------------------------------------------------
-**The founding table is repository tooling, and says so rather than
-pretending otherwise.** Its default root is
-``Path(__file__).resolve().parents[3]``, which is the checkout when this
-file is imported from ``src/`` and is somewhere useless
-(``site-packages/``) when it is imported from an installed wheel. Rather
-than let that fail obscurely -- every witness "missing", the table refusing
-to load with a filesystem error -- the default root is verified once to
-*look like this repository* (it must carry :data:`_REPOSITORY_ANCHOR` and
-be the top level of a git work tree) and :func:`_default_repository_root`
-raises :class:`HandValidatedRegistryError` naming the deployment problem if
-it does not. A caller with its own checkout passes ``repo_root=``
-explicitly; that root is held to the same git-work-tree rule, so passing
-``/`` (or any directory that merely happens to contain a matching relative
-path) refuses instead of validating ``/etc/passwd``.
-
-**REF-066's collision refusal is not, because it cannot be.** An adversarial
-audit on 2026-09-02 simulated an installed layout and found
-``mint_federal_register_document_iri("2024-00366")`` -- an ordinary,
-non-colliding number nobody has ever reviewed -- raising, because the
-predicate read the census receipt out of the evidence tree before doing
-anything else. That is this repository's own catalogued defect shape:
-runtime behaviour bound to a REPRESENTATION (a git checkout) rather than to
-the fact it encodes. So the two are separated by what they are:
-
-* the **verdicts** -- seven ``source_value`` strings and their dispositions
-  -- are BEHAVIOURAL, tiny, and already Python literals in
-  :data:`_FR_COLLISION_TABLE`, so they travel inside the wheel and answer
-  in any layout with no census, no git and no filesystem;
-* the **census receipt** and the **fourteen witness files** are AUDIT data.
-  They live only in a checkout, they are checked there exactly as before
-  (:func:`_the_census_agrees_with_this_table` holds the rows true against
-  the receipt in both directions; :func:`_witnessed` holds each row to its
-  own committed bytes), and neither is reachable by a value that is not one
-  of the seven.
-
-:func:`_repository_root_if_present` is the whole of that split: one
-``is_dir()`` on the evidence anchor, no subprocess, answering ``None``
-where :func:`_default_repository_root` would raise. The wheel therefore
-carries no un-witnessed *claim* -- it carries the same seven rows CI
-witnesses on every run, and a test proves the embedded seven and the pinned
-census still name the same numbers.
-
-What this module never does
-----------------------------
-It never overwrites source data: nothing here mutates a caller's value, and
-:func:`lookup` always returns the interpretation *alongside* the value it was
-asked about, never a bare replacement string that could be mistaken for the
-thing itself. There is deliberately no public helper that hands back an
-``interpreted_value`` on its own. And it never answers for a value nobody has
-reviewed -- :func:`lookup` raises :class:`NotReviewed` rather than returning
-``None``, because ``None`` cannot be told apart from a bug that forgot to
-look.
-
-Who consults it
-----------------
-:meth:`refspec.registry.eo_roster.EoRosterOracle.flag_for` is the first real
-consumer: it delegates to :func:`lookup` for hand-reviewed doubt about an
-Executive Order number rather than keeping a second copy of the same claim,
-and surfaces the returned :class:`Interpretation` *alongside* its own
-verdict, never instead of it. That is the shape "consulted, never applied"
-was meant to have, and it is what the boundary tests in
-``tests/test_hand_validated_interpretations.py`` pin from this side.
-
-:func:`refspec.registry.iri_minting.mint_federal_register_document_iri` is
-the second: it consults :func:`is_a_refused_federal_register_collision`
-before minting ``rkaf:us-frdoc`` at all, and refuses (returns ``None``) for
-every value that answers ``True`` -- see the next section.
-
-REF-052 named the doctrine this module extends: "the column is the license"
--- a value arriving from a trusted column is licensed by the field it came
-from, not by a shape a grammar recognises. A row here licenses an
-interpretation the same way, on different terms: not by which column the
-value arrived in, but by which witnesses a reviewer actually opened.
-
-The Federal Register collision census (REF-066)
---------------------------------------------------
-rulespec's modern Federal Register space, ``rkaf:us-frdoc``, mints from the
-document number alone because the modern form was assumed to identify one
-document. A full crawl of the *published* (not merely the pinned-parquet)
-Federal Register, brought home 2026-09-02 as
-``research/evidence/fr-collision-census-2026-09-02/fr-full-collision-census.json``
-and pinned by sha256 in :data:`_FR_COLLISION_CENSUS_PIN` -- the same
-discipline :mod:`refspec.registry.eo_roster` applies to its own roster --
-found **seven** modern-form numbers that each name two documents on two
-different dates. Reading the actual documents (that evidence home's
-``specimens/``, fourteen raw full-text captures) settled which of two things
-each one is:
-
-* **five genuinely different documents** (different agencies, different
-  subjects, no textual relationship): minting one identifier for either
-  pair would silently merge two unrelated regulatory actions. Recorded here
-  as ``refusal-to-interpret`` rows.
-* **two republications of one matter**, each explicitly a correction *of
-  its own document number* -- "In notice document 2015-17759 ... make the
-  following correction" is the document's own text, not an inference. A
-  single identifier for both is the CORRECT reading, not a tolerated one.
-  Recorded here as ``consulted`` rows.
-
-The population is never a SECOND list a consumer could drift from the
-rows: the seven ``source_value`` fields of :data:`_FR_COLLISION_TABLE` are
-the population and the verdict at once, exactly as every row in
-:data:`_TABLE` already is one literal.
-:func:`is_a_refused_federal_register_collision` asks them first -- one dict
-lookup, no census, no git -- so an ordinary document number is answered in
-any deployment, and only a value that IS one of the seven pays for the
-pinned census to be re-read and that single row's witnesses to be
-re-checked. The receipt then holds the rows honest rather than defining
-them (:func:`_the_census_agrees_with_this_table`); the roles were the other
-way round for one day, and the deployment-scope section above records the
-audit that swapped them.
-
-That table is kept apart from :data:`_TABLE` and never loaded through
-:func:`load_interpretations`, so minting an ORDINARY document number never
-waits on every collision's evidence at once, and one collision's broken
-witness never refuses the other six. The isolation that buys is precise,
-and worth stating precisely: a witness FILE going wrong is isolated to the
-row that cites it; a row SHAPE going wrong is not, because all seven rows
-are constructed eagerly at import and a malformed one fails the import
-itself. :func:`_federal_register_collision_row` says why that difference is
-deliberate.
+Deployment scope, and REF-066's split. The default root is verified once to
+look like this checkout (it must carry :data:`_REPOSITORY_ANCHOR` and be a git
+work tree's top level), so :func:`_default_repository_root` raises
+:class:`HandValidatedRegistryError` from an installed wheel, and an explicit
+``repo_root=`` is held to the same work-tree rule. The collision refusal
+cannot make that demand: its seven verdicts are Python literals in
+:data:`_FR_COLLISION_TABLE` that travel inside the wheel -- five genuinely
+different documents refused, two republications of one matter consulted -- so
+:func:`is_a_refused_federal_register_collision` answers in any layout after one
+dict lookup, and only a value that IS one of the seven pays for the pinned
+census (:data:`_FR_COLLISION_CENSUS_PIN`) and that row's witnesses to be
+re-checked, one row at a time through :func:`_federal_register_collision_row`.
+The receipt holds the rows honest in both directions
+(:func:`_the_census_agrees_with_this_table`), never the reverse; a re-crawl
+ships as a new dated evidence home, a new pin, and the rows that adjudicate
+it, in one change. :func:`load_interpretations` validates :data:`_TABLE` as one
+fixed literal, and :func:`_witnessed` gives the collision rows the same check
+scoped per row; :func:`_repository_root_if_present` answers ``None`` where no
+checkout exists, so the wheel carries no un-witnessed claim.
 """
 
 from __future__ import annotations

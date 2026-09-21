@@ -23,6 +23,8 @@ from refspec.pdf_text import (
     ],
 )
 def test_fold_makes_published_text_searchable(published: str, expected: str) -> None:
+    """Pin five measured ligature/dash wire strings to their searchable spelling."""
+
     assert fold_pdf_text(published) == expected
 
 
@@ -45,11 +47,13 @@ def test_fold_makes_published_text_searchable(published: str, expected: str) -> 
     ],
 )
 def test_fold_leaves_real_content_alone(preserved: str) -> None:
+    """Pin that diacritics, em/en dashes, curly quotes, and publisher damage stay untouched."""
+
     assert fold_pdf_text(preserved) == preserved
 
 
 def test_every_declared_fold_is_exercised_and_reported() -> None:
-    """A fold nobody can demonstrate is a fold nobody should trust."""
+    """Pin that every declared fold applies and is counted exactly once."""
 
     for source, target in PDF_TEXT_FOLDS.items():
         sample = f"before {source} after"
@@ -58,5 +62,7 @@ def test_every_declared_fold_is_exercised_and_reported() -> None:
 
 
 def test_fold_is_idempotent() -> None:
+    """Pin that folding already-folded text is a no-op."""
+
     once = fold_pdf_text("Staﬀ ﬁles a Certiﬁcate ‐ today")
     assert fold_pdf_text(once) == once

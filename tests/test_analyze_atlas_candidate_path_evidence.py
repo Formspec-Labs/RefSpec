@@ -1,3 +1,5 @@
+"""Pin graph building and usable-path classification in tools/analyze_atlas_candidate_path_evidence.py."""
+
 from __future__ import annotations
 
 import sys
@@ -28,6 +30,8 @@ def _mapping(source: str, target: str, relation: str) -> dict[str, object]:
 
 
 def test_build_graph_preserves_direction_and_inverse_semantics() -> None:
+    """Fail if build_graph drops edge direction or omits the inverse edge of a mapping assertion."""
+
     graph = path_audit.build_graph(
         [
             _concept("urn:a", "A", **{"skos:broader": ["urn:b"]}),
@@ -46,6 +50,8 @@ def test_build_graph_preserves_direction_and_inverse_semantics() -> None:
 
 
 def test_shortest_usable_path_accepts_one_close_then_directed_hierarchy() -> None:
+    """Pin that one closeMatch then a directed hierarchy yields broader_close, marked close-attenuated."""
+
     graph = path_audit.build_graph(
         [
             _concept("urn:source", "Water resources"),
@@ -68,6 +74,8 @@ def test_shortest_usable_path_accepts_one_close_then_directed_hierarchy() -> Non
 
 
 def test_shortest_usable_path_rejects_noncomposable_connectivity() -> None:
+    """Fail if non-composable hops (broader+narrower, or two related) are joined into a usable path."""
+
     graph = path_audit.build_graph(
         [
             _concept("urn:a", "A", **{"skos:broader": ["urn:b"]}),
@@ -83,6 +91,8 @@ def test_shortest_usable_path_rejects_noncomposable_connectivity() -> None:
 
 
 def test_single_associative_edge_with_neutral_links_is_inspection_only() -> None:
+    """Pin that exactMatch plus one related hop is classified inspectionOnlyAssociative, not usable evidence."""
+
     graph = path_audit.build_graph(
         [
             _concept("urn:a", "A"),

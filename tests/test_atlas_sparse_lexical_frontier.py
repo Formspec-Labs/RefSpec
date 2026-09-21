@@ -1,4 +1,4 @@
-"""Focused accounting checks for the exact Atlas candidate frontier."""
+"""Atlas exact candidate frontier accounting: overlap marginals, typed-gold rollups, and Pareto tradeoffs."""
 
 from __future__ import annotations
 
@@ -9,6 +9,8 @@ from tools import benchmark_lexical_candidate_controls as lexical
 
 
 def _concept(side: str, identifier: str) -> AtlasConcept:
+    """Build a minimal concept on the named side for the codec fixtures."""
+
     return AtlasConcept(
         member=f"https://example.test/{side}/{identifier}",
         release=f"urn:test:{side}",
@@ -17,6 +19,8 @@ def _concept(side: str, identifier: str) -> AtlasConcept:
 
 
 def test_exact_union_accounts_for_overlap_marginals_cases_and_types() -> None:
+    """Pins union accounting: candidate/overlap/arm-only counts, gold finds, and typed-relation rollups."""
+
     sources = (_concept("source", "a"), _concept("source", "b"))
     targets = (_concept("target", "a"), _concept("target", "b"))
     case = shared.AlignmentCase(
@@ -63,6 +67,8 @@ def test_exact_union_accounts_for_overlap_marginals_cases_and_types() -> None:
 
 
 def test_frontier_functions_keep_asymmetric_complete_tradeoffs() -> None:
+    """Pins the depth Pareto keeps both asymmetric tradeoff points and the recall-cost Pareto drops dominated rows."""
+
     rows = [
         {"lexicalK": 1, "sparseGraphK": 1, "candidates": 10, "found": 1},
         {"lexicalK": 1, "sparseGraphK": 2, "candidates": 15, "found": 2},

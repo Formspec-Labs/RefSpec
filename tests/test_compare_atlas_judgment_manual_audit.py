@@ -1,3 +1,5 @@
+"""Comparison of the blind Atlas judgment sample against the manual audit, exact and refusing drift."""
+
 from __future__ import annotations
 
 import hashlib
@@ -13,6 +15,7 @@ from compare_atlas_judgment_manual_audit import compare
 
 
 def _write_fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
+    """Write a three-row manual audit, its blind sample, and the matching answer key."""
     manual = tmp_path / "manual.md"
     blind_path = tmp_path / "blind.json"
     key_path = tmp_path / "key.json"
@@ -82,6 +85,9 @@ def _write_fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
 def test_compare_separates_exact_support_and_relation_compatibility(
     tmp_path: Path,
 ) -> None:
+    """Pins exact verdict agreement, support/no-support agreement, provider
+    compatibility, and the non-control admission contingency.
+    """
     manual, blind, key = _write_fixture(tmp_path)
 
     result = compare(manual, blind, key)
@@ -112,6 +118,7 @@ def test_compare_separates_exact_support_and_relation_compatibility(
 
 
 def test_compare_rejects_manual_id_or_order_drift(tmp_path: Path) -> None:
+    """A manual row whose audit id or order differs from the blind sample raises ValueError."""
     manual, blind, key = _write_fixture(tmp_path)
     manual.write_text(manual.read_text().replace("audit-a", "audit-d", 1))
 

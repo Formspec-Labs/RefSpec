@@ -50,6 +50,7 @@ def load_graphs(test_sets: Path, source: str) -> tuple[dict[str, set[str]], dict
 
 
 def components(adjacency: dict[str, set[str]]) -> list[int]:
+    """Return connected-component sizes, largest first; nodes absent from the adjacency are not counted."""
     seen: set[str] = set()
     sizes: list[int] = []
     for node in adjacency:
@@ -103,6 +104,7 @@ def two_hop_pairs(adjacency: dict[str, set[str]]) -> set[tuple[str, str]]:
 
 
 def gold_pairs(test_sets: Path, source: str, relation_class: str) -> set[tuple[str, str]]:
+    """Read one relation class's pairs as canonical ordered (lower-IRI, higher-IRI) tuples."""
     pairs: set[tuple[str, str]] = set()
     with (test_sets / f"{source}.jsonl").open(encoding="utf-8") as handle:
         for line in handle:

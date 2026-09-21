@@ -1,16 +1,11 @@
 """The closed logical-record contract Atlas projects its graph through.
 
-This module used to also hold the compact JSONL/Zstandard transport those
-records shipped in.  That wire is gone: the served projection is the typed
-Parquet view, and the tables carry the same records through
-:mod:`refspec.atlas.parquet_tables`.  What survives is the part that was never
-about the transport -- the eight closed roles, each role's exact field set, and
-the one normalization every producer and every verifier must agree on before a
-record is compared to anything.
-
-The names keep the word "compact" deliberately: a compact record is the
-projection of one RDF carrier into flat fields, and that is still exactly what
-these are.  It no longer names a file format.
+Defines the eight closed CompactRecordRole values, each role's exact
+required/optional field set, and normalize_compact_record -- the one
+normalization every producer and verifier must agree on before a record is
+compared. The former JSONL/Zstandard transport is gone; the served projection
+is the typed Parquet view in :mod:`refspec.atlas.parquet_tables`. "Compact"
+names the projection of one RDF carrier into flat fields, not a file format.
 """
 
 from __future__ import annotations
@@ -301,7 +296,13 @@ def normalize_compact_record(
     *,
     path: str = "$",
 ) -> dict[str, Any]:
-    """Return one closed, canonical logical record with its row digest."""
+    """Return one closed, canonical logical record with its row digest.
+
+    Refuses missing or unknown fields, validates every role-specific field, and
+    re-checks a supplied ``canonicalPayloadDigest`` against the normalized
+    record before returning it with the computed digest; malformed input raises
+    CompactPackError.
+    """
 
     record_role = _record_role(role, f"{path}.role")
     schema = _RECORD_SCHEMAS[record_role]

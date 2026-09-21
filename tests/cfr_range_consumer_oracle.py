@@ -28,14 +28,12 @@ def old__held_parts_by_rule(
 ) -> dict[tuple[str, str], set[tuple[int, str]]]:
     """One rule's held CFR parts, keyed by ``(rin, publication_id)``.
 
-    The join every reader of the publisher's own notes needs is the same one:
-    a rule's ``unified_agenda_cfr_references`` rows, restricted to parts the
-    pinned authority-note cache HOLDS -- "49 CFR 1.53" in the LEGAL AUTHORITY
-    column is a delegation the rule cites, not a part it amends, so only the
-    reference table's own part list is read here. Three readers want it now
-    (:func:`_judge_against_cfr_notes`, :func:`_write_placeholder_candidates`,
-    :func:`_promote_two_witness_b8`), which is what makes it a shared helper
-    rather than a third copy of the same nine lines.
+    A rule's ``unified_agenda_cfr_references`` rows restricted to parts the
+    pinned authority-note cache HOLDS: a LEGAL AUTHORITY citation is a
+    delegation the rule cites, not a part it amends, so only the reference
+    table's own part list is read. Shared by the three readers that need the
+    same join (:func:`_judge_against_cfr_notes`,
+    :func:`_write_placeholder_candidates`, :func:`_promote_two_witness_b8`).
     """
 
     held: dict[tuple[str, str], set[tuple[int, str]]] = {}
@@ -50,6 +48,8 @@ def old__held_parts_by_rule(
 
 
 def old__explain_cfr_part(text: str, index: ActIndex, notes: CfrAuthorityNotes) -> TermExplanation | None:
+    """Pre-range oracle: first citation only, and attribution withheld unless exactly one act classifies it."""
+
     citations = parse_cfr_citations(text)
     if not citations:
         return None

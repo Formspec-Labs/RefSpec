@@ -18,6 +18,7 @@ REAL_SOURCE = ROOT / "output" / "registry-real-data-sources" / mapping.LCSH_MESH
 
 
 def test_fixture_translates_only_honest_marc_750_relationships() -> None:
+    """The fixture parses 8 records and 10 linking fields into 4 mappings and 6 named refusals."""
     capture = mapping.parse_lcsh_mesh_marcxml(FIXTURE.read_bytes())
 
     assert capture.record_count == 8
@@ -43,6 +44,7 @@ def test_fixture_translates_only_honest_marc_750_relationships() -> None:
 
 
 def test_fixture_retains_native_field_order_and_explicit_translation_basis() -> None:
+    """Mappings keep native subfields and name their MARC 750 translation basis, and no triple is reversed."""
     capture = mapping.parse_lcsh_mesh_marcxml(FIXTURE.read_bytes())
     exact = next(row for row in capture.mappings if row.predicate_iri == str(SKOS.exactMatch))
     broad = next(row for row in capture.mappings if row.predicate_iri == str(SKOS.broadMatch))
@@ -59,6 +61,7 @@ def test_fixture_retains_native_field_order_and_explicit_translation_basis() -> 
 
 
 def test_zip_reader_refuses_an_unexpected_member() -> None:
+    """A zip whose only member is not the published filename is refused for membership drift."""
     payload = io.BytesIO()
     with ZipFile(payload, "w") as archive:
         archive.writestr("not-the-published-member.xml", FIXTURE.read_bytes())
@@ -69,6 +72,7 @@ def test_zip_reader_refuses_an_unexpected_member() -> None:
 
 @pytest.mark.skipif(not REAL_SOURCE.is_file(), reason="pinned mapping source is not cached")
 def test_pinned_release_accounts_for_every_linking_field() -> None:
+    """Pins the real release's record, linking-field, mapping, predicate and refusal counts and every source digest."""
     capture = mapping.load_lcsh_mesh_mapping(REAL_SOURCE)
 
     assert capture.record_count == mapping.EXPECTED_RECORD_COUNT == 13_329
@@ -96,6 +100,7 @@ def test_pinned_release_accounts_for_every_linking_field() -> None:
 
 @pytest.mark.skipif(not REAL_SOURCE.is_file(), reason="pinned mapping source is not cached")
 def test_pinned_loader_refuses_distribution_drift(tmp_path: Path) -> None:
+    """A one-byte-short distribution is refused for byte length drift."""
     drifted = tmp_path / mapping.LCSH_MESH_MAPPING_FILENAME
     drifted.write_bytes(REAL_SOURCE.read_bytes()[:-1])
 
@@ -105,6 +110,7 @@ def test_pinned_loader_refuses_distribution_drift(tmp_path: Path) -> None:
 
 @pytest.mark.skipif(not REAL_SOURCE.is_file(), reason="pinned mapping source is not cached")
 def test_pinned_predicate_mix_does_not_promote_refused_fields() -> None:
+    """Refused 780 and 788 fields are counted as refusals and never become mappings."""
     capture = mapping.load_lcsh_mesh_mapping(REAL_SOURCE)
     field_tags = Counter(item.source_field.tag for item in capture.refusals)
 

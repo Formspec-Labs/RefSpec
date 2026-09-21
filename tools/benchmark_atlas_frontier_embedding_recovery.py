@@ -1,25 +1,17 @@
-"""E3 frontier half: hosted embedding arms over the ablated Atlas corpus, via Batch.
+"""Run hosted OpenAI and Google embedding arms over the Atlas corpus via Batch, emitting local-sweep npz ranks.
 
-Runs the same ablated corpus as the local dense sweep through OpenAI and Google
-hosted embedding models, using each provider's asynchronous Batch tier rather
-than synchronous calls.  The sealed provider experiment in the candidate ledger
-priced its arms at the standard rate because it never used a batch tier; both
-providers now discount batch work by 50%, and Google exposes
-``asyncBatchEmbedContent`` on every current embedding model.
-
-Arms are submitted in parallel and polled together, because batch jobs are
-independent and latency-bound rather than CPU-bound.  This is the opposite of
-the local sweep, where model families run strictly one after another to stay
-inside memory.
-
-Ranking reuses ``benchmark_atlas_dense_relation_recovery.blockwise_min_ranks``
-and writes the identical compact ``npz`` layout, so hosted arms drop straight
-into the frontier stage beside the local ones.
-
-Job identifiers are persisted as soon as a submission returns, so a collection
-pass can resume against work already paid for instead of resubmitting it.
-
-Credentials are read from the workspace ``.env`` and never logged.
+Runs the same ablated corpus as the local dense sweep through each provider's
+asynchronous batch tier; arms are submitted in parallel and polled together,
+because batch jobs are latency-bound rather than CPU-bound, and job identifiers
+persist in ``--state`` as soon as a submission returns so ``--mode collect``
+resumes already-paid work instead of resubmitting it. Ranking reuses
+``benchmark_atlas_dense_relation_recovery.blockwise_min_ranks`` and writes the
+identical compact ``npz`` layout, so hosted arms drop straight into the frontier
+stage beside the local ones. The Batch path returned vectors that did not
+correspond to their inputs (ELSST rank-1 neighbours came back
+``TRUCKS``/``NEWS ITEMS`` where the synchronous path gives
+``TRUCKS``/``COMPANY CARS``), so ``--mode google-sync`` embeds positionally within
+bounded calls. Credentials are read from the workspace ``.env`` and never logged.
 """
 
 from __future__ import annotations

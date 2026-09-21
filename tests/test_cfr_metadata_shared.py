@@ -1,4 +1,8 @@
-"""Compare the wheel adapters to copied pre-migration readers and mutations."""
+"""Compare the current CFR readers to the frozen pre-migration oracle and its mutations.
+
+Verdicts must agree except for the five named INTENTIONAL_DIVERGENCES, each
+exercised below; they only strengthen decoding or accept ordinary HTML attributes.
+"""
 
 from __future__ import annotations
 
@@ -28,6 +32,8 @@ INTENTIONAL_DIVERGENCES = {
 
 
 def _verdict(reader, payload, pin):
+    """Return ('accept', serialized value) or ('reject', None) for one reader and payload."""
+
     try:
         value = reader(payload, pin=pin)
     except ValueError:
@@ -38,6 +44,8 @@ def _verdict(reader, payload, pin):
 
 
 def _agency_pin(payload):
+    """Repin the eCFR roster identity to the mutated payload's bytes."""
+
     return dataclasses.replace(
         current.ECFR_AGENCIES_2026_08_15,
         expected_sha256=current.sha256_digest(payload),
@@ -46,6 +54,8 @@ def _agency_pin(payload):
 
 
 def _subject_pin(payload, title=40):
+    """Repin a subject-index page identity to the mutated payload's bytes."""
+
     return current.CfrSubjectIndexPin(
         source_url=current.CFR_SUBJECT_INDEX_URL_TEMPLATE.format(title=title),
         retrieved_at="2026-08-20T00:00:00Z",
@@ -57,6 +67,8 @@ def _subject_pin(payload, title=40):
 
 
 def test_full_roster_agrees_with_frozen_reader():
+    """Pin that the full eCFR roster yields the same verdict and records as the frozen reader."""
+
     pin = current.ECFR_AGENCIES_2026_08_15
     assert _verdict(current.parse_ecfr_agency_roster, ROSTER, pin) == _verdict(
         old.parse_ecfr_agency_roster, ROSTER, pin
@@ -65,6 +77,8 @@ def test_full_roster_agrees_with_frozen_reader():
 
 @pytest.mark.parametrize("pin", current.CFR_SUBJECT_INDEX_2026_08_20, ids=lambda pin: f"title-{pin.cfr_title}")
 def test_all_fifty_retained_pages_agree_with_frozen_reader(pin):
+    """Pin that all 50 retained subject-index pages yield the same verdict and rows as the frozen reader."""
+
     payload = (FIXTURES / f"subject-index/subject-title-{pin.cfr_title:02d}.html").read_bytes()
     assert _verdict(current.parse_cfr_subject_index, payload, pin) == _verdict(
         old.parse_cfr_subject_index, payload, pin
@@ -92,6 +106,8 @@ def test_all_fifty_retained_pages_agree_with_frozen_reader(pin):
     ],
 )
 def test_agency_mutation_verdicts_agree(mutation):
+    """Pin equal accept/reject verdicts with the oracle across 15 agency-roster mutations."""
+
     root = json.loads(ROSTER)
     row = root["agencies"][0]
     match mutation:
@@ -154,6 +170,8 @@ def test_agency_mutation_verdicts_agree(mutation):
     ],
 )
 def test_subject_mutation_verdicts_and_values_agree(payload):
+    """Pin equal verdicts and parsed values with the oracle across 16 subject-page mutations."""
+
     pin = _subject_pin(payload)
     assert _verdict(current.parse_cfr_subject_index, payload, pin) == _verdict(
         old.parse_cfr_subject_index, payload, pin
@@ -162,6 +180,8 @@ def test_subject_mutation_verdicts_and_values_agree(payload):
 
 @pytest.mark.parametrize("name", INTENTIONAL_DIVERGENCES)
 def test_only_named_divergences_change_verdict(name):
+    """Pin the exact (old, current) verdict pair for each named intentional divergence."""
+
     if name == "duplicate_json_key":
         payload = ROSTER.replace(b'"agencies":', b'"agencies":[],"agencies":', 1)
     elif name == "utf16_json":
@@ -183,6 +203,8 @@ def test_only_named_divergences_change_verdict(name):
 
 
 def test_inspection_roster_walk_matches_its_looser_frozen_reader():
+    """Pin that spicy_docs' looser roster walk returns the same raw rows as the oracle's flatten."""
+
     from spicy_docs.sources.cfr.agencies import read_ecfr_agency_roster
 
     source = read_ecfr_agency_roster(ROSTER)
@@ -236,6 +258,8 @@ def _inspect_agencies(payload):
     "mutation", ["unchanged", "unknown_field", "scalar_child", "missing_child_slug", "bad_children"]
 )
 def test_actual_inspection_agency_acceptance_matches_frozen_walk(mutation):
+    """Pin that the real inspection path accepts or refuses agencies exactly as the frozen walk does."""
+
     root = json.loads(ROSTER)
     row = root["agencies"][0]
     if mutation == "unknown_field":

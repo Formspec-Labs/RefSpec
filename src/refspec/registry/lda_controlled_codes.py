@@ -95,6 +95,8 @@ class LDAConstantSource:
     expected_count: int
 
     def __post_init__(self) -> None:
+        """Refuse a non-official URL, credentials, or a multi-component filename."""
+
         parsed = urlsplit(self.source_url)
         if parsed.scheme != "https" or parsed.hostname != "lda.gov":
             raise LDAAcquisitionError("source_url must be an official HTTPS lda.gov URL")
@@ -134,6 +136,8 @@ class LDASnapshotPin:
     publisher_release: str | None = None
 
     def __post_init__(self) -> None:
+        """Refuse a malformed digest, non-positive length, or empty version fields."""
+
         if _DIGEST.fullmatch(self.expected_sha256) is None:
             raise LDAAcquisitionError("expected_sha256 must be a lowercase sha256:<64 hex> digest")
         if self.expected_byte_length <= 0:
@@ -282,6 +286,8 @@ def sha256_digest(payload: bytes) -> str:
 
 
 def _validate_resolved_url(value: str) -> None:
+    """Refuse a resolved URL that left official HTTPS lda.gov."""
+
     parsed = urlsplit(value)
     if parsed.scheme != "https" or parsed.hostname != "lda.gov":
         raise LDAAcquisitionError("fetcher resolved_url must remain on official HTTPS lda.gov")
@@ -290,6 +296,8 @@ def _validate_resolved_url(value: str) -> None:
 
 
 def _verify_payload(payload: bytes, pin: LDASnapshotPin, *, location: str) -> tuple[str, int]:
+    """Refuse a payload whose byte length or digest differs from the pin."""
+
     byte_length = len(payload)
     if byte_length != pin.expected_byte_length:
         raise LDASourceDriftError(
@@ -306,6 +314,8 @@ def _verify_payload(payload: bytes, pin: LDASnapshotPin, *, location: str) -> tu
 
 
 def _verify_existing(path: Path, pin: LDASnapshotPin) -> AcquiredLDASource:
+    """Re-verify one cached LDA source object and return its acquisition record."""
+
     if path.is_symlink() or not path.is_file():
         raise LDAAcquisitionError(f"content-addressed target is not a regular file: {path}")
     actual_sha256, byte_length = _verify_payload(
@@ -337,6 +347,8 @@ def _publish_payload(
     resolved_url: str | None,
     local_source_path: Path | None,
 ) -> AcquiredLDASource:
+    """Publish verified LDA bytes by hard link, falling back to a verified existing object."""
+
     actual_sha256, byte_length = _verify_payload(
         payload,
         pin,
@@ -543,6 +555,8 @@ def assemble_lda_control_portfolio(
 
 
 def _assignment(code: LDACode, source_field: str) -> LDAFilingCodeAssignment:
+    """Copy one validated code into a record-field assignment."""
+
     return LDAFilingCodeAssignment(
         source_field=source_field,
         publisher_label=code.publisher_label,

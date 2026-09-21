@@ -543,14 +543,12 @@ def load_lc_external_links_mapping_release(
 ) -> RegistryMappingRelease:
     """Load every exact LC assertion whose two endpoints carry real content.
 
-    The LCSH (subject) side resolves against the consolidated LCSH release
+    The LCSH side resolves against the consolidated LCSH release
     (``v3_registry_alignments_lcsh.load_lcsh_consolidated_release``): every
-    current LCSH heading, plus the deprecated headings this and the other
-    held mappings reference. This release previously bootstrapped its own
-    LCSH endpoint capture (the retired ``lcsh-external-links-endpoints``
-    release); the consolidated release already holds every one of its
-    candidate subjects that the bulk file contains at all, so the emitted
-    count is unchanged -- only the LCSH endpoint's owning release changes.
+    current heading plus the deprecated headings this and other held mappings
+    reference. It replaces the retired bespoke ``lcsh-external-links-endpoints``
+    capture with no change to the emitted count, and rows are omitted only when
+    the pinned LCSH bulk file has no subject record at all.
     """
 
     capture, fast_release, _active_fast_emitted, outside_current_fast, _missing_active_fast_subject = (

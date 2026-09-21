@@ -63,6 +63,8 @@ class RegistryCatalogBinding:
 
     @property
     def scheme_iri(self) -> str:
+        """The Atlas resource-scheme IRI derived from ``resource_id``."""
+
         return f"urn:ref:atlas-resource-scheme:{self.resource_id}"
 
 

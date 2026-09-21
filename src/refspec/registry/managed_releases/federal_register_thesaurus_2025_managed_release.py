@@ -268,6 +268,8 @@ class FederalRegisterThesaurus2025ManagedRelease:
         return dict(sorted(artifacts.items()))
 
     def write_to(self, output_dir: Path | str) -> Mapping[str, Path]:
+        """Write every artifact, refusing to overwrite a different existing file."""
+
         root = Path(output_dir)
         root.mkdir(parents=True, exist_ok=True)
         written: dict[str, Path] = {}
@@ -457,6 +459,8 @@ class FederalRegisterThesaurus2025ManagedReleaseView:
         cls,
         manifest_path: Path | str,
     ) -> FederalRegisterThesaurus2025ManagedReleaseView:
+        """Open a sealed package, verifying every seal and artifact digest before parsing."""
+
         path = Path(manifest_path)
         if path.is_symlink() or not path.is_file():
             raise FederalRegisterThesaurus2025ManagedReleaseError(

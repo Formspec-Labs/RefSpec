@@ -131,6 +131,8 @@ class _CoverageLexicalRDFSink(RDFSink):
         dt: URIRef | None,
         lang: str | None,
     ) -> RdfLiteral:
+        """Build a literal with ``normalize=False`` so census identities are the source's own bytes."""
+
         return RdfLiteral(
             s,
             datatype=dt,
@@ -143,6 +145,8 @@ class _CoverageLexicalRDFSink(RDFSink):
         quadruple: tuple[object, Identifier, Identifier, Identifier],
         why: object | None = None,
     ) -> None:
+        """Census one statement in place; refuses a non-default graph and skips unmapped predicates."""
+
         del why
         formula, predicate, subject, object_value = quadruple
         subject = self.normalise(formula, subject)  # type: ignore[arg-type]
@@ -204,9 +208,14 @@ class _AssertionCollector:
 
     @classmethod
     def empty(cls) -> _AssertionCollector:
+        """An empty collector."""
+
         return cls(hashes=set(), examples={})
 
     def add(self, canonical_identity: str) -> None:
+        """Record one canonical assertion identity, keeping at most three examples for diagnostics."""
+
+
         assertion_hash = hashlib.sha256(
             canonical_identity.encode("utf-8")
         ).digest()
@@ -214,6 +223,8 @@ class _AssertionCollector:
         self._add_example(assertion_hash, canonical_identity)
 
     def update(self, other: _AssertionCollector) -> None:
+        """Union another collector's identities and examples into this one."""
+
         self.hashes.update(other.hashes)
         for assertion_hash, identity in other.examples.items():
             self._add_example(assertion_hash, identity)
@@ -222,6 +233,8 @@ class _AssertionCollector:
         self,
         other: _AssertionCollector,
     ) -> _AssertionCollector:
+        """The identities present in both collectors, with examples only for shared hashes."""
+
         result = _AssertionCollector.empty()
         result.hashes = self.hashes & other.hashes
         for source in (self, other):
@@ -250,6 +263,8 @@ class _AssertionCollector:
             self.examples[assertion_hash] = identity
 
     def freeze(self, feature: str) -> ElsstFeatureCensus:
+        """Freeze into a census whose digest covers the sorted hashes under the versioned domain."""
+
         assertion_hashes = frozenset(self.hashes)
         digest = hashlib.sha256()
         digest.update(_ASSERTION_SET_DIGEST_DOMAIN)
@@ -307,9 +322,13 @@ class ElsstFeatureCensus:
 
     @property
     def count(self) -> int:
+        """How many distinct assertion identities this feature holds."""
+
         return len(self.assertion_hashes)
 
     def diagnostic_for(self, assertion_hash: bytes) -> str:
+        """The canonical example for a hash, or its hex digest when no example was retained."""
+
         examples = dict(self.canonical_examples)
         return examples.get(
             assertion_hash,
@@ -327,6 +346,8 @@ class ElsstImportCensus:
     features: tuple[ElsstFeatureCensus, ...]
 
     def feature(self, name: str) -> ElsstFeatureCensus:
+        """The exactly one census for ``name``; raises when absent or duplicated."""
+
         matches = [item for item in self.features if item.feature == name]
         if len(matches) != 1:
             raise ElsstImportCoverageError(f"{self.stage} census does not contain exactly one {name!r} feature")
@@ -360,6 +381,8 @@ class ElsstImportCoverageValidation:
 
     @property
     def passed(self) -> bool:
+        """Whether the three stages hold identical assertion sets for every feature."""
+
         return not self.differences
 
     def feature_rows(
@@ -367,6 +390,8 @@ class ElsstImportCoverageValidation:
         *,
         required_features: Sequence[str] = ELSST_COVERAGE_FEATURES,
     ) -> tuple[dict[str, Any], ...]:
+        """Per-feature row dicts, refusing a required name outside the known coverage features."""
+
         required = frozenset(required_features)
         unknown = required - frozenset(ELSST_COVERAGE_FEATURES)
         if unknown:

@@ -1,3 +1,5 @@
+"""Pin the Atlas 3.1 binding's sealed corpus, validator portability, contract digests, and Makefile tiers."""
+
 from __future__ import annotations
 
 import hashlib
@@ -28,6 +30,8 @@ import validate as atlas_validate
 
 
 def test_mapping_predicate_translation_table_admits_only_live_source_translations() -> None:
+    """Pin the admitted translation set to exactly the seven live source predicates."""
+
     assert atlas_validate.ADMITTED_MAPPING_PREDICATE_TRANSLATIONS == {
         ("http://schema.org/sameAs", str(SKOS.exactMatch)),
         (
@@ -48,6 +52,8 @@ def test_mapping_predicate_translation_table_admits_only_live_source_translation
 def _load_distribution(
     distribution: Path = VALID_DISTRIBUTION,
 ) -> tuple[Dataset, dict[str, Graph], dict[str, object]]:
+    """Parse the packed distribution into a dataset, its named graphs, and the manifest."""
+
     manifest = json.loads(
         (distribution / "atlas-manifest.json").read_text(encoding="utf-8")
     )
@@ -59,6 +65,8 @@ def _load_distribution(
 
 
 def _rdf_pack_text(distribution: Path = VALID_DISTRIBUTION) -> str:
+    """Return the concatenated decompressed pack text of the distribution."""
+
     manifest = json.loads(
         (distribution / "atlas-manifest.json").read_text(encoding="utf-8")
     )
@@ -77,6 +85,8 @@ def _standalone(
     *arguments: str,
     environment: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
+    """Run the binding validator under uv with the binding's pinned requirements."""
+
     return subprocess.run(
         [
             "uv",
@@ -98,6 +108,8 @@ def _standalone(
 
 @pytest.mark.slow
 def test_atlas_v3_binding_and_sealed_corpus_pass() -> None:
+    """Pin the standalone validator's exit 0 and the frozen corpus counts."""
+
     completed = _standalone()
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
@@ -111,7 +123,7 @@ def test_atlas_v3_binding_and_sealed_corpus_pass() -> None:
 
 @pytest.mark.slow
 def test_memory_fallback_matches_the_sealed_corpus() -> None:
-    """The stock store remains a complete oracle and operational fallback."""
+    """Pin that the memory-store fallback yields the same corpus counts as the stock store."""
 
     completed = _standalone(
         environment={atlas_validate.RDF_STORE_ENV: atlas_validate.MEMORY_STORE}
@@ -155,24 +167,12 @@ def _makefile_rule(name: str, makefile: Path | None = None) -> tuple[list[str], 
 
 
 def test_the_aggregate_test_target_runs_the_sealed_corpus_exactly_once() -> None:
-    """`make test` reaches the sealed corpus through the slow tier, once.
+    """Pin that `make test` reaches the sealed corpus exactly once: both tiers listed, `test-atlas-v3` not, recipe
+    matching ``_standalone()``.
 
-    The corpus pass is one subprocess over the whole sealed corpus, run by
-    ``test_atlas_v3_binding_and_sealed_corpus_pass`` above. That test is
-    ``@pytest.mark.slow``, so `test-package`'s `-m "not slow"` does not run
-    it -- only `test-slow` (`-m slow`) does. `test` must therefore list
-    `test-slow` as a prerequisite, or the corpus (and the rest of the
-    slow-marked tier) silently stops running under `make test`, which is
-    exactly what happened between the slow-marking pass on 2026-08-23 and
-    the fix that added this line: `test-package` was the only tier wired
-    into `test`, so `make test` alone no longer reached the sealed corpus or
-    the rest of the slow tier at all. `test` must also still not list
-    `test-atlas-v3`: doing so would run the identical corpus subprocess a
-    second time for the same answer, which is the waste this check has
-    always guarded against. This check keeps all three parts of that claim
-    true: `test-package` and `test-slow` are both listed, `test-atlas-v3` is
-    not, and the standalone target still invokes exactly what
-    ``_standalone()`` invokes.
+    The corpus pass is ``@pytest.mark.slow``, so only `test-slow` (`-m slow`)
+    runs it; dropping it silently stopped the whole slow tier under `make test`
+    between the 2026-08-23 slow-marking pass and the fix.
     """
 
     prerequisites, _ = _makefile_rule("test")
@@ -285,15 +285,11 @@ def _slow_tier_partition_violation(makefile: Path) -> str | None:
 
 
 def test_the_slow_tier_guard_rejects_a_makefile_that_breaks_the_partition(tmp_path: Path) -> None:
-    """The guard above must fail under each mutation it exists to catch.
+    """Pin that the partition guard fails under both mutations (corpus twice, corpus never) and accepts the clean copy.
 
-    Review finding 10: the guard asserted only that `test` lists
-    `test-package` and `test-slow` and not `test-atlas-v3`. Both mutations
-    below leave that prerequisite list untouched -- the first runs the sealed
-    corpus twice, the second runs it zero times, and the old guard stayed
-    green through either. Each is applied to a COPY of the Makefile, which is
-    what the ``makefile`` parameter on ``_makefile_rule`` is for; the
-    repository's Makefile is only ever read.
+    Both mutations leave the prerequisite list untouched -- which is why the
+    old guard stayed green through either -- and are applied to a copy, never
+    the real Makefile.
     """
 
     original = MAKEFILE.read_text(encoding="utf-8")
@@ -314,6 +310,8 @@ def test_the_slow_tier_guard_rejects_a_makefile_that_breaks_the_partition(tmp_pa
 
 
 def test_all_resource_profiles_fixture_has_synthetic_semantic_coverage() -> None:
+    """Pin the all-profiles fixture's semantic counts, 1474 quads, and 7 inferred mappings."""
+
     completed = _standalone("--distribution", str(VALID_DISTRIBUTION))
     assert completed.returncode == 0, completed.stderr
     result = json.loads(completed.stdout)
@@ -338,6 +336,8 @@ def test_all_resource_profiles_fixture_has_synthetic_semantic_coverage() -> None
 
 
 def test_cross_ring_assertions_project_with_both_ring_directions() -> None:
+    """Pin the three cross-ring assertions and that each projects with both directed rings."""
+
     _dataset, graphs, _manifest = _load_distribution()
     asserted = graphs["asserted"]
     projection = graphs["projection"]
@@ -379,6 +379,8 @@ def test_cross_ring_assertions_project_with_both_ring_directions() -> None:
 
 
 def test_exact_match_entailment_does_not_become_an_editorial_assertion() -> None:
+    """Pin that an exactMatch entailment stays a derived relation, never an asserted mapping."""
+
     _dataset, graphs, _manifest = _load_distribution()
     source = URIRef("urn:ref:atlas-fixture:resource:subject-a")
     target = URIRef("urn:ref:atlas-fixture:resource:subject-c")
@@ -399,6 +401,9 @@ def test_exact_match_entailment_does_not_become_an_editorial_assertion() -> None
 
 
 def test_ontology_uses_the_declared_safe_local_profile() -> None:
+    """Pin that the ontology avoids unsafe OWL constructs and SKOS subjects, and that an injected inverseOf is refused.
+    """
+
     graph = Graph().parse(BINDING_ROOT / "ontology" / "atlas.ttl", format="turtle")
 
     forbidden_types = {
@@ -423,12 +428,11 @@ def test_ontology_uses_the_declared_safe_local_profile() -> None:
 
 
 def test_review_warrants_describe_basis_without_product_permission() -> None:
-    """The six warrants survive the decomposition, and stay warrants.
+    """Pin the six admissible warrant-axis values and that no atlas: term or permission keyword survives.
 
-    atlas:reviewMethod was one enum conflating four Rulespec axes. Splitting it
-    would ordinarily lose the closure, so the admissible combinations are
-    enumerated instead -- still six, still distinguishable, and still saying
-    only what grounds a claim rather than what a consumer may do with it.
+    atlas:reviewMethod was one enum conflating four Rulespec axes; the closure
+    is enumerated instead so it stays six, distinguishable, and about grounding
+    rather than about what a consumer may do.
     """
 
     graph = Graph().parse(BINDING_ROOT / "ontology" / "atlas.ttl", format="turtle")
@@ -458,6 +462,8 @@ def test_review_warrants_describe_basis_without_product_permission() -> None:
 
 
 def test_canonical_rdf_renderer_escapes_terms_without_false_blank_nodes() -> None:
+    """Pin that the renderer escapes newlines/tabs/quotes and leaves a literal's ``_:`` as text."""
+
     literal = Literal('line one\nline\ttwo "quoted" — café _:not-a-node', lang="en")
     assert atlas_validate.ntriples_term(literal) == (
         '"line one\\nline\\ttwo \\"quoted\\" — café _:not-a-node"@en'
@@ -469,6 +475,8 @@ def test_canonical_rdf_renderer_escapes_terms_without_false_blank_nodes() -> Non
 
 
 def test_multi_ring_scheme_is_selected_by_ring_specific_releases() -> None:
+    """Pin that a multi-ring scheme takes supportedRing from its ring-specific releases, with no semanticRing."""
+
     _dataset, graphs, _manifest = _load_distribution()
     asserted = graphs["asserted"]
     scheme = URIRef("urn:ref:atlas-fixture:scheme:mixed-code")
@@ -488,6 +496,8 @@ def test_multi_ring_scheme_is_selected_by_ring_specific_releases() -> None:
 
 
 def test_supersession_projects_only_the_terminal_current_claim() -> None:
+    """Pin that only the successor assertion projects while the superseded predecessor is dropped."""
+
     distribution = (
         BINDING_ROOT / "fixtures" / "valid" / "superseded-policy-revision"
     )
@@ -525,6 +535,8 @@ def _policy_node_digest(graph: Graph, node: URIRef) -> str:
 
 
 def test_assertion_identity_independently_excludes_lifecycle_and_evidence() -> None:
+    """Pin that the assertion digest recomputes from its nine basis fields and excludes lifecycle/evidence fields."""
+
     _dataset, graphs, _manifest = _load_distribution()
     asserted = graphs["asserted"]
     assertion = next(asserted.subjects(RDF.type, ATLAS.MappingAssertion))
@@ -558,6 +570,8 @@ def test_assertion_identity_independently_excludes_lifecycle_and_evidence() -> N
 
 
 def test_cross_ring_assertion_identity_uses_both_directed_rings() -> None:
+    """Pin that cross-ring assertion identity includes both directed rings and no semanticRing."""
+
     _dataset, graphs, _manifest = _load_distribution()
     asserted = graphs["asserted"]
     assertion = next(
@@ -594,6 +608,8 @@ def test_cross_ring_assertion_identity_uses_both_directed_rings() -> None:
 
 
 def test_fixture_corpus_rebuild_is_exact() -> None:
+    """Pin that --check rebuilds the fixture corpus exactly."""
+
     result = subprocess.run(
         [
             "uv",
@@ -614,6 +630,8 @@ def test_fixture_corpus_rebuild_is_exact() -> None:
 
 
 def test_portable_validator_does_not_import_refspec() -> None:
+    """Pin that the binding's validator and substrate parser never import refspec."""
+
     for path in (
         VALIDATOR_PATH,
         BINDING_ROOT / "tools" / "parse_substrate.py",
@@ -642,6 +660,8 @@ def _sandboxed_repository(tmp_path: Path) -> Path:
 
 
 def _sandboxed_check(root: Path) -> subprocess.CompletedProcess[str]:
+    """Run the fixture builder's --check inside the sandboxed copy."""
+
     binding = root / "bindings" / "atlas" / "3.1"
     return subprocess.run(
         [
@@ -662,6 +682,8 @@ def _sandboxed_check(root: Path) -> subprocess.CompletedProcess[str]:
 
 
 def test_fixture_receipt_fast_path_passes_on_a_clean_tree(tmp_path: Path) -> None:
+    """Pin that a clean tree takes the receipt fast path without rebuilding."""
+
     result = _sandboxed_check(_sandboxed_repository(tmp_path))
 
     assert result.returncode == 0, result.stderr
@@ -671,6 +693,8 @@ def test_fixture_receipt_fast_path_passes_on_a_clean_tree(tmp_path: Path) -> Non
 
 @pytest.mark.slow
 def test_a_single_edited_fixture_byte_forces_the_rebuild_and_fails(tmp_path: Path) -> None:
+    """Pin that one edited corpus byte defeats the receipt, forces the rebuild, and fails."""
+
     root = _sandboxed_repository(tmp_path)
     tampered = root / "bindings" / "atlas" / "3.1" / "fixtures" / "corpus.json"
     payload = tampered.read_bytes()
@@ -687,6 +711,8 @@ def test_a_single_edited_fixture_byte_forces_the_rebuild_and_fails(tmp_path: Pat
 
 @pytest.mark.slow
 def test_an_edited_builder_input_forces_the_rebuild(tmp_path: Path) -> None:
+    """Pin that a changed ontology byte forces re-derivation rather than trusting the receipt."""
+
     root = _sandboxed_repository(tmp_path)
     ontology = root / "bindings" / "atlas" / "3.1" / "ontology" / "atlas.ttl"
     ontology.write_bytes(ontology.read_bytes() + b"\n# an input digest the receipt does not know\n")
@@ -702,6 +728,8 @@ def test_an_edited_builder_input_forces_the_rebuild(tmp_path: Path) -> None:
 
 @pytest.mark.slow
 def test_a_missing_or_unparseable_receipt_falls_back_to_the_rebuild(tmp_path: Path) -> None:
+    """Pin that a corrupt or absent receipt falls back to rebuild-and-compare."""
+
     root = _sandboxed_repository(tmp_path)
     receipt = root / "bindings" / "atlas" / "3.1" / "fixtures-receipt.json"
 
@@ -717,14 +745,11 @@ def test_a_missing_or_unparseable_receipt_falls_back_to_the_rebuild(tmp_path: Pa
 
 
 def test_tool_edits_do_not_move_the_contract_digest_but_ontology_edits_do() -> None:
-    """`contractDigest` pins what conformance means, not what computed it.
+    """Pin that the three contract inputs reissue contractDigest while tool edits are refused as not in the contract.
 
-    Every case's manifest and acceptance record carries this digest, so
-    whatever it covers must be reissued across the full corpus whenever it moves.
-    Keeping the tools inside it meant a one-line edit to the builder or the
-    validator reissued the whole corpus for a contract that had not changed.
-    Which validator produced a verdict is still pinned, separately and by name,
-    through VALIDATOR_ID/VALIDATOR_VERSION.
+    Keeping the tools out means a one-line builder or validator edit no longer
+    reissues the whole corpus for an unchanged contract; which validator
+    produced a verdict is pinned separately by VALIDATOR_ID/VALIDATOR_VERSION.
     """
 
     baseline = atlas_validate._binding_digests()["contractDigest"]
@@ -748,6 +773,8 @@ def test_tool_edits_do_not_move_the_contract_digest_but_ontology_edits_do() -> N
 
 
 def test_derived_rule_registry_is_contract_covered_and_matches_the_executable_roster() -> None:
+    """Pin that the registry is contract-covered, canonical, matches the executable roster, and holds 6 rules."""
+
     relative = Path("admitted-derived-rules.json")
     assert relative in atlas_validate.CONTRACT_PATHS
     document = atlas_validate._load_json(
@@ -760,6 +787,8 @@ def test_derived_rule_registry_is_contract_covered_and_matches_the_executable_ro
 
 
 def test_derived_rule_registry_refuses_semantic_drift_from_the_executable_roster() -> None:
+    """Pin that a drifted admittedPredicates list raises binding.derived-rule-registry."""
+
     document = json.loads(
         json.dumps(atlas_validate._derived_rule_registry_document())
     )
@@ -772,15 +801,11 @@ def test_derived_rule_registry_refuses_semantic_drift_from_the_executable_roster
 
 
 def test_growing_the_conformance_corpus_leaves_the_contract_where_it_was() -> None:
-    """Contract identity and proof identity are two different questions.
+    """Pin that fixtures/corpus.json is outside the contract and recorded in the acceptance record instead (REF-029).
 
-    `fixtures/corpus.json` used to sit inside the contract digest, so adding one
-    conformance case moved `binding.contractDigest` in every manifest, every
-    acceptance record and every construction summary on disk -- breaking the
-    external manifest pins and invalidating a signed release for a contract
-    that had not changed a byte. The corpus is what proves the VALIDATOR, so it
-    is recorded where the validation event is described: beside the validator
-    identity in the acceptance record (REF-029).
+    Inside contractDigest, adding one conformance case moved every manifest and
+    acceptance record on disk, breaking external pins and invalidating a signed
+    release for a contract that had not changed a byte.
     """
 
     assert Path("fixtures/corpus.json") not in atlas_validate.CONTRACT_PATHS
@@ -805,12 +830,10 @@ def test_growing_the_conformance_corpus_leaves_the_contract_where_it_was() -> No
 
 
 def test_the_hoisted_longest_test_still_exists() -> None:
-    """conftest.py names one test to schedule first; keep that pointer honest.
+    """Pin that conftest.LONGEST_TEST still names a test in this module.
 
-    The hook stays silent when the id is absent, so that a narrower run can
-    collect part of this module without tripping over it. This is the check
-    that notices instead -- a rename or removal fails here rather than quietly
-    costing the suite ~34s of serial tail forever.
+    The scheduling hook stays silent when the id is absent, so only this check
+    notices a rename instead of quietly losing the serial-tail optimization.
     """
 
     import conftest

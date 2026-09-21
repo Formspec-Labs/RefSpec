@@ -219,20 +219,15 @@ def _verify_sealed_registry_artifact_distribution(
 ) -> None:
     """A sealed registry artifact, verified by the receipt it was sealed with.
 
-    REF-069. The distribution declares `receipt.json` as its manifest, and the
-    receipt's own `outputs` block already states every table, its digest and
-    its row count. This checks that the declared file inventory and the receipt
-    agree in BOTH directions -- every output the receipt names is distributed
-    at the digest it names, and the distribution carries no table the receipt
-    disowns -- which is what stops a package from shipping a file its own seal
-    never saw.
-
-    It deliberately does NOT reimplement the artifact's schema and coverage
-    checks. `usc_act_index.verify_artifact` performs those against the built
-    directory, including column names and types, row counts, coverage
-    cross-checks and, since 2026-09-05, the producing modules' bytes. Writing a
-    second implementation here would be a second thing to keep in step, and the
-    first divergence between them would present as a passing check.
+    REF-069: the distribution declares ``receipt.json`` as its manifest, and
+    this checks the declared file inventory and the receipt's ``outputs`` agree
+    in BOTH directions -- every named output is distributed at the digest it
+    names, and no distributed table is disowned -- which stops a package from
+    shipping a file its own seal never saw. It deliberately does not
+    reimplement the artifact's schema and coverage checks
+    (``usc_act_index.verify_artifact`` performs those): a second implementation
+    would be a second thing to keep in step, and the first divergence between
+    them would present as a passing check.
     """
 
     if manifest_file.name != "receipt.json":

@@ -89,6 +89,8 @@ class NRCAPSPdfPin:
     expected_page_count: int
 
     def __post_init__(self) -> None:
+        """Refuse a non-official URL, credentials, a malformed digest, or a bad timestamp."""
+
         parsed = urlsplit(self.source_url)
         if parsed.scheme != "https" or parsed.hostname != "adams-search.nrc.gov":
             raise NRCAPSAcquisitionError("source_url must be an official HTTPS adams-search.nrc.gov URL")
@@ -366,6 +368,8 @@ class ParsedAPSAPIGuide:
 
 
 def _read_pinned_pdf(source_path: Path, pin: NRCAPSPdfPin, *, location: str):
+    """Read a pinned PDF, refusing a non-regular file, a digest mismatch, or non-PDF magic."""
+
     path = Path(source_path)
     if path.is_symlink() or not path.is_file():
         raise NRCAPSAcquisitionError(f"{location} is not a regular file: {path}")
@@ -395,10 +399,14 @@ def _read_pinned_pdf(source_path: Path, pin: NRCAPSPdfPin, *, location: str):
 
 
 def _normalized_page_text(reader, index: int) -> str:
+    """Extract one page's text, folded and whitespace-normalized."""
+
     return re.sub(r"\s+", " ", fold_pdf_text(reader.pages[index].extract_text() or "")).strip()
 
 
 def _document_information(reader, *, location: str) -> dict[str, str]:
+    """Read the pinned PDF document-information timestamps, refusing their absence."""
+
     metadata = reader.metadata
     if metadata is None:
         raise NRCAPSSourceDriftError(f"{location} carries no PDF document information")
@@ -584,6 +592,8 @@ def parse_aps_user_manual(source_path: Path, *, pin: NRCAPSPdfPin) -> ParsedAPSU
 
 
 def _parse_region_items(regex: re.Pattern[str], region: str, *, location: str) -> list[re.Match[str]]:
+    """Every match of ``regex`` in a region, refusing a region with none."""
+
     matches = list(regex.finditer(region))
     if not matches:
         raise NRCAPSSourceDriftError(f"{location} lists no parseable items")

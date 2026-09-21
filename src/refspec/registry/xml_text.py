@@ -18,9 +18,11 @@ _SEPARATOR_RANK = {'': 0, ' ': 1, '\t': 2, '\n\n': 3}
 def read_text(xml: bytes, *, profile: str | None = None) -> dict[str, Any]:
     """Map decoded codepoints after the shared parser checks source size and depth.
 
-    The 256 MiB input limit admits retained full eCFR titles. It does not bound
-    memory use or processing time. Inert external DOCTYPE declarations are
-    accepted without loading them; internal subsets and entities are refused.
+    Returns ``text``, raw ``source_text``, a ``source_map`` of source and
+    inserted spans, and ``nodes`` spans keyed by XPath-like path. The 256 MiB
+    input limit admits retained full eCFR titles; it does not bound memory use
+    or processing time. Inert external DOCTYPE declarations are accepted
+    without loading them; internal subsets and entities are refused.
     """
     root = parse_xml(xml, max_bytes=MAX_XML_BYTES, max_depth=MAX_XML_DEPTH,
                      error_type=ValueError, label='Publisher text XML',

@@ -1,3 +1,5 @@
+"""Pin the Atlas 3.1 registry-descriptor proof, byte-exact regeneration, and SHACL conformance."""
+
 from __future__ import annotations
 
 import hashlib
@@ -54,6 +56,8 @@ def _load(path: Path) -> dict:
 
 
 def _input_digest(document: dict, digest_field: str, identity_field: str | None) -> str:
+    """Return the canonical digest of a document excluding its digest and optional identity field."""
+
     excluded = {digest_field}
     if identity_field is not None:
         excluded.add(identity_field)
@@ -70,6 +74,8 @@ def _node_digest(graph, node: URIRef) -> str:
 
 
 def test_descriptor_proof_pins_exact_registry_inputs_and_output() -> None:
+    """Pin the proof's own digest, every input/output digest, and the frozen 3.1 counts."""
+
     catalog = _load(CATALOG)
     index = _load(INDEX)
     profiles = _load(PROFILES)
@@ -137,6 +143,8 @@ def test_descriptor_proof_pins_exact_registry_inputs_and_output() -> None:
 
 
 def test_descriptor_canonicalization_inspects_terms_not_literal_text() -> None:
+    """Pin that a JSON literal spelling ``_:`` is not mistaken for a blank node when canonicalizing."""
+
     text = (
         "<urn:ref:test:scheme> <https://refspec.org/ns/atlas/v3#descriptorPayload> "
         '"{\\"marker\\":\\"_:not-a-node\\"}"^^'
@@ -156,6 +164,8 @@ def test_descriptor_canonicalization_inspects_terms_not_literal_text() -> None:
 
 
 def test_every_catalog_row_has_one_source_and_member_sources_have_schemes() -> None:
+    """Pin one source descriptor per catalog row, scheme membership, ring support, and exact payloads."""
+
     catalog = _load(CATALOG)
     index = _load(INDEX)
     profiles = _load(PROFILES)
@@ -271,6 +281,8 @@ def test_every_catalog_row_has_one_source_and_member_sources_have_schemes() -> N
 
 
 def test_checked_descriptor_bytes_are_exactly_regenerable() -> None:
+    """Pin that the generator reproduces both checked-in bytes and the frozen CLI count line."""
+
     spec = importlib.util.spec_from_file_location("generate_atlas_v3_registry_descriptors", TOOL)
     assert spec is not None and spec.loader is not None
     generator = importlib.util.module_from_spec(spec)
@@ -299,6 +311,8 @@ def test_checked_descriptor_bytes_are_exactly_regenerable() -> None:
 
 
 def test_real_registry_descriptors_conform_to_atlas_shacl() -> None:
+    """Pin that the checked-in registry descriptors validate against the atlas ontology and shapes."""
+
     dataset = Dataset()
     dataset.parse(DATASET_PATH, format="nquads")
     graph = Graph(identifier=GRAPH_IRI)

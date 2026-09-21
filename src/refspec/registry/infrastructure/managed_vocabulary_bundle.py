@@ -106,13 +106,14 @@ def _replace_linked_record_digests(
 def reseal_linked_ref_records(
     records: Sequence[Mapping[str, Any]],
 ) -> tuple[dict[str, Any], ...]:
-    """Refresh a closed acyclic set of linked REF records.
+    """Refresh a closed acyclic set of linked REF records in dependency order.
 
     Schema evolution can change one immutable record's digest and therefore
-    every record that carries an exact reference to it. This helper performs
-    that mechanical propagation in dependency order. It changes only local
-    ``{id, digest}`` references and each record's canonical digest; callers
-    remain responsible for the semantic edit and final binding validation.
+    every record that carries a reference to it; this helper propagates that
+    change through local ``{id, digest}`` references and each record's
+    canonical digest, refusing duplicate identifiers and reference cycles.
+    Callers remain responsible for the semantic edit and final binding
+    validation.
     """
 
     plain_records = tuple(_plain_json(record) for record in records)

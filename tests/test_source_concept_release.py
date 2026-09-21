@@ -43,6 +43,8 @@ SELECTION_POLICY = {
 
 
 def _local_record_id(index: int) -> str:
+    """Derive the deterministic UUIDv7 local record id for one observation index."""
+
     return "urn:uuid:" + derive_uuid7(
         CAPTURED_AT,
         seed=f"source-concept-local-record:{index}".encode(),
@@ -57,6 +59,8 @@ def _observation(
     publisher_concept_iri: str | None = None,
     publisher_source_digest: str | None = None,
 ) -> dict[str, Any]:
+    """Build one source observation, requiring a digest whenever publisher identity is given."""
+
     row: dict[str, Any] = {
         "id": f"urn:ref:test:source-observation:{index}",
         "sourceArtifact": SOURCE_ID,
@@ -98,6 +102,8 @@ def _source(
     payload: bytes = b'{"terms":["alpha","beta"]}\n',
     resource_id: str = "source-concept-test-capture",
 ) -> SourceControlledResourceBundle:
+    """Build a source-controlled resource bundle over the given observations."""
+
     return build_source_controlled_resource_bundle(
         resource_id=resource_id,
         title="Source concept test observations",
@@ -131,6 +137,8 @@ def _build(
     rights: Sequence[Mapping[str, Any]] | None = None,
     supersedes: Sequence[SourceConceptReleaseBundle] = (),
 ):
+    """Build a source-concept release, defaulting rights metadata to one record per selected artifact."""
+
     selected_ids = tuple(str(row["id"]) for row in source.observations) if selected is None else tuple(selected)
     selected_artifacts = {
         str(row["sourceArtifact"]) for row in source.observations if str(row["id"]) in set(selected_ids)
@@ -161,6 +169,8 @@ def _build(
 
 
 def _mapping_keys(value: object) -> set[str]:
+    """Collect every mapping key anywhere in the value, for forbidden-field scans."""
+
     if isinstance(value, Mapping):
         return set(value) | {key for child in value.values() for key in _mapping_keys(child)}
     if isinstance(value, (list, tuple)):
@@ -173,6 +183,9 @@ def _mapping_keys(value: object) -> set[str]:
     ("subject", "entity", "value", "legalIdentity"),
 )
 def test_one_release_shape_serves_all_four_semantic_rings(ring: str) -> None:
+    """All four rings share one release shape: complete membership, one rights record, no admission or permission
+    fields."""
+
     observation = _observation(
         1,
         label="Stable meaning",
@@ -222,6 +235,8 @@ def test_one_release_shape_serves_all_four_semantic_rings(ring: str) -> None:
 
 
 def test_release_requires_exact_digest_pinned_rights_coverage() -> None:
+    """Rights metadata must exist for every selected artifact, match its digest, and cover exactly the selected set."""
+
     source = _source(
         (
             _observation(
@@ -261,12 +276,8 @@ def test_release_requires_exact_digest_pinned_rights_coverage() -> None:
 
 
 def test_policy_frontier_selection_policy_is_refused() -> None:
-    """policyFrontier is retired (REF-023 item 8): the selection-receipt
-    machinery it depended on (refspec.atlas.frontier / frontier_release) was
-    never exercised outside its own unit tests -- no output/, fixture, or
-    tool consumer ever constructed one. This is the running check that keeps
-    it retired: even a well-formed policyFrontier policy, receipt pin
-    included, is refused before any receipt is examined."""
+    """The retired policyFrontier (REF-023 item 8, never exercised outside its unit
+    tests) is refused even when well-formed with its receipt pin."""
 
     source = _source(
         (
@@ -308,6 +319,9 @@ def test_policy_frontier_selection_policy_is_refused() -> None:
 
 
 def test_preserves_an_explicit_publisher_concept_iri() -> None:
+    """A qualified publisher concept IRI becomes the concept id with identityKind publisherConceptIri and no local
+    record id."""
+
     publisher_iri = "https://publisher.example/concepts/official-42"
     payload = b'{"terms":[{"id":"https://publisher.example/concepts/official-42","label":"Publisher identity"}]}\n'
     source_digest = "sha256:" + hashlib.sha256(payload).hexdigest()
@@ -332,6 +346,8 @@ def test_preserves_an_explicit_publisher_concept_iri() -> None:
 
 
 def test_rejects_an_unqualified_publisher_identity_shortcut() -> None:
+    """An unqualified ``publisherConceptIri`` field is refused as an unqualified identity shortcut."""
+
     observation = _observation(
         1,
         label="Unqualified identity",
@@ -348,6 +364,8 @@ def test_rejects_an_unqualified_publisher_identity_shortcut() -> None:
 
 @pytest.mark.parametrize("field", ("authorityUri", "sourceUri"))
 def test_rejects_publisher_identity_outside_its_qualified_source(field: str) -> None:
+    """A publisher identifier whose authorityUri or sourceUri names another source is refused."""
+
     publisher_iri = "https://publisher.example/concepts/official-42"
     payload = b'{"terms":[{"id":"https://publisher.example/concepts/official-42"}]}\n'
     source_digest = "sha256:" + hashlib.sha256(payload).hexdigest()
@@ -365,6 +383,8 @@ def test_rejects_publisher_identity_outside_its_qualified_source(field: str) -> 
 
 
 def test_label_rename_changes_the_release_but_not_source_scoped_identity() -> None:
+    """A label rename changes release identity and capture digests while the source-scoped concept id stays fixed."""
+
     local_id = _local_record_id(7)
     first = _build(
         _source(
@@ -390,6 +410,8 @@ def test_label_rename_changes_the_release_but_not_source_scoped_identity() -> No
 
 
 def test_equal_labels_never_collapse_distinct_local_records() -> None:
+    """Two observations with equal labels but different local record ids stay two concepts."""
+
     source = _source(
         (
             _observation(1, label="Duplicate", local_record_id=_local_record_id(1)),
@@ -404,6 +426,8 @@ def test_equal_labels_never_collapse_distinct_local_records() -> None:
 
 
 def test_identity_requires_explicit_publisher_iri_or_uuid7_local_record() -> None:
+    """An observation with neither publisher identity nor a local record id is refused."""
+
     source = _source((_observation(1, label="No identity input"),))
 
     with pytest.raises(SourceConceptReleaseError, match="localRecordId"):
@@ -411,6 +435,8 @@ def test_identity_requires_explicit_publisher_iri_or_uuid7_local_record() -> Non
 
 
 def test_refuses_two_observations_claiming_one_publisher_concept() -> None:
+    """Two observations sharing one publisher concept IRI are refused as a repeated concept id."""
+
     shared = "https://publisher.example/concepts/shared"
     payload = b'{"terms":[{"id":"https://publisher.example/concepts/shared"}]}\n'
     source_digest = "sha256:" + hashlib.sha256(payload).hexdigest()
@@ -437,6 +463,8 @@ def test_refuses_two_observations_claiming_one_publisher_concept() -> None:
 
 
 def test_build_is_order_independent_and_content_derived() -> None:
+    """Reversing the selected observation order leaves release id, logical digest and bytes identical."""
+
     source = _source(
         (
             _observation(1, label="First", local_record_id=_local_record_id(1)),
@@ -456,6 +484,9 @@ def test_build_is_order_independent_and_content_derived() -> None:
 def test_source_release_supersession_is_distinct_content_addressed_and_reproducible(
     tmp_path: Path,
 ) -> None:
+    """A superseding release bumps the lineage schema, binds the predecessor by digest, reproduces from a reopened
+    view, and refuses a forged prior digest."""
+
     first = _build(
         _source(
             (
@@ -549,6 +580,9 @@ def test_source_release_supersession_is_distinct_content_addressed_and_reproduci
 
 
 def test_source_release_supersession_identity_binds_the_complete_predecessor_set() -> None:
+    """The lineage digest binds the whole predecessor set while the basis digest stays per-predecessor; order is
+    irrelevant."""
+
     predecessor_p = _build(
         _source(
             (
@@ -620,6 +654,9 @@ def test_source_release_supersession_identity_binds_the_complete_predecessor_set
 
 
 def test_source_release_supersession_rejects_cross_ring_and_resealed_tampering() -> None:
+    """A successor may not supersede another ring's release, and a resealed tampered basis digest is refused on
+    construction."""
+
     prior = _build(
         _source(
             (
@@ -708,6 +745,8 @@ def test_source_release_supersession_rejects_cross_ring_and_resealed_tampering()
 
 
 def test_lifecycle_events_are_typed_reviewed_and_ring_scoped() -> None:
+    """A rename event with ring, reviewer and both concept lists is emitted verbatim and counted in the manifest."""
+
     observation = _observation(
         1,
         label="Renamed label",
@@ -734,6 +773,9 @@ def test_lifecycle_events_are_typed_reviewed_and_ring_scoped() -> None:
 
 
 def test_lifecycle_events_reject_invalid_cardinality_and_governance() -> None:
+    """A split naming one prior but one resulting concept is refused on cardinality, and an admission field is
+    refused."""
+
     source = _source(
         (
             _observation(
@@ -763,6 +805,8 @@ def test_lifecycle_events_reject_invalid_cardinality_and_governance() -> None:
 
 
 def test_reconciliation_is_exactly_sealed_and_pending_review_is_refused() -> None:
+    """A resolved reconciliation record is sealed byte-exactly, while one still requiring human review is refused."""
+
     source = _source((_observation(1, label="Reviewed", local_record_id=_local_record_id(1)),))
     resolved = {
         "currentManifestId": source.resource_manifest["id"],
@@ -788,6 +832,9 @@ def test_reconciliation_is_exactly_sealed_and_pending_review_is_refused() -> Non
 def test_open_verifies_external_pin_complete_files_and_nested_source(
     tmp_path: Path,
 ) -> None:
+    """Opening verifies the external manifest pin, every file's bytes, and a read-only nested source; an appended file
+    is refused."""
+
     source = _source((_observation(1, label="Pinned", local_record_id=_local_record_id(1)),))
     release = _build(source)
     root = release.write_to(tmp_path / "release")
@@ -813,6 +860,8 @@ def test_open_verifies_external_pin_complete_files_and_nested_source(
 
 
 def test_external_manifest_pin_refuses_a_resealed_forgery(tmp_path: Path) -> None:
+    """A changed logical digest resealed into the manifest still fails the external manifest pin."""
+
     release = _build(_source((_observation(1, label="Pinned", local_record_id=_local_record_id(1)),)))
     root = release.write_to(tmp_path / "release")
     manifest_path = root / "bundle-manifest.json"
@@ -832,6 +881,8 @@ def test_external_manifest_pin_refuses_a_resealed_forgery(tmp_path: Path) -> Non
 def test_atlas_authority_rejects_a_publicly_constructed_source_release_view(
     tmp_path: Path,
 ) -> None:
+    """The Atlas authority refuses a hand-constructed view that does not carry an exact supported release."""
+
     release = _build(
         _source(
             (
@@ -854,6 +905,8 @@ def test_atlas_authority_rejects_a_publicly_constructed_source_release_view(
 
 
 def test_concept_release_pin_reports_a_domain_error_for_a_non_string_ring() -> None:
+    """Normalizing a pin whose semanticRing is not a string raises the domain error, not a type error."""
+
     release = _build(
         _source(
             (

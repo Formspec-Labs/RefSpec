@@ -1,3 +1,10 @@
+"""Closed-membership, byte-stability and evidence-pin tests for RegistryClaimReleaseView.
+
+Builds are pinned byte-identical, the manifest and claim table are validated
+against their JSON Schemas, and the reader must refuse wrong manifest digests,
+tampered raw members, undeclared files and resealed parquet drift.
+"""
+
 from __future__ import annotations
 
 import hashlib
@@ -33,6 +40,7 @@ SOURCE_DIGEST = "sha256:" + hashlib.sha256(b"source bytes\n").hexdigest()
 
 
 def _digest(path: Path) -> str:
+    """Return the ``sha256:`` digest of the file's bytes."""
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
@@ -43,6 +51,7 @@ def _claim(
     lexical_value: str = "Example",
     datatype: str | None = None,
 ) -> RegistryClaim:
+    """Build a literal prefLabel claim with English language and one limitation."""
     return RegistryClaim(
         release_id=RELEASE_ID,
         subject=subject,
@@ -62,6 +71,7 @@ def _claim(
 
 
 def _build(tmp_path: Path, name: str = "release") -> RegistryClaimReleaseView:
+    """Build the test release from one raw source, two claims and the pinned scope metadata."""
     raw = tmp_path / f"{name}-source.ttl"
     raw.write_bytes(b"source bytes\n")
     return build_registry_claim_release(
@@ -116,6 +126,7 @@ def _build(tmp_path: Path, name: str = "release") -> RegistryClaimReleaseView:
 
 
 def _files(root: Path) -> dict[str, bytes]:
+    """Map every file under root to its relative POSIX path and bytes."""
     return {
         path.relative_to(root).as_posix(): path.read_bytes()
         for path in root.rglob("*")
@@ -124,6 +135,7 @@ def _files(root: Path) -> dict[str, bytes]:
 
 
 def _reseal_claim_member(root: Path) -> str:
+    """Re-pin the claim parquet's byte length and digest in the manifest, returning the new manifest digest."""
     manifest_path = root / MANIFEST_FILE
     manifest = json.loads(manifest_path.read_bytes())
     claims = root / CLAIMS_FILE
@@ -136,6 +148,7 @@ def _reseal_claim_member(root: Path) -> str:
 def test_bundle_is_byte_stable_closed_and_externally_authenticated(
     tmp_path: Path,
 ) -> None:
+    """Pins byte-identical builds, the closed five-file membership, claim order and both JSON Schemas."""
     first = _build(tmp_path, "first")
     second = _build(tmp_path, "second")
 
@@ -164,6 +177,7 @@ def test_bundle_is_byte_stable_closed_and_externally_authenticated(
 def test_reader_rejects_manifest_raw_member_and_closed_set_drift(
     tmp_path: Path,
 ) -> None:
+    """Pins refusal on a wrong manifest digest, tampered raw bytes and an undeclared extra file."""
     view = _build(tmp_path)
 
     with pytest.raises(RegistryClaimReleaseError, match="manifest digest differs"):
@@ -190,6 +204,7 @@ def test_reader_rejects_manifest_raw_member_and_closed_set_drift(
 
 
 def test_reader_rejects_resealed_parquet_schema_drift(tmp_path: Path) -> None:
+    """Pins refusal when a resealed claim parquet has a different schema."""
     view = _build(tmp_path)
     claim_path = view.root / CLAIMS_FILE
     pq.write_table(
@@ -207,6 +222,7 @@ def test_reader_rejects_resealed_parquet_schema_drift(tmp_path: Path) -> None:
 
 
 def test_reader_rejects_resealed_parquet_row_mutation(tmp_path: Path) -> None:
+    """Pins refusal when a resealed claim parquet carries a mutated row."""
     view = _build(tmp_path)
     claim_path = view.root / CLAIMS_FILE
     rows = pq.read_table(claim_path).to_pylist()
@@ -227,6 +243,7 @@ def test_reader_rejects_resealed_parquet_row_mutation(tmp_path: Path) -> None:
 
 
 def test_claim_shape_rejects_mixed_iri_and_literal_objects() -> None:
+    """Pins refusal when an IRI claim also carries literal fields."""
     with pytest.raises(RegistryClaimReleaseError, match="literal fields"):
         RegistryClaim(
             release_id=RELEASE_ID,
@@ -245,6 +262,7 @@ def test_claim_shape_rejects_mixed_iri_and_literal_objects() -> None:
 
 
 def test_bundle_rejects_claim_evidence_missing_from_raw_pins(tmp_path: Path) -> None:
+    """Pins refusal when a claim cites a source digest no raw input pin covers."""
     raw = tmp_path / "source.ttl"
     raw.write_bytes(b"source bytes\n")
 
@@ -275,6 +293,7 @@ def test_bundle_rejects_claim_evidence_missing_from_raw_pins(tmp_path: Path) -> 
 
 
 def test_claim_preserves_empty_typed_literal() -> None:
+    """Pins that an empty typed literal keeps its datatype and carries no language."""
     claim = _claim(
         predicate="http://purl.org/dc/terms/created",
         lexical_value="",
@@ -289,6 +308,7 @@ def test_claim_preserves_empty_typed_literal() -> None:
 def test_declared_observed_and_derived_origins_reopen_with_evidence(
     tmp_path: Path,
 ) -> None:
+    """Pins that all five origins round-trip with per-origin counts and confidence on inferred claims."""
     raw = tmp_path / "methods-source.ttl"
     raw.write_bytes(b"source bytes\n")
     origins = ("observed", "scraped", "normalized", "inferred", "extrapolated")

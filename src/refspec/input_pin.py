@@ -1,4 +1,9 @@
-"""Small, transformation-free helpers for authenticating pinned input bytes."""
+"""Small, transformation-free helpers for authenticating pinned input bytes.
+
+Both readers refuse a missing, non-regular, or swapped file and re-check the
+device/inode/size/mtime snapshot around the read, so a ``ValueError`` means the
+bytes did not match the ``sha256`` and length pin rather than that parsing failed.
+"""
 
 from __future__ import annotations
 
@@ -24,6 +29,8 @@ def _validate_expected_pin(label: str, expected_sha256: str, expected_byte_lengt
 
 
 def _regular_file_identity(path: Path, label: str) -> tuple[int, int]:
+    """Return ``(device, inode)`` for a regular file, refusing symlinks and other file types."""
+
     try:
         metadata = path.lstat()
     except OSError as error:
@@ -34,6 +41,8 @@ def _regular_file_identity(path: Path, label: str) -> tuple[int, int]:
 
 
 def _snapshot_identity(metadata: stat_result) -> tuple[int, int, int, int]:
+    """Return the device/inode/size/mtime tuple compared across a pinned read."""
+
     return metadata.st_dev, metadata.st_ino, metadata.st_size, metadata.st_mtime_ns
 
 

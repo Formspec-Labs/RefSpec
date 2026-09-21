@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Verify and summarize a complete RefSpec registry audit."""
+"""Verify and summarize a complete RefSpec registry audit.
+
+Loads the checked source-link manifest, requires one row per current
+``src/refspec/registry`` module, imports every module, resolves each module's
+direct test path, and can materialize pinned publisher inputs, run the direct
+tests with execution receipts, and run the full suite. Prints or writes a
+deterministic JSON summary; exits 1 on any structural or real-data failure.
+"""
 
 from __future__ import annotations
 
@@ -111,6 +118,7 @@ def _digest(payload: bytes) -> str:
 
 
 def _verify_test_input(payload: bytes, descriptor: Mapping[str, Any], label: str) -> None:
+    """Refuse a test input whose byte length or sha256 differs from its manifest pin."""
     expected_digest = descriptor.get("sha256")
     expected_length = descriptor.get("byteLength")
     if not isinstance(expected_digest, str) or not isinstance(expected_length, int):
@@ -123,6 +131,7 @@ def _verify_test_input(payload: bytes, descriptor: Mapping[str, Any], label: str
 
 
 def _normalize_test_input(payload: bytes, descriptor: Mapping[str, Any]) -> bytes:
+    """Apply the declared normalization, refusing any name other than ``stripCompToxSentryTrace``."""
     normalization = descriptor.get("normalization")
     if normalization is None:
         return payload

@@ -1,4 +1,9 @@
-"""Default-reader parity and exact publisher occurrence locations."""
+"""Default-reader parity and exact publisher occurrence locations.
+
+Every fixture and mutation runs through the default uslm reader and the copied
+uslm_reference_oracle: readings and refusals must agree (truncated payloads keep reader-specific
+diagnostics), and ``include_source_path=True`` must select each actual XML occurrence with an XPath
+whose child positions match an independently built DOM."""
 import re
 import xml.etree.ElementTree as ET
 from collections import Counter
@@ -21,6 +26,8 @@ MALFORMED_DIAGNOSTICS = {
 
 
 def outcome(reader, xml, title):
+    """Run either reader shape and return (rows, count dict, (error type, message) or None)."""
+
     counts = Counter()
     rows = []
     error = None
@@ -35,6 +42,8 @@ def outcome(reader, xml, title):
 
 
 def variants(xml):
+    """Yield the original plus ten single-link mutations, then the truncated malformed tail."""
+
     yield 'original', xml
     for mutation in ('duplicate', 'fragment', 'no-href', 'unknown-prefix', 'relative',
                      'unknown-level', 'no-identifier', 'a-element', 'nested-inline', 'unicode'):

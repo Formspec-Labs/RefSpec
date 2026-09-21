@@ -43,10 +43,14 @@ REVISION = "publisher page current as of April 1, 2025"
 
 
 def _page(body: str) -> bytes:
+    """Minimal HTML page carrying a publisher-style definition list."""
+
     return f"<html><body><dl>{body}</dl></body></html>".encode()
 
 
 def _pin(payload: bytes, *, title: int = 40, **overrides: object) -> CfrSubjectIndexPin:
+    """Pin one synthetic page by its own digest and length, with field overrides."""
+
     fields: dict[str, object] = {
         "source_url": CFR_SUBJECT_INDEX_URL_TEMPLATE.format(title=title),
         "retrieved_at": "2026-08-20T00:00:00Z",
@@ -110,6 +114,8 @@ def test_entry_from_a_different_title_raises() -> None:
     ],
 )
 def test_documented_publisher_irregularities_parse(entry: str, title: int, expected_part: str) -> None:
+    """A leaked tag, a missing "Part", an "Oart" typo and an em-dash separator all still name their part."""
+
     payload = _page(f"<dt>{entry}</dt><dd>Government procurement</dd>")
     (part,) = parse_cfr_subject_index(payload, pin=_pin(payload, title=title))
     assert part.cfr_part == expected_part
@@ -159,6 +165,8 @@ def test_reserved_title_may_be_empty_but_a_populated_one_is_drift() -> None:
     ],
 )
 def test_pin_rejects_malformed_identity(override: dict[str, object], match: str) -> None:
+    """A pin refuses non-credential-free or cross-title URLs, bad digests, zero length, naive time or a 51st title."""
+
     with pytest.raises(CFRListOfSubjectsError, match=match):
         _pin(ONE_PART, **override)
 
@@ -224,6 +232,8 @@ CAPTURE_ROOT = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "cfr
 
 
 def _capture_pages() -> tuple[tuple[CfrSubjectIndexPin, bytes], ...]:
+    """Every pinned capture page paired with the bytes on disk."""
+
     return tuple(
         (pin, (CAPTURE_ROOT / f"subject-title-{pin.cfr_title:02d}.html").read_bytes())
         for pin in CFR_SUBJECT_INDEX_2026_08_20
@@ -231,6 +241,8 @@ def _capture_pages() -> tuple[tuple[CfrSubjectIndexPin, bytes], ...]:
 
 
 def test_the_capture_carries_one_pinned_page_for_every_cfr_title() -> None:
+    """Fifty pages, titles 1-50, each matching its pin's digest and byte length."""
+
     assert len(CFR_SUBJECT_INDEX_2026_08_20) == CFR_SUBJECT_INDEX_EXPECTED_PAGE_COUNT
     assert [pin.cfr_title for pin in CFR_SUBJECT_INDEX_2026_08_20] == list(range(1, 51))
     for pin, payload in _capture_pages():
@@ -239,6 +251,8 @@ def test_the_capture_carries_one_pinned_page_for_every_cfr_title() -> None:
 
 
 def test_every_pinned_page_parses_to_its_pinned_part_count() -> None:
+    """Each captured page yields exactly its per-title part count, zero for reserved title 35."""
+
     for pin, payload in _capture_pages():
         parts = parse_cfr_subject_index(payload, pin=pin)
         assert len(parts) == CFR_SUBJECT_INDEX_EXPECTED_PARTS_BY_TITLE[pin.cfr_title]

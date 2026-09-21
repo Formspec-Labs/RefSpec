@@ -1,36 +1,16 @@
 """Loading rules, disposition typing, and what "a committed witness" means.
 
-These tests pin the rules `hand_validated_interpretations.py`'s module
-docstring states in prose: a row without a witness refuses to load, a witness
-that is not committed bytes refuses to load, a correction needs more
-witnesses than a flag or a refusal, and a disposition other than "correction"
-may never carry an interpreted_value.
-
-Three groups are worth calling out.
-
-**The committed-bytes group** builds a real throwaway git repository in
-``tmp_path`` and points witnesses at it, because every interesting negative
-here is invisible to ``Path.is_file()``: a file that exists but was never
-added, a spelling that differs from the index only in case (which resolves
-happily on APFS), a tracked file edited after it was read, and a tracked
-symlink out of the tree. Only git can tell those apart from a real witness,
-so only a real git repository can test that they refuse.
-
-**The anchor group** re-reads every witness of the real table and asserts
-that a literal string quoted in that witness's ``shows`` text is present in
-that witness's OWN bytes -- the check that catches a summary drifting onto
-what a *neighbouring* file shows, which is how the print PDF's en dash and
-two error-page bodies' transport statuses went wrong the first time.
-
-**The boundary group** pins the "consulted, never applied" contract from this
-side: ``lookup`` hands back the frozen row, and no public function in this
-module returns a bare string a caller could mistake for the corrected value.
-
-A note on caching: the module caches its git answers per repository root, for
-the life of the process. That is right for repo tooling and wrong for a test
-that mutates a repository mid-test, so the fixtures here mutate BEFORE
-validating, and the two tests that swap the table clear the load caches
-around themselves.
+Pins the rules hand_validated_interpretations.py states in prose: a row without
+a witness, or with a witness that is not committed bytes, refuses to load; a
+correction needs more witnesses than a flag or refusal; and only a correction
+may carry an interpreted_value. The committed-bytes group uses a real throwaway
+git repository because Path.is_file() cannot distinguish an untracked,
+case-misspelled, locally modified, or escaping-symlink witness; the anchor
+group checks each witness's quoted string against that witness's own bytes; the
+boundary group pins "consulted, never applied" (lookup returns the frozen row,
+and no public function returns a bare string). Tests that swap the table clear
+the module's per-repository load caches around themselves, so mutate before
+validating.
 """
 
 from __future__ import annotations
@@ -77,6 +57,7 @@ _TWO_WITNESSES = (
 
 
 def _row(**overrides: object) -> dict:
+    """Build a fixture row with a flag disposition and one witness, overriding any field."""
     base: dict = {
         "source_value": "test-value",
         "context": "a fixture row, not a real interpretation",
@@ -95,6 +76,7 @@ def _row(**overrides: object) -> dict:
 
 
 def test_a_row_without_a_witness_refuses_to_load() -> None:
+    """Pins refusal when a row carries no witnesses."""
     with pytest.raises(HandValidatedRegistryError, match="no witnesses"):
         Interpretation(**{**_row(), "witnesses": ()})
 
@@ -111,6 +93,7 @@ def test_a_witness_pointing_at_an_uncommitted_path_refuses_to_load() -> None:
 
 
 def test_a_witness_with_no_path_or_no_shows_refuses_to_load() -> None:
+    """Pins refusal when a witness names no path or does not say what it shows."""
     with pytest.raises(HandValidatedRegistryError, match="must name a path"):
         Witness(path="", shows="something")
     with pytest.raises(HandValidatedRegistryError, match="must say what it shows"):
@@ -143,16 +126,19 @@ def test_a_witness_path_must_be_a_canonical_repo_relative_posix_path(path: str) 
 
 
 def test_an_unknown_disposition_refuses_to_load() -> None:
+    """Pins refusal when the disposition is not in DISPOSITIONS."""
     with pytest.raises(HandValidatedRegistryError, match="undeclared disposition"):
         Interpretation(**{**_row(), "disposition": "guess"})  # type: ignore[arg-type]
 
 
 def test_reviewed_at_must_be_an_iso_date() -> None:
+    """Pins refusal when reviewed_at is not an ISO date."""
     with pytest.raises(HandValidatedRegistryError, match="ISO date"):
         Interpretation(**{**_row(), "reviewed_at": "August 31, 2026"})
 
 
 def test_reviewer_and_context_and_source_value_must_be_non_empty() -> None:
+    """Pins refusal when reviewer, context or source_value is blank."""
     with pytest.raises(HandValidatedRegistryError, match="reviewer"):
         Interpretation(**{**_row(), "reviewer": "   "})
     with pytest.raises(HandValidatedRegistryError, match="context"):
@@ -165,6 +151,7 @@ def test_reviewer_and_context_and_source_value_must_be_non_empty() -> None:
 
 
 def _run_git(root: Path, *arguments: str) -> None:
+    """Run git -C root with the given arguments, failing on error."""
     subprocess.run(["git", "-C", str(root), *arguments], check=True, capture_output=True)
 
 
@@ -190,6 +177,7 @@ def scratch_repo(tmp_path: Path) -> Path:
 
 
 def _scratch_row(root: Path, *paths: str, **overrides: object) -> Interpretation:
+    """Build a row whose witnesses cite the given scratch-repo paths."""
     witnesses = tuple(Witness(path=path, shows=f"the bytes at {path}") for path in paths)
     return build_interpretation(**{**_row(), "witnesses": witnesses, **overrides}, repo_root=root)
 
@@ -295,11 +283,13 @@ def test_two_spellings_of_one_file_do_not_satisfy_the_two_witness_floor(scratch_
 
 
 def test_every_disposition_needs_at_least_one_witness() -> None:
+    """Pins that every declared disposition has a witness floor of at least one."""
     assert set(MINIMUM_WITNESSES) == DISPOSITIONS
     assert all(minimum >= 1 for minimum in MINIMUM_WITNESSES.values())
 
 
 def test_correction_needs_strictly_more_witnesses_than_any_other_disposition() -> None:
+    """Pins that correction's floor is strictly above flag, refusal-to-interpret and consulted."""
     assert MINIMUM_WITNESSES["correction"] > MINIMUM_WITNESSES["flag"]
     assert MINIMUM_WITNESSES["correction"] > MINIMUM_WITNESSES["refusal-to-interpret"]
     assert MINIMUM_WITNESSES["correction"] > MINIMUM_WITNESSES["consulted"]
@@ -316,6 +306,7 @@ def test_the_witness_floors_cannot_be_moved_at_runtime() -> None:
 
 
 def test_a_correction_below_the_witness_floor_refuses_to_load() -> None:
+    """Pins refusal when a correction carries fewer witnesses than its floor."""
     with pytest.raises(HandValidatedRegistryError, match="needs at least"):
         Interpretation(
             **{
@@ -328,6 +319,7 @@ def test_a_correction_below_the_witness_floor_refuses_to_load() -> None:
 
 
 def test_a_correction_at_the_witness_floor_loads() -> None:
+    """Pins that a correction at exactly the two-witness floor loads."""
     row = Interpretation(
         **{
             **_row(),
@@ -366,6 +358,7 @@ def test_one_witness_cited_twice_never_satisfies_the_two_witness_floor() -> None
 
 
 def test_a_correction_without_an_interpreted_value_refuses_to_load() -> None:
+    """Pins refusal when a correction asserts no interpreted_value."""
     with pytest.raises(HandValidatedRegistryError, match="must assert interpreted_value"):
         Interpretation(
             **{
@@ -379,6 +372,7 @@ def test_a_correction_without_an_interpreted_value_refuses_to_load() -> None:
 
 @pytest.mark.parametrize("disposition", ["flag", "refusal-to-interpret", "consulted"])
 def test_a_flag_or_refusal_asserting_an_interpreted_value_refuses_to_load(disposition: str) -> None:
+    """Pins refusal when a flag, refusal-to-interpret or consulted row asserts an interpreted_value."""
     with pytest.raises(HandValidatedRegistryError, match="must not assert interpreted_value"):
         Interpretation(**{**_row(), "disposition": disposition, "interpreted_value": "a-sneaky-correction"})
 
@@ -387,12 +381,14 @@ def test_a_flag_or_refusal_asserting_an_interpreted_value_refuses_to_load(dispos
 
 
 def test_an_interpretation_is_frozen() -> None:
+    """Pins that an Interpretation cannot be mutated."""
     row = Interpretation(**_row())
     with pytest.raises(dataclasses.FrozenInstanceError):
         row.interpreted_value = "mutated"  # type: ignore[misc]
 
 
 def test_a_witness_is_frozen() -> None:
+    """Pins that a Witness cannot be mutated."""
     with pytest.raises(dataclasses.FrozenInstanceError):
         _ONE_WITNESS[0].shows = "mutated"  # type: ignore[misc]
 
@@ -422,6 +418,7 @@ def test_a_row_owns_its_witnesses_rather_than_sharing_the_callers_container() ->
 
 
 def test_a_witness_list_element_that_is_not_a_witness_refuses() -> None:
+    """Pins refusal when a witnesses element is not a Witness instance."""
     with pytest.raises(HandValidatedRegistryError, match="not a Witness"):
         Interpretation(
             **{
@@ -432,6 +429,7 @@ def test_a_witness_list_element_that_is_not_a_witness_refuses() -> None:
 
 
 def test_witnesses_must_be_iterable_at_all() -> None:
+    """Pins refusal when witnesses is not iterable."""
     with pytest.raises(HandValidatedRegistryError, match="iterable of Witness"):
         Interpretation(**{**_row(), "witnesses": 3})  # type: ignore[dict-item]
 
@@ -440,6 +438,7 @@ def test_witnesses_must_be_iterable_at_all() -> None:
 
 
 def test_an_unreviewed_value_raises_not_reviewed_rather_than_returning_none() -> None:
+    """Pins that lookup raises NotReviewed rather than returning None for an unclaimed value."""
     with pytest.raises(NotReviewed):
         lookup("no-row-has-ever-claimed-this-exact-string-2026-08-31")
 
@@ -486,6 +485,7 @@ def test_two_rows_claiming_one_source_value_refuse_to_load(
 
 
 def test_the_real_table_loads_and_every_witness_resolves() -> None:
+    """Pins that the real table loads and each row meets its disposition's witness floor."""
     rows = load_interpretations()
     assert len(rows) >= 2
     for row in rows:
@@ -502,6 +502,7 @@ def test_the_real_collision_table_has_seven_rows_and_every_witness_resolves() ->
 
 
 def test_the_founding_row_is_the_pilot_attestation() -> None:
+    """Pins the E5-2394 founding correction: value E5-2394Filed, seven witnesses and a 404 among the summaries."""
     row = lookup("E5-2394")
     assert row.disposition == "correction"
     assert row.interpreted_value == "E5-2394Filed"
@@ -512,6 +513,7 @@ def test_the_founding_row_is_the_pilot_attestation() -> None:
 
 
 def test_the_eo_8284_row_is_a_flag_not_a_correction() -> None:
+    """Pins the 8284 row as a flag with no interpreted value and notes naming 8248 and Wikipedia."""
     row = lookup("8284")
     assert row.disposition == "flag"
     assert row.interpreted_value is None
@@ -553,6 +555,7 @@ def test_the_eo_8284_row_claims_only_what_its_witnesses_establish() -> None:
 
 
 def test_lookup_returns_the_same_object_load_interpretations_holds() -> None:
+    """Pins that lookup returns the identical row object the loader holds."""
     rows = load_interpretations()
     by_value = {row.source_value: row for row in rows}
     assert lookup("E5-2394") is by_value["E5-2394"]
@@ -572,6 +575,7 @@ _FR_COLLISION_CONSULTED = frozenset({"2015-17759", "2015-25354"})
 
 
 def test_the_seven_collision_numbers_split_five_refused_two_consulted() -> None:
+    """Pins five refusal-to-interpret and two consulted dispositions among the seven census numbers."""
     for source_value in _FR_COLLISION_REFUSALS:
         row = module._federal_register_collision_row(source_value)
         assert row.disposition == "refusal-to-interpret", source_value
@@ -613,6 +617,7 @@ def test_the_two_consulted_rows_name_their_own_document_number_in_the_correction
 
 
 def test_refused_federal_register_document_numbers_is_exactly_the_five() -> None:
+    """Pins the public predicate's set as exactly the five refusals, disjoint from the two consulted."""
     assert refused_federal_register_document_numbers() == _FR_COLLISION_REFUSALS
     assert refused_federal_register_document_numbers().isdisjoint(_FR_COLLISION_CONSULTED)
 
@@ -702,12 +707,14 @@ def restored_collision_caches():
 
 
 def _synthetic_row(source_value: str, disposition: str, **overrides: object) -> Interpretation:
+    """Build a synthetic collision-table row with the given source_value and disposition."""
     return Interpretation(**{**_row(), "source_value": source_value, "disposition": disposition, **overrides})
 
 
 def test_refused_numbers_derives_from_population_and_disposition_together(
     monkeypatch: pytest.MonkeyPatch, restored_collision_caches: None
 ) -> None:
+    """Pins that the refused set derives from population membership plus disposition, not from either alone."""
     synthetic = (
         _synthetic_row("collision-refuse", "refusal-to-interpret"),
         _synthetic_row("collision-mint", "consulted"),
@@ -930,6 +937,7 @@ def test_every_witness_of_the_real_table_has_an_anchor() -> None:
 
 @pytest.mark.parametrize(("path", "anchor"), sorted(_ANCHORS.items()))
 def test_a_witness_summary_quotes_a_string_its_own_bytes_carry(path: str, anchor: str) -> None:
+    """Pins that each witness's anchor appears both in its shows prose and in its own bytes."""
     witnesses = {w.path: w for row in load_interpretations() for w in row.witnesses}
     shows = witnesses[path].shows
     assert anchor in shows, f"{path}: the anchor is no longer quoted in the summary"
@@ -989,12 +997,14 @@ _FR_COLLISION_ANCHORS = {
 
 
 def test_every_witness_of_the_real_collision_table_has_an_anchor() -> None:
+    """Pins that every collision-table witness path is listed in the anchor map."""
     cited = {witness.path for row in module._FR_COLLISION_TABLE for witness in row.witnesses}
     assert cited == set(_FR_COLLISION_ANCHORS)
 
 
 @pytest.mark.parametrize(("path", "anchor"), sorted(_FR_COLLISION_ANCHORS.items()))
 def test_a_collision_witness_summary_quotes_a_string_its_own_bytes_carry(path: str, anchor: str) -> None:
+    """Pins the same anchor check for the collision table's fourteen witnesses."""
     witnesses = {w.path: w for row in module._FR_COLLISION_TABLE for w in row.witnesses}
     shows = witnesses[path].shows
     assert anchor in shows, f"{path}: the anchor is no longer quoted in the summary"
@@ -1005,6 +1015,7 @@ def test_a_collision_witness_summary_quotes_a_string_its_own_bytes_carry(path: s
 
 
 def test_lookup_hands_back_the_frozen_row_not_a_value() -> None:
+    """Pins that lookup returns a frozen Interpretation rather than a bare value."""
     row = lookup("E5-2394")
     assert isinstance(row, Interpretation)
     assert typing.get_type_hints(lookup)["return"] is Interpretation

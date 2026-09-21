@@ -42,9 +42,9 @@ class SourceBytes:
 def fetch_title(title: str, release_point: str, cache: Path) -> tuple[bytes, SourceBytes]:
     """Return the title's USLM XML and a pin describing the bytes it came from.
 
-    The zip is cached verbatim.  Re-running against a cached file re-derives every
-    digest from those bytes, so a corrupted or hand-edited cache cannot pass
-    itself off as the publisher's payload.
+    The zip is cached verbatim, and re-running against a cached file re-derives
+    every digest from those bytes, so a corrupted or hand-edited cache cannot
+    pass itself off as the publisher's payload.
     """
     url = f"{BASE_URL}/{release_point}/xml_usc{title}@{release_point.replace('/', '-')}.zip"
     cache.mkdir(parents=True, exist_ok=True)

@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Generate or verify compact Atlas 3.1 coverage of the RefSpec registry."""
+"""Generate or verify compact Atlas 3.1 coverage of the RefSpec registry.
+
+Validates ``bindings/atlas/3.1/registry-resource-profiles.json`` against the
+resource catalog and the live ``refspec.registry`` tree, then rebuilds
+``bindings/atlas/3.1/tests/registry-coverage.json``; ``--write`` replaces the
+checked report, otherwise the checked copy must match byte for byte. Exits 1 on
+any validation or comparison error.
+"""
 
 from __future__ import annotations
 
@@ -109,6 +116,7 @@ class RegistryCoverageError(ValueError):
 
 
 def _require_keys(value: Mapping[str, Any], expected: set[str], location: str) -> None:
+    """Refuse unless the mapping's keys are exactly ``expected``."""
     actual = set(value)
     if actual != expected:
         raise RegistryCoverageError(
@@ -118,12 +126,14 @@ def _require_keys(value: Mapping[str, Any], expected: set[str], location: str) -
 
 
 def _string(value: Any, location: str) -> str:
+    """Return non-empty trimmed text, refusing anything else with its ``location``."""
     if not isinstance(value, str) or not value.strip() or value != value.strip():
         raise RegistryCoverageError(f"{location} must be a non-empty trimmed string")
     return value
 
 
 def _digest(value: Any, location: str) -> str:
+    """Return a validated lowercase ``sha256:`` digest, refusing any other shape."""
     result = _string(value, location)
     if not _SHA256.fullmatch(result):
         raise RegistryCoverageError(f"{location} must be a lowercase SHA-256 digest")
@@ -131,6 +141,7 @@ def _digest(value: Any, location: str) -> str:
 
 
 def _sequence(value: Any, location: str, *, allow_empty: bool = False) -> Sequence[Any]:
+    """Return the sequence, refusing strings or non-sequences; empty is refused unless ``allow_empty``."""
     if isinstance(value, (str, bytes)) or not isinstance(value, Sequence):
         raise RegistryCoverageError(f"{location} must be a list")
     if not allow_empty and not value:
@@ -139,6 +150,7 @@ def _sequence(value: Any, location: str, *, allow_empty: bool = False) -> Sequen
 
 
 def _unique_sorted_strings(value: Any, location: str, *, allow_empty: bool = False) -> list[str]:
+    """Return unique trimmed strings in sorted order, refusing duplicates or unsorted input."""
     items = [
         _string(item, f"{location}[{index}]")
         for index, item in enumerate(_sequence(value, location, allow_empty=allow_empty))
@@ -151,6 +163,7 @@ def _unique_sorted_strings(value: Any, location: str, *, allow_empty: bool = Fal
 
 
 def _unique_sorted_iris(value: Any, location: str) -> list[str]:
+    """Unique sorted absolute IRIs, refusing a relative or malformed value."""
     items = _unique_sorted_strings(value, location)
     for index, item in enumerate(items):
         if not _ABSOLUTE_IRI.fullmatch(item):
@@ -159,12 +172,14 @@ def _unique_sorted_iris(value: Any, location: str) -> list[str]:
 
 
 def _profile_digest(profile_map: Mapping[str, Any]) -> str:
+    """Canonical sha256 of the profile map with its own ``profileDigest`` field removed."""
     from refspec.release_model import canonical_sha256
 
     return canonical_sha256({key: value for key, value in profile_map.items() if key != "profileDigest"})
 
 
 def _validate_relation_policies(profile_map: Mapping[str, Any]) -> None:
+    """Validate the four same-ring policy rows against the closed Atlas 3.1 predicate matrix."""
     rows = _sequence(profile_map["relationPolicies"], "profile map.relationPolicies")
     policy_rings: list[str] = []
     predicate_locations: dict[str, str] = {}
@@ -235,6 +250,7 @@ def _validate_relation_policies(profile_map: Mapping[str, Any]) -> None:
 
 
 def _validate_cross_ring_relation_policies(profile_map: Mapping[str, Any]) -> None:
+    """Validate the three cross-ring policy rows against the closed Atlas 3.1 matrix."""
     rows = _sequence(
         profile_map["crossRingRelationPolicies"],
         "profile map.crossRingRelationPolicies",
@@ -456,6 +472,7 @@ def validate_profile_map(
 
 
 def _registry_modules(repository_root: Path) -> set[str]:
+    """Every non-``__init__`` registry module as a dotted import path; refuses a missing registry tree."""
     registry_root = repository_root / "src" / "refspec" / "registry"
     if not registry_root.is_dir():
         raise RegistryCoverageError(f"registry directory does not exist: {registry_root}")
@@ -469,12 +486,14 @@ def _registry_modules(repository_root: Path) -> set[str]:
 
 
 def _set_digest(values: set[str] | list[str]) -> str:
+    """Canonical sha256 over the sorted values."""
     from refspec.release_model import canonical_sha256
 
     return canonical_sha256(sorted(values))
 
 
 def _counter(values: Sequence[str]) -> dict[str, int]:
+    """Value counts, sorted by value."""
     return dict(sorted(Counter(values).items()))
 
 

@@ -33,6 +33,7 @@ BINDING_TOOLS = (
 
 
 def _pin_for(payload: bytes, row_count: int) -> gcmd.GCMDSnapshotPin:
+    """Build a GCMD 24.4 snapshot pin from a payload and expected row count."""
     return gcmd.GCMDSnapshotPin(
         source=gcmd.GCMD_SCIENCE_KEYWORDS_SOURCE,
         retrieved_at="2026-08-03T19:03:43Z",
@@ -49,6 +50,7 @@ def _parsed_from(
     payload: bytes,
     row_count: int,
 ) -> gcmd.ParsedGCMDScienceKeywords:
+    """Write payload as a local source, acquire it under the matching pin and parse the CSV."""
     source_path = tmp_path / "source.csv"
     source_path.write_bytes(payload)
     acquired = gcmd.acquire_gcmd_science_keywords(
@@ -58,11 +60,13 @@ def _parsed_from(
 
 
 def _branch_parsed(tmp_path: Path) -> gcmd.ParsedGCMDScienceKeywords:
+    """Parse the 126-row agriculture-branch fixture."""
     payload = BRANCH_CSV_FIXTURE.read_bytes()
     return _parsed_from(tmp_path, payload, 126)
 
 
 def test_complete_branch_excerpt_derives_prefix_closed_edges(tmp_path: Path) -> None:
+    """Pins the 126-row branch as 1 root and 125 edges with the AQUACULTURE and AGRICULTURE specimens."""
     hierarchy_result = hierarchy.derive_gcmd_science_keywords_hierarchy(
         _branch_parsed(tmp_path)
     )
@@ -90,6 +94,7 @@ def test_complete_branch_excerpt_derives_prefix_closed_edges(tmp_path: Path) -> 
 
 
 def test_every_edge_cites_two_distinct_exact_csv_rows(tmp_path: Path) -> None:
+    """Pins that every edge's two cited csv:row paths exist in the parse and differ from each other."""
     hierarchy_result = hierarchy.derive_gcmd_science_keywords_hierarchy(
         _branch_parsed(tmp_path)
     )
@@ -105,6 +110,7 @@ def test_every_edge_cites_two_distinct_exact_csv_rows(tmp_path: Path) -> None:
 
 
 def test_derivation_is_reproducible_from_the_pinned_bytes(tmp_path: Path) -> None:
+    """Pins that deriving twice from the pinned bytes yields the same edge-set digest, ids and records."""
     first = hierarchy.derive_gcmd_science_keywords_hierarchy(_branch_parsed(tmp_path))
     second = hierarchy.derive_gcmd_science_keywords_hierarchy(_branch_parsed(tmp_path))
 
@@ -116,6 +122,7 @@ def test_derivation_is_reproducible_from_the_pinned_bytes(tmp_path: Path) -> Non
 
 
 def test_mini_excerpt_is_not_prefix_closed_and_fails_closed(tmp_path: Path) -> None:
+    """Pins refusal on the non-prefix-closed mini excerpt for a missing materialized parent row."""
     payload = MINI_CSV_FIXTURE.read_bytes()
     parsed = _parsed_from(tmp_path, payload, 9)
 
@@ -124,6 +131,7 @@ def test_mini_excerpt_is_not_prefix_closed_and_fails_closed(tmp_path: Path) -> N
 
 
 def test_deleted_parent_row_fails_closed(tmp_path: Path) -> None:
+    """Pins refusal when a parent row is deleted from the branch."""
     payload = BRANCH_CSV_FIXTURE.read_bytes()
     lines = payload.splitlines(keepends=True)
     # csv:row[2] is AGRICULTURAL AQUATIC SCIENCES, the parent of AQUACULTURE.
@@ -135,6 +143,7 @@ def test_deleted_parent_row_fails_closed(tmp_path: Path) -> None:
 
 
 def test_repeated_path_with_a_fresh_uuid_fails_closed(tmp_path: Path) -> None:
+    """Pins refusal when one column path is repeated under a fresh UUID."""
     payload = BRANCH_CSV_FIXTURE.read_bytes()
     duplicated = payload.replace(
         b'"EARTH SCIENCE","AGRICULTURE","AGRICULTURAL AQUATIC SCIENCES","",'
@@ -155,6 +164,7 @@ def test_repeated_path_with_a_fresh_uuid_fails_closed(tmp_path: Path) -> None:
 def test_asserted_relation_collision_fails_closed_in_both_directions(
     tmp_path: Path,
 ) -> None:
+    """Pins refusal when a derived edge duplicates an asserted broader or inverse narrower; unrelated ones pass."""
     parsed = _branch_parsed(tmp_path)
 
     with pytest.raises(hierarchy.GCMDHierarchyError, match="duplicates an asserted"):
@@ -189,6 +199,7 @@ def test_asserted_relation_collision_fails_closed_in_both_directions(
 
 
 def test_the_binding_admits_exactly_this_rule_iri() -> None:
+    """Pins that the binding admits exactly this rule IRI, distinct from the exact-match and MeSH rules."""
     sys.path.insert(0, str(BINDING_TOOLS))
     try:
         import validate as atlas_validate
@@ -208,6 +219,7 @@ def test_the_binding_admits_exactly_this_rule_iri() -> None:
 
 
 def test_frozen_pins_match_the_documented_real_release() -> None:
+    """Pins the documented 2 roots, 3,772 edges and 512 homonym labels, plus the edge-set digest's shape."""
     assert hierarchy.GCMD_24_4_DERIVED_ROOT_COUNT == 2
     assert hierarchy.GCMD_24_4_DERIVED_EDGE_COUNT == 3_772
     assert hierarchy.GCMD_24_4_DERIVED_HOMONYM_LABEL_COUNT == 512
@@ -216,6 +228,7 @@ def test_frozen_pins_match_the_documented_real_release() -> None:
 
 
 def test_real_full_release_derives_the_frozen_edge_set(tmp_path: Path) -> None:
+    """Pins the configured real 24.4 release's 3,774 rows, 2 roots, 3,772 edges, 512 homonyms and frozen digest."""
     source_path_text = os.environ.get("REFSPEC_GCMD_SCIENCE_KEYWORDS_PATH")
     if source_path_text is None:
         pytest.skip("real GCMD publisher distribution is not configured")

@@ -1,4 +1,9 @@
-"""Serve the Atlas graph explorer backed by a verified compact Parquet search view."""
+"""Serve the Atlas graph explorer backed by a verified compact Parquet search view.
+
+Verifies the view's manifest digest before serving -- from ``--manifest-digest``
+when given, otherwise from the local manifest bytes -- and exits 2 when the
+artifact is missing or is not a search-view directory.
+"""
 
 from __future__ import annotations
 

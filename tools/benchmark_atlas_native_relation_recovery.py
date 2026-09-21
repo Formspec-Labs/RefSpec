@@ -183,6 +183,7 @@ def _sparse_ranks(concepts: Sequence[AblatedConcept], view: Any, top_k: int) -> 
 
 
 def _exact_label_pairs(concepts: Sequence[AblatedConcept]) -> set[tuple[str, str]]:
+    """Pairs whose normalized preferred labels are exactly equal."""
     buckets: dict[str, list[str]] = defaultdict(list)
     for concept in concepts:
         phrase = retrieval._normalized_phrase(concept.pref_label)
@@ -222,6 +223,7 @@ def _recall_row(
     gold: Iterable[tuple[str, str]],
     depth: int | None,
 ) -> int:
+    """Count gold pairs in ``found``: set membership, or rank presence bounded by ``depth`` when it is given."""
     gold = set(gold)
     if isinstance(found, set):
         return len(found & gold)
@@ -267,6 +269,7 @@ def run_source(
     gold: GoldSet,
     depths: Sequence[int],
 ) -> dict[str, Any]:
+    """Score the two exact anchors and every sparse view for one source, plus the union and unique rescues."""
     concepts = _ablated_concepts(release)
     arms: list[dict[str, Any]] = []
     found_by_arm: dict[str, Any] = {}

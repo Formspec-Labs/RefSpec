@@ -38,11 +38,13 @@ BAD_LINE = '<http://example.org/\\u003C> <http://example.org/p> "x" .\n'
 
 
 def test_the_committed_wire_sentinel_parses_under_the_second_parser() -> None:
+    """Pins that the committed wire sentinel parses to a positive quad count under the second, independent parser."""
     quads = lint_rdf_strict._parse_strict(lint_rdf_strict.REGISTRY_DESCRIPTORS)
     assert quads > 0
 
 
 def test_the_strict_parser_lint_refuses_a_defective_line(tmp_path: Path) -> None:
+    """Pins that one good line counts while a line with a UCHAR standing for '<' raises SyntaxError naming the file."""
     good = tmp_path / "good.nq"
     good.write_text(GOOD_LINE, encoding="utf-8")
     assert lint_rdf_strict._parse_strict(good) == 1
@@ -56,6 +58,7 @@ def test_the_strict_parser_lint_refuses_a_defective_line(tmp_path: Path) -> None
 def test_the_determinism_comparator_separates_identical_trees_from_changed_ones(
     tmp_path: Path,
 ) -> None:
+    """Pins exit 0 for identical trees and exit 1 for a changed uncovered file or an extra file."""
     first = tmp_path / "first" / "distribution"
     second = tmp_path / "second" / "distribution"
     for root in (first, second):
@@ -75,6 +78,7 @@ def test_the_determinism_comparator_separates_identical_trees_from_changed_ones(
 
 
 def test_the_shapes_scale_baseline_still_says_what_the_benchmark_reads() -> None:
+    """Pins that the recorded baseline has tolerances above 1 and non-empty, well-formed measurements."""
     baseline = json.loads(DEFAULT_BASELINE.read_text(encoding="utf-8"))
     assert baseline["toleranceRatio"] > 1
     assert baseline["quadCountToleranceRatio"] > 1

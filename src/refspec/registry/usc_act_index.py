@@ -1,57 +1,23 @@
 """Seal the U.S. Code act index from OLRC's Table III **bulk** release.
 
-The 2026-08-02 artifact was built one HTTP request per act, so its Table III
-side covers the 24 laws a bootstrap corpus happened to cite. OLRC also
-publishes the *whole* of Table III as one file, and that file has been sitting
-in this repository's source tree, unread, since 2026-08-06:
-:data:`BULK_SOURCE` -> :data:`BULK_MEMBER`, 48,973 acts and 317,590
-classification records covering Congresses 1 through 119. This module reads it
-and writes the same artifact, with the same schema, from that one file and no
-network at all.
+This build reads the whole of Table III from the pinned local zip
+(:data:`BULK_SOURCE` -> :data:`BULK_MEMBER`) and writes the same artifact
+schema as the per-page ancestor, with no network at all; the popular-name table
+is carried over byte-identically from the artifact named by
+``--popular-names-from`` and its digest restated in the receipt.
 
-**What this build changes and what it carries.** Only the Table III side is
-rebuilt. ``usc-popular-names.parquet`` is *carried over byte-identically* from
-the artifact named by ``--popular-names-from``: the popular names come from a
-different OLRC document (``popularnames.htm``) that this bulk file does not
-contain, and re-fetching it would move the release point for no reason this
-work needs. The carried digest is restated in the receipt, so the two halves of
-the artifact each name their own provenance.
-
-**The member is not a well-formed XML document.** It is a bare concatenation of
-sibling ``<act>`` elements -- no XML declaration, no wrapping root -- so the
-second ``<act>`` is junk after the document element and both
-``ElementTree.parse`` and ``ElementTree.iterparse`` refuse the whole file with
-:data:`BULK_WELL_FORMEDNESS_DEFECT`. :func:`iter_act_fragments` is therefore a
-streaming split on ``</act>`` that hands each fragment to ``fromstring``
-separately -- and *checks* what it splits: a byte between two fragments that is
-not whitespace fails the build rather than being skipped.
-
-**Label, never guess.** Two source-side spellings had to be decided, and both
-are decided by reading what OLRC states rather than by re-deriving it:
-
-* :data:`TABLE3_KEY_RULE` -- the Table III key is the ``search-key`` attribute
-  OLRC puts on every ``<act>``, with a pre-1957 act's full date narrowed to its
-  year, because that is the spelling ``usc-popular-names.parquet`` joins on.
-  Deriving the key from ``<num>`` instead -- the rule a reader would guess --
-  mints ``78-80`` (Public Law 78-80) for the 1956 session-law chapter 78-80,
-  whose ``search-key`` says plainly it is ``1956-03-02:78-80``.
-* :data:`PAGE_SPAN_RULE` -- 20,809 records state a Statutes at Large page
-  *span* ("3440, 3441", "1007-1009") where the per-page build stored the single
-  page its statviewer link carried. 20,371 of those have an ``<act-section>``:
-  the column is read as an integer by
-  :class:`~refspec.registry.act_resolution.ActIndex`, so the row keeps the
-  span's first page and the verbatim span is written to ``quarantine.parquet``
-  and counted in the receipt. The other 438 have no ``<act-section>`` at all,
-  so they are already in ``quarantine.parquet`` under
-  ``record_without_act_section`` -- span text and all -- before the page
-  column is ever read. Narrowed, named, and countable -- not dropped.
-
-Nothing the file states is discarded in silence. A record with no
-``<act-section>`` has no key to be filed under and goes to ``quarantine.parquet``
-with its reason; every attribute and element the reader sees but the sealed
-schema has no column for is named with its count in the receipt's
-``stated_but_not_carried``; and the status vocabulary is published as it is
-spelled, R.S. citations and all.
+The member is not a well-formed XML document -- bare sibling ``<act>`` elements
+with no wrapping root, so :data:`BULK_WELL_FORMEDNESS_DEFECT` -- and
+:func:`iter_act_fragments` splits on ``</act>`` and refuses non-whitespace
+bytes between fragments. Labels come from what OLRC states:
+:data:`TABLE3_KEY_RULE` takes the ``search-key`` attribute with a pre-1957
+act's full date narrowed to its year, and :data:`PAGE_SPAN_RULE` keeps a stated
+page span's first page in the column -- read as an integer by
+:class:`~refspec.registry.act_resolution.ActIndex` -- while writing the
+verbatim span to ``quarantine.parquet``, counted in the receipt. Nothing the
+file states is discarded in silence: a record without an ``<act-section>`` is
+quarantined with its reason, and every seen-but-uncarried field is named with
+its count.
 
 Usage::
 

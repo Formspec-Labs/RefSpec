@@ -13,6 +13,8 @@ PAGE = (ROOT / "tests" / "fixtures" / "fcc_bureaus_offices" / "fcc-offices-burea
 
 
 def test_roster_carries_twelve_offices_and_seven_bureaus() -> None:
+    """Pins 12 offices, 7 bureaus, 19 units, and the bureau slugs in publisher order."""
+
     roster = fcc.parse_fcc_bureaus_offices(PAGE)
 
     assert roster.office_count == 12
@@ -32,6 +34,8 @@ def test_roster_carries_twelve_offices_and_seven_bureaus() -> None:
 
 
 def test_sample_rows_preserve_publisher_names_and_descriptions() -> None:
+    """Pins the Space, Engineering & Technology, and ALJ rows with decoded entities and descriptions."""
+
     roster = fcc.parse_fcc_bureaus_offices(PAGE)
     by_slug = roster.by_slug()
 
@@ -53,6 +57,8 @@ def test_sample_rows_preserve_publisher_names_and_descriptions() -> None:
 
 
 def test_the_abolished_common_carrier_bureau_is_not_on_the_published_roster() -> None:
+    """Pins that the abolished Common Carrier Bureau is absent while wireline-competition is present."""
+
     # The removed observed ECFS inventory carried the abolished Common Carrier
     # Bureau beside its successor; the publisher's own roster does not list it.
     roster = fcc.parse_fcc_bureaus_offices(PAGE)
@@ -62,6 +68,8 @@ def test_the_abolished_common_carrier_bureau_is_not_on_the_published_roster() ->
 
 
 def test_drifted_page_bytes_are_refused() -> None:
+    """Pins that a flipped byte and an appended byte each raise FccSourceDriftError."""
+
     with pytest.raises(fcc.FccSourceDriftError, match="digest drift"):
         fcc.parse_fcc_bureaus_offices(PAGE[:-1] + bytes([PAGE[-1] ^ 0x01]))
     with pytest.raises(fcc.FccSourceDriftError, match="byte length drift"):

@@ -62,10 +62,14 @@ class EuroVocAlignmentPin:
 
     @property
     def source_release_iri(self) -> str:
+        """The Cellar release IRI derived from ``key`` and ``version``."""
+
         return f"http://publications.europa.eu/resource/dataset/eurovoc_alignment_{self.key}/{self.version}"
 
     @property
     def issued(self) -> str:
+        """The canonical ``YYYY-MM-DD`` issue date the ``version`` string encodes."""
+
         return date.fromisoformat(f"{self.version[:4]}-{self.version[4:6]}-{self.version[6:8]}").isoformat()
 
 

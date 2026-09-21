@@ -1,4 +1,4 @@
-"""Exact-source tests for the official EuroVoc--LCSH alignment."""
+"""Official EuroVoc--LCSH alignment: digest-pinned sources, exact mapping retention, predicate refusals."""
 
 from __future__ import annotations
 
@@ -48,6 +48,8 @@ HAS_OFFICIAL_SOURCES = all(
 
 
 def test_official_source_pins_are_fixed() -> None:
+    """Pins the four source digests/byte lengths and the 1,904 exactMatch / 99 closeMatch census."""
+
     assert EUROVOC_LCSH_ALIGNMENT_BYTE_LENGTH == 332_124
     assert EUROVOC_LCSH_ALIGNMENT_SHA256 == (
         "sha256:dbd6e610ff497c4a39a79924cf50dcf92d5f3e9ab316d58d83c460dba6fb4853"
@@ -72,6 +74,8 @@ def test_official_source_pins_are_fixed() -> None:
 
 @pytest.mark.skipif(not HAS_OFFICIAL_SOURCES, reason="official EuroVoc alignment sources are not cached")
 def test_official_alignment_retains_every_direct_mapping_exactly_once() -> None:
+    """Pins 2,008 triples / 2,003 unique mappings / 1,829 EuroVoc / 1,966 LCSH concept IRIs."""
+
     alignment = parse_eurovoc_lcsh_alignment_file(ALIGNMENT_PATH)
 
     assert alignment.source_sha256 == EUROVOC_LCSH_ALIGNMENT_SHA256
@@ -94,11 +98,15 @@ def test_official_alignment_retains_every_direct_mapping_exactly_once() -> None:
 
 @pytest.mark.skipif(not HAS_OFFICIAL_SOURCES, reason="official EuroVoc alignment sources are not cached")
 def test_current_eurovoc_metadata_confirms_both_lcsh_linksets() -> None:
+    """Pins that the pinned 4.24 metadata confirms both LCSH linksets."""
+
     assert verify_eurovoc_4_24_metadata(METADATA_PATH) is None
 
 
 @pytest.mark.skipif(not HAS_OFFICIAL_SOURCES, reason="official EuroVoc alignment sources are not cached")
 def test_release_metadata_pins_alignment_to_eurovoc_4_20() -> None:
+    """Pins that the alignment's own release metadata binds it to EuroVoc 4.20."""
+
     assert (
         verify_eurovoc_lcsh_release_metadata(
             ALIGNMENT_METADATA_PATH,
@@ -113,6 +121,8 @@ def test_release_metadata_pins_alignment_to_eurovoc_4_20() -> None:
 def test_pinned_alignment_reader_refuses_an_unexpected_cross_system_predicate(
     predicate: bytes,
 ) -> None:
+    """Pins that an added skos:broadMatch or owl:sameAs cross-system triple is refused."""
+
     payload = ALIGNMENT_PATH.read_bytes()
     extra = b"""
 <rdf:Description rdf:about="http://eurovoc.europa.eu/1">
@@ -127,6 +137,8 @@ def test_pinned_alignment_reader_refuses_an_unexpected_cross_system_predicate(
 
 @pytest.mark.skipif(not HAS_OFFICIAL_SOURCES, reason="official EuroVoc alignment sources are not cached")
 def test_pinned_file_reader_rejects_tampered_alignment_bytes(tmp_path: Path) -> None:
+    """Pins that one flipped byte fails the file reader's pin check."""
+
     tampered = tmp_path / EUROVOC_LCSH_ALIGNMENT_FILENAME
     payload = bytearray(ALIGNMENT_PATH.read_bytes())
     payload[-2] = ord("X")

@@ -2,158 +2,39 @@
 
 :mod:`refspec.registry.identifier_shapes` names the hole this module fills:
 *"IRI minting (``urn:rkaf:...``) stays with consumers until the minting layer
-is its own port."* No consumer ever did it. Before this module the whole
-platform minted exactly one family — ``act_resolution.canonical_usc_iri``,
-``urn:rkaf:us:usc:...`` — while the shapes for six others sat validated and
-nameless in :mod:`identifier_shapes` and :mod:`citation_grammar`.
+is its own port."* It wraps the shape layer's existing validators
+(:func:`~identifier_shapes.normalize_rin`,
+:func:`~identifier_shapes.normalize_docket_reference`,
+:func:`~identifier_shapes.detect_identifier_shapes`, ...) and adds no second
+opinion about what a real identifier looks like; where a minter is narrower —
+letters-only CFR parts, the ``[0-9]{2}`` RIN tail, the three-digit Federal
+Register document floor, a CFR title outside the 50 that exist (reserved 35
+included) — the narrowing is rulespec's lexical space and is named at the
+site. Minting checks the supported syntax only: never a roster, and never that
+a value was actually issued.
 
-A grammar is not a minter. rulespec owns the ``urn:rkaf`` grammar
-normatively; what belongs here is the executable step from a validated shape
-to the one identifier that shape names, and the refusal of everything else.
+The seven lexical spaces in :data:`IDENTIFIER_SPACES` are restated **verbatim**
+from the compiled rulespec profiles this repository vendors, and
+``test_the_minted_spaces_are_the_contract_verbatim`` holds the copies true, so
+what a minter emits is exactly what rulespec's own validators accept.
 
-The three rules this module is
------------------------------
+Refusal is ``None``, and a broken invariant raises: a value that states no
+identifier is a measured population (39.2% of the pinned Federal Register
+``document_number`` column), not an error, so every minter is a total function
+returning ``MintedIdentifier | None``. ``ValueError`` is reserved for
+:class:`MintedIdentifier` — which refuses to exist outside a declared scheme's
+space — and for a caller-asserted ``publication_date`` that is not a date.
+Anything the space cannot spell stays identified, never dropped: it takes
+rulespec's ``rkaf:partner-defined`` escape hatch under
+:func:`mint_partner_iri`, with this repository as the partner and the segment
+layout copied from rulespec's own fixture
+``urn:rkaf:partner:fixture:proceeding:EPA-HQ-OAR-2021-0317``.
 
-- **The shape layer decides, this layer spells.** Every minter below wraps a
-  validator that already exists — :func:`~identifier_shapes.normalize_rin`,
-  :func:`~identifier_shapes.normalize_docket_reference`,
-  :func:`~identifier_shapes.is_federal_register_document_number`,
-  :func:`~identifier_shapes.detect_identifier_shapes`,
-  :data:`~citation_grammar.CFR_TITLE_COUNT` — and adds no second opinion
-  about what a real identifier looks like. Where a minter is narrower than
-  the validator it wraps, the narrowing is rulespec's lexical space and is
-  named at the site.
-
-- **The candidate is minted and then checked against the contract.** The
-  seven lexical spaces in :data:`IDENTIFIER_SPACES` are restated **verbatim**
-  from the compiled rulespec profiles this repository vendors, the way
-  ``act_resolution._RKAF_USC_IRI`` restates the U.S.C. one, and
-  ``test_the_minted_spaces_are_the_contract_verbatim`` holds the copies true
-  against the vendored package. So what a minter will emit is exactly what
-  rulespec's own validators accept — there is no paraphrase to drift.
-
-- **Refusal is ``None``; a broken invariant raises.** A value that states no
-  identifier is a measured population, not an error: 39.2% of the pinned
-  Federal Register ``document_number`` column takes a shape rulespec cannot
-  spell, and an exception per row is not what that is. So every minter is a
-  total function returning ``MintedIdentifier | None``. ``ValueError`` is
-  reserved for :class:`MintedIdentifier` itself, which refuses to exist
-  outside a declared scheme's space — the convention
-  ``usc_section_oracle`` uses for its verdicts. The one existing minter
-  raises instead, and both of its call sites
-  (``act_resolution.py:749,772``) catch the exception immediately and turn it
-  back into a refusal; this module keeps the raise where it means something
-  and hands out the refusal.
-
-Two readers, and the one place the column is the license
---------------------------------------------------------
-:mod:`identifier_shapes` splits its readers in two — the **prose reader**,
-handed running text, whose grammar is deliberately narrow, and the **column
-reader**, handed a field whose name already declares what it holds. Minting
-inherits that split at exactly one place:
 :func:`mint_federal_register_document_iri` takes ``column_licensed``, and only
-that flag admits :data:`BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER`. Prose
-detection is not loosened by a single character, because nothing here is
-asking it to be.
-
-The docket minter inherits the other half of the same doctrine and it is
-easier to misread: it wraps a COLUMN reader, so it mints what a
-``docket_ids_json`` value states, including a Regulations.gov document id that
-fits the docket shape. See :func:`mint_regulations_gov_docket_iri`.
-
-What rkaf cannot spell today, measured
---------------------------------------
-Every number below was measured 2026-08-31 against the same two pinned
-columns :mod:`identifier_shapes` and its tests read — the Federal Register
-corpus's ``document_number`` (1,004,233 distinct, in
-``spicy-regs/output/rulespec-stabilization-candidate-final/
-federal_register.parquet``) and the Unified Agenda's ``rin`` (46,547
-distinct). Mostly they are recorded here because a lexical space that cannot
-spell a real thing is **a gap in rkaf, ours to fix**, never a fact about the
-thing — the posture ``act_resolution`` takes with statutory notes and section
-ranges. The RIN entry is the exception that proves the rule has a direction,
-and it is the last one below.
-
-Two of these gaps closed in rulespec ``0.2.0rc16`` (REF-054), which is why
-this section reads shorter than it did.
-
-- **CLOSED: the Federal Register document space was five digits wide and the
-  series is not.** ``rkaf:us-frdoc`` is now ``[0-9]{4}-[0-9]{3,5}``, and the
-  **28,862** modern-form numbers refused for a three- or four-digit tail —
-  2,599 with three, 26,263 with four, all of them published 2010-2013 — are
-  first-class. 2010-5997, 2011-237 and 2012-00019 are three of them, each
-  confirmed against the publisher's own API on 2026-08-22. First-class
-  coverage went **451,704 → 480,566** of 1,004,233, 45.0% → **47.9%**.
-- **STILL OPEN, and deliberately: 286 modern numbers below the floor.**
-  ``2010-99`` and ``2010-100`` are consecutive documents of one unpadded
-  series, and the space admits the second and refuses the first. The floor
-  holds at three digits because that makes ``rkaf:us-frdoc`` exactly
-  co-extensive with ``identifier_shapes.FEDERAL_REGISTER_DOCUMENT_NUMBER``
-  (``\\d{4}-\\d{3,5}``), so the space caught up to the shape layer rather than
-  overtaking it. That is a **consistency** argument, not an evidential one;
-  the count is written down so a future floor decision has it, the way the
-  1,370 ``\\d{2}-\\d{1,2}`` values are written down at
-  :data:`BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER`.
-- **STILL OPEN as a gap in rkaf, CLOSED as an identity gap: 394,128 (39.2%)
-  are the bare-legacy form.** No rulespec space reaches them — that has not
-  changed — but as of this cycle (REF-052) the shape moved home to
-  ``identifier_shapes.BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER`` and
-  reads through that module's own ``column_licensed`` flag rather than a
-  local copy here. Every one of these documents still identifies, through
-  the partner hatch; only ``rkaf:us-frdoc`` itself is the gap.
-- **CLOSED: the letter-opening family's identical short-tail hole, and three
-  siblings with it.** REF-052/REF-054 named four letter-opening families
-  with a verified live example and 10,340 unread values between them;
-  ``identifier_shapes``'s column reader now reads **10,231** of them —
-  **5,829** three-digit-and-shorter tails (the short-tail hole this bullet
-  used to leave open), **4,195** two-digit prefixes, **206** six-digit tails,
-  and the single legacy-prefix-over-modern-body hybrid. The remaining 109
-  stay refused, deliberately: 99 short-tail corrections (96 of them naming an
-  original document the widening above just made first-class), 9
-  colophon-fused values, and 1 non-identifier extraction artifact — see
-  ``identifier_shapes._FR_COLUMN_LETTER_FORMS`` for the measurement and the
-  publisher pages each family was read against. None of this is a gap in
-  rkaf: every value here was always outside ``rkaf:us-frdoc``'s space and
-  stays outside it, identified through the partner hatch rather than
-  first-class.
-- **CLOSED for letters, REFUSED for hyphens: the CFR part.** ``rkaf:us-cfr``
-  now writes the part as ``[0-9]+([a-z]|-[0-9]+)?``, covering all 272 of the
-  8,424 parts in the OFR's published subject index that are not plain digits
-  (``citation_grammar.CFR_LETTERED_PART_SHARE``, which stays ``(272, 8424)``
-  — only its consequence changed). :func:`mint_cfr_iri` mints the **83**
-  single-letter parts and refuses the **189** hyphen-numbered ones, a
-  narrowing against the space that :func:`_cfr_part` states and justifies.
-  It spells **8,226 of the 8,424** pairs end to end (97.65%) — the 189 plus
-  nine index rows whose part is literally ``0``, which there is no part 0 to
-  name.
-- **The RIN space is narrower than the query shape.** ``rkaf:us-rin`` closes
-  on ``[0-9]{2}`` where ``identifier_shapes._RIN`` allows
-  ``[A-Za-z0-9]{2}``. None of the 46,547 Unified Agenda RINs measured on
-  2026-08-31 took the divergent form. REF-054 therefore retained the space;
-  this is a bounded representation choice, not a universal publisher grammar.
-  The cited Fish and Wildlife Service format statement describes that agency.
-  ``citation_grammar._RIN_TOKEN`` is a U.S.C. list-parsing guard, not a public
-  RIN reader. Minting checks the supported syntax without consulting a roster
-  or establishing that a value was issued. The refusal test pins that behavior;
-  new roster coverage requires a separate comparison.
-
-The whole ``document_number`` column, sorted by what it can carry and pinned
-by ``test_the_document_number_column_is_accounted_for_exactly``: **480,566**
-first-class, **521,651** under the partner hatch (394,128 bare-legacy +
-127,523 letter-opening), **2,016** refused. 99.8% identified, against 47.9%
-if only rkaf's own spaces are minted into and 0% before this module existed.
-The census had a fifth bucket for the 28,862 modern short tails; the widening
-emptied it, so it is gone rather than pinned at zero. This cycle (REF-052)
-moved **10,231** values from refused into the letter-opening bucket
-(117,292 → 127,523) without moving a single value into or out of first-class
-— the four families it admits are column-licensed, not rulespec-widened, so
-the split between first-class and partner-hatch is untouched.
-
-Anything the space cannot spell is still identified, never dropped: it takes
-rulespec's own ``rkaf:partner-defined`` escape hatch under
-:func:`mint_partner_iri`, whose segment layout is copied from rulespec's own
-fixtures (``urn:rkaf:partner:fixture:proceeding:EPA-HQ-OAR-2021-0317`` in
-``artifact-us-frdoc-positive.jsonld``) with this repository as the partner.
+that flag admits :data:`BARE_LEGACY_FEDERAL_REGISTER_DOCUMENT_NUMBER`; prose
+detection is never loosened. :func:`mint_regulations_gov_docket_iri` wraps a
+column reader, so it mints what a ``docket_ids_json`` value states, including
+a Regulations.gov document id that fits the docket shape.
 """
 
 from __future__ import annotations

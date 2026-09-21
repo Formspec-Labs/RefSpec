@@ -23,6 +23,7 @@ def _mutated(payload: bytes) -> bytes:
 
 
 def test_captures_match_their_pins() -> None:
+    """Each fixture's bytes must verify against its pin's expected sha256."""
     assert fr.verify_payload(
         DOCUMENTATION, fr.FR_API_DOCUMENTATION_2026_08_15, location="fixture"
     ) == fr.FR_API_DOCUMENTATION_2026_08_15.expected_sha256
@@ -35,6 +36,7 @@ def test_captures_match_their_pins() -> None:
 
 
 def test_documented_document_types_are_the_four_published_codes() -> None:
+    """Pins the four codes, their display names, the OpenAPI version, and each facet's document count at capture."""
     documented = fr.parse_documented_document_types(DOCUMENTATION, FACETS)
 
     assert [item.code for item in documented.types] == ["RULE", "PRORULE", "NOTICE", "PRESDOCU"]
@@ -55,6 +57,7 @@ def test_documented_document_types_are_the_four_published_codes() -> None:
 
 
 def test_documented_presidential_document_types_are_the_seven_published_codes() -> None:
+    """Pins the seven presidential document type codes in published order."""
     assert fr.parse_documented_presidential_document_types(DOCUMENTATION) == (
         "determination",
         "executive_order",
@@ -67,6 +70,7 @@ def test_documented_presidential_document_types_are_the_seven_published_codes() 
 
 
 def test_agencies_roster_is_complete_with_resolved_parent_relations() -> None:
+    """Pins 472 records, 225 parent relations, the FCC and FDA resolutions, and the publisher anomaly counts."""
     roster = fr.parse_agencies_roster(AGENCIES)
 
     assert len(roster.records) == 472
@@ -94,12 +98,14 @@ def test_agencies_roster_is_complete_with_resolved_parent_relations() -> None:
 
 
 def test_documented_agency_enum_matches_the_roster() -> None:
+    """The documentation's agency enum and the parsed roster must agree on all 472 slugs."""
     roster = fr.parse_agencies_roster(AGENCIES)
 
     assert fr.crosscheck_documented_agency_slugs(DOCUMENTATION, roster) == 472
 
 
 def test_drifted_documentation_bytes_are_refused() -> None:
+    """A flipped byte and an appended byte are refused for digest and byte length drift."""
     with pytest.raises(fr.FRSourceDriftError, match="digest drift"):
         fr.parse_documented_document_types(_mutated(DOCUMENTATION), FACETS)
     with pytest.raises(fr.FRSourceDriftError, match="byte length drift"):
@@ -107,6 +113,7 @@ def test_drifted_documentation_bytes_are_refused() -> None:
 
 
 def test_drifted_facets_and_agencies_bytes_are_refused() -> None:
+    """Mutated facets and agencies bytes, and a truncated payload, are refused."""
     with pytest.raises(fr.FRSourceDriftError, match="digest drift"):
         fr.parse_documented_document_types(DOCUMENTATION, _mutated(FACETS))
     with pytest.raises(fr.FRSourceDriftError, match="digest drift"):

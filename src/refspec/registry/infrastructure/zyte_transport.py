@@ -47,6 +47,8 @@ def validate_zyte_token(token: str) -> str:
 
 
 def _validate_api_url(value: str) -> str:
+    """Return the value when it is a credential-free HTTPS Zyte API URL, refusing otherwise."""
+
     parsed = urllib.parse.urlsplit(value)
     if parsed.scheme != "https" or not parsed.netloc or parsed.username is not None or parsed.password is not None:
         raise ZyteTransportError("Zyte API URL must be an absolute credential-free HTTPS URL")
@@ -65,6 +67,8 @@ class ZyteHttpResponse:
 
 
 def _content_type_from_headers(value: object) -> str | None:
+    """Extract the single Content-Type from Zyte's header list, refusing a missing, repeated, or empty one."""
+
     if not isinstance(value, list):
         raise ZyteTransportError("Zyte response omitted httpResponseHeaders")
     content_types: list[str] = []
@@ -92,11 +96,15 @@ class ZyteHttpFetcher:
     api_url: str = ZYTE_API_URL
 
     def __post_init__(self) -> None:
+        """Validate the token and API URL before any request is built."""
+
         validate_zyte_token(self.token)
         _validate_api_url(self.api_url)
 
     @classmethod
     def from_environment(cls) -> ZyteHttpFetcher:
+        """Build a fetcher whose token is read from the named environment variable."""
+
         return cls(token=require_zyte_token_from_environment())
 
     def fetch(
@@ -106,6 +114,8 @@ class ZyteHttpFetcher:
         timeout_seconds: float,
         max_bytes: int,
     ) -> ZyteHttpResponse:
+        """POST one bounded extraction request and return the target's exact bytes and metadata."""
+
         if timeout_seconds <= 0:
             raise ZyteTransportError("timeout_seconds must be positive")
         if max_bytes <= 0:

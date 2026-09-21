@@ -53,12 +53,16 @@ HAS_TOPICS_WITNESS = (
 
 @pytest.fixture(scope="module")
 def spec() -> SourceSpec:
+    """The single pinned CFR subject-index comparison spec, failing if it is not unique."""
+
     matches = [candidate for candidate in SOURCES if candidate.name == SOURCE_NAME]
     assert len(matches) == 1, f"expected exactly one {SOURCE_NAME} comparison spec"
     return matches[0]
 
 
 def _payloads(spec: SourceSpec) -> dict[object, bytes]:
+    """Every pinned input's verified bytes, keyed by its pin."""
+
     return {
         pin: read_verified_file_pin(
             REPOSITORY_ROOT / pin.path,
@@ -72,10 +76,14 @@ def _payloads(spec: SourceSpec) -> dict[object, bytes]:
 
 @pytest.fixture(scope="module")
 def view(spec: SourceSpec) -> PublisherView:
+    """The independent event-driven reading of the pinned pages."""
+
     return _read_cfr_subject_index(spec, _payloads(spec))
 
 
 def test_spec_pins_every_publisher_page_and_the_target_witness(spec: SourceSpec) -> None:
+    """The spec pins 50 HTML pages (titles 1-50) and one target witness, each present with a full digest."""
+
     pages = [pin for pin in spec.inputs if pin.role == "publisherSubjectIndexPage"]
     witnesses = [pin for pin in spec.inputs if pin.role == "targetVocabularyWitness"]
     assert len(pages) == 50
@@ -89,6 +97,8 @@ def test_spec_pins_every_publisher_page_and_the_target_witness(spec: SourceSpec)
 
 
 def test_every_pinned_page_authenticates_against_its_declared_digest(spec: SourceSpec) -> None:
+    """Every pinned input verifies against its declared digest and byte length."""
+
     for pin in spec.inputs:
         payload = read_verified_file_pin(
             REPOSITORY_ROOT / pin.path,
@@ -100,6 +110,8 @@ def test_every_pinned_page_authenticates_against_its_declared_digest(spec: Sourc
 
 
 def test_reader_reproduces_its_census_of_the_pinned_bytes(view: PublisherView) -> None:
+    """The reading reproduces the pinned census: 8,425 parts, 31,685 relations, 8,428 entries, 32,202 assignments."""
+
     assert len(view.concepts) == _CFR_SUBJECT_INDEX_CENSUS["distinctParts"] == 8_425
     assert len(view.relations) == _CFR_SUBJECT_INDEX_RESOLUTION["partSubjectRelations"] == 31_685
     assert len(view.pref_labels) == len(view.notations) == len(view.expected_native_payloads) == 8_425
@@ -114,12 +126,16 @@ def test_reader_reproduces_its_census_of_the_pinned_bytes(view: PublisherView) -
 
 
 def test_reserved_cfr_title_35_carries_no_parts(view: PublisherView) -> None:
+    """Title 35 is the only title absent from the parsed parts."""
+
     titles = {payload["cfrTitle"] for payload in view.expected_native_payloads.values()}
     assert 35 not in titles
     assert titles == set(range(1, 51)) - {35}
 
 
 def test_publisher_irregularities_are_counted_not_skipped() -> None:
+    """Each documented irregularity count is pinned, from the 32 definition-typed headings to the one leaked tag."""
+
     assert _CFR_SUBJECT_INDEX_IRREGULARITIES["headingTypedAsDefinition"] == 32
     assert _CFR_SUBJECT_INDEX_IRREGULARITIES["missingPartKeyword"] == 13
     assert _CFR_SUBJECT_INDEX_IRREGULARITIES["misspelledPartKeyword"] == 1
@@ -156,6 +172,8 @@ def test_publisher_irregularities_still_yield_the_right_part(
     heading: str,
     notation: str,
 ) -> None:
+    """Each documented irregular heading still yields its own part with the normalized notation."""
+
     assert resource in view.concepts
     assert {literal.value for literal in view.pref_labels[resource]} == {heading}
     assert {literal.value for literal in view.notations[resource]} == {notation}
@@ -187,6 +205,8 @@ def test_a_mistyped_heading_does_not_leak_its_terms_into_the_part_above(view: Pu
 
 
 def test_the_three_parts_the_publisher_lists_twice_merge_into_one_resource(view: PublisherView) -> None:
+    """Each of the three twice-listed parts is one resource marked publisherListedPartTwice."""
+
     for cfr_title, part in _CFR_SUBJECT_INDEX_DUPLICATE_PARTS:
         payload = view.expected_native_payloads[f"urn:ref:cfr-part:{cfr_title}:{part}"]
         assert payload["publisherListedPartTwice"] is True
@@ -197,6 +217,8 @@ def test_the_three_parts_the_publisher_lists_twice_merge_into_one_resource(view:
 
 
 def test_relations_only_ever_point_at_a_held_topic_concept(view: PublisherView) -> None:
+    """All relations use hasIndexedSubject and target one of 840 held publisher concepts."""
+
     predicates = {predicate for _subject, predicate, _target in view.relations}
     assert predicates == {"https://refspec.org/ns/atlas/v3#hasIndexedSubject"}
     subjects = {subject for subject, _predicate, _target in view.relations}
@@ -213,6 +235,8 @@ def test_relations_only_ever_point_at_a_held_topic_concept(view: PublisherView) 
 
 
 def _mutate_one_page(spec: SourceSpec, needle: bytes, replacement: bytes) -> dict[object, bytes]:
+    """One pinned page with the first needle occurrence replaced; fails if no page contains it."""
+
     payloads = _payloads(spec)
     for pin, payload in payloads.items():
         if needle in payload:
@@ -222,6 +246,8 @@ def _mutate_one_page(spec: SourceSpec, needle: bytes, replacement: bytes) -> dic
 
 
 def test_reader_raises_when_a_heading_element_is_flipped_to_a_definition(spec: SourceSpec) -> None:
+    """Flipping a dt open tag refuses with the unbalanced-close error."""
+
     mutated = _mutate_one_page(
         spec,
         b"<dt><strong>40 CFR Part 52_",
@@ -232,6 +258,8 @@ def test_reader_raises_when_a_heading_element_is_flipped_to_a_definition(spec: S
 
 
 def test_reader_raises_when_a_whole_heading_is_retyped_as_a_definition(spec: SourceSpec) -> None:
+    """Retyping a whole heading as dd refuses on the irregularity count."""
+
     mutated = _mutate_one_page(
         spec,
         b"<dt><strong>40 CFR Part 52_Approval and promulgation of implementation plans. </strong></dt>",
@@ -242,12 +270,16 @@ def test_reader_raises_when_a_whole_heading_is_retyped_as_a_definition(spec: Sou
 
 
 def test_reader_raises_when_one_index_term_is_dropped(spec: SourceSpec) -> None:
+    """Dropping one index term refuses on the census."""
+
     mutated = _mutate_one_page(spec, b"<dd>Air pollution control</dd>\n", b"")
     with pytest.raises(ValueError, match="census differs"):
         _read_cfr_subject_index(spec, mutated)
 
 
 def test_rewriting_one_part_heading_moves_exactly_that_label(spec: SourceSpec) -> None:
+    """A rewritten heading changes only that part's preferred label."""
+
     mutated = _mutate_one_page(
         spec,
         b"40 CFR Part 52_Approval and promulgation of implementation plans.",
@@ -259,12 +291,16 @@ def test_rewriting_one_part_heading_moves_exactly_that_label(spec: SourceSpec) -
 
 
 def test_reader_raises_when_a_definition_list_is_removed(spec: SourceSpec) -> None:
+    """Replacing a definition-list open tag refuses."""
+
     mutated = _mutate_one_page(spec, b"<dl>", b"<div>")
     with pytest.raises(ValueError):
         _read_cfr_subject_index(spec, mutated)
 
 
 def test_reader_raises_when_the_topic_witness_loses_a_concept(spec: SourceSpec) -> None:
+    """A changed witness term refuses on term resolution."""
+
     payloads = _payloads(spec)
     witness = next(pin for pin in spec.inputs if pin.role == "targetVocabularyWitness")
     payloads[witness] = payloads[witness].replace(b'"Air pollution control"', b'"Air pollution controls"', 1)
@@ -273,6 +309,8 @@ def test_reader_raises_when_the_topic_witness_loses_a_concept(spec: SourceSpec) 
 
 
 def test_pin_authentication_raises_when_a_declared_digest_is_wrong(spec: SourceSpec) -> None:
+    """A wrong declared digest refuses before any page is read."""
+
     page = next(pin for pin in spec.inputs if pin.path.endswith("subject-title-40.html"))
     wrong = replace(page, sha256="sha256:" + "0" * 64)
     broken = replace(spec, inputs=tuple(wrong if pin is page else pin for pin in spec.inputs))
@@ -281,6 +319,8 @@ def test_pin_authentication_raises_when_a_declared_digest_is_wrong(spec: SourceS
 
 
 def test_pin_authentication_raises_when_the_bytes_on_disk_are_edited(spec: SourceSpec, tmp_path: Path) -> None:
+    """Edited bytes on disk refuse the pin even with the spec unchanged."""
+
     page = next(pin for pin in spec.inputs if pin.path.endswith("subject-title-40.html"))
     staged = tmp_path / page.path
     staged.parent.mkdir(parents=True, exist_ok=True)
@@ -291,6 +331,8 @@ def test_pin_authentication_raises_when_the_bytes_on_disk_are_edited(spec: Sourc
 
 
 def test_reading_the_unedited_tree_through_the_pin_path_still_passes(spec: SourceSpec) -> None:
+    """The unedited tree still loads through the pin path and holds 8,425 parts."""
+
     view = read_publisher_inputs(SOURCE_ROOT, spec)
     assert len(view.concepts) == 8_425
 
@@ -316,6 +358,8 @@ RELEASE_COUNTS = {"partEntries": 8_427, "distinctParts": 8_424, "termAssignments
 
 @pytest.mark.skipif(not EVIDENCE_CSV.is_file(), reason="release evidence CSV is not present")
 def test_divergence_from_the_shipped_release_is_exactly_the_frozen_list(view: PublisherView) -> None:
+    """Comparing (title, part, term) sets both ways leaves exactly the one frozen term-less part as the divergence."""
+
     with EVIDENCE_CSV.open(encoding="utf-8", newline="") as handle:
         rows = list(csv.DictReader(handle))
     # Both sides are compared as sets of (title, part, term). The CSV lists one

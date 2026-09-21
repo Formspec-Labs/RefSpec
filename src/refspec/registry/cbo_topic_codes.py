@@ -170,6 +170,8 @@ def sha256_digest(payload: bytes) -> str:
 
 
 def _validate_official_url(value: str, *, label: str) -> None:
+    """Refuse a value that is not on a known cbo.gov HTTPS host, or that carries credentials."""
+
     parsed = urlsplit(value)
     if parsed.scheme != "https" or parsed.hostname not in CBO_HOSTS:
         raise CBOAcquisitionError(f"{label} must be an official HTTPS cbo.gov URL")
@@ -178,6 +180,8 @@ def _validate_official_url(value: str, *, label: str) -> None:
 
 
 def _validate_feed_url(value: str) -> None:
+    """Require the official ``/cost-estimates/xml`` path; a browse or single-estimate page is refused."""
+
     _validate_official_url(value, label="source_url")
     if urlsplit(value).path != "/cost-estimates/xml":
         raise CBOAcquisitionError(
@@ -187,6 +191,8 @@ def _validate_feed_url(value: str) -> None:
 
 
 def _validate_per_congress_feed_url(value: str) -> None:
+    """Require the official ``/rss/{congress}congress-cost-estimates.xml`` path."""
+
     _validate_official_url(value, label="source_url")
     if _PER_CONGRESS_PATH_PATTERN.fullmatch(urlsplit(value).path) is None:
         raise CBOAcquisitionError(
@@ -219,6 +225,8 @@ class CBOCostEstimatesFeedSnapshotPin:
     expected_byte_length: int
 
     def __post_init__(self) -> None:
+        """Refuse a non-official feed URL, malformed digest, non-positive length, or empty retrieval time."""
+
         _validate_feed_url(self.source_url)
         if _DIGEST.fullmatch(self.expected_sha256) is None:
             raise CBOAcquisitionError("expected_sha256 must be a lowercase sha256:<64 hex> digest")
@@ -238,6 +246,8 @@ class CBOPerCongressFeedSnapshotPin:
     expected_byte_length: int
 
     def __post_init__(self) -> None:
+        """Refuse a non-official per-Congress URL, malformed digest, non-positive length, or empty retrieval time."""
+
         _validate_per_congress_feed_url(self.source_url)
         if _DIGEST.fullmatch(self.expected_sha256) is None:
             raise CBOAcquisitionError("expected_sha256 must be a lowercase sha256:<64 hex> digest")
@@ -305,6 +315,8 @@ class AcquiredCBOPerCongressFeed:
 
 
 def _validate_xml_payload(payload: bytes) -> None:
+    """Refuse a bot-challenge page or a body that is not XML/RSS before any digest check."""
+
     lowered = payload[:64_000].lower()
     if any(marker in lowered for marker in _CHALLENGE_MARKERS):
         raise CBOSourceDriftError("cbo.gov returned a bot-challenge page instead of the cost estimates XML feed")
@@ -314,10 +326,14 @@ def _validate_xml_payload(payload: bytes) -> None:
 
 
 def _validate_official_resolved_url(value: str) -> None:
+    """Refuse a fetcher resolved URL that left the official cbo.gov hosts."""
+
     _validate_official_url(value, label="fetcher resolved_url")
 
 
 def _validate_fetched_feed(fetched: FetchedCBOFeed, *, source_url: str) -> None:
+    """Refuse a non-200, off-origin, challenge, or wrong-content-type cost-estimates response."""
+
     if fetched.status_code != 200:
         raise CBOAcquisitionError(f"could not acquire {source_url}: HTTP {fetched.status_code}")
     _validate_official_resolved_url(fetched.resolved_url)
@@ -331,6 +347,8 @@ def _validate_fetched_feed(fetched: FetchedCBOFeed, *, source_url: str) -> None:
 
 
 def _validate_fetched_per_congress_feed(fetched: FetchedCBOFeed, *, source_url: str) -> None:
+    """Refuse a non-200, off-origin, challenge, or wrong-content-type per-Congress response."""
+
     if fetched.status_code != 200:
         raise CBOAcquisitionError(f"could not acquire {source_url}: HTTP {fetched.status_code}")
     _validate_official_resolved_url(fetched.resolved_url)
@@ -346,6 +364,8 @@ def _verify_payload(
     *,
     location: str,
 ) -> tuple[str, int]:
+    """Refuse a payload whose shape, byte length, or digest differs from the pin; returns ``(sha256, length)``."""
+
     _validate_xml_payload(payload)
     byte_length = len(payload)
     if byte_length != pin.expected_byte_length:
@@ -359,6 +379,8 @@ def _verify_payload(
 
 
 def _verify_existing(path: Path, pin: CBOCostEstimatesFeedSnapshotPin) -> AcquiredCBOCostEstimatesFeed:
+    """Re-verify one cached cost-estimates object and return its acquisition record."""
+
     if path.is_symlink() or not path.is_file():
         raise CBOAcquisitionError(f"content-addressed target is not a regular file: {path}")
     actual_sha256, byte_length = _verify_payload(
@@ -390,6 +412,8 @@ def _publish_payload(
     resolved_url: str | None,
     local_source_path: Path | None,
 ) -> AcquiredCBOCostEstimatesFeed:
+    """Publish verified cost-estimates bytes by hard link, falling back to a verified existing object."""
+
     actual_sha256, byte_length = _verify_payload(
         payload,
         pin,
@@ -522,6 +546,8 @@ def capture_initial_cbo_cost_estimates_feed_snapshot(
 
 
 def _verify_existing_per_congress(path: Path, pin: CBOPerCongressFeedSnapshotPin) -> AcquiredCBOPerCongressFeed:
+    """Re-verify one cached per-Congress object and return its acquisition record."""
+
     if path.is_symlink() or not path.is_file():
         raise CBOAcquisitionError(f"content-addressed target is not a regular file: {path}")
     actual_sha256, byte_length = _verify_payload(
@@ -553,6 +579,8 @@ def _publish_per_congress_payload(
     resolved_url: str | None,
     local_source_path: Path | None,
 ) -> AcquiredCBOPerCongressFeed:
+    """Publish verified per-Congress bytes by hard link, falling back to a verified existing object."""
+
     actual_sha256, byte_length = _verify_payload(
         payload,
         pin,
@@ -675,6 +703,8 @@ class CBOBudgetFunction:
 
     @property
     def code(self) -> str | None:
+        """The publisher code when the item supplied one, else ``None``; never invented."""
+
         return self.identifiers[0].value if self.identifiers else None
 
 
@@ -782,6 +812,8 @@ def cbo_topic_assignment_record_iri(
 
 
 def _parse_tri_bool(value: str | None, field: str) -> bool | None:
+    """Parse ``true``/``false`` case-insensitively; ``None`` stays ``None`` and anything else is drift."""
+
     if value is None:
         return None
     text = value.strip().lower()
@@ -793,6 +825,8 @@ def _parse_tri_bool(value: str | None, field: str) -> bool | None:
 
 
 def _optional_text(value: str | None) -> str | None:
+    """Strip a value, returning ``None`` when it is absent or blank."""
+
     if value is None:
         return None
     text = value.strip()
@@ -800,6 +834,8 @@ def _optional_text(value: str | None) -> str | None:
 
 
 def _read_acquired_payload(feed: AcquiredCBOCostEstimatesFeed) -> bytes:
+    """Read the acquired feed and re-verify it against its pin before parsing."""
+
     payload = feed.path.read_bytes()
     _verify_payload(payload, feed.pin, location="parsed cost estimates feed")
     return payload
@@ -971,6 +1007,8 @@ class ParsedCBOPerCongressFeed:
 
 
 def _read_acquired_per_congress_payload(feed: AcquiredCBOPerCongressFeed) -> bytes:
+    """Read the acquired per-Congress feed and re-verify it against its pin before parsing."""
+
     payload = feed.path.read_bytes()
     _verify_payload(payload, feed.pin, location="parsed per-Congress cost estimates feed")
     return payload
@@ -1066,6 +1104,8 @@ def parse_cbo_per_congress_feed(feed: AcquiredCBOPerCongressFeed) -> ParsedCBOPe
 
 
 def _observation(record: CBOCostEstimateRecord, assignment: CBOTopicAssignment) -> dict[str, object]:
+    """Render one Topic assignment as a capture-local observation, claiming no concept identity."""
+
     return {
         "id": assignment.record_iri,
         "sourceArtifact": None,  # filled in by the caller once the source_url is known

@@ -1,4 +1,9 @@
-"""EuroVoc pinned SKOS Core release reader tests."""
+"""EuroVoc pinned SKOS Core release: structure parsing, container closure, pins and refusals.
+
+Domains, domain groups and concepts are separated by source identifiers; every
+member of the ZIP is closed by name, count, size and digest, and a degraded
+acquisition never becomes a parsed release.
+"""
 
 from __future__ import annotations
 
@@ -94,10 +99,14 @@ SYNTHETIC_EDGE_TURTLE = """\
 
 
 def _fixture_bytes() -> bytes:
+    """Return the committed EuroVoc domains sample bytes."""
+
     return FIXTURE_PATH.read_bytes()
 
 
 def _synthetic_rdf_xml() -> bytes:
+    """Serialize the synthetic edge Turtle plus a broader link as RDF/XML."""
+
     graph = Graph()
     graph.parse(
         data=SYNTHETIC_EDGE_TURTLE + "\n<urn:example:edge> skos:broader <urn:example:parent> .\n",
@@ -107,6 +116,8 @@ def _synthetic_rdf_xml() -> bytes:
 
 
 def _zip_payload(member: bytes, *, member_name: str = "eurovoc.rdf", extra_member: bool = False) -> bytes:
+    """Build a one-member ZIP, optionally with an unexpected extra member."""
+
     output = io.BytesIO()
     with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         archive.writestr(member_name, member)
@@ -122,6 +133,8 @@ def _release_for_archive(
     member_name: str = "eurovoc.rdf",
     metadata_source: EuroVocMetadataSource | None = None,
 ) -> EuroVocReleaseSource:
+    """Build a release pin whose archive and member digests match the given bytes."""
+
     return EuroVocReleaseSource(
         release_id="fixture-9.9",
         version="9.9",
@@ -140,6 +153,8 @@ def _release_for_archive(
 
 
 def test_parser_separates_domains_domain_groups_and_concepts_with_source_identifiers() -> None:
+    """Domains, domain groups and concepts are separated by code and IRI, with labels kept per language."""
+
     source = _fixture_bytes()
     parsed = parse_eurovoc_turtle(source, source_url=FIXTURE_SOURCE_URL)
 
@@ -196,6 +211,8 @@ def test_parser_separates_domains_domain_groups_and_concepts_with_source_identif
 
 
 def test_parser_keeps_hierarchy_scheme_membership_and_top_concept_facts_as_flat_relations() -> None:
+    """Hierarchy, membership, top-concept and status facts stay flat one-hop relations with no closure invented."""
+
     parsed = parse_eurovoc_turtle(_fixture_bytes(), source_url=FIXTURE_SOURCE_URL)
 
     assert HIERARCHY_PREDICATE_IRIS == (
@@ -245,6 +262,8 @@ def test_parser_keeps_hierarchy_scheme_membership_and_top_concept_facts_as_flat_
 
 
 def test_synthetic_edge_input_round_trips_domain_group_and_hidden_label() -> None:
+    """A synthetic edge document round-trips its domain, group, hidden label and multilingual annotations."""
+
     parsed = parse_eurovoc_turtle(
         SYNTHETIC_EDGE_TURTLE,
         source_url="https://example.test/synthetic-eurovoc-edge.ttl",
@@ -272,6 +291,9 @@ def test_synthetic_edge_input_round_trips_domain_group_and_hidden_label() -> Non
 
 
 def test_skos_core_domain_membership_separates_domains_from_thesaurus_concepts() -> None:
+    """A domain is kept out of ordinary concepts by its membership in the EuroVoc domains scheme, not by its
+    rdf:type."""
+
     core_shape = SYNTHETIC_EDGE_TURTLE.replace(
         "a schema:Domain, skos:Concept ;",
         "a skos:Concept ;",
@@ -298,6 +320,8 @@ def test_skos_core_domain_membership_separates_domains_from_thesaurus_concepts()
     ],
 )
 def test_parser_rejects_lossy_or_ambiguous_concept_features(mutate, message: str) -> None:
+    """An untagged label or disagreeing identifier spellings are refused."""
+
     with pytest.raises(EuroVocThesaurusError, match=message):
         parse_eurovoc_turtle(
             mutate(SYNTHETIC_EDGE_TURTLE),
@@ -306,6 +330,8 @@ def test_parser_rejects_lossy_or_ambiguous_concept_features(mutate, message: str
 
 
 def test_parser_refuses_a_domain_group_whose_code_does_not_match_its_domains_prefix() -> None:
+    """A domain group code whose prefix names another domain is refused."""
+
     mutated = SYNTHETIC_EDGE_TURTLE.replace('skos:notation "0101" ;', 'skos:notation "0201" ;').replace(
         'dcterms:identifier "0101" ;', 'dcterms:identifier "0201" ;'
     ).replace('dc:identifier "0101" ;', 'dc:identifier "0201" ;')
@@ -317,6 +343,8 @@ def test_parser_refuses_a_domain_group_whose_code_does_not_match_its_domains_pre
 
 
 def test_parser_rejects_a_blank_node_in_place_of_a_required_iri() -> None:
+    """A blank node where an IRI is required is refused."""
+
     mutated = SYNTHETIC_EDGE_TURTLE.replace("<urn:example:domain-01>", "[]", 1)
     with pytest.raises(EuroVocThesaurusError, match="must be an IRI"):
         parse_eurovoc_turtle(
@@ -326,6 +354,8 @@ def test_parser_rejects_a_blank_node_in_place_of_a_required_iri() -> None:
 
 
 def test_parser_rejects_an_iri_valued_definition() -> None:
+    """An IRI-valued definition is refused where an RDF literal is required."""
+
     mutated = SYNTHETIC_EDGE_TURTLE.replace(
         'skos:definition "An English definition."@en-GB, "Une définition."@fr ;',
         "skos:definition <urn:example:definition> ;",
@@ -338,6 +368,8 @@ def test_parser_rejects_an_iri_valued_definition() -> None:
 
 
 def test_parser_enforces_optional_distribution_digest_and_size_pins() -> None:
+    """Matching digest and byte pins pass, while a wrong digest or length is refused."""
+
     source = _fixture_bytes()
     digest = "sha256:" + hashlib.sha256(source).hexdigest()
     parsed = parse_eurovoc_turtle(
@@ -363,6 +395,8 @@ def test_parser_enforces_optional_distribution_digest_and_size_pins() -> None:
 
 
 def test_parse_eurovoc_file_reads_from_disk(tmp_path: Path) -> None:
+    """The file reader reads a Turtle file from disk with the source URL attached."""
+
     source = _fixture_bytes()
     path = tmp_path / "eurovoc.ttl"
     path.write_bytes(source)
@@ -371,6 +405,8 @@ def test_parse_eurovoc_file_reads_from_disk(tmp_path: Path) -> None:
 
 
 def test_skos_core_notation_is_a_complete_publisher_identifier() -> None:
+    """skos:notation alone is a complete identifier when the DC identifiers are absent."""
+
     source = SYNTHETIC_EDGE_TURTLE.replace('dc:identifier "900001" ;\n', "").replace(
         'dcterms:identifier "900001" ;\n', ""
     )
@@ -382,6 +418,8 @@ def test_skos_core_notation_is_a_complete_publisher_identifier() -> None:
 
 
 def test_rdf_xml_reader_preserves_roles_schemes_and_direct_hierarchy() -> None:
+    """The RDF/XML reader keeps label roles, all three schemes and the direct broader link."""
+
     source = _synthetic_rdf_xml()
     parsed = parse_eurovoc_rdf_xml(
         source,
@@ -403,6 +441,8 @@ def test_rdf_xml_reader_preserves_roles_schemes_and_direct_hierarchy() -> None:
 
 
 def test_official_4_24_release_and_metadata_are_fully_pinned() -> None:
+    """The 4.24 release and its metadata pin version, issue date, archive/member digests and byte lengths."""
+
     release = EUROVOC_RELEASE_4_24
     assert release.version == "4.24"
     assert release.issued == "2026-07-08"
@@ -421,6 +461,8 @@ def test_official_4_24_release_and_metadata_are_fully_pinned() -> None:
 
 
 def test_verified_local_zip_acquisition_parses_and_caches_member(tmp_path: Path) -> None:
+    """A verified local ZIP acquires and parses its single member, then a second call is a cache hit."""
+
     member = _synthetic_rdf_xml()
     archive = _zip_payload(member)
     archive_path = tmp_path / "eurovoc.zip"
@@ -448,6 +490,8 @@ def test_verified_local_zip_acquisition_parses_and_caches_member(tmp_path: Path)
 
 
 def test_optional_metadata_is_independently_pinned(tmp_path: Path) -> None:
+    """An optional metadata file is digested independently; a changed file is refused by byte length."""
+
     member = _synthetic_rdf_xml()
     archive = _zip_payload(member)
     metadata = b"@prefix dcterms: <http://purl.org/dc/terms/> .\n"
@@ -483,6 +527,8 @@ def test_optional_metadata_is_independently_pinned(tmp_path: Path) -> None:
 
 
 def test_zip_container_member_count_name_size_and_digest_are_closed() -> None:
+    """An extra member, wrong member name, wrong member size or wrong member digest is each refused."""
+
     member = _synthetic_rdf_xml()
 
     extra_archive = _zip_payload(member, extra_member=True)
@@ -507,6 +553,8 @@ def test_zip_container_member_count_name_size_and_digest_are_closed() -> None:
 
 
 def _acquire_fixture_archive(archive: bytes, release: EuroVocReleaseSource) -> AcquiredEuroVocRelease:
+    """Acquire the archive from a temporary directory and return the recorded member acquisition."""
+
     with tempfile.TemporaryDirectory() as temporary_dir:
         root = Path(temporary_dir)
         source_path = root / "source.zip"
@@ -515,6 +563,8 @@ def _acquire_fixture_archive(archive: bytes, release: EuroVocReleaseSource) -> A
 
 
 def test_acquisition_refuses_the_network_unless_explicitly_allowed(tmp_path: Path) -> None:
+    """Without allow_network or a local path, acquisition refuses rather than fetching."""
+
     with pytest.raises(EuroVocAcquisitionError, match="allow_network"):
         acquire_eurovoc_release(EUROVOC_RELEASE_4_24, tmp_path / "store")
 
@@ -530,5 +580,7 @@ def test_acquisition_refuses_the_network_unless_explicitly_allowed(tmp_path: Pat
     ],
 )
 def test_acquisition_source_rejects_malformed_pins(field: str, value: object) -> None:
+    """A non-URL, bad digest, zero length, nested member name or wrong date shape is refused at construction."""
+
     with pytest.raises(EuroVocAcquisitionError):
         replace(EUROVOC_RELEASE_4_24, **{field: value})

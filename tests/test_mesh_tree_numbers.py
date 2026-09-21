@@ -33,6 +33,8 @@ SUBJECT_RING = mtn.ATLAS_SUBJECT_RING
 
 
 def _canonical_sha256(payload: object, *, terminal_lf: bool = True) -> str:
+    """The binding's canonical JSON sha256 spelling, with a terminal LF unless disabled."""
+
     text = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     if terminal_lf:
         text += "\n"
@@ -40,6 +42,8 @@ def _canonical_sha256(payload: object, *, terminal_lf: bool = True) -> str:
 
 
 def _resource_lines(iri: str, *, notations: tuple[str, ...]) -> list[str]:
+    """Asserted N-Quads for one MeSH resource: ring, scheme, notations and a representing source record."""
+
     subject = f"<{iri}>"
     record = f"<urn:ref:atlas-test:source-record:{iri.rsplit(':', 1)[-1]}>"
     lines = [f'{subject} {derived_graph.ATLAS_SEMANTIC_RING_TERM} <{SUBJECT_RING}> {GRAPH} .']
@@ -51,6 +55,8 @@ def _resource_lines(iri: str, *, notations: tuple[str, ...]) -> list[str]:
 
 
 def _facts_and_digests(lines: list[str]) -> tuple[derived_graph.AssertedFactView, dict[str, str]]:
+    """Collect the asserted fact view and the node digests for this rule's evidence nodes."""
+
     facts = derived_graph.collect_asserted_fact_view(lines)
     wanted = mtn.mesh_tree_number_evidence_nodes(facts)
     node_digest = derived_graph.collect_node_digests(lines, wanted)
@@ -62,6 +68,8 @@ def _context(
     *,
     generated_at: str = "2026-01-01T00:00:00+00:00",
 ) -> derived_graph.DerivationContext:
+    """A derivation context over the given asserted lines and generation time."""
+
     facts, node_digest = _facts_and_digests(lines)
     return derived_graph.DerivationContext(
         facts=facts,
@@ -72,6 +80,8 @@ def _context(
 
 
 def test_simple_parent_child_derives_one_edge() -> None:
+    """C14.280 under root C14 yields one skos:broader edge with its rule identity and content-derived node IRI."""
+
     # "C14" has no dot -- a root, by NLM's own convention -- and "C14.280"
     # sits under it by construction.
     lines = [
@@ -101,6 +111,8 @@ def test_simple_parent_child_derives_one_edge() -> None:
 
 
 def test_polyhierarchy_yields_one_edge_per_distinct_parent() -> None:
+    """A concept with two tree numbers yields one edge per distinct parent."""
+
     lines = [
         *_resource_lines("urn:ref:atlas-test:mesh:parent-a", notations=("C14.280",)),
         *_resource_lines("urn:ref:atlas-test:mesh:parent-b", notations=("D02.455",)),
@@ -117,6 +129,8 @@ def test_polyhierarchy_yields_one_edge_per_distinct_parent() -> None:
 
 
 def test_two_tree_numbers_under_one_parent_yield_one_edge() -> None:
+    """Two tree numbers sharing one parent prefix yield one edge, not two."""
+
     lines = [
         *_resource_lines("urn:ref:atlas-test:mesh:parent", notations=("C14.280",)),
         *_resource_lines(
@@ -131,6 +145,8 @@ def test_two_tree_numbers_under_one_parent_yield_one_edge() -> None:
 
 
 def test_missing_parent_is_counted_never_guessed() -> None:
+    """An orphan tree number counts missingParent=1 and emits nothing."""
+
     lines = _resource_lines("urn:ref:atlas-test:mesh:orphan", notations=("Z99.999",))
     outcome = mtn.derive_mesh_tree_number_broader_rows(_context(lines))
 
@@ -145,6 +161,8 @@ def test_missing_parent_is_counted_never_guessed() -> None:
 
 
 def test_ambiguous_parent_is_counted_never_guessed() -> None:
+    """A parent notation held by two resources counts ambiguousParent and duplicateTreeNumbers and emits nothing."""
+
     lines = [
         *_resource_lines("urn:ref:atlas-test:mesh:parent-1", notations=("C14.280",)),
         *_resource_lines("urn:ref:atlas-test:mesh:parent-2", notations=("C14.280",)),
@@ -159,6 +177,8 @@ def test_ambiguous_parent_is_counted_never_guessed() -> None:
 
 
 def test_duplicate_tree_number_never_cited_as_a_parent_does_not_block_edges() -> None:
+    """A duplicate notation that is nobody's parent is counted but does not block the derivable edge."""
+
     lines = [
         *_resource_lines("urn:ref:atlas-test:mesh:twin-1", notations=("B03.300",)),
         *_resource_lines("urn:ref:atlas-test:mesh:twin-2", notations=("B03.300",)),
@@ -173,6 +193,8 @@ def test_duplicate_tree_number_never_cited_as_a_parent_does_not_block_edges() ->
 
 
 def test_self_referential_tree_number_raises() -> None:
+    """A resource whose own parent resolves to itself raises rather than emitting a self-edge."""
+
     lines = _resource_lines(
         "urn:ref:atlas-test:mesh:self",
         notations=("C14.280", "C14.280.647"),
@@ -182,6 +204,8 @@ def test_self_referential_tree_number_raises() -> None:
 
 
 def test_non_subject_ring_endpoint_raises() -> None:
+    """A parent endpoint outside the subject ring raises."""
+
     lines = [
         (
             f'<urn:ref:atlas-test:mesh:parent> {derived_graph.ATLAS_SEMANTIC_RING_TERM} '
@@ -200,6 +224,8 @@ def test_non_subject_ring_endpoint_raises() -> None:
 
 
 def test_asserted_relation_collision_fails_closed_in_both_directions() -> None:
+    """An asserted skos:broader or its reverse skos:narrower duplicate refuses; an unrelated assertion does not."""
+
     lines = [
         *_resource_lines("urn:ref:atlas-test:mesh:parent", notations=("C14.280",)),
         *_resource_lines("urn:ref:atlas-test:mesh:child", notations=("C14.280.647",)),
@@ -230,6 +256,8 @@ def test_asserted_relation_collision_fails_closed_in_both_directions() -> None:
 
 
 def test_evidence_nodes_missing_source_record_raises() -> None:
+    """An evidence node with no representing source record raises."""
+
     lines = [
         f'<urn:ref:atlas-test:mesh:parent> {derived_graph.ATLAS_SEMANTIC_RING_TERM} <{SUBJECT_RING}> {GRAPH} .',
         f'<urn:ref:atlas-test:mesh:parent> {derived_graph.ATLAS_IN_SCHEME_TERM} <{MESH_SCHEME}> {GRAPH} .',
@@ -243,6 +271,8 @@ def test_evidence_nodes_missing_source_record_raises() -> None:
 
 
 def test_derivation_is_reproducible_from_the_same_facts() -> None:
+    """The same context derives identical rows and node IRIs."""
+
     lines = [
         *_resource_lines("urn:ref:atlas-test:mesh:parent", notations=("C14.280",)),
         *_resource_lines("urn:ref:atlas-test:mesh:child", notations=("C14.280.647",)),
@@ -268,6 +298,8 @@ def test_derivation_is_reproducible_from_the_same_facts() -> None:
     ),
 )
 def test_iter_nquads_terms_parses_every_canonical_shape(line: str) -> None:
+    """IRI objects, plain, escaped, typed and language-tagged literals each parse into four terms."""
+
     terms = derived_graph.iter_nquads_terms(line)
     assert terms is not None
     subject, predicate, obj, graph = terms
@@ -288,6 +320,8 @@ def test_iter_nquads_terms_parses_every_canonical_shape(line: str) -> None:
     ),
 )
 def test_iter_nquads_terms_refuses_malformed_lines(line: str) -> None:
+    """Empty, three-term, unterminated and non-term lines all return None."""
+
     assert derived_graph.iter_nquads_terms(line) is None
 
 
@@ -368,6 +402,8 @@ def test_binding_carries_the_same_rule_identity() -> None:
     reason="exact cached MeSH 2026 descriptor XML is not available",
 )
 def test_real_2026_release_derives_the_frozen_edge_set() -> None:
+    """The cached 2026 release (31,110 resources) derives the frozen counts and the same node IRIs twice."""
+
     release = load_mesh_2026_release()
     lines = mtn.build_mesh_descriptor_asserted_nquads_lines(release)
     context = _context(lines)

@@ -1,3 +1,5 @@
+"""Pin the Federal Register topics source package's coverage, event-time agreement, and round-trip."""
+
 from __future__ import annotations
 
 import os
@@ -40,6 +42,8 @@ def _acquired(tmp_path: Path):
 def test_real_topics_response_builds_a_complete_source_package(
     tmp_path: Path,
 ) -> None:
+    """Pin that a configured real topics response packages every observed row with a passing report."""
+
     source_path = os.environ.get("REFSPEC_FR_TOPICS_PATH")
     if source_path is None:
         pytest.skip("real Federal Register topics response is not configured")
@@ -60,6 +64,8 @@ def test_real_topics_response_builds_a_complete_source_package(
 def test_packages_every_current_topic_as_source_evidence(
     tmp_path: Path,
 ) -> None:
+    """Pin 3 observations as sourceAssignedEvidence with minted local ids and no concept identity."""
+
     package = build_federal_register_topics_source_package(_acquired(tmp_path))
 
     assert package.resource_manifest["resourceId"] == (FEDERAL_REGISTER_TOPICS_RESOURCE_ID)
@@ -83,6 +89,8 @@ def test_packages_every_current_topic_as_source_evidence(
 
 
 def test_package_round_trips_exact_topics_source(tmp_path: Path) -> None:
+    """Pin that a reopened package retains its logical digest, exact source bytes, and registration event."""
+
     package = build_federal_register_topics_source_package(_acquired(tmp_path))
     opened = SourceControlledResourceView.open(package.write_to(tmp_path / "package"))
 
@@ -97,6 +105,8 @@ def test_package_round_trips_exact_topics_source(tmp_path: Path) -> None:
 def test_package_rechecks_the_retained_source_before_build(
     tmp_path: Path,
 ) -> None:
+    """Pin that a mutated retained capture is refused on byte length before building."""
+
     acquired = _acquired(tmp_path)
     acquired.path.write_bytes(acquired.path.read_bytes() + b"\n")
 
@@ -107,6 +117,8 @@ def test_package_rechecks_the_retained_source_before_build(
 def test_package_requires_registration_time_to_match_observed_at(
     tmp_path: Path,
 ) -> None:
+    """Pin refusal when the registration event time differs from observed_at."""
+
     with pytest.raises(FederalRegisterTopicsError, match="registration event time"):
         build_federal_register_topics_source_package(
             _acquired(tmp_path),
@@ -117,6 +129,8 @@ def test_package_requires_registration_time_to_match_observed_at(
 def test_package_requires_capture_time_to_match_observed_at(
     tmp_path: Path,
 ) -> None:
+    """Pin refusal when the capture event time differs from observed_at."""
+
     acquired = _acquired(tmp_path)
     other_time = "2026-07-31T12:00:00Z"
     registration = SourceRegistrationEvent.generate(registered_at=other_time)
@@ -132,6 +146,8 @@ def test_package_requires_capture_time_to_match_observed_at(
 def test_default_registration_requires_designated_capture_event(
     tmp_path: Path,
 ) -> None:
+    """Pin refusal of a freshly generated capture event not designated by the package."""
+
     acquired = capture_federal_register_topics(
         tmp_path / "capture",
         source_path=FIXTURE,
@@ -151,6 +167,8 @@ def test_default_registration_requires_designated_capture_event(
 def test_package_fetch_fields_come_from_acquired_capture_event(
     tmp_path: Path,
 ) -> None:
+    """Pin that observation fetch fields come from the acquired capture event."""
+
     acquired = _acquired(tmp_path)
     package = build_federal_register_topics_source_package(acquired)
 

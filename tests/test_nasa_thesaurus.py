@@ -64,10 +64,14 @@ xmlns:skm="http://synaptica.net/skm/">
 
 
 def _fixture_bytes() -> bytes:
+    """The pinned mini thesaurus XML fixture's bytes."""
     return FIXTURE_PATH.read_bytes()
 
 
 def test_parser_preserves_real_captured_concepts_labels_relations_and_metadata() -> None:
+    """Pins the fixture's five concepts, preferred and alternate labels, byte
+    count and digest, and the absence of language tags.
+    """
     source = _fixture_bytes()
     parsed = parse_nasa_thesaurus_xml(source, source_url=FIXTURE_SOURCE_URL)
 
@@ -102,6 +106,7 @@ def test_parser_preserves_real_captured_concepts_labels_relations_and_metadata()
 
 
 def test_parser_keeps_use_reference_and_hierarchy_relations_as_distinct_predicates() -> None:
+    """usedFor and use stay distinct from SKOS broader, narrower and related, each pinned by count or pair."""
     parsed = parse_nasa_thesaurus_xml(_fixture_bytes(), source_url=FIXTURE_SOURCE_URL)
 
     used_for = {
@@ -141,6 +146,7 @@ def test_parser_keeps_use_reference_and_hierarchy_relations_as_distinct_predicat
 
 
 def test_parser_keeps_term_notes_as_verbatim_markers_not_resolved_text() -> None:
+    """Note values stay verbatim markers from KNOWN_TERM_NOTE_MARKERS under TERM_NOTE_PREDICATE_IRI."""
     parsed = parse_nasa_thesaurus_xml(_fixture_bytes(), source_url=FIXTURE_SOURCE_URL)
 
     notes_by_subject = {item.subject_iri: item.value.lexical_form for item in parsed.notes}
@@ -183,6 +189,7 @@ def test_parser_keeps_detached_annotation_literals_unlinked_from_any_concept() -
 
 
 def test_parser_keeps_source_native_term_identifiers_as_metadata_literals() -> None:
+    """Term id, vocabulary and update assertions stay metadata literals, not concepts or identifiers."""
     parsed = parse_nasa_thesaurus_xml(_fixture_bytes(), source_url=FIXTURE_SOURCE_URL)
 
     term_ids = {
@@ -204,6 +211,7 @@ def test_parser_keeps_source_native_term_identifiers_as_metadata_literals() -> N
 
 
 def test_counts_reflect_the_fixture_exactly() -> None:
+    """Every NasaThesaurusImportCounts field for the fixture is pinned."""
     parsed = parse_nasa_thesaurus_xml(_fixture_bytes(), source_url=FIXTURE_SOURCE_URL)
     counts = parsed.counts
     assert isinstance(counts, NasaThesaurusImportCounts)
@@ -246,16 +254,19 @@ def test_counts_reflect_the_fixture_exactly() -> None:
     ],
 )
 def test_parser_rejects_lossy_or_unrecognized_shapes(source, message: str) -> None:
+    """A missing or duplicate prefLabel, an unknown note kind, and non-RDF/XML input are all refused."""
     with pytest.raises(NasaThesaurusParseError, match=message):
         parse_nasa_thesaurus_xml(source(), source_url=FIXTURE_SOURCE_URL)
 
 
 def test_parse_rejects_relative_source_url() -> None:
+    """A relative source_url is refused as not an absolute IRI."""
     with pytest.raises(NasaThesaurusParseError, match="absolute IRI"):
         parse_nasa_thesaurus_xml(_fixture_bytes(), source_url="/docs/thesaurus/thesaurus-SKOS.xml")
 
 
 def test_parser_enforces_optional_distribution_digest_and_size_pins() -> None:
+    """When supplied, the expected digest and byte length must match exactly."""
     source = _fixture_bytes()
     digest = "sha256:" + hashlib.sha256(source).hexdigest()
     parsed = parse_nasa_thesaurus_xml(
@@ -281,6 +292,9 @@ def test_parser_enforces_optional_distribution_digest_and_size_pins() -> None:
 
 
 def test_release_source_pins_the_real_captured_skos_distribution_and_its_attribution() -> None:
+    """The real SKOS release pins URL, digest, byte length, last-modified, and
+    its citation and attribution requirements.
+    """
     assert NASA_THESAURUS_SKOS.source_url == FIXTURE_SOURCE_URL
     assert NASA_THESAURUS_SKOS.expected_sha256 == (
         "sha256:3cd92a0eb67c5656e4c740394abd2d27042ded79a4acf3e1286e73a7d863010f"
@@ -294,6 +308,7 @@ def test_release_source_pins_the_real_captured_skos_distribution_and_its_attribu
 
 
 def test_release_source_rejects_incomplete_or_malformed_pins() -> None:
+    """A non-ISO date, a path-bearing filename, and a zero byte length are refused."""
     base_kwargs = {
         "format_name": "SKOS",
         "source_url": FIXTURE_SOURCE_URL,
@@ -317,6 +332,7 @@ def test_release_source_rejects_incomplete_or_malformed_pins() -> None:
 
 
 def test_verified_local_acquisition_parses_with_the_same_release_pin(tmp_path: Path) -> None:
+    """A verified local acquisition parses with the same release pin, and its digest and byte length carry through."""
     source = _fixture_bytes()
     source_path = tmp_path / "nasa-thesaurus-mini.xml"
     source_path.write_bytes(source)
@@ -348,6 +364,7 @@ def test_verified_local_acquisition_parses_with_the_same_release_pin(tmp_path: P
 
 
 def test_acquisition_refuses_network_without_explicit_opt_in(tmp_path: Path) -> None:
+    """Acquisition without ``allow_network`` is refused."""
     from refspec.registry.nasa_thesaurus import NasaThesaurusAcquisitionError as AcqError
 
     with pytest.raises(AcqError, match="allow_network"):
@@ -376,6 +393,7 @@ PINNED_REAL_SKOS_COUNTS = NasaThesaurusImportCounts(
 
 
 def test_opt_in_pinned_real_distribution_counts() -> None:
+    """An opt-in real distribution must reproduce the pinned full counts exactly."""
     source_path = os.environ.get("REFSPEC_NASA_THESAURUS_SKOS_PATH")
     if source_path is None:
         pytest.skip("set REFSPEC_NASA_THESAURUS_SKOS_PATH to the exact verified thesaurus-SKOS.xml distribution")

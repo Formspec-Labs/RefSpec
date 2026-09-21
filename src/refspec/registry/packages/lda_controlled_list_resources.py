@@ -84,6 +84,8 @@ class LDAControlledListPackageSpec:
     expected_logical_digest: str
 
     def __post_init__(self) -> None:
+        """Refuse a spec whose identity or use declarations contradict its pin."""
+
         if self.resource_name != self.pin.source.resource_name:
             raise LDAControlledListPackageError("package resource_name differs from its source pin")
         if not self.resource_id or not self.title or not self.code_identifier_kind:
@@ -157,6 +159,8 @@ _PACKAGE_BY_RESOURCE_ID = MappingProxyType({spec.resource_id: spec for spec in L
 
 
 def _sha256(payload: bytes) -> str:
+    """Return the canonical ``sha256:`` spelling of the payload's digest."""
+
     return "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
@@ -164,6 +168,8 @@ def _parse_exact_source(
     spec: LDAControlledListPackageSpec,
     payload: bytes,
 ) -> ParsedLDAResource:
+    """Parse the retained source bytes through the registry's own reader."""
+
     with tempfile.TemporaryDirectory(prefix="refspec-lda-package-") as temporary:
         root = Path(temporary)
         source_path = root / spec.pin.source.filename
@@ -181,6 +187,8 @@ def _identifier_payload(
     identifier: ControlledIdentifier,
     source_path: str,
 ) -> dict[str, Any]:
+    """Render one identifier, refusing a kind the package does not declare."""
+
     if identifier.kind not in _IDENTIFIER_SOURCE_FIELD:
         raise LDAControlledListPackageError(f"unsupported LDA identifier kind {identifier.kind!r}")
     result: dict[str, Any] = {
@@ -203,6 +211,8 @@ def _observation_id(
     source_path: str,
     identifiers: Sequence[Mapping[str, Any]],
 ) -> str:
+    """Mint the observation identity from the package and source path."""
+
     identity = {
         "packageVersion": LDA_CONTROLLED_LIST_PACKAGE_VERSION,
         "resourceId": spec.resource_id,
@@ -225,6 +235,8 @@ def _observations(
     spec: LDAControlledListPackageSpec,
     resource: ParsedLDAResource,
 ) -> tuple[Mapping[str, Any], ...]:
+    """Rebuild every expected observation, refusing a source or count mismatch."""
+
     if resource.source != spec.pin.source:
         raise LDAControlledListPackageError("parsed resource differs from its package source")
     if resource.source_sha256 != spec.pin.expected_sha256:

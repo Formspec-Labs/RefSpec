@@ -23,6 +23,8 @@ REAL_DATA_DIR = Path("output/registry-real-data-sources")
 
 
 def _sam_entity_path() -> Path:
+    """Return the configured real SAM entity capture or skip when it is unavailable."""
+
     configured = os.environ.get("REFSPEC_SAM_ENTITY_PUBLIC_PATH")
     path = Path(configured) if configured else REAL_DATA_DIR / "sam-entity-3m-public.json"
     if not path.is_file():
@@ -31,6 +33,8 @@ def _sam_entity_path() -> Path:
 
 
 def _repin(payload: bytes, *, expected_count: int = 1) -> uc.SamEntityApiPin:
+    """Re-pin the SAM entity pin to arbitrary payload bytes."""
+
     return replace(
         uc.SAM_ENTITY_3M_PUBLIC_PIN,
         sha256="sha256:" + hashlib.sha256(payload).hexdigest(),
@@ -40,6 +44,8 @@ def _repin(payload: bytes, *, expected_count: int = 1) -> uc.SamEntityApiPin:
 
 
 def _uei_identifier(value: str = "SGVKKZK4NX79") -> ControlledIdentifier:
+    """Build a UEI controlled identifier pinned to the documentation digest."""
+
     return ControlledIdentifier(
         value=value,
         kind=uc.SAM_UEI_KIND,
@@ -52,6 +58,8 @@ def _uei_identifier(value: str = "SGVKKZK4NX79") -> ControlledIdentifier:
 
 
 def _cage_identifier(value: str = "1A2B3") -> ControlledIdentifier:
+    """Build a CAGE controlled identifier with no publisher digest."""
+
     return ControlledIdentifier(
         value=value,
         kind=uc.DLA_CAGE_KIND,
@@ -64,6 +72,8 @@ def _cage_identifier(value: str = "1A2B3") -> ControlledIdentifier:
 
 
 def _uei_record(**changes: object) -> uc.UeiRecord:
+    """Build a valid UEI record with named fields overridable."""
+
     values: dict[str, object] = {
         "identifier": _uei_identifier(),
         "legal_business_name": "Example Registrant One",
@@ -77,6 +87,8 @@ def _uei_record(**changes: object) -> uc.UeiRecord:
 
 
 def _cage_record(**changes: object) -> uc.CageRecord:
+    """Build a valid CAGE record with named fields overridable."""
+
     values: dict[str, object] = {
         "identifier": _cage_identifier(),
         "facility_name": "Example Facility A",
@@ -96,6 +108,8 @@ def _cage_record(**changes: object) -> uc.CageRecord:
     ["SGVKKZK4NX79", "AAAAAAAAAAAA", "123456789ABC", "ZZZZZZZZZZZZ"],
 )
 def test_uei_syntax_accepts_twelve_char_alphanumeric_without_i_or_o(value: str) -> None:
+    """Twelve uppercase alphanumeric characters are accepted when they contain no I or O."""
+
     assert uc.validate_uei_syntax(value) == value
 
 
@@ -113,12 +127,16 @@ def test_uei_syntax_accepts_twelve_char_alphanumeric_without_i_or_o(value: str) 
     ],
 )
 def test_uei_syntax_rejects_malformed_values(value: str) -> None:
+    """Wrong length, lowercase, I/O, punctuation or whitespace is refused as a UEI error."""
+
     with pytest.raises(uc.UeiCageIdentifierError, match="UEI"):
         uc.validate_uei_syntax(value)
 
 
 @pytest.mark.parametrize("value", ["1A2B3", "ABCDE", "12345", "9ZZZ1"])
 def test_cage_syntax_accepts_five_char_alphanumeric_without_i_or_o(value: str) -> None:
+    """Five uppercase alphanumeric characters are accepted when they contain no I or O."""
+
     assert uc.validate_cage_syntax(value) == value
 
 
@@ -135,6 +153,8 @@ def test_cage_syntax_accepts_five_char_alphanumeric_without_i_or_o(value: str) -
     ],
 )
 def test_cage_syntax_rejects_malformed_values(value: str) -> None:
+    """Wrong length, lowercase, I/O or punctuation is refused as a CAGE error."""
+
     with pytest.raises(uc.UeiCageIdentifierError, match="CAGE"):
         uc.validate_cage_syntax(value)
 
@@ -143,6 +163,8 @@ def test_cage_syntax_rejects_malformed_values(value: str) -> None:
 
 
 def test_uei_record_accepts_a_well_formed_registration() -> None:
+    """A valid UEI record keeps its status, classification and native business name."""
+
     record = _uei_record()
 
     assert record.identifier.value == "SGVKKZK4NX79"
@@ -152,31 +174,43 @@ def test_uei_record_accepts_a_well_formed_registration() -> None:
 
 
 def test_uei_record_rejects_wrong_identifier_kind() -> None:
+    """A CAGE identifier in a UEI record's identifier field is refused on kind."""
+
     with pytest.raises(uc.UeiCageIdentifierError, match="kind"):
         _uei_record(identifier=_cage_identifier())
 
 
 def test_uei_record_rejects_empty_legal_business_name() -> None:
+    """A whitespace-only legal business name is refused."""
+
     with pytest.raises(uc.UeiCageIdentifierError, match="legal_business_name"):
         _uei_record(legal_business_name="   ")
 
 
 def test_uei_record_rejects_unknown_registration_status() -> None:
+    """A registration status outside the closed set is refused."""
+
     with pytest.raises(uc.UeiCageIdentifierError, match="registration_status"):
         _uei_record(registration_status="lapsed")
 
 
 def test_uei_record_rejects_unknown_access_classification() -> None:
+    """An access classification outside the closed set is refused."""
+
     with pytest.raises(uc.UeiCageIdentifierError, match="access_classification"):
         _uei_record(access_classification="secret")
 
 
 def test_uei_record_rejects_a_malformed_parent_uei() -> None:
+    """A parent UEI that fails UEI syntax is refused."""
+
     with pytest.raises(uc.UeiCageIdentifierError, match="immediate_parent_uei"):
         _uei_record(immediate_parent_uei="not-a-uei")
 
 
 def test_uei_record_accepts_well_formed_parent_uei_references() -> None:
+    """Well-formed parent and highest-owner UEIs are carried into the native payload."""
+
     record = _uei_record(
         immediate_parent_uei="ZZZZZZZZZZZZ",
         highest_level_owner_uei="AAAAAAAAAAAA",
@@ -187,6 +221,8 @@ def test_uei_record_accepts_well_formed_parent_uei_references() -> None:
 
 
 def test_cage_record_accepts_a_well_formed_facility() -> None:
+    """A valid CAGE record keeps its status and native facility name."""
+
     record = _cage_record()
 
     assert record.identifier.value == "1A2B3"
@@ -195,32 +231,44 @@ def test_cage_record_accepts_a_well_formed_facility() -> None:
 
 
 def test_cage_record_can_record_that_dla_status_was_not_observed() -> None:
+    """``notObserved`` is a valid status when the response does not state DLA status."""
+
     record = _cage_record(cage_status="notObserved")
 
     assert record.cage_status == "notObserved"
 
 
 def test_cage_record_rejects_wrong_identifier_kind() -> None:
+    """A UEI identifier in a CAGE record's identifier field is refused on kind."""
+
     with pytest.raises(uc.UeiCageIdentifierError, match="kind"):
         _cage_record(identifier=_uei_identifier())
 
 
 def test_cage_record_rejects_empty_facility_name() -> None:
+    """An empty facility name is refused."""
+
     with pytest.raises(uc.UeiCageIdentifierError, match="facility_name"):
         _cage_record(facility_name="")
 
 
 def test_cage_record_rejects_unknown_cage_status() -> None:
+    """A CAGE status outside the closed set is refused."""
+
     with pytest.raises(uc.UeiCageIdentifierError, match="cage_status"):
         _cage_record(cage_status="pending")
 
 
 def test_cage_record_rejects_a_malformed_associated_uei() -> None:
+    """An associated UEI that fails UEI syntax is refused."""
+
     with pytest.raises(uc.UeiCageIdentifierError, match="associated_uei"):
         _cage_record(associated_uei="also-not-a-uei")
 
 
 def test_cage_record_accepts_a_well_formed_associated_uei() -> None:
+    """A well-formed associated UEI is carried into the native payload."""
+
     record = _cage_record(associated_uei="SGVKKZK4NX79")
 
     assert record.native_payload()["associatedUei"] == "SGVKKZK4NX79"
@@ -230,6 +278,8 @@ def test_cage_record_accepts_a_well_formed_associated_uei() -> None:
 
 
 def test_sample_enforces_a_hard_ceiling_on_uei_records() -> None:
+    """One UEI more than the sample ceiling is refused, keeping this module sample-only."""
+
     ueis = tuple(
         _uei_record(identifier=_uei_identifier(f"{'A' * 11}{digit}")) for digit in "0123456789ABCDEFGHJKLMNPQR"
     )
@@ -240,6 +290,8 @@ def test_sample_enforces_a_hard_ceiling_on_uei_records() -> None:
 
 
 def test_sample_enforces_a_hard_ceiling_on_cage_records() -> None:
+    """One CAGE more than the sample ceiling is refused, keeping this module sample-only."""
+
     cages = tuple(
         _cage_record(identifier=_cage_identifier(f"{digit}AAA{digit}")) for digit in "0123456789ABCDEFGHJKLMNPQR"[:26]
     )
@@ -250,6 +302,8 @@ def test_sample_enforces_a_hard_ceiling_on_cage_records() -> None:
 
 
 def test_sample_rejects_a_repeated_uei_value() -> None:
+    """The same UEI value twice in one sample is refused."""
+
     with pytest.raises(uc.UeiCageIdentifierError, match="repeats"):
         uc.UeiCageAuthoritySample(
             captured_at="2026-08-03",
@@ -259,6 +313,8 @@ def test_sample_rejects_a_repeated_uei_value() -> None:
 
 
 def test_sample_rejects_a_repeated_cage_value() -> None:
+    """The same CAGE value twice in one sample is refused."""
+
     with pytest.raises(uc.UeiCageIdentifierError, match="repeats"):
         uc.UeiCageAuthoritySample(
             captured_at="2026-08-03",
@@ -268,6 +324,8 @@ def test_sample_rejects_a_repeated_cage_value() -> None:
 
 
 def test_sample_validates_captured_at_is_iso() -> None:
+    """A captured_at that is not ISO 8601 is refused by the identifier layer."""
+
     with pytest.raises(ControlledIdentifierError, match="ISO 8601"):
         uc.UeiCageAuthoritySample(captured_at="not-a-date", ueis=(), cages=())
 
@@ -276,6 +334,8 @@ def test_sample_validates_captured_at_is_iso() -> None:
 
 
 def _sample() -> uc.UeiCageAuthoritySample:
+    """Build a one-UEI, one-CAGE sample linked by the associated UEI."""
+
     return uc.UeiCageAuthoritySample(
         captured_at="2026-08-03",
         ueis=(_uei_record(),),
@@ -284,6 +344,8 @@ def _sample() -> uc.UeiCageAuthoritySample:
 
 
 def test_render_capture_is_deterministic() -> None:
+    """Rendering the same sample twice yields identical newline-terminated bytes."""
+
     sample = _sample()
 
     first = uc.render_capture(sample)
@@ -294,6 +356,8 @@ def test_render_capture_is_deterministic() -> None:
 
 
 def test_parse_capture_round_trips_a_rendered_sample() -> None:
+    """Parsing a rendered sample restores every record payload, captured_at and digest."""
+
     sample = _sample()
     payload = uc.render_capture(sample)
 
@@ -306,6 +370,8 @@ def test_parse_capture_round_trips_a_rendered_sample() -> None:
 
 
 def test_parse_capture_reads_the_hand_authored_fixture() -> None:
+    """The hand-authored fixture parses to two UEIs and two CAGEs with their link intact."""
+
     payload = (FIXTURES / "uei-cage-authority-sample.json").read_bytes()
 
     parsed = uc.parse_capture(payload)
@@ -320,6 +386,8 @@ def test_parse_capture_reads_the_hand_authored_fixture() -> None:
 
 
 def test_parse_capture_rejects_unknown_format() -> None:
+    """A capture whose format URN is not this module's is refused."""
+
     sample = _sample()
     payload = uc.render_capture(sample).replace(
         uc.SAMPLE_CAPTURE_FORMAT.encode("utf-8"),
@@ -331,6 +399,8 @@ def test_parse_capture_rejects_unknown_format() -> None:
 
 
 def test_parse_capture_rejects_a_field_that_drifted_from_the_schema() -> None:
+    """A renamed field is refused by the capture's exact-shape check."""
+
     payload = uc.render_capture(_sample())
     mutated = payload.replace(b'"capturedAt"', b'"capturedOn"')
 
@@ -339,6 +409,8 @@ def test_parse_capture_rejects_a_field_that_drifted_from_the_schema() -> None:
 
 
 def test_parse_capture_rejects_a_sample_that_exceeds_the_ceiling() -> None:
+    """An inflated manifest ceiling is ignored: the parser refuses bulk data past its own ceiling."""
+
     ueis = tuple(
         _uei_record(identifier=_uei_identifier(f"{'A' * 11}{digit}")) for digit in "0123456789ABCDEFGHJKLMNPQ"
     )
@@ -358,11 +430,15 @@ def test_parse_capture_rejects_a_sample_that_exceeds_the_ceiling() -> None:
 
 
 def test_parse_capture_rejects_non_json_bytes() -> None:
+    """Non-JSON bytes are refused with a JSON error."""
+
     with pytest.raises(uc.UeiCageIdentifierError, match="JSON"):
         uc.parse_capture(b"not json")
 
 
 def test_parse_capture_rejects_empty_bytes() -> None:
+    """Empty input is refused."""
+
     with pytest.raises(uc.UeiCageIdentifierError, match="non-empty"):
         uc.parse_capture(b"")
 
@@ -371,6 +447,9 @@ def test_parse_capture_rejects_empty_bytes() -> None:
 
 
 def test_real_public_entity_response_matches_pin_shape_count_and_sample() -> None:
+    """The real 1,076-byte public response verifies against its pin and yields one UEI/CAGE pair, with no credential
+    content."""
+
     payload = _sam_entity_path().read_bytes()
 
     uc.verify_sam_entity_api_response(payload, uc.SAM_ENTITY_3M_PUBLIC_PIN)
@@ -401,6 +480,8 @@ def test_real_public_entity_response_matches_pin_shape_count_and_sample() -> Non
 
 
 def test_public_entity_parser_rejects_protected_or_unrequested_sections() -> None:
+    """Replacing the coreData fields with a protected hierarchy section is refused as a field change."""
+
     root = json.loads(_sam_entity_path().read_bytes())
     root["entityData"][0]["coreData"] = {"entityHierarchyInformation": {}}
     payload = json.dumps(root, separators=(",", ":")).encode("utf-8")
@@ -410,6 +491,8 @@ def test_public_entity_parser_rejects_protected_or_unrequested_sections() -> Non
 
 
 def test_public_entity_parser_rejects_a_self_link_containing_a_real_credential() -> None:
+    """A self link carrying what looks like a real API credential is refused, not echoed."""
+
     root = json.loads(_sam_entity_path().read_bytes())
     root["links"]["selfLink"] = root["links"]["selfLink"].replace(
         "REPLACE_WITH_API_KEY", "credential-must-not-survive"
@@ -421,6 +504,8 @@ def test_public_entity_parser_rejects_a_self_link_containing_a_real_credential()
 
 
 def test_public_entity_parser_refuses_a_bulk_response_even_when_digest_pinned() -> None:
+    """A digest-pinned response larger than the sample ceiling is refused as bulk entity data."""
+
     root = json.loads(_sam_entity_path().read_bytes())
     root["entityData"] = root["entityData"] * (uc.MAX_SAMPLE_SIZE + 1)
     root["totalRecords"] = uc.MAX_SAMPLE_SIZE + 1
@@ -434,6 +519,8 @@ def test_public_entity_parser_refuses_a_bulk_response_even_when_digest_pinned() 
 
 
 def test_sam_uei_documentation_pin_matches_the_real_captured_fixture() -> None:
+    """The captured SAM UEI documentation fixture verifies against its pin."""
+
     payload = SAM_DOC_FIXTURE.read_bytes()
 
     uc.verify_authority_document(payload, uc.SAM_UEI_DOCUMENTATION_PIN)
@@ -442,6 +529,8 @@ def test_sam_uei_documentation_pin_matches_the_real_captured_fixture() -> None:
 
 
 def test_verify_authority_document_rejects_a_single_byte_change() -> None:
+    """One flipped byte fails the authority document's digest pin."""
+
     payload = bytearray(SAM_DOC_FIXTURE.read_bytes())
     payload[0] ^= 0xFF
 
@@ -450,6 +539,8 @@ def test_verify_authority_document_rejects_a_single_byte_change() -> None:
 
 
 def test_acquire_authority_document_from_local_path(tmp_path: Path) -> None:
+    """A verified local copy of the authority document is returned."""
+
     local = tmp_path / "sam-doc.html"
     local.write_bytes(SAM_DOC_FIXTURE.read_bytes())
 
@@ -459,6 +550,8 @@ def test_acquire_authority_document_from_local_path(tmp_path: Path) -> None:
 
 
 def test_acquire_authority_document_rejects_a_symlink(tmp_path: Path) -> None:
+    """A symlink is refused: only a regular file may satisfy the authority pin."""
+
     real = tmp_path / "real.html"
     real.write_bytes(SAM_DOC_FIXTURE.read_bytes())
     link = tmp_path / "linked.html"
@@ -471,6 +564,8 @@ def test_acquire_authority_document_rejects_a_symlink(tmp_path: Path) -> None:
 def test_acquire_authority_document_uses_an_injected_fetcher_not_a_live_call(
     tmp_path: Path,
 ) -> None:
+    """The injected fetcher is called once for the authority URI with the caller's timeout."""
+
     payload = SAM_DOC_FIXTURE.read_bytes()
     calls: list[tuple[str, float]] = []
 
@@ -495,6 +590,8 @@ def test_acquire_authority_document_uses_an_injected_fetcher_not_a_live_call(
 
 
 def test_acquire_authority_document_rejects_a_non_200_fetch() -> None:
+    """An HTTP 404 response is refused naming its status."""
+
     class Fetcher:
         def fetch(self, url: str, *, timeout_seconds: float) -> uc.FetchedAuthorityDocument:
             return uc.FetchedAuthorityDocument(body=b"", status_code=404, content_type="text/html", resolved_url=url)
@@ -504,6 +601,8 @@ def test_acquire_authority_document_rejects_a_non_200_fetch() -> None:
 
 
 def test_acquire_authority_document_rejects_a_fetch_that_does_not_match_the_pin() -> None:
+    """Fetched bytes that do not match the pin's digest or length are refused."""
+
     class Fetcher:
         def fetch(self, url: str, *, timeout_seconds: float) -> uc.FetchedAuthorityDocument:
             return uc.FetchedAuthorityDocument(
@@ -518,11 +617,15 @@ def test_acquire_authority_document_rejects_a_fetch_that_does_not_match_the_pin(
 
 
 def test_acquire_authority_document_requires_source_path_or_fetcher() -> None:
+    """Acquisition without either a local path or a fetcher is refused."""
+
     with pytest.raises(uc.UeiCageIdentifierError, match="source_path or"):
         uc.acquire_authority_document(uc.SAM_UEI_DOCUMENTATION_PIN)
 
 
 def test_acquire_authority_document_rejects_both_source_path_and_fetcher(tmp_path: Path) -> None:
+    """Supplying both a local path and a fetcher is refused and the fetcher is never called."""
+
     local = tmp_path / "sam-doc.html"
     local.write_bytes(SAM_DOC_FIXTURE.read_bytes())
 
@@ -535,6 +638,8 @@ def test_acquire_authority_document_rejects_both_source_path_and_fetcher(tmp_pat
 
 
 def test_import_never_opens_a_network_connection() -> None:
+    """The module exposes only an injected fetcher; it has no built-in network entry point."""
+
     # The module only ever calls out through an injected fetcher supplied by
     # the caller; there is no built-in "go fetch the live site" entry point.
     assert not hasattr(uc, "requests")
@@ -545,6 +650,8 @@ def test_import_never_opens_a_network_connection() -> None:
 
 
 def test_module_never_exposes_a_bulk_entity_query_surface() -> None:
+    """No search/list/fetch-all/bulk entry point exists: this module captures syntax, never a queryable registry."""
+
     # These names would indicate the catalog-guidance boundary was crossed:
     # this module captures identifier shape and syntax, never a searchable
     # registry of real entities.

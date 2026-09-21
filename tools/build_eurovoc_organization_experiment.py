@@ -1,4 +1,10 @@
-"""Build or independently recheck the local EuroVoc organization sidecar."""
+"""Build or independently recheck the local EuroVoc organization sidecar from the pinned 4.24 ZIP and metadata.
+
+Reads ``eurovoc-4.24-skos-core.zip`` and ``eurovoc-4.24-metadata.ttl`` under the
+source root and prints a JSON summary; ``--verify-only`` rebuilds in memory and
+compares against the closed output directory without changing it, and any OSError
+or ValueError exits 2.
+"""
 
 from __future__ import annotations
 

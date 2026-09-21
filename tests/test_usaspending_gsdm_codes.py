@@ -15,6 +15,7 @@ AWARD_TYPES_FIXTURE = FIXTURES / "usaspending-award-types-2026-08-03.json"
 
 
 def _acquire(tmp_path: Path, source_path: Path = AWARD_TYPES_FIXTURE) -> usg.AcquiredUSASpendingSource:
+    """Acquire the pinned award-types JSON from the local fixture."""
     return usg.acquire_usaspending_award_types(
         usg.USASPENDING_AWARD_TYPES_2026_08_03,
         tmp_path,
@@ -23,11 +24,13 @@ def _acquire(tmp_path: Path, source_path: Path = AWARD_TYPES_FIXTURE) -> usg.Acq
 
 
 def _portfolio(tmp_path: Path) -> usg.USASpendingGSDMPortfolio:
+    """Parse the pinned fixture and assemble it with the GSDM crosswalk."""
     award_types = usg.parse_award_types(_acquire(tmp_path))
     return usg.assemble_usaspending_gsdm_portfolio(award_types)
 
 
 def test_live_snapshot_pin_matches_exact_official_json_bytes() -> None:
+    """Pins the fixture's 1,271 bytes and sha256 and that the pin matches them."""
     payload = AWARD_TYPES_FIXTURE.read_bytes()
 
     assert len(payload) == 1_271
@@ -37,6 +40,7 @@ def test_live_snapshot_pin_matches_exact_official_json_bytes() -> None:
 
 
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(tmp_path: Path) -> None:
+    """A local capture is content-addressed under the expected digest and a cache hit is re-verified."""
     pin = usg.USASPENDING_AWARD_TYPES_2026_08_03
 
     acquired = _acquire(tmp_path)
@@ -51,6 +55,7 @@ def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(tmp_path:
 
 
 def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) -> None:
+    """Only the injected fetcher may fetch, and it reports the source URL and timeout."""
     payload = AWARD_TYPES_FIXTURE.read_bytes()
     calls: list[tuple[str, float]] = []
 
@@ -76,6 +81,7 @@ def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) ->
 
 
 def test_award_types_split_into_award_and_assistance_categories(tmp_path: Path) -> None:
+    """Pins the 33 award types, their categories and identifier kinds, and the real duplicate "Direct Loan" labels."""
     resource = usg.parse_award_types(_acquire(tmp_path))
 
     assert len(resource.codes) == 33
@@ -113,6 +119,7 @@ def test_award_types_split_into_award_and_assistance_categories(tmp_path: Path) 
 
 
 def test_digest_or_shape_drift_never_becomes_a_parsed_resource(tmp_path: Path) -> None:
+    """A length change fails on byte length drift, and a one-category mini payload fails as categories drifted."""
     payload = AWARD_TYPES_FIXTURE.read_bytes()
     changed = payload.replace(b'"BPA Call"', b'"BPA Calls"') + b" "
     assert len(changed) != len(payload)
@@ -153,6 +160,7 @@ def test_digest_or_shape_drift_never_becomes_a_parsed_resource(tmp_path: Path) -
 
 
 def test_award_type_source_url_and_filename_are_validated() -> None:
+    """A non-official URL, a traversing filename, a malformed digest and a zero byte length are each refused."""
     with pytest.raises(usg.USASpendingAcquisitionError, match="official HTTPS api.usaspending.gov"):
         replace(usg.USASPENDING_AWARD_TYPES, source_url="https://example.com/references/award_types/")
     with pytest.raises(usg.USASpendingAcquisitionError, match="one plain path component"):
@@ -164,6 +172,9 @@ def test_award_type_source_url_and_filename_are_validated() -> None:
 
 
 def test_gsdm_document_is_pinned_to_the_reviewed_v1_0_1_release() -> None:
+    """Pins the reviewed GSDM v1.0.1 document: name, date, URL, digest, byte
+    length, and its eleven metadata attributes.
+    """
     assert usg.GSDM_DOCUMENT.version == "1.0.1"
     assert usg.GSDM_DOCUMENT.former_name == "DATA Act Information Model Schema (DAIMS)"
     assert usg.GSDM_DOCUMENT.revision_date == "2024-04-11"
@@ -190,11 +201,13 @@ def test_gsdm_document_is_pinned_to_the_reviewed_v1_0_1_release() -> None:
     ],
 )
 def test_gsdm_document_pin_fails_closed_on_malformed_fields(field: str, value: object, message: str) -> None:
+    """Each malformed GSDM document field raises with the stated contract message."""
     with pytest.raises(usg.USASpendingAcquisitionError, match=message):
         replace(usg.GSDM_DOCUMENT, **{field: value})
 
 
 def test_gsdm_action_type_covers_assistance_and_contract_domains() -> None:
+    """Pins ActionType as domain-scoped: the same letter differs per domain, so a lookup needs its domain_group."""
     element = usg.GSDM_SCHEMA_CROSSWALK_ELEMENTS[0]
     assert element.gsdm_element == "ActionType"
 
@@ -215,6 +228,7 @@ def test_gsdm_action_type_covers_assistance_and_contract_domains() -> None:
 
 
 def test_gsdm_assistance_and_contract_award_type_domain_values_and_crosswalk() -> None:
+    """Pins the assistance and contract award-type domain values with their descriptions and GSDM file crosswalk."""
     assistance_type = usg.GSDM_ASSISTANCE_TYPE
     contract_award_type = usg.GSDM_CONTRACT_AWARD_TYPE
 
@@ -242,12 +256,16 @@ def test_gsdm_assistance_and_contract_award_type_domain_values_and_crosswalk() -
 
 
 def test_gsdm_crosswalk_element_rejects_duplicate_domain_codes() -> None:
+    """A crosswalk element with a repeated domain code is refused."""
     duplicated = usg.GSDM_ACTION_TYPE.domain_values[:1] * 2
     with pytest.raises(usg.USASpendingSourceDriftError, match="repeat a"):
         replace(usg.GSDM_ACTION_TYPE, domain_values=duplicated)
 
 
 def test_portfolio_assembles_award_types_with_pinned_gsdm_crosswalk(tmp_path: Path) -> None:
+    """The portfolio pins its award types, crosswalk elements and GSDM
+    document, and refuses an unpinned crosswalk element.
+    """
     portfolio = _portfolio(tmp_path)
 
     assert len(portfolio.award_types.codes) == 33
@@ -261,6 +279,7 @@ def test_portfolio_assembles_award_types_with_pinned_gsdm_crosswalk(tmp_path: Pa
 
 
 def test_portfolio_digest_is_stable_and_content_derived(tmp_path: Path) -> None:
+    """A stable sha256 over the portfolio's content, unmoved by an unreferenced source_sha256 change."""
     first = usg.portfolio_digest(_portfolio(tmp_path))
     second = usg.portfolio_digest(_portfolio(tmp_path / "second"))
 
@@ -277,6 +296,7 @@ def test_portfolio_digest_is_stable_and_content_derived(tmp_path: Path) -> None:
 
 
 def test_validate_usaspending_award_type_succeeds_and_fails_closed(tmp_path: Path) -> None:
+    """A known award type validates with its category and use; unknown, null and missing codes are refused."""
     portfolio = _portfolio(tmp_path)
 
     assignment = usg.validate_usaspending_award_type({"type": "IDV_C"}, portfolio)
@@ -295,6 +315,7 @@ def test_validate_usaspending_award_type_succeeds_and_fails_closed(tmp_path: Pat
 
 
 def test_validate_gsdm_action_type_requires_a_matching_domain(tmp_path: Path) -> None:
+    """An action-type code is read inside its stated domain; an unknown code or unsupported domain is refused."""
     portfolio = _portfolio(tmp_path)
 
     assistance_value = usg.validate_gsdm_action_type(
@@ -321,6 +342,7 @@ REAL_DATA_DICTIONARY = Path(__file__).resolve().parents[1] / "output" / "registr
 
 
 def _dictionary(rows: tuple[tuple[str, object, object], ...]) -> usg.ParsedGSDMDataDictionary:
+    """A synthetic GSDM data dictionary carrying just the domain-values columns."""
     return usg.ParsedGSDMDataDictionary(
         source_sha256="sha256:" + "cd" * 32,
         source_byte_length=10,
@@ -340,6 +362,7 @@ def _dictionary(rows: tuple[tuple[str, object, object], ...]) -> usg.ParsedGSDMD
 
 
 def test_domain_values_pairs_groups_and_descriptions_are_read_exactly() -> None:
+    """Pins the element, enumerated, reference-only and empty counts and the parsed code/value/description rows."""
     column = usg.parse_gsdm_domain_values(
         _dictionary(
             (
@@ -369,6 +392,7 @@ def test_domain_values_pairs_groups_and_descriptions_are_read_exactly() -> None:
 
 
 def test_domain_values_codeless_markers_and_bare_value_lists_stay_publisher_values() -> None:
+    """Codeless marker values and bare value lists stay publisher values, named as codeless elements."""
     column = usg.parse_gsdm_domain_values(
         _dictionary(
             (
@@ -398,6 +422,9 @@ def test_domain_values_codeless_markers_and_bare_value_lists_stay_publisher_valu
 
 
 def test_domain_values_placeholders_dashes_and_wrapped_labels_are_handled_exactly() -> None:
+    """Dash-coded lines are split, bracketed placeholder lines are excluded and
+    reported, and a wrapped label rejoins.
+    """
     column = usg.parse_gsdm_domain_values(
         _dictionary(
             (
@@ -421,6 +448,9 @@ def test_domain_values_placeholders_dashes_and_wrapped_labels_are_handled_exactl
 
 
 def test_domain_values_fail_closed_on_duplicates_strays_and_lost_columns() -> None:
+    """A repeated code or bare value, an unrecognized line, and a dictionary
+    missing the domain-values column are refused.
+    """
     with pytest.raises(usg.USASpendingSourceDriftError, match="repeat a"):
         usg.parse_gsdm_domain_values(_dictionary((("Dup", "A = One\nA = Two", None),)))
 
@@ -460,6 +490,9 @@ def test_domain_values_fail_closed_on_duplicates_strays_and_lost_columns() -> No
     reason="the exact GSDM data-dictionary capture is not present",
 )
 def test_real_domain_values_column_coverage_and_reviewed_elements_reproduce() -> None:
+    """The real data dictionary reproduces the column census, the unmatched
+    and unpaired keys, and the reviewed typed constants.
+    """
     dictionary = usg.parse_gsdm_data_dictionary(REAL_DATA_DICTIONARY.read_bytes())
 
     column = usg.parse_gsdm_domain_values(dictionary)

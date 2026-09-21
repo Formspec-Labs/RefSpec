@@ -1,27 +1,12 @@
-"""Tests for the USLM statutory reference-edge extractor.
+"""The USLM statutory reference-edge extractor transcribes rather than infers.
 
-The extractor's value is that it transcribes rather than infers, so the tests
-that matter are the ones proving it cannot quietly start inferring:
-
-* every fail-closed gate actually fires -- an unrecognised citator, an
-  unrecognised USC level, a payload that is not a zip, and an ``operative`` edge
-  with no enclosing unit.  Each of those is a case where emitting *something*
-  would be worse than stopping;
-* ``context`` precedence is innermost-first, because a ``<sourceCredit>`` nested
-  in a ``<note>`` is a source credit and folding it into the note would put
-  amendment history back into the reference population;
-* ``st`` is tested against ``s``.  Subtitle and section share a prefix, and
-  getting that order wrong misreads every subtitle reference as a section one;
-* the deduplication key keeps ``context``.  This is the single most consequential
-  line in the policy: dropping it merges a citation the publisher put in enacted
-  text with the same citation in an editorial note, which is exactly the
-  conflation the ``context`` field exists to prevent; and
-* identifiers survive byte-for-byte, U+2013 EN DASH included.  A "tidied" dash
-  produces an identifier that looks right and joins to nothing.
-
-Fixtures are synthetic USLM documents.  Binding these to the 431 MB extraction
-would couple the suite to one release point, would not run offline, and would
-exercise none of the failure paths.
+The tests prove it cannot quietly start inferring: every fail-closed gate fires (unrecognised
+citator or USC level, non-zip payload, an ``operative`` edge with no enclosing unit); ``context``
+precedence is innermost-first, so a ``<sourceCredit>`` nested in a ``<note>`` stays a source credit;
+``st`` is tested against ``s`` so no subtitle is misread as a section; the deduplication key keeps
+``context``, so a note citation never merges with an operative one; and identifiers survive
+byte-for-byte, U+2013 included. Fixtures are synthetic USLM documents, since binding to the 431 MB
+extraction would couple the suite to one release point and exercise none of the failure paths.
 """
 
 from __future__ import annotations
@@ -72,6 +57,8 @@ SAMPLE = _document(
 
 
 def _edges(xml: bytes, title: str = "26") -> list[dict]:
+    """Collect read_edges rows from a document through the policy reader."""
+
     from collections import Counter
 
     rows = []
@@ -268,6 +255,8 @@ def test_an_unbalanced_document_fails_closed() -> None:
 
 
 def _edge(**overrides: object) -> dict:
+    """A dedupe row with every assertion-key field set, overridable per field."""
+
     base = {
         "title": "26",
         "sourceSection": "/us/usc/t26/s1",
@@ -378,6 +367,8 @@ def test_corpus_rollup_adds_disjoint_per_title_partitions() -> None:
 
 
 def _cache_with(tmp_path: Path, title: str, xml: bytes) -> Path:
+    """A retained title cache holding one zip with a single namespaced title member."""
+
     cache = tmp_path / "cache"
     cache.mkdir(exist_ok=True)
     buffer = io.BytesIO()

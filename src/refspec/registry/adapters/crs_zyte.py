@@ -47,6 +47,11 @@ class ZyteCRSPageFetcher(CRSPageFetcher):
         *,
         max_bytes: int = DEFAULT_CRS_MAX_BYTES,
     ) -> ZyteCRSPageFetcher:
+        """Build a fetcher from the environment Zyte token.
+
+        Raises CRSZyteError when the token is missing or invalid.
+        """
+
         try:
             return cls(
                 token=require_zyte_token_from_environment(),
@@ -65,6 +70,12 @@ class ZyteCRSPageFetcher(CRSPageFetcher):
         *,
         timeout_seconds: float,
     ) -> FetchedCRSPage:
+        """Fetch one bounded Congress.gov page.
+
+        Raises CRSZyteError on transport failure or when the response omits
+        Content-Type.
+        """
+
         try:
             response = self._fetcher.fetch(
                 source_url,

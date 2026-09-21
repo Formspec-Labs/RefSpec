@@ -102,6 +102,8 @@ def sha256_digest(payload: bytes) -> str:
 
 
 def _require_datetime(value: str, field: str) -> str:
+    """Validate one identifier date, re-raising the shared error as ``SAMAcquisitionError``."""
+
     try:
         return validate_identifier_date(value, field)
     except ControlledIdentifierError as error:
@@ -116,6 +118,8 @@ class SAMOpportunitiesDocSource:
     filename: str = "get-opportunities-public-api.html"
 
     def __post_init__(self) -> None:
+        """Refuse a non-official URL, credentials, or a multi-component filename."""
+
         parsed = urlsplit(self.source_url)
         if parsed.scheme != "https" or parsed.hostname != "open.gsa.gov":
             raise SAMAcquisitionError("source_url must be an official HTTPS open.gsa.gov URL")
@@ -139,6 +143,8 @@ class SAMSnapshotPin:
     publisher_last_modified: str | None = None
 
     def __post_init__(self) -> None:
+        """Refuse a malformed digest, non-positive length, or bad timestamp."""
+
         if _DIGEST.fullmatch(self.expected_sha256) is None:
             raise SAMAcquisitionError("expected_sha256 must be a lowercase sha256:<64 hex> digest")
         if self.expected_byte_length <= 0:
@@ -268,6 +274,8 @@ SAM_PORTFOLIO_GAPS = (
 
 
 def _index_by_code(codes: tuple[SAMCode, ...]) -> dict[str, SAMCode]:
+    """Index codes by their first published identifier value."""
+
     result: dict[str, SAMCode] = {}
     for entry in codes:
         result[entry.identifiers[0].value] = entry
@@ -275,6 +283,8 @@ def _index_by_code(codes: tuple[SAMCode, ...]) -> dict[str, SAMCode]:
 
 
 def _validate_resolved_url(value: str) -> None:
+    """Refuse a resolved URL that left official HTTPS open.gsa.gov."""
+
     parsed = urlsplit(value)
     if parsed.scheme != "https" or parsed.hostname != "open.gsa.gov":
         raise SAMAcquisitionError("fetcher resolved_url must remain on official HTTPS open.gsa.gov")
@@ -283,6 +293,8 @@ def _validate_resolved_url(value: str) -> None:
 
 
 def _verify_payload(payload: bytes, pin: SAMSnapshotPin, *, location: str) -> tuple[str, int]:
+    """Refuse a payload whose byte length or digest differs from the pin."""
+
     byte_length = len(payload)
     if byte_length != pin.expected_byte_length:
         raise SAMSourceDriftError(
@@ -301,6 +313,8 @@ def _verify_payload(payload: bytes, pin: SAMSnapshotPin, *, location: str) -> tu
 
 
 def _verify_existing(path: Path, pin: SAMSnapshotPin) -> AcquiredSAMSource:
+    """Re-verify one cached SAM.gov source object and return its acquisition record."""
+
     if path.is_symlink() or not path.is_file():
         raise SAMAcquisitionError(f"content-addressed target is not a regular file: {path}")
     actual_sha256, byte_length = _verify_payload(
@@ -332,6 +346,8 @@ def _publish_payload(
     resolved_url: str | None,
     local_source_path: Path | None,
 ) -> AcquiredSAMSource:
+    """Publish verified SAM.gov bytes by hard link, falling back to a verified existing object."""
+
     actual_sha256, byte_length = _verify_payload(
         payload,
         pin,
@@ -426,6 +442,8 @@ def acquire_sam_opportunities_doc(
 
 
 def _extract_request_parameter_cell(text: str, param_name: str) -> str:
+    """Read one request-parameter table cell, refusing its absence."""
+
     pattern = re.compile(
         r"<tr>\s*<td>" + re.escape(param_name) + r"</td>\s*<td>(.*?)</td>\s*<td>",
         re.DOTALL,
@@ -442,6 +460,8 @@ def _identifier(
     source_uri: str,
     acquired: AcquiredSAMSource,
 ) -> ControlledIdentifier:
+    """Build one SAM.gov controlled identifier."""
+
     return ControlledIdentifier(
         value=value,
         kind=kind,
@@ -454,6 +474,8 @@ def _identifier(
 
 
 def _parse_notice_types(text: str, acquired: AcquiredSAMSource) -> tuple[SAMCode, ...]:
+    """Parse the ``ptype`` cell, refusing prose drift or a retired-code change."""
+
     cell = _extract_request_parameter_cell(text, "ptype")
     lines = [html.unescape(part).strip() for part in re.split(r"<br\s*/?>", cell)]
     lines = [line for line in lines if line]
@@ -498,6 +520,8 @@ def _parse_notice_types(text: str, acquired: AcquiredSAMSource) -> tuple[SAMCode
 
 
 def _parse_statuses(text: str, acquired: AcquiredSAMSource) -> tuple[SAMCode, ...]:
+    """Parse the documented status values, refusing a missing accepted-values sentence."""
+
     cell = _extract_request_parameter_cell(text, "status (Coming Soon)")
     flattened = html.unescape(re.sub(r"<br\s*/?>", " ", cell)).strip()
     match = re.search(r"Accepts following:\s*(.+)$", flattened)
@@ -530,6 +554,8 @@ def _parse_statuses(text: str, acquired: AcquiredSAMSource) -> tuple[SAMCode, ..
 
 
 def _parse_set_aside_codes(text: str, acquired: AcquiredSAMSource) -> tuple[SAMCode, ...]:
+    """Parse the Set-Aside Values table, refusing a missing or empty table."""
+
     section = re.search(r'<h3 id="set-aside-values">.*?<table>(.*?)</table>', text, re.DOTALL)
     if section is None:
         raise SAMSourceDriftError("could not locate the Set-Aside Values table")
@@ -565,6 +591,8 @@ def _parse_set_aside_codes(text: str, acquired: AcquiredSAMSource) -> tuple[SAMC
 
 
 def _parse_change_log(text: str) -> tuple[str, str, tuple[str, ...]]:
+    """Parse the Change Log table, refusing its absence."""
+
     section = re.search(r'<h2 id="change-log">.*?<table>(.*?)</table>', text, re.DOTALL)
     if section is None:
         raise SAMSourceDriftError("could not locate the Change Log table")
@@ -664,6 +692,8 @@ def _package_observations(
     codes: tuple[SAMCode, ...],
     acquired: AcquiredSAMSource,
 ) -> tuple[Mapping[str, Any], ...]:
+    """Render one code family as package observations."""
+
     observations: list[Mapping[str, Any]] = []
     for ordinal, code in enumerate(codes):
         identifier = code.identifiers[0]

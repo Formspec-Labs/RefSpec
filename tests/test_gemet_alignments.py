@@ -1,4 +1,4 @@
-"""Exact-byte and semantic tests for the GEMET 4.2.3 mapping reader."""
+"""GEMET 4.2.3 mapping reader: five SKOS mapping predicates, endpoint system fences, exact-byte pins."""
 
 from __future__ import annotations
 
@@ -15,6 +15,8 @@ REAL_SOURCE = ROOT / "output" / "registry-real-data-sources" / gemet.GEMET_ALIGN
 
 
 def test_fixture_preserves_all_five_predicates_and_endpoint_status() -> None:
+    """Pins all five SKOS mapping predicates, both target systems, and only eurovoc as held."""
+
     rows = gemet.parse_gemet_alignment_rdf(FIXTURE.read_bytes())
 
     assert len(rows) == 5
@@ -44,6 +46,8 @@ def test_fixture_refuses_unknown_targets_and_license_drift(
     new: bytes,
     message: str,
 ) -> None:
+    """Pins refusal of an undeclared target system and of a drifted license URL."""
+
     payload = FIXTURE.read_bytes().replace(old, new)
 
     with pytest.raises(gemet.GemetAlignmentError, match=message):
@@ -51,6 +55,8 @@ def test_fixture_refuses_unknown_targets_and_license_drift(
 
 
 def test_fixture_refuses_a_repeated_publisher_triple() -> None:
+    """Pins that a repeated publisher mapping triple is refused."""
+
     payload = FIXTURE.read_bytes().replace(
         b"    <skos:closeMatch",
         (b'    <skos:exactMatch rdf:resource="http://eurovoc.europa.eu/1"/>\n    <skos:closeMatch'),
@@ -62,6 +68,12 @@ def test_fixture_refuses_a_repeated_publisher_triple() -> None:
 
 @pytest.mark.skipif(not REAL_SOURCE.is_file(), reason="pinned GEMET source is not cached")
 def test_pinned_release_accounts_for_every_published_mapping_row() -> None:
+    """Pins 9,658 mappings, the per-pair predicate counts, exact digests, and CC BY 4.0."
+
+    The source URL must name the 4.2.3 version and never "latest", and the
+    UMTHES content rights note must record its CC BY-NC 4.0 terms.
+    """
+
     capture = gemet.load_gemet_alignments(REAL_SOURCE)
 
     assert len(capture.mappings) == gemet.EXPECTED_MAPPING_COUNT == 9_658
@@ -89,6 +101,8 @@ def test_pinned_release_accounts_for_every_published_mapping_row() -> None:
 
 @pytest.mark.skipif(not REAL_SOURCE.is_file(), reason="pinned GEMET source is not cached")
 def test_pinned_loader_refuses_distribution_drift(tmp_path: Path) -> None:
+    """Pins that appended bytes raise a byte-length drift error."""
+
     drifted = tmp_path / gemet.GEMET_ALIGNMENT_FILENAME
     drifted.write_bytes(REAL_SOURCE.read_bytes() + b"drift")
 

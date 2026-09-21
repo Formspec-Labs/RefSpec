@@ -248,11 +248,13 @@ class FederalRegisterThesaurus2025:
         )
 
     def official_by_normalized_label(self) -> dict[str, OfficialTerm]:
+        """Index official terms by NFKC-casefolded, whitespace-collapsed label."""
         return {
             _normalize_exact(item.label): item for item in self.official_terms
         }
 
     def variants_by_normalized_label(self) -> dict[str, tuple[VariantTerm, ...]]:
+        """Index variant occurrences by normalized label; one label may map to several."""
         grouped: dict[str, list[VariantTerm]] = defaultdict(list)
         for item in self.variants:
             grouped[_normalize_exact(item.label)].append(item)

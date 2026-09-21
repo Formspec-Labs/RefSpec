@@ -219,6 +219,8 @@ def _input_pin(
     byte_length: int,
     source_iri: str,
 ) -> RegistryInputPin:
+    """Pin one vocabulary distribution under its stable logical path, without verifying bytes."""
+
     return RegistryInputPin(
         path=Path(source_root) / filename,
         logical_path=f"refspec/output/registry-real-data-sources/{filename}",
@@ -229,6 +231,8 @@ def _input_pin(
 
 
 def _literal_payload(value: Any) -> dict[str, str]:
+    """Render one RDF literal as a native-payload fragment, refusing a non-English language tag."""
+
     payload = {
         "value": value.lexical_form,
     }
@@ -242,6 +246,8 @@ def _literal_payload(value: Any) -> dict[str, str]:
 
 
 def _sorted_labels(labels: Iterable[RegistryLabel]) -> tuple[RegistryLabel, ...]:
+    """Order labels by role precedence, then casefolded value and source path."""
+
     return tuple(
         sorted(
             labels,
@@ -295,6 +301,8 @@ def _normalize_english_label_candidates(
     rows = tuple(row for row in candidates if row[0] in member_iris)
 
     def is_base_english(language: str | None) -> bool:
+        """Whether a tag is the exact English base ``en``, or untagged when the caller allows it."""
+
         return (language is None and untagged_is_english) or (
             language is not None and language.casefold() == "en"
         )
@@ -444,6 +452,8 @@ def _source_scoped_identity(
     source_key: str,
     recorded_at: str,
 ) -> tuple[str, dict[str, str]]:
+    """Mint a source-scoped concept IRI plus its identity payload from the source scheme and key."""
+
     seed = (f"atlas-v3-source-concept-v1\n{source_scheme}\n{source_key}\n").encode()
     uuid = derive_uuid7(recorded_at, seed=seed)
     local_record_id = f"urn:uuid:{uuid}"
@@ -464,6 +474,8 @@ def _assert_release_counts(
     resources: Sequence[RegistryResource],
     relations: Sequence[RegistryRelation],
 ) -> None:
+    """Refuse unless a release matches its expected resource, label, and relation counts."""
+
     expected = EXPECTED_RESOURCE_COUNTS[key]
     if len(resources) != expected:
         raise ValueError(f"{key} expected {expected} resources; parsed {len(resources)}")
@@ -494,6 +506,8 @@ def _release(
     dropped_label_count: int = 0,
     metadata: Mapping[str, Any] | None = None,
 ) -> RegistryRelease:
+    """Build one subject-ring release after count assertions and S27 conflict preservation."""
+
     _assert_release_counts(key, resources, relations)
     return RegistryRelease(
         key=key,
@@ -516,6 +530,8 @@ def _release(
 
 
 def _normalize_doe(parsed: DoeOstiThesaurus, source: RegistryInputPin) -> RegistryRelease:
+    """Normalize the parsed DOE OSTI thesaurus into its subject-ring release."""
+
     member_iris = {concept.concept_iri for concept in parsed.concepts}
     (
         labels,
@@ -582,6 +598,8 @@ def _normalize_doe(parsed: DoeOstiThesaurus, source: RegistryInputPin) -> Regist
 
 
 def load_doe_osti_release(source_root: Path = DEFAULT_SOURCE_ROOT) -> RegistryRelease:
+    """Load the pinned DOE OSTI Semantic Thesaurus 2020 RDF export."""
+
     release = DOE_OSTI_THESAURUS_V1_2020
     source = _input_pin(
         source_root,
@@ -601,6 +619,8 @@ def load_doe_osti_release(source_root: Path = DEFAULT_SOURCE_ROOT) -> RegistryRe
 
 
 def _normalize_elsst(parsed: ElsstVocabulary, source: RegistryInputPin) -> RegistryRelease:
+    """Normalize the parsed ELSST R6 vocabulary into its subject-ring release."""
+
     member_iris = {concept.concept_iri for concept in parsed.concepts}
     (
         labels,
@@ -689,6 +709,8 @@ def _normalize_elsst(parsed: ElsstVocabulary, source: RegistryInputPin) -> Regis
 
 
 def load_elsst_r6_release(source_root: Path = DEFAULT_SOURCE_ROOT) -> RegistryRelease:
+    """Load the pinned ELSST R6 Turtle distribution."""
+
     source = _input_pin(
         source_root,
         filename=ELSST_R6.filename,
@@ -758,6 +780,8 @@ def _normalize_eurovoc(
     label_conflict_count = 0
 
     def normalized_labels(iri: str) -> tuple[RegistryLabel, ...]:
+        """SKOS S13-normalized labels for one IRI, accumulating the conflict count."""
+
         nonlocal label_conflict_count
         retained, conflicts = _normalize_skos_label_roles(labels[iri])
         label_conflict_count += len(conflicts)
@@ -770,6 +794,8 @@ def _normalize_eurovoc(
         "releaseVersion": EUROVOC_RELEASE_4_24.version,
     }
     def resource_annotations(iri: str) -> tuple[str | None, tuple[str, ...]]:
+        """The single definition and the remaining scope notes for one EuroVoc resource."""
+
         definitions = sorted(
             set(annotations[iri].get(_SKOS_DEFINITION, ()))
         )
@@ -1204,6 +1230,8 @@ def _eurovoc_claim_resource_rules(
     resource_kind: str,
     excluded_member_claims: Collection[tuple[str, str]] = (),
 ) -> RegistryClaimResourceRules:
+    """The claim-reading rules shared by the EuroVoc concept and domain partitions."""
+
     return RegistryClaimResourceRules(
         member_predicate=member_predicate,
         member_object_iri=member_object_iri,
@@ -1238,6 +1266,8 @@ def _eurovoc_claim_release_digest(
     metadata: RegistryInputPin,
     member_partition: str,
 ) -> str:
+    """Digest one EuroVoc claim partition from its archive, metadata, and member pins."""
+
     return canonical_digest(
         {
             "archiveDigest": archive.sha256,
@@ -1489,6 +1519,8 @@ def _gemet_theme_labels(
 
 
 def _normalize_gemet(parsed: GemetVocabulary, source: RegistryInputPin) -> RegistryRelease:
+    """Normalize the parsed GEMET 4.2.3 vocabulary, including its Group/SuperGroup/Theme layer."""
+
     concept_iris = {concept.concept_iri for concept in parsed.concepts}
     group_iris = {item.resource_iri for item in parsed.organization_resources if item.kind == "group"}
     super_group_iris = {item.resource_iri for item in parsed.organization_resources if item.kind == "superGroup"}
@@ -1714,6 +1746,8 @@ def _normalize_gemet(parsed: GemetVocabulary, source: RegistryInputPin) -> Regis
 
 
 def load_gemet_release(source_root: Path = DEFAULT_SOURCE_ROOT) -> RegistryRelease:
+    """Load the pinned GEMET 4.2.3 RDF/XML distribution."""
+
     release = GEMET_RELEASE_4_2_3
     source = _input_pin(
         source_root,
@@ -1732,6 +1766,8 @@ def load_gemet_release(source_root: Path = DEFAULT_SOURCE_ROOT) -> RegistryRelea
 
 
 def _normalize_nasa(parsed: NasaThesaurusVocabulary, source: RegistryInputPin) -> RegistryRelease:
+    """Normalize the parsed NASA Thesaurus, remapping USE/USED_FOR onto Atlas predicates."""
+
     member_iris = {concept.concept_iri for concept in parsed.concepts}
     (
         labels,
@@ -1796,6 +1832,8 @@ def _normalize_nasa(parsed: NasaThesaurusVocabulary, source: RegistryInputPin) -
 
 
 def load_nasa_thesaurus_release(source_root: Path = DEFAULT_SOURCE_ROOT) -> RegistryRelease:
+    """Load the pinned NASA Thesaurus SKOS distribution."""
+
     release = NASA_THESAURUS_SKOS
     source = _input_pin(
         source_root,
@@ -1817,6 +1855,8 @@ MESH_DESCRIPTORS_SCHEME_IRI = "urn:ref:atlas-resource-scheme:mesh-descriptors"
 
 
 def _normalize_mesh(parsed: MeshDescriptorSnapshot, source: RegistryInputPin) -> RegistryRelease:
+    """Normalize the parsed MeSH 2026 descriptors, refusing a descriptor-count drift."""
+
     if len(parsed.descriptors) != MESH_2026_DESCRIPTOR_COUNT:
         raise ValueError(
             f"MeSH 2026 expected {MESH_2026_DESCRIPTOR_COUNT} descriptors; parsed {len(parsed.descriptors)}"
@@ -1877,6 +1917,8 @@ def _normalize_mesh(parsed: MeshDescriptorSnapshot, source: RegistryInputPin) ->
 
 
 def load_mesh_2026_release(source_root: Path = DEFAULT_SOURCE_ROOT) -> RegistryRelease:
+    """Load the pinned MeSH 2026 descriptor XML and re-check the parser-reported pin."""
+
     source = _input_pin(
         source_root,
         filename="desc2026.xml",
@@ -1898,6 +1940,8 @@ def _normalize_gcmd(
     parsed: ParsedGCMDScienceKeywords,
     source: RegistryInputPin,
 ) -> RegistryRelease:
+    """Normalize the parsed GCMD Science Keywords CSV into source-scoped subject resources."""
+
     resources: list[RegistryResource] = []
     for row in parsed.rows:
         identifier = row.identifiers[0]
@@ -1956,6 +2000,8 @@ def _normalize_gcmd(
 
 
 def load_gcmd_24_4_release(source_root: Path = DEFAULT_SOURCE_ROOT) -> RegistryRelease:
+    """Load the pinned GCMD Science Keywords 24.4 CSV capture."""
+
     pin = GCMD_SCIENCE_KEYWORDS_24_4
     source = _input_pin(
         source_root,
@@ -1981,6 +2027,8 @@ def load_gcmd_24_4_release(source_root: Path = DEFAULT_SOURCE_ROOT) -> RegistryR
 
 
 def _pdf_source_path(locator: Any, field: str) -> str:
+    """Render the PDF page/printed-page source path for one Federal Register locator field."""
+
     return f"pdf:page[{locator.pdf_page}]/printed[{locator.printed_page}]/source[{locator.source_ordinal}]/{field}"
 
 
@@ -1988,6 +2036,8 @@ def _normalize_federal_register(
     parsed: FederalRegisterThesaurus2025,
     source: RegistryInputPin,
 ) -> RegistryRelease:
+    """Normalize the parsed Federal Register Thesaurus 2025 PDF, refusing a parsed-count drift."""
+
     counts = parsed.counts
     if (
         counts.official_terms != 705
@@ -2103,6 +2153,8 @@ def _normalize_federal_register(
 def load_federal_register_2025_release(
     source_root: Path = DEFAULT_SOURCE_ROOT,
 ) -> RegistryRelease:
+    """Load the pinned Federal Register Thesaurus 2025 PDF capture."""
+
     source = _input_pin(
         source_root,
         filename="federal-register-thesaurus-2025.pdf",

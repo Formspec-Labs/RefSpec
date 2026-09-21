@@ -148,6 +148,8 @@ class GemetAlignmentCapture:
 
     @property
     def pair_predicate_counts(self) -> dict[str, dict[str, int]]:
+        """Mapping counts per target system and predicate, sorted."""
+
         counts: dict[str, Counter[str]] = {}
         for row in self.mappings:
             counts.setdefault(row.target_system, Counter())[row.predicate_iri] += 1
@@ -155,6 +157,8 @@ class GemetAlignmentCapture:
 
 
 def _digest(payload: bytes) -> str:
+    """Return the canonical ``sha256:`` spelling of the payload's digest."""
+
     return "sha256:" + hashlib.sha256(payload).hexdigest()
 
 
@@ -165,6 +169,8 @@ def _verify_pin(
     expected_byte_length: int,
     label: str,
 ) -> None:
+    """Refuse a payload whose digest or byte length differs from the pin."""
+
     if _DIGEST.fullmatch(expected_sha256) is None:
         raise GemetAlignmentError(f"{label} expected digest is not canonical SHA-256")
     observed_sha256 = _digest(payload)
@@ -175,6 +181,8 @@ def _verify_pin(
 
 
 def _target_system(object_iri: str) -> str:
+    """Return the one declared target system for ``object_iri``, refusing zero or several."""
+
     matches = [name for name, prefix in TARGET_PREFIXES.items() if object_iri.startswith(prefix)]
     if len(matches) != 1:
         raise GemetAlignmentError(f"GEMET mapping target has no declared endpoint system: {object_iri}")

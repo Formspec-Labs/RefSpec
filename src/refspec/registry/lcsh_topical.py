@@ -1,23 +1,17 @@
 """Streaming readers for bounded or URI-selected LCSH authority subsets.
 
-The Library of Congress publishes every LCSH authority (topical, geographic,
-corporate name, complex subject, and more) as one MADS/SKOS JSON-LD graph per
-line in a single bulk ndjson.gz distribution
+The Library of Congress publishes every LCSH authority class as one MADS/SKOS
+JSON-LD graph per line in one bulk ndjson.gz distribution
 (id.loc.gov/download/authorities/subjects.madsrdf.jsonld.gz, linked from
-https://id.loc.gov/authorities/subjects.html). The catalog marks LCSH mapping
-only: its bibliographic scope and size make it unsuitable as a candidate pool.
-This module never assembles a RefSpec concept scheme from it. It can either
-retain a bounded topical subset or select an explicit set of publisher IRIs
-in one bounded-memory scan. The latter supports official alignment endpoints,
-which legitimately include non-topical authority classes and a few records
-without an LCCN. Every retained record keeps the publisher concept IRI and
-exact source line.
-
-Every entry point takes bytes, an iterable of lines, or an explicit local
-path; importing this module never opens a network connection. The topical
-reader still requires an LCCN and skips non-topical lines. The URI-selected
-reader requires only source fields common to every aligned authority and
-never mints a replacement identifier when an LCCN is absent.
+https://id.loc.gov/authorities/subjects.html); the catalog marks LCSH mapping
+only, so this module never assembles a RefSpec concept scheme and only retains
+either a bounded topical subset or an explicit set of publisher IRIs in one
+bounded-memory scan. The topical reader requires an LCCN and skips non-topical
+lines; the URI-selected reader requires only the source fields common to every
+aligned authority and never mints a replacement identifier when an LCCN is
+absent, and every retained record keeps the publisher concept IRI and exact
+source line. Entry points take bytes, an iterable of lines, or an explicit
+local path, and importing this module never opens a network connection.
 """
 
 from __future__ import annotations

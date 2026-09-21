@@ -1,4 +1,4 @@
-"""Focused checks for the hosted (frontier) embedding batch arms."""
+"""Hosted frontier embedding batch arms: env parsing, request shaping, offset recovery and refusals."""
 
 from __future__ import annotations
 
@@ -11,10 +11,14 @@ from tools import benchmark_atlas_frontier_embedding_recovery as provider
 
 
 def _concept(label: str, *, definition: str | None = None) -> dict[str, object]:
+    """Build a minimal Atlas concept row for arm-text shaping checks."""
+
     return {"label": label, "altLabels": [], "definition": definition, "notes": None}
 
 
 def test_env_is_parsed_without_export_prefixes_or_quotes(tmp_path) -> None:
+    """A dotenv file is read with ``export`` prefixes and surrounding quotes stripped."""
+
     (tmp_path / ".env").write_text(
         'OPENAI_API_KEY="sk-test"\nexport GEMINI_API_KEY=gk-test\n# comment\n\n',
         encoding="utf-8",
@@ -27,11 +31,15 @@ def test_env_is_parsed_without_export_prefixes_or_quotes(tmp_path) -> None:
 
 
 def test_missing_env_fails_closed(tmp_path) -> None:
+    """A missing .env refuses rather than falling back to an empty environment."""
+
     with pytest.raises(FileNotFoundError):
         provider.load_env(tmp_path)
 
 
 def test_arm_texts_are_view_major_so_slices_line_up_with_concepts() -> None:
+    """Texts are emitted view-major so the collector's per-view slices land on the matching concepts."""
+
     concepts = [_concept("A"), _concept("B")]
     arm = provider.ARMS[0]
 
@@ -44,6 +52,8 @@ def test_arm_texts_are_view_major_so_slices_line_up_with_concepts() -> None:
 
 
 def test_instruction_prefix_is_applied_for_models_without_a_task_type_field() -> None:
+    """The gemini-2 arm has no task_type field, so every text carries the instruction prefix."""
+
     gemini2 = next(arm for arm in provider.ARMS if arm.key == "gemini-2")
 
     texts = provider.arm_texts([_concept("Housing")], gemini2)
@@ -53,6 +63,8 @@ def test_instruction_prefix_is_applied_for_models_without_a_task_type_field() ->
 
 
 def test_task_type_arms_send_no_instruction_prefix() -> None:
+    """An arm with a task_type sends the bare label and no instruction prefix."""
+
     retrieval = next(arm for arm in provider.ARMS if arm.key == "gemini-001-ret")
 
     texts = provider.arm_texts([_concept("Housing")], retrieval)
@@ -62,6 +74,8 @@ def test_task_type_arms_send_no_instruction_prefix() -> None:
 
 
 def test_legacy_ada_arm_omits_the_dimensions_parameter() -> None:
+    """ada-002 is fixed-width and sends no dimensions, while the sized OpenAI arm sends the output width."""
+
     ada = next(arm for arm in provider.ARMS if arm.key == "openai-ada-002")
     sized = next(arm for arm in provider.ARMS if arm.key == "openai-3-large")
 
@@ -71,6 +85,8 @@ def test_legacy_ada_arm_omits_the_dimensions_parameter() -> None:
 
 
 def test_openai_batch_lines_carry_many_inputs_and_a_recoverable_offset(tmp_path) -> None:
+    """Requests are chunked per input line with a custom_id offset, dimensions, and a 24h file lifetime."""
+
     captured: dict[str, object] = {}
 
     class _Files:
@@ -104,6 +120,8 @@ def test_openai_batch_lines_carry_many_inputs_and_a_recoverable_offset(tmp_path)
 
 
 def test_openai_collection_restores_global_order_from_chunk_offsets() -> None:
+    """Out-of-order batch results are re-ordered by their chunk offsets into one vector block."""
+
     payload = "\n".join(
         json.dumps(
             {
@@ -136,6 +154,8 @@ def test_openai_collection_restores_global_order_from_chunk_offsets() -> None:
 
 
 def test_openai_collection_rejects_a_short_result() -> None:
+    """Fewer vectors than expected is refused rather than silently truncated."""
+
     class _Client:
         batches = type(
             "B",
@@ -151,6 +171,8 @@ def test_openai_collection_rejects_a_short_result() -> None:
 
 
 def test_incomplete_batch_raises_so_the_poller_keeps_waiting() -> None:
+    """An in_progress batch raises so the poller retries instead of treating it as complete."""
+
     class _Client:
         batches = type("B", (), {"retrieve": staticmethod(lambda _id: type("R", (), {"status": "in_progress"})())})()
 
@@ -161,6 +183,8 @@ def test_incomplete_batch_raises_so_the_poller_keeps_waiting() -> None:
 
 
 def test_normalise_produces_unit_rows_and_tolerates_a_zero_vector() -> None:
+    """Normalisation yields unit rows and keeps an all-zero row finite instead of dividing by zero."""
+
     vectors = np.asarray([[3.0, 4.0], [0.0, 0.0]], dtype=np.float32)
 
     unit = provider.normalise(vectors)

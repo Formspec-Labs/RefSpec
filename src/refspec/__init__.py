@@ -1,4 +1,9 @@
-"""Executable interfaces for the Regulatory Evidence Framework."""
+"""Executable interfaces for the Regulatory Evidence Framework.
+
+Public names are resolved lazily per PEP 562 from ``refspec.release_model``,
+``refspec.managed_release``, and ``refspec.vocabulary``, so ``refspec.X`` is
+the same object as ``refspec.<owning module>.X``.
+"""
 
 from importlib import import_module
 from importlib.metadata import PackageNotFoundError, version

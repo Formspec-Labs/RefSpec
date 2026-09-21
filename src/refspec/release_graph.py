@@ -130,6 +130,8 @@ def _rule(
     path: str,
     *expected_types: str,
 ) -> RulespecReferenceRule:
+    """Build one REF reference rule over a slash-separated field path."""
+
     return RulespecReferenceRule(
         path=tuple(path.split("/")),
         expected_types=(frozenset(expected_types) if expected_types else None),
@@ -321,10 +323,14 @@ class ValidatorCommand:
     argv: tuple[str, ...]
 
     def for_graph(self, graph_path: Path) -> list[str]:
+        """Substitute the temporary graph file into the pinned command."""
+
         graph = str(graph_path)
         return [argument.replace(GRAPH_PLACEHOLDER, graph) for argument in self.argv]
 
     def for_behavior(self, behavior_path: Path) -> list[str]:
+        """Substitute the temporary behavior-test file into the pinned command."""
+
         behavior = str(behavior_path)
         return [argument.replace(BEHAVIOR_PLACEHOLDER, behavior) for argument in self.argv]
 
@@ -357,9 +363,13 @@ class ReleaseGraphGateReport:
 
     @property
     def passed(self) -> bool:
+        """True only when all three verdict lists are empty."""
+
         return not (self.ref_failures or self.rulespec_failures or self.cross_boundary_failures)
 
     def as_dict(self) -> dict[str, Any]:
+        """Render the report as its JSON-safe mapping."""
+
         return {
             "passed": self.passed,
             "refFailures": list(self.ref_failures),
@@ -511,6 +521,8 @@ def _values_at_rule_path(
     *,
     pointer: str = "",
 ) -> tuple[tuple[str, Any], ...]:
+    """Every value at one rule path with its JSON pointer, skipping context objects."""
+
     if not path:
         return ((pointer or "/", value),)
 
@@ -541,6 +553,8 @@ def _values_at_rule_path(
 def _rulespec_reference_requirements(
     record: Mapping[str, Any],
 ) -> tuple[RulespecReferenceRequirement, ...]:
+    """The Rulespec identifiers one REF record promises to reference."""
+
     record_type = record.get("type")
     if not isinstance(record_type, str):
         return ()
@@ -749,6 +763,8 @@ def load_pinned_rulespec_validator(
 
 
 def _render_ref_diagnostic(diagnostic: Any) -> str:
+    """Render one REF diagnostic with its own renderer when it has one."""
+
     render = getattr(diagnostic, "render", None)
     return str(render()) if callable(render) else str(diagnostic)
 
@@ -759,6 +775,8 @@ def _string_set(
     field: str,
     failures: list[str],
 ) -> frozenset[str]:
+    """Read a list of strings into a set, recording a failure for any other shape."""
+
     if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
         failures.append(f"{field} must be an array of identifiers")
         return frozenset()
@@ -768,6 +786,8 @@ def _string_set(
 
 
 def _output_excerpt(result: subprocess.CompletedProcess[str]) -> str:
+    """The last three output lines of a failed validator run."""
+
     output = (result.stderr or result.stdout or "").strip()
     if not output:
         return "no validator output"
@@ -780,6 +800,8 @@ def _run_rulespec_validator(
     digest: str,
     validator: RulespecValidatorPin,
 ) -> list[str]:
+    """Run every pinned validator command and return their failure strings."""
+
     failures: list[str] = []
     if not validator.commands:
         return ["pinned Rulespec validator defines no graph-validation command"]
@@ -849,6 +871,8 @@ def _rulespec_nodes(graph: Any) -> dict[str, Mapping[str, Any]]:
 
 
 def _timestamp(value: Any, *, field: str) -> dt.datetime:
+    """Parse one RFC 3339 timestamp into an aware datetime."""
+
     if not isinstance(value, str):
         raise TypeError(f"{field} must be an RFC 3339 timestamp")
     try:
@@ -861,6 +885,8 @@ def _timestamp(value: Any, *, field: str) -> dt.datetime:
 
 
 def _string_values(value: Any) -> tuple[str, ...]:
+    """Read one string or list of strings into a tuple, else empty."""
+
     if isinstance(value, str):
         return (value,)
     if isinstance(value, list) and all(isinstance(item, str) for item in value):
@@ -934,6 +960,8 @@ def _attestation_is_effective(
 
 
 def _behavior_test_identifier(governance_record_id: str) -> str:
+    """Mint the behavior-test IRI for one governance record."""
+
     suffix = hashlib.sha256(governance_record_id.encode("utf-8")).hexdigest()
     return f"urn:ref:behavior-test:governance-authorization:{suffix}"
 
@@ -948,6 +976,8 @@ def _authorization_behavior_test(
     expected_level: str,
     evaluation_consumer: str | None,
 ) -> dict[str, Any]:
+    """Build the authorization behavior test for one governance record."""
+
     test_case: dict[str, Any] = {
         "@context": {"rkaf": RKAF_NAMESPACE},
         "@id": _behavior_test_identifier(governance_record_id),
@@ -1590,6 +1620,8 @@ def issue_release_graph_validation_receipt(
 
 
 def _print_failures(label: str, failures: Iterable[str]) -> None:
+    """Print one labeled failure per line."""
+
     for failure in failures:
         print(f"{label}: {failure}")
 

@@ -1,14 +1,12 @@
 """Digest-pinned regulations.gov agency roster.
 
-The regulations.gov v4 agencies endpoint publishes the agency acronyms used
-as docket-ID prefixes, the publisher's agency names, and publisher-asserted
-parent acronyms. The endpoint is not documented in the public OpenAPI file.
-REF-038 therefore requires every use of this capture to state that caveat and
-to recapture and diff the full roster before a later release replaces it.
-
-The live request requires ``REGULATIONS_GOV_API_KEY`` in the ``X-Api-Key``
-header. The source URL, pin, fixture, and parsed records never contain the key.
-Importing this module performs no network access.
+The v4 agencies endpoint publishes the docket-prefix acronyms, agency names,
+and parent acronyms; it is not documented in the public OpenAPI file, so
+REF-038 requires every use to state that caveat and to recapture and diff the
+full roster before a later release replaces this pin. Live access requires
+``REGULATIONS_GOV_API_KEY`` in the ``X-Api-Key`` header; the key never appears
+in the source URL, pin, fixture, or parsed records, and importing performs no
+network access.
 """
 
 from __future__ import annotations

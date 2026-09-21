@@ -2,61 +2,29 @@
 
 RefSpec intake ledger port 1.5
 (``plans/2026-08-31-refspec-intake-ledger.md`` section 1.5). The reference
-implementation is spicy-regs' ``tools/build_agency_crosswalk_artifact.py``
-(preserved at
-``~/Work/corpora/_nuggets-2026-08-27/source/tools/build_agency_crosswalk_artifact.py``),
-which joined 1,004,233 Federal Register documents, 276,326 regulations.gov
-dockets, 715,080 FR-to-docket link rows, and 1,987,880 regulations.gov
-documents into one artifact answering: which Federal Register agency slug
-(``agencies_json``, e.g. ``federal-aviation-administration``) does a given
-regulations.gov agency *code* (``agency_code``, e.g. ``FAA``, the docket-ID
-prefix) stand for? The sealed build ran 2026-08-02 and is preserved at
-``~/Work/corpora/_preserved-2026-08-27/spicy-regs-output-complete/
-agency-crosswalk-2026-08-02/`` (``receipt.json`` artifact_id
-``urn:spicyregs:agency-crosswalk-artifact:80864133d2e5d484fef4afd0``).
+implementation is spicy-regs' ``tools/build_agency_crosswalk_artifact.py``,
+whose sealed 2026-08-02 build joined 1,004,233 Federal Register documents,
+276,326 regulations.gov dockets, 715,080 FR-to-docket link rows, and 1,987,880
+regulations.gov documents into one artifact answering: which Federal Register
+agency slug does a given regulations.gov agency *code* (``agency_code``, e.g.
+``FAA``, the docket-ID prefix) stand for? The receipt's artifact_id is
+``urn:spicyregs:agency-crosswalk-artifact:80864133d2e5d484fef4afd0``.
 
 **Decision-tree branch taken: curated data, not re-derivation (branch 3).**
-The ledger's instruction was to re-derive the crosswalk from raw inputs if
-they are available locally, or ship the sealed mapping as curated reference
-data with the rules documented if not. Verified 2026-08-31 against
-``~/Work/corpora/_preserved-2026-08-27/rin-ontology-revision-candidate/``,
-the exact path the sealed receipt names as its inputs:
-
-* ``federal_register.parquet``, ``dockets.parquet``, and ``documents.parquet``
-  are byte-identical to the receipt's pinned sha256 digests (see
-  ``AGENCY_CROSSWALK_INPUT_DIGESTS``). These three came home to the repo's
-  own ``output/`` on 2026-08-31 (``AGENCY_CROSSWALK_REGENERATION_INPUTS``) --
-  the corpora directory named above no longer holds them.
-* ``fr_docket_links.parquet`` is **not** byte-identical, and did not travel
-  with its three siblings: it stays at
-  ``AGENCY_CROSSWALK_CORRUPTED_INPUT_PATH`` in the staging ground, its story
-  unchanged, because the file there has been overwritten since the
-  2026-08-02 10:52 build: 893,766 rows against the pinned 715,080, a
-  materially different schema (it now carries full document metadata columns
-  alongside ``docket_id``/``document_number``), and a different sha256
-  (``sha256:e55cc0ab...`` where the receipt pins ``sha256:b3409f0a...``).
-  This matches the codebase's own observed failure mode for gitignored
-  corpora output trees: loss/overwrite, not tamper.
-
-A from-scratch rebuild against the three matching inputs plus the *current*
-``fr_docket_links.parquet`` was attempted as a measurement (not shipped as
-code: this module does not re-run the join). It reproduces
-confident:124 / probable:30 / ambiguous:23 / unmapped:139 -- one agency code
-short of the sealed confident:124 / probable:29 / ambiguous:23 / unmapped:140.
-Close, but not the exact reproduction branch 2 would require, because one of
-the four raw inputs is not the one that built the receipt. That near-miss is
-recorded here rather than papered over: see
-``AGENCY_CROSSWALK_REGENERATION_STATUS``.
-
-Because exact re-derivation is not currently possible, ``AGENCY_CROSSWALK``
-below ships the sealed artifact's ``agency-codes.parquet`` (316 rows -- every
-regulations.gov agency code the sealed build's ``documents`` table evidence
-touched) and ``agency-crosswalk.parquet`` (914 rows -- every ranked
-FR-slug candidate behind those 316 codes) as curated reference data, exactly
-as this registry already carries other small curated tables.
-``AGENCY_CROSSWALK_TIER_HISTOGRAM`` pins the sealed receipt's own accounting,
-not a fresh derivation, and ``tier_histogram()`` checks the shipped data
-still adds up to it.
+The ledger asked for a re-derivation from raw inputs if they are available
+locally, or the sealed mapping shipped as curated reference data with the
+rules documented if not. Three of the four raw inputs (``federal_register``,
+``dockets``, ``documents``) match the receipt's pinned digests; the fourth,
+``fr_docket_links.parquet``, does not -- it has been overwritten since the
+2026-08-02 build (893,766 rows against the pinned 715,080, extra
+document-metadata columns, a different sha256) -- so exact re-derivation is
+not currently possible. ``AGENCY_CROSSWALK`` therefore ships the sealed
+artifact's 316 agency-code rows and 914 ranked candidate rows as curated
+reference data, and ``AGENCY_CROSSWALK_TIER_HISTOGRAM`` pins the sealed
+receipt's own accounting rather than a fresh derivation; ``tier_histogram()``
+checks the shipped data still adds up to it. See
+``AGENCY_CROSSWALK_REGENERATION_STATUS`` for the full gap and the measured
+near-miss rebuild.
 
 **The three measured rules**, load-bearing enough that the reference
 builder's docstring names them explicitly, and reimplemented here (not

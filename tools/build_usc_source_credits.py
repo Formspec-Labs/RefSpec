@@ -248,6 +248,7 @@ class QuarantinedCredit:
     raw_value: str
 
     def __post_init__(self) -> None:
+        """Refuse a quarantine reason outside :data:`QUARANTINE_REASONS`."""
         if self.reason not in QUARANTINE_REASONS:
             raise ValueError(f"undeclared quarantine reason: {self.reason!r}")
 
@@ -268,6 +269,7 @@ class CreditScan:
     pages_the_bound_changed: int = 0
 
     def merge(self, other: CreditScan) -> CreditScan:
+        """Combine two scans by concatenating rows and summing every counter."""
         return CreditScan(
             credits=self.credits + other.credits,
             quarantine=self.quarantine + other.quarantine,
@@ -420,6 +422,7 @@ def credit_rows(credits: tuple[SourceCredit, ...]) -> list[dict[str, Any]]:
 
 
 def canonical_key(row: dict[str, Any], columns: tuple[str, ...] = CREDIT_COLUMNS) -> tuple[str, ...]:
+    """The row's comparison key: every named column as text, ``None`` as the empty string."""
     return tuple("" if row.get(column) is None else str(row[column]) for column in columns)
 
 
@@ -455,6 +458,7 @@ def compare_to_frozen(rows: list[dict[str, Any]], frozen_table: Path) -> dict[st
 
 
 def build(output_dir: Path, *, archive: Path, release_point: str) -> dict:
+    """Scan the release archive and seal the credits table, quarantine table, and receipt."""
     # Resolve code before writing outputs. The policy version alone cannot
     # identify the separately installed source reader or its XML helpers.
     modules = {

@@ -1,4 +1,4 @@
-"""Tests for repeatable source identifiers and their observation dates."""
+"""Pin ControlledIdentifier date validation, serialization, and observation deduplication."""
 
 from __future__ import annotations
 
@@ -14,6 +14,8 @@ SOURCE_DIGEST = "sha256:" + ("a" * 64)
 
 
 def _identifier(**changes: str | None) -> ControlledIdentifier:
+    """Build a valid identifier, overriding only the named fields."""
+
     values: dict[str, str | None] = {
         "value": "24042",
         "kind": "publisherCode",
@@ -41,6 +43,8 @@ def test_identifier_dates_accept_iso_dates_and_date_times(
     field: str,
     value: str,
 ) -> None:
+    """Pin that ISO dates and UTC/offset datetimes are retained verbatim in observed_at and effective_at."""
+
     identifier = _identifier(**{field: value})
 
     assert getattr(identifier, field) == value
@@ -58,11 +62,15 @@ def test_identifier_dates_accept_iso_dates_and_date_times(
     ],
 )
 def test_identifier_dates_reject_non_iso_or_impossible_values(value: str) -> None:
+    """Pin refusals for empty, non-ISO, impossible-date, and malformed-offset values."""
+
     with pytest.raises(ControlledIdentifierError, match="empty|ISO 8601"):
         _identifier(observed_at=value)
 
 
 def test_identifier_serialization_retains_explicit_unknown_dates() -> None:
+    """Pin that unknown dates serialize as explicit nulls with camelCase keys."""
+
     assert _identifier().as_dict() == {
         "value": "24042",
         "kind": "publisherCode",
@@ -75,6 +83,8 @@ def test_identifier_serialization_retains_explicit_unknown_dates() -> None:
 
 
 def test_distinct_identifiers_removes_only_exact_repeated_observations() -> None:
+    """Pin that deduplication removes only exact repeats, keeping the later observation."""
+
     first = _identifier()
     later = _identifier(observed_at="2026-07-30")
 

@@ -54,6 +54,7 @@ def projection(
 def test_projection_counts_every_regulations_gov_id(
     projection: agency_projection.AgencyProjection,
 ) -> None:
+    """Pins the exact 331/321/10 coverage counts and per-basis breakdown, the two value sets disjoint."""
     assert len(projection.rows) == 321
     assert len(projection.unresolved) == 10
     assert projection.coverage.to_dict() == {
@@ -82,6 +83,7 @@ def test_projection_is_exactly_graph_assertions_plus_metadata_abstentions(
     projection: agency_projection.AgencyProjection,
     identity_release: RegistryMappingRelease,
 ) -> None:
+    """Pins rows equal to the mapping's graph assertions and unresolved rows equal to its metadata abstentions."""
     assertion_pairs = {
         (mapping.subject, mapping.predicate, mapping.object)
         for mapping in identity_release.mappings
@@ -108,6 +110,7 @@ def test_projection_is_exactly_graph_assertions_plus_metadata_abstentions(
 def test_every_projection_row_cites_the_mapping_release_decision(
     projection: agency_projection.AgencyProjection,
 ) -> None:
+    """Pins each row's single E4/humanReview/approved evidence record, its REF-038 citation and no confidence field."""
     for row in projection.rows:
         assert len(row.evidence_records) == 1
         evidence = row.evidence_records[0]
@@ -129,6 +132,7 @@ def test_every_projection_row_cites_the_mapping_release_decision(
 def test_residue_adoptions_include_fs_disambiguation_and_parent_context(
     projection: agency_projection.AgencyProjection,
 ) -> None:
+    """Pins the FS, USDAIG and MEXICO residue adoptions to their exact target URNs, bases and reasoning."""
     by_value = {row.source_value: row for row in projection.rows}
 
     forest_service = by_value["FS"]
@@ -156,6 +160,7 @@ def test_residue_adoptions_include_fs_disambiguation_and_parent_context(
 def test_true_abstentions_and_closest_candidates_project_from_metadata(
     projection: agency_projection.AgencyProjection,
 ) -> None:
+    """Pins the ten frozen abstention values and the closest-candidate metadata projected for BSC, MMA and USC."""
     by_value = {row.source_value: row for row in projection.unresolved}
     assert set(by_value) == {
         "ARCTICGAS",
@@ -184,6 +189,7 @@ def test_true_abstentions_and_closest_candidates_project_from_metadata(
 def test_projection_refuses_missing_mapping_basis_or_evidence(
     projection: agency_projection.AgencyProjection,
 ) -> None:
+    """Pins that a projection row constructed without a basis or without evidence records raises ValueError."""
     row = projection.rows[0]
     with pytest.raises(ValueError, match="requires a basis"):
         dataclasses.replace(row, basis="")
@@ -194,6 +200,7 @@ def test_projection_refuses_missing_mapping_basis_or_evidence(
 def test_projection_is_input_order_independent(
     releases: tuple[RegistryRelease, ...],
 ) -> None:
+    """Pins that reversing release, resource and relation order rebuilds an identical projection and digest."""
     reordered = tuple(
         dataclasses.replace(
             release,
@@ -225,6 +232,7 @@ def test_projection_rejects_metadata_adoption_without_graph_assertion(
     releases: tuple[RegistryRelease, ...],
     identity_release: RegistryMappingRelease,
 ) -> None:
+    """Pins that an adopted metadata decision with no matching graph assertion raises ValueError."""
     changed = dataclasses.replace(
         identity_release,
         mappings=identity_release.mappings[:-1],
@@ -236,6 +244,7 @@ def test_projection_rejects_metadata_adoption_without_graph_assertion(
 def _projection_manifest_metadata(
     projection: agency_projection.AgencyProjection,
 ) -> dict[str, object]:
+    """Build the emitted agencyProjection manifest block the parquet content verifier expects."""
     return {
         "status": "emitted",
         "decision": "REF-038",
@@ -249,6 +258,7 @@ def test_projection_parquet_schema_counts_and_bytes_are_deterministic(
     projection: agency_projection.AgencyProjection,
     releases: tuple[RegistryRelease, ...],
 ) -> None:
+    """Pins arrow schemas, exact per-role row counts and byte-identical parquet across input orders."""
     first = tmp_path / "first"
     write_agency_projection_tables(first, projection)
 
@@ -289,6 +299,7 @@ def test_projection_parquet_refuses_partial_pair_and_mutated_evidence(
     tmp_path: Path,
     projection: agency_projection.AgencyProjection,
 ) -> None:
+    """Pins refusal when only one of the resolved/unresolved tables is staged, or reasoning evidence is blanked."""
     staged = tmp_path / "staged"
     write_agency_projection_tables(staged, projection)
     unresolved = (
@@ -329,6 +340,7 @@ def test_projection_parquet_refuses_changed_manifest_metadata(
     projection: agency_projection.AgencyProjection,
     field: str,
 ) -> None:
+    """Pins refusal when the manifest coverage or its sha256 logical-content digest differs from the projection."""
     write_agency_projection_tables(tmp_path, projection)
     metadata = _projection_manifest_metadata(projection)
     if field == "coverage":

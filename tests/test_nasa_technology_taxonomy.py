@@ -1,4 +1,9 @@
-"""Official NASA TechPort Technology Taxonomy capture, parsing, and packaging tests."""
+"""Official NASA TechPort Technology Taxonomy capture, parsing, and packaging tests.
+
+The two pinned JSON captures parse into a portfolio whose 17 level-1 codes stay deterministic
+code-list metadata and never subject concepts; duplicate codes, non-level-1 nodes, unknown fields,
+root mismatch, digest drift, and a self-consistent but unpinned repackage all fail closed, and
+packages are byte-deterministic with a pinned logical digest."""
 
 from __future__ import annotations
 
@@ -20,10 +25,14 @@ def _acquire(
     pin: nasa.NASATaxonomySnapshotPin,
     source_path: Path,
 ) -> nasa.AcquiredNASATaxonomySource:
+    """Acquire one pinned TechPort JSON capture from a local fixture path."""
+
     return nasa.acquire_nasa_taxonomy_source(pin, tmp_path, source_path=source_path)
 
 
 def _portfolio(tmp_path: Path) -> nasa.NASATaxonomyPortfolio:
+    """Parse the root index and children fixtures and assemble their portfolio."""
+
     root_index = nasa.parse_nasa_taxonomy_root_index(
         _acquire(tmp_path, nasa.NASA_TAXONOMY_ROOT_INDEX_2026_08_03, ROOTS_FIXTURE)
     )

@@ -1,15 +1,12 @@
 """Ring-scoped source-concept releases from reconciled CRS packages.
 
-CRS source packages preserve the Library of Congress schemes, Congress.gov
-captures, and RefSpec ``localRecordId`` values without claiming concept
-identity.  This module takes the next explicit step: after reconciliation is
-complete, it publishes those stable local records as source-scoped concepts.
-
-The Legislative Subject Terms source contains three semantic kinds.  Topical
-terms publish in the subject ring; geographic and organization terms publish
-in the entity ring.  Policy Areas publish in a separate subject release
-because they come from a separate source package and scheme.  None of these
-releases grants admission, retrieval, or output permission.
+After reconciliation, publishes the CRS packages' stable local records as
+source-scoped concepts: legislative topical terms in the subject ring,
+geographic and organization terms in the entity ring, and Policy Areas in a
+separate subject release because they come from a separate source package and
+scheme. None of these releases grants admission, retrieval, or output
+permission, and any reconciliation that still requires human review or binds
+another manifest or digest is refused.
 """
 
 from __future__ import annotations

@@ -1,3 +1,4 @@
+"""Atlas 3.1 binding parse substrate: TwoIndexStore vs rdflib Memory, term pooling, and store selection."""
 from __future__ import annotations
 
 import sys
@@ -17,6 +18,8 @@ from parse_substrate import TermPool, TwoIndexStore
 
 
 def _dataset(store: Memory | TwoIndexStore):
+    """Build the pinned two-graph dataset on the given store, including a repeated triple."""
+
     dataset = Dataset(store=store)
     first = dataset.graph(URIRef("urn:graph:first"))
     second = dataset.graph(URIRef("urn:graph:second"))
@@ -35,6 +38,8 @@ def _dataset(store: Memory | TwoIndexStore):
 
 
 def test_two_index_matches_memory_for_every_bound_position_pattern() -> None:
+    """Pins that TwoIndexStore answers every bound-position pattern, objects, quads, and lengths like Memory."""
+
     expected, expected_first, expected_second = _dataset(Memory())
     store = TwoIndexStore()
     actual, actual_first, actual_second = _dataset(store)
@@ -69,6 +74,8 @@ def test_two_index_matches_memory_for_every_bound_position_pattern() -> None:
 
 
 def test_two_index_contexts_namespaces_and_removal_match_memory() -> None:
+    """Pins that namespaces, context lookup, triple removal, and remove_graph all match Memory."""
+
     expected, expected_first, _ = _dataset(Memory())
     actual, actual_first, _ = _dataset(TwoIndexStore())
     triple = (URIRef("urn:s:1"), URIRef("urn:p:1"), URIRef("urn:o:1"))
@@ -93,6 +100,8 @@ def test_two_index_contexts_namespaces_and_removal_match_memory() -> None:
 
 
 def test_term_pool_preserves_values_hashes_and_reuses_objects() -> None:
+    """Pins that pooled terms are reused by identity yet equal to and hashed like stock rdflib terms."""
+
     pool = TermPool()
     datatype = pool.iri("urn:datatype")
     assert datatype is pool.iri("urn:datatype")
@@ -109,6 +118,8 @@ def test_term_pool_preserves_values_hashes_and_reuses_objects() -> None:
 def test_integrated_parser_pools_terms_only_on_the_two_index_path(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Pins that the integrated parser reuses predicate and literal objects only on the two-index path."""
+
     source = """\
 <urn:s:1> <urn:p> \"same\"@en <urn:g> .
 <urn:s:2> <urn:p> \"same\"@en <urn:g> .
@@ -136,6 +147,8 @@ def test_integrated_parser_pools_terms_only_on_the_two_index_path(
 
 
 def test_store_selector_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pins that an unknown store setting raises AtlasValidationError with code configuration.rdf-store."""
+
     monkeypatch.setenv(atlas_validate.RDF_STORE_ENV, "unknown")
     with pytest.raises(atlas_validate.AtlasValidationError) as error:
         atlas_validate._new_dataset()

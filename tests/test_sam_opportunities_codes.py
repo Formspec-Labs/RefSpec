@@ -14,6 +14,7 @@ DOC_FIXTURE = FIXTURES / "sam-get-opportunities-public-api-2026-08-03.html"
 
 
 def _acquire(tmp_path: Path, source_path: Path = DOC_FIXTURE) -> sam.AcquiredSAMSource:
+    """Acquire the pinned SAM.gov Opportunities API doc from the local fixture."""
     return sam.acquire_sam_opportunities_doc(
         sam.SAM_OPPORTUNITIES_DOC_2026_08_03,
         tmp_path,
@@ -22,10 +23,12 @@ def _acquire(tmp_path: Path, source_path: Path = DOC_FIXTURE) -> sam.AcquiredSAM
 
 
 def _portfolio(tmp_path: Path) -> sam.SAMOpportunitiesCodePortfolio:
+    """Parse the pinned fixture into a SAM opportunities code portfolio."""
     return sam.parse_sam_opportunities_codes(_acquire(tmp_path))
 
 
 def test_live_snapshot_pin_matches_exact_official_html_bytes() -> None:
+    """Pins the fixture's 46,217 bytes and sha256 and that it begins as HTML."""
     payload = DOC_FIXTURE.read_bytes()
 
     assert len(payload) == 46_217
@@ -36,6 +39,7 @@ def test_live_snapshot_pin_matches_exact_official_html_bytes() -> None:
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
     tmp_path: Path,
 ) -> None:
+    """A local capture is content-addressed under the expected digest and a cache hit is re-verified."""
     pin = sam.SAM_OPPORTUNITIES_DOC_2026_08_03
 
     acquired = _acquire(tmp_path)
@@ -50,6 +54,7 @@ def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
 
 
 def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) -> None:
+    """Only the injected fetcher may fetch, and it reports the source URL and timeout."""
     payload = DOC_FIXTURE.read_bytes()
     calls: list[tuple[str, float]] = []
 
@@ -80,6 +85,7 @@ def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) ->
 
 
 def test_notice_type_codes_preserve_retired_and_active_split(tmp_path: Path) -> None:
+    """Pins eleven notice types: nine active and two retired ("f" and "l")."""
     portfolio = _portfolio(tmp_path)
 
     assert len(portfolio.notice_types) == 11
@@ -92,6 +98,9 @@ def test_notice_type_codes_preserve_retired_and_active_split(tmp_path: Path) -> 
 
 
 def test_notice_type_codes_exact_values(tmp_path: Path) -> None:
+    """Pins each notice type's publisher label and retired flag, and the
+    noticeTypeCode identifier with the source digest.
+    """
     portfolio = _portfolio(tmp_path)
     by_code = portfolio.notice_types_by_code()
 
@@ -113,6 +122,7 @@ def test_notice_type_codes_exact_values(tmp_path: Path) -> None:
 
 
 def test_opportunity_status_values(tmp_path: Path) -> None:
+    """Pins the five status values as deterministic metadata, none retired or a general subject concept."""
     portfolio = _portfolio(tmp_path)
     by_code = portfolio.opportunity_statuses_by_code()
 
@@ -123,6 +133,7 @@ def test_opportunity_status_values(tmp_path: Path) -> None:
 
 
 def test_set_aside_codes_preserve_mixed_case_publisher_code(tmp_path: Path) -> None:
+    """Pins the eighteen set-aside codes and keeps the publisher's mixed-case "BICiv" exactly."""
     portfolio = _portfolio(tmp_path)
     by_code = portfolio.set_aside_codes_by_code()
 
@@ -138,6 +149,7 @@ def test_set_aside_codes_preserve_mixed_case_publisher_code(tmp_path: Path) -> N
 def test_gaps_document_latest_active_version_and_missing_status_mapping(
     tmp_path: Path,
 ) -> None:
+    """Coverage gaps name the missing latest active version, "Coming Soon", and pre-v0.4 status mappings."""
     portfolio = _portfolio(tmp_path)
 
     assert any("latest active version" in gap for gap in portfolio.gaps)
@@ -148,6 +160,7 @@ def test_gaps_document_latest_active_version_and_missing_status_mapping(
 def test_change_log_evidence_pins_latest_doc_version_and_status_history(
     tmp_path: Path,
 ) -> None:
+    """The change log pins publisher doc version v1.97 dated 06/11/2021 and the status-history entries."""
     portfolio = _portfolio(tmp_path)
 
     assert portfolio.publisher_doc_version == "v1.97"
@@ -159,6 +172,7 @@ def test_change_log_evidence_pins_latest_doc_version_and_status_history(
 def test_validate_notice_type_query_value_accepts_active_and_rejects_retired_and_unknown(
     tmp_path: Path,
 ) -> None:
+    """A query value must be an active notice type; retired and unknown codes raise SAMAssignmentError."""
     portfolio = _portfolio(tmp_path)
 
     assert sam.validate_notice_type_query_value("o", portfolio).publisher_label == "Solicitation"
@@ -171,6 +185,7 @@ def test_validate_notice_type_query_value_accepts_active_and_rejects_retired_and
 
 
 def test_validate_status_query_value_rejects_unknown(tmp_path: Path) -> None:
+    """A known status resolves, and an unknown one raises SAMAssignmentError."""
     portfolio = _portfolio(tmp_path)
 
     assert sam.validate_status_query_value("active", portfolio).publisher_label == "active"
@@ -180,6 +195,7 @@ def test_validate_status_query_value_rejects_unknown(tmp_path: Path) -> None:
 
 
 def test_validate_set_aside_code_is_case_sensitive_for_biciv(tmp_path: Path) -> None:
+    """Set-aside codes are case-sensitive: "BICiv" resolves and "BICIV" is unknown."""
     portfolio = _portfolio(tmp_path)
 
     assert sam.validate_set_aside_code("BICiv", portfolio).identifiers[0].value == "BICiv"
@@ -189,6 +205,7 @@ def test_validate_set_aside_code_is_case_sensitive_for_biciv(tmp_path: Path) -> 
 
 
 def test_digest_drift_never_becomes_a_parsed_portfolio(tmp_path: Path) -> None:
+    """A same-length byte change is refused as digest drift rather than parsed."""
     payload = DOC_FIXTURE.read_bytes()
     changed = payload.replace(b"Solicitation", b"SolicitatioN", 1)
     assert len(changed) == len(payload)
@@ -217,6 +234,7 @@ def test_digest_drift_never_becomes_a_parsed_portfolio(tmp_path: Path) -> None:
 
 
 def test_shape_drift_in_the_ptype_table_fails_loudly(tmp_path: Path) -> None:
+    """A mini page with no notice-type ("ptype") table is refused."""
     mini_html = (
         b"<!doctype html><html><body>"
         b'<h3 id="set-aside-values">Set-Aside Values</h3><table><tbody>'
@@ -242,6 +260,7 @@ def test_shape_drift_in_the_ptype_table_fails_loudly(tmp_path: Path) -> None:
 def test_package_round_trips_through_a_closed_source_controlled_resource(
     tmp_path: Path,
 ) -> None:
+    """The notice-types package round-trips as a controlledCodeList with 11 observations, two of them retired."""
     acquired = _acquire(tmp_path)
     portfolio = sam.parse_sam_opportunities_codes(acquired)
 
@@ -260,6 +279,7 @@ def test_package_round_trips_through_a_closed_source_controlled_resource(
 
 
 def test_package_rejects_an_unknown_resource_family(tmp_path: Path) -> None:
+    """Packaging an unknown resource family raises SAMPackageError."""
     acquired = _acquire(tmp_path)
     portfolio = sam.parse_sam_opportunities_codes(acquired)
 

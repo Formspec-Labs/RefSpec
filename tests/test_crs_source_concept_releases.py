@@ -76,6 +76,8 @@ def _fixture_acquisitions(
     *,
     retrieved_at: str = "2026-07-30T12:33:34Z",
 ) -> tuple[crs.AcquiredCRSPage, ...]:
+    """Acquire the four mini CRS page fixtures at the given retrieval time."""
+
     result: list[crs.AcquiredCRSPage] = []
     for original_source, fixture_name, count in _FIXTURE_PAGES:
         source = replace(original_source, expected_term_count=count)
@@ -102,6 +104,8 @@ def _fixture_acquisitions(
 
 
 def _registration_event(registered_at: str, seed: bytes) -> SourceRegistrationEvent:
+    """Build a source registration event with a UUID7 id derived from the time and seed."""
+
     return SourceRegistrationEvent(
         registration_id=derive_uuid7(registered_at, seed=seed),
         registered_at=registered_at,
@@ -115,6 +119,8 @@ def _packages(
     registration_event: SourceRegistrationEvent | None = None,
     predecessor: CRSSourcePackages | None = None,
 ) -> CRSSourcePackages:
+    """Build CRS source packages from the mini fixtures with optional event and predecessor."""
+
     kwargs: dict[str, Any] = {
         "captured_at": captured_at,
         "predecessor": predecessor,
@@ -130,10 +136,14 @@ def _packages(
 def _concepts_by_observation(
     release: SourceConceptReleaseBundle,
 ) -> dict[str, dict[str, Any]]:
+    """Index a release's concepts by their sourceObservation id."""
+
     return {str(concept["sourceObservation"]): dict(concept) for concept in release.concepts}
 
 
 def _all_mapping_keys(value: object) -> set[str]:
+    """Collect every mapping key anywhere in a nested value."""
+
     if isinstance(value, Mapping):
         return set(value) | {key for child in value.values() for key in _all_mapping_keys(child)}
     if isinstance(value, (list, tuple)):
@@ -142,6 +152,8 @@ def _all_mapping_keys(value: object) -> set[str]:
 
 
 def _not_stated_rights(source: Any, selected_observation_ids: tuple[str, ...]) -> tuple[dict[str, str], ...]:
+    """Build notStated rights metadata for each selected observation's source artifact."""
+
     selected = frozenset(selected_observation_ids)
     source_artifacts = {
         str(observation["sourceArtifact"]) for observation in source.observations if observation["id"] in selected
@@ -163,6 +175,8 @@ def _assert_identity_preserved(
     categories: frozenset[str],
     semantic_ring: str,
 ) -> None:
+    """Assert each selected observation maps to its source-scoped IRI, kind, ring, and scheme."""
+
     source = release.source_bundle
     source_scheme = str(source.resource_manifest["sourceScheme"]["id"])
     expected_rows = {
@@ -186,6 +200,8 @@ def _assert_identity_preserved(
 def test_builds_exact_reconciled_releases_with_separate_candidate_pools(
     tmp_path: Path,
 ) -> None:
+    """Pins the three releases' rings, counts (3/4/2), distinct ids, and no permission fields."""
+
     packages = _packages(tmp_path)
     releases = build_crs_source_concept_releases(packages)
 
@@ -232,6 +248,8 @@ def test_builds_exact_reconciled_releases_with_separate_candidate_pools(
 
 
 def test_exact_publisher_captures_build_all_three_ring_scoped_releases() -> None:
+    """Pins the real 2026-07-30 capture at 565/478/32 concepts, four artifact digests, and direct-build ids."""
+
     if not FULL_CAPTURE_ROOT.is_dir():
         pytest.skip("exact 2026-07-30 CRS captures are not present")
 
@@ -284,6 +302,8 @@ def test_exact_publisher_captures_build_all_three_ring_scoped_releases() -> None
 
 
 def test_refuses_a_source_package_with_pending_identity_review(tmp_path: Path) -> None:
+    """Pins that a reconciliation requiring human review raises CRSIdentityError."""
+
     packages = _packages(tmp_path)
     pending = replace(
         packages.reconciliations[0],
@@ -300,6 +320,8 @@ def test_refuses_a_source_package_with_pending_identity_review(tmp_path: Path) -
 
 
 def test_refuses_a_stale_reconciliation_digest_binding(tmp_path: Path) -> None:
+    """Pins that a drifted reconciliation content-set digest raises CRSIdentityError."""
+
     packages = _packages(tmp_path)
     stale = replace(
         packages.reconciliations[0],
@@ -317,6 +339,8 @@ def test_refuses_a_stale_reconciliation_digest_binding(tmp_path: Path) -> None:
 def test_unchanged_refetch_preserves_every_source_scoped_concept_identity(
     tmp_path: Path,
 ) -> None:
+    """Pins that a refetch keeps every concept IRI while release id and reconciliation digest change."""
+
     first_packages = _packages(tmp_path / "first")
     first = build_crs_source_concept_releases(first_packages)
     next_time = "2026-08-04T12:00:00Z"

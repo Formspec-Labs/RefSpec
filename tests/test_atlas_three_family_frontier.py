@@ -1,4 +1,10 @@
-"""Focused checks for the experimental Atlas three-family frontier."""
+"""Focused checks for the experimental Atlas three-family candidate frontier.
+
+Exercises the benchmark tool on a synthetic one-case fixture: compact rank
+artifacts round-trip deterministically, the exact union and BGE marginal keep
+typed gold, the review sample is stratified with real BGE context, and depth
+Pareto rows are retained complete.
+"""
 
 from __future__ import annotations
 
@@ -11,6 +17,8 @@ from tools import benchmark_lexical_candidate_controls as lexical
 
 
 def _concept(side: str, identifier: str) -> AtlasConcept:
+    """One synthetic Atlas concept carrying the labels and parent context the sampler reads."""
+
     return AtlasConcept(
         member=f"https://example.test/{side}/{identifier}",
         release=f"urn:test:{side}",
@@ -28,6 +36,8 @@ def _concept(side: str, identifier: str) -> AtlasConcept:
 
 
 def _fixture() -> tuple[tuple[shared.AlignmentCase, ...], lexical.PairCodec, object]:
+    """A one-case fixture with a compact BGE rank matrix and its pair codec."""
+
     sources = (_concept("source", "a"), _concept("source", "b"))
     targets = tuple(_concept("target", value) for value in ("a", "b", "c", "d"))
     case = shared.AlignmentCase(
@@ -49,6 +59,8 @@ def _fixture() -> tuple[tuple[shared.AlignmentCase, ...], lexical.PairCodec, obj
 
 
 def test_compact_rank_sets_and_raw_artifact_are_exact_and_deterministic(tmp_path: Path) -> None:
+    """Depth-set sizes and the raw uint8 rank artifact are identical across runs, sentinel 51 included."""
+
     _cases, codec, compact = _fixture()
 
     sets = frontier._sets_from_compact(compact, codec, (1, 3, 20, 50))
@@ -66,6 +78,8 @@ def test_compact_rank_sets_and_raw_artifact_are_exact_and_deterministic(tmp_path
 
 
 def test_exact_union_and_bge_marginal_keep_typed_gold_and_pair_digests() -> None:
+    """The union keeps typed relation counts and pair digests; the BGE marginal finds one candidate, zero gold."""
+
     cases, codec, compact = _fixture()
     gold = lexical._gold_codes(cases, codec)
     first_gold, second_gold = sorted(gold)
@@ -112,6 +126,8 @@ def test_exact_union_and_bge_marginal_keep_typed_gold_and_pair_digests() -> None
 
 
 def test_review_sample_is_stratified_and_includes_actual_bge_context() -> None:
+    """Sample rows carry band, source labels, parents and every BGE view, and no typed gold."""
+
     cases, codec, compact = _fixture()
     overlap = frozenset({codec.code(0, 0, 0)})
 
@@ -141,6 +157,8 @@ def test_review_sample_is_stratified_and_includes_actual_bge_context() -> None:
 
 
 def test_three_family_depth_pareto_retains_incomparable_complete_rows() -> None:
+    """The depth Pareto keeps every non-dominated complete row."""
+
     rows = [
         {"lexicalK": 1, "sparseGraphK": 1, "bgeK": 1, "candidates": 10, "found": 1},
         {"lexicalK": 2, "sparseGraphK": 1, "bgeK": 1, "candidates": 15, "found": 2},

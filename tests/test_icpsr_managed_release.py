@@ -1,4 +1,10 @@
-"""Development-only ICPSR managed-release and reader tests."""
+"""Development-only ICPSR managed release: fixture determinism and fail-closed opening.
+
+Builds a small fixture release and checks the reader verifies and deep-freezes
+the bundle, searches labels, aliases and notes, and refuses when any artifact
+drifts or the gap counts move; the ignored 2026-07-30 capture pins 3,760
+concepts and 18,756 stated relations, 18,751 of them resolving to members.
+"""
 
 from __future__ import annotations
 
@@ -36,10 +42,14 @@ REAL_RECORDED_BY = "urn:ref:actor:codex-local-development"
 
 
 def _fixture_pages() -> dict[str, bytes]:
+    """The three mini subject-index pages, keyed by letter."""
+
     return {letter: (FIXTURES / f"icpsr-subject-index-{letter}-mini.html").read_bytes() for letter in ("a", "s", "t")}
 
 
 def _fixture_sources() -> IcpsrManagedReleaseSources:
+    """Managed-release sources assembled from the mini index pages and XML fixture."""
+
     pages = _fixture_pages()
     xml_payload = (FIXTURES / "icpsr-subject-mini.xml").read_bytes()
     index = build_icpsr_subject_index(
@@ -64,6 +74,8 @@ def _fixture_sources() -> IcpsrManagedReleaseSources:
 
 
 def _build_fixture():
+    """The deterministic mini release: test agent, incomplete index, zero expected gaps."""
+
     return build_icpsr_managed_release(
         _fixture_sources(),
         recorded_at=RECORDED_AT,
@@ -74,6 +86,8 @@ def _build_fixture():
 
 
 def _file_digest(path: Path) -> str:
+    """The sha256: digest of a file's bytes."""
+
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
@@ -97,6 +111,8 @@ def _relation_counts(release: IcpsrManagedRelease) -> tuple[int, int]:
 
 
 def test_fixture_release_is_deterministic_and_development_only() -> None:
+    """Two builds from the same sources are identical, and the release stays developmentOnly."""
+
     first = _build_fixture()
     second = _build_fixture()
 
@@ -115,6 +131,8 @@ def test_fixture_release_is_deterministic_and_development_only() -> None:
 def test_reader_verifies_bundle_and_searches_labels_aliases_and_notes(
     tmp_path: Path,
 ) -> None:
+    """A written release reopens and resolves preferred labels, alternate labels and scope notes."""
+
     managed = _build_fixture()
     manifest_path = managed.write_to(tmp_path)
 
@@ -135,6 +153,8 @@ def test_reader_verifies_bundle_and_searches_labels_aliases_and_notes(
 def test_reader_deep_freezes_verified_records_after_open(
     tmp_path: Path,
 ) -> None:
+    """After open, every nested record is deep-frozen and lookups still answer."""
+
     manifest_path = _build_fixture().write_to(tmp_path)
     view = IcpsrManagedReleaseView.open(manifest_path)
 
@@ -164,6 +184,8 @@ def test_reader_deep_freezes_verified_records_after_open(
 def test_reader_fails_closed_when_an_artifact_changes(
     tmp_path: Path,
 ) -> None:
+    """One appended byte to a written artifact fails its digest before any lookup."""
+
     manifest_path = _build_fixture().write_to(tmp_path)
     expressions = tmp_path / "records" / "indexed-expressions.jsonl"
     expressions.write_bytes(expressions.read_bytes() + b" ")
@@ -176,6 +198,8 @@ def test_reader_fails_closed_when_an_artifact_changes(
 
 
 def test_expected_source_gap_counts_fail_closed() -> None:
+    """Expected gap counts that differ from the measured ones refuse."""
+
     with pytest.raises(
         IcpsrManagedReleaseError,
         match="gap counts drifted",
@@ -192,6 +216,8 @@ def test_expected_source_gap_counts_fail_closed() -> None:
 def test_capture_loader_verifies_manifest_page_and_xml_bytes(
     tmp_path: Path,
 ) -> None:
+    """The capture loader verifies manifest, page and XML bytes, refusing a changed page."""
+
     fixture = _fixture_sources()
     write_icpsr_subject_index_capture(
         fixture.index,
@@ -224,6 +250,8 @@ def test_capture_loader_verifies_manifest_page_and_xml_bytes(
 
 
 def test_exact_2026_07_30_capture_preserves_verified_subset_and_gaps() -> None:
+    """The real capture pins 3,760 concepts, 5 xml-only labels, 45 index-only terms and both source digests."""
+
     if not REAL_CAPTURE.is_dir():
         pytest.skip("ignored exact ICPSR capture is unavailable")
 
@@ -279,6 +307,8 @@ def test_exact_2026_07_30_capture_preserves_verified_subset_and_gaps() -> None:
 
 
 def test_exact_2026_07_30_capture_carries_every_measured_concept_and_relation() -> None:
+    """The real capture states 18,756 relations, 18,751 of which target a release member."""
+
     if not REAL_CAPTURE.is_dir():
         pytest.skip("ignored exact ICPSR capture is unavailable")
 
@@ -295,6 +325,8 @@ def test_exact_2026_07_30_capture_carries_every_measured_concept_and_relation() 
 
 
 def test_written_manifest_is_canonical_json(tmp_path: Path) -> None:
+    """The written manifest declares its type and ends with a newline."""
+
     manifest_path = _build_fixture().write_to(tmp_path)
 
     parsed = json.loads(manifest_path.read_text(encoding="utf-8"))

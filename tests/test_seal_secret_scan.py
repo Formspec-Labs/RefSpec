@@ -1,18 +1,14 @@
 """Every builder that seals an artifact scans it for secrets first.
 
-The invariant existed in `usc_act_index.py` and was PORTED AWAY: on 2026-08-31
-`build_usc_source_credits.py` and `build_usc_popular_names.py` were written
-from it and both omitted the scan, sealing row tables and receipts unguarded
-for four days. Nothing leaked -- spicy-regs still enforced it upstream -- but
-an invariant that lives as one copy per builder is an invariant only until the
-next port forgets it.
-
-So this file asserts the property twice over. `test_the_scanner_refuses...`
-pins the behaviour, and `test_every_sealing_builder...` pins that each builder
-CALLS it, which is the half that would have caught the 08-31 regression. The
-second is a static check on purpose: running these builders needs the pinned
-USC bulk source, so a test that only ran under real data would not have failed
-in CI either.
+The invariant lived in `usc_act_index.py` and was PORTED AWAY: the 2026-08-31
+`build_usc_source_credits.py` and `build_usc_popular_names.py` both omitted the
+scan and sealed row tables and receipts unguarded for four days -- nothing
+leaked because spicy-regs still enforced it upstream, but an invariant that
+lives as one copy per builder holds only until the next port forgets it. So
+the property is asserted twice: the scanner's refusal behaviour, and a static
+check that each builder CALLS it -- the half that would have caught the
+regression, and the only half runnable in CI without the pinned USC bulk
+source.
 """
 
 from __future__ import annotations

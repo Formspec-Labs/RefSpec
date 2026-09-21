@@ -17,7 +17,12 @@ def normalize_only_keys(
     allowed_keys: Collection[str],
     loader_name: str,
 ) -> frozenset[str] | None:
-    """Normalize a caller's release selection and reject unknown keys."""
+    """Normalize a caller's release selection and reject unknown keys.
+
+    Returns ``None`` unchanged for no selection, raises TypeError for a
+    non-collection or non-string keys, and ValueError for keys outside
+    allowed_keys.
+    """
 
     if only_keys is None:
         return None
@@ -36,7 +41,10 @@ def wants_group(
     requested_keys: frozenset[str] | None,
     group_keys: Collection[str],
 ) -> bool:
-    """Return whether a declared loader group should parse its source bytes."""
+    """Return whether a declared loader group should parse its source bytes.
+
+    A ``None`` selection means every group is wanted.
+    """
 
     return requested_keys is None or bool(requested_keys.intersection(group_keys))
 
@@ -48,7 +56,11 @@ def select_declared_group[ReleaseT: _KeyedRelease](
     requested_keys: frozenset[str] | None,
     loader_name: str,
 ) -> tuple[ReleaseT, ...]:
-    """Check a loader group's topology and retain only requested releases."""
+    """Check a loader group's topology and retain only requested releases.
+
+    Raises ValueError if the loader produced duplicate keys or a key set that
+    differs from declared_keys.
+    """
 
     loaded = tuple(releases)
     observed = [release.key for release in loaded]

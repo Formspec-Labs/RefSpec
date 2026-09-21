@@ -1,38 +1,27 @@
-"""GAO's numbered CRA submission form: the documented rule types and the
-retired revision's Priority of Regulation levels.
+"""GAO's numbered CRA submission form: rule types and the retired Priority levels.
 
-REF-032 removed the observed GAO CRA facet inventory: six radio-button
-widgets scraped out of the CRA *database search page*. What GAO actually
-publishes is a numbered form -- GAO Form 41217, "Submission of Federal Rules
-Under the Congressional Review Act" -- whose printed option lists are
-publisher-written statements, not search-widget mechanics. This module reads
-two pinned revisions of that form:
-
-* the current **Rev. 12/24** revision, whose item 6 documents five rule
-  types (Draft Rule, Final Rule, Draft Guideline, Final Guideline, Other);
-* the retired **Rev. 11/17/23** revision, whose item 8 documents the five
-  Priority of Regulation levels the current revision DROPPED. The retired
-  revision is the last publisher statement of that list, and the current
-  form's bytes are checked to still omit it.
-
-The module also reads pinned report GAO-09-205. That report ties GAO's
-CRA-form-backed Federal Rules Database to the Unified Agenda priority
-categories used by the mapping release. It supplies institutional evidence;
-it does not add another form vocabulary.
-
-The current revision's download URL carries the publisher's own typo
-("Sumission"); it is preserved exactly because it is the publisher's URL.
+REF-032 removed the observed GAO CRA facet inventory scraped from the CRA
+database search page; what GAO actually publishes is GAO Form 41217,
+"Submission of Federal Rules Under the Congressional Review Act", whose
+printed option lists are publisher-written statements. This module reads two
+pinned revisions: the current Rev. 12/24, whose item 6 documents five rule
+types (Draft Rule, Final Rule, Draft Guideline, Final Guideline, Other), and
+the retired Rev. 11/17/23, whose item 8 documents the five Priority of
+Regulation levels the current revision DROPPED — the last publisher statement
+of that list, with the current form's bytes checked to still omit it. It also
+reads pinned report GAO-09-205 as institutional evidence tying the CRA-form
+database to the Unified Agenda priority categories, not as another vocabulary.
 
 PDF is not a data format: both parses fold the text layer's presentation
 forms (``fold_pdf_text``), normalize whitespace, and then require the exact
-reviewed option runs verbatim -- any wording drift refuses to parse rather
-than guessing. The printed option text (including list joiners such as
+reviewed option runs verbatim — any wording drift refuses to parse rather than
+guessing, and the printed option text (including list joiners such as
 ``"; or"`` and the ``"(specify)"`` fill-in instruction) is retained beside
-each parsed value.
-
-Both captures were fetched through the shared Zyte transport because gao.gov
-refuses plain clients (HTTP 403). Importing this module performs no network
-access.
+each parsed value. The current revision's download URL carries the publisher's
+own typo ("Sumission") and is preserved exactly because it is the publisher's
+URL. Both captures were fetched through the shared Zyte transport because
+gao.gov refuses plain clients (HTTP 403); importing this module performs no
+network access.
 """
 
 from __future__ import annotations

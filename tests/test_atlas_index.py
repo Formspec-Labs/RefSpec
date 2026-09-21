@@ -1,3 +1,10 @@
+"""Atlas index build, pinning, and validation against the checked portfolio artifacts.
+
+The suite pins the checked portfolio/atlas-index-v0.json summary exactly, proves PinnedAtlasIndex
+reopens only the exact file and rejects file or evidence drift, and exercises the builder's closed
+row vocabularies, safe evidence paths, release-validation pairing, exhaustive module
+classification, and the rule that offline qualification tooling never enters the pinned closure."""
+
 from __future__ import annotations
 
 import copy
@@ -30,6 +37,8 @@ def _write(path: Path, content: str = "evidence\n") -> None:
 
 
 def _fixture(tmp_path: Path) -> tuple[dict[str, object], dict[str, object]]:
+    """Minimal catalog plus index input for two registry modules with evidence files on disk."""
+
     _write(tmp_path / "src/refspec/registry/alpha.py")
     _write(tmp_path / "src/refspec/registry/beta.py")
     _write(tmp_path / "src/refspec/registry/infrastructure/helper.py")
@@ -78,6 +87,8 @@ def _fixture(tmp_path: Path) -> tuple[dict[str, object], dict[str, object]]:
 
 
 def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
+    """Pins the checked index's entire summary block and its 45 subject-ring rows."""
+
     index_input = load_json(INPUT)
     catalog = load_json(CATALOG)
     index = load_json(INDEX)
@@ -526,9 +537,8 @@ def test_evidence_byte_drift_changes_the_index_identity(tmp_path: Path) -> None:
 def test_offline_tooling_stays_outside_the_pinned_index_closure() -> None:
     """Qualification never runs inside a build, so it must never pin into one.
 
-    The index pins the digest of every source the build depends on. An offline
-    module listed there would move the Atlas identity whenever the runner
-    changed, which is the coupling the offline-tool idiom exists to prevent.
+    An offline module in the index closure would move the Atlas identity whenever the runner
+    changed -- the coupling the offline-tool idiom exists to prevent.
     """
 
     index = json.loads(

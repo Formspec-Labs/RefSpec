@@ -1,4 +1,10 @@
-"""Real-source tests for Federal Register List of Subjects evidence."""
+"""Real-source pins for Federal Register List of Subjects evidence, gated on env paths.
+
+Each real test reads a captured publisher file named by an environment variable
+materialized by the registry real-data gate and pins its byte length and
+sha256; synthetic payloads cover shape drift, and promoting the document-scoped
+filing evidence to concept identity is always refused.
+"""
 
 from __future__ import annotations
 
@@ -13,6 +19,8 @@ from refspec.storage import canonical_json
 
 
 def _required_real_path(environment_name: str) -> Path:
+    """Path named by one gate-materialized env var; skip the test when it is unset."""
+
     value = os.environ.get(environment_name)
     if value is None:
         pytest.skip(f"{environment_name} is materialized by the registry real-data gate")
@@ -22,6 +30,8 @@ def _required_real_path(environment_name: str) -> Path:
 
 
 def _document_payload(**changes: object) -> bytes:
+    """Canonical Federal Register document JSON, with field overrides for drift cases."""
+
     value: dict[str, object] = {
         "document_number": "2026-TEST",
         "publication_date": "2026-08-03",
@@ -37,11 +47,15 @@ def _document_payload(**changes: object) -> bytes:
 
 
 def test_module_import_performs_no_network_access() -> None:
+    """Importing the reader exposes both entry points as callables."""
+
     assert callable(cfr.inspect_ecfr_part_sources)
     assert callable(cfr.parse_federal_register_document_assignments)
 
 
 def test_real_ecfr_api_shapes_show_structure_and_requirement_not_assignments() -> None:
+    """Title 1 part 18 states the List of Subjects requirement but publishes no assignments."""
+
     structure_path = _required_real_path("REFSPEC_ECFR_TITLE_1_STRUCTURE_PATH")
     full_text_path = _required_real_path("REFSPEC_ECFR_TITLE_1_PART_18_XML_PATH")
     titles_path = _required_real_path("REFSPEC_ECFR_TITLES_PATH")
@@ -87,6 +101,8 @@ def test_real_ecfr_api_shapes_show_structure_and_requirement_not_assignments() -
 
 
 def test_real_current_document_shape_count_and_samples() -> None:
+    """A 2026 rule pins all 12 subject terms in publisher order with no claimed identifier."""
+
     source_path = _required_real_path("REFSPEC_FR_DOCUMENT_2026_15493_PATH")
     parsed = cfr.parse_federal_register_document_assignments(
         source_path.read_bytes(),
@@ -112,6 +128,8 @@ def test_real_current_document_shape_count_and_samples() -> None:
 
 
 def test_real_part_18_document_preserves_empty_topics_and_multiple_cfr_references() -> None:
+    """A 1996 document with no topics still carries its three CFR references and reads ready=False."""
+
     source_path = _required_real_path("REFSPEC_FR_DOCUMENT_96_32865_PATH")
     parsed = cfr.parse_federal_register_document_assignments(
         source_path.read_bytes(),
@@ -130,6 +148,8 @@ def test_real_part_18_document_preserves_empty_topics_and_multiple_cfr_reference
 
 
 def test_real_assignment_evidence_is_document_scoped_and_deterministic() -> None:
+    """The evidence payload is document-scoped filing evidence, claims no concept identity, and encodes canonically."""
+
     source_path = _required_real_path("REFSPEC_FR_DOCUMENT_2026_15493_PATH")
     parsed = cfr.parse_federal_register_document_assignments(source_path.read_bytes())
 
@@ -149,6 +169,8 @@ def test_real_assignment_evidence_is_document_scoped_and_deterministic() -> None
 
 
 def test_multiple_cfr_references_do_not_multiply_document_topics() -> None:
+    """Two CFR references pair with the same two terms, not four."""
+
     payload = _document_payload(
         topics=["Air pollution control", "Reporting and recordkeeping requirements"],
         cfr_references=[
@@ -165,6 +187,8 @@ def test_multiple_cfr_references_do_not_multiply_document_topics() -> None:
 
 
 def test_empty_topics_are_valid_source_evidence_not_invented_terms() -> None:
+    """An empty topics array yields no terms, readiness False, and no substituted label."""
+
     parsed = cfr.parse_federal_register_document_assignments(_document_payload(topics=[]))
 
     assert parsed.terms == ()
@@ -173,6 +197,8 @@ def test_empty_topics_are_valid_source_evidence_not_invented_terms() -> None:
 
 
 def test_promotion_is_refused() -> None:
+    """Document-scoped filing evidence cannot be promoted to a ready subject assignment."""
+
     parsed = cfr.parse_federal_register_document_assignments(_document_payload())
 
     with pytest.raises(cfr.CFRPromotionError, match="filing evidence"):
@@ -190,11 +216,15 @@ def test_promotion_is_refused() -> None:
     ],
 )
 def test_document_source_shape_drift_fails_closed(changes: dict[str, object], message: str) -> None:
+    """Left-shifted topics, duplicate labels, an empty reference list, a prose date or a non-FR URL all refuse."""
+
     with pytest.raises(cfr.CFRSourceDriftError, match=message):
         cfr.parse_federal_register_document_assignments(_document_payload(**changes))
 
 
 def test_expected_document_number_mismatch_fails_closed() -> None:
+    """A document whose number differs from the expected one is refused."""
+
     with pytest.raises(cfr.CFRSourceDriftError, match="expected document"):
         cfr.parse_federal_register_document_assignments(
             _document_payload(),
@@ -203,6 +233,8 @@ def test_expected_document_number_mismatch_fails_closed() -> None:
 
 
 def test_ecfr_source_shape_drift_fails_closed() -> None:
+    """A part whose XML carries no List of Subjects collection is refused."""
+
     structure = canonical_json(
         {
             "type": "title",

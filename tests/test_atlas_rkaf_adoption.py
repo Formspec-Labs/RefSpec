@@ -1,38 +1,12 @@
 """The Atlas binding may not carry a second name for a concept rkaf defines.
 
-RefSpec owns structure and taxonomy; Rulespec owns decision-making. On the
-wire that boundary is concrete: ``atlas:`` legitimately mints terms for
-releases, packs, digests, semantic rings, and resource profiles, and nothing
-else. Everything epistemic -- evidence, review, attestation, warrant,
-adoption, lifecycle -- is rkaf's, and adopting it means an ``rkaf:`` IRI in
-the published ontology, shapes, and schemas rather than an ``atlas:`` alias
-linked by an axiom.
-
-WHY THIS GATE IS SCOPED AND NOT BLANKET
---------------------------------------
-"No ``atlas:`` local name may equal an ``rkaf:`` local name" cannot pass and
-must not be written. ``atlas:subject`` is one of the four SemanticRing
-individuals -- the taxonomy half RefSpec owns outright -- while ``rkaf:subject``
-is "the IRI of the object the finding concerns" (``constraints/core/finding.cue``).
-They are genuine homographs, not a duplicated concept, and a blanket rule
-would demand RefSpec rename its own ring.
-
-The scope is therefore stated as a predicate, not as an exception list: a
-duplicated local name is permitted only when the ``atlas:`` side is an
-individual of ``atlas:SemanticRing`` or ``atlas:ResourceProfile``. Every other
-duplication is a concept rkaf already defines, and the fix is to adopt rkaf's
-term and delete Atlas's. An exception list would be exactly the structure
-AGENTS.md interrogates: it excuses violations instead of breaking on them.
-This predicate breaks on a new one -- mint ``atlas:warrant`` tomorrow and the
-gate fires, because a warrant is not a ring.
-
-WIRE ADOPTION OWES A RUNNING CHECK
-----------------------------------
-Adopting a term is not renaming a string. ``WIRE_ADOPTIONS`` below pairs every
-rkaf term the Atlas binding puts on the wire with the invalid conformance case
-whose rejection depends on it. A term with no case behind it is ceremony: it
-would not break if a producer got it wrong, so it does not belong in the
-published binding at all.
+RefSpec owns structure and taxonomy, Rulespec owns decision-making, so adopting
+an rkaf concept means an ``rkaf:`` IRI on the published ontology, shapes and
+schemas rather than an ``atlas:`` alias linked by an axiom. The collision gate
+is scoped by predicate -- a duplicated local name is permitted only for a
+SemanticRing or ResourceProfile individual RefSpec owns outright -- and
+``WIRE_ADOPTIONS`` pairs every adopted term with the invalid conformance case
+whose rejection depends on it.
 """
 
 from __future__ import annotations
@@ -400,13 +374,12 @@ def test_no_atlas_term_duplicates_an_rkaf_term_outside_atlas_taxonomy() -> None:
 
 
 def test_the_gate_stays_scoped_and_keeps_the_ring_homograph_legal() -> None:
-    """Widening the gate to a blanket rule must break, visibly, right here.
+    """Widening the gate to a blanket rule must break visibly right here.
 
-    ``atlas:subject`` is a SemanticRing individual and ``rkaf:subject`` is the
-    IRI a Finding concerns. Both names are correct in their own namespace. If
-    this assertion ever stops holding, either RefSpec renamed a ring or the
-    scoping predicate above stopped recognising one -- and in both cases the
-    collision gate silently changed meaning.
+    ``atlas:subject`` is a SemanticRing individual and ``rkaf:subject`` the IRI
+    a Finding concerns; if this ever stops holding, either a ring was renamed or
+    the scoping predicate stopped recognising one, and the collision gate
+    silently changed meaning.
     """
 
     defined_upstream = rulespec_defined_local_names()

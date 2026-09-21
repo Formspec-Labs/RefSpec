@@ -1,4 +1,10 @@
-"""Atlas 3 adapters for official publisher-authored mappings and endpoints."""
+"""Atlas 3 adapters for official publisher-authored mappings and endpoints.
+
+Real-source tests over the EuroVoc-LCSH alignment, the consolidated LCSH
+endpoint, the FAST-LCSH adopted subset and the Unified-Agenda/GAO priority
+value mapping: counts, digests, evidence warrants and refusal of endpoint or
+byte drift are pinned, and source-dependent tests skip when caches are absent.
+"""
 
 from __future__ import annotations
 
@@ -43,6 +49,8 @@ HAS_COMPLETE_EUROVOC = (SOURCE_ROOT / "eurovoc-4.24-skos-core.zip").is_file()
 
 
 def _generator_module():
+    """Import the full Atlas 3 generator tool by path so its assertion graph can be inspected."""
+
     sys.path.insert(0, str(ROOT / "tools"))
     try:
         return importlib.import_module("generate_atlas_v3_full")
@@ -52,6 +60,8 @@ def _generator_module():
 
 @pytest.fixture(scope="module")
 def mapping_release():
+    """The EuroVoc-LCSH alignment release, skipped unless its publisher sources are cached."""
+
     if not HAS_OFFICIAL_SOURCES:
         pytest.skip("official EuroVoc--LCSH alignment sources are not cached")
     return alignments.load_eurovoc_lcsh_mapping_release(Path(SOURCE_ROOT))
@@ -59,6 +69,8 @@ def mapping_release():
 
 @pytest.fixture(scope="module")
 def endpoint_release():
+    """The consolidated LCSH endpoint release, skipped unless its publisher sources are cached."""
+
     if not HAS_OFFICIAL_SOURCES:
         pytest.skip("official LCSH bulk and EuroVoc alignment sources are not cached")
     return alignments.load_lcsh_consolidated_release(Path(SOURCE_ROOT))
@@ -66,6 +78,8 @@ def endpoint_release():
 
 @pytest.fixture(scope="module")
 def eurovoc_releases():
+    """The EuroVoc 4.24 releases, skipped unless the complete source is cached."""
+
     if not HAS_COMPLETE_EUROVOC:
         pytest.skip("official EuroVoc 4.24 source is not cached")
     return load_eurovoc_4_24_releases(Path(SOURCE_ROOT))
@@ -73,6 +87,8 @@ def eurovoc_releases():
 
 @pytest.fixture(scope="module")
 def fast_mapping_release():
+    """The FAST-LCSH adopted release, skipped unless the FAST inputs and alignment are cached."""
+
     required = (
         SOURCE_ROOT / fast.FAST_TOPICAL_NATIVE_BASE_PIN.filename,
         *(SOURCE_ROOT / pin.filename for pin in fast.FAST_TOPICAL_CHANGE_PINS),
@@ -85,6 +101,8 @@ def fast_mapping_release():
 
 @pytest.fixture(scope="module")
 def ua_gao_mapping_release():
+    """The checked-in Unified-Agenda/GAO priority value mapping release."""
+
     return alignments.load_unified_agenda_gao_cra_priority_mapping_release(ROOT)
 
 
@@ -100,6 +118,8 @@ def test_ua_gao_priority_mapping_refuses_source_byte_drift(
     tmp_path: Path,
     relative_path: str,
 ) -> None:
+    """Appending one byte to any pinned mapping input refuses with "input pin differs"."""
+
     for fixture_group in ("unified_agenda_codes", "gao_cra_form_codes"):
         shutil.copytree(
             ROOT / "tests" / "fixtures" / fixture_group,
@@ -116,6 +136,8 @@ def test_ua_gao_priority_mapping_refuses_source_byte_drift(
 def test_fast_default_served_set_is_computed_from_shipped_evidence(
     fast_mapping_release,
 ) -> None:
+    """The 602,459 default-served FAST triples are the publisher-owned ones with eligible evidence roles."""
+
     generator = _generator_module()
     graph = generator._expected_mapping_asserted_graph((fast_mapping_release,))
     eligible_roles = {
@@ -168,6 +190,8 @@ def test_fast_inferred_mapping_delta_is_computed_before_build(
     mapping_release,
     fast_mapping_release,
 ) -> None:
+    """FAST adds 759,598 inferred exact matches, and the release metadata states the same delta."""
+
     generator = _generator_module()
 
     def exact_triples(*releases):
@@ -196,6 +220,8 @@ def test_fast_inferred_mapping_delta_is_computed_before_build(
 def test_fast_lcsh_exact_sample_carries_the_full_adoption_chain(
     fast_mapping_release,
 ) -> None:
+    """One exactMatch sample carries operatorAdoption, the pinned reviewer and the verbatim schema:sameAs claim."""
+
     mapping = next(row for row in fast_mapping_release.mappings if row.predicate == str(SKOS.exactMatch))
     (evidence,) = mapping.evidence
     publisher_claim = evidence.native_payload["publisherClaim"]
@@ -222,6 +248,8 @@ def test_fast_lcsh_mapping_refuses_endpoint_selection_drift(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """A tampered consolidated LCSH bulk file fails its own pin before the referenced-IRI sources are reached."""
+
     # The target endpoint is now the consolidated LCSH release, so this drift
     # check tampers with its own pinned bulk file -- verified before it ever
     # reaches the four referenced-IRI sources.
@@ -237,6 +265,8 @@ def test_fast_lcsh_mapping_refuses_endpoint_selection_drift(
 
 
 def test_fast_lcsh_mapping_refuses_source_byte_drift(tmp_path: Path) -> None:
+    """A tampered OCLC base archive fails with a byte length drift."""
+
     (tmp_path / fast.FAST_TOPICAL_NATIVE_BASE_PIN.filename).write_bytes(b"not the pinned OCLC archive")
 
     with pytest.raises(fast.FASTTopicalSourceDriftError, match="byte length drift"):
@@ -248,6 +278,8 @@ def test_fast_lcsh_release_pins_joinable_and_unemitted_counts(
     fast_mapping_release,
     endpoint_release,
 ) -> None:
+    """The release pins its digest, 602,459 mappings with the predicate split, and 8 unemitted schema:sameAs links."""
+
     release = fast_mapping_release
     assert release.key == "fast-lcsh-adopted-2026-08-15"
     assert release.ring == "subject"
@@ -321,6 +353,8 @@ def test_fast_lcsh_s46_widened_scope_has_overlap_but_zero_component_conflicts(
 
 @pytest.mark.slow
 def test_fast_nnd_links_never_become_exact_matches(fast_mapping_release) -> None:
+    """Every $w nnd link stays a publisher-asserted relatedMatch; exactMatch rows all come from schema:sameAs."""
+
     nnd = [
         row
         for row in fast_mapping_release.mappings
@@ -345,6 +379,8 @@ def test_new_mapping_endpoints_pass_all_refusal_guards_and_mint_no_identifiers(
     ua_gao_mapping_release,
     fast_mapping_release,
 ) -> None:
+    """The mapping endpoints clear every refusal guard and mint no RegistryIdentifier rows."""
+
     generator = _generator_module()
 
     relation_policies = generator.ATLAS_VALIDATE._relation_policies()
@@ -412,6 +448,8 @@ def test_new_mapping_releases_assert_each_direction_once(
     ua_gao_mapping_release,
     fast_mapping_release,
 ) -> None:
+    """Each mapping release states each directed pair exactly once, with no reverse duplicate."""
+
     for release in (ua_gao_mapping_release, fast_mapping_release):
         direct = {(row.subject, row.predicate, row.object) for row in release.mappings}
         assert len(direct) == len(release.mappings)
@@ -421,6 +459,8 @@ def test_new_mapping_releases_assert_each_direction_once(
 def test_ua_gao_priority_evidence_binds_endpoints_and_institutional_bridge(
     ua_gao_mapping_release,
 ) -> None:
+    """Each UA-GAO mapping carries three evidence records: two human-reviewed endpoints and the GAO bridge."""
+
     for mapping in ua_gao_mapping_release.mappings:
         assert len(mapping.evidence) == 3
         subject_evidence, object_evidence, bridge_evidence = mapping.evidence
@@ -466,6 +506,8 @@ def test_ua_gao_priority_evidence_binds_endpoints_and_institutional_bridge(
 def test_ua_gao_priority_records_non_adoptions_and_unmatched_value(
     ua_gao_mapping_release,
 ) -> None:
+    """All six candidate decisions are recorded, including the unmatched one that omits objectLabel."""
+
     decisions = ua_gao_mapping_release.metadata["candidateDecisions"]
     assert len(decisions) == 6
     abbreviation = next(row for row in decisions if row["subjectLabel"] == "Info./Admin./Other")
@@ -497,6 +539,8 @@ def test_ua_gao_priority_records_non_adoptions_and_unmatched_value(
 def test_ua_gao_priority_release_pins_all_adopted_pairs(
     ua_gao_mapping_release,
 ) -> None:
+    """The release pins its five adopted subject/object pairs, its ring, scope and source digest."""
+
     release = ua_gao_mapping_release
     expected_pairs = {
         (
@@ -540,6 +584,8 @@ def test_ua_gao_priority_release_pins_all_adopted_pairs(
 def test_mapping_release_is_separately_pinned_evidence_backed_input(
     mapping_release,
 ) -> None:
+    """The alignment is a publisher release carried by an operator-adoption warrant over four pinned inputs."""
+
     assert mapping_release.key == "eurovoc-lcsh-alignment-20240711"
     assert mapping_release.resource_id == "eurovoc-lcsh-alignment"
     assert mapping_release.issued == "2024-07-11"
@@ -574,6 +620,8 @@ def test_mapping_release_is_separately_pinned_evidence_backed_input(
 def test_mapping_release_preserves_only_the_2003_direct_publisher_triples(
     mapping_release,
 ) -> None:
+    """Only the 2,003 direct publisher triples survive, each with one evidence record pinning the current linkset."""
+
     assert len(mapping_release.mappings) == alignments.EUROVOC_LCSH_MAPPING_COUNT
     assert len({(row.subject, row.predicate, row.object) for row in mapping_release.mappings}) == 2_003
     assert Counter(row.predicate for row in mapping_release.mappings) == (EXPECTED_PREDICATE_COUNTS)
@@ -614,6 +662,8 @@ def test_mapping_release_preserves_only_the_2003_direct_publisher_triples(
 
 
 def test_mapping_claims_pin_both_exact_atlas_endpoint_releases(mapping_release) -> None:
+    """The subjects split across the EuroVoc concept and domain releases, so both are pinned exactly."""
+
     # The publisher aligned one EuroVoc domain alongside 1,702 thesaurus
     # concepts, and Atlas loads domains as their own release, so both endpoint
     # releases legitimately appear. Assert the split rather than a single value.
@@ -634,6 +684,8 @@ def test_mapping_claims_pin_both_exact_atlas_endpoint_releases(mapping_release) 
 
 
 def test_lcsh_endpoint_release_covers_every_alignment_target(endpoint_release) -> None:
+    """The consolidated LCSH release holds 514,837 resources and contains every alignment target."""
+
     # REF-040 consolidated the three per-consumer LCSH endpoint releases
     # (this one among them) into one release: every current LCSH heading
     # plus only the deprecated headings a held mapping candidate references.
@@ -660,6 +712,8 @@ def test_lcsh_endpoint_release_covers_every_alignment_target(endpoint_release) -
 def test_lcsh_endpoint_release_is_english_only_and_keeps_publisher_iris_without_lccn(
     endpoint_release,
 ) -> None:
+    """Labels are English-only with one preferred role, and 46,831 resources lacking an LCCN keep their publisher IRIs."""
+
     assert sum(len(resource.labels) for resource in endpoint_release.resources) == 910_544
     assert endpoint_release.dropped_label_count == 0
     assert all(label.language == "en" for resource in endpoint_release.resources for label in resource.labels)
@@ -673,6 +727,8 @@ def test_lcsh_endpoint_release_is_english_only_and_keeps_publisher_iris_without_
 
 
 def test_lcsh_endpoint_release_preserves_all_authority_classes(endpoint_release) -> None:
+    """All twelve madsrdf authority classes are retained, and every relation joins two held IRIs by skos:broader."""
+
     assert endpoint_release.metadata["authorityTypeCounts"] == {
         "madsrdf:ComplexSubject": 197_347,
         "madsrdf:ConferenceName": 1,
@@ -700,6 +756,8 @@ def test_mapping_targets_match_the_exact_lcsh_endpoint_release(
     mapping_release,
     endpoint_release,
 ) -> None:
+    """Every alignment target is a member of the consolidated LCSH release."""
+
     # The consolidated release now backs every held LCSH mapping, not only
     # this one, so its targets are a subset rather than an exact match.
     assert {row.object for row in mapping_release.mappings} <= {resource.iri for resource in endpoint_release.resources}
@@ -709,6 +767,8 @@ def test_mapping_subjects_match_the_complete_eurovoc_release_partitions(
     mapping_release,
     eurovoc_releases,
 ) -> None:
+    """Every alignment subject exists in one EuroVoc release, and exactly one is a domain."""
+
     resources_by_release = {
         release.key: {resource.iri for resource in release.resources} for release in eurovoc_releases
     }

@@ -1,53 +1,22 @@
 #!/usr/bin/env python
-"""Rebuild ``usc-popular-names.parquet`` from OLRC's Popular Name Tool.
+"""Rebuild ``usc-popular-names.parquet`` from OLRC's Popular Name Tool by reading the flat elements its generator emits.
 
-:mod:`refspec.registry.usc_act_index` rebuilds the **Table III** half of the act
-index from a bulk file in this repository, and *carries the other half over
-byte-identically* -- ``--popular-names-from``, ``usc_act_index.py:428,532`` --
-because the popular names come from a different OLRC document that the bulk file
-does not contain. This module is the missing half: the reader for that document.
-
-**What the document is.** One machine-generated page, 11 MB, listing every
-popular name Congress has used, each with the enacting act's Table III key and
-often the U.S. Code section where the act's short title lives. It carries the
-aliases too, which is what makes "ERISA" resolvable without hand-curation. The
-page states one ``<div class='popular-name-table-entry'>`` per name and one
-``<p class='popular-name-information'>`` per thing it has to say about that
-name, with the identifying facts in attributes rather than in nesting. There is
-no tree to walk, so this reads the flat elements the generator emits, and every
-expression below is asserted against captured bytes
-(``research/evidence/usc-regeneration-2026-08-31/``).
-
-**Read what OLRC states, twice, and say when the two agree.** Each ``cite``
-paragraph states its Statutes at Large place twice -- once as a
-``statviewer.htm?volume=&page=`` query, once as prose ("134 Stat. 4879") --
-and :data:`STATUTES_AT_LARGE_RULE` reads the query first because it is the
-machine-stated fact, falling back to the prose where the page states no link.
-Measured on release point 119-102: **12,988 cite rows state both and every one
-of them agrees; 56 state only the prose; 43 state neither.** Zero disagree, so
-the rule adds a witness without moving a value -- which is why this build
-reproduces the frozen table rather than improving on it.
-
-**Kinds are the tool's own vocabulary, kept verbatim.** ``cite``,
-``short-title-ref``, ``also-known-as``, ``see`` and ``renamed`` are not
-collapsed, because the difference between "this act is" and "this name means"
-is the difference between an identity and a redirect. What follows from the
-kind is a refusal rather than a guess: an alias target is read only out of a
-``see``/``renamed`` construction (:data:`SEE_TARGET_RULE`), so
-``also-known-as``'s "Also known as the 21st Century IDEA" -- which reads exactly
-like one -- mints no target; and a Statutes at Large place is read only out of a
-``cite``, so a ``short-title-ref`` cannot contribute one.
-
-**Ambiguity is kept, counted, and never collapsed**
-(:data:`NAME_AMBIGUITY_RULE`). 34 normalized names state more than one enacting
-act -- the Detainee Treatment Act of 2005 is both Pub. L. 109-148 and
-Pub. L. 109-163 -- and both rows are written. Choosing one would invent a
-citation OLRC never made; dropping the name would lose an act the tool lists.
-
-Usage::
-
-    python tools/build_usc_popular_names.py --output output/usc-popular-names-2026-08-31
-    python tools/build_usc_popular_names.py --verify output/usc-act-index-2026-08-22
+:mod:`refspec.registry.usc_act_index` carries the popular-names half of the act
+index over byte-identically, so this is the missing reader for that document;
+the expressions below are asserted against the captured bytes in
+``research/evidence/usc-regeneration-2026-08-31/`` and the build reproduces the
+frozen table rather than improving on it. Kinds are the tool's own vocabulary,
+kept verbatim, and each follows a refusal rather than a guess: alias targets are
+read only from a ``see``/``renamed`` construction (:data:`SEE_TARGET_RULE`), a
+Statutes at Large place only from a ``cite``, and a ``usckey`` anchor only in
+``title:section`` shape, so appendix keys like "18A:1" are quarantined; a name
+stating several enacting acts is kept, counted, and never collapsed
+(:data:`NAME_AMBIGUITY_RULE`, 34 such names). Each ``cite`` states its Statutes
+at Large place twice -- a ``statviewer.htm?volume=&page=`` query and prose --
+and :data:`STATUTES_AT_LARGE_RULE` reads the query first with the prose as
+fallback: on release point 119-102, 12,988 cite rows state both and all agree, 56
+state only the prose, 43 state neither, and none disagree, so the rule adds a
+witness without moving a value.
 """
 
 from __future__ import annotations

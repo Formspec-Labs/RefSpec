@@ -38,6 +38,7 @@ HAS_REAL_SOURCES = all(path.is_file() for path in REQUIRED_SOURCES)
 
 
 def _generator_module():
+    """Import tools/generate_atlas_v3_full with tools/ temporarily on sys.path."""
     sys.path.insert(0, str(ROOT / "tools"))
     try:
         return importlib.import_module("generate_atlas_v3_full")
@@ -75,6 +76,7 @@ def umthes_assets():
 
 @pytest.mark.slow
 def test_gemet_release_emits_only_the_immediately_joinable_held_pair(gemet_release) -> None:
+    """Pins 1,936 GEMET-to-EuroVoc mappings, their predicate split and the two refused SKOS-S46 publisher claims."""
     assert gemet_release.key == "gemet-eurovoc-alignments-4.2.3"
     assert len(gemet_release.mappings) == 1_936
     assert Counter(row.predicate for row in gemet_release.mappings) == {
@@ -108,6 +110,7 @@ def test_gemet_release_emits_only_the_immediately_joinable_held_pair(gemet_relea
 
 @pytest.mark.slow
 def test_gemet_release_carries_verbatim_publisher_assertions(gemet_release) -> None:
+    """Pins that every mapping cites its publisher claim verbatim, with license, retrieval and digest metadata."""
     for row in gemet_release.mappings:
         (evidence,) = row.evidence
         claim = evidence.native_payload["publisherClaim"]
@@ -130,6 +133,7 @@ def test_gemet_release_carries_verbatim_publisher_assertions(gemet_release) -> N
 
 @pytest.mark.slow
 def test_umthes_endpoints_carry_real_multilingual_publisher_content(umthes_assets) -> None:
+    """Pins the UMTHES endpoint's 3,365 resources, 4,900 relations, label counts and the frozen 25-pair S27 digest."""
     endpoint, _mapping = umthes_assets
 
     assert endpoint.key == adapters.UMTHES_ENDPOINT_RELEASE_KEY
@@ -166,6 +170,7 @@ def test_umthes_endpoints_carry_real_multilingual_publisher_content(umthes_asset
 
 @pytest.mark.slow
 def test_gemet_umthes_mappings_resolve_the_publisher_namespace(umthes_assets) -> None:
+    """Pins 3,470 GEMET-UMTHES mappings and legacy-to-current object IRI resolution by stable local identifier."""
     endpoint, release = umthes_assets
 
     assert release.key == adapters.GEMET_UMTHES_MAPPING_RELEASE_KEY
@@ -196,6 +201,7 @@ def test_lcsh_mesh_release_is_an_e3_opt_in_adoption(
     mesh_mapping_release,
     consolidated_lcsh_release,
 ) -> None:
+    """Pins 13,260 LCSH-MESH mappings over 12,702 subjects and an opt-in policy with no default-served predicate."""
     # REF-040 retired this module's own bespoke active-only LCSH endpoint
     # capture: the LCSH (object) side now resolves against the consolidated
     # LCSH release, which also admits a deprecated-but-referenced target.
@@ -224,6 +230,7 @@ def test_lcsh_mesh_release_is_an_e3_opt_in_adoption(
 
 @pytest.mark.slow
 def test_lcsh_mesh_evidence_records_each_marc_translation(mesh_mapping_release) -> None:
+    """Pins that each mapping's evidence records MARC 750 as the adopted-from predicate and the refusal counts."""
     release = mesh_mapping_release
 
     for row in release.mappings:
@@ -258,6 +265,7 @@ def test_new_releases_pass_all_three_population_refusal_guards(
     mesh_mapping_release,
     umthes_assets,
 ) -> None:
+    """Pins that every release minted here passes the generator's three population refusal guards."""
     # The consolidated LCSH release these mappings' targets resolve against
     # is exercised by its own refusal-guard checks in
     # test_atlas_v3_registry_alignments.py and
@@ -301,6 +309,7 @@ def test_new_releases_pass_all_three_population_refusal_guards(
 
 @pytest.mark.slow
 def test_lcsh_endpoint_identifier_tripwire_is_nonvacuous(mesh_mapping_release, umthes_assets) -> None:
+    """Pins the tripwire non-vacuous: the treasury scheme exists yet the releases hold no source identifiers."""
     atlas = Namespace("https://refspec.org/ns/atlas/v3#")
     dataset = Dataset()
     dataset.parse(
@@ -328,6 +337,7 @@ def test_new_mapping_releases_never_mint_an_inverse_or_closure(
     mesh_mapping_release,
     umthes_assets,
 ) -> None:
+    """Pins that the three mapping releases contain no inverse pair and no transitively closed pair."""
     _umthes_endpoint, umthes_mapping = umthes_assets
     for release in (gemet_release, umthes_mapping, mesh_mapping_release):
         triples = {(row.subject, row.predicate, row.object) for row in release.mappings}
@@ -336,6 +346,7 @@ def test_new_mapping_releases_never_mint_an_inverse_or_closure(
 
 
 def test_group_loaders_refuse_unknown_keys_without_opening_sources() -> None:
+    """Pins that an unknown endpoint or mapping release key raises ValueError before any source is opened."""
     with pytest.raises(ValueError, match="does not know release keys"):
         adapters.load_subject_registry_alignment_endpoint_releases(
             ROOT,
@@ -350,6 +361,7 @@ def test_group_loaders_refuse_unknown_keys_without_opening_sources() -> None:
 
 @pytest.mark.skipif(not HAS_REAL_SOURCES, reason="pinned subject-mapping sources are not cached")
 def test_mapping_group_loader_selects_only_the_requested_release() -> None:
+    """Pins that only_keys selects exactly the requested GEMET mapping release."""
     releases = adapters.load_subject_registry_mapping_releases(
         SOURCE_ROOT,
         only_keys={"gemet-eurovoc-alignments-4.2.3"},
@@ -360,6 +372,7 @@ def test_mapping_group_loader_selects_only_the_requested_release() -> None:
 
 @pytest.mark.skipif(not HAS_REAL_SOURCES, reason="pinned subject-mapping sources are not cached")
 def test_adapter_refuses_gemet_source_drift(tmp_path: Path) -> None:
+    """Pins that appended bytes in the GEMET source make the input pin differ and raise ValueError."""
     target = tmp_path / gemet.GEMET_ALIGNMENT_FILENAME
     shutil.copyfile(SOURCE_ROOT / gemet.GEMET_ALIGNMENT_FILENAME, target)
     target.write_bytes(target.read_bytes() + b"drift")

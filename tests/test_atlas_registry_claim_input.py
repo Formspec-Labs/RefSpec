@@ -1,3 +1,10 @@
+"""Atlas registry-claim adapter: parser-free round trip, declarative rules, injection and validation.
+
+The adapter carries a source's claims into Atlas source records without naming
+any specific thesaurus; validation reports every missing, added, changed, or
+normalization-only claim against the release manifest digest.
+"""
+
 from __future__ import annotations
 
 import hashlib
@@ -49,6 +56,8 @@ def _claim(
     language: str | None = None,
     datatype: str | None = None,
 ) -> RegistryClaim:
+    """Build one observed claim pinned to the shared raw source bytes."""
+
     return RegistryClaim(
         release_id=RELEASE_ID,
         subject=subject,
@@ -68,6 +77,8 @@ def _claim(
 
 
 def _input(tmp_path: Path) -> tuple[AtlasRegistryClaimInput, tuple[RegistryClaim, ...]]:
+    """Build a nine-claim release on disk and return its Atlas input plus sorted claims."""
+
     raw = tmp_path / "source.ttl"
     raw.write_bytes(SOURCE_BYTES)
     claims = (
@@ -162,6 +173,8 @@ def _records(
     *,
     manifest_digest: str,
 ) -> tuple[AtlasSourceClaimRecord, ...]:
+    """Regroup claims by (record id, locator, digest) into Atlas source records."""
+
     grouped: dict[tuple[str, str, str], list[RegistryClaim]] = defaultdict(list)
     for claim in claims:
         grouped[
@@ -188,6 +201,8 @@ def _records(
 
 
 def test_parser_free_adapter_round_trips_every_claim(tmp_path: Path) -> None:
+    """Adaptation reproduces every claim exactly, and the adapter module names no specific thesaurus."""
+
     input_, expected = _input(tmp_path)
     adapted = adapt_registry_claim_release(input_)
     report = validate_atlas_registry_claims(input_, adapted.records)
@@ -204,6 +219,8 @@ def test_parser_free_adapter_round_trips_every_claim(tmp_path: Path) -> None:
 
 
 def test_claim_adapter_keeps_variant_tagged_label_and_deduplicates_twin() -> None:
+    """A language-variant twin is deduplicated, while a differently tagged spelling survives as an alternate."""
+
     predicate = "http://www.w3.org/2004/02/skos/core#prefLabel"
     claims = (
         _claim(1, predicate=predicate, lexical_value="organisation", language="en"),
@@ -238,6 +255,9 @@ def test_claim_adapter_keeps_variant_tagged_label_and_deduplicates_twin() -> Non
 def test_declarative_resource_rules_build_a_normalized_subset(
     tmp_path: Path,
 ) -> None:
+    """Declarative rules produce stripped labels/definitions, notations, native payload and relations identically to
+    the compatibility parser."""
+
     input_, _expected = _input(tmp_path)
 
     resources = registry_resources_from_claim_release(
@@ -312,6 +332,9 @@ def test_declarative_resource_rules_build_a_normalized_subset(
 def test_injection_adds_authenticated_inputs_without_replacing_compatibility_view(
     tmp_path: Path,
 ) -> None:
+    """Injection appends the manifest/claims input pins and supplemental records without touching compatibility
+    resources."""
+
     input_, expected = _input(tmp_path)
     normalized_source = tmp_path / "normalized-source.ttl"
     normalized_source.write_bytes(SOURCE_BYTES)
@@ -373,6 +396,8 @@ def test_injection_adds_authenticated_inputs_without_replacing_compatibility_vie
 def test_validator_collects_missing_added_datatype_direction_and_normalization(
     tmp_path: Path,
 ) -> None:
+    """Validation reports one added claim and changed datatype, reversed relation, and unstripped literal fields."""
+
     input_, expected = _input(tmp_path)
     manifest_digest = input_.expected_manifest_digest
     actual = [expected[0]]

@@ -1,26 +1,18 @@
-"""E3 reranker half: cross-encoder and late-interaction rescue over a reservoir.
+"""Benchmark cross-encoder and late-interaction rerankers over the union reservoir of already-scored arms.
 
-A reranker scores pairs it is given.  It cannot propose a pair no other arm
-found, so its recall is bounded above by the reservoir it reads and it is never
-a discovery arm.  The candidate-retrieval ledger measured exactly this and
-found neither reranker on any exact complete Conference frontier, while MiniLM
-still recovered all six baseline misses at bidirectional K=25 as an add-only
-rescue and took 5/5 directional property-wording cases where ColBERT took 0/5.
-
-That directional result is the reason to run them here.  Direction is the
-weakest axis in the whole programme -- the historical judge audit agreed on
-support 102/108 but on exact relation only 74/108, with type and direction
-dominating every dispute -- and the ledger's evidence for MiniLM came from
-conference property inverses such as ``hasAuthor``/``writtenBy``, nothing like
-``WOMEN``/``MARRIED WOMEN``.
-
-The reservoir is the union of every arm already scored for a source, so these
-runs measure ordering quality against the same pool the other families built.
-Per-concept reservoir size is capped and the number of pairs dropped by that
-cap is reported rather than left silent.
-
-Needs SentenceTransformers, and the ``rerankers`` package for late interaction:
-``uv run --no-project --with "sentence-transformers>=5" --with rerankers --with numpy python ...``
+A reranker scores pairs it is given. It cannot propose a pair no other arm found,
+so its recall is bounded above by the reservoir it reads and it is never a
+discovery arm. The candidate-retrieval ledger measured exactly this and found
+neither reranker on any exact complete Conference frontier, while MiniLM still
+recovered all six baseline misses at bidirectional K=25 as an add-only rescue and
+took 5/5 directional property-wording cases where ColBERT took 0/5. Direction is
+the weakest axis in the whole programme -- the historical judge audit agreed on
+support 102/108 but on exact relation only 74/108 -- so these runs measure
+ordering quality against the same pool the other families built. Per-concept
+reservoir size is capped and the number of pairs dropped by that cap is reported
+rather than left silent. Needs SentenceTransformers, and the ``rerankers``
+package for late interaction:
+``uv run --no-project --with "sentence-transformers>=5" --with rerankers --with numpy python ...``.
 """
 
 from __future__ import annotations

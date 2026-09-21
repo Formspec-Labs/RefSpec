@@ -1,4 +1,8 @@
-"""Provider-level tests shared by every Zyte-backed source adapter."""
+"""Provider-level tests shared by every Zyte-backed source adapter.
+
+The fetcher must reconstruct the target URL and exact content type from Zyte's JSON envelope,
+preserve the resolved URL, enforce max_bytes on decoded bytes, and refuse missing or ambiguous
+Content-Type headers; two environment-named real captures pin exact publisher bytes when present."""
 
 from __future__ import annotations
 
@@ -16,6 +20,8 @@ from refspec.registry.infrastructure import zyte_transport
 
 
 class _Response(io.BytesIO):
+    """A BytesIO context manager standing in for urlopen's response."""
+
     def __enter__(self) -> Self:
         return self
 
@@ -29,6 +35,8 @@ def _provider_response(
     headers: list[dict[str, str]],
     resolved_url: str = "https://example.test/final",
 ) -> _Response:
+    """A Zyte JSON envelope carrying the base64 body, response headers, and resolved URL."""
+
     return _Response(
         json.dumps(
             {

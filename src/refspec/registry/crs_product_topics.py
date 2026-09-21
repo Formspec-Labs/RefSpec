@@ -1,23 +1,13 @@
 """Source-faithful CRS Product Types and Product Topics capture and parsing.
 
-Congress.gov's CRS products help page documents a small set of product-type
-genres (Report, In Focus, Insight, Legal Sidebar, Infographic, Testimony, and
-Appropriations Status Table) and explains that every CRS product edition
-carries its own topic labels.  The page does not publish topics as a
-separately governed, enumerable thesaurus: a topic label is source evidence
-tied to one product edition, not a stable concept with an identifier.
-
-This module preserves exact page bytes, official product-type labels and
-descriptions as genre metadata, and the page's own explanation of how topics
-work as a source-evidence scope note.  It never enumerates or merges topic
-labels into a controlled term list, and it does not mint concept identity
-from a label or list position.  A separate pure helper preserves the topic
-labels actually observed on one product edition without merging them across
-editions or products.
-
-Live retrieval is provider-independent.  Callers inject a fetcher (for
-example, a Zyte-backed transport) or provide an already captured local file.
-Importing this module never opens a network connection.
+The Congress.gov CRS products help page documents product-type genres (Report,
+In Focus, Insight, Legal Sidebar, Infographic, Testimony, and Appropriations
+Status Table) but publishes no enumerable, governed topic thesaurus: product
+types stay genre metadata and topic labels stay source evidence tied to one
+product edition, never merged into a controlled list or given minted concept
+identity. Live retrieval is provider-independent -- callers inject a fetcher or
+pass an already captured local file, and importing this module never opens a
+network connection.
 """
 
 from __future__ import annotations

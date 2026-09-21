@@ -1,3 +1,5 @@
+"""Pin the Atlas full and compact Parquet views: seals, closure refusals, optional tables, and explorer rendering."""
+
 from __future__ import annotations
 
 import dataclasses
@@ -107,6 +109,8 @@ _STAGED_RECORDS: dict[str, dict[CompactRecordRole, list[Mapping[str, object]]]] 
 
 
 def _stage_tables(source: Path, staged: Path) -> None:
+    """Re-stage this fixture's rows into fresh Parquet tables the way the builder does."""
+
     writer = AtlasParquetTableWriter(staged)
     try:
         for role, records in _STAGED_RECORDS[str(source.resolve())].items():
@@ -154,6 +158,8 @@ _DERIVED_TEST_RULE = DerivationRule(
 
 
 def _canonical_sha256(payload: object, *, terminal_lf: bool) -> str:
+    """Digest canonical JSON with or without its terminal newline."""
+
     raw = canonical_json_bytes(payload)
     if not terminal_lf:
         raw = raw.rstrip(b"\n")
@@ -221,16 +227,13 @@ def _seal_view_with_derived_relations(
 
 
 def _agency_projection_fixture() -> agency_projection.AgencyProjection:
-    """A small, real REF-038-shaped projection: one resolved value, one abstention.
+    """A small REF-038-shaped projection: one resolved value, one abstention.
 
     Hand-built rather than derived from the real regulations.gov/Federal
     Register rosters -- tests/test_agency_projection.py already proves parity
-    against those with the full 321/10-row projection -- so this stays a
-    fast, self-contained fixture. Every field still goes through the same
-    dataclass validation and content-derived digests
-    (`agency_projection._digest`) the real projection does, and its resolved
-    org points at ``_fixture_distribution``'s one resource so the projection
-    lookup's cross-reference to a known Atlas resource is real too.
+    against those with the full 321/10-row projection -- but every field still
+    goes through the same dataclass validation and content-derived digests the
+    real projection does.
     """
 
     source_record = agency_projection.AgencyProjectionSourceRecord(
@@ -361,10 +364,14 @@ def _seal_view_with_agency_projection(
 
 
 def _payload_digest(value: object) -> str:
+    """Digest canonical JSON excluding its terminal newline, as manifests do."""
+
     return "sha256:" + hashlib.sha256(canonical_json_bytes(value)[:-1]).hexdigest()
 
 
 def _write_json(path: Path, value: dict[str, object]) -> bytes:
+    """Write canonical JSON and return the bytes."""
+
     payload = canonical_json_bytes(value)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(payload)
@@ -381,6 +388,8 @@ def _fixture_distribution(
     include_mapping: bool = False,
     derived_relation_count: int | None = None,
 ) -> str:
+    """Write a minimal packed Atlas distribution, register its staged rows, and return the manifest digest."""
+
     release = "urn:test:atlas-release"
     source_record = "urn:ref:atlas-source-record:" + "5" * 64
     statement = "urn:ref:atlas-assertion:" + "3" * 64
@@ -611,6 +620,8 @@ def _fixture_distribution(
 
 
 def test_builds_and_verifies_typed_lossless_logical_view(tmp_path: Path) -> None:
+    """Pin the sealed full view's counts/status, column encodings, and verified round-trip."""
+
     source = tmp_path / "atlas"
     source.mkdir()
     source_pin = _fixture_distribution(source)
@@ -639,6 +650,8 @@ def test_builds_and_verifies_typed_lossless_logical_view(tmp_path: Path) -> None
 def test_registry_claim_bundle_round_trips_through_atlas_parquet(
     tmp_path: Path,
 ) -> None:
+    """Pin that a registry claim release validates against the Atlas view with one exact claim."""
+
     raw = tmp_path / "claim-source.ttl"
     raw.write_bytes(b"claim source\n")
     source_digest = sha256_digest(raw.read_bytes())
@@ -711,12 +724,11 @@ def test_registry_claim_bundle_round_trips_through_atlas_parquet(
 def test_warrant_columns_carry_every_axis_and_the_optional_referent(
     tmp_path: Path,
 ) -> None:
-    """All five warrant fields are columns, so a bad warrant is visible here.
+    """Pin that all five warrant axes plus the optional referent are columns in schema 3.2.
 
-    The defect that shipped in 2026-08 was a combination of axis values
-    matching no sanctioned branch. A view that carried only `evidence_role`
-    could not express the combination, let alone refuse it -- which is also
-    why `logicalRecordsPreserved` was a false claim until now.
+    A view carrying only `evidence_role` could not express -- let alone refuse
+    -- the 2026-08 defect: a combination of axis values matching no sanctioned
+    branch.
     """
 
     source = tmp_path / "atlas"
@@ -750,11 +762,8 @@ def test_warrant_columns_carry_every_axis_and_the_optional_referent(
 
 
 def test_logical_records_preserved_is_computed_from_the_record_contract() -> None:
-    """The manifest claim is derived, so it cannot outlive its truth.
-
-    Every field a compact record can carry must have a column. Drop one and
-    the derivation names it, the status claim goes False, and the manifest
-    publishes the gap instead of asserting the opposite.
+    """Pin that every compact-record field has a column, so the derived logicalRecordsPreserved claim cannot outlive its
+    truth.
     """
 
     assert unpreserved_record_fields() == {}
@@ -765,11 +774,10 @@ def test_logical_records_preserved_is_computed_from_the_record_contract() -> Non
 
 
 def test_native_payload_column_is_the_literal_lexical_bytes(tmp_path: Path) -> None:
-    """One encoder, and the column is exactly what the RDF literal holds.
+    """Pin that native_payload is exactly the canonical literal bytes, nulls included, and hashes to source_digest.
 
     The duplicate canonicalizer this replaces dropped publisher nulls, so the
-    Parquet payload could not round-trip a source record that had any -- and
-    its sha256 could not match the `sourceDigest` the record publishes.
+    Parquet payload could not round-trip a record that had any.
     """
 
     payload = {"b": None, "a": [1, {"z": None}], "unicode": "café"}
@@ -792,6 +800,8 @@ def test_native_payload_column_is_the_literal_lexical_bytes(tmp_path: Path) -> N
 
 
 def test_rebuild_is_byte_stable(tmp_path: Path) -> None:
+    """Pin that two seals of the same distribution are byte-identical."""
+
     source = tmp_path / "atlas"
     source.mkdir()
     source_pin = _fixture_distribution(source)
@@ -802,6 +812,8 @@ def test_rebuild_is_byte_stable(tmp_path: Path) -> None:
 
 
 def test_refuses_input_manifest_drift_and_output_tampering(tmp_path: Path) -> None:
+    """Pin refusal of a wrong input manifest digest and of tampered member bytes."""
+
     source = tmp_path / "atlas"
     source.mkdir()
     source_pin = _fixture_distribution(source)
@@ -818,6 +830,8 @@ def test_refuses_input_manifest_drift_and_output_tampering(tmp_path: Path) -> No
 
 
 def test_refuses_extra_input_or_view_member(tmp_path: Path) -> None:
+    """Pin closure refusal for an extra input file and an extra view member."""
+
     source = tmp_path / "atlas"
     source.mkdir()
     source_pin = _fixture_distribution(source)
@@ -837,6 +851,8 @@ def test_refuses_extra_input_or_view_member(tmp_path: Path) -> None:
 
 
 def test_compact_search_view_preserves_graph_and_omits_native_payload(tmp_path: Path) -> None:
+    """Pin that compaction drops nativePayload, keeps graph facts and Label.id (REF-025), and verifies."""
+
     source = tmp_path / "atlas"
     source.mkdir()
     source_pin = _fixture_distribution(source)
@@ -865,24 +881,11 @@ def test_compact_search_view_preserves_graph_and_omits_native_payload(tmp_path: 
 
 
 def test_the_search_view_publishes_its_provenance_surface_under_stable_names(tmp_path: Path) -> None:
-    """SpicySearch resolves served labels through this view and pins what produced them.
+    """Pin the search view's provenance surface: `viewId` is the published name and `identity` is not a key.
 
-    Agreed 2026-09-05 with SpicySearch's decision 0007 amendment: a served
-    value whose label was resolved through a RefSpec atlas release carries
-    `refspecViewIdentity`, and that value is THIS manifest's `viewId`. Nothing
-    pinned the surface it reads, so this does.
-
-    `viewId` is the name to build against and `identity` is not: the identity
-    is computed as a local, published only as `viewId`'s suffix, and a
-    consumer coding `manifest["identity"]` gets a KeyError. That mistake was
-    made in the adjudication itself and caught by reading a built manifest
-    rather than the source, which is why the assertion below recomputes the
-    digest instead of trusting the name.
-
-    The sensitivity is the point of choosing `viewId` over
-    `canonicalPayloadDigest`: the latter covers `counts` and `members` too, so
-    it moves when a row count moves. A provenance pin should move when the
-    ATLAS RELEASE or the construction moves, and not otherwise.
+    viewId recomputes from construction and input only, so it moves with the
+    atlas release or the construction and not with row counts; a consumer
+    coding `manifest["identity"]` gets a KeyError.
     """
 
     source = tmp_path / "atlas"
@@ -921,11 +924,8 @@ def test_the_search_view_publishes_its_provenance_surface_under_stable_names(tmp
 
 
 def test_search_view_refuses_a_label_member_without_canonical_label_id(tmp_path: Path) -> None:
-    """REF-025: a Label member without `id` is not a search view of this version.
-
-    The member is rewritten without the column and the manifest is resealed
-    around it, so every byte-level check passes. What is left is the one fact
-    the version exists to carry, and both verifying and opening must refuse it.
+    """Pin that a resealed compact view whose Label table lacks `id` is refused with REF-025 by both verifier and
+    opener.
     """
 
     source = tmp_path / "atlas"
@@ -958,6 +958,8 @@ def test_search_view_refuses_a_label_member_without_canonical_label_id(tmp_path:
 
 
 def test_compact_search_view_refuses_member_tampering(tmp_path: Path) -> None:
+    """Pin member-bytes refusal after appending to a compact table."""
+
     source = tmp_path / "atlas"
     source.mkdir()
     source_pin = _fixture_distribution(source)
@@ -974,15 +976,8 @@ def test_compact_search_view_refuses_member_tampering(tmp_path: Path) -> None:
 
 
 def test_compact_search_view_carries_agency_projection_tables_through(tmp_path: Path) -> None:
-    """The reviewer's finding, closed: REF-038's tables reach the served view.
-
-    Full chain: a full view WITH agency-projection tables compacts into a
-    compact search view that carries them as first-class, closure-checked
-    members whose bytes and digests are copied verbatim -- never recomputed
-    -- from the verified full view. Then the real digest-verified
-    ``AtlasDuckDBView.open()`` path opens it, and the real explorer_cli HTTP
-    handler serves ``/agencies`` and ``/api/agency-projection`` with
-    populated results.
+    """Pin that REF-038's projection tables compact through byte-verbatim and serve populated results through the real
+    opener and HTTP handler.
     """
 
     source = tmp_path / "atlas"
@@ -1056,10 +1051,8 @@ def test_compact_search_view_carries_agency_projection_tables_through(tmp_path: 
 
 
 def test_compact_search_view_without_agency_projection_degrades_gracefully(tmp_path: Path) -> None:
-    """Older/projection-less full views still compact cleanly: no projection
-    members, and the served view's agency-projection path degrades rather
-    than erroring -- through the same real ``.open()`` and HTTP-handler path
-    the populated case above uses.
+    """Pin that a projection-less full view compacts with no projection members and degrades through the real open/HTTP
+    path.
     """
 
     source = tmp_path / "atlas"
@@ -1103,8 +1096,7 @@ def test_compact_search_view_without_agency_projection_degrades_gracefully(tmp_p
 
 
 def test_verify_refuses_a_partial_agency_projection_member_pair(tmp_path: Path) -> None:
-    """The two projection tables are all-or-none, same as REF-038 requires
-    for the full view -- verified again independently on the compact side.
+    """Pin that dropping one of the two projection members (and resealing) fails the all-or-none carried-through check.
     """
 
     source = tmp_path / "atlas"
@@ -1141,10 +1133,7 @@ def test_verify_refuses_a_partial_agency_projection_member_pair(tmp_path: Path) 
 
 
 def test_verify_still_refuses_an_undeclared_agency_projection_file(tmp_path: Path) -> None:
-    """The original defect, guarded against regressing: a projection table
-    present on disk but not declared in the manifest must still be refused --
-    only carried-through, closure-checked members are ever admitted.
-    """
+    """Pin that a projection table present on disk but absent from the manifest still fails the closure check."""
 
     source = tmp_path / "atlas"
     source.mkdir()
@@ -1174,13 +1163,7 @@ def _resealed_manifest(manifest: dict[str, object], path: Path) -> str:
 def test_derived_relation_table_seals_compacts_and_never_mingles_with_statements(
     tmp_path: Path,
 ) -> None:
-    """REF-042's derived graph reaches both views as its own table.
-
-    A full view over a distribution that declares derived content carries a
-    ``derived-relations.parquet`` whose rows carry the rule and the asserted
-    nodes each edge was derived from; compaction copies it verbatim; and the
-    statements table still holds exactly the asserted rows -- the derived
-    graph's non-authoritative, opt-in contract survives being served.
+    """Pin that REF-042's derived table seals and compacts verbatim while the statements table keeps only asserted rows.
     """
 
     rows = _derived_relation_rows()
@@ -1241,10 +1224,7 @@ def test_derived_relation_table_seals_compacts_and_never_mingles_with_statements
 
 
 def test_derived_relation_table_is_optional_and_omitted_cleanly(tmp_path: Path) -> None:
-    """A distribution with an empty derived graph yields no table, and the
-    view and its compact descendant still verify -- every pre-2026-08-18
-    build's shape.
-    """
+    """Pin that an empty derived graph yields no table and still verifies in both views."""
 
     source = tmp_path / "atlas"
     source.mkdir()
@@ -1269,9 +1249,7 @@ def test_derived_relation_table_is_optional_and_omitted_cleanly(tmp_path: Path) 
 def test_seal_refuses_a_view_that_drops_derived_content_the_distribution_declares(
     tmp_path: Path,
 ) -> None:
-    """The 2026-08-18 failure mode, made impossible: 42,519 derived relations
-    sealed in the packs while the view silently shipped none. A view of a
-    distribution that declares derived content must carry it.
+    """Pin that a distribution declaring derived relations cannot seal a view without them (the 2026-08-18 silent drop).
     """
 
     source = tmp_path / "atlas"
@@ -1296,8 +1274,8 @@ def test_seal_refuses_a_view_that_drops_derived_content_the_distribution_declare
 def test_seal_ties_the_derived_table_to_the_distribution_declared_count(
     tmp_path: Path,
 ) -> None:
-    """The emitted block is reconciled against the distribution's own
-    authenticated count, not just against the table that happens to be staged.
+    """Pin that the emitted derived block is reconciled against the distribution's authenticated count, not just the
+    staged table.
     """
 
     rows = _derived_relation_rows()
@@ -1324,9 +1302,7 @@ def test_seal_ties_the_derived_table_to_the_distribution_declared_count(
 def test_verify_refuses_derived_coverage_that_differs_from_the_table_rows(
     tmp_path: Path,
 ) -> None:
-    """Coverage is recomputed from the sealed bytes, so a manifest that
-    disagrees with its own table is refused even under a fresh pin.
-    """
+    """Pin that recomputed coverage disagreeing with the sealed table is refused even under a fresh pin."""
 
     rows = _derived_relation_rows()
     source = tmp_path / "atlas"
@@ -1354,10 +1330,7 @@ def test_verify_refuses_derived_coverage_that_differs_from_the_table_rows(
 def test_verify_refuses_a_derived_row_whose_identity_is_not_its_content_digest(
     tmp_path: Path,
 ) -> None:
-    """A re-identified row breaks the one identity rule the table has: the
-    identifier is the derived-relation prefix plus the row's own content
-    digest -- the same fact `_suffix` enforces for compact statements.
-    """
+    """Pin that a derived row re-identified away from its own content digest is refused."""
 
     rows = _derived_relation_rows()
     source = tmp_path / "atlas"
@@ -1389,10 +1362,7 @@ def test_verify_refuses_a_derived_row_whose_identity_is_not_its_content_digest(
 
 
 def test_compact_view_refuses_an_undeclared_derived_relation_file(tmp_path: Path) -> None:
-    """Closure on the compact side admits exactly the declared members: an
-    undeclared derived table on disk is refused, exactly as an undeclared
-    projection table is.
-    """
+    """Pin closure refusal for an undeclared derived table on the compact side."""
 
     source = tmp_path / "atlas"
     source.mkdir()
@@ -1411,9 +1381,7 @@ def test_compact_view_refuses_an_undeclared_derived_relation_file(tmp_path: Path
 
 
 def test_derived_relation_row_projection_refuses_forbidden_rows() -> None:
-    """The writer is the first gate: identity, ring, and evidence shape are
-    refused here, before any table or manifest exists to carry them.
-    """
+    """Pin that the row writer refuses a wrong identity, a non-ring IRI, an unknown ring, and empty evidence."""
 
     rows = _derived_relation_rows()
     with pytest.raises(AtlasParquetTableError, match="differs from its contentDigest"):
@@ -1431,6 +1399,8 @@ def test_derived_relation_row_projection_refuses_forbidden_rows() -> None:
 
 
 def test_explorer_reads_compact_parquet_view_without_rdf(tmp_path: Path) -> None:
+    """Pin the DuckDB explorer's queries, shards, model, search filters, facets, detail, and temp-db cleanup."""
+
     source = tmp_path / "atlas"
     source.mkdir()
     source_pin = _fixture_distribution(source, include_alias=True)
@@ -1501,6 +1471,8 @@ def test_explorer_reads_compact_parquet_view_without_rdf(tmp_path: Path) -> None
 
 
 def test_overview_maps_release_pairs_and_internal_relations(tmp_path: Path) -> None:
+    """Pin overview nodes and that opposite-direction mappings collapse onto one undirected pair."""
+
     source = tmp_path / "atlas"
     source.mkdir()
     source_pin = _fixture_distribution(source, include_mapping=True)
@@ -1546,6 +1518,8 @@ def test_overview_maps_release_pairs_and_internal_relations(tmp_path: Path) -> N
 
 
 def test_release_graph_returns_the_full_vocabulary(tmp_path: Path) -> None:
+    """Pin the release graph's nodes/edges/predicates and the not-present refusal."""
+
     source = tmp_path / "atlas"
     source.mkdir()
     source_pin = _fixture_distribution(source, include_mapping=True)
@@ -1582,16 +1556,11 @@ def test_release_graph_returns_the_full_vocabulary(tmp_path: Path) -> None:
 
 
 def test_search_view_matches_whole_tokens_only(tmp_path: Path) -> None:
-    """Pin the retrieval the view actually offers: whole tokens, nothing else.
+    """Pin whole-token retrieval through punctuation and case, with prefixes and one-edit typos returning nothing.
 
-    The Atlas 1.0 explorer ranked in process and advertised branches for
-    one-edit typos and useful prefixes; the reviewed search corpus at
-    ``research/vocabulary-atlas-v1-explorer-search-corpus-2026-08-05.json``
-    names a category per branch. This view ranks with a DuckDB full-text index
-    that has neither, so those expectations were not carried onto it. That
-    reasoning is only sound while the substrate stays this one, so assert it:
-    if prefix or fuzzy retrieval ever lands here, this fails and the corpus
-    becomes portable again.
+    Atlas 1.0 advertised prefix and fuzzy branches; this DuckDB full-text
+    substrate has neither, so those corpus expectations were not carried over
+    -- and this fails if such retrieval ever lands here.
     """
 
     source = tmp_path / "atlas"
@@ -1617,6 +1586,8 @@ def test_search_view_matches_whole_tokens_only(tmp_path: Path) -> None:
 
 
 def test_parquet_explorer_renders_graph_as_primary_workspace() -> None:
+    """Pin the rendered explorer's graph workspace, overview map, filters, deep links, and syntax-checked script."""
+
     rendered = render_atlas_parquet_explorer()
 
     assert rendered == render_atlas_explorer_frontend()
@@ -1718,6 +1689,8 @@ def test_parquet_explorer_renders_graph_as_primary_workspace() -> None:
 
 
 def test_agency_projection_page_looks_up_resolved_and_unresolved_source_values() -> None:
+    """Pin the agencies page's lookup, degradation text, cross-tab open, and syntax-checked script."""
+
     from refspec.atlas.explorer_frontend import render_atlas_agency_projection_frontend
 
     rendered = render_atlas_agency_projection_frontend()
@@ -1747,6 +1720,9 @@ def test_agency_projection_page_looks_up_resolved_and_unresolved_source_values()
 
 
 def test_release_map_page_draws_every_concept_and_links_back() -> None:
+    """Pin the release map's scale handling, in-place inspector, relations-aware resource request, and cross-tab open.
+    """
+
     from refspec.atlas.explorer import render_atlas_release_map
     from refspec.atlas.explorer_frontend import render_atlas_release_frontend
 

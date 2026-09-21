@@ -21,10 +21,12 @@ SOURCE_ROOT = Path(__file__).resolve().parents[1] / "output" / "registry-real-da
 
 
 def _payload(pin: UnifiedAgendaEditionPin) -> bytes:
+    """Return the pinned XML payload for an edition pin."""
     return (SOURCE_ROOT / f"REGINFO_RIN_DATA_{pin.file_stem}.xml").read_bytes()
 
 
 def test_the_roster_is_the_whole_published_series() -> None:
+    """Pins 60 unique editions from 199510 to 202510 with Spring 2012 absent."""
     assert len(UNIFIED_AGENDA_EDITION_PINS) == UNIFIED_AGENDA_EXPECTED_EDITION_COUNT == 60
     ids = [pin.publication_id for pin in UNIFIED_AGENDA_EDITION_PINS]
     assert len(set(ids)) == len(ids), "an edition is pinned twice"
@@ -44,6 +46,7 @@ def test_the_filename_is_not_authoritative_for_the_edition() -> None:
 @pytest.mark.skipif(not SOURCE_ROOT.is_dir(), reason="pinned captures are not present")
 @pytest.mark.slow
 def test_every_pinned_edition_reads_back_exactly() -> None:
+    """Pins every edition's sha256, record count and single publication id, totalling 241,726 records."""
     total = 0
     for pin in UNIFIED_AGENDA_EDITION_PINS:
         payload = _payload(pin)
@@ -76,6 +79,7 @@ def test_the_two_mangled_editions_are_the_only_ones_needing_repair() -> None:
 
 @pytest.mark.skipif(not SOURCE_ROOT.is_dir(), reason="pinned captures are not present")
 def test_a_drifted_capture_is_refused_rather_than_read() -> None:
+    """Pins refusal on an appended byte and on an in-place substitution that changes the bytes."""
     pin = UNIFIED_AGENDA_EDITION_PINS[0]
     payload = _payload(pin)
     with pytest.raises(UnifiedAgendaEditionError, match="byte length drifted"):
@@ -87,6 +91,7 @@ def test_a_drifted_capture_is_refused_rather_than_read() -> None:
 
 
 def test_a_pin_must_describe_a_real_edition() -> None:
+    """Pins refusal for a July publication id and for a malformed sha256."""
     good = UNIFIED_AGENDA_EDITION_PINS[0]
     with pytest.raises(UnifiedAgendaEditionError, match="YYYYMM"):
         UnifiedAgendaEditionPin(

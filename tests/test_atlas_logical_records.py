@@ -1,3 +1,5 @@
+"""Closed logical-record roles reject unknown fields, bad conditions, and retargeted digests."""
+
 from __future__ import annotations
 
 import pytest
@@ -16,6 +18,8 @@ _DIGEST_B = "sha256:" + "b" * 64
 
 
 def _record(role: CompactRecordRole) -> dict[str, object]:
+    """One valid example record per role, used as the base every mutation starts from."""
+
     records: dict[CompactRecordRole, dict[str, object]] = {
         CompactRecordRole.RESOURCE: {
             "id": "urn:example:resource:1",
@@ -111,6 +115,11 @@ def _record(role: CompactRecordRole) -> dict[str, object]:
 
 
 def test_closed_record_roles_reject_unknown_fields_and_invalid_conditions() -> None:
+    """An unknown field, a wrong role spelling, a same-ring statement without
+    semanticRing, and a SourceRelease field mismatch must each raise
+    CompactPackError.
+    """
+
     with pytest.raises(CompactPackError, match="unknown fields: surprise"):
         normalize_compact_record(
             CompactRecordRole.RESOURCE,
@@ -138,6 +147,8 @@ def test_closed_record_roles_reject_unknown_fields_and_invalid_conditions() -> N
 
 
 def test_record_digest_rejects_a_retargeted_logical_record() -> None:
+    """Retargeting a normalized resource's release must fail the digest check."""
+
     normalized = normalize_compact_record(
         CompactRecordRole.RESOURCE,
         _record(CompactRecordRole.RESOURCE),
@@ -150,6 +161,10 @@ def test_record_digest_rejects_a_retargeted_logical_record() -> None:
 
 
 def test_statement_supersedes_and_lifecycle_sources_are_preserved_canonically() -> None:
+    """Supersedes references survive normalization, lifecycle source records are
+    sorted, and an empty list is refused.
+    """
+
     statement = normalize_compact_record(
         CompactRecordRole.STATEMENT,
         {
@@ -175,6 +190,8 @@ def test_statement_supersedes_and_lifecycle_sources_are_preserved_canonically() 
 
 
 def test_source_record_preserves_native_payload_null_but_other_nulls_fail() -> None:
+    """Nested nulls are kept only inside a SourceRecord's native payload; other nulls and any float are refused."""
+
     source_record = {
         **_record(CompactRecordRole.SOURCE_RECORD),
         "nativePayload": {

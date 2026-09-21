@@ -1,4 +1,8 @@
-"""Shared byte-exact helpers for derived Atlas Parquet artifacts."""
+"""Shared byte-exact helpers for derived Atlas Parquet artifacts.
+
+Writers and the verifier use these to hash member files, canonical JSON payloads,
+and Arrow schemas by the same rules, so a digest computed on either side matches.
+"""
 
 from __future__ import annotations
 

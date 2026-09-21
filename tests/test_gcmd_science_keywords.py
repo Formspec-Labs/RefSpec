@@ -18,6 +18,7 @@ CONCEPT_VERSIONS_FIXTURE = FIXTURES / "concept-versions-published-2026-07-22.xml
 
 
 def _mini_pin() -> gcmd.GCMDSnapshotPin:
+    """A pin over the mini CSV fixture with the expected version, revision and row count."""
     payload = MINI_CSV_FIXTURE.read_bytes()
     return gcmd.GCMDSnapshotPin(
         source=gcmd.GCMD_SCIENCE_KEYWORDS_SOURCE,
@@ -31,15 +32,18 @@ def _mini_pin() -> gcmd.GCMDSnapshotPin:
 
 
 def _acquire(tmp_path: Path, pin: gcmd.GCMDSnapshotPin, source_path: Path) -> gcmd.AcquiredGCMDSource:
+    """Acquire a source file under the given pin."""
     return gcmd.acquire_gcmd_science_keywords(pin, tmp_path, source_path=source_path)
 
 
 def _parsed(tmp_path: Path) -> gcmd.ParsedGCMDScienceKeywords:
+    """Parse the mini CSV fixture under its own pin."""
     pin = _mini_pin()
     return gcmd.parse_gcmd_science_keywords_csv(_acquire(tmp_path, pin, MINI_CSV_FIXTURE))
 
 
 def test_real_full_release_shape_count_and_boundary_samples(tmp_path: Path) -> None:
+    """An opt-in full release pins 3,774 rows and the first and last labels and UUIDs."""
     source_path_text = os.environ.get("REFSPEC_GCMD_SCIENCE_KEYWORDS_PATH")
     if source_path_text is None:
         pytest.skip("real GCMD publisher distribution is not configured")
@@ -62,6 +66,9 @@ def test_real_full_release_shape_count_and_boundary_samples(tmp_path: Path) -> N
 
 
 def test_documented_live_pin_matches_the_exact_official_csv_bytes_observed() -> None:
+    """Pins the full 24.4 export's byte length, sha256, row count and keyword
+    version; the mini fixture is a byte-faithful excerpt of that same capture.
+    """
     # This pins the full 24.4 export captured 2026-08-03; the fixture above is
     # a small, byte-faithful excerpt of that same real capture, not this file.
     assert gcmd.GCMD_SCIENCE_KEYWORDS_24_4_BYTE_LENGTH == 504_190
@@ -74,6 +81,7 @@ def test_documented_live_pin_matches_the_exact_official_csv_bytes_observed() -> 
 
 
 def test_concept_versions_endpoint_corroborates_the_pinned_scheme_version() -> None:
+    """The concept-versions XML fixture pins its byte length, digest, and the published 24.4 creation date."""
     payload = CONCEPT_VERSIONS_FIXTURE.read_bytes()
 
     assert len(payload) == 230
@@ -84,6 +92,7 @@ def test_concept_versions_endpoint_corroborates_the_pinned_scheme_version() -> N
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
     tmp_path: Path,
 ) -> None:
+    """A local capture is content-addressed under the expected digest and a cache hit is re-verified."""
     pin = _mini_pin()
 
     acquired = _acquire(tmp_path, pin, MINI_CSV_FIXTURE)
@@ -98,6 +107,7 @@ def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
 
 
 def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) -> None:
+    """Only an injected fetcher may fetch, and it records the URL and timeout and carries the resolved URL through."""
     pin = _mini_pin()
     payload = MINI_CSV_FIXTURE.read_bytes()
     calls: list[tuple[str, float]] = []
@@ -122,6 +132,7 @@ def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) ->
 
 
 def test_fetcher_off_official_host_is_refused(tmp_path: Path) -> None:
+    """A resolved URL off the official HTTPS host is refused."""
     pin = _mini_pin()
     payload = MINI_CSV_FIXTURE.read_bytes()
 
@@ -142,6 +153,9 @@ def test_fetcher_off_official_host_is_refused(tmp_path: Path) -> None:
 def test_rows_carry_publisher_uuid_identity_and_no_general_subject_promotion(
     tmp_path: Path,
 ) -> None:
+    """Rows carry GCMD UUID identity and hierarchy fields but are never general
+    subject concepts, and gaps name the missing SKOS and instrument branches.
+    """
     resource = _parsed(tmp_path)
 
     assert len(resource.rows) == 9
@@ -183,6 +197,7 @@ def test_rows_carry_publisher_uuid_identity_and_no_general_subject_promotion(
 
 
 def test_out_of_scope_category_fails_closed(tmp_path: Path) -> None:
+    """An out-of-scope category is refused after repinning."""
     payload = MINI_CSV_FIXTURE.read_bytes().replace(b"EARTH SCIENCE SERVICES", b"INSTRUMENTS AND SENSOR")
     assert len(payload) == len(MINI_CSV_FIXTURE.read_bytes())
     changed = tmp_path / "changed.csv"
@@ -198,6 +213,7 @@ def test_out_of_scope_category_fails_closed(tmp_path: Path) -> None:
 
 
 def test_scheme_version_drift_fails_closed(tmp_path: Path) -> None:
+    """A changed keyword version is refused as version drift."""
     payload = MINI_CSV_FIXTURE.read_bytes().replace(b"Keyword Version: 24.4", b"Keyword Version: 24.5")
     assert len(payload) == len(MINI_CSV_FIXTURE.read_bytes())
     changed = tmp_path / "changed.csv"
@@ -213,6 +229,7 @@ def test_scheme_version_drift_fails_closed(tmp_path: Path) -> None:
 
 
 def test_digest_drift_never_becomes_a_parsed_resource(tmp_path: Path) -> None:
+    """A same-length byte change is refused as digest drift rather than parsed."""
     payload = MINI_CSV_FIXTURE.read_bytes()
     changed = payload.replace(b"AQUACULTURE", b"AQUACULTURF")
     assert len(changed) == len(payload)
@@ -232,6 +249,7 @@ def test_digest_drift_never_becomes_a_parsed_resource(tmp_path: Path) -> None:
 
 
 def test_malformed_uuid_and_hierarchy_gap_fail_closed(tmp_path: Path) -> None:
+    """A malformed UUID and a missing hierarchy level are both refused."""
     header = (
         '"Keyword Version: 24.4","Revision: 2026-07-22T11:07:16.739Z",'
         '"Timestamp: 2026-07-22 11:09:49","Terms Of Use: https://example.invalid/",'
@@ -263,6 +281,9 @@ def test_malformed_uuid_and_hierarchy_gap_fail_closed(tmp_path: Path) -> None:
 
 
 def test_builds_a_source_evidence_package_not_a_concept_scheme(tmp_path: Path) -> None:
+    """The package is a schema 2.0 source-evidence controlledCodeList with 9
+    observations, publisher identifiers, and three gap kinds.
+    """
     pin = _mini_pin()
 
     bundle = gcmd.build_gcmd_science_keywords_package(pin, MINI_CSV_FIXTURE)
@@ -311,6 +332,7 @@ def test_builds_a_source_evidence_package_not_a_concept_scheme(tmp_path: Path) -
 
 
 def test_package_generation_is_byte_deterministic(tmp_path: Path) -> None:
+    """Two builds produce identical artifact bytes and logical digests."""
     pin = _mini_pin()
 
     first = gcmd.build_gcmd_science_keywords_package(pin, MINI_CSV_FIXTURE)
@@ -321,6 +343,7 @@ def test_package_generation_is_byte_deterministic(tmp_path: Path) -> None:
 
 
 def test_closed_package_round_trips_through_disk(tmp_path: Path) -> None:
+    """The written package reopens with the same digest, observations and source artifact bytes."""
     pin = _mini_pin()
     bundle = gcmd.build_gcmd_science_keywords_package(pin, MINI_CSV_FIXTURE)
 
@@ -334,6 +357,7 @@ def test_closed_package_round_trips_through_disk(tmp_path: Path) -> None:
 
 
 def test_source_drift_cannot_produce_a_new_package(tmp_path: Path) -> None:
+    """Building from drifted bytes raises digest drift."""
     pin = _mini_pin()
     payload = MINI_CSV_FIXTURE.read_bytes().replace(b"AQUACULTURE", b"AQUACULTURF")
     assert len(payload) == len(MINI_CSV_FIXTURE.read_bytes())

@@ -56,6 +56,8 @@ class _Item:
 
 
 def _token_fragment(value: str) -> str:
+    """Convert a camelCase or snake_case field name to its lowercase kebab token."""
+
     return _CAMEL_BOUNDARY.sub("-", value).replace("_", "-").lower()
 
 
@@ -84,6 +86,8 @@ def _input_pin(
     byte_length: int,
     role: str = "publisherSource",
 ) -> RegistryInputPin:
+    """Pin one repo-relative capture and verify its bytes before returning."""
+
     pin = RegistryInputPin(
         path=repo_root / logical_path,
         logical_path=logical_path,
@@ -105,6 +109,8 @@ def _mint_resource_iri(
     notations: Sequence[str],
     identity_hint: str,
 ) -> str:
+    """Mint the source-local concept IRI from the locator, path, notations, and identity hint."""
+
     if _SOURCE_TOKEN.fullmatch(source_token) is None:
         raise ValueError(f"invalid readable source token: {source_token!r}")
     seed = json.dumps(
@@ -124,6 +130,8 @@ def _mint_resource_iri(
 
 
 def _frozen_metadata(value: Mapping[str, Any] | None) -> Mapping[str, Any]:
+    """Freeze release metadata JSON, refusing a value that is not an object."""
+
     frozen = deep_freeze_json(_json_value(value or {}))
     if not isinstance(frozen, Mapping):
         raise TypeError("registry release metadata must normalize to an object")
@@ -146,6 +154,8 @@ def _release(
     source_digests: Mapping[str, str] | None = None,
     metadata: Mapping[str, Any] | None = None,
 ) -> RegistryRelease:
+    """Normalize parsed items into one release, refusing empty input, incomplete rows, or duplicate identities."""
+
     if not inputs:
         raise ValueError(f"registry release {key} has no exact inputs")
     if not items:
@@ -275,6 +285,8 @@ def _bundle_release(
 
 
 def _bundle_source_digests(bundle: SourceControlledResourceBundle) -> dict[str, str]:
+    """Map each retained source artifact IRI to the sha256 of its exact bytes."""
+
     return {
         source_iri: "sha256:" + hashlib.sha256(payload).hexdigest()
         for source_iri, payload in bundle.source_artifacts.items()
@@ -286,6 +298,8 @@ def _bundle_items(
     *,
     key: str,
 ) -> tuple[_Item, ...]:
+    """Turn source-controlled observations into items, refusing a row without exactly one preferred English label."""
+
     items: list[_Item] = []
     for observation in observations:
         labels_by_value = {
@@ -328,10 +342,14 @@ def _acquire(
     source_path: Path,
     temporary: Path,
 ) -> Any:
+    """Call one registry acquisition function over a pinned path and a scratch directory."""
+
     return function(pin, temporary, source_path=source_path)
 
 
 def _identifier_values(code: Any) -> tuple[str, ...]:
+    """The string values of every identifier one parsed code carries."""
+
     return tuple(str(identifier.value) for identifier in code.identifiers)
 
 
@@ -357,6 +375,8 @@ def _stamp_source_artifact(native: dict[str, Any], source_iri: str) -> dict[str,
 
 
 def _code_items(codes: Iterable[Any], *, resource_name: str, source_iri: str) -> tuple[_Item, ...]:
+    """Turn parsed codes into items carrying every published identifier as a notation."""
+
     items: list[_Item] = []
     for ordinal, code in enumerate(codes):
         notations = _identifier_values(code)
@@ -384,6 +404,8 @@ def _code_items(codes: Iterable[Any], *, resource_name: str, source_iri: str) ->
 
 
 def _load_census(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
+    """Load the Census ASPEP function-item and data-flag code lists against their pinned fixtures."""
+
     from refspec.registry import census_gov_finance_codes as source
 
     rows = (
@@ -441,6 +463,8 @@ def _load_census(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...
 
 
 def _load_census_geo(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
+    """Load the TIGER GEOID structure and GNIS file-format identifier schemes."""
+
     from refspec.registry import census_geo_codes as source
 
     # The ACS variables unit -- a curator-picked 7 of a 635-row auto-generated
@@ -530,6 +554,8 @@ def _load_census_geo(repo_root: Path, temporary: Path) -> tuple[RegistryRelease,
 
 
 def _load_billstatus(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
+    """Load BILLSTATUS bill types and summary-version codes in full, plus the action-code subset."""
+
     from refspec.registry import billstatus_codes as source
 
     pin = source.BILLSTATUS_USER_GUIDE_2026_08_03
@@ -579,6 +605,8 @@ def _load_billstatus(repo_root: Path, temporary: Path) -> tuple[RegistryRelease,
 
 
 def _load_fec(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
+    """Load the five FEC committee code lists from the master, type, and party captures."""
+
     from refspec.registry import fec_committee_codes as source
 
     acquired: dict[str, Any] = {}
@@ -664,6 +692,8 @@ def _load_fec(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
 
 
 def _load_ferc(repo_root: Path) -> tuple[RegistryRelease, ...]:
+    """Load FERC document class/type and docket-prefix lists plus its sector and security-level values."""
+
     from refspec.registry import ferc_elibrary_codes as source
 
     issued = "2026-08-03T19:18:32Z"
@@ -851,6 +881,8 @@ def _load_gao_cra(repo_root: Path) -> tuple[RegistryRelease, ...]:
         capture: Any,
         status: str | None,
     ) -> tuple[_Item, ...]:
+        """Project parsed GAO form options into items stamped with the form revision and item."""
+
         return tuple(
             _Item(
                 label=option.value,
@@ -947,6 +979,8 @@ def _load_gao_cra(repo_root: Path) -> tuple[RegistryRelease, ...]:
 
 
 def _load_grants(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
+    """Load the Grants.gov eligibility and funding-category code lists."""
+
     from refspec.registry import grants_gov_codes as source
 
     pin = source.GRANTS_GOV_STATUS_CODES_2026_08_03
@@ -983,6 +1017,8 @@ def _load_grants(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...
 
 
 def _load_lda(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
+    """Load the LDA General Issue and Filing Type code lists as value-ring schemes."""
+
     from refspec.registry import lda_controlled_codes as source
 
     rows = (
@@ -1050,6 +1086,8 @@ def _load_lda(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
 
 
 def _load_oira(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
+    """Load the OIRA review-status, rule-stage, concluded-action, and meeting-status controls."""
+
     from refspec.registry import oira_review_codes as source
 
     paths = (
@@ -1107,6 +1145,8 @@ def _load_oira(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
 
 
 def _load_omb_a11(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
+    """Load the OMB A-11 functional, object, and apportionment classification code lists."""
+
     from refspec.registry import omb_a11_budget_codes as source
 
     document_input = _input_pin(
@@ -1185,6 +1225,8 @@ def _load_omb_a11(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ..
 
 
 def _load_sam_assistance(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
+    """Load the SAM.gov assistance, applicant, and beneficiary type code lists."""
+
     from refspec.registry import sam_assistance_listing_codes as source
 
     pin = source.SAM_ASSISTANCE_DOC_2026_08_03
@@ -1225,6 +1267,8 @@ def _load_sam_assistance(repo_root: Path, temporary: Path) -> tuple[RegistryRele
 
 
 def _load_sam_opportunities(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
+    """Load the SAM.gov notice type, opportunity status, and set-aside code lists."""
+
     from refspec.registry import sam_opportunities_codes as source
 
     pin = source.SAM_OPPORTUNITIES_DOC_2026_08_03
@@ -1261,6 +1305,8 @@ def _load_sam_opportunities(repo_root: Path, temporary: Path) -> tuple[RegistryR
 
 
 def _load_nasa_technology(repo_root: Path) -> tuple[RegistryRelease, ...]:
+    """Load the NASA TechPort taxonomy as a value-ring code scheme, not a promoted subject scheme."""
+
     from refspec.registry import nasa_technology_taxonomy as source
 
     root_pin = source.NASA_TAXONOMY_ROOT_INDEX_2026_08_03
@@ -1302,6 +1348,8 @@ def _load_nasa_technology(repo_root: Path) -> tuple[RegistryRelease, ...]:
 
 
 def _load_nature_of_suit(repo_root: Path) -> tuple[RegistryRelease, ...]:
+    """Load the US Courts nature-of-suit code list from the pinned PDF and extracted layout."""
+
     from refspec.registry import nature_of_suit_codes as source
 
     document_pin = _input_pin(
@@ -1352,6 +1400,8 @@ def _load_nature_of_suit(repo_root: Path) -> tuple[RegistryRelease, ...]:
 
 
 def _load_govinfo(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
+    """Load the govinfo collection roster and the eCFR CFR-title structure scheme."""
+
     from refspec.registry import govinfo_collections as source
 
     pin = source.GOVINFO_COLLECTIONS_2026_08_03
@@ -1422,6 +1472,8 @@ def _load_govinfo(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ..
 
 
 def _load_oversight(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
+    """Load the Oversight.gov Report Type facet as a code list."""
+
     from refspec.registry import oversight_report_types as source
 
     pin = source.OVERSIGHT_REPORT_TYPES_2026_08_03
@@ -1456,6 +1508,8 @@ def _load_oversight(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, 
 
 
 def _load_pra(repo_root: Path) -> tuple[RegistryRelease, ...]:
+    """Load the PRA/ICR controlled values from the pinned search page."""
+
     from refspec.registry import pra_icr_codes as source
 
     pin = source.PRA_SEARCH_PAGE_2026_08_03
@@ -1483,6 +1537,8 @@ def _load_pra(repo_root: Path) -> tuple[RegistryRelease, ...]:
 
 
 def _load_regulations_gov(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
+    """Load the Regulations.gov document, docket, and submitter type lists from the OpenAPI capture."""
+
     from refspec.registry import regulations_gov_codes as source
 
     pin = source.RGOV_OPENAPI_2026_08_03
@@ -1531,6 +1587,8 @@ def _load_regulations_gov(repo_root: Path, temporary: Path) -> tuple[RegistryRel
 
 
 def _load_usaspending(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
+    """Load the USAspending award-type code list."""
+
     from refspec.registry import usaspending_gsdm_codes as source
 
     pin = source.USASPENDING_AWARD_TYPES_2026_08_03
@@ -1572,6 +1630,8 @@ def _load_usaspending(repo_root: Path, temporary: Path) -> tuple[RegistryRelease
 
 
 def _load_unified_agenda(repo_root: Path, temporary: Path) -> tuple[RegistryRelease, ...]:
+    """Load all twenty schema-documented RIN option lists plus the Preamble's legal-authority citation types."""
+
     from refspec.registry import unified_agenda_codes as source
 
     schema_pin = source.UA_REGINFO_SCHEMA_2026_08_03

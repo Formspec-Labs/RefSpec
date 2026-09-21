@@ -98,6 +98,8 @@ class DuplicateKeyError(ValueError):
 
 
 def reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """``json.loads`` object hook that raises ``DuplicateKeyError`` on a repeated key."""
+
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -107,10 +109,18 @@ def reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 
 def reject_nonfinite_constant(value: str) -> None:
+    """``json.loads`` parse hook that raises on NaN, Infinity or -Infinity."""
+
     raise ValueError(f"non-finite JSON number {value} is forbidden")
 
 
 def validate_canonical_value(value: Any, path: str = "$") -> None:
+    """Refuse null, floats, integers beyond the interoperable range, and non-JSON types.
+
+    Raises ``ValueError`` or ``TypeError`` naming ``path``; null is forbidden so
+    an optional field is omitted rather than written as null.
+    """
+
     if value is None:
         raise ValueError(f"{path}: null is forbidden; omit an optional field")
     if isinstance(value, bool):
@@ -141,6 +151,8 @@ def validate_canonical_value(value: Any, path: str = "$") -> None:
 
 
 def digest_field(record: dict[str, Any]) -> str:
+    """``contentDigest`` for an enrichment or output profile, else ``canonicalPayloadDigest``."""
+
     if record.get("type") in {
         "urn:ref:type:EnrichmentProfile",
         "urn:ref:type:OutputProfile",
@@ -233,6 +245,8 @@ def canonical_sha256(value: Any) -> str:
 
 
 def canonical_payload(record: dict[str, Any]) -> bytes:
+    """The record's canonical bytes with its own digest field removed and the rest validated."""
+
     field = digest_field(record)
     payload = {key: value for key, value in record.items() if key != field}
     validate_canonical_value(payload)
@@ -240,6 +254,8 @@ def canonical_payload(record: dict[str, Any]) -> bytes:
 
 
 def canonical_payload_digest(record: dict[str, Any]) -> str:
+    """The ``sha256:`` digest of ``canonical_payload`` for one record."""
+
     return "sha256:" + hashlib.sha256(canonical_payload(record)).hexdigest()
 
 

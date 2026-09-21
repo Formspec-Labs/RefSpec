@@ -76,13 +76,11 @@ class ActIndex:
 
         The range is the DIVISION's, not the act's: many popular names are a
         title inside a division, and ending the range at the next *act*
-        truncates the division. Validated against the Code's own source
-        credits: 936 of 1,350 testable acts had USLM pages outside the
-        act-derived range, and none outside the division-derived one.
-
-        The end is the next division's start, *strictly* later, so two
-        divisions that begin on one page (5 laws in the pinned index) do not
-        truncate each other — the wider range is the sound one.
+        truncates the division. Validated against the Code's own source credits:
+        936 of 1,350 testable acts had USLM pages outside the act-derived range,
+        and none outside the division-derived one. The end is the next
+        division's start, *strictly* later, so two divisions that begin on one
+        page (5 laws in the pinned index) do not truncate each other.
         """
 
         stated = self.division_by_name.get(act_key)

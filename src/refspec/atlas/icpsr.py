@@ -1,40 +1,31 @@
 """Atlas adapter for the development-only URI-verified ICPSR subject thesaurus.
 
-ICPSR's reader is mature: it joins the public term-URI index to the pinned
-``subject.xml`` snapshot, keeps only labels both sources agree on, and records
-every source-version gap.  What it never had was a projection into the shape
-the atlas consumes, so 3,760 verified concepts sat one door short of a build
-while ELSST — which got exactly this bridge — went through.
+ICPSR's reader joins the public term-URI index to the pinned ``subject.xml``
+snapshot, keeps only labels both sources agree on, and records every
+source-version gap; this module is the bridge into the shape the atlas
+consumes, reopening the sealed bundle, copying the facts it states, and
+refusing anything it does not.
 
-This module is that bridge and nothing more.  It reopens the sealed bundle,
-copies the facts it states, and refuses anything it does not.
+**The release is development-only and says so.** Its manifest and coverage
+both carry ``operationalState: developmentOnly`` with
+``acceptedOutputAllowed`` false, because the public index and the XML snapshot
+are two source versions joined by label rather than one publisher-versioned
+release. This adapter does not launder that away and does not refuse it
+either: it *requires* the marker at the door and republishes it on the release
+node, so a consumer reading the atlas sees the same declaration the bundle
+made. The atlas manifest's field set is closed at schema 1.0, so the marker
+rides in ``releaseFacts`` where the release itself lives.
 
-Two facts about the source shape decide most of what follows.
-
-**The release is development-only and says so.**  Its manifest and coverage
-both carry ``operationalState: developmentOnly`` with ``acceptedOutputAllowed``
-false, because the public index and the XML snapshot are two source versions
-joined by label rather than one publisher-versioned release.  This adapter does
-not launder that away and does not refuse it either: it *requires* the marker
-at the door and republishes it on the release node, so a consumer reading the
-atlas sees the same declaration the bundle made.  Refusal was considered and
-rejected — the whole atlas is ``candidateUseOnly`` and every input to it,
-including the source-complete Federal Register package, is already barred from
-accepted output.  A development marker is a fact to carry, not a reason to drop
-3,760 concepts on the floor.  The atlas manifest's field set is closed at
-schema 1.0, so the marker rides in ``releaseFacts`` where the release itself
-lives.
-
-**Non-preferred terms are concepts here, not labels.**  ICPSR mints a public
+**Non-preferred terms are concepts here, not labels.** ICPSR mints a public
 term URI for every DESCRIPTOR *and* NON-DESCRIPTOR record and links them with
-the ISO 25964 USE/UF pair.  SKOS has no predicate for that: its answer to a
+the ISO 25964 USE/UF pair. SKOS has no predicate for that: its answer to a
 non-preferred term is ``skos:altLabel`` on the preferred concept, which would
-fuse two published identities into one and discard a URI ICPSR assigned.  So
+fuse two published identities into one and discard a URI ICPSR assigned. So
 USE and UF are carried as stated, between the two concept URIs, under
-RefSpec-owned predicates.  They are deliberately *not* collapsed into
-``skos:altLabel``: release facts are copied, and the two directions do not even
-agree in the source (479 USE against 394 UF in the 2026-07-30 capture), so
-either collapse would invent one side of the pair.
+RefSpec-owned predicates. They are deliberately *not* collapsed into
+``skos:altLabel``: release facts are copied, and the two directions do not
+even agree in the source (479 USE against 394 UF in the 2026-07-30 capture),
+so either collapse would invent one side of the pair.
 """
 
 from __future__ import annotations

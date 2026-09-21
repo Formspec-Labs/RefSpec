@@ -1,3 +1,5 @@
+"""RDF claim extraction, the pinned EuroVoc and GEMET claim-release exports, and Atlas adaptation."""
+
 from __future__ import annotations
 
 import hashlib
@@ -44,6 +46,7 @@ ex:one a skos:Concept ;
 
 
 def test_rdf_export_preserves_terms_and_declares_omissions() -> None:
+    """Pins the extracted claim count and the omitted non-English, blank-node and unsupported-term counts."""
     digest = "sha256:" + hashlib.sha256(RDF_FIXTURE).hexdigest()
     extraction = extract_rdf_claims(
         parse_rdf_graph(RDF_FIXTURE, rdf_format="turtle", public_id=SOURCE_IRI),
@@ -90,6 +93,9 @@ def test_rdf_export_preserves_terms_and_declares_omissions() -> None:
     reason="set REFSPEC_REGISTRY_CLAIM_REAL_DATA=1 to export pinned real releases",
 )
 def test_pinned_real_eurovoc_and_gemet_claim_releases(tmp_path: Path) -> None:
+    """An opt-in real export pins each release id, predicate counts and
+    metadata, then validates through Atlas adaptation.
+    """
     eurovoc = export_eurovoc_4_24_claim_release(
         REAL_SOURCE_ROOT,
         tmp_path / "eurovoc",

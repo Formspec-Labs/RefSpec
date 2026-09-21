@@ -1,4 +1,9 @@
-"""Source facts and mutation verdicts against the copied PREMIS reader."""
+"""Source facts and mutation verdicts against the copied PREMIS reader.
+
+Every mutation runs through the frozen RefSpec 7f0d5614 reader and the shared bounded XML reader;
+verdicts must agree except for the four named DELIBERATE_DIVERGENCES, where the shared scanner
+refuses DTDs and 65-deep nesting the old ElementTree path accepted, with no identifier or
+vocabulary decision changing."""
 
 from dataclasses import asdict, replace
 from pathlib import Path
@@ -18,6 +23,8 @@ LOCATION = (
 
 
 def changed(before, after):
+    """Assert the literal occurs in SOURCE, then replace its first occurrence."""
+
     assert before in SOURCE
     return SOURCE.replace(before, after, 1)
 
@@ -96,6 +103,8 @@ DELIBERATE_DIVERGENCES = frozenset(
 
 
 def acquired(tmp_path, payload):
+    """Build a local capture directly so each parser verifies the input, not today's acquisition path."""
+
     path = tmp_path / "source.xml"
     path.write_bytes(payload)
     pin = replace(
@@ -120,6 +129,8 @@ def acquired(tmp_path, payload):
 
 
 def verdict(parser, source):
+    """Run a parser over a source and return ("accept", record dict) or ("reject", None)."""
+
     try:
         result = parser(source, expected_package_id=gc.GOVINFO_CFR_PACKAGE_ID)
     except gc.GovInfoSourceDriftError:

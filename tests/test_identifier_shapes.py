@@ -4,9 +4,8 @@ Every specimen below was read out of one of two pinned columns before it was
 written down here -- the Unified Agenda's ``rin`` column (46,547 distinct) and
 the Federal Register corpus's ``document_number`` (1,004,233 distinct),
 ``docket_ids_json`` (608,758 distinct) and ``regulation_id_numbers_json``
-(36,563 distinct). Counts in docstrings are measurements over those columns,
-taken 2026-08-22. Tests state rules; the specimens are the corpus's own
-witnesses to them, not invented inputs.
+(36,563 distinct), counted 2026-08-22. Tests state rules; the specimens are the
+corpus's own witnesses to them, not invented inputs.
 """
 
 from __future__ import annotations
@@ -46,10 +45,12 @@ DASH_FOLD = str.maketrans(dict.fromkeys("‐‑‒–—―−", "-"))
 
 
 def _kinds(text: str) -> list[tuple[str, str]]:
+    """The (kind value, value) pairs the detector returns for a text."""
     return [(c.kind.value, c.value) for c in detect_identifier_shapes(text)]
 
 
 def _dockets(text: str) -> list[str]:
+    """The docket values the detector returns for a text."""
     return [c.value for c in detect_identifier_shapes(text) if c.kind is IdentifierKind.DOCKET]
 
 
@@ -1087,6 +1088,7 @@ def test_detection_never_returns_two_claims_on_one_stretch(text: str) -> None:
 
 
 def test_a_candidate_serializes_to_its_own_facts() -> None:
+    """A candidate serializes its own facts, omitting components when it states none."""
     candidate = detect_identifier_shapes("EPA-HQ-OAR-2021-0317-0001")[0]
     assert candidate.as_dict() == {
         "kind": "regulations_gov_document",
@@ -1302,6 +1304,7 @@ def test_a_label_with_nothing_behind_it_names_no_system() -> None:
 
 
 def test_no_numbering_system_is_ever_inferred_from_bare_digits() -> None:
+    """A bare number and a bare year-sequence name no numbering system."""
     assert numbering_system("0741") is None
     assert numbering_system("33-8176") is None
 

@@ -1,10 +1,8 @@
 """Make the repository root importable so tests can import ``tools`` modules.
 
-Several test modules import analysis tooling as ``from tools import ...``.
-The ``tools`` directory is a namespace package rather than an installed one,
-so the repository root must be on ``sys.path`` for those imports to resolve
-under pytest's default prepend import mode, which only inserts the test
-directory itself.
+``tools`` is a namespace package rather than an installed one, so the
+repository root must be on ``sys.path`` for pytest's default prepend import
+mode, which only inserts the test directory itself.
 """
 
 from __future__ import annotations

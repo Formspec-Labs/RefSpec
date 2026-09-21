@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Generate or verify RefSpec's experimental atlas planning index."""
+"""Generate or verify RefSpec's experimental atlas planning index.
+
+Reads ``portfolio/atlas-index-input-v0.json`` and
+``portfolio/resource-catalog-v0.json``, rebuilds ``portfolio/atlas-index-v0.json``
+through :mod:`refspec.atlas_index`, and compares the checked copy unless
+``--write`` is passed; exits 1 on any generation or comparison error.
+"""
 
 from __future__ import annotations
 

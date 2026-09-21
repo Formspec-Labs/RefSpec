@@ -1,4 +1,8 @@
-"""Treasury Account Symbol structure and FAST Book edition capture tests."""
+"""Treasury Account Symbol structure and FAST Book edition capture tests.
+
+Pins the fixture digests, FAST Book workbook parse counts and publisher cell
+defects, the TAS component grammar, and the combined edition's gaps.
+"""
 
 from __future__ import annotations
 
@@ -27,6 +31,8 @@ def _acquire(
 
 
 def test_live_snapshot_pins_match_exact_official_html_bytes() -> None:
+    """Pin byte length and sha256 for both official HTML fixtures and their pins."""
+
     tas_page = TAS_PAGE_FIXTURE.read_bytes()
     fast_book_page = FAST_BOOK_PAGE_FIXTURE.read_bytes()
 
@@ -41,6 +47,8 @@ def test_live_snapshot_pins_match_exact_official_html_bytes() -> None:
 
 
 def test_official_fast_book_workbook_parses_all_part_ii_and_iii_rows() -> None:
+    """Pin the workbook digest, 3,442/140/1,159 row counts, fund-type census, and boundary rows."""
+
     payload = FAST_BOOK_WORKBOOK_FIXTURE.read_bytes()
 
     assert len(payload) == 420_508
@@ -113,6 +121,8 @@ def test_official_fast_book_workbook_parses_all_part_ii_and_iii_rows() -> None:
 
 
 def test_fast_book_workbook_reports_publisher_cell_defects_without_rewriting_tas() -> None:
+    """Pin the six named publisher cell defects, the corrected 019X1022 TAS, and its identifier."""
+
     parsed = tas.parse_fast_book_workbook(
         FAST_BOOK_WORKBOOK_FIXTURE,
         pin=tas.FAST_BOOK_PART_II_III_2026_07_31,
@@ -148,6 +158,8 @@ def test_fast_book_workbook_reports_publisher_cell_defects_without_rewriting_tas
 
 
 def test_fast_book_workbook_digest_and_headers_fail_closed(tmp_path: Path) -> None:
+    """Pin digest-drift refusal and header-drift refusal even when the workbook is repinned."""
+
     changed_bytes = bytearray(FAST_BOOK_WORKBOOK_FIXTURE.read_bytes())
     changed_bytes[-1] ^= 1
     changed_path = tmp_path / "changed.xlsx"
@@ -184,6 +196,8 @@ def test_fast_book_workbook_digest_and_headers_fail_closed(tmp_path: Path) -> No
 
 
 def test_component_size_authority_flyer_matches_its_reference_pin() -> None:
+    """Pin the flyer digest/byte length and that the seven component patterns match its stated widths."""
+
     flyer = SIZE_AUTHORITY_FIXTURE.read_bytes()
 
     assert len(flyer) == tas.TAS_COMPONENT_SIZE_AUTHORITY_BYTE_LENGTH
@@ -202,6 +216,8 @@ def test_component_size_authority_flyer_matches_its_reference_pin() -> None:
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
     tmp_path: Path,
 ) -> None:
+    """Pin content-addressed local capture and cache-hit recheck with acquisition modes."""
+
     pin = tas.TAS_COMPONENT_FORMAT_2026_08_03
 
     acquired = _acquire(tmp_path, pin, TAS_PAGE_FIXTURE)
@@ -216,6 +232,8 @@ def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
 
 
 def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) -> None:
+    """Pin that an injected fetcher receives the pinned URL and timeout and yields fetcher mode."""
+
     payload = FAST_BOOK_PAGE_FIXTURE.read_bytes()
     calls: list[tuple[str, float]] = []
 
@@ -246,6 +264,8 @@ def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) ->
 
 
 def test_fetcher_rejects_off_domain_resolved_url(tmp_path: Path) -> None:
+    """Pin refusal of a resolved URL that leaves official HTTPS fiscal.treasury.gov."""
+
     payload = TAS_PAGE_FIXTURE.read_bytes()
 
     class RedirectedFetcher:
@@ -274,6 +294,8 @@ def test_fetcher_rejects_off_domain_resolved_url(tmp_path: Path) -> None:
 def test_tas_component_page_parses_documented_field_names_and_edition(
     tmp_path: Path,
 ) -> None:
+    """Pin the eight documented field labels, the edition date, and the recorded gap."""
+
     acquired = _acquire(tmp_path, tas.TAS_COMPONENT_FORMAT_2026_08_03, TAS_PAGE_FIXTURE)
 
     parsed = tas.parse_tas_component_page(acquired)
@@ -296,6 +318,8 @@ def test_tas_component_page_parses_documented_field_names_and_edition(
 def test_fast_book_page_parses_documented_part_fund_groups_and_edition(
     tmp_path: Path,
 ) -> None:
+    """Pin the per-part fund groups, the edition date, and both recorded gaps."""
+
     acquired = _acquire(tmp_path, tas.FAST_BOOK_DESCRIPTION_2026_08_03, FAST_BOOK_PAGE_FIXTURE)
 
     parsed = tas.parse_fast_book_description_page(acquired)
@@ -311,6 +335,8 @@ def test_fast_book_page_parses_documented_part_fund_groups_and_edition(
 
 
 def test_digest_or_marker_drift_never_becomes_a_parsed_page(tmp_path: Path) -> None:
+    """Pin digest-drift refusal and the missing-marker refusal on a repinned mini page."""
+
     payload = TAS_PAGE_FIXTURE.read_bytes()
     changed = payload.replace(b"agency identifier (AID)", b"agency identifier (AI0)")
     assert len(changed) == len(payload)
@@ -352,6 +378,8 @@ def test_digest_or_marker_drift_never_becomes_a_parsed_page(tmp_path: Path) -> N
 
 
 def _record(**changes: str | None) -> dict[str, str | None]:
+    """Build a TAS component record, overriding only the named fields."""
+
     values: dict[str, str | None] = {
         "SP": None,
         "ATA": None,
@@ -367,6 +395,8 @@ def _record(**changes: str | None) -> dict[str, str | None]:
 
 
 def test_tas_components_parse_minimal_no_year_account() -> None:
+    """Pin that a minimal record defaults SUB to 000 and leaves optional components None."""
+
     components = tas.parse_tas_components(_record())
 
     assert components.sub_level_prefix is None
@@ -380,6 +410,8 @@ def test_tas_components_parse_minimal_no_year_account() -> None:
 
 
 def test_tas_components_parse_full_multiyear_allocation_account() -> None:
+    """Pin every component parsed from a full multiyear allocation record."""
+
     components = tas.parse_tas_components(
         _record(
             SP="01",
@@ -418,11 +450,15 @@ def test_tas_components_reject_malformed_or_inconsistent_fields(
     changes: dict[str, str],
     message: str,
 ) -> None:
+    """Pin the ten malformed or inconsistent field refusals."""
+
     with pytest.raises(tas.TASComponentError, match=message):
         tas.parse_tas_components(_record(**changes))
 
 
 def test_tas_components_reject_missing_required_fields() -> None:
+    """Pin refusal of a record missing its required AID."""
+
     record = _record()
     del record["AID"]
     with pytest.raises(tas.TASComponentError, match="AID"):
@@ -430,11 +466,15 @@ def test_tas_components_reject_missing_required_fields() -> None:
 
 
 def test_tas_components_reject_unknown_fields() -> None:
+    """Pin refusal of an unknown component field."""
+
     with pytest.raises(tas.TASComponentError, match="unknown"):
         tas.parse_tas_components({**_record(), "EXTRA": "1"})
 
 
 def test_tas_identifier_builds_a_deterministic_capture_local_value() -> None:
+    """Pin the canonical dotted TAS value, its identifier metadata, and round-trip parsing."""
+
     components = tas.parse_tas_components(_record(ATA="012", BPOA="2024", EPOA="2025", A="X"))
 
     identifier = tas.tas_identifier(
@@ -459,6 +499,8 @@ def test_tas_identifier_builds_a_deterministic_capture_local_value() -> None:
 def test_fast_book_account_record_validates_against_its_parsed_part_fund_groups(
     tmp_path: Path,
 ) -> None:
+    """Pin that a Part I trust record validates and carries the description's edition date."""
+
     description = tas.parse_fast_book_description_page(
         _acquire(tmp_path, tas.FAST_BOOK_DESCRIPTION_2026_08_03, FAST_BOOK_PAGE_FIXTURE)
     )
@@ -487,6 +529,8 @@ def test_fast_book_account_record_validates_against_its_parsed_part_fund_groups(
 def test_fast_book_account_record_rejects_fund_group_outside_its_part(
     tmp_path: Path,
 ) -> None:
+    """Pin refusal of a fund group not documented for the record's part."""
+
     description = tas.parse_fast_book_description_page(
         _acquire(tmp_path, tas.FAST_BOOK_DESCRIPTION_2026_08_03, FAST_BOOK_PAGE_FIXTURE)
     )
@@ -508,6 +552,8 @@ def test_fast_book_account_record_rejects_fund_group_outside_its_part(
 def test_fast_book_account_record_requires_citation_for_special_and_trust_funds(
     tmp_path: Path,
 ) -> None:
+    """Pin that a trust fund needs a citation while a general fund must not carry one."""
+
     description = tas.parse_fast_book_description_page(
         _acquire(tmp_path, tas.FAST_BOOK_DESCRIPTION_2026_08_03, FAST_BOOK_PAGE_FIXTURE)
     )
@@ -542,6 +588,8 @@ def test_fast_book_account_record_requires_citation_for_special_and_trust_funds(
 def test_fast_book_identifier_builds_a_deterministic_capture_local_value(
     tmp_path: Path,
 ) -> None:
+    """Pin the 020-0100 FAST Book identifier's kind, authority, and source URI."""
+
     description = tas.parse_fast_book_description_page(
         _acquire(tmp_path, tas.FAST_BOOK_DESCRIPTION_2026_08_03, FAST_BOOK_PAGE_FIXTURE)
     )
@@ -572,6 +620,8 @@ def test_fast_book_identifier_builds_a_deterministic_capture_local_value(
 def test_edition_combines_both_pages_and_never_claims_a_universal_page_hash(
     tmp_path: Path,
 ) -> None:
+    """Pin both edition dates, the Akamai/analytics gap, and the Part I/II-III coverage gaps."""
+
     tas_parsed = tas.parse_tas_component_page(_acquire(tmp_path, tas.TAS_COMPONENT_FORMAT_2026_08_03, TAS_PAGE_FIXTURE))
     fast_book_parsed = tas.parse_fast_book_description_page(
         _acquire(tmp_path, tas.FAST_BOOK_DESCRIPTION_2026_08_03, FAST_BOOK_PAGE_FIXTURE)

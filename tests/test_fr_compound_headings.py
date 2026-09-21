@@ -105,6 +105,7 @@ FROZEN_2025_EDGE_LABEL_PAIRS = frozenset(
 
 
 def _canonical_sha256(payload: object, *, terminal_lf: bool = True) -> str:
+    """Return sha256 over the canonical JSON dump, with a terminal LF by default."""
     text = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     if terminal_lf:
         text += "\n"
@@ -112,6 +113,7 @@ def _canonical_sha256(payload: object, *, terminal_lf: bool = True) -> str:
 
 
 def _label_node(resource_iri: str, role: str, value: str) -> str:
+    """Return the synthetic label-node IRI for a resource/role/value triple."""
     digest = hashlib.sha256(f"{resource_iri}|{role}|{value}".encode()).hexdigest()[:16]
     return f"urn:ref:atlas-test:label:{digest}"
 
@@ -126,6 +128,7 @@ def _resource_lines(
     with_record: bool = True,
     extra_label_lines: tuple[str, ...] = (),
 ) -> list[str]:
+    """Emit asserted N-Quads lines for one resource with its ring, scheme, labels and source record."""
     subject = f"<{iri}>"
     record = f"<urn:ref:atlas-test:source-record:{iri.rsplit(':', 1)[-1]}>"
     lines = [f"{subject} {derived_graph.ATLAS_SEMANTIC_RING_TERM} <{ring}> {GRAPH} ."]
@@ -148,6 +151,7 @@ def _resource_lines(
 def _facts_labels_and_digests(
     lines: list[str],
 ) -> tuple[derived_graph.AssertedFactView, dict[str, str], dict[str, str]]:
+    """Collect the asserted fact view, preferred labels and evidence-node digests from lines."""
     facts = derived_graph.collect_asserted_fact_view(lines)
     labels = frch.collect_fr_preferred_labels(lines, facts)
     wanted = frch.fr_compound_heading_evidence_nodes(facts, labels)
@@ -160,6 +164,7 @@ def _context(
     *,
     generated_at: str = "2026-01-01T00:00:00+00:00",
 ) -> tuple[derived_graph.DerivationContext, dict[str, str]]:
+    """Build the derivation context and labels for lines at the default generated_at."""
     facts, labels, node_digest = _facts_labels_and_digests(lines)
     context = derived_graph.DerivationContext(
         facts=facts,
@@ -177,6 +182,7 @@ GRANT_PAIR = [
 
 
 def test_compound_heading_derives_one_edge() -> None:
+    """Pins the single Grant programs-agriculture edge's counts, subject/object, rule/engine identity and evidence."""
     context, labels = _context(GRANT_PAIR)
 
     outcome = frch.derive_fr_compound_heading_broader_rows(context, labels)
@@ -211,6 +217,7 @@ def test_compound_heading_derives_one_edge() -> None:
 
 
 def test_head_extraction_stops_at_the_first_hyphen() -> None:
+    """Pins that the head is the text before the first hyphen, so A-b-c heads at A and nothing recurses."""
     # The head is the text before the FIRST hyphen only: "A-b-c" heads at
     # "A", never at "A-b", and nothing recurses toward deeper segments.
     lines = [
@@ -233,6 +240,7 @@ def test_head_extraction_stops_at_the_first_hyphen() -> None:
 
 @pytest.mark.parametrize("label", SELF_EXCLUDED_2025)
 def test_the_eight_hyphenated_words_exclude_themselves(label: str) -> None:
+    """Pins that each frozen hyphenated word yields no edge and counts as self-excluded because no head term exists."""
     # Each of the real release's 8 hyphenated words, alone in the scheme:
     # no head term exists, so no edge -- and the rule carries no denylist,
     # so this must hold purely because the head is not a preferred term.
@@ -261,6 +269,7 @@ def test_no_denylist_a_minted_head_term_immediately_admits_the_edge(
     compound: str,
     minted_head: str,
 ) -> None:
+    """Pins that minting the head as a preferred term immediately admits the edge, proving there is no denylist."""
     # The converse self-exclusion check: mint the head as a preferred
     # term and the very same hyphenated word derives its edge. A
     # hand-maintained denylist would refuse it; the rule has none.
@@ -279,6 +288,7 @@ def test_no_denylist_a_minted_head_term_immediately_admits_the_edge(
 
 
 def test_head_term_in_another_scheme_admits_no_edge() -> None:
+    """Pins the scheme gate: a head label existing only in another vocabulary's scheme admits no edge."""
     # The adversarial scope check: the head text exists as a preferred
     # label, but in a DIFFERENT vocabulary's scheme. Without the scheme
     # gate, unrelated concepts would become admissible heads (the exact
@@ -305,6 +315,7 @@ def test_head_term_in_another_scheme_admits_no_edge() -> None:
 
 
 def test_head_matching_only_an_alternate_label_admits_no_edge() -> None:
+    """Pins that a head text matching only an alternate label is not an authorized preferred term."""
     # "Grant programs" exists only as another FR term's ALTERNATE label:
     # not an authorized preferred term, so no edge. Alternate labels ride
     # the same lines the collector reads and must not leak into the map.
@@ -325,6 +336,7 @@ def test_head_matching_only_an_alternate_label_admits_no_edge() -> None:
 
 
 def test_ambiguous_preferred_label_fails_closed() -> None:
+    """Pins refusal when one preferred label text maps to two terms."""
     lines = [
         *_resource_lines("urn:ref:atlas-test:fr:grant-1", preferred="Grant programs"),
         *_resource_lines("urn:ref:atlas-test:fr:grant-2", preferred="Grant programs"),
@@ -337,6 +349,7 @@ def test_ambiguous_preferred_label_fails_closed() -> None:
 
 
 def test_term_with_two_preferred_labels_raises() -> None:
+    """Pins refusal when a term carries two preferred-label nodes."""
     lines = [
         *_resource_lines(
             "urn:ref:atlas-test:fr:grant",
@@ -356,6 +369,7 @@ def test_term_with_two_preferred_labels_raises() -> None:
 
 
 def test_preferred_label_without_literal_form_raises() -> None:
+    """Pins refusal when a preferred-label node has no literal form."""
     node = "<urn:ref:atlas-test:label:formless>"
     subject = "<urn:ref:atlas-test:fr:grant>"
     lines = [
@@ -369,6 +383,7 @@ def test_preferred_label_without_literal_form_raises() -> None:
 
 
 def test_untrimmed_label_text_raises() -> None:
+    """Pins refusal when label text is not trimmed."""
     node = "<urn:ref:atlas-test:label:padded>"
     subject = "<urn:ref:atlas-test:fr:grant>"
     lines = [
@@ -383,6 +398,7 @@ def test_untrimmed_label_text_raises() -> None:
 
 
 def test_non_subject_ring_endpoint_raises() -> None:
+    """Pins refusal when a term is not in the subject ring."""
     lines = [
         *_resource_lines(
             "urn:ref:atlas-test:fr:grant-programs",
@@ -397,6 +413,7 @@ def test_non_subject_ring_endpoint_raises() -> None:
 
 
 def test_evidence_nodes_missing_source_record_raises() -> None:
+    """Pins refusal when an evidence term has no source record."""
     lines = [
         *_resource_lines(
             "urn:ref:atlas-test:fr:grant-programs",
@@ -412,6 +429,7 @@ def test_evidence_nodes_missing_source_record_raises() -> None:
 
 
 def test_asserted_relation_collision_fails_closed_in_both_directions() -> None:
+    """Pins refusal when a derived edge duplicates an asserted broader or inverse narrower; unrelated ones pass."""
     compound = "urn:ref:atlas-test:fr:grant-agriculture"
     head = "urn:ref:atlas-test:fr:grant-programs"
     context, labels = _context(GRANT_PAIR)
@@ -437,6 +455,7 @@ def test_asserted_relation_collision_fails_closed_in_both_directions() -> None:
 
 
 def test_associative_related_assertions_do_not_block_the_edge() -> None:
+    """Pins that a skos:related assertion between the same pair is associative, not a hierarchical collision."""
     # skos:related is associative, not hierarchical: the real release
     # asserts 1,451 of them and zero broader/narrower. A related
     # assertion between the same pair must not read as a collision.
@@ -458,6 +477,7 @@ def test_associative_related_assertions_do_not_block_the_edge() -> None:
 
 
 def test_derivation_is_reproducible_from_the_same_facts() -> None:
+    """Pins that the same facts derive identical rows and node IRIs."""
     context, labels = _context(GRANT_PAIR)
     first = frch.derive_fr_compound_heading_broader_rows(context, labels)
     second = frch.derive_fr_compound_heading_broader_rows(context, labels)
@@ -467,6 +487,7 @@ def test_derivation_is_reproducible_from_the_same_facts() -> None:
 
 
 def test_rule_registers_into_the_shared_registry() -> None:
+    """Pins registration of the rule, side-effect-free re-registration and removal on registry reset."""
     # The integrator's two registration lines (see the module report) do
     # exactly this; prove they work and stay side-effect-free.
     try:
@@ -564,6 +585,7 @@ def test_binding_entry_when_present_names_the_same_rule_identity() -> None:
     reason="exact cached Federal Register 2025 thesaurus PDF is not available",
 )
 def test_real_2025_release_derives_the_frozen_edge_set() -> None:
+    """Pins the real 2025 release's 705 terms, 1,451 related assertions, frozen 48-edge label pairs and 8 exclusions."""
     release = load_federal_register_2025_release()
     lines = frch.build_fr_thesaurus_asserted_nquads_lines(release)
     context, labels = _context(lines)

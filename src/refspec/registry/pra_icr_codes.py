@@ -1,30 +1,23 @@
 """Pinned Paperwork Reduction Act ICR search controlled values for ``pra-icr-v1``.
 
 The official PRASearch page (https://www.reginfo.gov/public/do/PRASearch)
-renders its Information Collection Review search form as server-side HTML.
-That form exposes the OMB Control Number field shape, the closed Type of
-Request list, the closed ICR Status list, and the five Burden Range measures
-(Hours, Dollars, Responses, Respondents, Respondents-Small Entities) as
+renders its Information Collection Review search form as server-side HTML,
+exposing the OMB Control Number field shape, the closed Type of Request list,
+the closed ICR Status list, and the five Burden Range measures (Hours,
+Dollars, Responses, Respondents, Respondents-Small Entities) as
 ``<select>``/``<option>`` and labeled ``<input>`` elements with publisher
 codes and field identifiers.
 
-Catalog guidance binds this module to that scope only: OMB Control Number
-shape, request types, statuses, and burden fields. The page also renders a
-Conclusion Action list, a Type of Review list, Certification checkboxes, an
-ICR Ended Due To list, and a Date Type list; those remain out of scope and
-are recorded as gaps rather than silently dropped. Agency and Sub-Agency
-codes are populated by client-side JavaScript after page load and are never
-present in the captured server-rendered bytes, so this module does not
-attempt to scrape them.
-
-No maintained Paperwork Reduction Act subject thesaurus exists. Every value
-captured here is deterministic search or administrative metadata -- never a
-general-subject concept -- and the module packages it as a
-``controlledCodeList`` resource rather than promoting it into a concept
-scheme.
-
-Acquisition accepts a local exact capture or an injected fetcher. Importing
-this module never opens a network connection.
+Scope is exactly that: the page's Conclusion Action, Type of Review,
+Certification, ICR Ended Due To, and Date Type lists remain out of scope and
+are recorded as gaps rather than silently dropped, and Agency/Sub-Agency codes
+are populated by client-side JavaScript after page load and are never present
+in the captured server-rendered bytes. No maintained PRA subject thesaurus
+exists, so every value is deterministic search or administrative metadata —
+never a general-subject concept — and is packaged as a ``controlledCodeList``
+resource rather than promoted into a concept scheme. Acquisition accepts a
+local exact capture or an injected fetcher; importing this module never opens
+a network connection.
 """
 
 from __future__ import annotations

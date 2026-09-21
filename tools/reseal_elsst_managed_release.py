@@ -4,9 +4,12 @@
 This migration preserves the source bytes, Rulespec graph, normalized tables,
 and indexed-expression corpus. It adds the current OutputProfile admission
 field, propagates linked record digests, embeds the current Rulespec dependency
-pin, and issues a fresh combined validation receipt. The operational
-serialization profile validates these distribution bytes; the selected
-Rulespec reference-release digest remains the vocabulary release identity.
+pin, and issues a fresh combined validation receipt. Every source artifact path
+and digest is re-verified against the pinned manifest before anything is
+written, and an existing output directory or report path is refused. The
+operational serialization profile validates these distribution bytes; the
+selected Rulespec reference-release digest remains the vocabulary release
+identity.
 """
 
 from __future__ import annotations
@@ -169,6 +172,8 @@ def _verified_source_bundle(
     *,
     expected_manifest_digest: str,
 ) -> tuple[dict[str, Any], dict[str, Path]]:
+    """Verify the pinned manifest digest plus every artifact path and digest, returning resolved paths."""
+
     expected_manifest_digest = _require_digest(
         expected_manifest_digest,
         label="expected_manifest_digest",

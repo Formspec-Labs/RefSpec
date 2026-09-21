@@ -1,31 +1,17 @@
 """Pinned SAM.gov Assistance Listings assistance-type and eligibility code imports.
 
 The official SAM.gov Assistance Listings API documentation
-(open.gsa.gov/api/assistance-listings-api/) publishes, under one Reference
-Data section, Assistance Type codes (Financial and Non-Financial), Eligible
-Award Applicant Type codes, and Eligible Beneficiary Type codes as prose HTML
-tables, plus a flattened Response Parameters data dictionary that names the
-Assistance Listing Number (ALN) identity fields. All of these are the
-program's own deterministic classification and identity metadata, not
-general subject concepts. The catalog guidance for this source explicitly
-carves out mission and subject values (overview.functionalCodes,
-overview.missionSubCategories, overview.subjectTerms) as source evidence, not
-governed subjects; this module does not parse or package them.
-
-The documentation's own Change Log records exactly one entry: "v1.0" as the
-"Base Version" dated 01/27/2026. The published request/response examples on
-the same page disagree with the documented schema in several ways: the
-example JSON carries an undocumented top-level "programId" field and a
-record-level "version" of "2.0" that the Response Parameters dictionary does
-not describe; one example's live request URL misspells the assistanceTypes
-filter as "assitanceTypes"; and the Request Parameters table's own "Refer to"
-links for applicantTypes and beneficiaryTypes point at each other's
-reference-data section. RefSpec pins the documentation's own "v1.0" Change
-Log entry as api_interface_version and preserves every observed
-inconsistency as an unresolved gap rather than silently correcting it.
-
-Acquisition accepts a local exact capture or an injected fetcher. Importing
-this module never opens a network connection.
+(open.gsa.gov/api/assistance-listings-api/) publishes Assistance Type, Eligible
+Award Applicant Type, and Eligible Beneficiary Type codes as prose HTML tables
+plus a Response Parameters dictionary naming the ALN identity fields; all are
+the program's deterministic classification and identity metadata, never general
+subject concepts, and the mission/subject values (overview.functionalCodes,
+overview.missionSubCategories, overview.subjectTerms) are explicitly not parsed
+or packaged. The page's documented v1.0 Change Log version is pinned as
+api_interface_version while every observed schema/example inconsistency is
+preserved as an unresolved gap rather than silently corrected. Acquisition
+takes a local exact capture or an injected fetcher, and importing this module
+never opens a network connection.
 """
 
 from __future__ import annotations
@@ -420,7 +406,11 @@ def acquire_sam_assistance_listing_doc(
     fetcher: SAMAssistanceFetcher | None = None,
     timeout_seconds: float = 30.0,
 ) -> AcquiredSAMAssistanceSource:
-    """Acquire the exact documentation response through a provider-neutral boundary."""
+    """Acquire the exact documentation response through a provider-neutral boundary.
+
+    Callers supply source_path or fetcher on a cache miss, never both; byte
+    length, digest, UTF-8, HTML doctype, and content type are checked.
+    """
 
     if timeout_seconds <= 0:
         raise SAMAssistanceAcquisitionError("timeout_seconds must be positive")

@@ -1,21 +1,17 @@
-"""RefSpec imports from rulespec and real packages, and reads only its own tree.
+"""RefSpec imports only rulespec and declared packages, and reads only its own tree.
 
-REF-023/REF-024 give RefSpec exactly one platform dependency — RuleSpec —
-and the boundary audit of 2026-08-31 found the tree clean after fixing the
-escapes it surfaced: a fidelity SourcePin reading ``/Users/.../spicy-regs``,
-builders ``expanduser()``-ing into the corpora staging ground, a
-``ROOT.parent / "spicy-regs"`` anchor in the Atlas generator, and a
-``Path.home() / "Work/corpora/..."`` in a test. This suite is that audit as
-a tripwire — every detector is a shared module-level predicate, exercised
-by both the scan tests and the teeth tests, so a detector cannot drift away
-from its own negative fixture.
-
-What is deliberately NOT policed: inert provenance strings (a recorded
-``~/...`` path nothing opens is data about the past), and evasion channels
-an AST scan cannot see — ``joinpath`` with a computed name, f-string paths,
+REF-023/REF-024 give RefSpec exactly one platform dependency -- RuleSpec -- and
+this suite is the 2026-08-31 boundary audit as a tripwire: the escapes it
+surfaced (a fidelity SourcePin reading an absolute sibling-checkout path,
+builders ``expanduser()``-ing into the corpora staging ground, a ``ROOT.parent /
+"spicy-regs"`` anchor, and a ``Path.home()`` corpora path in a test) are all
+refused. Every detector is a shared module-level predicate exercised by both
+the scan tests and the teeth tests, so a detector cannot drift away from its
+own negative fixture. Deliberately NOT policed: inert provenance strings (a
+recorded ``~/...`` path nothing opens is data about the past) and evasion
+channels an AST scan cannot see -- computed ``joinpath`` names, f-string paths,
 ``importlib.import_module``, environment-variable indirection, and non-.py
-files. The boundary this suite CLAIMS is exactly what its predicates
-detect; treat a clean run as "the known escape mechanisms are absent," not
+files -- so treat a clean run as "the known escape mechanisms are absent," not
 "no escape is possible."
 """
 
@@ -65,6 +61,8 @@ _FROZEN_RESEARCH_TREES = (
 
 
 def _declared_dependency_modules() -> frozenset[str]:
+    """Return the top-level import names of the project's declared dependencies."""
+
     project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
     names = set()
     for spec in project["dependencies"]:
@@ -74,6 +72,8 @@ def _declared_dependency_modules() -> frozenset[str]:
 
 
 def _top_level_imports(tree: ast.AST) -> set[str]:
+    """Return every top-level module name imported anywhere in an AST."""
+
     found: set[str] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -84,6 +84,8 @@ def _top_level_imports(tree: ast.AST) -> set[str]:
 
 
 def _expanduser_sites(tree: ast.AST) -> list[int]:
+    """Return the line numbers of ``expanduser()`` calls."""
+
     return [
         node.lineno
         for node in ast.walk(tree)
@@ -94,6 +96,8 @@ def _expanduser_sites(tree: ast.AST) -> list[int]:
 
 
 def _path_home_sites(tree: ast.AST) -> list[int]:
+    """Return the line numbers of ``Path.home()`` calls."""
+
     return [
         node.lineno
         for node in ast.walk(tree)
@@ -110,6 +114,8 @@ _ABSOLUTE_PREFIX = "/Users" + "/"
 
 
 def _absolute_literal_sites(tree: ast.AST) -> list[int]:
+    """Return the line numbers of string constants beginning with the absolute prefix."""
+
     return [
         node.lineno
         for node in ast.walk(tree)
@@ -120,6 +126,8 @@ def _absolute_literal_sites(tree: ast.AST) -> list[int]:
 
 
 def _sibling_division_sites(tree: ast.AST) -> list[int]:
+    """Return the line numbers of path divisions whose right side names a sibling or corpora component."""
+
     sites = []
     for node in ast.walk(tree):
         if (
@@ -134,6 +142,8 @@ def _sibling_division_sites(tree: ast.AST) -> list[int]:
 
 
 def _python_files(*trees: str) -> list[Path]:
+    """Return the .py files under the named trees, skipping the frozen research trees."""
+
     files = []
     for tree in trees:
         for path in sorted((ROOT / tree).rglob("*.py")):
@@ -145,6 +155,8 @@ def _python_files(*trees: str) -> list[Path]:
 
 
 def test_src_imports_only_refspec_stdlib_and_declared_dependencies() -> None:
+    """Pins that src/ imports only refspec, the stdlib, or a pyproject-declared dependency."""
+
     allowed = _declared_dependency_modules() | set(sys.stdlib_module_names) | {"refspec"}
     violations = {}
     for path in _python_files("src"):
@@ -159,6 +171,8 @@ def test_src_imports_only_refspec_stdlib_and_declared_dependencies() -> None:
 
 
 def test_no_tree_imports_a_sibling_product() -> None:
+    """Pins that no tree imports spicy_regs, spicysearch, or docspec, even in tests."""
+
     violations = {}
     for path in _python_files("src", "tools", "tests", "bindings", "deploy", "research"):
         hits = _top_level_imports(ast.parse(path.read_text())) & _FORBIDDEN_MODULES

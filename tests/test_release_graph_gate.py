@@ -1,3 +1,10 @@
+"""Release-graph gate: four independent channels over a REF bundle and its Rulespec graph.
+
+The gate must pass the REF binding, run the pinned Rulespec validators rather than trust a forged
+receipt, derive cross-references from the record schemas, and bind an L4 behavior authorization to
+the exact gate-owned test; each failure channel stays separate, and a validation receipt is issued
+only when every channel passes."""
+
 from __future__ import annotations
 
 import hashlib
@@ -33,6 +40,8 @@ REF_IDENTIFIER = "urn:ref:record:example"
 
 @pytest.fixture(autouse=True)
 def accept_ref_records(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Accept every REF record by default so gate tests exercise the Rulespec channels."""
+
     monkeypatch.setattr(binding, "validate", lambda records: [])
 
 
@@ -42,6 +51,8 @@ def validator_pin(
     exit_code: int = 0,
     dependency_manifest: Path | None = None,
 ) -> RulespecValidatorPin:
+    """A validator pin whose in-process stand-ins print the graph node count and exit with the requested code."""
+
     script = (
         "import json,sys; "
         "document=json.load(open(sys.argv[1], encoding='utf-8')); "
@@ -167,6 +178,8 @@ raise SystemExit(
 
 
 def valid_bundle() -> dict:
+    """A minimal passing bundle: one REF record referencing one Rulespec concept, receipt and crossrefs consistent."""
+
     graph = {
         "@context": {
             "rkaf": "https://rulespec.org/ns/v1#",
@@ -215,6 +228,8 @@ def valid_bundle() -> dict:
 
 
 def selected_registry_bundle(*, open_ended_period: bool = False) -> dict:
+    """A selected RegistryDeploymentDecision bundle whose adoption authorizes the gate's L4 evaluation."""
+
     decision_id = "urn:ref:registry-deployment:selected"
     scope = "urn:ref:environment:development"
     subject = "urn:rulespec:assertion:registry-selection"
@@ -332,6 +347,8 @@ def selected_registry_bundle(*, open_ended_period: bool = False) -> dict:
 
 
 def resolved_reconciliation_bundle() -> dict:
+    """A resolved reconciliation report bundle whose local adoption authorizes the gate's L4 evaluation."""
+
     record_id = "urn:ref:reconciliation:resolved"
     scope = "urn:ref:precedence-policy:v1"
     subject = "urn:rulespec:assertion:reconciliation"
@@ -432,6 +449,8 @@ def schema_aware_bundle(
     graph_nodes: list[dict],
     cross_reference_identifiers: list[str],
 ) -> dict:
+    """Build a one-record bundle over the given graph nodes and cross-references, digesting the graph."""
+
     graph = {
         "@context": {
             "rkaf": "https://rulespec.org/ns/v1#",
@@ -1102,6 +1121,10 @@ def test_resolved_reconciliation_requires_gate_owned_l4_authorization(
 def test_caller_effective_boolean_and_behavior_test_cannot_authorize(
     tmp_path: Path,
 ) -> None:
+    """A caller-supplied effective flag plus a caller-written behavior test cannot authorize; the
+    adoption is revoked.
+    """
+
     bundle = selected_registry_bundle()
     decision = bundle["refRecords"][0]
     decision["authorizationValidations"] = [
@@ -1315,6 +1338,8 @@ def test_installed_package_can_load_embedded_dependency_manifest(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
+    """The embedded dependency manifest must equal profiles/rulespec-dependency.json, breaking only on real drift."""
+
     monkeypatch.setattr(
         release_graph,
         "DEFAULT_DEPENDENCY_MANIFEST",

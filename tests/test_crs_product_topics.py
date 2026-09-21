@@ -1,10 +1,10 @@
 """CRS Product Types and Product Topics source-foundation tests.
 
-Congress.gov's CRS products help page documents a small, closed set of
-product-type genres and states that topics are attached to one product
-edition rather than published as a governed, enumerable thesaurus.  These
-tests exercise byte-exact capture, strict structural parsing, and the
-explicit refusal to mint concept identity or a topic vocabulary.
+Congress.gov's help page documents a small, closed set of product-type genres and
+states that topics are attached to one product edition rather than published as a
+governed, enumerable thesaurus, so these tests exercise byte-exact capture, strict
+structural parsing, and the explicit refusal to mint concept identity or a topic
+vocabulary.
 """
 
 from __future__ import annotations
@@ -22,10 +22,12 @@ FIXTURES = Path(__file__).parent / "fixtures" / "crs_product_topics"
 
 
 def _payload(name: str) -> bytes:
+    """Read one fixture file from disk."""
     return (FIXTURES / name).read_bytes()
 
 
 def _pin(source: crs.CRSProductsPageSource, payload: bytes) -> crs.CRSProductsPageSnapshotPin:
+    """A snapshot pin over the given payload bytes, retrieved at a fixed test time."""
     return crs.CRSProductsPageSnapshotPin(
         source=source,
         retrieved_at="2026-08-03T12:00:00Z",
@@ -35,6 +37,7 @@ def _pin(source: crs.CRSProductsPageSource, payload: bytes) -> crs.CRSProductsPa
 
 
 def _mini_source(**overrides: object) -> crs.CRSProductsPageSource:
+    """A three-product variant of the pinned source with the accepted topics heading and marker phrase."""
     overrides.setdefault("expected_product_type_count", 3)
     overrides.setdefault("topics_heading", "CRS Product Topics")
     overrides.setdefault("topics_marker_phrase", "not published as a separate, versioned thesaurus")
@@ -46,6 +49,7 @@ def _acquire_fixture(
     source: crs.CRSProductsPageSource,
     fixture_name: str,
 ) -> crs.AcquiredCRSProductsPage:
+    """Acquire a named fixture under the given source's pin."""
     path = FIXTURES / fixture_name
     return crs.acquire_crs_products_page(
         _pin(source, path.read_bytes()),
@@ -55,6 +59,7 @@ def _acquire_fixture(
 
 
 def test_current_official_page_declares_expected_shape() -> None:
+    """Pins the source URL, headings, the seven-product expectation, and the topics marker phrase."""
     source = crs.CRS_PRODUCTS_PAGE
     assert source.source_url == "https://www.congress.gov/help/crs-products"
     assert source.expected_heading == "Congressional Research Service (CRS) Products"
@@ -65,6 +70,9 @@ def test_current_official_page_declares_expected_shape() -> None:
 
 
 def test_real_publisher_page_shape_count_and_boundary_samples(tmp_path: Path) -> None:
+    """An opt-in real capture pins seven product types from Reports to
+    Appropriations Status Table and the topics scope note.
+    """
     source_path_text = os.environ.get("REFSPEC_CRS_PRODUCTS_PATH")
     if source_path_text is None:
         pytest.skip("real Congress.gov CRS products page is not configured")
@@ -88,6 +96,7 @@ def test_real_publisher_page_shape_count_and_boundary_samples(tmp_path: Path) ->
 
 
 def test_local_capture_is_exact_and_content_addressed(tmp_path: Path) -> None:
+    """A local capture is content-addressed under the expected digest and a cache hit is re-verified."""
     payload = _payload("crs-products-mini.html")
     source = _mini_source()
     pin = _pin(source, payload)
@@ -110,6 +119,7 @@ def test_local_capture_is_exact_and_content_addressed(tmp_path: Path) -> None:
 
 
 def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) -> None:
+    """The fetch path is injectable, and it records the source URL and timeout it used."""
     payload = _payload("crs-products-mini.html")
     source = _mini_source()
     calls: list[tuple[str, float]] = []
@@ -142,6 +152,7 @@ def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) ->
 
 
 def test_challenge_page_never_publishes_source(tmp_path: Path) -> None:
+    """A bot-challenge page is refused and nothing is written to the content-addressed store."""
     source = _mini_source()
     expected_payload = _payload("crs-products-mini.html")
     pin = _pin(source, expected_payload)
@@ -170,6 +181,7 @@ def test_challenge_page_never_publishes_source(tmp_path: Path) -> None:
 
 
 def test_digest_drift_never_publishes_source(tmp_path: Path) -> None:
+    """A same-length byte change is refused as digest drift with no partial file left behind."""
     expected_payload = _payload("crs-products-mini.html")
     changed_payload = expected_payload.replace(b"Legal Sidebar", b"Legal Sidebbr")
     assert len(changed_payload) == len(expected_payload)
@@ -202,6 +214,7 @@ def test_digest_drift_never_publishes_source(tmp_path: Path) -> None:
 def test_product_types_are_parsed_as_genre_metadata_without_minting_ids(
     tmp_path: Path,
 ) -> None:
+    """Product types parse as genre metadata with source ordinals and distinct record IRIs but no identifiers."""
     source = _mini_source()
     page = crs.parse_crs_products_page(_acquire_fixture(tmp_path, source, "crs-products-mini.html"))
 
@@ -219,6 +232,7 @@ def test_product_types_are_parsed_as_genre_metadata_without_minting_ids(
 
 
 def test_product_topics_scope_note_is_source_evidence_only(tmp_path: Path) -> None:
+    """The topics scope note is source evidence only and carries no publisher identifier."""
     source = _mini_source()
     page = crs.parse_crs_products_page(_acquire_fixture(tmp_path, source, "crs-products-mini.html"))
 
@@ -229,6 +243,7 @@ def test_product_topics_scope_note_is_source_evidence_only(tmp_path: Path) -> No
 
 
 def test_structure_or_count_change_fails_as_source_drift(tmp_path: Path) -> None:
+    """A wrong expected product-type count fails as source drift."""
     source = _mini_source(expected_product_type_count=4)
     page = _acquire_fixture(tmp_path, source, "crs-products-mini.html")
 
@@ -237,6 +252,7 @@ def test_structure_or_count_change_fails_as_source_drift(tmp_path: Path) -> None
 
 
 def test_missing_topics_marker_phrase_fails_as_source_drift(tmp_path: Path) -> None:
+    """A page missing the scope-note marker phrase fails as source drift."""
     payload = _payload("crs-products-mini.html").replace(
         b"are not published as a separate, versioned\n        thesaurus independent of the product.",
         b"may be revised at any time without further notice to the general\n        public reading this page.",
@@ -253,6 +269,9 @@ def test_missing_topics_marker_phrase_fails_as_source_drift(tmp_path: Path) -> N
 
 
 def test_assembled_resource_is_blocked_from_a_managed_release(tmp_path: Path) -> None:
+    """The assembled resource is not ready, names governed/thesaurus and
+    identifiers blockers, and require_ready raises CRSProductIdentityError.
+    """
     source = _mini_source()
     page = crs.parse_crs_products_page(_acquire_fixture(tmp_path, source, "crs-products-mini.html"))
 
@@ -266,6 +285,7 @@ def test_assembled_resource_is_blocked_from_a_managed_release(tmp_path: Path) ->
 
 
 def test_product_edition_topic_assignment_preserves_labels_per_edition() -> None:
+    """Per-edition topic assignments deduplicate labels in order, are source evidence only, and differ by edition."""
     assignment = crs.capture_product_edition_topic_assignment(
         product_number="R47654",
         edition_label="2026-01-05",
@@ -291,6 +311,7 @@ def test_product_edition_topic_assignment_preserves_labels_per_edition() -> None
 
 
 def test_product_edition_topic_assignment_rejects_missing_evidence() -> None:
+    """Empty topic labels, a non-official URL, and embedded credentials are each refused."""
     with pytest.raises(crs.CRSProductSourceDriftError, match="topic_labels"):
         crs.capture_product_edition_topic_assignment(
             product_number="R47654",
@@ -318,6 +339,7 @@ def test_product_edition_topic_assignment_rejects_missing_evidence() -> None:
 
 
 def test_fixture_digest_is_derived_from_exact_bytes() -> None:
+    """The module's digest helper is a plain sha256 over the fixture bytes."""
     payload = _payload("crs-products-mini.html")
 
     assert crs.sha256_digest(payload) == "sha256:" + hashlib.sha256(payload).hexdigest()

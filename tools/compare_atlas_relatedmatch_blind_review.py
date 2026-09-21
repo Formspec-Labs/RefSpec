@@ -99,6 +99,7 @@ def load(directory: Path, replay_json: Path | None) -> tuple[list[dict], dict[st
 
 
 def _stratum(entry: dict[str, Any]) -> str:
+    """Bucket a sealed row: its control class, ``relatedMatchAdmission``/``otherAdmission``, or its set."""
     if entry["set"] == "controls":
         return entry["generationClass"]
     if entry["set"] == "positives":
@@ -107,6 +108,7 @@ def _stratum(entry: dict[str, Any]) -> str:
 
 
 def analyse(key: list[dict], verdicts: dict[int, dict], variants: dict[tuple[str, int], str]) -> dict[str, Any]:
+    """Stratify one pass's verdicts by stratum and variant class, with survival rates and the Fisher test."""
     strata: dict[str, dict[str, Any]] = collections.defaultdict(
         lambda: {
             "rows": 0,

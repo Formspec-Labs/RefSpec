@@ -1,4 +1,10 @@
-"""CRS development-package tests for lookup without invented concept identity."""
+"""CRS source packages: lookup, stable local ids and review-gated reconciliation.
+
+Builds both packages from four mini fixture pages and proves observations stay
+searchable while claiming no publisher identity; a refetch reuses local ids for
+unchanged content, records cosmetic capture changes without review, and queues
+term renames for a human identity link rather than guessing one.
+"""
 
 from __future__ import annotations
 
@@ -70,6 +76,8 @@ def _fixture_acquisitions(
     retrieved_at: str = "2026-07-30T12:33:34Z",
     payload_overrides: dict[str, bytes] | None = None,
 ) -> tuple[crs.AcquiredCRSPage, ...]:
+    """Acquire the four mini fixture pages under recomputed pins, with optional payload overrides."""
+
     result: list[crs.AcquiredCRSPage] = []
     overrides = {} if payload_overrides is None else payload_overrides
     for original_source, fixture_name, count in _FIXTURE_PAGES:
@@ -102,6 +110,8 @@ def _fixture_acquisitions(
 
 
 def _registration_event(registered_at: str, seed: bytes) -> SourceRegistrationEvent:
+    """A registration event whose id is derived from the given time and seed."""
+
     return SourceRegistrationEvent(
         registration_id=derive_uuid7(registered_at, seed=seed),
         registered_at=registered_at,
@@ -111,6 +121,8 @@ def _registration_event(registered_at: str, seed: bytes) -> SourceRegistrationEv
 def test_keeps_detailed_terms_and_broad_policy_areas_separate(
     tmp_path: Path,
 ) -> None:
+    """Seven detailed observations across three categories stay separate from the two broad policy areas."""
+
     packages = build_crs_source_packages(
         _fixture_acquisitions(tmp_path),
         captured_at=CRS_COMPLETE_CAPTURED_AT,
@@ -169,6 +181,8 @@ def test_keeps_detailed_terms_and_broad_policy_areas_separate(
 def test_observations_are_searchable_but_never_claim_publisher_identity(
     tmp_path: Path,
 ) -> None:
+    """Every observation keeps its derived UUIDv7 ids, carries no identifiers, and names the two coverage gaps."""
+
     packages = build_crs_source_packages(
         _fixture_acquisitions(tmp_path),
         captured_at=CRS_COMPLETE_CAPTURED_AT,
@@ -202,6 +216,8 @@ def test_observations_are_searchable_but_never_claim_publisher_identity(
 
 
 def test_input_order_does_not_change_package_bytes(tmp_path: Path) -> None:
+    """Reversing the acquisition order leaves both package artifacts byte-identical."""
+
     pages = _fixture_acquisitions(tmp_path)
 
     forward = build_crs_source_packages(
@@ -220,6 +236,8 @@ def test_input_order_does_not_change_package_bytes(tmp_path: Path) -> None:
 def test_refetch_reuses_local_ids_when_source_terms_are_unchanged(
     tmp_path: Path,
 ) -> None:
+    """An unchanged refetch reports "unchanged", reuses every local id and needs no review."""
+
     first = build_crs_source_packages(
         _fixture_acquisitions(tmp_path / "first"),
         captured_at=CRS_COMPLETE_CAPTURED_AT,
@@ -256,6 +274,8 @@ def test_refetch_reuses_local_ids_when_source_terms_are_unchanged(
 
 
 def test_publisher_identifier_matches_before_a_changed_label(tmp_path: Path) -> None:
+    """A renamed term carrying the same publisher identifier keeps its previous local record id."""
+
     pages = _fixture_acquisitions(tmp_path)
     parsed = tuple(crs.parse_crs_field_value_page(page) for page in pages[:3])
     resource = crs.assemble_crs_legislative_subject_terms(parsed)
@@ -311,6 +331,8 @@ def test_publisher_identifier_matches_before_a_changed_label(tmp_path: Path) -> 
 def test_cosmetic_source_change_is_recorded_without_identity_review(
     tmp_path: Path,
 ) -> None:
+    """A cosmetic source change outside the observations is recorded as sourceOnlyChange without review."""
+
     first = build_crs_source_packages(
         _fixture_acquisitions(tmp_path / "first"),
         captured_at=CRS_COMPLETE_CAPTURED_AT,
@@ -346,6 +368,8 @@ def test_cosmetic_source_change_is_recorded_without_identity_review(
 
 
 def test_any_capture_independent_content_change_requires_review(tmp_path: Path) -> None:
+    """A changed observation field other than the label is reviewRequired, naming the field."""
+
     first = build_crs_source_packages(
         _fixture_acquisitions(tmp_path / "first"),
         captured_at=CRS_COMPLETE_CAPTURED_AT,
@@ -395,6 +419,8 @@ def test_any_capture_independent_content_change_requires_review(tmp_path: Path) 
 def test_term_change_creates_a_review_queue_instead_of_guessing_identity(
     tmp_path: Path,
 ) -> None:
+    """A renamed term queues an added/removed pair with a humanReviewRequired suggestion until a review links it."""
+
     first = build_crs_source_packages(
         _fixture_acquisitions(tmp_path / "first"),
         captured_at=CRS_COMPLETE_CAPTURED_AT,
@@ -473,6 +499,8 @@ def test_term_change_creates_a_review_queue_instead_of_guessing_identity(
 def test_both_packages_round_trip_with_exact_source_bytes(
     tmp_path: Path,
 ) -> None:
+    """Each package reopens byte-identically and ships exactly the four page payloads plus the two LOC scheme captures."""
+
     pages = _fixture_acquisitions(tmp_path)
     packages = build_crs_source_packages(
         pages,
@@ -493,6 +521,8 @@ def test_both_packages_round_trip_with_exact_source_bytes(
 
 
 def test_complete_ledger_round_trips_and_can_be_the_next_predecessor(tmp_path: Path) -> None:
+    """A written ledger reopens equal, serves as the next predecessor, and refuses to overwrite itself."""
+
     first = build_crs_source_packages(
         _fixture_acquisitions(tmp_path / "first"),
         captured_at=CRS_COMPLETE_CAPTURED_AT,
@@ -522,6 +552,8 @@ def test_complete_ledger_round_trips_and_can_be_the_next_predecessor(tmp_path: P
 
 
 def test_packaged_loc_scheme_authorities_are_exact_and_resource_specific() -> None:
+    """The two packaged LOC scheme captures pin their byte lengths and digests, lst before cgpa."""
+
     captures = load_packaged_crs_scheme_authorities()
 
     assert [capture.pin.scheme.code for capture in captures] == ["lst", "cgpa"]
@@ -533,6 +565,8 @@ def test_packaged_loc_scheme_authorities_are_exact_and_resource_specific() -> No
 
 
 def test_requires_all_four_reviewed_pages(tmp_path: Path) -> None:
+    """Three of the four reviewed pages refuse to build."""
+
     pages = _fixture_acquisitions(tmp_path)
 
     with pytest.raises(
@@ -546,6 +580,8 @@ def test_requires_all_four_reviewed_pages(tmp_path: Path) -> None:
 
 
 def test_exact_ignored_captures_match_checked_in_package_evidence() -> None:
+    """The full 2026-07-30 capture builds 1,043 + 32 observations and reproduces the checked-in evidence bytes."""
+
     if not FULL_CAPTURE_ROOT.is_dir():
         pytest.skip("exact 2026-07-30 CRS captures are not present")
 

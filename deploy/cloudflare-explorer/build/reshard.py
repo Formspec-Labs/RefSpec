@@ -1,94 +1,18 @@
-"""Re-chunk the already-assembled resource-detail NDJSON shards into much
-smaller files, without touching the source Parquet view at all, then swap
-the result into the exact paths build/upload.sh walks and
-public/assets/data-layer.js fetches (tables/resource-detail/*.ndjson,
-tables/resource-detail-index.parquet) -- nothing reads a "-small"-suffixed
-path, so a run that stopped short of the final swap ships nothing.
+"""Re-chunk the already-assembled resource-detail NDJSON shards into much smaller files.
 
-Why: the first cut used ~250MB shards (safe under wrangler's 300MiB upload
-ceiling). Under the network conditions seen during this deploy (RTT
-oscillating 30ms-850ms, occasional packet loss, and -- worse -- multi-minute
-full stalls with 0% CPU on the wrangler process, i.e. a hung TCP connection,
-not just a slow one), a single 238MB PUT essentially never completes: any
-attempt takes the failure with it. Small shards make each individual PUT
-fast enough to either succeed or fail quickly, so retries are cheap and a
-transient good window is enough to get a shard through.
-
-This reuses byte-identical record boundaries from the existing
-resource-detail-index.parquet (shard, offset, length per resource id) --
-no JSON re-parsing, no re-querying the compact view. It just re-copies each
-record's exact bytes into new, smaller shard files and re-derives a new
-index with the same schema (id, shard, offset, length).
-
-The resharded bytes are written to a staging directory/file first, not
-straight into SRC_DIR/OLD_INDEX: the copy loop still has SRC_DIR's shards
-open for reading throughout the run (old shard boundaries only grow, but a
-TARGET_BYTES far smaller than the original ~250MB shards makes the *new*
-shard index advance much faster than the old one, so new shard N is often
-written well before old shard N has been read), so overwriting the source
-in place mid-run would corrupt a shard a later row still needs. Once every
-byte has been copied, main() swaps the staging output into SRC_DIR/
-OLD_INDEX's place -- see swap_into_place() below -- and removes whatever
-staging leftovers remain.
-
-The handoff invariant
----------------------
-
-A shard file and an index are only meaningful as a *pair*: the index holds
-byte offsets into specific shard bytes, so pairing shard set A with index B
-does not fail, it silently returns the wrong bytes -- a truncated or
-mid-record slice for every resource the explorer looks up. The handoff is
-therefore built around one invariant, which every step below preserves:
-
-    OLD_INDEX exists only while its offsets address the shards currently
-    under SRC_DIR.
-
-That is enforced by ordering alone: the canonical index is the FIRST thing
-moved out of the way and the LAST thing moved in, and each move is a single
-rename (atomic within a filesystem, and TABLES_DIR is one filesystem). So an
-interruption can leave the index absent -- data-layer.js fails loudly at load
-time, because the index is one of the Parquet views it registers before it can
-answer anything -- but it can never leave the index present and wrong. The old
-pair is kept whole in BACKUP_DIR until the new pair is fully installed, and
-recover_interrupted_swap() below runs first on every start: it reads which of
-the five steps a previous run died in straight off the filesystem, and either
-finishes the swap or puts the old pair back. A rerun after any kill is safe.
-
-The one state that is neither world is "new shards, no index" (killed between
-steps 4 and 5). Readers fail closed there, but note that build/upload.sh's
-`find precomputed -type f` would ship those new shards against R2's *old*
-index -- so the recovery pass is not decoration: run reshard.py to completion
-before any upload, and never upload out of a tree where BACKUP_DIR or REAP_DIR
-still exists.
-
-Reaping the old pair is a step too
-----------------------------------
-
-The last thing a successful swap does is delete the backup slot, and a
-recursive delete is not one filesystem operation -- it is thousands, and a
-kill lands in the middle of one. That matters because the slot's *contents*
-are what recovery reads the interrupted step off: `shutil.rmtree` walks
-depth-first, so it can perfectly well remove BACKUP_INDEX and then die with
-BACKUP_SHARDS still there, leaving "shards in the slot, no index" -- a layout
-no *swap* step produces, which is exactly why the recovery pass used to refuse
-to run at all, on a tree whose canonical pair was in fact whole and new.
-
-So the reap gets the same treatment as every other step: it is made to hinge
-on a single rename. BACKUP_DIR is renamed to REAP_DIR first, and only the
-renamed tree is deleted. The rename is atomic, so an interruption is either
-before it (a whole backup slot, classified by the five-step table below) or
-after it (no backup slot at all, plus a corpse under a name that means one
-thing only: "finish deleting me"). The slot's contents never have to be
-interpreted mid-deletion.
-
-The alternative -- teaching recovery that a coherent canonical pair plus an
-index-less slot means "a partly reaped corpse, finish it" -- was rejected
-because it costs the refusal its meaning. That same layout is what a
-half-finished *manual* restore looks like (an operator who copied shards into
-the slot and had not yet copied the index, which is the case _refuse() was
-written for), and a rule that deletes it cannot tell the two apart. The
-rename keeps the refusal narrow and true: it fires only for layouts no step of
-this script can produce.
+Copies byte-identical record boundaries from resource-detail-index.parquet
+(shard, offset, length per id; no JSON re-parsing or re-querying) into a
+staging pair, then swaps it into the exact paths build/upload.sh walks and
+public/assets/data-layer.js fetches -- nothing reads a "-small"-suffixed path,
+so a run that stopped short of the final swap ships nothing. Small shards
+exist because a single 238MB PUT hung under the deploy's network conditions;
+the handoff invariant is that OLD_INDEX exists only while its offsets address
+the shards under SRC_DIR, enforced by ordering and single renames so an
+interruption can leave the index absent but never present-and-wrong, with
+recover_interrupted_swap() classifying the interrupted step off the
+filesystem on every start. Reaping the old pair is itself a rename-then-delete
+step so a kill during the recursive delete cannot leave a layout that
+_refuse() would misread as an impossible swap state.
 """
 
 import pathlib
@@ -128,6 +52,8 @@ TARGET_BYTES = int(sys.argv[1]) if len(sys.argv) > 1 else 35_000_000
 
 
 def _refuse(diagnosis: str) -> None:
+    """Refuse with the on-disk layout and a restore instruction; raises SystemExit."""
+
     raise SystemExit(
         f"reshard.py: refusing to run -- {diagnosis}\n"
         f"  shards:        {SRC_DIR} ({'present' if SRC_DIR.is_dir() else 'ABSENT'})\n"

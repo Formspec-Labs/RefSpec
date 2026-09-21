@@ -1,4 +1,8 @@
-"""Official FEC committee-code capture, parsing, and package tests."""
+"""Official FEC committee-code capture, parsing, and package tests.
+
+Pins the three official HTML fixture digests and byte lengths, fail-closed
+digest/shape drift, code-list parsing, and a closed-resource package round-trip.
+"""
 
 from __future__ import annotations
 
@@ -50,6 +54,8 @@ def _portfolio(tmp_path: Path) -> fec.FECCommitteePortfolio:
 
 
 def test_live_snapshot_pins_match_exact_official_html_bytes() -> None:
+    """Pin byte length and sha256 for each of the three official FEC HTML fixtures."""
+
     master = MASTER_FILE_FIXTURE.read_bytes()
     committee_type = COMMITTEE_TYPE_FIXTURE.read_bytes()
     party = PARTY_FIXTURE.read_bytes()
@@ -67,6 +73,8 @@ def test_live_snapshot_pins_match_exact_official_html_bytes() -> None:
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
     tmp_path: Path,
 ) -> None:
+    """Pin content-addressed local capture and cache-hit recheck with acquisition modes."""
+
     pin = fec.FEC_COMMITTEE_MASTER_FILE_2026_08_03
 
     acquired = fec.acquire_fec_doc(pin, tmp_path, source_path=MASTER_FILE_FIXTURE)
@@ -81,6 +89,8 @@ def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(
 
 
 def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) -> None:
+    """Pin that an injected fetcher receives the pinned URL and timeout and yields fetcher mode."""
+
     payload = PARTY_FIXTURE.read_bytes()
     calls: list[tuple[str, float]] = []
 
@@ -113,6 +123,8 @@ def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) ->
 def test_committee_designation_codes_are_inline_deterministic_metadata(
     tmp_path: Path,
 ) -> None:
+    """Pin 6 designation codes as deterministicMetadata, with no subject concept and the FEC authority URI."""
+
     resource = fec.parse_committee_designation_codes(_master_file(tmp_path))
 
     assert len(resource.codes) == 6
@@ -128,6 +140,8 @@ def test_committee_designation_codes_are_inline_deterministic_metadata(
 def test_filing_frequency_codes_are_inline_deterministic_metadata(
     tmp_path: Path,
 ) -> None:
+    """Pin 6 filing-frequency codes as deterministicMetadata with their publisher labels."""
+
     resource = fec.parse_filing_frequency_codes(_master_file(tmp_path))
 
     assert len(resource.codes) == 6
@@ -140,6 +154,8 @@ def test_filing_frequency_codes_are_inline_deterministic_metadata(
 def test_organization_type_codes_are_inline_deterministic_metadata(
     tmp_path: Path,
 ) -> None:
+    """Pin 6 organization-type codes and their publisher labels."""
+
     resource = fec.parse_organization_type_codes(_master_file(tmp_path))
 
     assert len(resource.codes) == 6
@@ -151,6 +167,8 @@ def test_organization_type_codes_are_inline_deterministic_metadata(
 def test_committee_type_codes_preserve_explanations_and_strip_markup(
     tmp_path: Path,
 ) -> None:
+    """Pin 16 committee-type codes with markup stripped and explanation text preserved."""
+
     resource = fec.parse_committee_type_codes(_committee_type_doc(tmp_path))
 
     assert len(resource.codes) == 16
@@ -166,6 +184,8 @@ def test_committee_type_codes_preserve_explanations_and_strip_markup(
 def test_party_codes_preserve_case_sensitive_publisher_codes_and_notes(
     tmp_path: Path,
 ) -> None:
+    """Pin 95 case-sensitive party codes, including D/C and the LRU note."""
+
     resource = fec.parse_party_codes(_party_doc(tmp_path))
 
     assert len(resource.codes) == 95
@@ -179,6 +199,8 @@ def test_party_codes_preserve_case_sensitive_publisher_codes_and_notes(
 
 
 def test_portfolio_assembly_requires_all_five_resources(tmp_path: Path) -> None:
+    """Pin refusal when the portfolio is missing any of its five required resources."""
+
     designation = fec.parse_committee_designation_codes(_master_file(tmp_path))
     filing_freq = fec.parse_filing_frequency_codes(_master_file(tmp_path))
 
@@ -187,6 +209,8 @@ def test_portfolio_assembly_requires_all_five_resources(tmp_path: Path) -> None:
 
 
 def test_portfolio_records_report_type_and_cycle_gaps(tmp_path: Path) -> None:
+    """Pin that the portfolio records report-type and cycle/effective gaps with no effective_at values."""
+
     portfolio = _portfolio(tmp_path)
 
     assert any("report type" in gap.lower() for gap in portfolio.gaps)
@@ -207,6 +231,8 @@ def test_portfolio_records_report_type_and_cycle_gaps(tmp_path: Path) -> None:
 def test_validate_committee_master_record_accepts_known_codes(
     tmp_path: Path,
 ) -> None:
+    """Pin that a master record of known codes resolves every non-null field."""
+
     portfolio = _portfolio(tmp_path)
     record = {
         "cmte_dsgn": "P",
@@ -232,6 +258,8 @@ def test_validate_committee_master_record_accepts_known_codes(
 def test_validate_committee_master_record_fails_closed_on_unknown_codes(
     tmp_path: Path,
 ) -> None:
+    """Pin refusal of an unknown committee type rather than dropping it."""
+
     portfolio = _portfolio(tmp_path)
     record = {
         "cmte_dsgn": None,
@@ -246,6 +274,8 @@ def test_validate_committee_master_record_fails_closed_on_unknown_codes(
 
 
 def test_digest_drift_never_becomes_a_parsed_resource(tmp_path: Path) -> None:
+    """Pin that a same-length digest drift is refused before any resource is parsed."""
+
     payload = COMMITTEE_TYPE_FIXTURE.read_bytes()
     changed = payload.replace(b"House", b"HousE", 1)
     assert len(changed) == len(payload)
@@ -274,6 +304,8 @@ def test_digest_drift_never_becomes_a_parsed_resource(tmp_path: Path) -> None:
 
 
 def test_shape_drift_in_the_committee_type_table_fails_loudly(tmp_path: Path) -> None:
+    """Pin that a committee-type table without the expected columns raises."""
+
     mini_html = b"<!DOCTYPE html><html><body><table><tr><td>only one column</td></tr></table></body></html>"
     mini_pin = fec.FECSnapshotPin(
         source=fec.FEC_COMMITTEE_TYPE_CODES_DOC,
@@ -293,6 +325,8 @@ def test_shape_drift_in_the_committee_type_table_fails_loudly(tmp_path: Path) ->
 def test_shape_drift_when_inline_field_row_disappears_fails_loudly(
     tmp_path: Path,
 ) -> None:
+    """Pin that a master page lacking the CMTE_DSGN field row raises."""
+
     mini_html = (
         b"<!DOCTYPE html><html><body>"
         b'<a href="https://www.fec.gov/campaign-finance-data/committee-type-code-descriptions">t</a>'
@@ -317,6 +351,8 @@ def test_shape_drift_when_inline_field_row_disappears_fails_loudly(
 def test_committee_type_link_on_master_file_page_must_target_the_pinned_doc(
     tmp_path: Path,
 ) -> None:
+    """Pin refusal when the master page's committee-type link does not point at the pinned document."""
+
     payload = MASTER_FILE_FIXTURE.read_bytes()
     changed = payload.replace(
         b"https://www.fec.gov/campaign-finance-data/committee-type-code-descriptions",
@@ -340,6 +376,8 @@ def test_committee_type_link_on_master_file_page_must_target_the_pinned_doc(
 def test_package_round_trips_through_a_closed_source_controlled_resource(
     tmp_path: Path,
 ) -> None:
+    """Pin a closed round-trip: schema 2.0, controlledCodeList, no concept identity, 16 observations."""
+
     acquired = _committee_type_doc(tmp_path)
     resource = fec.parse_committee_type_codes(acquired)
 
@@ -357,6 +395,8 @@ def test_package_round_trips_through_a_closed_source_controlled_resource(
 
 
 def test_package_rejects_an_unknown_resource_family(tmp_path: Path) -> None:
+    """Pin refusal of an unknown resource family when building the package."""
+
     acquired = _committee_type_doc(tmp_path)
     resource = fec.parse_committee_type_codes(acquired)
 

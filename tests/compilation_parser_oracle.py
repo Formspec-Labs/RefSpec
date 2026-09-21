@@ -1,4 +1,4 @@
-"""Copied compilation checks from 53c0f387; only unchanged helpers are shared."""
+"""Test-only frozen Executive Order compilation-locator oracle copied from 53c0f387; helpers unchanged."""
 import re
 from refspec.registry.citation_grammar import (
     EoCompilationLocator, _ANOTHER_CITATION_AHEAD, _normalize_dashes,
@@ -45,11 +45,9 @@ _EO_COMPILATION = re.compile(
 def _compilation_end(match: re.Match[str]) -> str | None:
     """The volume's closing year, with an abbreviated one spelled out.
 
-    "1949-53" names the 1949-1953 compilation, and the two digits are the
-    same abbreviation :func:`_abbreviated_span` reads in a section span: the
-    repeated leading digits are dropped. Here the endpoints are YEARS, so what
-    is dropped is always the century — no ambiguity and no guard beyond
-    ordering, which refuses a pair that does not ascend.
+    "1949-53" names the 1949-1953 compilation: the repeated leading digits are
+    dropped exactly as :func:`_abbreviated_span` reads them in a section span,
+    and a pair that does not ascend keeps the raw two digits.
     """
 
     end = match.group("end")

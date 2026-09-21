@@ -1,4 +1,7 @@
-"""Atlas 3 emission coverage for the documented-roster adapter group."""
+"""Atlas 3 emission coverage for the documented-roster adapter group.
+
+Pins release keys, counts, cross-ring carriers, and the build's refusal guards.
+"""
 
 from __future__ import annotations
 
@@ -16,6 +19,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_complete_roster_adapter_set_emits_native_relations_and_two_cross_ring_carriers() -> None:
+    """Pins the nine roster release keys, their aggregate resource and relation
+    counts, and the two admitted cross-ring carriers.
+    """
+
     releases = adapters.load_registry_roster_releases(ROOT)
 
     assert [release.key for release in releases] == [
@@ -45,6 +52,8 @@ def test_complete_roster_adapter_set_emits_native_relations_and_two_cross_ring_c
 
 
 def test_federal_register_document_types_are_a_value_ring_code_release() -> None:
+    """Pins the four documented document types, their scheme IRI, and the seven presidential subtypes under PRESDOCU."""
+
     types, subtypes, _agencies = adapters._federal_register_releases(ROOT)
 
     assert types.resource_id == "federal-register-native-controls"
@@ -73,6 +82,10 @@ def test_federal_register_document_types_are_a_value_ring_code_release() -> None
 
 
 def test_federal_register_agencies_carry_publisher_ids_and_parent_relations() -> None:
+    """Agencies keep slug and id as notations and payload fields, mint no
+    identifier rows, and carry resolved parent relations.
+    """
+
     _types, _subtypes, agencies = adapters._federal_register_releases(ROOT)
 
     assert (agencies.profile, agencies.ring) == ("codeScheme", "entity")
@@ -105,6 +118,10 @@ def test_federal_register_agencies_carry_publisher_ids_and_parent_relations() ->
 
 
 def test_fcc_roster_replaces_the_observed_bureau_inventory() -> None:
+    """The published FCC bureau/office roster replaces the observed inventory,
+    with kind in payload rather than record status.
+    """
+
     (release,) = adapters._fcc_releases(ROOT)
 
     assert release.resource_id == "fcc-ecfs-native-controls"
@@ -127,6 +144,11 @@ def test_fcc_roster_replaces_the_observed_bureau_inventory() -> None:
 
 
 def test_federal_hierarchy_release_is_the_complete_entity_roster() -> None:
+    """Pins the 907-org roster, its 738 parent and 85,462 shared-CGAC
+    related-entity relations, the eight input roles, and the join's
+    no-equivalence claims.
+    """
+
     from refspec.atlas import v3_registry_nonemitters as nonemitters
 
     (release,) = adapters._federal_hierarchy_releases(ROOT)
@@ -214,6 +236,10 @@ def test_federal_hierarchy_release_is_the_complete_entity_roster() -> None:
 def test_ecfr_agencies_are_an_entity_roster_with_directed_cfr_title_relations(
     tmp_path: Path,
 ) -> None:
+    """Pins the 316-agency roster and its 446 directed entity-to-legalIdentity
+    references, including the two-reference panel row.
+    """
+
     from refspec.atlas import v3_registry_codes as code_adapters
 
     (release,) = adapters._ecfr_agency_releases(ROOT)
@@ -322,12 +348,11 @@ def test_cfr_subject_index_pins_every_page_it_reads() -> None:
 
 
 def test_cfr_part_subject_links_are_the_legal_identity_to_subject_crossing() -> None:
-    """The second admitted cross-ring cell gets its first real carrier.
+    """The second admitted cross-ring cell gets its carrier: OFR subject assignments against CFR parts.
 
-    REF-032 refused the cross-ring instance it found because it was "one
-    document's own page metadata read twice". This is the opposite shape: an
-    authority publishes subject assignments against a structural identity it
-    does not own the vocabulary of, revised annually, for every CFR part.
+    REF-032 refused the instance it found as one document's own page metadata
+    read twice; this is the opposite shape, an authority publishing subject
+    assignments against a structural identity whose vocabulary it does not own.
     """
 
     (release,) = adapters._cfr_subject_index_releases(ROOT)
@@ -349,9 +374,8 @@ def test_cfr_subject_index_terms_resolve_to_held_concepts_and_never_mint_one() -
     """The governed number: 863 terms resolve, 205 are skipped and counted.
 
     1 CFR 18.20 requires index terms drawn from the Federal Register Thesaurus
-    but permits agency-added terms, so a residue is expected. Every unresolved
-    term stays a publisher string on its part and produces no relation; none
-    of them becomes a concept.
+    but permits agency-added terms, so a residue is expected; every unresolved
+    term stays a publisher string on its part and produces no relation.
     """
 
     (release,) = adapters._cfr_subject_index_releases(ROOT)
@@ -382,12 +406,11 @@ def test_cfr_subject_index_terms_resolve_to_held_concepts_and_never_mint_one() -
 
 
 def test_agency_departure_from_the_controlled_vocabulary_is_measured_not_asserted() -> None:
-    """1 CFR 18.20's compliance rate, as a check rather than as prose.
+    """1 CFR 18.20's compliance rate is a check, not prose.
 
-    The regulation requires index terms drawn from the Federal Register
-    Thesaurus and permits agency-added ones, so the residue measures how far
-    agencies actually depart. `research/evidence/cfr-subject-index-2026-08-20/`
-    states these shares; this is what makes them fail when they move.
+    Pins 1,068 terms, 863 resolved via the API, 713 via the thesaurus, 869 by
+    either, and 199 by neither; the shares live in
+    ``research/evidence/cfr-subject-index-2026-08-20/``.
     """
 
     import json
@@ -411,11 +434,9 @@ def test_agency_departure_from_the_controlled_vocabulary_is_measured_not_asserte
 
 
 def test_cfr_parts_the_publisher_lists_twice_become_one_merged_resource() -> None:
-    """Three parts appear twice in the publisher's own pages.
-
-    Minting a second resource would split one legal identity in two; dropping
-    the second entry would lose terms. The adapter merges the term lists in
-    publisher order and records the duplication on the resource.
+    """Three parts appear twice in the publisher's own pages; they merge into
+    one resource with the duplicated terms kept in publisher order and the
+    duplication recorded.
     """
 
     (release,) = adapters._cfr_subject_index_releases(ROOT)
@@ -432,6 +453,10 @@ def test_cfr_parts_the_publisher_lists_twice_become_one_merged_resource() -> Non
 
 
 def test_regulations_gov_agencies_are_an_entity_roster_with_pinned_parents() -> None:
+    """Pins the 331-agency roster, its 160 parent relations, the full ABMC
+    payload, and the pinned source capture digest.
+    """
+
     (release,) = adapters._regulations_gov_agency_releases(ROOT)
 
     assert release.key == "regulations-gov-agencies-roster-2026-08-16"
@@ -504,6 +529,10 @@ def test_regulations_gov_agencies_are_an_entity_roster_with_pinned_parents() -> 
 
 
 def test_gao_topics_release_is_a_subject_ring_concept_scheme() -> None:
+    """Pins the 31-topic capture subset, its bare scheme, the excluded featured
+    entries, and the source-capture timestamps.
+    """
+
     (release,) = adapters._gao_releases(ROOT)
 
     assert release.resource_id == "gao-topics"
@@ -568,16 +597,13 @@ def test_gao_topic_page_supplement_refuses_a_browse_term_id_collision(
 
 
 def test_roster_releases_pass_the_generator_refusal_guards() -> None:
-    """Run the build's three refusal guards over the real emitted releases.
+    """Runs the build's REF-030, REF-031 and REF-032 refusal guards over the real emitted releases.
 
-    REF-030 (registrant populations), REF-031 (document populations), and
-    REF-032 (observed inventories) each install a refusal in
-    tools/generate_atlas_v3_full.py. The GAO release is the sensitive one:
-    its substrate must not collide with the refused
-    ``tests/fixtures/gao_topics/`` observation path, its bare scheme is the
-    blessed documented-successor scheme, and its IRIs must stay clear of the
-    refused ``https://www.gao.gov/products/`` document-population namespace.
-    This test runs the actual guard functions, not copies of their lists.
+    The GAO release is the sensitive one: its substrate must not collide with the
+    refused ``tests/fixtures/gao_topics/`` observation path, its bare scheme is
+    the blessed documented-successor scheme, and its IRIs must stay clear of the
+    refused ``https://www.gao.gov/products/`` document-population namespace. This
+    calls the actual guard functions, not copies of their lists.
     """
 
     import importlib
@@ -607,6 +633,8 @@ def test_roster_releases_pass_the_generator_refusal_guards() -> None:
 
 
 def test_roster_loader_parses_only_intersecting_groups(monkeypatch: pytest.MonkeyPatch) -> None:
+    """only_keys must skip every group it does not intersect, so unneeded loaders never run."""
+
     called: list[str] = []
 
     def fake_group(names: tuple[str, ...]) -> Any:
@@ -649,21 +677,19 @@ def test_roster_loader_parses_only_intersecting_groups(monkeypatch: pytest.Monke
 
 
 def test_roster_loader_refuses_unknown_keys() -> None:
+    """An unknown release key raises ValueError naming that the loader does not know it."""
     with pytest.raises(ValueError, match="does not know release keys"):
         adapters.load_registry_roster_releases(ROOT, only_keys={"not-a-roster-release"})
 
 
 def test_emitted_identifier_schemes_are_atlas_identifier_authorities() -> None:
-    """Identifier rows must claim schemes the build recognizes, at suite time.
+    """Identifier rows must claim schemes the descriptor graph profiles as identifierScheme, at suite time.
 
     ``_validate_compiled_producer_rows`` in tools/generate_atlas_v3_full.py
-    refuses any ``RegistryIdentifier`` whose scheme is not a ResourceScheme
-    the registry descriptors profile as ``identifierScheme`` -- but that
-    check lives 110 seconds into a full build. This test computes the exact
-    same authority set from the same descriptor graph and validates every
-    identifier the roster group and the treasury nonemitter (the one adapter
-    that legitimately mints identifier rows) emit, so an unregistered scheme
-    fails the suite, not the build.
+    enforces the same authority set 110 seconds into a full build; this computes
+    it from the same descriptor graph and validates every identifier the roster
+    group plus the treasury nonemitter (the one adapter that legitimately mints
+    identifier rows) emit, so an unregistered scheme fails the suite.
     """
 
     from rdflib import RDF, Dataset, Namespace, URIRef

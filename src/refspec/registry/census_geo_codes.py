@@ -1,40 +1,24 @@
 """Pinned Census TIGER GEOID structure and GNIS National File layout captures.
 
-This module packages the *identifier grammar and file structure* published
-by two related Census/USGS sources -- it never ingests bulk entity rows
-(all 50 states, every county, ...):
+Packages the *identifier grammar and file structure* published by two related
+Census/USGS sources, never bulk entity rows (all 50 states, every county, …):
+the eleven-row "GEOID Structure" table (State through ZCTA) from the Census
+Geography Program's geo-identifiers guidance page, and the GNIS National File
+layout PDF's 21-field table — name, type, length/decimals, and the publisher's
+own description cell for each, including ``feature_id`` and the
+``state_numeric``/``county_numeric`` FIPS-successor codes TIGER GEOIDs
+concatenate. Where the PDF merges one description cell across several rows
+(state, county, BGN, coordinate groups), the shared cell is carried verbatim
+on each member with the group recorded, never paraphrased.
 
-* TIGER/Line GEOID composition -- the catalog's
-  ``tiger-geo-line.html`` technical-documentation URL is a hub page that
-  links out to yearly downloadable PDFs; it does not itself publish the
-  GEOID composition table. That table is published on the companion
-  ``census.gov/programs-surveys/geography/guidance/geo-identifiers.html``
-  page under the same Census Geography Program, and this module pins one
-  real span from that page: the eleven-row "GEOID Structure" table (State
-  through ZCTA).
-
-* GNIS National File layout -- the catalog's ``download-gnis-data`` page
-  links to the official GNIS data-products file-format PDF, whose "File
-  format for Domestic National and States, Territories, and Associated
-  Areas" table documents all 21 National File fields: name, type,
-  length/decimals, and the publisher's own description cell for each,
-  including ``feature_id`` (see the PDF's Appendix 3 for the ANSI INCITS
-  446-2008 (R2018) standard) and the ``state_numeric``/``county_numeric``
-  FIPS-successor codes TIGER GEOIDs concatenate. The complete field layout
-  is parsed from the pinned PDF and every description is the publisher's
-  wording; where the PDF merges one description cell across several rows
-  (state, county, BGN, and coordinate groups), the shared cell is carried
-  verbatim on each member with the group recorded, never paraphrased.
-
-Two earlier captures left under REF-032. The ACS variables sample -- a
-curator-picked subset of a 635-row auto-generated listing -- was not a
-publisher scheme, and the guidance page's three-row GEO.ID/NAME example
-table published example values, not vocabulary; neither is packaged.
-
-Every observation keeps its exact publisher-issued identifier value; none is
-promoted to a Rulespec concept scheme, and ``conceptIdentityClaimed`` stays
-``False`` throughout. Acquisition accepts a local exact capture or an
-injected fetcher; importing this module never opens a network connection.
+Two earlier captures are deliberately not packaged: the ACS variables sample
+(a curator-picked subset of an auto-generated listing, not a publisher
+scheme) and the guidance page's three-row GEO.ID/NAME example table (example
+values, not vocabulary). Every observation keeps its exact publisher-issued
+identifier value, none is promoted to a Rulespec concept scheme, and
+``conceptIdentityClaimed`` stays ``False`` throughout. Acquisition accepts a
+local exact capture or an injected fetcher; importing this module never opens
+a network connection.
 """
 
 from __future__ import annotations

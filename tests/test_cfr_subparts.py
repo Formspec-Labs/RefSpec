@@ -1,4 +1,8 @@
-"""Real subpart contexts plus mutation controls; labels precede implementation."""
+"""Real subpart contexts plus mutation controls for the subpart grammar.
+
+Pins the EXPECTED rows for seven real sources and proves the new reader matches
+cfr_parser_oracle everywhere else, including unicode source coordinates.
+"""
 from dataclasses import asdict
 import json
 from pathlib import Path
@@ -22,6 +26,8 @@ EXPECTED = {
 
 @pytest.mark.parametrize('case', CASES, ids=lambda c: c['id'])
 def test_real_sources_preserve_subparts_and_every_unrelated_reading(case):
+    """Pin the frozen subpart/appendix/refusal rows and prove every unlisted reading still matches the old reader."""
+
     text = case['raw']
     assert parse_cfr_citations(text) == old_parse(text)
     rows = find_cfr_citations(text)
@@ -37,6 +43,8 @@ def test_real_sources_preserve_subparts_and_every_unrelated_reading(case):
 
 
 def test_ohio_alternatives_keep_connector_descriptors_and_written_context():
+    """Pin that a connector-led second alternative keeps its own span and written context, with no pinpoint."""
+
     raw = '49 CFR Part 172 subpart E (labeling) or subpart F (placarding)'
     a, b = find_cfr_citations(raw)
     assert a.text == '49 CFR Part 172 subpart E (labeling)'
@@ -55,6 +63,8 @@ def test_ohio_alternatives_keep_connector_descriptors_and_written_context():
     '49 CFR Part 172, subparts involving engines',
 ])
 def test_no_new_qualification_from_unrelated_or_damaged_text(text):
+    """Fail if unrelated or damaged text mints a subpart qualification the old reader did not."""
+
     assert find_cfr_citations(text) == old_find(text)
     assert parse_cfr_citations(text) == old_parse(text)
 
@@ -64,6 +74,8 @@ def test_no_new_qualification_from_unrelated_or_damaged_text(text):
     ', F refers to another document', ' or 40 CFR part 59, subpart F',
 ])
 def test_a_singular_subpart_does_not_license_unanchored_list_members(tail):
+    """Pin that a singular subpart does not extend past punctuation, except a newly anchored 40 CFR part."""
+
     text = '49 CFR Part 172 subpart E' + tail
     rows = find_cfr_citations(text)
     assert [(r.citation.cfr_title, r.subpart) for r in rows] == (
@@ -72,6 +84,8 @@ def test_a_singular_subpart_does_not_license_unanchored_list_members(tail):
 
 @pytest.mark.parametrize('separator', [' through ', ' to ', '–', '-'])
 def test_ranges_keep_stated_endpoints_without_enumeration(separator):
+    """Pin that E through G stays one row with subpart_end=G rather than enumerated members."""
+
     text = f'49 CFR part 172, subparts E{separator}G'
     row, = find_cfr_citations(text)
     assert (row.subpart, row.subpart_end) == ('E', 'G')
@@ -79,6 +93,8 @@ def test_ranges_keep_stated_endpoints_without_enumeration(separator):
 
 
 def test_plural_subparts_and_repeats_use_exact_unicode_source_coordinates():
+    """Pin exact unicode offsets and per-member text for repeated plural lists after an emoji."""
+
     source = '45 CFR part 46, subparts B, C, and D'
     text = f'😀 {source}; then {source}'
     rows = find_cfr_citations(text)
@@ -88,11 +104,15 @@ def test_plural_subparts_and_repeats_use_exact_unicode_source_coordinates():
 
 
 def test_an_explicit_plural_continuation_licenses_its_own_list():
+    """Pin that an explicit "subparts F and G" continuation yields E, F, and G."""
+
     rows = find_cfr_citations('49 CFR part 172 subpart E or subparts F and G')
     assert [r.subpart for r in rows] == list('EFG')
 
 
 def test_parenthetical_qualification_is_source_text_not_a_subpart_name():
+    """Pin that a parenthetical stays source text, not a subpart name or pinpoint."""
+
     text = '40 CFR part 3, subpart E (employees must state their own views)'
     row, = find_cfr_citations(text)
     assert row.text == text and row.subpart == 'E'
@@ -100,11 +120,15 @@ def test_parenthetical_qualification_is_source_text_not_a_subpart_name():
 
 
 def test_invalid_titles_keep_their_existing_verdict():
+    """Pin that an impossible CFR title still yields its subpart, with title_is_possible False."""
+
     row, = find_cfr_citations('99 CFR part 172, subpart E')
     assert not row.citation.title_is_possible and row.subpart == 'E'
 
 
 def test_unqualified_serialization_has_only_empty_new_optional_fields():
+    """Pin that an unqualified citation serializes the four new optional fields as None only."""
+
     row, = find_cfr_citations('40 CFR 82.154(a)')
     assert {k: v for k, v in asdict(row).items() if k in
             ('subpart', 'subpart_end', 'appendix', 'qualifier_status')} == {

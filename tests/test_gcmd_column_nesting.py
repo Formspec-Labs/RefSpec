@@ -1,14 +1,10 @@
-"""Derived skos:broader edges from GCMD Science Keywords column nesting.
+"""Derived skos:broader edges from GCMD Science Keywords column nesting (REF-041; third derived-graph rule, REF-043).
 
-The judgment is REF-041 in docs/decisions.md; the registration as the
-derived graph's third rule is REF-043. These tests prove the derivation
-over synthetic asserted facts (including the scheme scoping the MeSH rule
-had to learn from an adversarial battery), content-derived identity that
-matches the binding's ``rdf_node_digest`` formula, the constant agreement
-between this producer module and the binding's standalone validator, and
--- when the pinned 24.4 CSV is cached -- that the asserted-payload path
-reproduces the frozen edge set and agrees pair for pair with REF-041's
-committed CSV-level oracle.
+The tests prove the derivation over synthetic asserted facts, including the scheme scoping the MeSH
+rule had to learn from an adversarial battery; content-derived identity matching the binding's
+``rdf_node_digest`` formula; constant agreement between this producer and the binding's standalone
+validator; and, when the pinned 24.4 CSV is cached, that the asserted-payload path reproduces the
+frozen edge set and agrees pair for pair with REF-041's committed CSV-level oracle.
 """
 
 from __future__ import annotations
@@ -32,6 +28,8 @@ SUBJECT_RING = gcn.ATLAS_SUBJECT_RING
 
 
 def _canonical_sha256(payload: object, *, terminal_lf: bool = True) -> str:
+    """The binding's canonical-JSON digest: sorted compact JSON plus a terminal newline."""
+
     text = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     if terminal_lf:
         text += "\n"
@@ -39,12 +37,16 @@ def _canonical_sha256(payload: object, *, terminal_lf: bool = True) -> str:
 
 
 def _payload_text(**columns: str | None) -> str:
+    """A native-payload JSON text with every GCMD column key present, None when unset."""
+
     values: dict[str, str | None] = dict.fromkeys(gcn.GCMD_PAYLOAD_PATH_KEYS)
     values.update(columns)
     return json.dumps(values, sort_keys=True, separators=(",", ":"))
 
 
 def _escaped(text: str) -> str:
+    """Escape backslashes and quotes for an N-Quads literal."""
+
     return text.replace("\\", "\\\\").replace('"', '\\"')
 
 
@@ -55,6 +57,8 @@ def _resource_lines(
     scheme: str = GCMD_SCHEME,
     ring: str = SUBJECT_RING,
 ) -> list[str]:
+    """Asserted N-Quads lines for one GCMD-shaped keyword resource at the given column path."""
+
     subject = f"<{iri}>"
     record = f"<urn:ref:atlas-test:source-record:{iri.rsplit(':', 1)[-1]}>"
     columns = dict(zip(gcn.GCMD_PAYLOAD_PATH_KEYS, [*path, *(None,) * (7 - len(path))], strict=True))
@@ -67,6 +71,8 @@ def _resource_lines(
 
 
 def _facts_and_digests(lines: list[str]) -> tuple[derived_graph.AssertedFactView, dict[str, str]]:
+    """Collect the asserted fact view and the node digests for the payload-bearing evidence nodes."""
+
     facts = derived_graph.collect_asserted_fact_view(lines)
     wanted = gcn.gcmd_column_nesting_evidence_nodes(facts)
     node_digest = derived_graph.collect_node_digests(lines, wanted)
@@ -78,6 +84,8 @@ def _context(
     *,
     generated_at: str = "2026-01-01T00:00:00+00:00",
 ) -> derived_graph.DerivationContext:
+    """A derivation context over the lines with a fixed generated_at for deterministic digests."""
+
     facts, node_digest = _facts_and_digests(lines)
     return derived_graph.DerivationContext(
         facts=facts,
@@ -92,6 +100,8 @@ CHILD = "urn:ref:atlas-test:gcmd:agriculture"
 
 
 def _pair_lines() -> list[str]:
+    """The parent/child pair most tests derive from."""
+
     return [
         *_resource_lines(PARENT, path=("EARTH SCIENCE",)),
         *_resource_lines(CHILD, path=("EARTH SCIENCE", "AGRICULTURE")),
@@ -360,12 +370,11 @@ def test_binding_carries_the_same_rule_identity() -> None:
 
 
 def test_validator_row_and_replay_are_scoped_to_the_gcmd_scheme() -> None:
-    """The binding-side scope check the MeSH rule had to learn from an
-    adversarial battery, proven directly for this rule: a row whose
-    endpoints sit in a foreign scheme is refused even when its evidence
-    and payload parentage are perfect, and the whole-of-rule replay
-    ignores foreign-scheme column-shaped payloads instead of demanding
-    edges for them."""
+    """The binding-side scope check proven for this rule: a foreign-scheme row with perfect parentage is refused.
+
+    Whole-of-rule replay ignores foreign-scheme column-shaped payloads instead of demanding edges
+    for them.
+    """
 
     sys.path.insert(0, str(BINDING_TOOLS))
     try:
@@ -495,9 +504,9 @@ def test_real_24_4_release_reproduces_the_frozen_edge_set(tmp_path: Path) -> Non
     reason="exact cached GCMD 24.4 Science Keywords CSV is not available",
 )
 def test_real_24_4_edges_agree_pair_for_pair_with_the_ref041_oracle(tmp_path: Path) -> None:
-    """REF-041's CSV-level derivation is the committed oracle: the same
-    pinned bytes read through the asserted-payload path must derive the
-    identical UUID pair set, not merely the same count."""
+    """REF-041's committed CSV derivation is the oracle: the asserted-payload path must derive the
+    identical UUID pair set, not merely the same count.
+    """
 
     from refspec.registry import gcmd_science_keywords as gcmd
     from refspec.registry.gcmd_science_keywords_hierarchy import derive_gcmd_science_keywords_hierarchy

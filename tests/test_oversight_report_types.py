@@ -1,11 +1,10 @@
-"""Oversight.gov federal Report Type facet capture, parsing, and packaging tests.
+"""Oversight.gov federal Report Type facet: pinned capture, strict select parsing, controlled-code packaging.
 
-oversight.gov publishes no JSON constants endpoint or subject/topic taxonomy
-for federal reports. This module -- and these tests -- only ever capture and
-parse the Report Type <select> filter embedded in the /reports/federal
-listing page, matching the catalog decision that this source supplies
+oversight.gov publishes no JSON constants endpoint or subject/topic taxonomy,
+so this module -- and these tests -- only ever capture and parse the Report
+Type <select> filter on the /reports/federal listing page, supplying
 deterministic report-genre metadata (audit, inspection/evaluation,
-investigation, review, peer review, semiannual, and other) and never a topic
+investigation, review, peer review, semiannual, other) and never a topic
 vocabulary.
 """
 
@@ -40,10 +39,14 @@ EXPECTED_OPTIONS = (
 
 
 def _payload() -> bytes:
+    """Return the pinned reports/federal listing fixture bytes."""
+
     return REPORTS_FEDERAL_FIXTURE.read_bytes()
 
 
 def _acquire(tmp_path: Path) -> oversight.AcquiredOversightReportTypesPage:
+    """Acquire the pinned page from the fixture into a content-addressed store."""
+
     return oversight.acquire_oversight_report_types_page(
         oversight.OVERSIGHT_REPORT_TYPES_2026_08_03,
         tmp_path,
@@ -52,10 +55,14 @@ def _acquire(tmp_path: Path) -> oversight.AcquiredOversightReportTypesPage:
 
 
 def _parsed(tmp_path: Path) -> oversight.ParsedOversightReportTypesPage:
+    """Acquire and parse the pinned page in one step."""
+
     return oversight.parse_oversight_report_types_page(_acquire(tmp_path))
 
 
 class _StaticFetcher:
+    """Return the given body for any fetch, ignoring the timeout."""
+
     def __init__(self, body: bytes) -> None:
         self._body = body
 
@@ -70,12 +77,16 @@ class _StaticFetcher:
 
 
 def test_module_import_opens_no_network_connection() -> None:
+    """Pins that the module exposes acquisition and fetcher interfaces without I/O at import."""
+
     # Importing must never perform I/O; only an explicit fetcher call may.
     assert hasattr(oversight, "acquire_oversight_report_types_page")
     assert hasattr(oversight, "OversightPageFetcher")
 
 
 def test_pinned_fixture_matches_the_module_snapshot_pin_exactly() -> None:
+    """Pins the fixture's byte length and digest to the module's snapshot pin."""
+
     payload = _payload()
 
     assert len(payload) == oversight.OVERSIGHT_REPORT_TYPES_2026_08_03.expected_byte_length
@@ -83,6 +94,8 @@ def test_pinned_fixture_matches_the_module_snapshot_pin_exactly() -> None:
 
 
 def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(tmp_path: Path) -> None:
+    """Pins the content-addressed path, local mode, and cache-hit re-verification."""
+
     pin = oversight.OVERSIGHT_REPORT_TYPES_2026_08_03
 
     acquired = _acquire(tmp_path)
@@ -98,6 +111,8 @@ def test_local_capture_is_content_addressed_and_rechecked_on_cache_hit(tmp_path:
 
 
 def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) -> None:
+    """Pins that only the injected fetcher is called, with the requested timeout and content type."""
+
     payload = _payload()
     calls: list[tuple[str, float]] = []
 
@@ -126,6 +141,8 @@ def test_injected_fetcher_is_the_only_live_transport_boundary(tmp_path: Path) ->
 def test_report_types_are_captured_as_deterministic_genre_metadata_with_publisher_ids(
     tmp_path: Path,
 ) -> None:
+    """Pins the ten (value, label) pairs in order, the typed identifier, and the two documented gaps."""
+
     parsed = _parsed(tmp_path)
 
     assert len(parsed.options) == 10
@@ -155,6 +172,8 @@ def test_report_types_are_captured_as_deterministic_genre_metadata_with_publishe
 
 
 def test_select_shape_drift_fails_closed(tmp_path: Path) -> None:
+    """Pins that a renamed Report Type select attribute is refused."""
+
     payload = _payload()
     mutated = payload.replace(
         b'data-drupal-selector="edit-field-report-type"',
@@ -173,6 +192,8 @@ def test_select_shape_drift_fails_closed(tmp_path: Path) -> None:
 
 
 def test_missing_multiple_attribute_fails_closed(tmp_path: Path) -> None:
+    """Pins that a select without the multiple attribute is refused."""
+
     payload = _payload()
     mutated = payload.replace(
         b'multiple="multiple" name="field_report_type[]"',
@@ -191,6 +212,8 @@ def test_missing_multiple_attribute_fails_closed(tmp_path: Path) -> None:
 
 
 def test_duplicate_publisher_values_fail_closed(tmp_path: Path) -> None:
+    """Pins that a duplicate publisher option value is refused."""
+
     payload = _payload()
     mutated = payload.replace(b'value="4">CIGIE Annual Report', b'value="3">CIGIE Annual Report')
     assert len(mutated) == len(payload)
@@ -205,6 +228,8 @@ def test_duplicate_publisher_values_fail_closed(tmp_path: Path) -> None:
 
 
 def test_no_options_fails_closed(tmp_path: Path) -> None:
+    """Pins that a select publishing no options is refused."""
+
     payload = _payload()
     start_marker = b'id="edit-field-report-type--2" class="form-select usa-select">'
     end_marker = b"</select>"
@@ -224,6 +249,8 @@ def test_no_options_fails_closed(tmp_path: Path) -> None:
 
 
 def test_digest_drift_never_publishes_source(tmp_path: Path) -> None:
+    """Pins that digest drift refuses and leaves no cached file or temp artifact."""
+
     payload = _payload()
     changed = payload.replace(b">Audit<", b">Audlt<")
     assert len(changed) == len(payload)
@@ -239,6 +266,8 @@ def test_digest_drift_never_publishes_source(tmp_path: Path) -> None:
 
 
 def test_access_denied_or_challenge_response_never_publishes_source(tmp_path: Path) -> None:
+    """Pins that an interstitial challenge page is refused and never cached."""
+
     blocked_body = b"<!doctype html><html><head><title>Just a moment...</title></head><body></body></html>"
     pin = replace(
         oversight.OVERSIGHT_REPORT_TYPES_2026_08_03,
@@ -251,6 +280,8 @@ def test_access_denied_or_challenge_response_never_publishes_source(tmp_path: Pa
 
 
 def test_off_host_source_url_is_rejected() -> None:
+    """Pins that a source URL outside oversight.gov is refused."""
+
     with pytest.raises(oversight.OversightAcquisitionError, match="official HTTPS oversight.gov URL"):
         oversight.OversightReportTypesSnapshotPin(
             source_url="https://example.com/reports/federal",
@@ -261,6 +292,8 @@ def test_off_host_source_url_is_rejected() -> None:
 
 
 def test_wrong_official_path_is_rejected() -> None:
+    """Pins that an oversight.gov path other than the federal reports listing is refused."""
+
     with pytest.raises(oversight.OversightAcquisitionError, match="official federal reports listing page"):
         oversight.OversightReportTypesSnapshotPin(
             source_url="https://www.oversight.gov/reports/state",
@@ -271,6 +304,8 @@ def test_wrong_official_path_is_rejected() -> None:
 
 
 def test_package_is_a_controlled_code_list_not_a_concept_scheme(tmp_path: Path) -> None:
+    """Pins the bundle as a controlledCodeList of deterministicMetadata observations with no use ceiling."""
+
     acquired = _acquire(tmp_path)
     parsed = oversight.parse_oversight_report_types_page(acquired)
 
@@ -297,6 +332,8 @@ def test_package_is_a_controlled_code_list_not_a_concept_scheme(tmp_path: Path) 
 
 
 def test_package_gaps_document_missing_topic_taxonomy_and_volatile_page(tmp_path: Path) -> None:
+    """Pins the two coverage gaps: no subject taxonomy and no stable re-fetchable release."""
+
     acquired = _acquire(tmp_path)
     parsed = oversight.parse_oversight_report_types_page(acquired)
     bundle = oversight.build_oversight_report_types_package(acquired, parsed)
@@ -307,6 +344,8 @@ def test_package_gaps_document_missing_topic_taxonomy_and_volatile_page(tmp_path
 
 
 def test_package_round_trips_through_a_closed_directory(tmp_path: Path) -> None:
+    """Pins the reopened digest, source bytes, and the Inspection/Evaluation observation."""
+
     acquired = _acquire(tmp_path)
     parsed = oversight.parse_oversight_report_types_page(acquired)
     bundle = oversight.build_oversight_report_types_package(acquired, parsed)
@@ -322,6 +361,8 @@ def test_package_round_trips_through_a_closed_directory(tmp_path: Path) -> None:
 
 
 def test_fixture_digest_is_derived_from_exact_bytes() -> None:
+    """Pins that digesting the fixture is stable and changes with a trailing byte."""
+
     payload = _payload()
     assert oversight.sha256_digest(payload) == oversight.sha256_digest(payload)
     assert oversight.sha256_digest(payload) != oversight.sha256_digest(payload + b" ")

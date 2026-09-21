@@ -36,6 +36,7 @@ DEFAULT_ALLOWED_SIGNERS = REPOSITORY_ROOT / "docs" / "seal-allowed-signers"
 
 
 def _mint(args: argparse.Namespace) -> int:
+    """Mint a seal, refusing a distribution that carries no acceptance receipt."""
     root = Path(args.distribution)
     acceptance = root / ACCEPTANCE_MEMBER
     if not acceptance.is_file():
@@ -69,6 +70,7 @@ def _mint(args: argparse.Namespace) -> int:
 
 
 def _verify(args: argparse.Namespace) -> int:
+    """Verify a seal against the allowed-signers file and print the result."""
     result = verify_seal(
         args.distribution,
         args.seal,

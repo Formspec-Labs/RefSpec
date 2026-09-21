@@ -46,6 +46,8 @@ CFR_AS_READ = (
 
 
 def test_the_three_definitions_are_the_publishers_words() -> None:
+    """Pins the three citation-type definitions to the rendered-page transcription."""
+
     assert set(CITATION_TYPES) == set(AS_READ)
     for citation_type, text in AS_READ.items():
         assert DEFINITIONS[citation_type] == text

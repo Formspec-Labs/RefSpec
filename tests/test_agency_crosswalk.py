@@ -1,19 +1,14 @@
 """Agency crosswalk: curated sealed-build data plus the three measured rules.
 
-RefSpec intake ledger port 1.5. ``refspec.registry.agency_crosswalk`` ships
-the sealed 2026-08-02 agency-crosswalk build's mapping as curated data
-(decision-tree branch 3 -- see the module docstring for why exact
-re-derivation from local ``~/Work/corpora`` inputs is not currently
-possible) plus small, data-independent reimplementations of its three
-measured rules. This suite:
-
-* pins the sealed receipt's tier histogram and several specific real
-  mappings, named by agency, against the shipped data;
-* proves each of the three rules with a positive and a negative fixture; and
-* cross-checks the shipped rule functions against the *entire* embedded
-  dataset (all 316 codes / 914 candidates), so a change to the ranking or
-  tiering algorithm that disagrees with the sealed build's own verdict on
-  any single code fails immediately.
+``refspec.registry.agency_crosswalk`` ships the sealed 2026-08-02
+agency-crosswalk build's mapping as curated data (decision-tree branch 3:
+exact re-derivation from local corpora inputs is not currently possible) plus
+data-independent reimplementations of its three measured rules. The suite
+pins the sealed receipt's tier histogram and named real mappings, proves each
+rule with positive and negative fixtures, and cross-checks the shipped rules
+against the entire embedded dataset (316 codes / 914 candidates) so any
+ranking or tiering change that disagrees with the sealed build on a single
+code fails immediately.
 """
 
 from __future__ import annotations
@@ -130,10 +125,9 @@ def test_candidate_rows_group_correctly_under_their_own_agency_code() -> None:
 
 
 def test_rule3_specificity_margin_prefers_the_sub_agency_within_the_margin() -> None:
-    """FAA: the department's share (0.999843) is HIGHER than the bureau's
-    (0.999056), but the 0.000787 gap is inside SPECIFICITY_MARGIN (0.05), so
-    the deeper slug (the sub-agency) wins -- the positive case the reference
-    builder's own docstring names.
+    """FAA's bureau share (0.999056) trails its department's (0.999843), but the 0.000787 gap is
+    inside SPECIFICITY_MARGIN (0.05), so the deeper slug wins -- the positive case the reference
+    builder names.
     """
     candidates = m.candidates_for_code("FAA")
     department = next(c for c in candidates if c.agency_slug == "transportation-department")
@@ -149,11 +143,8 @@ def test_rule3_specificity_margin_prefers_the_sub_agency_within_the_margin() -> 
 
 
 def test_rule3_specificity_margin_does_not_reach_a_sub_agency_below_the_margin() -> None:
-    """BOEM: the bureau's share (0.935103) is 0.0649 below the department's
-    (1.0) -- outside SPECIFICITY_MARGIN (0.05) -- so depth is never
-    consulted and the sub-agency is correctly NOT preferred. This is the
-    negative fixture: a sub-agency whose share gap exceeds the margin must
-    lose despite being the more specific slug.
+    """BOEM's bureau share (0.935103) is 0.0649 below its department's (1.0), outside
+    SPECIFICITY_MARGIN (0.05), so depth is never consulted and the more specific slug must lose.
     """
     candidates = m.candidates_for_code("BOEM")
     department = next(c for c in candidates if c.agency_slug == "interior-department")
@@ -169,8 +160,8 @@ def test_rule3_specificity_margin_does_not_reach_a_sub_agency_below_the_margin()
 
 
 def test_rule3_margin_is_exclusive_at_the_boundary() -> None:
-    """A candidate exactly SPECIFICITY_MARGIN below the best share is tied
-    (inclusive `>=`); a hair further below is not.
+    """A candidate exactly SPECIFICITY_MARGIN below the best share ties on inclusive ``>=`` and wins
+    on depth; a hair further below does not.
     """
     tied = [
         m.CrosswalkCandidateShare("deep-agency", 0.95, depth=1),
@@ -265,11 +256,8 @@ def test_rule2_build_normalized_docket_index_groups_by_key() -> None:
 
 @pytest.mark.slow
 def test_rule2_real_dockets_have_zero_normalization_collisions() -> None:
-    """Cross-check against the byte-identical real dockets.parquet input
-    (one of three of the sealed receipt's four raw inputs that still match
-    -- see AGENCY_CROSSWALK_REGENERATION_STATUS): the sealed build's own
-    claim of zero normalized-key collisions across 276,326 real dockets
-    still holds.
+    """The sealed build's claim of zero normalized-key collisions across 276,326 real dockets holds
+    against the byte-identical pinned dockets.parquet (see AGENCY_CROSSWALK_REGENERATION_STATUS).
     """
     path = REGENERATION_INPUTS_ROOT / "dockets.parquet"
     if not path.exists():
@@ -310,24 +298,18 @@ def _naive_prefix_guess(docket_like: str) -> str:
 
 
 def test_rule1_no_docket_prefix_inference_fabricates_nonexistent_codes() -> None:
-    """Real Federal Register docket-link fields carry docket-like strings
-    that are not regulations.gov dockets at all (the module docstring's
-    579,669-of-715,080 "foreign identifier" population): IRS's Treasury
-    regulation-project numbers ("REG-...") and EPA's own Federal Register
-    document numbers ("FRL-..."). A prefix guess on either fabricates an
-    agency code that does not exist anywhere in the real 316-code universe.
+    """The 579,669-of-715,080 "foreign identifier" docket-link values include IRS Treasury
+    regulation-project numbers ("REG-...") and EPA Federal Register document numbers ("FRL-..."),
+    whose prefix guess fabricates an agency code absent from the real 316-code universe.
     """
     assert _naive_prefix_guess("REG-100163-00") not in m.AGENCY_CROSSWALK_BY_CODE
     assert _naive_prefix_guess("FRL-6543-2") not in m.AGENCY_CROSSWALK_BY_CODE
 
 
 def test_rule1_no_docket_prefix_inference_cannot_trust_a_compound_string() -> None:
-    """"CMS-0003-F and CMS-0005-F" names two dockets in one field value. Its
-    prefix happens to spell a real code (CMS) -- which is exactly the trap:
-    a prefix guess cannot distinguish "one valid docket id" from "two
-    dockets joined by 'and'", so resolve_docket_agency_code never parses a
-    docket id's characters at all, only ever looking it up as a whole
-    string (rule 1), which correctly finds no match for this malformed value.
+    """"CMS-0003-F and CMS-0005-F" names two dockets in one field and its prefix spells a real code
+    (CMS) -- the trap a prefix guess cannot see; whole-string lookup (rule 1) correctly returns
+    not_found for the joined value.
     """
     compound = "CMS-0003-F and CMS-0005-F"
     assert _naive_prefix_guess(compound) in m.AGENCY_CROSSWALK_BY_CODE  # the trap: looks right
@@ -337,9 +319,7 @@ def test_rule1_no_docket_prefix_inference_cannot_trust_a_compound_string() -> No
 
 
 def test_rule1_resolve_docket_agency_code_never_inspects_prefix_characters() -> None:
-    """A docket id sharing a real agency's exact prefix letters but
-    registered under a DIFFERENT code must resolve to the code actually on
-    file, never to a guess from its own letters.
+    """A docket spelling a real agency's prefix but registered under another code must resolve to the code on file.
     """
     docket_codes = {"EPA-HQ-OW-2020-0001": "OTHER-AGENCY"}
     result = m.resolve_docket_agency_code("EPA-HQ-OW-2020-0001", docket_codes)
@@ -348,9 +328,7 @@ def test_rule1_resolve_docket_agency_code_never_inspects_prefix_characters() -> 
 
 
 def test_module_exposes_no_prefix_inference_helper() -> None:
-    """Structural guard: nothing in the public API guesses from a docket
-    string's prefix. If a future change adds one, this test names it.
-    """
+    """Structural guard: no exported name guesses from a docket prefix, and a future one is named here."""
     suspicious = {name for name in m.__all__ if "prefix" in name.lower() or "guess" in name.lower()}
     assert suspicious == set()
 

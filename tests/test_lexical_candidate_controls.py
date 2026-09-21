@@ -22,6 +22,8 @@ def _concept(side: str, identifier: str, label: str, **values: object) -> AtlasC
 
 
 def test_every_scorer_declares_and_obeys_its_ranking_direction() -> None:
+    """Pin that each scorer's declared direction ranks the near-duplicate first and the unrelated choice last."""
+
     choices = ("conference paper", "conference papers", "marine zoology")
 
     for spec in lexical.SCORER_SPECS:
@@ -37,6 +39,8 @@ def test_every_scorer_declares_and_obeys_its_ranking_direction() -> None:
 
 
 def test_arm_output_is_identical_after_reversing_input_sequences() -> None:
+    """Pin that reports, pair ranks, and coverage match after reversing inputs, modulo elapsed time."""
+
     sources = (
         _concept("source", "b", "Paper acceptance"),
         _concept("source", "a", "Conference chair"),
@@ -84,6 +88,8 @@ def test_arm_output_is_identical_after_reversing_input_sequences() -> None:
 
 
 def test_equal_scores_break_ties_by_canonical_target_member() -> None:
+    """Pin that equal scores break ties toward the canonical target member."""
+
     source = _concept("source", "only", "Conference")
     target_b = _concept("target", "b", "Meeting")
     target_a = _concept("target", "a", "Meeting")
@@ -111,6 +117,8 @@ def test_equal_scores_break_ties_by_canonical_target_member() -> None:
 
 
 def test_retrieval_challenges_are_separate_from_mapping_relation_semantics() -> None:
+    """Pin that lexical challenges stay separate from mapping relations, with no cross-lingual challenge."""
+
     left = _concept("source", "paper", "Accepted paper")
     right = _concept("target", "paper", "Accepted paper")
 
@@ -123,6 +131,8 @@ def test_retrieval_challenges_are_separate_from_mapping_relation_semantics() -> 
 
 
 def test_atlas_mapping_semantics_come_from_typed_assertions(tmp_path) -> None:
+    """Pin that mapping relations come from typed assertion files, broadMatch mapping to broad."""
+
     left = _concept("source", "paper", "Paper")
     right = _concept("target", "publication", "Publication")
     case = lexical.shared_benchmark.AlignmentCase(
