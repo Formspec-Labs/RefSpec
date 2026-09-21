@@ -48,8 +48,8 @@
     "refspec.registry.uslm",
     "refspec.registry.xml_text"
   ],
-  "indexDigest": "sha256:186d32d011ed494b407b872dd103494d33167fe646e50e19180bfcfeac7c80ba",
-  "indexId": "urn:ref:atlas-index:186d32d011ed494b407b872dd103494d33167fe646e50e19180bfcfeac7c80ba",
+  "indexDigest": "sha256:f7ea99d919c906d480955d374c04af527148c26e6863e9c04a823996963d9bce",
+  "indexId": "urn:ref:atlas-index:f7ea99d919c906d480955d374c04af527148c26e6863e9c04a823996963d9bce",
   "nonAuthorizing": true,
   "recordedAt": "2026-09-21T00:00:00Z",
   "resourceCatalogDigest": "sha256:51f9d1085b5eabc35713c5d10fb1c6c4c6da50b09bf31e51da97b2abce8cf2c8",
@@ -669,7 +669,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_doe_osti_thesaurus.py",
-          "sha256": "sha256:604cbfac113664c4680bc89a9b1cfba85578d8a041e8f848c747ac28ff74d64d"
+          "sha256": "sha256:b67a858f0e33c43f08b950909e7796420ace372c4152dfa1a643cb025eba3444"
         },
         {
           "kind": "sourceImplementation",
@@ -679,8 +679,8 @@
       ],
       "release": null,
       "resourceId": "doe-osti-semantic-thesaurus-2020",
-      "rowDigest": "sha256:4f51615e82623171724ca38750dff4460a81adf78edcd9fc5e09645c5c9625f6",
-      "rowId": "urn:ref:atlas-index-row:4f51615e82623171724ca38750dff4460a81adf78edcd9fc5e09645c5c9625f6",
+      "rowDigest": "sha256:2daa263f870ab1914b8dcf5a6733956f5eb22091d40253fa044e8b1104278c44",
+      "rowId": "urn:ref:atlas-index-row:2daa263f870ab1914b8dcf5a6733956f5eb22091d40253fa044e8b1104278c44",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.doe_osti_thesaurus"
     },
@@ -2421,7 +2421,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_lcsh.py",
-          "sha256": "sha256:f99b0a3ef90c00d810aab5e7fd5a7f00fc0f64f49a42df0fc30fa5c84f1902b5"
+          "sha256": "sha256:41d46c7fb6e844df1da8fe893c7e0fdda06fecdf5d8e18fcc064e3f84ee01e4b"
         },
         {
           "kind": "parserTest",
@@ -2456,13 +2456,13 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/lcsh_topical.py",
-          "sha256": "sha256:2aaf3d892315c2b0a30a8200f3c31dcd94a46e855318dbd4e5db12e5150a94f4"
+          "sha256": "sha256:dec8fa90aa72679ce7c5f8457d9bc9a2b26deeb4777c8b1da36a12f966a3dab1"
         }
       ],
       "release": null,
       "resourceId": "lcsh-subjects",
-      "rowDigest": "sha256:f4154a08597cab46049227072efb58f0ea8864b710fd9881fd82a8af45959add",
-      "rowId": "urn:ref:atlas-index-row:f4154a08597cab46049227072efb58f0ea8864b710fd9881fd82a8af45959add",
+      "rowDigest": "sha256:e18dc62be508930d0e4d937ff6422fa750fd47b16f6752f0ac2f9f46c1e87fed",
+      "rowId": "urn:ref:atlas-index-row:e18dc62be508930d0e4d937ff6422fa750fd47b16f6752f0ac2f9f46c1e87fed",
       "semanticRing": "subject",
       "sourceModule": "refspec.registry.lcsh_topical"
     },
@@ -3062,7 +3062,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_oversight_report_types.py",
-          "sha256": "sha256:c745744caa3409736f77285d398282b73944961fdf9c2c14acfe825ab4550e4a"
+          "sha256": "sha256:193adcaa7d8e1a29588192562f2f96672416197d3011daf605a2b81c8e8b3e68"
         },
         {
           "kind": "sourceImplementation",
@@ -3072,8 +3072,8 @@
       ],
       "release": null,
       "resourceId": "oversight-report-types",
-      "rowDigest": "sha256:d37346bfbd8e55e5eef5c70f505f43b037ac1959b19e3f4962beedeb9a04688c",
-      "rowId": "urn:ref:atlas-index-row:d37346bfbd8e55e5eef5c70f505f43b037ac1959b19e3f4962beedeb9a04688c",
+      "rowDigest": "sha256:334980042b80b21116e62409f4623aaaf374b0e269666939553ca3fee94f311f",
+      "rowId": "urn:ref:atlas-index-row:334980042b80b21116e62409f4623aaaf374b0e269666939553ca3fee94f311f",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.oversight_report_types"
     },
@@ -3329,18 +3329,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_treasury_tas_fast_book.py",
-          "sha256": "sha256:d7fe0d6c9b58f8d149b98728cd1dbfc7271126c54bc67c0fe16247f7b8d2f853"
+          "sha256": "sha256:dbad83ec9bb340e82ffaec0c995d3648b3617224c2b6f46eaa6557e1e5828cfe"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/treasury_tas_fast_book.py",
-          "sha256": "sha256:bf4e58a6ec765e40f01b0db4f42d54cdf8ef3982d60064baa95c04d5d93126d4"
+          "sha256": "sha256:eb48b84567b37221399d26bf7541775eb66194d49563187d98aa2d4e253f57d1"
         }
       ],
       "release": null,
       "resourceId": "treasury-account-symbol-structure",
-      "rowDigest": "sha256:d6354d6dc1965dd378e69a3d2c03ce42a3f60c6c713c68a245eb0c18317ba19f",
-      "rowId": "urn:ref:atlas-index-row:d6354d6dc1965dd378e69a3d2c03ce42a3f60c6c713c68a245eb0c18317ba19f",
+      "rowDigest": "sha256:5c506ec164688242e86d8784b953de614bf829386b54e02d4ce8c44a94a7879f",
+      "rowId": "urn:ref:atlas-index-row:5c506ec164688242e86d8784b953de614bf829386b54e02d4ce8c44a94a7879f",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.treasury_tas_fast_book"
     },
@@ -3357,18 +3357,18 @@
         {
           "kind": "parserTest",
           "path": "tests/test_treasury_tas_fast_book.py",
-          "sha256": "sha256:d7fe0d6c9b58f8d149b98728cd1dbfc7271126c54bc67c0fe16247f7b8d2f853"
+          "sha256": "sha256:dbad83ec9bb340e82ffaec0c995d3648b3617224c2b6f46eaa6557e1e5828cfe"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/treasury_tas_fast_book.py",
-          "sha256": "sha256:bf4e58a6ec765e40f01b0db4f42d54cdf8ef3982d60064baa95c04d5d93126d4"
+          "sha256": "sha256:eb48b84567b37221399d26bf7541775eb66194d49563187d98aa2d4e253f57d1"
         }
       ],
       "release": null,
       "resourceId": "treasury-fast-book",
-      "rowDigest": "sha256:d964e67c34e6b0b09a3431df2243372b9ecc8a765f6b6fdbc909cd5362a2aff7",
-      "rowId": "urn:ref:atlas-index-row:d964e67c34e6b0b09a3431df2243372b9ecc8a765f6b6fdbc909cd5362a2aff7",
+      "rowDigest": "sha256:fc8408ff5741870bc58099cf430dc71314c721c8486d32a544dae91e9d48013b",
+      "rowId": "urn:ref:atlas-index-row:fc8408ff5741870bc58099cf430dc71314c721c8486d32a544dae91e9d48013b",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.treasury_tas_fast_book"
     },
