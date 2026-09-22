@@ -50,20 +50,30 @@ about the result, and three traps for whoever runs it; read the marker first.
 
 ## The one live next action, which is not this lane's
 
-**Capture FERC's docket-prefix PDF.** It is the highest-value unblock this
+**Capture FERC's docket-prefix PDF.** ~~It is the highest-value unblock this
 repository found: 51,015 distinct docket strings, 6.5% of all references in
 the Federal Register's docket field, and today a person handed
 "Docket No. CP26-20-000" gets nothing. The exact URL, digest, byte count, row
 count and field shape — plus the reason the page that returned 403 is the
 WRONG page — are in REF-070. It is acquisition work, and the router it feeds
-is already written.
+is already written.~~ — **The capture landed (bytes pinned 2026-08-03, digest
+`c32efae9…` in `ferc_elibrary_codes.py`; page-by-page attestation in
+`research/evidence/ferc-pdf-attestation-2026-08-21/`; parsed into the atlas
+with a 95-row count guard). What remains open is the other half of REF-070's
+premise: a person handed "Docket No. CP26-20-000" still gets nothing, because
+the routing verdict said DO NOT extend while acquisition was pending. The
+acquisition landed, so that extension is unblocked — an owner decision, not a
+capture.**
 
 **Do not extend `term_explanation` to a fifth identifier shape before an
 acquisition lands.** The reasoning is in that module's own docstring, under a
 heading addressed to whoever is about to: a family is answerable only where we
 hold a directory of INSTANCES, and every unanswered family is blocked upstream
 of routing. Surveyed 2026-09-07, verdict DO NOT BUILD, and the survey
-overturned its own proposer.
+overturned its own proposer. *(The condition named here is now met for FERC
+docket prefixes: the 95-row directory is captured and parsed; the survey's
+blocker was the acquisition, not the shape. An extension is an owner decision,
+not a rebuild of this verdict.)*
 
 ## Lineage
 
