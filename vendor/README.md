@@ -36,7 +36,7 @@ shares raw GAO PDF page reading while RefSpec retains folding and interpretation
 Prior U.S. Code structure corrections remain unadopted candidates. CFR authority
 observations retain actual scope; the existing authority cache is unchanged.
 
-`rulespec_conformance-0.2.0rc18-py3-none-any.whl` is vendored into this repo
+`rulespec_conformance-0.2.0rc19-py3-none-any.whl` is vendored into this repo
 because CI runners have no `~/Work/rulespec` checkout and `ci.yml` runs
 `uv sync --frozen`: a path source outside the repository cannot resolve
 there. Vendoring the wheel keeps `uv lock`/`uv sync` hermetic and lets
@@ -47,11 +47,12 @@ private index or an internal registry) exists for `rulespec-conformance`,
 at which point the vendored files and the `[tool.uv.sources]` entries in
 `pyproject.toml` should be deleted in favor of normal version constraints.
 
-**Source of truth**: rc18 is built from the rulespec repository's annotated
-tag `v0.2.0-pre.18` (tag object `b942529e`, commit `a519d06b`), pushed to
+**Source of truth**: rc19 is built from the rulespec repository's annotated
+tag `v0.2.0-pre.19` (tag object `e04a297c`, commit `52d80cc1`), pushed to
 `github.com/Formspec-Labs/rulespec`. Its SHA-256 digest is
-`ed11ab4a4709fd36b36ad445dd17ac0e14c10ec0d1f605f662f1a68a6ab662fb`, byte
-identical to the copy SpicySearch vendors. It carries the one shared
+`bb1e2fd674b8863be8022b2bafe4093279194c8dde7aa2c6ce0a6a28ec48e218`, byte
+identical to the copy SpicySearch vendors. rc18 came from tag `v0.2.0-pre.18`
+(commit `a519d06b`, digest `ed11ab4a…`). It carries the one shared
 platform artifact protocol, its common fixtures, and the source-item schema
 used by SpicyRegs, DocSpec, and SpicySearch.
 
@@ -80,7 +81,7 @@ bytes come from, not whether anyone else can get them, so that field stays
 directory.
 
 **Why a second wheel.** `rulespec_artifacts-1.1.0-py3-none-any.whl` is
-vendored alongside it because rc18 declares a `rulespec-artifacts>=1.0.11`
+vendored alongside it because rc19, like rc18, declares a `rulespec-artifacts>=1.0.11`
 floor where rc16 and rc17 declared a hard `==1.0.9`, so 1.0.9 no longer
 satisfies it. That dependency arrived with the shared platform-artifact
 protocol. RefSpec now uses its bounded local blob writer for BILLSTATUS
@@ -91,6 +92,11 @@ Rulespec commit `dba6c0a9a54e64b74d48aa1393bf75460fb41e8a` on 2026-09-22 and sha
 digest is `3b2abcdcfa082f34baa3b03042c54fcc4e5e713901cd505cbd777dfd9bdf23cd`.
 It adds opt-in DocumentCapture v2 and v1 checker fixes after 1.0.14; the
 bounded local blob writer and public exports remain.
+
+**What rc19 changed in the contract.** The context declares `oa:XPathSelector`,
+already a bound Core selector class, and the release version; no space widened.
+Its m2 release fixtures are re-stamped for the recompiled `source-fragment` and
+`ai-lineage` schemas, and its platform fixtures name `rulespec-artifacts` 1.1.0.
 
 **What rc17 and rc18 changed in the contract.** Two additions, no widening of
 an existing space, so nothing previously valid changed meaning.
