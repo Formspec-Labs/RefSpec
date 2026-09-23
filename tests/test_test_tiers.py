@@ -69,5 +69,12 @@ def test_every_tier_has_one_make_target_and_one_ci_job_that_runs() -> None:
                 if re.search(rf"\bmake {re.escape(target)}\b", step.get("run", "")):
                     jobs_by_tier[tier].append(name)
     assert all(len(jobs) == 1 for jobs in jobs_by_tier.values()), jobs_by_tier
-    full_atlas_job = workflow["jobs"][jobs_by_tier["full-atlas"][0]]
-    assert "schedule" in triggers and "schedule" in str(full_atlas_job.get("if", ""))
+    # The fast tier runs on every push and pull request; each heavy tier runs on
+    # its own schedule (and on demand), so nothing is left to run nowhere.
+    assert {"push", "pull_request", "schedule"} <= set(triggers)
+    fast_condition = str(workflow["jobs"][jobs_by_tier["fast"][0]].get("if", ""))
+    assert "schedule" not in fast_condition or "!=" in fast_condition, "the fast tier must run on pushes"
+    crons = {entry["cron"] for entry in triggers["schedule"]}
+    for tier in ("slow", "full-atlas"):
+        condition = str(workflow["jobs"][jobs_by_tier[tier][0]].get("if", ""))
+        assert any(cron in condition for cron in crons), f"the {tier} tier's job names no schedule"

@@ -1,15 +1,24 @@
 name: CI
 
-# Pushes to main and pull requests, not both for one change: a pull request's
-# own push would otherwise run every job twice. The full-Atlas tier runs weekly
-# and on demand (REF-071).
+# Pushes to main and pull requests run the fast tier, not both for one change:
+# a pull request's own push would otherwise run it twice. The heavy tiers run on
+# a schedule -- the slow tier weekly, the full-Atlas tier monthly -- and on
+# demand, so every test runs somewhere without an hour of real-data work on
+# every push (REF-071).
 on:
   pull_request:
   push:
     branches: [main]
   schedule:
-    - cron: "17 6 * * 1"
+    - cron: "17 6 * * 1" # weekly: the slow tier
+    - cron: "17 7 1 * *" # monthly: the full-Atlas tier
   workflow_dispatch:
+    inputs:
+      tier:
+        description: Heavy tier to run beside the fast one
+        type: choice
+        options: [slow, full-atlas, both]
+        default: slow
 
 permissions:
   contents: read
@@ -80,9 +89,18 @@ jobs:
       - name: Check skips against the fast tier's allowlist
         run: uv run python tools/check_skips.py "$RUNNER_TEMP/pytest.xml" --tier fast
 
+      # The reproducible-rebuild control in its ~6s miniature: build the bounded
+      # Federal Register release twice into scratch roots and require the two
+      # trees to be byte-identical, apart from the one measurements file the
+      # comparator names. Its inputs arrive with the pinned inputs (REF-071).
+      - name: FR double-build determinism gate
+        run: make determinism-atlas-federal-register-thesaurus
+
   real-data-tier:
     name: Real-data tier
-    if: github.event_name != 'schedule'
+    if: >-
+      (github.event_name == 'schedule' && github.event.schedule == '17 6 * * 1')
+      || (github.event_name == 'workflow_dispatch' && inputs.tier != 'full-atlas')
     runs-on: ubuntu-latest
     timeout-minutes: 90
 
@@ -105,16 +123,11 @@ jobs:
       - name: Check skips against the slow tier's allowlist
         run: uv run python tools/check_skips.py "$RUNNER_TEMP/pytest.xml" --tier slow
 
-      # The reproducible-rebuild control in its ~6s miniature: build the bounded
-      # Federal Register release twice into scratch roots and require the two
-      # trees to be byte-identical, apart from the one measurements file the
-      # comparator names. Its inputs arrive with the pinned inputs (REF-071).
-      - name: FR double-build determinism gate
-        run: make determinism-atlas-federal-register-thesaurus
-
   full-atlas-tier:
     name: Full-Atlas tier
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: >-
+      (github.event_name == 'schedule' && github.event.schedule == '17 7 1 * *')
+      || (github.event_name == 'workflow_dispatch' && inputs.tier != 'slow')
     # One worker holding the complete topology reaches ~10 GB. A larger runner
     # can be named with the REFSPEC_FULL_ATLAS_RUNNER repository variable.
     runs-on: ${{ vars.REFSPEC_FULL_ATLAS_RUNNER || 'ubuntu-latest' }}

@@ -5005,12 +5005,15 @@ them to the files it materializes; every former `is None: skip` branch now
 fails instead.
 
 **Tiers.** `conftest.tier_of` puts every test in exactly one tier, selected
-with `--tier`: `fast` (`make test-package`, the bounded job), `slow`
-(`make test-slow`, the real-data job, after `make build-derived`; it includes
+with `--tier`: `fast` (`make test-package`, the bounded job, on every push and pull
+request), `slow` (`make test-slow`, the real-data job, weekly, after
+`make build-derived`; it includes
 `release_tier`, REF-027's parity sweep, which needed `REFSPEC_RELEASE_TIER=1`,
 and every `reads_built_artifact` test not marked `no_artifact`) and
-`full-atlas` (`make test-full-atlas`, a weekly and on-demand job; the complete
-producer prebuild and its deep validation). CI calls the `make` targets, so a
+`full-atlas` (`make test-full-atlas`, monthly; the complete producer prebuild
+and its deep validation). Both heavy tiers also run on demand; neither runs on
+a push, because an hour of real-data work per commit buys little that a weekly
+run does not. CI calls the `make` targets, so a
 developer's run and CI's are one selection; `tests/test_test_tiers.py` checks
 that each tier has one target and one job that runs, and the sealed-corpus
 guard in `tests/test_atlas_v3_binding.py` still proves `make test` runs that
@@ -5043,8 +5046,10 @@ row cites its evidence, not this entry, and did not move.
 requires that file in both trees with the same JSON shape and compares
 everything else byte for byte.
 
-**CI.** Pull requests and pushes to `main` (not both for one change); a newer
-push to a pull request cancels the older run. The store cache is restored
+**CI.** Pull requests and pushes to `main` (not both for one change) run the
+fast tier and the FR determinism gate; a newer push to a pull request cancels
+the older run. The runner installs Poppler for the two readers that shell out
+to `pdftotext`. The store cache is restored
 under an exact key or the newest older one, pruned after the fetch, and saved
 right after it on `main` only. A warm store builds no R2 client, so a fork's
 pull request without secrets passes unless the manifest changed.

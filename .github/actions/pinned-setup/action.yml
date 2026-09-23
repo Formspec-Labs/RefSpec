@@ -26,6 +26,12 @@ runs:
     - shell: bash
       run: uv sync --frozen
 
+    # Two registry readers shell out to Poppler's `pdftotext -layout` (OMB A-11,
+    # U.S. Courts nature of suit); hosted runners do not carry it.
+    - if: runner.os == 'Linux'
+      shell: bash
+      run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+
     # The content-addressed store is restored under an exact key and, failing
     # that, the newest older one: every object is re-verified by digest, so an
     # older store is a safe start, and `--prune` below keeps it from growing by

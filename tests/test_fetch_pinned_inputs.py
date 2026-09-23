@@ -51,6 +51,9 @@ PINNED_ONLY_BY_THE_MANIFEST = {
     "output/atlas-3.1-parquet-search-view-2026-08-21d/tables/releases.parquet": (
         "test_atlas_duckdb_view checks it against the member digest in the pinned view manifest"
     ),
+    "output/atlas-3.1-parquet-search-view-2026-08-21d/tables/derived-relations.parquet": (
+        "test_atlas_duckdb_view checks it against the member digest in the pinned view manifest"
+    ),
     "output/registry-real-data-sources/public-law-roster/public-law-roster.csv": (
         "generated from the pinned congress pages; the loud-tier suite regenerates and compares it"
     ),

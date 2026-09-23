@@ -5,6 +5,7 @@
   "key": "sha256/{sha256}",
   "inputs": [
     {"path": "output/atlas-3.1-parquet-search-view-2026-08-21d/search-view-manifest.json", "sha256": "33961f3acac41c60cfaadb75e004bd0723c7e35758926c3dd6d50e77053ea092", "bytes": 5771},
+    {"path": "output/atlas-3.1-parquet-search-view-2026-08-21d/tables/derived-relations.parquet", "sha256": "f5f5098c16a7f99e6bd83c8e2dda8c3093472453e26dfe1e46d98b84eb18955d", "bytes": 7925503},
     {"path": "output/atlas-3.1-parquet-search-view-2026-08-21d/tables/releases.parquet", "sha256": "77e66f3613f32ccaf3a5242b11cca685b5432709ccf113ce62131f7a606a394e", "bytes": 25653},
     {"path": "output/atlas-3.1-parquet-search-view-2026-08-21d/tables/resources.parquet", "sha256": "f52cf60ba6d1f609529b453e5c6c1d054540dcffee009bc0d51a8dc535cdfeeb", "bytes": 54709213},
     {"path": "output/ecfr-title-xml-2026-08-24/manifest.json", "sha256": "243f1f7c2abe04cc9c032ebc8101e7f0a0130e97a5c3b4d5e13a1352535489b8", "bytes": 24775},

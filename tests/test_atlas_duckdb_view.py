@@ -1211,8 +1211,9 @@ def test_overview_pins_the_sealed_views_cross_release_derived_edge_volume() -> N
     """Pin the real cross-release derived volume the sealed view carries.
 
     The (git-ignored) sealed search view is a pinned input (``make fetch-pinned-inputs``).
-    Only ``resources`` and ``releases`` are read from it; the other compact
-    tables are registered empty, which keeps the whole check under a second
+    ``resources`` and ``releases`` are read through registered views and
+    ``derived-relations`` from the view root; the other compact tables are
+    registered empty, which keeps the whole check under a second
     and leaves ``edges`` holding *nothing but* the derived cross-release
     volume this test is about -- the asserted mapping volume between the same
     releases is large, churns per build, and is pinned elsewhere.
@@ -1222,6 +1223,10 @@ def test_overview_pins_the_sealed_views_cross_release_derived_edge_volume() -> N
     manifest_bytes = (sealed / "search-view-manifest.json").read_bytes()
     assert "sha256:" + hashlib.sha256(manifest_bytes).hexdigest() == _SEALED_SEARCH_VIEW_MANIFEST_SHA256
     members = {member["path"]: member["sha256"] for member in json.loads(manifest_bytes)["members"]}
+    # The view reads the derived-relations table from its root, not through the
+    # registered compact tables, so it is the third file this test depends on.
+    derived = sealed / "tables" / DERIVED_RELATION_TABLE_NAME
+    assert "sha256:" + hashlib.sha256(derived.read_bytes()).hexdigest() == members[f"tables/{derived.name}"]
 
     temporary_directory = tempfile.TemporaryDirectory()
     connection = duckdb.connect(str(Path(temporary_directory.name) / "pin.duckdb"))
