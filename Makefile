@@ -281,9 +281,17 @@ release-atlas-federal-register-thesaurus:
 # Parquet view (seconds; the fast tier reads it), the Unified Agenda Parquet
 # artifact (189 s measured 2026-09-22) and the EuroVoc/GEMET claim releases. The
 # slow tier reads all of them; its tests fail, not skip, when one is missing.
+# The claim exporter refuses to replace a release, so a checkout that already
+# holds one exports beside it and swaps, keeping one previous generation.
+CLAIM_RELEASES_ROOT ?= output/registry-claim-releases
+
 build-derived: release-atlas-federal-register-thesaurus
 	uv run python -m refspec.registry.unified_agenda_parquet
-	uv run python tools/export_registry_claim_releases.py
+	rm -rf "$(CLAIM_RELEASES_ROOT).building"
+	uv run python tools/export_registry_claim_releases.py --output-root "$(CLAIM_RELEASES_ROOT).building"
+	rm -rf "$(CLAIM_RELEASES_ROOT).previous"
+	if [ -d "$(CLAIM_RELEASES_ROOT)" ]; then mv "$(CLAIM_RELEASES_ROOT)" "$(CLAIM_RELEASES_ROOT).previous"; fi
+	mv "$(CLAIM_RELEASES_ROOT).building" "$(CLAIM_RELEASES_ROOT)"
 
 # The determinism gate, in the miniature that runs in 6.4s measured (both
 # builds plus the comparison, 2026-08-13): build the same bounded release twice,
