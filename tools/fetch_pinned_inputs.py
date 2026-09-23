@@ -103,6 +103,7 @@ def _stored(store: Path, entry: dict, client, manifest: dict) -> Path:
 
 
 def _place(blob: Path, target: Path) -> None:
+    """Link (or copy) a store object to its target through a staged name, replacing it atomically."""
     target.parent.mkdir(parents=True, exist_ok=True)
     staged = target.with_name(target.name + ".fetching")
     staged.unlink(missing_ok=True)

@@ -43,6 +43,7 @@ def _shape(value: object) -> object:
 
 
 def _measured_digest(path: Path) -> str:
+    """Digest a measured file by its JSON shape so machine-measured values stay uncompared."""
     shape = json.dumps(_shape(json.loads(path.read_bytes())), sort_keys=True)
     return "measured:" + hashlib.sha256(shape.encode("utf-8")).hexdigest()
 

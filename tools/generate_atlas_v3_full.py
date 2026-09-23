@@ -873,6 +873,7 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 
 def _plain(value: Any) -> Any:
+    """Recursively turn dataclasses, mappings, tuples, and sets into JSON-safe values, sets as sorted lists."""
     if dataclasses.is_dataclass(value) and not isinstance(value, type):
         return {field.name: _plain(getattr(value, field.name)) for field in dataclasses.fields(value)}
     if isinstance(value, (dict, MappingProxyType, Mapping)):
@@ -1509,6 +1510,7 @@ def _audit_english_language_content(
 
 
 def _load_crs(spec: SourceSpec) -> LoadedRelease:
+    """Load one pinned CRS source-concept release as English-only resources, receipting dropped language content."""
     _verify_pinned_file(
         spec.path,
         logical_path=spec.logical_path,
@@ -1616,6 +1618,7 @@ def _load_crs(spec: SourceSpec) -> LoadedRelease:
 
 
 def _load_federal_register(spec: SourceSpec) -> LoadedRelease:
+    """Load the pinned Federal Register thesaurus as resources and deduplicated resolved relations."""
     _verify_pinned_file(
         spec.path,
         logical_path=spec.logical_path,
@@ -1688,6 +1691,7 @@ def _load_federal_register(spec: SourceSpec) -> LoadedRelease:
 
 
 def _load_elsst(spec: SourceSpec) -> LoadedRelease:
+    """Load the pinned ELSST R6 release as English-only resources, receipting dropped multilingual values."""
     _verify_pinned_file(
         spec.path,
         logical_path=spec.logical_path,
@@ -1850,6 +1854,10 @@ def _icpsr_relation_predicate(value: str) -> str:
 
 
 def _load_icpsr(spec: SourceSpec) -> LoadedRelease:
+    """Load the ICPSR managed release plus its XML/index coverage union, minting identities for XML-only terms.
+
+    A ``related`` claim on a hierarchy path is remapped to ``atlas:thesaurusRelated`` under pinned counts.
+    """
     _verify_pinned_file(
         spec.path,
         logical_path=spec.logical_path,
@@ -3204,6 +3212,7 @@ def _validated_registry_index_rows(
     index: Mapping[str, Any],
     descriptor_proof: Mapping[str, Any],
 ) -> tuple[Mapping[str, Any], ...]:
+    """Return index rows once the index digest, identity, and descriptor-proof pin all agree."""
     actual_index_digest = _registry_index_content_digest(index)
     if index.get("indexDigest") != actual_index_digest:
         raise ValueError("Atlas registry index content digest differs")
@@ -3234,6 +3243,7 @@ def _registry_index_content_digest(index: Mapping[str, Any]) -> str:
 
 
 def _registry_index_rows() -> tuple[Mapping[str, Any], ...]:
+    """Verify the descriptor proof pin, then return the validated atlas index rows."""
     _verify_pinned_file(
         REGISTRY_DESCRIPTORS_PROOF,
         logical_path=REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH,
@@ -3724,6 +3734,7 @@ def _add_assertion(
     source_ring: URIRef | None = None,
     target_ring: URIRef | None = None,
 ) -> URIRef:
+    """Mint one content-addressed assertion; cross-ring takes sourceRing and targetRing, others one semanticRing."""
     policy_digest = ATLAS_VALIDATE.rdf_node_digest(graph, policy)
     basis: dict[str, str] = {
         "object": str(obj),
@@ -5057,6 +5068,7 @@ def _build_graphs(
     include_projection: bool = True,
     all_plans: Sequence[ReleasePackPlan] = (),
 ) -> BuildGraphs:
+    """Construct the asserted, projection, and derived graphs plus the identified source accounting."""
     current_keys = {
         *(release.spec.key for release in releases),
         *(release.key for release in mapping_releases),
@@ -7256,6 +7268,7 @@ def _stream_construct_graphs(
 
 
 def _release_pack_token(release: ReleasePackPlan) -> str:
+    """Normalize a release key to a safe pack-path token, refusing keys that normalize unsafely."""
     token = _PACK_PATH_UNSAFE.sub("-", release.key.casefold()).strip("-")
     if _PACK_PATH_TOKEN.fullmatch(token) is None:
         raise ValueError(f"release key is unsafe for an Atlas pack path: {token!r}")
@@ -7369,6 +7382,7 @@ def _release_pack_partition(
     release: ReleasePackPlan,
     subject: URIRef,
 ) -> str | None:
+    """Bucket a large release's subjects into hex-prefix partitions; both kinds share the size threshold."""
     # Bucketing began as a source-release device for large member sets, and
     # mapping releases were exempted because they are "large in assertions,
     # not members". The premise is right and the conclusion was wrong: a pack's
@@ -7404,6 +7418,7 @@ def _one_graph_object(
 
 
 def _atlas_local_name(value: Any, *, context: str) -> str:
+    """Return one term's Atlas-namespace local name, refusing terms from any other vocabulary."""
     iri = str(value)
     namespace = str(ATLAS)
     if not iri.startswith(namespace) or len(iri) == len(namespace):
@@ -7427,6 +7442,7 @@ def _rkaf_local_name(value: Any, *, context: str) -> str:
 
 
 def _compact_record_role(graph: Graph, subject: URIRef) -> CompactRecordRole:
+    """Map one release-owned subject to its single compact role, refusing zero or ambiguous matches."""
     types = set(graph.objects(subject, RDF.type))
     candidates = {
         role
@@ -8194,6 +8210,7 @@ def _graph_inventory_digest(
     packs: Sequence[Mapping[str, Any]],
     role: str,
 ) -> str:
+    """Digest one graph role's sorted per-pack rows of pack id, content digest, and quad count."""
     rows = sorted(
         (
             {
@@ -8218,6 +8235,7 @@ def _write_view_pack(
     asserted_inventory_digest: str,
     incremental: ColdPackMaterialization | None = None,
 ) -> dict[str, Any] | None:
+    """Write a non-empty projection or derived view pack depending on every asserted pack; empty graphs return None."""
     if not graph:
         return None
     if role not in {"projection", "derived"}:
@@ -8271,6 +8289,7 @@ def _write_graph_packs(
     parquet: AtlasParquetTableWriter | None = None,
     record_counts: dict[str, dict[str, int]] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Write the distribution's RDF packs and return them with one inventory descriptor per graph role."""
     if releases:
         asserted_packs = _write_asserted_packs(
             output,
@@ -9478,6 +9497,7 @@ def _write_streamed_distribution(
 
 
 def _source_input_pins(source: SourceSpec) -> tuple[RegistryInputPin, ...]:
+    """Return a release's declared input pins, synthesizing one from the spec digest when there are none."""
     if source.input_pins:
         return source.input_pins
     byte_length = source.path.stat().st_size if source.path.is_file() else -1
