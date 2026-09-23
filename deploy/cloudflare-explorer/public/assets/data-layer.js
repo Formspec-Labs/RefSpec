@@ -1,5 +1,7 @@
 // AtlasData -- the browser-side replacement for the Python explorer's
-// /api/* HTTP handlers (explorer_cli.py). The three page scripts
+// /api/* HTTP handlers (explorer_cli.py).
+//
+// The three page scripts
 // (index.html, release.html, agencies.html) are the *original* frontend
 // JS, unmodified except for one line: `get(path)` now calls
 // `window.AtlasData.get(path)` instead of `fetch(path)`. Every response
