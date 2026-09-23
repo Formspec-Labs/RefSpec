@@ -20,6 +20,7 @@ import pytest
 from rdflib import Graph, Literal, URIRef
 from rdflib.namespace import RDF
 
+from conftest import missing_pinned_input
 from refspec.atlas.v3_source_data import (
     RegistryCrossRingRelation,
     RegistryInputPin,
@@ -685,12 +686,9 @@ def test_recorded_instant_comes_from_release_dates_not_a_clock() -> None:
 def test_fixed_distribution_inputs_are_externally_pinned_and_logical() -> None:
     """Pin that the fixed inputs inventory is externally pinned and carries only logical paths."""
 
-    # Same split as the ICPSR fixture: an absent capture skips, a moved digest
-    # raises `ValueError` and fails, because that is drift rather than absence.
-    try:
-        inventory = generator.verify_inputs()
-    except FileNotFoundError as error:
-        pytest.skip(str(error))
+    # Every input arrives with the pinned inputs (`make fetch-pinned-inputs`), so
+    # an absent capture fails here like a moved digest does (REF-071).
+    inventory = generator.verify_inputs()
 
     assert set(inventory) == {
         "expectedResources",
@@ -3429,7 +3427,7 @@ def icpsr_release():
     try:
         return generator._load_icpsr(_source_spec("icpsr-subject-thesaurus"))
     except FileNotFoundError as error:
-        pytest.skip(str(error))
+        missing_pinned_input(str(error))
 
 
 @pytest.fixture(scope="module")
@@ -3439,7 +3437,7 @@ def registry_code_releases():
     from refspec.atlas.v3_registry_codes import load_registry_code_releases
 
     if not (ROOT / "output" / "registry-real-data-sources").is_dir():
-        pytest.skip("pinned registry code sources are not present: output/registry-real-data-sources")
+        missing_pinned_input("pinned registry code sources are not present: output/registry-real-data-sources")
     return tuple(generator._adapt_registry_release(release) for release in load_registry_code_releases(ROOT))
 
 
@@ -4048,7 +4046,9 @@ def test_streamed_generation_report_records_memory_profile_shape(
     )
 
     report = json.loads((output.parent / "generation-report.json").read_bytes())
-    profile = report["memoryProfile"]
+    assert "memoryProfile" not in report, "measurements stay out of the byte-compared report"
+    measurements = json.loads((output.parent / generator.GENERATION_MEASUREMENTS_FILE).read_bytes())
+    profile = measurements["memoryProfile"]
     assert set(profile) == {
         "measurement",
         "peakRssBytes",

@@ -662,19 +662,6 @@ SOURCE_SPECS = (
         source_module="refspec.registry.infrastructure.source_concept_release",
     ),
     SourceSpec(
-        key="elsst-r6",
-        kind="managedRelease",
-        path=ROOT / "output/elsst-r6-atlas2-bench-input-2026-08-04/managed-release/managed-release-bundle.json",
-        logical_path=(
-            "refspec/output/elsst-r6-atlas2-bench-input-2026-08-04/managed-release/managed-release-bundle.json"
-        ),
-        expected_digest="sha256:466a4464cd252bf0b0c0e872927abc430f7532610100cf01e8104eec0ee69f25",
-        expected_resources=3470,
-        profile="conceptScheme",
-        ring="subject",
-        expected_relations=12_482,
-    ),
-    SourceSpec(
         key="federal-register-thesaurus-2025",
         kind="managedRelease",
         path=ROOT / "output/refspec-vocabulary-portfolio/federal-register-thesaurus-2025/"
@@ -706,6 +693,12 @@ SOURCE_SPECS = (
         source_module="refspec.registry.managed_releases.icpsr_managed_release",
     ),
 )
+
+# Declared here but loaded by refspec.atlas.v3_registry_vocabularies (from the
+# pinned PDF), not as a direct source. ELSST R6 used to sit beside it as an
+# atlas2 bench bundle that neither loader read; its input is lost and the entry
+# is gone (REF-071), since the vocabulary module builds ELSST from ELSST_R6.ttl.
+REGISTRY_LOADED_SOURCE_KEYS = frozenset({"federal-register-thesaurus-2025"})
 SOURCE_LANGUAGE_PROFILES = MappingProxyType(
     {
         "crs-legislative-entities": "explicitTaggedEnglishV1",
@@ -722,6 +715,11 @@ REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-d
 REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:f4ca83a852748a90cf4f1cf67a5bb954b76f42ecc39ac9b6ec57d4934fbfb5a4"
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
+# 2026-09-22 (REF-071): pinned inputs arrive from R2 and the suite stops
+# skipping for absent data, so parser test files the index hashes as readiness
+# evidence (vocabularies, EuroVoc and others) moved. The .nq graph is
+# byte-identical; only the proof's inputs.atlasIndexDigest moves, so this is
+# the proof pin alone.
 # 2026-09-21: the shared-reader wave's four support modules (ecfr,
 # uscode_cache, uslm, xml_text) join as implementation modules, and the
 # docstring and defect-fix passes edit readiness-evidence files the index
@@ -770,7 +768,7 @@ REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/regi
 # edited that day, is NOT index evidence and moved nothing here). The
 # descriptors .nq graph is byte-identical both times; only the proof's
 # inputs.atlasIndexDigest moved, and this pin moves with it.
-REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:42bf8df527c4bb8f0672b2fa544568415ce30fcb261b49f29ee08c2c0ec2b9b5"
+REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:0409bed4eccac3cc72dce13b76751b4b42e5a77199cf5bbb178bd233978a90cb"
 
 
 def _load_validator() -> Any:
@@ -2296,7 +2294,7 @@ def _declared_construction_unit_keys() -> frozenset[str]:
     from refspec.atlas.v3_registry_rosters import REGISTRY_ROSTER_RELEASE_KEYS
     from refspec.atlas.v3_registry_vocabularies import REGISTRY_VOCABULARY_RELEASE_KEYS
 
-    direct = {spec.key for spec in SOURCE_SPECS if spec.key not in {"elsst-r6", "federal-register-thesaurus-2025"}}
+    direct = {spec.key for spec in SOURCE_SPECS if spec.key not in REGISTRY_LOADED_SOURCE_KEYS}
     return frozenset(
         {
             *direct,
@@ -2797,8 +2795,7 @@ def load_releases(
     selected_specs = tuple(
         spec
         for spec in SOURCE_SPECS
-        if spec.key not in {"elsst-r6", "federal-register-thesaurus-2025"}
-        and (include_keys is None or spec.key in include_keys)
+        if spec.key not in REGISTRY_LOADED_SOURCE_KEYS and (include_keys is None or spec.key in include_keys)
     )
     for position, spec in enumerate(selected_specs, start=1):
         _STATUS.progress(
@@ -9345,6 +9342,13 @@ def _generation_report_path(output: Path) -> Path:
     return output.parent / "generation-report.json"
 
 
+# Machine measurements, not build output: the same source bytes rebuild the same
+# report, but not the same peak RSS or elapsed milliseconds. They live beside the
+# report so the determinism gate can compare everything else byte for byte
+# (tools/compare_build_trees.py names this one file as measured, REF-071).
+GENERATION_MEASUREMENTS_FILE = "generation-measurements.json"
+
+
 def _generation_report_distribution_path(output: Path) -> str:
     """Name the distribution relative to its adjacent generation report."""
 
@@ -9438,7 +9442,6 @@ def _write_streamed_distribution(
                 "manifestDigest": _sha256_file(candidate / "atlas-manifest.json"),
                 "path": report_distribution_path,
             },
-            "memoryProfile": _STATUS.memory_profile(),
             "productionRelationScope": relation_scope,
             "validation": result,
         }
@@ -9468,6 +9471,9 @@ def _write_streamed_distribution(
             if previous.exists():
                 previous.rename(output)
             raise
+        (output.parent / GENERATION_MEASUREMENTS_FILE).write_bytes(
+            ATLAS_VALIDATE.canonical_json_bytes({"memoryProfile": _STATUS.memory_profile()})
+        )
     return result
 
 

@@ -77,6 +77,26 @@ def test_the_determinism_comparator_separates_identical_trees_from_changed_ones(
     assert compare_build_trees.main([str(first.parent), str(second.parent)]) == 1
 
 
+def test_the_determinism_comparator_compares_only_the_presence_of_a_measured_file(tmp_path: Path) -> None:
+    """Different RSS measurements pass; a missing measurements file or a changed report still fails."""
+    first, second = tmp_path / "first", tmp_path / "second"
+    for root, rss in ((first, 1), (second, 2)):
+        root.mkdir()
+        (root / "generation-report.json").write_text('{"a": 1}', encoding="utf-8")
+        (root / "generation-measurements.json").write_text(f'{{"peakRssBytes": {rss}}}', encoding="utf-8")
+    assert compare_build_trees.main([str(first), str(second)]) == 0
+
+    (second / "generation-report.json").write_text('{"a": 2}', encoding="utf-8")
+    assert compare_build_trees.main([str(first), str(second)]) == 1
+
+    (second / "generation-report.json").write_text('{"a": 1}', encoding="utf-8")
+    (second / "generation-measurements.json").write_text('{"peakRssBytes": 3, "phases": []}', encoding="utf-8")
+    assert compare_build_trees.main([str(first), str(second)]) == 1, "a changed measurement shape still fails"
+
+    (second / "generation-measurements.json").unlink()
+    assert compare_build_trees.main([str(first), str(second)]) == 1
+
+
 def test_the_shapes_scale_baseline_still_says_what_the_benchmark_reads() -> None:
     """Pins that the recorded baseline has tolerances above 1 and non-empty, well-formed measurements."""
     baseline = json.loads(DEFAULT_BASELINE.read_text(encoding="utf-8"))
