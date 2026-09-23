@@ -4960,6 +4960,95 @@ layer up, and
 carries the reasoning so the next reader does not close the gap in whichever
 direction they happen to be standing in.
 
+### REF-071: pinned inputs arrive from R2, the suite runs in three tiers, and a test skips only for a reason it states
+
+- **Date:** 2026-09-22
+- **Status:** Accepted. Adds `tools/pinned_inputs.json`, `tools/fetch_pinned_inputs.py`,
+  `tools/check_skips.py` (replacing `tools/check_skip_budget.py`),
+  `tests/allowed_skips.json`, the `--tier` option in `conftest.py`, and the
+  `pinned-inputs-present`, `build-derived` and `test-full-atlas` targets; splits
+  CI into three jobs behind `.github/actions/pinned-setup`; deletes the unread
+  ELSST R6 bench `SourceSpec`; moves the atlas index, coverage digests,
+  descriptors proof pin and fixture receipt (test evidence moved; the `.nq`
+  graph is byte-identical). No binding or schema version moves.
+
+**Why.** A clean clone has no `output/`, so CI ran a suite in which roughly 480
+tests skipped for absent data. The skip budget recorded 101 on 2026-08-11 and
+had drifted to 477 without anyone lowering or raising it, because CI stopped
+at the 40 tests that read `output/` without a guard before it reached the
+budget step. Skipping also hid rot: `test_seal.py` still expected two packs and
+eight view tables three weeks after the derived graph (`1b5fd0ab`, `ae23819d`)
+made them three and nine; the FR determinism gate had not passed since
+`memoryProfile` joined the byte-compared generation report (`08b854bc`,
+2026-08-16); and two complete-topology tests, opt-in by environment variable,
+had drifted (a resource count) and slowed (over an hour) unseen.
+
+**Inputs.** Every file under `output/` whose SHA-256 a tracked file records is
+listed in `tools/pinned_inputs.json` and held, content-addressed, in the
+private `refspec-pinned-inputs` R2 bucket (the spicy-regs fork's Cloudflare
+account). The fetcher downloads by digest, refuses bytes that do not hash to
+it, hard-links from a store under `output/`, hashes each file once, and prunes
+objects the manifest dropped. R2 is transport, not trust: readers still verify
+their own pins. `tests/test_fetch_pinned_inputs.py` names the few inputs only
+the manifest pins, each with its reason, and fails in both directions -- an
+unrecorded input not on the list, and a listed one whose digest has since been
+recorded. "Recorded" means the digest string occurs in a tracked file, not that
+a reader verifies it. DocSpec's `S3ContentAddressedBlobStore` solves the same
+problem, but REF-024 keeps products from importing each other's source, so the
+fetcher is local and small. `regulatory-native-current/` is not hosted:
+nothing reads it, and REF-032 refuses it as an observed inventory.
+
+**Opt-in paths.** The root `conftest.py` points every `REFSPEC_*_PATH` at its
+pinned input through the real-data audit's own mapping
+(`pinned_input_environment`). The variables stay because the audit still sets
+them to the files it materializes; every former `is None: skip` branch now
+fails instead.
+
+**Tiers.** `conftest.tier_of` puts every test in exactly one tier, selected
+with `--tier`: `fast` (`make test-package`, the bounded job), `slow`
+(`make test-slow`, the real-data job, after `make build-derived`; it includes
+`release_tier`, REF-027's parity sweep, which needed `REFSPEC_RELEASE_TIER=1`,
+and every `reads_built_artifact` test not marked `no_artifact`) and
+`full-atlas` (`make test-full-atlas`, a weekly and on-demand job; the complete
+producer prebuild and its deep validation). CI calls the `make` targets, so a
+developer's run and CI's are one selection; `tests/test_test_tiers.py` checks
+that each tier has one target and one job that runs, and the sealed-corpus
+guard in `tests/test_atlas_v3_binding.py` still proves `make test` runs that
+corpus exactly once. The slow and full-Atlas tiers run on capped workers
+(`SLOW_WORKERS`): with every input present, `-n auto` on a 14-core, 48 GB host
+froze it on 2026-09-23. The owner audit runs every tier but `full-atlas`.
+
+**The rule.** A test skips only for a reason it states that no fetch or build
+can remove. A presence guard keeps its condition and its words but fails:
+`@pytest.mark.pinned_input` takes `skipif`'s arguments, and
+`conftest.missing_pinned_input` replaces an in-body skip, both naming
+`make fetch-pinned-inputs`. `tools/check_skips.py` checks each tier's report
+against `tests/allowed_skips.json`, in both directions. What remains: the two
+git-context skips in `test_unified_agenda_parquet.py`, which describe an
+installed package rather than a checkout, and the strict xfail on the registry
+audit summary (2026-09-07, `term_explanation`), which only the owner-run
+`make audit-registry-real-data` regenerates.
+
+**ELSST.** The ELSST R6 atlas2 bench bundle (`sha256:466a4464…`) survives
+nowhere searched on 2026-09-22 (this machine, `corpora`, git history, the
+fork's R2 bucket), nor does the R6-only bundle it was resealed from. Neither
+loader read it -- `refspec.atlas.v3_registry_vocabularies` builds ELSST from
+the pinned `ELSST_R6.ttl` -- and only the no-argument `verify_inputs()` walked
+its `SourceSpec`, so the entry is gone and `REGISTRY_LOADED_SOURCE_KEYS` names
+the one release still declared but loaded elsewhere. The atlas index's ELSST
+row cites its evidence, not this entry, and did not move.
+
+**Determinism.** The generator now writes RSS and timing to
+`generation-measurements.json` beside the report; `tools/compare_build_trees.py`
+requires that file in both trees with the same JSON shape and compares
+everything else byte for byte.
+
+**CI.** Pull requests and pushes to `main` (not both for one change); a newer
+push to a pull request cancels the older run. The store cache is restored
+under an exact key or the newest older one, pruned after the fetch, and saved
+right after it on `main` only. A warm store builds no R2 client, so a fork's
+pull request without secrets passes unless the manifest changed.
+
 ### REF-070: a handed term is answerable only where a directory of instances exists, and the top families are blocked on acquisition
 
 - **Date:** 2026-09-07

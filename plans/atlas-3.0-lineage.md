@@ -470,6 +470,31 @@ which is 89 + 12. That run covers 2,599 tests against the 2,610 a run with
 `output/` present covers, because some parametrizations enumerate the captures
 that are there.
 
+
+### Superseded 2026-09-22: pinned inputs, three tiers, a skip allowlist (REF-071)
+
+The budget above drifted from 101 to 477 unnoticed: CI stopped at the tests
+that read `output/` without a guard before it reached the budget step, and a
+count could not have told one skip from another anyway. What replaced it:
+
+- CI fetches every pinned `output/` input from R2 (`make fetch-pinned-inputs`),
+  so a clean clone is no longer an empty one.
+- Three tiers, one function (`conftest.tier_of`, `--tier`): `fast` is
+  `make test-package` and the bounded job; `slow` is `make test-slow` and the
+  real-data job; `full-atlas` is `make test-full-atlas`, weekly and on demand.
+  CI calls the `make` targets, so "the command is otherwise `make
+  test-package`'s" is now literally true.
+- `tools/check_skips.py` replaces `tools/check_skip_budget.py`: each tier's
+  report must skip or xfail exactly the tests `tests/allowed_skips.json` names
+  for it. As of this change the lists are one entry for `fast` (the strict
+  xfail on the registry audit summary) and none for `slow` or `full-atlas`.
+- A missing input fails, naming `make fetch-pinned-inputs`; a derived artifact
+  is built (`make build-derived`) before the tier that reads it.
+
+Measured 2026-09-22 on a clean clone with the pinned store pre-seeded (a CI
+cache hit), Apple M4 Pro: `fast` 6,146 passed and the one allowed xfail in
+161 s on 14 workers; `make build-derived` 207-210 s.
+
 ## 6. Release job, separate from continuous integration
 
 The bounded single-scheme Atlas build of item 2 and its semantic verification
