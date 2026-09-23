@@ -24,9 +24,12 @@ permissions:
   contents: read
 
 # A newer push to the same pull request supersedes the older run; main keeps
-# every run, so each merge still gets its verdict.
+# every run, so each merge still gets its verdict. The event is part of the
+# group: GitHub holds one running and one pending run per group, so an
+# hours-long scheduled or dispatched heavy tier sharing a group with pushes
+# would queue their runs and cancel all but the newest.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Each job runs one tier, conftest.tier_of, through its `make` target, so CI and
