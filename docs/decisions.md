@@ -5005,17 +5005,19 @@ them to the files it materializes; every former `is None: skip` branch now
 fails instead.
 
 **Tiers.** `conftest.tier_of` puts every test in exactly one tier, selected
-with `--tier`: `fast` (`make test-package`, the bounded job, on every push and pull
-request), `slow` (`make test-slow`, the real-data job, weekly, after
-`make build-derived`; it includes
+with `--tier`: `fast` (`make test-package`, which CI runs on every push and
+pull request), `slow` (`make test-slow`, local, after `make build-derived`; it
+includes
 `release_tier`, REF-027's parity sweep, which needed `REFSPEC_RELEASE_TIER=1`,
 and every `reads_built_artifact` test not marked `no_artifact`) and
-`full-atlas` (`make test-full-atlas`, monthly; the complete producer prebuild
-and its deep validation). Both heavy tiers also run on demand; neither runs on
-a push, because an hour of real-data work per commit buys little that a weekly
-run does not. CI calls the `make` targets, so a
-developer's run and CI's are one selection; `tests/test_test_tiers.py` checks
-that each tier has one target and one job that runs, and the sealed-corpus
+`full-atlas` (`make test-full-atlas`, local; the complete producer prebuild
+and its deep validation). Only the fast tier runs in CI: the first CI run of the
+slow tier (35879235424) outgrew a 16 GB hosted runner at 70%, and an hour of
+real-data work per commit buys little that a local run before a release does
+not. CI calls `make test-package`, so a developer's fast run and CI's are one
+selection; `tests/test_test_tiers.py` checks that each tier has one target,
+that CI runs the fast one on every push, and that no heavy tier runs there; the
+sealed-corpus
 guard in `tests/test_atlas_v3_binding.py` still proves `make test` runs that
 corpus exactly once. The slow and full-Atlas tiers run on capped workers
 (`SLOW_WORKERS`): with every input present, `-n auto` on a 14-core, 48 GB host

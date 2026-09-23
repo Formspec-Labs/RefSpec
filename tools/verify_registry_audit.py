@@ -536,7 +536,7 @@ def run_full_test_suite(
 
     The ``full_atlas`` tier (REF-071) constructs the complete Atlas topology --
     about 10 GB and tens of minutes a test -- and proves producer behavior, not
-    registry evidence; its own scheduled job runs it, so this audit deselects it
+    registry evidence; `make test-full-atlas` runs it, so this audit deselects it
     by name rather than inherit an hour of serial work.
     """
 

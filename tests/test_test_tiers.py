@@ -1,4 +1,4 @@
-"""The suite's tiers: every test lands in exactly one, and every tier has a job that runs it."""
+"""The suite's tiers: every test lands in exactly one, CI runs the fast one, and the rest are local."""
 
 from __future__ import annotations
 
@@ -55,7 +55,14 @@ def _tier_targets() -> dict[str, str]:
     return targets
 
 
-def test_every_tier_has_one_make_target_and_one_ci_job_that_runs() -> None:
+def test_every_tier_has_one_make_target_and_only_the_fast_tier_runs_in_ci() -> None:
+    """Every tier has one `make` target; CI runs the fast one on pushes and pull requests, and no other.
+
+    The slow and full-Atlas tiers are local work (REF-071): an hour of
+    real-data tests per commit on a 16 GB runner they outgrow buys little.
+    This keeps a heavy tier from drifting back into CI unannounced, and keeps
+    the fast tier from drifting out of it.
+    """
     targets = _tier_targets()
     assert sorted(targets.values()) == sorted(TIERS), "each tier needs exactly one make target"
 
@@ -68,13 +75,7 @@ def test_every_tier_has_one_make_target_and_one_ci_job_that_runs() -> None:
             for target, tier in targets.items():
                 if re.search(rf"\bmake {re.escape(target)}\b", step.get("run", "")):
                     jobs_by_tier[tier].append(name)
-    assert all(len(jobs) == 1 for jobs in jobs_by_tier.values()), jobs_by_tier
-    # The fast tier runs on every push and pull request; each heavy tier runs on
-    # its own schedule (and on demand), so nothing is left to run nowhere.
-    assert {"push", "pull_request", "schedule"} <= set(triggers)
-    fast_condition = str(workflow["jobs"][jobs_by_tier["fast"][0]].get("if", ""))
-    assert "schedule" not in fast_condition or "!=" in fast_condition, "the fast tier must run on pushes"
-    crons = {entry["cron"] for entry in triggers["schedule"]}
-    for tier in ("slow", "full-atlas"):
-        condition = str(workflow["jobs"][jobs_by_tier[tier][0]].get("if", ""))
-        assert any(cron in condition for cron in crons), f"the {tier} tier's job names no schedule"
+    assert len(jobs_by_tier["fast"]) == 1, jobs_by_tier
+    assert jobs_by_tier["slow"] == [] and jobs_by_tier["full-atlas"] == [], "a heavy tier is running in CI"
+    assert {"push", "pull_request"} <= set(triggers)
+    assert "if" not in workflow["jobs"][jobs_by_tier["fast"][0]], "the fast tier must run on every push"

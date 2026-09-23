@@ -32,10 +32,10 @@ if str(ROOT) not in sys.path:
 LONGEST_TEST = "tests/test_atlas_v3_binding.py::test_atlas_v3_binding_and_sealed_corpus_pass"
 
 #: Every test belongs to exactly one tier, and each tier is one job's selection
-#: (REF-071). ``fast`` is `make test-package` and the bounded CI job; ``slow`` is
-#: `make test-slow` and the real-data job, after `make build-derived`;
-#: ``full-atlas`` constructs the complete Atlas topology (~10 GB, tens of
-#: minutes) and runs in its own scheduled job. One function rather than three
+#: (REF-071). ``fast`` is `make test-package`, the one tier CI runs; ``slow`` is
+#: `make test-slow`, run locally after `make build-derived`; ``full-atlas``
+#: constructs the complete Atlas topology (~10 GB, tens of minutes) and is
+#: `make test-full-atlas`, also local. One function rather than three
 #: `-m` strings kept in step by hand, so the tiers partition the suite by
 #: construction; tests/test_test_tiers.py checks that a job runs each tier.
 TIERS = ("fast", "slow", "full-atlas")

@@ -1,41 +1,31 @@
 name: CI
 
-# Pushes to main and pull requests run the fast tier, not both for one change:
-# a pull request's own push would otherwise run it twice. The heavy tiers run on
-# a schedule -- the slow tier weekly, the full-Atlas tier monthly -- and on
-# demand, so every test runs somewhere without an hour of real-data work on
-# every push (REF-071).
+# CI runs the fast tier, on pushes to main and pull requests (not both for one
+# change: a pull request's own push would otherwise run it twice). The slow and
+# full-Atlas tiers are local work -- `make test-slow`, `make test-full-atlas` --
+# because an hour of real-data runs per commit, on a 16 GB runner they outgrow,
+# buys little (REF-071).
 on:
   pull_request:
   push:
     branches: [main]
-  schedule:
-    - cron: "17 6 * * 1" # weekly: the slow tier
-    - cron: "17 7 1 * *" # monthly: the full-Atlas tier
   workflow_dispatch:
-    inputs:
-      tier:
-        description: Heavy tier to run beside the fast one
-        type: choice
-        options: [slow, full-atlas, both]
-        default: slow
 
 permissions:
   contents: read
 
 # A newer push to the same pull request supersedes the older run; main keeps
 # every run, so each merge still gets its verdict. The event is part of the
-# group: GitHub holds one running and one pending run per group, so an
-# hours-long scheduled or dispatched heavy tier sharing a group with pushes
-# would queue their runs and cancel all but the newest.
+# group: GitHub holds one running and one pending run per group, so a dispatched
+# run sharing a group with pushes would queue them and cancel all but the newest.
 concurrency:
   group: ci-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# Each job runs one tier, conftest.tier_of, through its `make` target, so CI and
-# a developer's `make` run the same selection; tests/test_test_tiers.py checks
-# that every tier has a job here. Each job starts from a clean clone plus the
-# pinned inputs .github/actions/pinned-setup fetches from R2. The rest of the
+# The job runs the fast tier, conftest.tier_of, through `make test-package`, so
+# CI and a developer's `make` run the same selection; tests/test_test_tiers.py
+# checks that. It starts from a clean clone plus the pinned inputs
+# .github/actions/pinned-setup fetches from R2. The rest of the
 # gitignored `output/` tree (derived builds and unpinned captures) is never
 # present, so a step that reads it fails with a missing file rather than a
 # finding; `audit-registry-real-data` rewrites sealed evidence and stays the
@@ -43,7 +33,6 @@ concurrency:
 jobs:
   bounded-gates:
     name: Bounded gates
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -98,61 +87,3 @@ jobs:
       # comparator names. Its inputs arrive with the pinned inputs (REF-071).
       - name: FR double-build determinism gate
         run: make determinism-atlas-federal-register-thesaurus
-
-  real-data-tier:
-    name: Real-data tier
-    if: >-
-      (github.event_name == 'schedule' && github.event.schedule == '17 6 * * 1')
-      || (github.event_name == 'workflow_dispatch' && inputs.tier != 'full-atlas')
-    runs-on: ubuntu-latest
-    timeout-minutes: 150
-
-    steps:
-      - name: Check out source
-        uses: actions/checkout@v4
-
-      - name: Set up with the pinned inputs
-        uses: ./.github/actions/pinned-setup
-        with:
-          r2-access-key-id: ${{ secrets.REFSPEC_R2_ACCESS_KEY_ID }}
-          r2-secret-access-key: ${{ secrets.REFSPEC_R2_SECRET_ACCESS_KEY }}
-
-      # `make test-slow` builds every derived artifact the tier reads at HEAD (the
-      # FR Thesaurus release, the Unified Agenda Parquet artifact and the
-      # EuroVoc/GEMET claim releases; ~10 minutes on a hosted runner) and runs
-      # the tier. Two workers, not the Makefile's four: on 2026-09-23 four workers
-      # took a 16 GB hosted runner down at 70% of the tier (run 35879235424), after
-      # 23 minutes of tests; the tier is weekly, so it trades time for memory.
-      - name: Run the slow tier
-        run: make test-slow SLOW_WORKERS=2 PYTEST_ARGS="--junitxml=$RUNNER_TEMP/pytest.xml --durations=25"
-
-      - name: Check skips against the slow tier's allowlist
-        run: uv run python tools/check_skips.py "$RUNNER_TEMP/pytest.xml" --tier slow
-
-  full-atlas-tier:
-    name: Full-Atlas tier
-    if: >-
-      (github.event_name == 'schedule' && github.event.schedule == '17 7 1 * *')
-      || (github.event_name == 'workflow_dispatch' && inputs.tier != 'slow')
-    # One worker holding the complete topology reaches ~10 GB. A larger runner
-    # can be named with the REFSPEC_FULL_ATLAS_RUNNER repository variable.
-    runs-on: ${{ vars.REFSPEC_FULL_ATLAS_RUNNER || 'ubuntu-latest' }}
-    timeout-minutes: 360
-
-    steps:
-      - name: Check out source
-        uses: actions/checkout@v4
-
-      - name: Set up with the pinned inputs
-        uses: ./.github/actions/pinned-setup
-        with:
-          r2-access-key-id: ${{ secrets.REFSPEC_R2_ACCESS_KEY_ID }}
-          r2-secret-access-key: ${{ secrets.REFSPEC_R2_SECRET_ACCESS_KEY }}
-
-      # pytest exits non-zero when the tier selects nothing, so an emptied tier
-      # fails here instead of passing silently.
-      - name: Run the full-Atlas tier
-        run: make test-full-atlas PYTEST_ARGS="--junitxml=$RUNNER_TEMP/pytest.xml"
-
-      - name: Check skips against the full-Atlas tier's allowlist
-        run: uv run python tools/check_skips.py "$RUNNER_TEMP/pytest.xml" --tier full-atlas

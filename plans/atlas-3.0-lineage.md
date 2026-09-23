@@ -480,9 +480,8 @@ count could not have told one skip from another anyway. What replaced it:
 - CI fetches every pinned `output/` input from R2 (`make fetch-pinned-inputs`),
   so a clean clone is no longer an empty one.
 - Three tiers, one function (`conftest.tier_of`, `--tier`): `fast` is
-  `make test-package` and the bounded job, on every push and pull request;
-  `slow` is `make test-slow` and the real-data job, weekly; `full-atlas` is
-  `make test-full-atlas`, monthly. Both heavy tiers also run on demand.
+  `make test-package`, which CI runs on every push and pull request; `slow`
+  (`make test-slow`) and `full-atlas` (`make test-full-atlas`) run locally.
   CI calls the `make` targets, so "the command is otherwise `make
   test-package`'s" is now literally true.
 - `tools/check_skips.py` replaces `tools/check_skip_budget.py`: each tier's

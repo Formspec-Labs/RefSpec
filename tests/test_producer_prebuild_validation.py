@@ -107,7 +107,7 @@ HAS_FAST_LCSH_S27_SOURCES = all(path.is_file() for path in FAST_LCSH_S27_REQUIRE
 def complete_prebuild():
     """Load and validate the complete producer topology; its users are the ``full_atlas`` tier.
 
-    A missing input fails here: the tier's job fetches every pinned input first.
+    A missing input fails here: `make test-full-atlas` checks the pinned inputs first.
     """
 
     started_at = time.perf_counter()

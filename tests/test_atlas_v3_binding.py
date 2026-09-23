@@ -174,7 +174,7 @@ def test_the_aggregate_test_target_runs_the_sealed_corpus_exactly_once() -> None
     runs it; dropping it silently stopped the whole slow tier under `make test`
     between the 2026-08-23 slow-marking pass and the fix. The ``full-atlas``
     tier is deliberately not part of `make test` (REF-071): it constructs the
-    complete topology and has its own scheduled job.
+    complete topology and is its own local target, `make test-full-atlas`.
     """
 
     prerequisites, _ = _makefile_rule("test")

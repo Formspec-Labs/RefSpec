@@ -94,7 +94,7 @@ markers = [
     "slow: reads or derives from a large pinned real source; runs in the audit tier, excluded from test-package",
     "no_artifact: needs no built artifact, so it stays in the fast tier inside a module that reads one",
     "reads_built_artifact: reads a derived artifact `make build-derived` writes; runs in the slow tier unless no_artifact",
-    "release_tier: corpus-wide release checks (minutes); in the slow tier, which the real-data CI job runs",
+    "release_tier: corpus-wide release checks (minutes); in the slow tier (`make test-slow`)",
     "full_atlas: constructs or validates the complete Atlas topology (~10 GB, tens of minutes); its own tier and job",
     "pinned_input(condition, reason): fails the test when condition says a pinned input is absent (skipif's arguments)",
 ]

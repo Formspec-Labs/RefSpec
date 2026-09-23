@@ -200,8 +200,8 @@ test-slow: atlas-v3-fixtures pinned-inputs-present build-derived
 	uv run pytest -q -n $(SLOW_WORKERS) --tier slow $(PYTEST_ARGS)
 
 # The complete Atlas topology: the full producer prebuild and its deep
-# compiled-output validation (~10 GB, tens of minutes each). One worker; its
-# own scheduled CI job.
+# compiled-output validation (~10 GB, tens of minutes each). One worker; local
+# work, like `test-slow` -- CI runs only `test-package` (REF-071).
 test-full-atlas: pinned-inputs-present
 	uv run pytest -q -n 1 --tier full-atlas $(PYTEST_ARGS)
 
