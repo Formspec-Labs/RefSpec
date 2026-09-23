@@ -1,4 +1,4 @@
-.PHONY: seal-distribution verify-distribution-seal generate check-generated lint lint-rdf-strict test test-package test-slow test-json-binding test-atlas-v3 \
+.PHONY: fetch-pinned-inputs pinned-inputs-present build-derived test-full-atlas seal-distribution verify-distribution-seal generate check-generated lint lint-rdf-strict test test-package test-slow test-json-binding test-atlas-v3 \
 	atlas-v3-fixtures contract-dev \
 	audit-atlas-v3-source-fidelity audit-registry-inventory audit-registry-real-data \
 	release-atlas-federal-register-thesaurus verify-atlas-federal-register-thesaurus \
@@ -90,6 +90,12 @@ atlas-v3-fixtures:
 # its style today, so adding it would reformat a third of the tree in exchange
 # for no failure class this gate does not already catch. Adopting it later is a
 # one-shot reformat commit plus one line here, not a decision to defer forever.
+# Puts every pinned input tools/pinned_inputs.json lists under output/, fetched
+# from R2 by digest and verified; needs the read-only REFSPEC_R2_* credentials
+# only when something is missing. `--check` verifies without downloading.
+fetch-pinned-inputs:
+	uv run python tools/fetch_pinned_inputs.py
+
 lint:
 	uv run ruff check .
 
@@ -108,11 +114,10 @@ lint-rdf-strict:
 audit-registry-inventory:
 	uv run python tools/verify_registry_audit.py
 
-# The real-data gate. It runs the suite with the claim-export real-data tests
-# enabled and rejects any registry module whose publisher evidence is unproven,
-# so it must set REFSPEC_REGISTRY_CLAIM_REAL_DATA rather than rely on the caller.
+# The real-data gate. It runs the suite, claim-export real-data tests included,
+# and rejects any registry module whose publisher evidence is unproven.
 audit-registry-real-data:
-	REFSPEC_REGISTRY_CLAIM_REAL_DATA=1 uv run python tools/verify_registry_audit.py \
+	uv run python tools/verify_registry_audit.py \
 		--run-tests --run-all-tests --require-real-data \
 		--output research/evidence/registry-real-data-audit-2026-08-03/summary.json
 
@@ -136,15 +141,32 @@ audit-registry-real-data:
 # pass), so 240s stays rather than tightens: two quiet-machine runs are not
 # the repeated measurement the 112-140s spread came from, and shrinking the
 # guard on that little evidence would risk the same nondeterministic flip.
-test-package: atlas-v3-fixtures
+# Every tier reads the pinned inputs (`make fetch-pinned-inputs`). This checks
+# presence and size only, so it costs nothing on each run; the fetch is what
+# verifies digests, when it places a file.
+pinned-inputs-present:
+	uv run python tools/fetch_pinned_inputs.py --present
+
+# The tiers are one function, conftest.tier_of, selected with `--tier`
+# (REF-071); CI calls these targets rather than spelling the selection out. The
+# slow and full-Atlas tiers load large real corpora in every worker -- one test
+# once reached 14.4 GiB, and `-n auto` on a 14-core, 48 GB host froze it on
+# 2026-09-23 -- so they run on a capped worker count; the fast tier stays auto.
+# CI raises the runaway guard, because a hosted runner is not this machine and
+# the job's own timeout is its guard.
+SLOW_WORKERS ?= 4
+PYTEST_ARGS ?=
+TEST_PACKAGE_FAIL_SECONDS ?= 240
+
+test-package: atlas-v3-fixtures pinned-inputs-present release-atlas-federal-register-thesaurus
 	@start=$$(date +%s); \
-	uv run pytest -q -n auto -m "not slow"; \
+	uv run pytest -q -n auto --tier fast $(PYTEST_ARGS); \
 	status=$$?; \
 	end=$$(date +%s); \
 	elapsed=$$((end - start)); \
 	if [ "$$status" -ne 0 ]; then exit "$$status"; fi; \
-	if [ "$$elapsed" -gt 240 ]; then \
-		echo "test-package budget FAIL: took $${elapsed}s, exceeds the 240s runaway-guard budget" >&2; \
+	if [ "$$elapsed" -gt $(TEST_PACKAGE_FAIL_SECONDS) ]; then \
+		echo "test-package budget FAIL: took $${elapsed}s, exceeds the $(TEST_PACKAGE_FAIL_SECONDS)s runaway-guard budget" >&2; \
 		exit 1; \
 	elif [ "$$elapsed" -gt 130 ]; then \
 		echo "test-package budget WARN: took $${elapsed}s, over the 130s target (within the 240s fail budget)" >&2; \
@@ -159,12 +181,14 @@ test-package: atlas-v3-fixtures
 # test_unified_agenda_editions.py, test_usc_section_oracle.py,
 # test_usc_disposition_tables.py, test_usc_act_index.py and
 # test_identifier_shapes.py (158 tests). Each of those six files keeps its
-# small synthetic-fixture tests in this tier; test_unified_agenda_parquet.py
-# also keeps test_the_entry_point_verifies_the_artifact_against_its_receipt,
-# so the fast tier still proves the shared artifact matches its receipt.
-# `audit-registry-real-data` already runs the complete, unfiltered suite
-# (tools/verify_registry_audit.py's run_full_test_suite passes pytest no `-m`
-# selection at all), so this tier duplicates no coverage against that audit --
+# small synthetic-fixture tests in the fast tier. Since REF-071 every test that
+# reads a derived artifact is `reads_built_artifact` and runs here, after
+# `make build-derived` -- including
+# test_the_entry_point_verifies_the_artifact_against_its_receipt, which the fast
+# tier used to keep and now cannot, having no artifact to read.
+# `audit-registry-real-data` runs every tier but `full_atlas`
+# (tools/verify_registry_audit.py's run_full_test_suite), so this tier
+# duplicates no coverage against that audit --
 # it gives the slow half of the suite a target that can be run and measured on
 # its own, AND (as a prerequisite of `test`, above) is what makes `make test`
 # complete: it is the only thing that runs the sealed Atlas 3.1 conformance
@@ -172,8 +196,14 @@ test-package: atlas-v3-fixtures
 # slow-marked tests once `test-package` stopped covering them. Without this
 # target wired into `test`, a developer can break the binding validator and
 # still get a green `make test`.
-test-slow: atlas-v3-fixtures
-	uv run pytest -q -n auto -m slow
+test-slow: atlas-v3-fixtures pinned-inputs-present build-derived
+	uv run pytest -q -n $(SLOW_WORKERS) --tier slow $(PYTEST_ARGS)
+
+# The complete Atlas topology: the full producer prebuild and its deep
+# compiled-output validation (~10 GB, tens of minutes each). One worker; its
+# own scheduled CI job.
+test-full-atlas: pinned-inputs-present
+	uv run pytest -q -n 1 --tier full-atlas $(PYTEST_ARGS)
 
 test-json-binding:
 	uv run --no-project --with-requirements bindings/json/1.0/requirements.txt \
@@ -245,6 +275,15 @@ release-atlas-federal-register-thesaurus:
 	uv run python tools/generate_atlas_v3_full.py \
 		--only-release "$(ATLAS_FR_RELEASE_KEY)" \
 		--output "$(ATLAS_FR_RELEASE_ROOT)/distribution"
+
+# Every derived artifact the suite reads, built from the pinned inputs
+# (`make fetch-pinned-inputs`): the Federal Register Thesaurus release with its
+# Parquet view (seconds; the fast tier reads it), the Unified Agenda Parquet
+# artifact (189 s measured 2026-09-22) and the EuroVoc/GEMET claim releases. The
+# slow tier reads all of them; its tests fail, not skip, when one is missing.
+build-derived: release-atlas-federal-register-thesaurus
+	uv run python -m refspec.registry.unified_agenda_parquet
+	uv run python tools/export_registry_claim_releases.py
 
 # The determinism gate, in the miniature that runs in 6.4s measured (both
 # builds plus the comparison, 2026-08-13): build the same bounded release twice,

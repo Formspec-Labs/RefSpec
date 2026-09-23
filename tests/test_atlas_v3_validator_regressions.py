@@ -8,7 +8,6 @@ import gc
 import hashlib
 import io
 import json
-import os
 import re
 import shutil
 import sys
@@ -1898,12 +1897,10 @@ def _shacl_data_corpus_case_ids() -> tuple[str, ...]:
 # plan's findings register (v3.6) item (a) records why the breadth is
 # required: kill-5's engine-parity protocol wants the full shacl.data set as
 # the standing parity corpus, and the committed dev-tier test above covers
-# only six mechanism cases. Set REFSPEC_RELEASE_TIER=1 to run it; the release
-# workflow's "Full independent acceptance" tier is where it belongs.
-_RELEASE_TIER_ONLY = pytest.mark.skipif(
-    os.environ.get("REFSPEC_RELEASE_TIER") != "1",
-    reason="release tier only; set REFSPEC_RELEASE_TIER=1 (plan v3.6 findings (a))",
-)
+# only six mechanism cases. The `release_tier` marker keeps it out of `make
+# test-package`; the release workflow's "Full independent acceptance" tier and
+# the real-data CI job select it.
+_RELEASE_TIER_ONLY = pytest.mark.release_tier
 
 
 @_RELEASE_TIER_ONLY

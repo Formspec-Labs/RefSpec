@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry import ferc_elibrary_codes as ferc
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 
@@ -49,7 +50,7 @@ def test_fixture_pin_matches_exact_constructed_reference_bytes() -> None:
 def test_full_official_class_type_pdf_shape_count_and_samples() -> None:
     source_path = os.environ.get("REFSPEC_FERC_CLASS_TYPES_2025_PDF_PATH")
     if source_path is None:
-        pytest.skip("full official FERC class/type PDF is not materialized")
+        missing_pinned_input("full official FERC class/type PDF is not materialized")
 
     capture = ferc.parse_ferc_class_type_pdf(Path(source_path).read_bytes())
 
@@ -71,7 +72,7 @@ def test_full_official_class_type_pdf_shape_count_and_samples() -> None:
 def test_full_official_docket_prefix_pdf_shape_count_and_samples() -> None:
     source_path = os.environ.get("REFSPEC_FERC_DOCKET_PREFIX_2025_PDF_PATH")
     if source_path is None:
-        pytest.skip("full official FERC docket-prefix PDF is not materialized")
+        missing_pinned_input("full official FERC docket-prefix PDF is not materialized")
 
     capture = ferc.parse_ferc_docket_prefix_pdf(Path(source_path).read_bytes())
 
@@ -95,7 +96,7 @@ def test_full_official_docket_prefix_pdf_shape_count_and_samples() -> None:
 def test_official_search_help_sector_security_shape_and_samples() -> None:
     source_path = os.environ.get("REFSPEC_FERC_GENERAL_SEARCH_HELP_PATH")
     if source_path is None:
-        pytest.skip("official FERC general-search help is not materialized")
+        missing_pinned_input("official FERC general-search help is not materialized")
 
     capture = ferc.parse_ferc_general_search_help(Path(source_path).read_bytes())
 
@@ -107,9 +108,9 @@ def test_official_search_help_sector_security_shape_and_samples() -> None:
 
 
 def test_official_accessibility_help_accession_formats() -> None:
-    source_path = os.environ.get("REFSPEC_FERC_ACCESSIBILITY_TIPS_PATH")
-    if source_path is None:
-        pytest.skip("official FERC accessibility guide is not materialized")
+    source_path = os.environ.get("REFSPEC_FERC_ACCESSIBILITY_TIPS_PATH") or (
+        Path(__file__).resolve().parents[1] / "output" / "registry-real-data-sources" / "ferc-accessibility-tips.html"
+    )
 
     capture = ferc.parse_ferc_accessibility_tips(Path(source_path).read_bytes())
 

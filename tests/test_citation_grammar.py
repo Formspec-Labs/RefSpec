@@ -108,7 +108,7 @@ def test_a_lettered_part_is_not_merged_into_its_numeric_neighbour() -> None:
     assert _parts("7 CFR 15") == ["15"]
 
 
-@pytest.mark.skipif(not INDEX_CSV.is_file(), reason="CFR subject index evidence is not present")
+@pytest.mark.pinned_input(not INDEX_CSV.is_file(), reason="CFR subject index evidence is not present")
 def test_the_lettered_part_share_is_measured_not_asserted() -> None:
     """Pins the lettered-part share to the OFR index, including 7 CFR 15 / 15a -- the pair that makes merging lossy."""
 
@@ -1672,7 +1672,7 @@ def test_an_acts_amendments_are_a_different_act_and_keep_their_name() -> None:
     assert stated_act_name("Section 320 of the 1990 Clean Air Act amendments") == "Clean Air Act"
 
 
-@pytest.mark.skipif(not POPULAR_NAMES_PARQUET.is_file(), reason="the OLRC popular-name index is not present")
+@pytest.mark.pinned_input(not POPULAR_NAMES_PARQUET.is_file(), reason="the OLRC popular-name index is not present")
 def test_a_stated_name_is_never_a_different_acts_index_entry() -> None:
     """The negative half, asserted against the OLRC's real index.
 
@@ -2164,7 +2164,7 @@ TIMETABLES_PARQUET = (
 )
 
 
-@pytest.mark.skipif(not TIMETABLES_PARQUET.is_file(), reason="the Unified Agenda timetables are not built")
+@pytest.mark.reads_built_artifact
 def test_the_timetable_reader_answers_only_rows_that_failed() -> None:
     """Every new scheme, measured against all 671,959 pinned rows.
 
@@ -3098,7 +3098,7 @@ def test_a_lost_hyphen_is_refused_because_the_pinned_oracle_cannot_adjudicate_it
         assert any((row.usc_section or "").startswith(digits) for row in rows), token
 
 
-@pytest.mark.skipif(
+@pytest.mark.pinned_input(
     not (
         (Path(__file__).resolve().parents[1] / "output" / "usc-act-index-2026-08-02").is_dir()
         and (Path(__file__).resolve().parents[1] / "output" / "usc-source-credit-index-2026-08-02").is_dir()
@@ -3114,7 +3114,7 @@ def test_the_pinned_act_index_is_not_a_roster_of_the_code() -> None:
     is due a fresh verdict -- which is the only thing that should reopen it.
     """
 
-    pyarrow_parquet = pytest.importorskip("pyarrow.parquet")
+    import pyarrow.parquet as pyarrow_parquet
     root = Path(__file__).resolve().parents[1] / "output"
     pairs: set[tuple[str, str]] = set()
     for relative in (
@@ -3165,7 +3165,7 @@ def test_the_pinned_act_index_is_not_a_roster_of_the_code() -> None:
         assert (title, section) not in pairs, f"{title} U.S.C. {section} is real and unknown here"
 
 
-@pytest.mark.skipif(not AGENDA_AUTHORITIES.is_file(), reason="the pinned Agenda table is not present")
+@pytest.mark.pinned_input(not AGENDA_AUTHORITIES.is_file(), reason="the pinned Agenda table is not present")
 def test_every_named_label_repair_reaches_the_corpus() -> None:
     """The reach of the repair table, recounted rather than narrated.
 
@@ -3178,7 +3178,7 @@ def test_every_named_label_repair_reaches_the_corpus() -> None:
     by being quietly ignored.
     """
 
-    pyarrow_parquet = pytest.importorskip("pyarrow.parquet")
+    import pyarrow.parquet as pyarrow_parquet
     values = set(
         pinned_agenda_authorities(pyarrow_parquet, ["authority_text"]).column("authority_text").to_pylist()
     )
@@ -3286,7 +3286,7 @@ def test_a_zero_padded_section_is_the_section_it_pads() -> None:
         assert (row.usc_section, row.usc_section_end) == (section, end), text
 
 
-@pytest.mark.skipif(not USC_SECTION_ORACLE.is_dir(), reason="the pinned U.S.C. oracle is not present")
+@pytest.mark.pinned_input(not USC_SECTION_ORACLE.is_dir(), reason="the pinned U.S.C. oracle is not present")
 def test_the_pinned_oracle_knows_no_zero_padded_section() -> None:
     """The measurement behind the strip above, run against the oracle.
 
@@ -3298,7 +3298,7 @@ def test_the_pinned_oracle_knows_no_zero_padded_section() -> None:
     cannot collide with a real section.
     """
 
-    pyarrow_parquet = pytest.importorskip("pyarrow.parquet")
+    import pyarrow.parquet as pyarrow_parquet
     seen: set[tuple[int, str]] = set()
     padded = 0
     for name, columns in (
@@ -3530,7 +3530,7 @@ def test_an_expanded_span_says_it_was_expanded_and_is_never_ok() -> None:
         assert parse_authority_citation(text)[0].usc_section_span_rule is None, text
 
 
-@pytest.mark.skipif(not USC_SECTION_ORACLE.is_dir(), reason="the pinned U.S.C. oracle is not present")
+@pytest.mark.pinned_input(not USC_SECTION_ORACLE.is_dir(), reason="the pinned U.S.C. oracle is not present")
 def test_the_phantom_spans_are_recounted_not_restated() -> None:
     """The span population, recomputed over the pinned corpus and the oracle.
 
@@ -3548,7 +3548,7 @@ def test_the_phantom_spans_are_recounted_not_restated() -> None:
     is the input to that gate rather than the published answer.
     """
 
-    pyarrow_parquet = pytest.importorskip("pyarrow.parquet")
+    import pyarrow.parquet as pyarrow_parquet
     real: set[tuple[int, str]] = set()
     for name in ("usc-oracle-sections", "usc-oracle-annual-sections"):
         table = pyarrow_parquet.read_table(USC_SECTION_ORACLE / f"{name}.parquet", columns=["title", "section"])
@@ -3633,7 +3633,7 @@ def test_the_span_guards_are_three_and_each_refuses_something_real() -> None:
         assert parse_authority_citation(f"{title} U.S.C. {section}")[0].usc_section_end is not None
 
 
-@pytest.mark.skipif(not USC_SECTION_ORACLE.is_dir(), reason="the pinned U.S.C. oracle is not present")
+@pytest.mark.pinned_input(not USC_SECTION_ORACLE.is_dir(), reason="the pinned U.S.C. oracle is not present")
 def test_the_span_rule_is_bought_by_the_oracle_not_by_its_shape() -> None:
     """The measurements behind the span rule, run against the oracle.
 
@@ -3642,7 +3642,7 @@ def test_the_span_rule_is_bought_by_the_oracle_not_by_its_shape() -> None:
     one of the six named above.
     """
 
-    pyarrow_parquet = pytest.importorskip("pyarrow.parquet")
+    import pyarrow.parquet as pyarrow_parquet
     real: set[tuple[int, str]] = set()
     for name in ("usc-oracle-sections", "usc-oracle-annual-sections"):
         table = pyarrow_parquet.read_table(USC_SECTION_ORACLE / f"{name}.parquet", columns=["title", "section"])
@@ -3726,11 +3726,11 @@ def test_the_o_for_zero_homoglyph_damages_a_section_too() -> None:
         assert parse_authority_citation(f"{title} U.S.C. {published}")[0].usc_section == published
 
 
-@pytest.mark.skipif(not USC_SECTION_ORACLE.is_dir(), reason="the pinned U.S.C. oracle is not present")
+@pytest.mark.pinned_input(not USC_SECTION_ORACLE.is_dir(), reason="the pinned U.S.C. oracle is not present")
 def test_the_o_for_zero_fence_is_the_title_and_stem_not_the_shape() -> None:
     """The oracle behind the pin, and behind the refusal to generalise it."""
 
-    pyarrow_parquet = pytest.importorskip("pyarrow.parquet")
+    import pyarrow.parquet as pyarrow_parquet
     real: set[tuple[int, str]] = set()
     for name in ("usc-oracle-sections", "usc-oracle-annual-sections"):
         table = pyarrow_parquet.read_table(USC_SECTION_ORACLE / f"{name}.parquet", columns=["title", "section"])
@@ -3789,7 +3789,7 @@ def test_a_cfr_authority_carries_the_section_it_names() -> None:
         assert (row.cfr_title, row.cfr_part, row.cfr_section) == (title, part, None), text
 
 
-@pytest.mark.skipif(not AGENDA_AUTHORITIES.is_file(), reason="the pinned Agenda table is not present")
+@pytest.mark.pinned_input(not AGENDA_AUTHORITIES.is_file(), reason="the pinned Agenda table is not present")
 def test_the_cfr_section_population_is_one_number_recomputed() -> None:
     """One fact was carried by three numbers, so it is counted here instead.
 
@@ -3807,7 +3807,7 @@ def test_the_cfr_section_population_is_one_number_recomputed() -> None:
     source rows, which undercounts a value naming two sectioned parts.
     """
 
-    pyarrow_parquet = pytest.importorskip("pyarrow.parquet")
+    import pyarrow.parquet as pyarrow_parquet
     table = pinned_agenda_authorities(
         pyarrow_parquet, ["rin", "publication_id", "ordinal", "authority_text"]
     )
@@ -4316,7 +4316,7 @@ def test_a_lettered_page_is_fenced_by_the_same_public_law_beside_it() -> None:
     assert (row.statute_volume, row.statute_volume_matches_public_law) == (None, None)
 
 
-@pytest.mark.skipif(not PL_STATUTES_ORACLE.is_file(), reason="the pinned PL/Statutes oracle is not present")
+@pytest.mark.pinned_input(not PL_STATUTES_ORACLE.is_file(), reason="the pinned PL/Statutes oracle is not present")
 def test_the_statutes_relation_is_derived_and_the_fence_is_one_wider() -> None:
     """The relation, and the two congresses that are why the fence is looser.
 
@@ -4372,7 +4372,7 @@ IMPOSSIBLE_MAGNITUDES = (
 )
 
 
-@pytest.mark.skipif(not AGENDA_AUTHORITIES.is_file(), reason="the pinned Agenda table is not present")
+@pytest.mark.pinned_input(not AGENDA_AUTHORITIES.is_file(), reason="the pinned Agenda table is not present")
 def test_a_section_magnitude_is_fenced_by_the_corpus_that_cites_it() -> None:
     """Nothing fences a U.S.C. SECTION, and the cheapest fence needs no oracle.
 
@@ -4399,7 +4399,7 @@ def test_a_section_magnitude_is_fenced_by_the_corpus_that_cites_it() -> None:
     citation.
     """
 
-    pyarrow_parquet = pytest.importorskip("pyarrow.parquet")
+    import pyarrow.parquet as pyarrow_parquet
     table = pinned_agenda_authorities(pyarrow_parquet, ["usc_title", "usc_section"])
     counted: dict[tuple[int, str], int] = {}
     for title, section in zip(
@@ -4434,7 +4434,7 @@ def test_a_section_magnitude_is_fenced_by_the_corpus_that_cites_it() -> None:
         assert citation_grammar.usc_section_magnitude_is_plausible(title, section, ceilings) is None
 
 
-@pytest.mark.skipif(
+@pytest.mark.pinned_input(
     not (AGENDA_AUTHORITIES.is_file() and USC_SECTION_ORACLE.is_dir()),
     reason="the pinned Agenda table or the U.S.C. oracle is not present",
 )
@@ -4446,7 +4446,7 @@ def test_the_magnitude_headroom_is_bought_against_the_oracle() -> None:
     none. Anything tighter starts refusing law.
     """
 
-    pyarrow_parquet = pytest.importorskip("pyarrow.parquet")
+    import pyarrow.parquet as pyarrow_parquet
     table = pinned_agenda_authorities(pyarrow_parquet, ["usc_title", "usc_section"])
     counted: dict[tuple[int, str], int] = {}
     for title, section in zip(

@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.atlas import v3_registry_codes as codes
 from refspec.atlas.v3_registry_codes import load_registry_code_releases
 from refspec.atlas.v3_source_data import RegistryRelease
@@ -115,7 +116,7 @@ def releases() -> tuple[RegistryRelease, ...]:
     """Load every pinned registry code release, skipping when the capture tree is absent."""
 
     if not REAL_DATA.is_dir():
-        pytest.skip("pinned registry code sources are not present: output/registry-real-data-sources")
+        missing_pinned_input("pinned registry code sources are not present: output/registry-real-data-sources")
     return load_registry_code_releases(ROOT)
 
 

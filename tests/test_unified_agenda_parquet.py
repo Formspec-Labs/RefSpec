@@ -16,6 +16,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry.unified_agenda_parquet import (
     _ACT_UNKNOWN_REASONS,
     ACTIONS_SCHEMA,
@@ -25,32 +26,34 @@ from refspec.registry.unified_agenda_parquet import (
 
 ARTIFACT = Path(__file__).resolve().parents[1] / "output" / "registry-real-data-sources" / "unified-agenda-parquet"
 
+pytestmark = pytest.mark.reads_built_artifact
+
 @pytest.fixture(autouse=True)
 def _the_built_artifact(request) -> None:
-    """Skip a test that reads the gitignored built artifact when it is not
-    built -- but ONLY such a test. This was a file-wide `pytestmark`, which
-    also gated the producer-block unit tests below, none of which touches the
-    artifact: on a fresh checkout every one of them SKIPPED, so a regression
-    in the missing-module refusal or the repository guard passed that
-    environment silently. `@pytest.mark.no_artifact` opts a test out.
+    """Fail a test that reads the gitignored built artifact when it is not built.
 
-    What this cannot see: a test that reads the artifact and forgets to say
-    so is gated correctly by default (the default is to skip), but a test
-    marked `no_artifact` that later grows a read of the artifact will fail
-    rather than skip on a checkout without one. That is the direction to
-    fail in, and it is the only way round this gate.
+    The module is `reads_built_artifact`, so its artifact readers run in the
+    slow tier, where `make build-derived` writes the artifact first;
+    `@pytest.mark.no_artifact` keeps the producer-block unit tests below in the
+    fast tier. This gate used to skip, and as a file-wide skip it once hid
+    regressions in those unit tests on every fresh checkout.
+
+    What this cannot see: a test marked `no_artifact` that later grows a read
+    of the artifact fails in the fast tier on a checkout without one -- the
+    direction to fail in.
     """
 
     if ARTIFACT.is_dir() or request.node.get_closest_marker("no_artifact"):
         return
-    pytest.skip("derived Parquet artifact is not built")
+    pytest.fail("the derived Parquet artifact is not built; run `make build-derived`")
 
 
 @pytest.fixture(scope="module")
 def con():
-    """A module-scoped DuckDB connection, skipping the test when duckdb is absent."""
+    """A module-scoped DuckDB connection."""
 
-    duckdb = pytest.importorskip("duckdb")
+    import duckdb
+
     return duckdb.connect()
 
 
@@ -3746,7 +3749,7 @@ def test_eo_in_known_series_consults_the_roster_oracle_after_the_range_check() -
     from refspec.registry.unified_agenda_parquet import _EO_ROSTER_DIR, _SeriesCalendar
 
     if not _EO_ROSTER_DIR.is_dir():
-        pytest.skip("this tree does not carry the pinned EO roster")
+        missing_pinned_input("this tree does not carry the pinned EO roster")
 
     oracle = EoRosterOracle.from_directory(_EO_ROSTER_DIR)
     calendar = _SeriesCalendar.build(None, eo_oracle=oracle)
@@ -8972,7 +8975,7 @@ def test_a_spans_far_end_is_refused_where_the_code_prints_no_such_section() -> N
 
     oracle = _usc_section_oracle()
     if oracle is None:
-        pytest.skip("the pinned U.S.C. section oracle is not present")
+        missing_pinned_input("the pinned U.S.C. section oracle is not present")
 
     def row(title, section, end, rule="stated", status="ok"):
         return {
@@ -9089,7 +9092,7 @@ def test_b8_two_witness_publishes_the_ftc_specimen_that_demoted_plain_b8() -> No
 
     oracle = _usc_section_oracle()
     if oracle is None:
-        pytest.skip("the pinned U.S.C. section oracle is not present")
+        missing_pinned_input("the pinned U.S.C. section oracle is not present")
 
     row = _authority_slot(
         0,
@@ -9133,7 +9136,7 @@ def test_b8_two_witness_publishes_on_a_sibling_edition_alone() -> None:
 
     oracle = _usc_section_oracle()
     if oracle is None:
-        pytest.skip("the pinned U.S.C. section oracle is not present")
+        missing_pinned_input("the pinned U.S.C. section oracle is not present")
 
     row = _authority_slot(
         0,
@@ -9185,7 +9188,7 @@ def test_b8_two_witness_refuses_a_lone_candidate_with_no_second_witness() -> Non
 
     oracle = _usc_section_oracle()
     if oracle is None:
-        pytest.skip("the pinned U.S.C. section oracle is not present")
+        missing_pinned_input("the pinned U.S.C. section oracle is not present")
 
     row = _authority_slot(
         0,
@@ -9229,7 +9232,7 @@ def test_b8_two_witness_refuses_where_the_notes_own_part_names_the_bare_section(
 
     oracle = _usc_section_oracle()
     if oracle is None:
-        pytest.skip("the pinned U.S.C. section oracle is not present")
+        missing_pinned_input("the pinned U.S.C. section oracle is not present")
 
     row = _authority_slot(
         0,
@@ -9290,7 +9293,7 @@ def test_b8_two_witness_refuses_where_the_note_names_only_the_bare_section() -> 
 
     oracle = _usc_section_oracle()
     if oracle is None:
-        pytest.skip("the pinned U.S.C. section oracle is not present")
+        missing_pinned_input("the pinned U.S.C. section oracle is not present")
 
     row = _authority_slot(
         0,
@@ -9352,7 +9355,7 @@ def test_b8_two_witness_binds_the_note_witness_to_the_rows_own_held_parts() -> N
 
     oracle = _usc_section_oracle()
     if oracle is None:
-        pytest.skip("the pinned U.S.C. section oracle is not present")
+        missing_pinned_input("the pinned U.S.C. section oracle is not present")
 
     def _filing(rin):
         return _authority_slot(
@@ -9410,7 +9413,7 @@ def test_b8_two_witness_excludes_a_range_residue_with_a_competing_candidate() ->
 
     oracle = _usc_section_oracle()
     if oracle is None:
-        pytest.skip("the pinned U.S.C. section oracle is not present")
+        missing_pinned_input("the pinned U.S.C. section oracle is not present")
 
     row = _authority_slot(
         0,
@@ -9455,7 +9458,7 @@ def test_b8_two_witness_history_requires_an_exact_identity_not_a_hyphenated_neig
 
     oracle = _usc_section_oracle()
     if oracle is None:
-        pytest.skip("the pinned U.S.C. section oracle is not present")
+        missing_pinned_input("the pinned U.S.C. section oracle is not present")
 
     row = _authority_slot(
         0,
@@ -9499,7 +9502,7 @@ def test_b8_two_witness_never_overwrites_an_existing_correction() -> None:
 
     oracle = _usc_section_oracle()
     if oracle is None:
-        pytest.skip("the pinned U.S.C. section oracle is not present")
+        missing_pinned_input("the pinned U.S.C. section oracle is not present")
 
     row = _authority_slot(
         0,
@@ -9546,7 +9549,7 @@ def test_b8_two_witness_census_accounts_for_every_lone_b8_row() -> None:
 
     oracle = _usc_section_oracle()
     if oracle is None:
-        pytest.skip("the pinned U.S.C. section oracle is not present")
+        missing_pinned_input("the pinned U.S.C. section oracle is not present")
 
     promoted_row = _authority_slot(
         0,
@@ -9693,7 +9696,7 @@ def test_a_filers_stat_page_member_is_gated_like_the_notes() -> None:
 
     oracle = _usc_section_oracle()
     if oracle is None:
-        pytest.skip("the pinned U.S.C. section oracle is not present")
+        missing_pinned_input("the pinned U.S.C. section oracle is not present")
 
     fabricated = [
         c

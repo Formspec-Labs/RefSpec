@@ -10,6 +10,7 @@ from types import MappingProxyType
 import pytest
 from rdflib.namespace import SKOS
 
+from conftest import missing_pinned_input
 from refspec.registry import eurovoc_alignment_portfolio as eurovoc
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -110,7 +111,7 @@ def test_portfolio_pins_are_versioned_and_record_rights_ambiguity() -> None:
 @pytest.fixture(scope="module")
 def portfolio():
     if not HAS_SOURCES:
-        pytest.skip("pinned EuroVoc alignment files are not cached")
+        missing_pinned_input("pinned EuroVoc alignment files are not cached")
     return eurovoc.load_eurovoc_alignment_portfolio(SOURCE_ROOT)
 
 

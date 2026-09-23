@@ -479,7 +479,7 @@ def test_validator_row_and_replay_are_scoped_to_the_gcmd_scheme() -> None:
     )
 
 
-@pytest.mark.skipif(
+@pytest.mark.pinned_input(
     not (DEFAULT_SOURCE_ROOT / "gcmd-science-keywords-24.4.csv").is_file(),
     reason="exact cached GCMD 24.4 Science Keywords CSV is not available",
 )
@@ -499,7 +499,7 @@ def test_real_24_4_release_reproduces_the_frozen_edge_set(tmp_path: Path) -> Non
     assert len(outcome.rows) == gcn.GCMD_24_4_DERIVED_EDGE_COUNT
 
 
-@pytest.mark.skipif(
+@pytest.mark.pinned_input(
     not (DEFAULT_SOURCE_ROOT / "gcmd-science-keywords-24.4.csv").is_file(),
     reason="exact cached GCMD 24.4 Science Keywords CSV is not available",
 )

@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry import cfr_list_of_subjects as cfr
 from refspec.storage import canonical_json
 
@@ -23,7 +24,7 @@ def _required_real_path(environment_name: str) -> Path:
 
     value = os.environ.get(environment_name)
     if value is None:
-        pytest.skip(f"{environment_name} is materialized by the registry real-data gate")
+        missing_pinned_input(f"{environment_name} is materialized by the registry real-data gate")
     path = Path(value)
     assert path.is_file()
     return path

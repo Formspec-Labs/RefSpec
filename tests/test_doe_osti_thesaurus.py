@@ -18,6 +18,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry.doe_osti_thesaurus import (
     BROADER_PREDICATE_IRI,
     DOE_OSTI_CONCEPT_SCHEME_IRI,
@@ -46,7 +47,7 @@ def test_real_full_distribution_shape_count_and_boundary_samples() -> None:
 
     source_path_text = os.environ.get("REFSPEC_DOE_OSTI_THESAURUS_PATH")
     if source_path_text is None:
-        pytest.skip("real DOE OSTI distribution is not configured")
+        missing_pinned_input("real DOE OSTI distribution is not configured")
     release = DOE_OSTI_THESAURUS_V1_2020
     thesaurus = parse_doe_osti_thesaurus_file(
         Path(source_path_text),

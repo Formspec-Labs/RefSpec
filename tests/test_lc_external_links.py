@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry import lc_external_links as lc
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -161,7 +162,7 @@ def test_archive_reader_refuses_digest_and_length_drift(tmp_path: Path) -> None:
 @pytest.fixture(scope="module")
 def real_capture() -> lc.LcExternalLinksCapture:
     if not SOURCE.is_file():
-        pytest.skip("pinned LC external-links archive is not cached")
+        missing_pinned_input("pinned LC external-links archive is not cached")
     return lc.load_lc_external_links_capture(SOURCE)
 
 

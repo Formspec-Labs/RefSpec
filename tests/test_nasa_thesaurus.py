@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry.nasa_thesaurus import (
     ANNOTATION_LITERAL_PREDICATE_IRIS,
     KNOWN_TERM_NOTE_MARKERS,
@@ -396,7 +397,7 @@ def test_opt_in_pinned_real_distribution_counts() -> None:
     """An opt-in real distribution must reproduce the pinned full counts exactly."""
     source_path = os.environ.get("REFSPEC_NASA_THESAURUS_SKOS_PATH")
     if source_path is None:
-        pytest.skip("set REFSPEC_NASA_THESAURUS_SKOS_PATH to the exact verified thesaurus-SKOS.xml distribution")
+        missing_pinned_input("set REFSPEC_NASA_THESAURUS_SKOS_PATH to the exact verified thesaurus-SKOS.xml distribution")
 
     parsed = parse_nasa_thesaurus_file(
         Path(source_path),

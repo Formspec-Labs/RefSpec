@@ -1,0 +1,53 @@
+name: RefSpec setup with pinned inputs
+description: >-
+  Install uv, Python and the locked environment, then put every pinned input
+  under output/ from the private refspec-pinned-inputs R2 bucket (REF-071).
+inputs:
+  r2-access-key-id:
+    description: read-only R2 key id (secrets.REFSPEC_R2_ACCESS_KEY_ID)
+    required: false
+  r2-secret-access-key:
+    description: read-only R2 secret (secrets.REFSPEC_R2_SECRET_ACCESS_KEY)
+    required: false
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@v6
+      with:
+        enable-cache: true
+        version: "0.11.x"
+
+    # No version argument: `uv python install` reads `.python-version`, which
+    # pins the exact patch. `3.12` here would resolve to whatever the latest
+    # 3.12 patch is on the day the job runs -- a build input nobody declared.
+    - shell: bash
+      run: uv python install
+
+    - shell: bash
+      run: uv sync --frozen
+
+    # The content-addressed store is restored under an exact key and, failing
+    # that, the newest older one: every object is re-verified by digest, so an
+    # older store is a safe start, and `--prune` below keeps it from growing by
+    # every manifest it has seen. A warm store builds no R2 client, so a fork
+    # pull request without secrets still passes unless the manifest changed.
+    - id: restore
+      uses: actions/cache/restore@v4
+      with:
+        path: output/.pinned-store
+        key: pinned-inputs-${{ hashFiles('tools/pinned_inputs.json') }}
+        restore-keys: pinned-inputs-
+
+    - shell: bash
+      env:
+        REFSPEC_R2_ACCESS_KEY_ID: ${{ inputs.r2-access-key-id }}
+        REFSPEC_R2_SECRET_ACCESS_KEY: ${{ inputs.r2-secret-access-key }}
+      run: uv run python tools/fetch_pinned_inputs.py --prune
+
+    # Saved right after the fetch, not at job end, so a red test run still
+    # leaves a warm store; only `main` saves, so branches cannot evict it.
+    - if: steps.restore.outputs.cache-hit != 'true' && github.ref == 'refs/heads/main'
+      uses: actions/cache/save@v4
+      with:
+        path: output/.pinned-store
+        key: pinned-inputs-${{ hashFiles('tools/pinned_inputs.json') }}

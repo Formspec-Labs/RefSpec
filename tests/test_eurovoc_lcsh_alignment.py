@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from rdflib.namespace import SKOS
 
+from conftest import missing_pinned_input
 from refspec.atlas import v3_registry_alignments as alignments
 from refspec.registry.eurovoc_lcsh_alignment import (
     EUROVOC_4_20_METADATA_BYTE_LENGTH,
@@ -72,7 +73,7 @@ def test_official_source_pins_are_fixed() -> None:
     }
 
 
-@pytest.mark.skipif(not HAS_OFFICIAL_SOURCES, reason="official EuroVoc alignment sources are not cached")
+@pytest.mark.pinned_input(not HAS_OFFICIAL_SOURCES, reason="official EuroVoc alignment sources are not cached")
 def test_official_alignment_retains_every_direct_mapping_exactly_once() -> None:
     """Pins 2,008 triples / 2,003 unique mappings / 1,829 EuroVoc / 1,966 LCSH concept IRIs."""
 
@@ -96,14 +97,14 @@ def test_official_alignment_retains_every_direct_mapping_exactly_once() -> None:
     )
 
 
-@pytest.mark.skipif(not HAS_OFFICIAL_SOURCES, reason="official EuroVoc alignment sources are not cached")
+@pytest.mark.pinned_input(not HAS_OFFICIAL_SOURCES, reason="official EuroVoc alignment sources are not cached")
 def test_current_eurovoc_metadata_confirms_both_lcsh_linksets() -> None:
     """Pins that the pinned 4.24 metadata confirms both LCSH linksets."""
 
     assert verify_eurovoc_4_24_metadata(METADATA_PATH) is None
 
 
-@pytest.mark.skipif(not HAS_OFFICIAL_SOURCES, reason="official EuroVoc alignment sources are not cached")
+@pytest.mark.pinned_input(not HAS_OFFICIAL_SOURCES, reason="official EuroVoc alignment sources are not cached")
 def test_release_metadata_pins_alignment_to_eurovoc_4_20() -> None:
     """Pins that the alignment's own release metadata binds it to EuroVoc 4.20."""
 
@@ -116,7 +117,7 @@ def test_release_metadata_pins_alignment_to_eurovoc_4_20() -> None:
     )
 
 
-@pytest.mark.skipif(not HAS_OFFICIAL_SOURCES, reason="official EuroVoc alignment sources are not cached")
+@pytest.mark.pinned_input(not HAS_OFFICIAL_SOURCES, reason="official EuroVoc alignment sources are not cached")
 @pytest.mark.parametrize("predicate", [b"skos:broadMatch", b"owl:sameAs"])
 def test_pinned_alignment_reader_refuses_an_unexpected_cross_system_predicate(
     predicate: bytes,
@@ -135,7 +136,7 @@ def test_pinned_alignment_reader_refuses_an_unexpected_cross_system_predicate(
         parse_eurovoc_lcsh_alignment(mutated)
 
 
-@pytest.mark.skipif(not HAS_OFFICIAL_SOURCES, reason="official EuroVoc alignment sources are not cached")
+@pytest.mark.pinned_input(not HAS_OFFICIAL_SOURCES, reason="official EuroVoc alignment sources are not cached")
 def test_pinned_file_reader_rejects_tampered_alignment_bytes(tmp_path: Path) -> None:
     """Pins that one flipped byte fails the file reader's pin check."""
 
@@ -148,7 +149,7 @@ def test_pinned_file_reader_rejects_tampered_alignment_bytes(tmp_path: Path) -> 
         parse_eurovoc_lcsh_alignment_file(tampered)
 
 
-@pytest.mark.skipif(not HAS_OFFICIAL_SOURCES, reason="official EuroVoc alignment sources are not cached")
+@pytest.mark.pinned_input(not HAS_OFFICIAL_SOURCES, reason="official EuroVoc alignment sources are not cached")
 def test_declared_domain_subjects_match_the_publisher_scheme() -> None:
     """The domain-subject set must be derived from the source, not remembered.
 
@@ -167,7 +168,7 @@ def test_declared_domain_subjects_match_the_publisher_scheme() -> None:
 
     archive = SOURCE_ROOT / "eurovoc-4.24-skos-core.zip"
     if not archive.is_file():
-        pytest.skip("the EuroVoc SKOS core archive is not cached")
+        missing_pinned_input("the EuroVoc SKOS core archive is not cached")
 
     domains: set[str] = set()
     with zipfile.ZipFile(archive) as bundle:

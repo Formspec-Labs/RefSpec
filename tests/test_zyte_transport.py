@@ -16,6 +16,7 @@ from typing import Any, Self
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry.infrastructure import zyte_transport
 
 
@@ -75,7 +76,7 @@ def test_generic_transport_preserves_pinned_real_publisher_bytes(
 ) -> None:
     source_path = os.environ.get(environment_name)
     if source_path is None:
-        pytest.skip(f"real publisher capture is unavailable: {environment_name}")
+        missing_pinned_input(f"real publisher capture is unavailable: {environment_name}")
     body = Path(source_path).read_bytes()
 
     def fake_urlopen(*args: object, **kwargs: object) -> _Response:

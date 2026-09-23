@@ -36,14 +36,10 @@ DISTRIBUTION_ROOT = RELEASE_ROOT / "distribution"
 PARQUET_VIEW_ROOT = RELEASE_ROOT / "parquet-view"
 SIGNER_IDENTITY = "release@refspec.test"
 
-pytestmark = pytest.mark.skipif(
-    not (DISTRIBUTION_ROOT / MANIFEST_MEMBER).is_file()
-    or not (PARQUET_VIEW_ROOT / VIEW_MANIFEST_FILE).is_file(),
-    reason=(
-        "the HEAD-conforming Federal Register Thesaurus distribution and its served "
-        f"Parquet view are not built at {RELEASE_ROOT.relative_to(REPOSITORY_ROOT)}"
-    ),
-)
+# The HEAD-conforming Federal Register Thesaurus distribution and its served
+# Parquet view: `make release-atlas-federal-register-thesaurus` writes them in
+# seconds, and `make test-package` and `make build-derived` both run it first,
+# so a missing release fails here rather than skipping.
 
 
 def _generate_key(directory: Path, name: str) -> Path:
@@ -155,12 +151,16 @@ def test_seal_is_written_beside_the_distribution_and_verifies_every_member_and_p
     assert result.manifest_sha256 == seal["payload"]["manifestSha256"]
     assert result.acceptance_sha256 == seal["payload"]["acceptanceSha256"]
     assert result.member_count == len(manifest["members"]) == 4
-    assert result.pack_count == len(manifest["packs"]) == 2
+    # Three since 1b5fd0ab (2026-08-19): the FR release's derived graph carries
+    # content, so a derived view pack joins the source and catalog packs. This
+    # test skipped until REF-071 and still said two.
+    assert result.pack_count == len(manifest["packs"]) == 3
     # The third bound digest: the served Parquet view beside the distribution,
     # which the manifest cannot declare without a cycle -- the view manifest
     # pins the distribution manifest's own digest.
     assert result.parquet_view_manifest_sha256 == file_sha256(view / VIEW_MANIFEST_FILE)
-    assert result.parquet_table_count == len(view_manifest["members"]) == 8
+    # Nine since ae23819d (2026-08-19) added the derived-relations table.
+    assert result.parquet_table_count == len(view_manifest["members"]) == 9
     assert view_manifest["input"]["manifestSha256"] == result.manifest_sha256
     assert result.verified_byte_length == sum(
         [member["byteLength"] for member in manifest["members"]]

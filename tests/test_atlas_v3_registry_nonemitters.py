@@ -280,7 +280,7 @@ def test_documented_successor_releases_pass_all_three_atlas_refusal_guards() -> 
         generator._refuse_observed_inventory_release(shaped)
 
 
-@pytest.mark.skipif(
+@pytest.mark.pinned_input(
     not _GSDM_CAPTURES_PRESENT,
     reason="exact GSDM publisher captures are not present",
 )
@@ -325,7 +325,7 @@ def test_gsdm_emits_all_dictionary_rows_and_every_published_domain_value() -> No
     assert "urn:ref:gsdm:domain-value:SubAwardType:default:sub-contract" in by_iri
 
 
-@pytest.mark.skipif(
+@pytest.mark.pinned_input(
     not _EHRI_CAPTURE_PRESENT,
     reason="the exact EHRI data-standards workbook capture is not present",
 )
@@ -364,7 +364,7 @@ def test_opm_agency_subelement_roster_is_an_entity_ring_release() -> None:
     assert len(codes) == 798
 
 
-@pytest.mark.skipif(
+@pytest.mark.pinned_input(
     not _GSDM_CAPTURES_PRESENT or not _EHRI_CAPTURE_PRESENT,
     reason="all exact local publisher captures are required for the complete adapter set",
 )

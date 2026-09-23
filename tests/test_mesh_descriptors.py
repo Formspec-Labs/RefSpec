@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry import mesh_descriptors as mesh
 
 FIXTURES = Path(__file__).parent / "fixtures" / "mesh_descriptors"
@@ -33,7 +34,7 @@ def test_real_full_distribution_shape_count_and_boundary_samples() -> None:
 
     source_path_text = os.environ.get("REFSPEC_MESH_DESCRIPTORS_PATH")
     if source_path_text is None:
-        pytest.skip("real MeSH descriptor distribution is not configured")
+        missing_pinned_input("real MeSH descriptor distribution is not configured")
     snapshot = mesh.parse_mesh_descriptor_file(Path(source_path_text), source_url=SOURCE_URL)
 
     assert snapshot.source_byte_length == 312_952_703

@@ -1408,8 +1408,7 @@ FEDERAL_REGISTER_PARQUET = (
 )
 
 
-@pytest.mark.skipif(not AGENDA_RIN_PARQUET.is_file(), reason="the Unified Agenda RIN roster is not built")
-@pytest.mark.skipif(not FEDERAL_REGISTER_PARQUET.is_file(), reason="the Federal Register corpus is not present")
+@pytest.mark.reads_built_artifact
 @pytest.mark.slow
 def test_the_corrector_answers_the_real_damaged_population() -> None:
     """The corrector, run over every damaged RIN the corpus actually holds.
@@ -1498,8 +1497,7 @@ def test_the_corrector_answers_the_real_damaged_population() -> None:
         assert corrected_rin(value, roster) is None, value
 
 
-@pytest.mark.skipif(not AGENDA_RIN_PARQUET.is_file(), reason="the Unified Agenda RIN roster is not built")
-@pytest.mark.skipif(not FEDERAL_REGISTER_PARQUET.is_file(), reason="the Federal Register corpus is not present")
+@pytest.mark.reads_built_artifact
 def test_the_closed_segment_vocabulary_admits_only_its_five_tokens() -> None:
     """The trailing token is a closed set of five, and a sixth is not one.
 
@@ -1563,6 +1561,7 @@ def test_the_closed_segment_vocabulary_admits_only_its_five_tokens() -> None:
     assert detect_identifier_shapes("Internal Agency Docket No. FEMA-1971-DR") == []
 
 
+@pytest.mark.reads_built_artifact
 @pytest.mark.slow
 def test_the_office_segment_is_measured_over_the_real_docket_column() -> None:
     """Before and after, over every distinct value of all four pinned columns.

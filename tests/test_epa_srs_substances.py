@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry.epa_srs_substances import (
     CAS_REGISTRY_AUTHORITY_URI,
     DTXCID_AUTHORITY_URI,
@@ -183,7 +184,7 @@ def test_real_comptox_detail_page_shape_count_and_sample() -> None:
     """An opt-in real CompTox capture pins its byte length, digest, and the single Bisphenol A record."""
     source_path = os.environ.get("REFSPEC_COMPTOX_BPA_PAGE_PATH")
     if source_path is None:
-        pytest.skip("normalized real CompTox detail page is not materialized")
+        missing_pinned_input("normalized real CompTox detail page is not materialized")
     payload = Path(source_path).read_bytes()
 
     sample = parse_comptox_detail_page(

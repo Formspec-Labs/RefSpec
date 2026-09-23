@@ -170,9 +170,11 @@ def test_the_aggregate_test_target_runs_the_sealed_corpus_exactly_once() -> None
     """Pin that `make test` reaches the sealed corpus exactly once: both tiers listed, `test-atlas-v3` not, recipe
     matching ``_standalone()``.
 
-    The corpus pass is ``@pytest.mark.slow``, so only `test-slow` (`-m slow`)
+    The corpus pass is ``@pytest.mark.slow``, so only `test-slow` (`--tier slow`)
     runs it; dropping it silently stopped the whole slow tier under `make test`
-    between the 2026-08-23 slow-marking pass and the fix.
+    between the 2026-08-23 slow-marking pass and the fix. The ``full-atlas``
+    tier is deliberately not part of `make test` (REF-071): it constructs the
+    complete topology and has its own scheduled job.
     """
 
     prerequisites, _ = _makefile_rule("test")
@@ -180,7 +182,7 @@ def test_the_aggregate_test_target_runs_the_sealed_corpus_exactly_once() -> None
     assert "test-slow" in prerequisites, (
         "make test would skip the sealed corpus and the rest of the slow "
         "tier: test_atlas_v3_binding_and_sealed_corpus_pass is "
-        "pytest.mark.slow, and only test-slow (-m slow) runs it"
+        "pytest.mark.slow, and only test-slow (--tier slow) runs it"
     )
     assert "test-atlas-v3" not in prerequisites, (
         "make test would run the sealed corpus twice: the slow tier already "
@@ -195,12 +197,12 @@ def test_the_aggregate_test_target_runs_the_sealed_corpus_exactly_once() -> None
     ] == ["uv", "run", "--no-project", "--with-requirements", REQUIREMENTS, "python", VALIDATOR_PATH]
 
     # Listing both tiers is only half the claim. The other half is what each
-    # tier SELECTS: `test-package` must take `not slow` and `test-slow` must
-    # take `slow`, or the prerequisite list above is satisfied by a pair that
-    # runs the corpus twice (both unfiltered) or not at all (both `not slow`).
+    # tier SELECTS: `test-package` must take `--tier fast` and `test-slow` must
+    # take `--tier slow`, or the prerequisite list above is satisfied by a pair
+    # that runs the corpus twice (both unfiltered) or not at all (both fast).
     assert _slow_tier_partition_violation(MAKEFILE) is None
-    assert _pytest_marker_expressions(_makefile_rule("test-package")[1]) == ["not slow"]
-    assert _pytest_marker_expressions(_makefile_rule("test-slow")[1]) == ["slow"]
+    assert _pytest_tier_selections(_makefile_rule("test-package")[1]) == ["fast"]
+    assert _pytest_tier_selections(_makefile_rule("test-slow")[1]) == ["slow"]
 
 
 #: The two Makefile edits that keep every prerequisite assertion above green
@@ -210,23 +212,23 @@ def test_the_aggregate_test_target_runs_the_sealed_corpus_exactly_once() -> None
 _SLOW_TIER_MUTATIONS = (
     (
         "test-package stops filtering, so the corpus runs in both tiers",
-        'uv run pytest -q -n auto -m "not slow";',
-        "uv run pytest -q -n auto;",
+        "uv run pytest -q -n auto --tier fast $(PYTEST_ARGS);",
+        "uv run pytest -q -n auto $(PYTEST_ARGS);",
     ),
     (
-        "test-slow takes `not slow` too, so the corpus runs in neither tier",
-        "test-slow: atlas-v3-fixtures\n\tuv run pytest -q -n auto -m slow",
-        'test-slow: atlas-v3-fixtures\n\tuv run pytest -q -n auto -m "not slow"',
+        "test-slow takes the fast tier too, so the corpus runs in neither",
+        "uv run pytest -q -n $(SLOW_WORKERS) --tier slow $(PYTEST_ARGS)",
+        "uv run pytest -q -n $(SLOW_WORKERS) --tier fast $(PYTEST_ARGS)",
     ),
 )
 
 
-def _pytest_marker_expressions(recipe: list[str]) -> list[str | None]:
-    """Every ``-m`` selection the recipe's pytest invocations make, in order.
+def _pytest_tier_selections(recipe: list[str]) -> list[str | None]:
+    """Every ``--tier`` selection the recipe's pytest invocations make, in order.
 
-    A pytest command carrying no ``-m`` at all yields ``None`` rather than
+    A pytest command carrying no ``--tier`` at all yields ``None`` rather than
     being skipped: "unfiltered" is one of the two mutations this has to catch,
-    and a parser that only looked at the expressions it found would read an
+    and a parser that only looked at the selections it found would read an
     unfiltered command as no command.
     """
 
@@ -236,44 +238,45 @@ def _pytest_marker_expressions(recipe: list[str]) -> list[str | None]:
             match = re.search(r"(?:^|\s)pytest(?:\s|$)", command)
             if match is None:
                 continue
-            selection = re.search(
-                r"""\s-m\s+(?:"([^"]*)"|'([^']*)'|(\S+))""", command[match.end() :]
-            )
-            found.append(
-                None if selection is None else next(g for g in selection.groups() if g is not None)
-            )
+            selection = re.search(r"\s--tier\s+(\S+)", command[match.end() :])
+            found.append(None if selection is None else selection.group(1))
     return found
 
 
 def _slow_tier_partition_violation(makefile: Path) -> str | None:
     """Why `test-package` and `test-slow` do not partition the suite, or None.
 
-    Evaluated with pytest's own marker-expression evaluator rather than by
-    string match, so the question asked is the one that matters: for a test
-    marked ``slow``, and for one that is not, does EXACTLY ONE of the two
-    tiers select it? Two tiers selecting it is the sealed corpus running
+    Evaluated through conftest.tier_of rather than by string match, so the
+    question asked is the one that matters: for a test marked ``slow`` (the
+    sealed corpus pass), and for one that is not, does EXACTLY ONE of the two
+    targets select it? Two targets selecting it is the sealed corpus running
     twice; none selecting it is the corpus not running at all under
     `make test`.
     """
 
-    from _pytest.mark.expression import Expression
+    from conftest import tier_of
+
+    class _Marked:
+        def __init__(self, *markers: str) -> None:
+            self.markers = markers
+
+        def get_closest_marker(self, name: str):
+            return name if name in self.markers else None
 
     selections = {}
     for target in ("test-package", "test-slow"):
-        expressions = _pytest_marker_expressions(_makefile_rule(target, makefile)[1])
-        if len(expressions) != 1:
-            return f"{target} runs {len(expressions)} pytest commands, expected exactly 1"
-        selections[target] = expressions[0]
+        tiers = _pytest_tier_selections(_makefile_rule(target, makefile)[1])
+        if len(tiers) != 1:
+            return f"{target} runs {len(tiers)} pytest commands, expected exactly 1"
+        selections[target] = tiers[0]
 
     for marked in (True, False):
+        tier = tier_of(_Marked("slow") if marked else _Marked())
         selecting = [
             target
-            for target, expression in selections.items()
-            # No `-m` at all selects everything.
-            if expression is None
-            or Expression.compile(expression).evaluate(
-                lambda name, marked=marked: marked and name == "slow"
-            )
+            for target, selection in selections.items()
+            # No `--tier` at all selects everything.
+            if selection is None or selection == tier
         ]
         if len(selecting) != 1:
             state = "slow-marked" if marked else "unmarked"

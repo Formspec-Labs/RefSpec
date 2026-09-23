@@ -1,43 +1,49 @@
 name: CI
 
+# Pushes to main and pull requests, not both for one change: a pull request's
+# own push would otherwise run every job twice. The full-Atlas tier runs weekly
+# and on demand (REF-071).
 on:
   pull_request:
   push:
+    branches: [main]
+  schedule:
+    - cron: "17 6 * * 1"
   workflow_dispatch:
 
 permissions:
   contents: read
 
+# A newer push to the same pull request supersedes the older run; main keeps
+# every run, so each merge still gets its verdict.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Each job runs one tier, conftest.tier_of, through its `make` target, so CI and
+# a developer's `make` run the same selection; tests/test_test_tiers.py checks
+# that every tier has a job here. Each job starts from a clean clone plus the
+# pinned inputs .github/actions/pinned-setup fetches from R2. The rest of the
+# gitignored `output/` tree (derived builds and unpinned captures) is never
+# present, so a step that reads it fails with a missing file rather than a
+# finding; `audit-registry-real-data` rewrites sealed evidence and stays the
+# owner's run.
 jobs:
   bounded-gates:
     name: Bounded gates
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v6
+      - name: Set up with the pinned inputs
+        uses: ./.github/actions/pinned-setup
         with:
-          enable-cache: true
-          version: "0.11.x"
-
-      # No version argument: `uv python install` reads `.python-version`, which
-      # pins the exact patch. `3.12` here would resolve to whatever the latest
-      # 3.12 patch is on the day the job runs -- a build input nobody declared.
-      - name: Install Python
-        run: uv python install
-
-      - name: Install dependencies
-        run: uv sync --frozen
-
-      # Every step below runs on a clean clone. The gitignored `output/` tree is
-      # roughly 22 GB of regenerable captures and is never present here, so a
-      # step that reads it would fail with a missing file rather than a finding.
-      # `make test`'s remaining target, `audit-registry-real-data`, is excluded
-      # for exactly that reason; it belongs to the release job of PLAN.md item 6.
+          r2-access-key-id: ${{ secrets.REFSPEC_R2_ACCESS_KEY_ID }}
+          r2-secret-access-key: ${{ secrets.REFSPEC_R2_SECRET_ACCESS_KEY }}
 
       - name: Check source and machine files
         run: make lint
@@ -64,35 +70,70 @@ jobs:
       - name: Validate the JSON 1.0 binding
         run: make test-json-binding
 
-      # Spelled out rather than `make test-package` for one reason: the report.
-      # The command is otherwise identical, and the report is what the skip
-      # budget below counts, so it is written outside the checkout.
-      - name: Run the packaged suite
-        run: uv run pytest -q -n auto --junitxml="$RUNNER_TEMP/pytest.xml"
+      # `make test-package` builds the Federal Register Thesaurus release it reads
+      # (seconds) and runs the fast tier. The report is written outside the
+      # checkout for the skip check; the runaway guard is raised because a hosted
+      # runner is not the machine it was measured on, and the job timeout guards.
+      - name: Run the fast tier
+        run: make test-package PYTEST_ARGS="--junitxml=$RUNNER_TEMP/pytest.xml" TEST_PACKAGE_FAIL_SECONDS=1200
 
-      - name: Assert the skip budget
-        run: uv run python tools/check_skip_budget.py "$RUNNER_TEMP/pytest.xml" --budget 101
+      - name: Check skips against the fast tier's allowlist
+        run: uv run python tools/check_skips.py "$RUNNER_TEMP/pytest.xml" --tier fast
+
+  real-data-tier:
+    name: Real-data tier
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up with the pinned inputs
+        uses: ./.github/actions/pinned-setup
+        with:
+          r2-access-key-id: ${{ secrets.REFSPEC_R2_ACCESS_KEY_ID }}
+          r2-secret-access-key: ${{ secrets.REFSPEC_R2_SECRET_ACCESS_KEY }}
+
+      # `make test-slow` builds every derived artifact the tier reads at HEAD (the
+      # FR Thesaurus release, the Unified Agenda Parquet artifact and the
+      # EuroVoc/GEMET claim releases) and runs it on SLOW_WORKERS workers.
+      - name: Run the slow tier
+        run: make test-slow PYTEST_ARGS="--junitxml=$RUNNER_TEMP/pytest.xml"
+
+      - name: Check skips against the slow tier's allowlist
+        run: uv run python tools/check_skips.py "$RUNNER_TEMP/pytest.xml" --tier slow
 
       # The reproducible-rebuild control in its ~6s miniature: build the bounded
       # Federal Register release twice into scratch roots and require the two
-      # trees to be byte-identical. It does not run on this runner and the step
-      # name says so rather than reporting a green that proves nothing -- the
-      # build reads two gitignored inputs, the pinned 2025-04-01 publisher PDF
-      # under output/ (never present here, per the note above) and the portfolio
-      # managed release, which came home to this repo's own output/ on
-      # 2026-08-31 (formerly the sibling spicy-regs checkout). This is a presence
-      # check, not a gate, until this job runs somewhere those captures live;
-      # arming it is deleting the check. Until then the control runs on a
-      # developer machine as `make determinism-atlas-federal-register-thesaurus`,
-      # which is also where the whole release section of the Makefile runs.
-      - name: "FR double-build determinism gate (skipped: no captures on hosted runners)"
-        run: |
-          set -euo pipefail
-          pdf="output/registry-real-data-sources/federal-register-thesaurus-2025.pdf"
-          portfolio="output/refspec-vocabulary-portfolio/federal-register-thesaurus-2025"
-          portfolio="$portfolio/managed-release/managed-release.json"
-          if [ ! -f "$pdf" ] || [ ! -f "$portfolio" ]; then
-            echo "::notice title=FR determinism gate skipped::pinned publisher captures absent on this runner ($pdf, $portfolio); the control runs as 'make determinism-atlas-federal-register-thesaurus' where they live"
-            exit 0
-          fi
-          make determinism-atlas-federal-register-thesaurus
+      # trees to be byte-identical, apart from the one measurements file the
+      # comparator names. Its inputs arrive with the pinned inputs (REF-071).
+      - name: FR double-build determinism gate
+        run: make determinism-atlas-federal-register-thesaurus
+
+  full-atlas-tier:
+    name: Full-Atlas tier
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # One worker holding the complete topology reaches ~10 GB. A larger runner
+    # can be named with the REFSPEC_FULL_ATLAS_RUNNER repository variable.
+    runs-on: ${{ vars.REFSPEC_FULL_ATLAS_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 360
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up with the pinned inputs
+        uses: ./.github/actions/pinned-setup
+        with:
+          r2-access-key-id: ${{ secrets.REFSPEC_R2_ACCESS_KEY_ID }}
+          r2-secret-access-key: ${{ secrets.REFSPEC_R2_SECRET_ACCESS_KEY }}
+
+      # pytest exits non-zero when the tier selects nothing, so an emptied tier
+      # fails here instead of passing silently.
+      - name: Run the full-Atlas tier
+        run: make test-full-atlas PYTEST_ARGS="--junitxml=$RUNNER_TEMP/pytest.xml"
+
+      - name: Check skips against the full-Atlas tier's allowlist
+        run: uv run python tools/check_skips.py "$RUNNER_TEMP/pytest.xml" --tier full-atlas

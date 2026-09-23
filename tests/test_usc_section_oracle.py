@@ -439,7 +439,7 @@ def _extractor_patterns() -> tuple[re.Pattern, list[re.Pattern]]:
 
 
 @pytest.mark.slow
-@pytest.mark.skipif(not (ANNUAL_ZIPS / "2012.zip").exists(), reason="the 31 annual zips are untracked (2.1 GB)")
+@pytest.mark.pinned_input(not (ANNUAL_ZIPS / "2012.zip").exists(), reason="the 31 annual zips are untracked (2.1 GB)")
 def test_the_extractors_own_matcher_classifies_every_archive_member() -> None:
     """Pin the case fix on the extractor itself: its own FNAME/NON_TITLE, lifted from source, classify all 1,835 archive
     members.
@@ -479,7 +479,7 @@ def test_the_extractors_own_matcher_classifies_every_archive_member() -> None:
 
 
 @pytest.mark.slow
-@pytest.mark.skipif(not (ANNUAL_ZIPS / "2012.zip").exists(), reason="the 31 annual zips are untracked (2.1 GB)")
+@pytest.mark.pinned_input(not (ANNUAL_ZIPS / "2012.zip").exists(), reason="the 31 annual zips are untracked (2.1 GB)")
 def test_a_bracketed_stub_is_printed_but_does_not_attest() -> None:
     """Pin the deliberate bracketed-stub exclusion against the raw 2012 bytes: a bracketed placeholder does not attest.
 

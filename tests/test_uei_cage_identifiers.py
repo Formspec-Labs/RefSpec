@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry import uei_cage_identifiers as uc
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier, ControlledIdentifierError
 
@@ -28,7 +29,7 @@ def _sam_entity_path() -> Path:
     configured = os.environ.get("REFSPEC_SAM_ENTITY_PUBLIC_PATH")
     path = Path(configured) if configured else REAL_DATA_DIR / "sam-entity-3m-public.json"
     if not path.is_file():
-        pytest.skip("real publisher capture is unavailable: REFSPEC_SAM_ENTITY_PUBLIC_PATH")
+        missing_pinned_input("real publisher capture is unavailable: REFSPEC_SAM_ENTITY_PUBLIC_PATH")
     return path
 
 

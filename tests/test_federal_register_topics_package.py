@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry.federal_register_topics_api import (
     FEDERAL_REGISTER_TOPICS_API_URL,
     FederalRegisterTopicsError,
@@ -46,7 +47,7 @@ def test_real_topics_response_builds_a_complete_source_package(
 
     source_path = os.environ.get("REFSPEC_FR_TOPICS_PATH")
     if source_path is None:
-        pytest.skip("real Federal Register topics response is not configured")
+        missing_pinned_input("real Federal Register topics response is not configured")
     acquired = capture_federal_register_topics(
         tmp_path / "capture",
         source_path=Path(source_path),

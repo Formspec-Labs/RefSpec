@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
     sha256_digest,
@@ -91,7 +92,7 @@ def test_common_builder_preserves_a_complete_real_covered_projection(
 
     source_path = os.environ.get("REFSPEC_FR_TOPICS_PATH")
     if source_path is None:
-        pytest.skip("real Federal Register topics response is not configured")
+        missing_pinned_input("real Federal Register topics response is not configured")
 
     from refspec.registry.federal_register_topics_api import (
         FEDERAL_REGISTER_TOPICS_API_URL,

@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry.adapters.elsst_acquisition import (
     ELSST_R6,
     ElsstReleaseSource,
@@ -406,7 +407,7 @@ def test_opt_in_pinned_real_distribution_counts(
 
     source_path = os.environ.get(path_environment)
     if source_path is None:
-        pytest.skip(f"set {path_environment} to the exact verified {release.filename} distribution")
+        missing_pinned_input(f"set {path_environment} to the exact verified {release.filename} distribution")
 
     parsed = parse_elsst_file(
         Path(source_path),

@@ -5,15 +5,10 @@ from __future__ import annotations
 import json
 
 import numpy as np
-import pytest
 
 from tools import analyze_atlas_native_relation_structure as structure
-from tools import benchmark_atlas_native_reranker_recovery as rerank
-
-# The learned-sparse tool runs in an isolated environment; SciPy is not a
-# project dependency, so its checks skip rather than fail here.
-pytest.importorskip("scipy")
 from tools import benchmark_atlas_native_learned_sparse_recovery as learned
+from tools import benchmark_atlas_native_reranker_recovery as rerank
 
 
 def _write(path, rows) -> None:

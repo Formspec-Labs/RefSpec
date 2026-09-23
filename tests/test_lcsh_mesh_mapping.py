@@ -70,7 +70,7 @@ def test_zip_reader_refuses_an_unexpected_member() -> None:
         mapping.parse_lcsh_mesh_mapping_zip(payload.getvalue())
 
 
-@pytest.mark.skipif(not REAL_SOURCE.is_file(), reason="pinned mapping source is not cached")
+@pytest.mark.pinned_input(not REAL_SOURCE.is_file(), reason="pinned mapping source is not cached")
 def test_pinned_release_accounts_for_every_linking_field() -> None:
     """Pins the real release's record, linking-field, mapping, predicate and refusal counts and every source digest."""
     capture = mapping.load_lcsh_mesh_mapping(REAL_SOURCE)
@@ -98,7 +98,7 @@ def test_pinned_release_accounts_for_every_linking_field() -> None:
     assert "rights are unverified" in mapping.LCSH_MESH_WORKING_FILE_RIGHTS_NOTE
 
 
-@pytest.mark.skipif(not REAL_SOURCE.is_file(), reason="pinned mapping source is not cached")
+@pytest.mark.pinned_input(not REAL_SOURCE.is_file(), reason="pinned mapping source is not cached")
 def test_pinned_loader_refuses_distribution_drift(tmp_path: Path) -> None:
     """A one-byte-short distribution is refused for byte length drift."""
     drifted = tmp_path / mapping.LCSH_MESH_MAPPING_FILENAME
@@ -108,7 +108,7 @@ def test_pinned_loader_refuses_distribution_drift(tmp_path: Path) -> None:
         mapping.load_lcsh_mesh_mapping(drifted)
 
 
-@pytest.mark.skipif(not REAL_SOURCE.is_file(), reason="pinned mapping source is not cached")
+@pytest.mark.pinned_input(not REAL_SOURCE.is_file(), reason="pinned mapping source is not cached")
 def test_pinned_predicate_mix_does_not_promote_refused_fields() -> None:
     """Refused 780 and 788 fields are counted as refusals and never become mappings."""
     capture = mapping.load_lcsh_mesh_mapping(REAL_SOURCE)

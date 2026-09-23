@@ -1,0 +1,7 @@
+{
+  "fast": {
+    "tests.test_registry_real_data_audit::test_registry_audit_snapshot_is_current_and_honest_about_open_gaps": "strict xfail since 2026-09-07: term_explanation joined the registry, and only the owner-run `make audit-registry-real-data` regenerates the sealed summary"
+  },
+  "slow": {},
+  "full-atlas": {}
+}

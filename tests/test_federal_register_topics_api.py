@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry.federal_register_topics_api import (
     FederalRegisterTopicsError,
     capture_federal_register_topics,
@@ -75,7 +76,7 @@ def test_real_topics_response_shape_count_and_boundary_samples() -> None:
 
     source_path_text = os.environ.get("REFSPEC_FR_TOPICS_PATH")
     if source_path_text is None:
-        pytest.skip("real Federal Register topics response is not configured")
+        missing_pinned_input("real Federal Register topics response is not configured")
     snapshot = parse_federal_register_topics_api(Path(source_path_text).read_bytes())
 
     assert snapshot.source_sha256 == (

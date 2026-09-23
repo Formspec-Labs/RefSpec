@@ -17,6 +17,7 @@ from typing import Any, Self
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry.adapters import icpsr_zyte
 from refspec.registry.infrastructure import zyte_transport
 
@@ -38,7 +39,7 @@ def test_icpsr_fetcher_preserves_pinned_publisher_response(
 
     source_path = os.environ.get("REFSPEC_ICPSR_INDEX_PAGE_A_PATH")
     if source_path is None:
-        pytest.skip("real ICPSR publisher response is not configured")
+        missing_pinned_input("real ICPSR publisher response is not configured")
     target_url = "https://www.icpsr.umich.edu/web/ICPSR/thesaurus/10001?letter=a"
     body = Path(source_path).read_bytes()
 

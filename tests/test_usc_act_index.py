@@ -55,8 +55,8 @@ ZIP_PATH = ROOT / BULK_SOURCE
 OLD_DIR = ROOT / "output" / "usc-act-index-2026-08-02"
 NEW_DIR = ROOT / "output" / "usc-act-index-2026-08-22"
 
-source = pytest.mark.skipif(not ZIP_PATH.is_file(), reason="the OLRC Table III bulk release is not present")
-artifact = pytest.mark.skipif(
+source = pytest.mark.pinned_input(not ZIP_PATH.is_file(), reason="the OLRC Table III bulk release is not present")
+artifact = pytest.mark.pinned_input(
     not (OLD_DIR.is_dir() and NEW_DIR.is_dir()), reason="the pinned act-index artifacts are not present"
 )
 

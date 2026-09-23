@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry import icpsr_subject as icpsr
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -19,7 +20,7 @@ def test_real_commit_pinned_xml_shape_count_and_boundary_samples() -> None:
 
     source_path_text = os.environ.get("REFSPEC_ICPSR_SUBJECT_XML_PATH")
     if source_path_text is None:
-        pytest.skip("real ICPSR publisher repository capture is not configured")
+        missing_pinned_input("real ICPSR publisher repository capture is not configured")
     snapshot = icpsr.parse_icpsr_subject_xml(Path(source_path_text).read_bytes())
 
     assert snapshot.source_sha256 == icpsr.ICPSR_SUBJECT_XML_SHA256

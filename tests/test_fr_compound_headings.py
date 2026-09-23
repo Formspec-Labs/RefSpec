@@ -571,8 +571,7 @@ def test_binding_entry_when_present_names_the_same_rule_identity() -> None:
         sys.path.remove(str(BINDING_TOOLS))
 
     binding_rule = getattr(atlas_validate, "FR_COMPOUND_HEADING_BROADER_RULE", None)
-    if binding_rule is None:
-        pytest.skip("the binding has not landed its FR compound-heading admission entry yet")
+    assert binding_rule is not None, "the binding's FR compound-heading admission entry is missing"
     assert str(binding_rule) == frch.FR_COMPOUND_HEADING_RULE_IRI
     assert str(atlas_validate.FR_COMPOUND_HEADING_ENGINE) == frch.FR_COMPOUND_HEADING_ENGINE_IRI
     assert atlas_validate.FR_COMPOUND_HEADING_ENGINE_VERSION == (
@@ -580,7 +579,7 @@ def test_binding_entry_when_present_names_the_same_rule_identity() -> None:
     )
 
 
-@pytest.mark.skipif(
+@pytest.mark.pinned_input(
     not (DEFAULT_SOURCE_ROOT / "federal-register-thesaurus-2025.pdf").is_file(),
     reason="exact cached Federal Register 2025 thesaurus PDF is not available",
 )

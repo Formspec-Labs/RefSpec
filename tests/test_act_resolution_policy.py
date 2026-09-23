@@ -113,7 +113,7 @@ ROOT=Path(__file__).resolve().parents[1]
 BULK=ROOT/'output/usc-act-index-2026-08-22'
 OLD=ROOT/'output/usc-act-index-2026-08-02'
 CREDITS=ROOT/'output/usc-source-credit-index-2026-08-02'
-artifact=pytest.mark.skipif(not all(p.is_dir() for p in (BULK,OLD,CREDITS)),reason='Pinned artifacts unavailable')
+artifact=pytest.mark.pinned_input(not all(p.is_dir() for p in (BULK,OLD,CREDITS)),reason='Pinned artifacts unavailable')
 
 
 @artifact

@@ -149,6 +149,36 @@ def _normalize_test_input(payload: bytes, descriptor: Mapping[str, Any]) -> byte
     )
 
 
+def _owned_path(repository_root: Path, descriptor: Mapping[str, Any], *, label: str) -> Path:
+    """Resolve a manifest ``localPath``, refusing one that leaves the repository."""
+
+    relative_path = Path(str(descriptor["localPath"]))
+    if relative_path.is_absolute() or ".." in relative_path.parts:
+        raise RegistryAuditError(f"{label} must use a RefSpec-owned relative path")
+    local_path = (repository_root / relative_path).resolve()
+    try:
+        local_path.relative_to(repository_root)
+    except ValueError as error:
+        raise RegistryAuditError(f"{label} escapes the RefSpec repository") from error
+    return local_path
+
+
+def pinned_input_environment(repository_root: Path, source_manifest: Mapping[str, Any]) -> dict[str, str]:
+    """Map each opt-in test variable to its input's RefSpec-owned path, without reading the bytes.
+
+    The same names and paths :func:`materialize_test_inputs` resolves, for a
+    caller whose inputs are already in place (``make fetch-pinned-inputs``) and
+    verified; a test whose input is absent then fails on its path.
+    """
+
+    paths = {
+        descriptor["name"]: str(_owned_path(repository_root, descriptor, label=f"test input {descriptor['name']!r}"))
+        for module in source_manifest["modules"]
+        for descriptor in module["testInputs"]
+    }
+    return _test_input_environment(paths)
+
+
 def materialize_test_inputs(
     repository_root: Path,
     source_manifest: Mapping[str, Any],
@@ -158,15 +188,7 @@ def materialize_test_inputs(
     resolved: dict[str, str] = {}
 
     def resolve_path(descriptor: Mapping[str, Any], *, label: str) -> Path:
-        relative_path = Path(str(descriptor["localPath"]))
-        if relative_path.is_absolute() or ".." in relative_path.parts:
-            raise RegistryAuditError(f"{label} must use a RefSpec-owned relative path")
-        local_path = (repository_root / relative_path).resolve()
-        try:
-            local_path.relative_to(repository_root)
-        except ValueError as error:
-            raise RegistryAuditError(f"{label} escapes the RefSpec repository") from error
-        return local_path
+        return _owned_path(repository_root, descriptor, label=label)
 
     def materialize_file(descriptor: Mapping[str, Any], *, label: str) -> Path:
         local_path = resolve_path(descriptor, label=label)
@@ -506,11 +528,16 @@ def run_full_test_suite(
     *,
     test_inputs: Mapping[str, str] | None = None,
 ) -> dict[str, int | float]:
-    """Run the complete suite without receipt instrumentation.
+    """Run every tier but ``full_atlas``, without receipt instrumentation.
 
     Receipt collection belongs only on the focused registry qualification run.
     Attaching it to the complete suite repeatedly measured and serialized large
     publisher datasets, turning a normal suite into a multi-hour audit.
+
+    The ``full_atlas`` tier (REF-071) constructs the complete Atlas topology --
+    about 10 GB and tens of minutes a test -- and proves producer behavior, not
+    registry evidence; its own scheduled job runs it, so this audit deselects it
+    by name rather than inherit an hour of serial work.
     """
 
     with tempfile.TemporaryDirectory(prefix="refspec-full-suite-") as temporary_directory:
@@ -521,6 +548,8 @@ def run_full_test_suite(
                 "-m",
                 "pytest",
                 "-q",
+                "-m",
+                "not full_atlas",
                 f"--junitxml={report_path}",
             ],
             cwd=repository_root,

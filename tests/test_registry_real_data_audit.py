@@ -88,7 +88,7 @@ def _execution(*, digests: list[str], counts: dict[str, int]) -> dict:
         "2026-09-07: `term_explanation` joined the registry, so the source manifest carries a "
         "module this sealed summary does not -- its module list has shifted, not just its count. "
         "Regenerating it is `make audit-registry-real-data`, which runs every direct module test "
-        "with REFSPEC_REGISTRY_CLAIM_REAL_DATA=1 and rewrites a sealed evidence artifact, which "
+        "and rewrites a sealed evidence artifact, which "
         "needs the owner's own words to the session performing it. "
         "PARKED, NOT FORGOTTEN: no consumer build needs it, and it runs serially (the tool runs "
         "`sys.executable -m pytest` with no -n; the direct module tests alone recorded 1,194 s in "

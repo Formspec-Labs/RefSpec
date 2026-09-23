@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 verifier = importlib.import_module("verify_federal_register_thesaurus_distribution")
@@ -19,7 +21,7 @@ REAL_SOURCE_ROOT = ROOT / "output" / "registry-real-data-sources"
 def source_root() -> Path:
     path = REAL_SOURCE_ROOT / verifier.SOURCE_FILENAME
     if not path.is_file():
-        pytest.skip(
+        missing_pinned_input(
             "pinned thesaurus source is not present: "
             "output/registry-real-data-sources/federal-register-thesaurus-2025.pdf"
         )

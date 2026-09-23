@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry import omb_a11_budget_codes as a11
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 
@@ -25,7 +26,7 @@ APPORTIONMENT_FIXTURE = FIXTURES / "section-120-13-apportionment-categories-2025
 def test_real_publisher_pdf_contains_the_reviewed_tables_and_section(tmp_path: Path) -> None:
     source_path_text = os.environ.get("REFSPEC_OMB_A11_PDF_PATH")
     if source_path_text is None:
-        pytest.skip("real OMB A-11 publisher PDF is not configured")
+        missing_pinned_input("real OMB A-11 publisher PDF is not configured")
     extracted = tmp_path / "a11.layout.txt"
     subprocess.run(
         ["pdftotext", "-layout", source_path_text, str(extracted)],

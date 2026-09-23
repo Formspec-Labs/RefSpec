@@ -20,6 +20,7 @@ import pytest
 from rdflib import URIRef
 from rdflib.namespace import RDF, SKOS
 
+from conftest import missing_pinned_input
 from refspec.atlas import v3_registry_alignments as alignments
 from refspec.atlas.v3_registry_vocabularies import load_eurovoc_4_24_releases
 from refspec.atlas.v3_source_data import mapping_triple_digest
@@ -63,7 +64,7 @@ def mapping_release():
     """The EuroVoc-LCSH alignment release, skipped unless its publisher sources are cached."""
 
     if not HAS_OFFICIAL_SOURCES:
-        pytest.skip("official EuroVoc--LCSH alignment sources are not cached")
+        missing_pinned_input("official EuroVoc--LCSH alignment sources are not cached")
     return alignments.load_eurovoc_lcsh_mapping_release(Path(SOURCE_ROOT))
 
 
@@ -72,7 +73,7 @@ def endpoint_release():
     """The consolidated LCSH endpoint release, skipped unless its publisher sources are cached."""
 
     if not HAS_OFFICIAL_SOURCES:
-        pytest.skip("official LCSH bulk and EuroVoc alignment sources are not cached")
+        missing_pinned_input("official LCSH bulk and EuroVoc alignment sources are not cached")
     return alignments.load_lcsh_consolidated_release(Path(SOURCE_ROOT))
 
 
@@ -81,7 +82,7 @@ def eurovoc_releases():
     """The EuroVoc 4.24 releases, skipped unless the complete source is cached."""
 
     if not HAS_COMPLETE_EUROVOC:
-        pytest.skip("official EuroVoc 4.24 source is not cached")
+        missing_pinned_input("official EuroVoc 4.24 source is not cached")
     return load_eurovoc_4_24_releases(Path(SOURCE_ROOT))
 
 
@@ -95,7 +96,7 @@ def fast_mapping_release():
         SOURCE_ROOT / "eurovoc-lcsh-alignment-20240711.rdf",
     )
     if not all(path.is_file() for path in required):
-        pytest.skip("official FAST and LCSH alignment sources are not cached")
+        missing_pinned_input("official FAST and LCSH alignment sources are not cached")
     return alignments.load_fast_lcsh_mapping_release(Path(SOURCE_ROOT))
 
 

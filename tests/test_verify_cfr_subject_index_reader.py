@@ -356,7 +356,7 @@ TERMLESS_PARTS = ((42, "58"),)
 RELEASE_COUNTS = {"partEntries": 8_427, "distinctParts": 8_424, "termAssignments": 32_202}
 
 
-@pytest.mark.skipif(not EVIDENCE_CSV.is_file(), reason="release evidence CSV is not present")
+@pytest.mark.pinned_input(not EVIDENCE_CSV.is_file(), reason="release evidence CSV is not present")
 def test_divergence_from_the_shipped_release_is_exactly_the_frozen_list(view: PublisherView) -> None:
     """Comparing (title, part, term) sets both ways leaves exactly the one frozen term-less part as the divergence."""
 
@@ -385,7 +385,7 @@ def test_divergence_from_the_shipped_release_is_exactly_the_frozen_list(view: Pu
         assert payload["publisherIndexTerms"] == []
 
 
-@pytest.mark.skipif(not EVIDENCE_CSV.is_file(), reason="release evidence CSV is not present")
+@pytest.mark.pinned_input(not EVIDENCE_CSV.is_file(), reason="release evidence CSV is not present")
 def test_the_release_no_longer_swallows_a_heading_into_the_part_above() -> None:
     """The defect this file was written to name, asserted as fixed.
 

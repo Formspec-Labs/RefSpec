@@ -16,6 +16,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry import crs_product_topics as crs
 
 FIXTURES = Path(__file__).parent / "fixtures" / "crs_product_topics"
@@ -75,7 +76,7 @@ def test_real_publisher_page_shape_count_and_boundary_samples(tmp_path: Path) ->
     """
     source_path_text = os.environ.get("REFSPEC_CRS_PRODUCTS_PATH")
     if source_path_text is None:
-        pytest.skip("real Congress.gov CRS products page is not configured")
+        missing_pinned_input("real Congress.gov CRS products page is not configured")
     source_path = Path(source_path_text)
     page = crs.acquire_crs_products_page(
         crs.CRSProductsPageSnapshotPin(

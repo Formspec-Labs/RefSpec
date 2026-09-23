@@ -27,6 +27,9 @@ EHRI_REAL_SOURCE_DEFAULT = (
 )
 
 
+PLUM_REAL_SOURCE_DEFAULT = EHRI_REAL_SOURCE_DEFAULT.with_name("OPM-PLUM-all-data-20260804.csv")
+
+
 def _ehri_real_source_path() -> Path:
     """The EHRI workbook path from the env override or the default capture."""
     return Path(os.environ.get(EHRI_REAL_SOURCE_ENV) or EHRI_REAL_SOURCE_DEFAULT)
@@ -72,7 +75,7 @@ def test_pinned_fixture_bytes_match_exact_digests() -> None:
         assert opm.sha256_digest(payload) == pin.expected_sha256
 
 
-@pytest.mark.skipif(
+@pytest.mark.pinned_input(
     not _ehri_real_source_path().is_file(),
     reason=(f"the exact EHRI data-standards workbook capture is not present (or set {EHRI_REAL_SOURCE_ENV})"),
 )
@@ -194,13 +197,9 @@ def test_split_opm_ehri_element_fails_closed_on_missing_or_valueless_elements() 
         opm.split_opm_ehri_element(valueless)
 
 
-@pytest.mark.skipif(
-    not os.environ.get(PLUM_REAL_SOURCE_ENV),
-    reason=f"set {PLUM_REAL_SOURCE_ENV} to the pinned official PLUM CSV export",
-)
 def test_official_plum_export_shape_counts_and_samples() -> None:
-    """An opt-in real PLUM export pins its digest, 15,777 records, appointment types, statuses and pay plans."""
-    payload = Path(os.environ[PLUM_REAL_SOURCE_ENV]).read_bytes()
+    """The pinned PLUM export (``make fetch-pinned-inputs``) pins its digest, 15,777 records, appointment types, statuses and pay plans."""
+    payload = Path(os.environ.get(PLUM_REAL_SOURCE_ENV) or PLUM_REAL_SOURCE_DEFAULT).read_bytes()
     export = opm.parse_opm_plum_all_data_csv(payload)
 
     assert export.source_sha256 == "sha256:4caa6f282e13a8a58fa53825ea1b1e1c86bbd219db42603ba9a884843f05900f"

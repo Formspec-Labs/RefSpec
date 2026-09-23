@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 import refspec.registry.managed_releases.federal_register_thesaurus_2025_managed_release as managed_release_module
+from conftest import missing_pinned_input
 from refspec.policies.federal_register_lists_of_subjects import (
     resolve_list_of_subjects_term,
 )
@@ -259,7 +260,7 @@ def test_exact_pdf_regenerates_checked_extract_when_available() -> None:
 
     source_path = os.environ.get("REFSPEC_FR_THESAURUS_2025_PATH")
     if not source_path:
-        pytest.skip("set REFSPEC_FR_THESAURUS_2025_PATH for the exact PDF gate")
+        missing_pinned_input("set REFSPEC_FR_THESAURUS_2025_PATH for the exact PDF gate")
     parsed = parse_federal_register_thesaurus_2025_pdf(
         Path(source_path).read_bytes()
     )
@@ -310,7 +311,7 @@ def test_exact_pdf_builds_and_verifies_written_managed_release(
 
     source_path = os.environ.get("REFSPEC_FR_THESAURUS_2025_PATH")
     if not source_path:
-        pytest.skip(
+        missing_pinned_input(
             "set REFSPEC_FR_THESAURUS_2025_PATH for the package gate"
         )
     thesaurus = parse_federal_register_thesaurus_2025_pdf(

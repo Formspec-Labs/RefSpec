@@ -13,27 +13,29 @@ from urllib.request import urlopen
 import duckdb
 import pyarrow as pa
 import pyarrow.parquet as pq
-import pytest
 
 from refspec.atlas import explorer_cli
 from refspec.atlas.compact_pack import CompactRecordRole
 from refspec.atlas.duckdb_view import ATLAS_DUCKDB_TABLES, AtlasDuckDBView
 from refspec.atlas.explorer import open_atlas_explorer
 from refspec.atlas.parquet_search_view import _SCHEMAS as _COMPACT_SCHEMAS
-from refspec.atlas.parquet_search_view import MANIFEST_FILE
+from refspec.atlas.parquet_search_view import MANIFEST_FILE, build_atlas_parquet_search_view
 from refspec.atlas.parquet_tables import (
     AGENCY_PROJECTION_ROLE,
     AGENCY_PROJECTION_TABLE_NAMES,
     AGENCY_PROJECTION_TABLE_SCHEMAS,
     AGENCY_PROJECTION_UNRESOLVED_ROLE,
 )
+from refspec.atlas.parquet_view import MANIFEST_FILE as FULL_VIEW_MANIFEST_FILE
 from refspec.registry.infrastructure.artifact_serialization import sha256_digest
 
 ROOT = Path(__file__).resolve().parents[1]
 # The current sealed compact search view REF-038 shipped before it: it
 # predates the agency-projection tables, so it is the real artifact that
 # proves the graceful "no agency projection" path end to end.
-_SEALED_VIEW = ROOT / "output" / "atlas-3.1-parquet-search-view-2026-08-16"
+# A real view without the agency projection: the Federal Register Thesaurus
+# release carries none (`make release-atlas-federal-register-thesaurus`).
+_FR_RELEASE_VIEW = ROOT / "output" / "atlas-3.1-federal-register-thesaurus-2025-04-01" / "parquet-view"
 
 
 def test_cli_serves_compact_search_view_directory(tmp_path: Path, monkeypatch) -> None:
@@ -449,16 +451,31 @@ def _run_against_real_server(view, exercise) -> None:
         thread.join(timeout=5)
 
 
-def test_agencies_gracefully_degrades_against_the_real_sealed_view() -> None:
+def test_agencies_gracefully_degrades_against_a_real_view_without_the_projection(tmp_path: Path) -> None:
     """Prove /agencies and /api/agency-projection are reachable through the shipped
-    handler and degrade to available=False against the real sealed REF-038 view
-    that predates the projection tables (skipped when the view is absent).
+    handler and degrade to available=False against a real, digest-verified compact
+    view that carries no projection tables.
+
+    This read the sealed 2026-08-16 REF-038 view, which predates the projection
+    tables, and skipped wherever it was absent; that artifact survives nowhere
+    (REF-071), so the compact view is built here from the HEAD Federal Register
+    Thesaurus release, which carries no agency projection either.
+
+    What this can no longer see: a view built by OLDER code. The old test proved
+    the explorer still opens a sealed view that shipped before the projection
+    tables existed; this one proves it degrades on a view HEAD builds without
+    them. Backward compatibility with shipped views is unguarded until a dated
+    view that predates the projection is pinned again.
     """
 
-    if not _SEALED_VIEW.is_dir():
-        pytest.skip("the sealed compact search view is not present locally")
-    manifest_digest = sha256_digest((_SEALED_VIEW / MANIFEST_FILE).read_bytes())
-    view = open_atlas_explorer(_SEALED_VIEW, trusted_manifest_digest=manifest_digest)
+    compact = tmp_path / "compact-view"
+    build_atlas_parquet_search_view(
+        _FR_RELEASE_VIEW,
+        compact,
+        expected_manifest_digest=sha256_digest((_FR_RELEASE_VIEW / FULL_VIEW_MANIFEST_FILE).read_bytes()),
+    )
+    manifest_digest = sha256_digest((compact / MANIFEST_FILE).read_bytes())
+    view = open_atlas_explorer(compact, trusted_manifest_digest=manifest_digest)
     try:
         assert view.agency_projection_available() is False
 

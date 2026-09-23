@@ -23,6 +23,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 from refspec.registry.nature_of_suit_codes import (
     NATURE_OF_SUIT_CODE_DESCRIPTIONS_URL,
@@ -52,7 +53,7 @@ def test_real_publisher_pdf_reproduces_the_pinned_layout_text(tmp_path: Path) ->
     """Pins that a fresh pdftotext extraction equals the committed fixture byte for byte and parses to the counts."""
     source_path_text = os.environ.get("REFSPEC_NATURE_OF_SUIT_PDF_PATH")
     if source_path_text is None:
-        pytest.skip("real U.S. Courts PDF is not configured")
+        missing_pinned_input("real U.S. Courts PDF is not configured")
     extracted = tmp_path / "js_044_code_descriptions.layout.txt"
     subprocess.run(
         ["pdftotext", "-layout", source_path_text, str(extracted)],
@@ -355,7 +356,7 @@ def test_package_round_trips_through_a_written_directory(tmp_path: Path) -> None
     assert reopened.resource_manifest["resourceId"] == NATURE_OF_SUIT_CODES_RESOURCE_ID
 
 
-@pytest.mark.skipif(not REAL_FIXTURE_PATH.is_file(), reason="real JS-044 fixture is not present")
+@pytest.mark.pinned_input(not REAL_FIXTURE_PATH.is_file(), reason="real JS-044 fixture is not present")
 def test_verified_real_full_source_counts_and_cross_page_stitch() -> None:
     """Pins the real fixture's digest and counts, the code-893 cross-page stitch and the Continued section."""
     payload = REAL_FIXTURE_PATH.read_bytes()
@@ -382,7 +383,7 @@ def test_verified_real_full_source_counts_and_cross_page_stitch() -> None:
     assert note.text.startswith("Note: The statutes listed above are not all-inclusive")
 
 
-@pytest.mark.skipif(not REAL_FIXTURE_PATH.is_file(), reason="real JS-044 fixture is not present")
+@pytest.mark.pinned_input(not REAL_FIXTURE_PATH.is_file(), reason="real JS-044 fixture is not present")
 def test_verified_real_full_source_packages_cleanly() -> None:
     """Pins 93 unique codes and a passing coverage report from the real fixture."""
     payload = REAL_FIXTURE_PATH.read_bytes()

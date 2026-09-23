@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry import federal_hierarchy_orgs as fh
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 from refspec.registry.infrastructure.source_controlled_resource import (
@@ -32,7 +33,7 @@ def _real_path(environment_name: str, filename: str) -> Path:
     configured = os.environ.get(environment_name)
     path = Path(configured) if configured else REAL_DATA_DIR / filename
     if not path.is_file():
-        pytest.skip(f"real publisher capture is unavailable: {environment_name}")
+        missing_pinned_input(f"real publisher capture is unavailable: {environment_name}")
     return path
 
 

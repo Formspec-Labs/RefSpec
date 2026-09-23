@@ -14,6 +14,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.immutable import deep_freeze_json
 from refspec.registry import crs_legislative_resources as crs
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
@@ -583,7 +584,7 @@ def test_exact_ignored_captures_match_checked_in_package_evidence() -> None:
     """The full 2026-07-30 capture builds 1,043 + 32 observations and reproduces the checked-in evidence bytes."""
 
     if not FULL_CAPTURE_ROOT.is_dir():
-        pytest.skip("exact 2026-07-30 CRS captures are not present")
+        missing_pinned_input("exact 2026-07-30 CRS captures are not present")
 
     packages = build_crs_source_packages_from_capture_root(FULL_CAPTURE_ROOT)
     detailed = packages.legislative_subject_terms

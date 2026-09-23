@@ -40,7 +40,7 @@ def test_missing_pins_refuse_with_the_pin_path(tmp_path: Path) -> None:
         build_entity_registry_payload(tmp_path)
 
 
-@pytest.mark.skipif(
+@pytest.mark.pinned_input(
     not _pins_present,
     reason="registry real-data captures are pinned outside git; build them locally first",
 )

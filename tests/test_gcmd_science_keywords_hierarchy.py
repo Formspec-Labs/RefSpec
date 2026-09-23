@@ -20,6 +20,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry import gcmd_science_keywords as gcmd
 from refspec.registry import gcmd_science_keywords_hierarchy as hierarchy
 
@@ -231,7 +232,7 @@ def test_real_full_release_derives_the_frozen_edge_set(tmp_path: Path) -> None:
     """Pins the configured real 24.4 release's 3,774 rows, 2 roots, 3,772 edges, 512 homonyms and frozen digest."""
     source_path_text = os.environ.get("REFSPEC_GCMD_SCIENCE_KEYWORDS_PATH")
     if source_path_text is None:
-        pytest.skip("real GCMD publisher distribution is not configured")
+        missing_pinned_input("real GCMD publisher distribution is not configured")
     acquired = gcmd.acquire_gcmd_science_keywords(
         gcmd.GCMD_SCIENCE_KEYWORDS_24_4,
         tmp_path,

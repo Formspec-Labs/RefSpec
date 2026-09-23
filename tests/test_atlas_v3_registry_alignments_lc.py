@@ -17,6 +17,7 @@ from types import SimpleNamespace
 import pytest
 from rdflib import RDF, Dataset, Namespace, URIRef
 
+from conftest import missing_pinned_input
 from refspec.atlas import v3_registry_alignments_lc as alignments
 from refspec.atlas import v3_registry_alignments_lcsh as lcsh_release
 from refspec.registry import lc_external_links as external
@@ -45,21 +46,21 @@ def _generator_module():
 @pytest.fixture(scope="module")
 def endpoint_release():
     if not HAS_OFFICIAL_SOURCES:
-        pytest.skip("official LC, LCSH, and FAST sources are not cached")
+        missing_pinned_input("official LC, LCSH, and FAST sources are not cached")
     return lcsh_release.load_lcsh_consolidated_release(SOURCE_ROOT)
 
 
 @pytest.fixture(scope="module")
 def mapping_release():
     if not HAS_OFFICIAL_SOURCES:
-        pytest.skip("official LC, LCSH, and FAST sources are not cached")
+        missing_pinned_input("official LC, LCSH, and FAST sources are not cached")
     return alignments.load_lc_external_links_mapping_release(SOURCE_ROOT)
 
 
 @pytest.fixture(scope="module")
 def external_target_releases():
     if not HAS_OFFICIAL_SOURCES:
-        pytest.skip("official LC external-link source is not cached")
+        missing_pinned_input("official LC external-link source is not cached")
     return alignments.load_lc_external_target_endpoint_releases(SOURCE_ROOT)
 
 

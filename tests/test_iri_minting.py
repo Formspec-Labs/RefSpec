@@ -720,7 +720,6 @@ def test_the_partner_hatch_is_lossless_and_fenced() -> None:
 # The populations, over the pinned columns.
 
 
-@pytest.mark.skipif(not FEDERAL_REGISTER_PARQUET.is_file(), reason="the Federal Register corpus is not present")
 @pytest.mark.slow
 def test_the_document_number_column_is_accounted_for_exactly() -> None:
     """Pin the full ``document_number`` census (1,004,233 distinct) and its exact eight-class refusal partition (365
@@ -956,7 +955,7 @@ def test_the_document_number_column_is_accounted_for_exactly() -> None:
     assert sum(refusal_partition.values()) == census["refused"] == 365
 
 
-@pytest.mark.skipif(not AGENDA_RIN_PARQUET.is_file(), reason="the Unified Agenda RIN roster is not built")
+@pytest.mark.reads_built_artifact
 @pytest.mark.slow
 def test_every_rin_the_agenda_states_mints() -> None:
     """Pin that all 46,547 Agenda RINs mint, with no gap on this roster between the shape's ``[A-Za-z0-9]{2}`` and
@@ -972,7 +971,6 @@ def test_every_rin_the_agenda_states_mints() -> None:
     assert len({identifier.iri for identifier in minted.values() if identifier}) == len(rins)
 
 
-@pytest.mark.skipif(not FEDERAL_REGISTER_PARQUET.is_file(), reason="the Federal Register corpus is not present")
 @pytest.mark.slow
 def test_every_docket_the_column_states_mints_or_refuses_cleanly() -> None:
     """Pin the property the mint layer adds over the real ``docket_ids_json`` column: whatever the validator accepts,

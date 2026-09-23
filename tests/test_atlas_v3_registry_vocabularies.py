@@ -385,13 +385,6 @@ def test_direct_relations_keep_only_unique_member_triples() -> None:
 
 
 @pytest.mark.slow
-@pytest.mark.skipif(
-    not EUROVOC_CLAIM_ROOT.is_dir()
-    or not (
-        vocabularies.DEFAULT_SOURCE_ROOT / "eurovoc-4.24-skos-core.zip"
-    ).is_file(),
-    reason="verified EuroVoc source and claim bundle are not available",
-)
 def test_eurovoc_claim_views_match_parser_compatibility_releases() -> None:
     """Pins that claim-bundle and parser EuroVoc releases agree field-for-field apart from input paths."""
 
@@ -450,7 +443,7 @@ def test_s27_conflict_keeps_publisher_relation_as_transformation_evidence() -> N
     assert normalized[1].source_payload["editorialTransformation"]["reason"] == ("SKOS-S27-hierarchy-path")
 
 
-@pytest.mark.skipif(
+@pytest.mark.pinned_input(
     not (vocabularies.DEFAULT_SOURCE_ROOT / "gcmd-science-keywords-24.4.csv").is_file(),
     reason="exact cached GCMD 24.4 publisher source is not available",
 )
@@ -470,7 +463,7 @@ def test_gcmd_cache_normalizes_complete_source_without_inferred_hierarchy() -> N
     assert all(resource.native_payload["hierarchyIsDescriptiveNotInferred"] for resource in release.resources)
 
 
-@pytest.mark.skipif(
+@pytest.mark.pinned_input(
     not (vocabularies.DEFAULT_SOURCE_ROOT / "federal-register-thesaurus-2025.pdf").is_file(),
     reason="exact cached Federal Register 2025 PDF is not available",
 )
@@ -493,7 +486,7 @@ def test_federal_register_cache_reads_pdf_without_managed_release_dependency() -
 def _skip_unless_source_present(filename: str) -> pytest.MarkDecorator:
     """Return a skipif mark for a test that needs one exact cached publisher source."""
 
-    return pytest.mark.skipif(
+    return pytest.mark.pinned_input(
         not (vocabularies.DEFAULT_SOURCE_ROOT / filename).is_file(),
         reason=f"exact cached large-vocabulary publisher source is not available: {filename}",
     )

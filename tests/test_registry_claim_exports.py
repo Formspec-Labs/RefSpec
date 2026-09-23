@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import os
 from collections import Counter
 from pathlib import Path
 
@@ -88,10 +87,7 @@ def test_rdf_export_preserves_terms_and_declares_omissions() -> None:
     assert any(claim.predicate == str(RDF.type) for claim in extraction.claims)
 
 
-@pytest.mark.skipif(
-    os.environ.get("REFSPEC_REGISTRY_CLAIM_REAL_DATA") != "1",
-    reason="set REFSPEC_REGISTRY_CLAIM_REAL_DATA=1 to export pinned real releases",
-)
+@pytest.mark.slow
 def test_pinned_real_eurovoc_and_gemet_claim_releases(tmp_path: Path) -> None:
     """An opt-in real export pins each release id, predicate counts and
     metadata, then validates through Atlas adaptation.

@@ -16,6 +16,7 @@ from typing import Any, cast
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry.icpsr_subject import (
     build_icpsr_subject_index,
     parse_icpsr_subject_xml,
@@ -253,7 +254,7 @@ def test_exact_2026_07_30_capture_preserves_verified_subset_and_gaps() -> None:
     """The real capture pins 3,760 concepts, 5 xml-only labels, 45 index-only terms and both source digests."""
 
     if not REAL_CAPTURE.is_dir():
-        pytest.skip("ignored exact ICPSR capture is unavailable")
+        missing_pinned_input("ignored exact ICPSR capture is unavailable")
 
     sources = open_icpsr_managed_release_sources(REAL_CAPTURE)
     managed = build_icpsr_managed_release(
@@ -310,7 +311,7 @@ def test_exact_2026_07_30_capture_carries_every_measured_concept_and_relation() 
     """The real capture states 18,756 relations, 18,751 of which target a release member."""
 
     if not REAL_CAPTURE.is_dir():
-        pytest.skip("ignored exact ICPSR capture is unavailable")
+        missing_pinned_input("ignored exact ICPSR capture is unavailable")
 
     sources = open_icpsr_managed_release_sources(REAL_CAPTURE)
     managed = build_icpsr_managed_release(

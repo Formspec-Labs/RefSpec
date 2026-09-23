@@ -43,7 +43,7 @@ def test_the_filename_is_not_authoritative_for_the_edition() -> None:
     assert [(pin.file_stem, pin.publication_id) for pin in odd] == [("2012", "201210")]
 
 
-@pytest.mark.skipif(not SOURCE_ROOT.is_dir(), reason="pinned captures are not present")
+@pytest.mark.pinned_input(not SOURCE_ROOT.is_dir(), reason="pinned captures are not present")
 @pytest.mark.slow
 def test_every_pinned_edition_reads_back_exactly() -> None:
     """Pins every edition's sha256, record count and single publication id, totalling 241,726 records."""
@@ -58,7 +58,7 @@ def test_every_pinned_edition_reads_back_exactly() -> None:
     assert total == UNIFIED_AGENDA_EXPECTED_RECORD_COUNT == 241_726
 
 
-@pytest.mark.skipif(not SOURCE_ROOT.is_dir(), reason="pinned captures are not present")
+@pytest.mark.pinned_input(not SOURCE_ROOT.is_dir(), reason="pinned captures are not present")
 def test_the_two_mangled_editions_are_the_only_ones_needing_repair() -> None:
     """0x19 is a control character XML forbids; it appears twice in 981 MB.
 
@@ -77,7 +77,7 @@ def test_the_two_mangled_editions_are_the_only_ones_needing_repair() -> None:
             assert parse_unified_agenda_edition(_payload(pin), pin=pin)
 
 
-@pytest.mark.skipif(not SOURCE_ROOT.is_dir(), reason="pinned captures are not present")
+@pytest.mark.pinned_input(not SOURCE_ROOT.is_dir(), reason="pinned captures are not present")
 def test_a_drifted_capture_is_refused_rather_than_read() -> None:
     """Pins refusal on an appended byte and on an in-place substitution that changes the bytes."""
     pin = UNIFIED_AGENDA_EDITION_PINS[0]
@@ -113,7 +113,7 @@ def test_a_pin_must_describe_a_real_edition() -> None:
         )
 
 
-@pytest.mark.skipif(not SOURCE_ROOT.is_dir(), reason="pinned captures are not present")
+@pytest.mark.pinned_input(not SOURCE_ROOT.is_dir(), reason="pinned captures are not present")
 @pytest.mark.slow
 def test_the_structured_cfr_field_carries_impossible_titles() -> None:
     """A title validator catches what no citation regex would.
@@ -158,7 +158,7 @@ def test_the_structured_cfr_field_carries_impossible_titles() -> None:
     assert set(impossible) == {0, 59, 60, 234, 420}
 
 
-@pytest.mark.skipif(not SOURCE_ROOT.is_dir(), reason="pinned captures are not present")
+@pytest.mark.pinned_input(not SOURCE_ROOT.is_dir(), reason="pinned captures are not present")
 @pytest.mark.slow
 def test_the_continuation_population_is_the_whole_series() -> None:
     """98 legal-authority lists live in ADDITIONAL_INFO and in no structured field.
@@ -305,7 +305,7 @@ def test_a_continuation_stops_where_the_next_field_begins() -> None:
     assert legal_authority_continuations("Additional authority DOT Order 5660.1A") == ()
 
 
-@pytest.mark.skipif(not SOURCE_ROOT.is_dir(), reason="pinned captures are not present")
+@pytest.mark.pinned_input(not SOURCE_ROOT.is_dir(), reason="pinned captures are not present")
 def test_the_specimen_continuation_reads_to_thirteen_citations() -> None:
     """SEC RIN 3235-AG65, Spring 1996: 13 citations in no structured field.
 

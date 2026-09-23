@@ -11,7 +11,6 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import importlib
-import os
 import sys
 import time
 from pathlib import Path
@@ -20,6 +19,7 @@ import pytest
 from rdflib import Graph, URIRef
 from rdflib.namespace import RDF, SKOS
 
+from conftest import missing_pinned_input
 from refspec.atlas import v3_registry_alignments as base_alignments
 from refspec.atlas import v3_registry_alignments_bulk as bulk_alignments
 from refspec.atlas import v3_registry_alignments_lc as lc_alignments
@@ -105,18 +105,16 @@ HAS_FAST_LCSH_S27_SOURCES = all(path.is_file() for path in FAST_LCSH_S27_REQUIRE
 
 @pytest.fixture(scope="module")
 def complete_prebuild():
-    """Load and validate the complete producer topology; requires REFSPEC_PRODUCER_PREBUILD_FULL=1."""
+    """Load and validate the complete producer topology; its users are the ``full_atlas`` tier.
 
-    if os.environ.get("REFSPEC_PRODUCER_PREBUILD_FULL") != "1":
-        pytest.skip("set REFSPEC_PRODUCER_PREBUILD_FULL=1 to load the complete producer topology")
+    A missing input fails here: the tier's job fetches every pinned input first.
+    """
+
     started_at = time.perf_counter()
-    try:
-        releases = generator.load_releases()
-        mapping_releases = generator.load_mapping_releases(
-            source_releases=releases,
-        )
-    except FileNotFoundError as error:
-        pytest.skip(str(error))
+    releases = generator.load_releases()
+    mapping_releases = generator.load_mapping_releases(
+        source_releases=releases,
+    )
     validation = generator.validate_prebuild_loaded_releases(
         releases,
         mapping_releases,
@@ -124,20 +122,35 @@ def complete_prebuild():
     return releases, mapping_releases, validation, time.perf_counter() - started_at
 
 
+@pytest.mark.full_atlas
 def test_complete_producer_prebuild_validation_runs_before_distribution_writes(
     complete_prebuild,
 ) -> None:
     releases, mapping_releases, validation, _elapsed = complete_prebuild
 
     assert len(mapping_releases) == 11
-    assert sum(len(release.resources) for release in releases) == 1_344_511
+    # 1,506,266 since REF-071 re-ran this test (it had been opt-in and drifted
+    # from the 1,344,511 of 6535f570, 2026-08-16). Traced 2026-09-22: 118 of the
+    # 119 releases match the sealed 2026-08-21d search view's per-release
+    # resource rows exactly (a full build, a different code path), and the view
+    # totals 1,506,265; the one difference is GAO topics, 30 -> 31, from
+    # 6237c613's capture, whose listing page carries 30 /topics/ links and whose
+    # separately pinned Science and Technology page supplies the 31st
+    # (tests/fixtures/gao_published_topics). The 08-16 breakdown survives in no
+    # artifact, so the step from 1,344,511 is attributed by the view, not re-derived.
+    assert sum(len(release.resources) for release in releases) == 1_506_266
     # fast-lcsh-adopted-2026-08-15's emitted total moved from 427,704 to
     # 427,693 (865,264 - 11) when the SKOS S27 reconciliation widened its
     # hierarchy scope to include the consolidated LCSH release's native
     # skos:broader statements (see FAST_LCSH_S27_REFUSAL_COUNT).
-    assert sum(len(release.mappings) for release in mapping_releases) == 865_253
-    assert validation.compiled_rows.expected_counts["resources"] == 1_344_511
-    assert validation.compiled_rows.expected_counts["mappingAssertions"] == 865_253
+    # 1,252,692 since REF-071 re-ran this test (865,253 at 6535f570): exactly the
+    # sealed 2026-08-21d search view's MappingAssertion statements, as its
+    # native-relation (969,735), cross-ring (32,131) and source-assignment
+    # (4,885) counts match expected_counts below -- a full build agreeing with
+    # the prebuild through a different code path.
+    assert sum(len(release.mappings) for release in mapping_releases) == 1_252_692
+    assert validation.compiled_rows.expected_counts["resources"] == 1_506_266
+    assert validation.compiled_rows.expected_counts["mappingAssertions"] == 1_252_692
     assert (
         validation.compiled_rows.expected_counts["evidenceBindings"]
         - validation.compiled_rows.expected_counts["relationAssertions"]
@@ -177,11 +190,13 @@ def test_complete_producer_prebuild_validation_runs_before_distribution_writes(
         for release in mapping_releases
         if release.metadata["endpointOwnership"]["repinnedMappingCount"]
     } == {
+        # MeSH-LCSH re-pinned 13,235 endpoints until 657d1b85 (REF-040, 2026-08-18)
+        # resolved its LCSH side against the consolidated LCSH release directly.
         "lcsh-external-links-mappings-2026-08-15": 11_243,
-        "mesh-lcsh-mapping-2021-03-31": 13_235,
     }
 
 
+@pytest.mark.full_atlas
 def test_every_wave_mapping_evidence_resolves_to_one_used_unique_pin(
     complete_prebuild,
 ) -> None:
@@ -232,6 +247,7 @@ def test_every_wave_mapping_evidence_resolves_to_one_used_unique_pin(
         assert used_pins == expected_evidence_pins, key
 
 
+@pytest.mark.full_atlas
 def test_complete_prebuild_finishes_without_constructing_or_writing_graphs(
     complete_prebuild,
 ) -> None:
@@ -733,7 +749,7 @@ def real_fast_lcsh_s27_inputs() -> tuple[
     generator.LoadedRelease,
 ]:
     if not HAS_FAST_LCSH_S27_SOURCES:
-        pytest.skip("official FAST, LCSH, and LC external-links sources are not cached")
+        missing_pinned_input("official FAST, LCSH, and LC external-links sources are not cached")
     fast_release = base_alignments.load_fast_lcsh_mapping_release(base_alignments.DEFAULT_SOURCE_ROOT)
     lc_release = lc_alignments.load_lc_external_links_mapping_release(lc_alignments.DEFAULT_SOURCE_ROOT)
     lcsh_release = lcsh_alignments.load_lcsh_consolidated_release(lcsh_alignments.DEFAULT_SOURCE_ROOT)
@@ -900,7 +916,7 @@ def test_fast_see_also_has_no_thesaurus_related_eligible_pairs() -> None:
     source_root = bulk_alignments.DEFAULT_SOURCE_ROOT
     source = bulk_alignments._fast_bulk_input(source_root)
     if not source.path.is_file():
-        pytest.skip("pinned OCLC FAST bulk source is not cached")
+        missing_pinned_input("pinned OCLC FAST bulk source is not cached")
     fast_release = bulk_alignments.load_fast_topical_release(source_root)
     active_iris = frozenset(resource.iri for resource in fast_release.resources)
     capture = bulk_alignments.fast_bulk.parse_oclc_fast_external_links_file(
@@ -964,7 +980,7 @@ def test_frozen_gemet_eurovoc_s46_refusals_match_the_real_validator() -> None:
 
     source_root = subject_alignments.DEFAULT_SOURCE_ROOT
     if not (source_root / gemet.GEMET_ALIGNMENT_FILENAME).is_file():
-        pytest.skip("pinned GEMET source is not cached")
+        missing_pinned_input("pinned GEMET source is not cached")
     gemet_capture = gemet.load_gemet_alignments(source_root / gemet.GEMET_ALIGNMENT_FILENAME)
     gemet_rows = tuple(row for row in gemet_capture.mappings if row.target_system == "eurovoc")
     portfolio = load_eurovoc_alignment_portfolio(source_root)
@@ -1001,7 +1017,7 @@ def test_frozen_umthes_s27_transformations_match_the_real_validator() -> None:
 
     source_root = subject_alignments.DEFAULT_SOURCE_ROOT
     if not (source_root / subject_alignments.umthes.UMTHES_CAPTURE_FILENAME).is_file():
-        pytest.skip("pinned UMTHES source is not cached")
+        missing_pinned_input("pinned UMTHES source is not cached")
     endpoint = subject_alignments.load_umthes_endpoint_release(source_root)
     raw_relations = {}
     for relation in endpoint.relations:
@@ -1042,10 +1058,7 @@ def test_frozen_umthes_s27_transformations_match_the_real_validator() -> None:
     generator.ATLAS_VALIDATE._check_skos_integrity(admitted_relations)
 
 
-@pytest.mark.skipif(
-    os.environ.get("REFSPEC_PRODUCER_PREBUILD_DEEP") != "1",
-    reason="set REFSPEC_PRODUCER_PREBUILD_DEEP=1 for graph construction without writes",
-)
+@pytest.mark.full_atlas
 def test_deep_prebuild_runs_compiled_output_validation(complete_prebuild) -> None:
     releases, mapping_releases, _validation, _elapsed = complete_prebuild
     validation = generator.validate_prebuild_loaded_releases(
@@ -1127,13 +1140,7 @@ def test_prebuild_refuses_a_cfr_part_subject_link_that_leaves_the_admitted_cell(
         generator.validate_prebuild_loaded_releases(mutated)
 
 
-@pytest.mark.skipif(
-    os.environ.get("REFSPEC_PRODUCER_PREBUILD_REAL_EQUIVALENCE") != "1",
-    reason=(
-        "set REFSPEC_PRODUCER_PREBUILD_REAL_EQUIVALENCE=1 for the bounded "
-        "real-release streamed/legacy byte proof"
-    ),
-)
+@pytest.mark.slow
 def test_bounded_real_releases_match_streamed_and_legacy_bytes(
     tmp_path: Path,
 ) -> None:

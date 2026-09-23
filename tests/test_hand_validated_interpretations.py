@@ -1054,6 +1054,6 @@ def test_the_eo_roster_is_a_real_consulting_consumer() -> None:
     consumer's side.
     """
 
-    eo_roster = pytest.importorskip("refspec.registry.eo_roster")
+    from refspec.registry import eo_roster
     assert eo_roster.EoRosterOracle.flag_for(8284) is lookup("8284")
     assert eo_roster.EoRosterOracle.flag_for(8248) is None

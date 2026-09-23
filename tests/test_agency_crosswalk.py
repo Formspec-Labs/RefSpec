@@ -20,6 +20,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry import agency_crosswalk as m
 
 #: The three intact rin-ontology-revision-candidate inputs came home to the
@@ -261,7 +262,7 @@ def test_rule2_real_dockets_have_zero_normalization_collisions() -> None:
     """
     path = REGENERATION_INPUTS_ROOT / "dockets.parquet"
     if not path.exists():
-        pytest.skip("output/registry-real-data-sources/rin-ontology-revision-candidate is not present")
+        missing_pinned_input("output/registry-real-data-sources/rin-ontology-revision-candidate is not present")
 
     payload = path.read_bytes()
     actual_sha256 = f"sha256:{hashlib.sha256(payload).hexdigest()}"
@@ -269,7 +270,7 @@ def test_rule2_real_dockets_have_zero_normalization_collisions() -> None:
         "local dockets.parquet no longer matches the sealed receipt's pinned input"
     )
 
-    pq = pytest.importorskip("pyarrow.parquet")
+    import pyarrow.parquet as pq
     table = pq.read_table(path, columns=["docket_id", "agency_code"])
     docket_codes: dict[str, str] = {}
     for row in table.to_pylist():

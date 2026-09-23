@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry import fast_topical as fast
 from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 
@@ -110,7 +111,7 @@ def _native_path(environment_name: str, fallback_name: str) -> Path:
         else Path(__file__).parents[1] / "output" / "registry-real-data-sources" / fallback_name
     )
     if not path.is_file():
-        pytest.skip(f"set {environment_name} to the exact pinned OCLC source")
+        missing_pinned_input(f"set {environment_name} to the exact pinned OCLC source")
     return path
 
 

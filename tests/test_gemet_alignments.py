@@ -66,7 +66,7 @@ def test_fixture_refuses_a_repeated_publisher_triple() -> None:
         gemet.parse_gemet_alignment_rdf(payload)
 
 
-@pytest.mark.skipif(not REAL_SOURCE.is_file(), reason="pinned GEMET source is not cached")
+@pytest.mark.pinned_input(not REAL_SOURCE.is_file(), reason="pinned GEMET source is not cached")
 def test_pinned_release_accounts_for_every_published_mapping_row() -> None:
     """Pins 9,658 mappings, the per-pair predicate counts, exact digests, and CC BY 4.0."
 
@@ -99,7 +99,7 @@ def test_pinned_release_accounts_for_every_published_mapping_row() -> None:
     assert "CC BY-NC 4.0" in gemet.UMTHES_CONTENT_RIGHTS_NOTE
 
 
-@pytest.mark.skipif(not REAL_SOURCE.is_file(), reason="pinned GEMET source is not cached")
+@pytest.mark.pinned_input(not REAL_SOURCE.is_file(), reason="pinned GEMET source is not cached")
 def test_pinned_loader_refuses_distribution_drift(tmp_path: Path) -> None:
     """Pins that appended bytes raise a byte-length drift error."""
 

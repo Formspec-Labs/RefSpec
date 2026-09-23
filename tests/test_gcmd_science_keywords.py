@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry import gcmd_science_keywords as gcmd
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
@@ -46,7 +47,7 @@ def test_real_full_release_shape_count_and_boundary_samples(tmp_path: Path) -> N
     """An opt-in full release pins 3,774 rows and the first and last labels and UUIDs."""
     source_path_text = os.environ.get("REFSPEC_GCMD_SCIENCE_KEYWORDS_PATH")
     if source_path_text is None:
-        pytest.skip("real GCMD publisher distribution is not configured")
+        missing_pinned_input("real GCMD publisher distribution is not configured")
     acquired = _acquire(
         tmp_path,
         gcmd.GCMD_SCIENCE_KEYWORDS_24_4,

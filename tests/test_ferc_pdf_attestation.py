@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DOCKET_PDF = ROOT / "output" / "registry-real-data-sources" / "ferc-docket-prefix-june-2025.pdf"
 CLASS_PDF = ROOT / "output" / "registry-real-data-sources" / "ferc-class-types-january-2025.pdf"
 
-pytestmark = pytest.mark.skipif(
+pytestmark = pytest.mark.pinned_input(
     not (DOCKET_PDF.is_file() and CLASS_PDF.is_file()),
     reason="pinned FERC captures are not present",
 )

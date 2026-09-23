@@ -59,7 +59,7 @@ def test_record_parser_refuses_namespace_substitution() -> None:
         )
 
 
-@pytest.mark.skipif(not SOURCE.is_file(), reason="pinned UMTHES capture is not cached")
+@pytest.mark.pinned_input(not SOURCE.is_file(), reason="pinned UMTHES capture is not cached")
 def test_real_capture_pins_every_distinct_gemet_target() -> None:
     capture = umthes.load_umthes_content_capture(SOURCE)
 

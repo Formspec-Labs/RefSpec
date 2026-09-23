@@ -485,7 +485,7 @@ def test_domain_values_fail_closed_on_duplicates_strays_and_lost_columns() -> No
         usg.parse_gsdm_domain_values(lost)
 
 
-@pytest.mark.skipif(
+@pytest.mark.pinned_input(
     not REAL_DATA_DICTIONARY.is_file(),
     reason="the exact GSDM data-dictionary capture is not present",
 )

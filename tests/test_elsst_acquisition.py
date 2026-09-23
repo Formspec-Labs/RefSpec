@@ -11,6 +11,7 @@ from typing import Self
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry.adapters import elsst_acquisition as acquisition
 from refspec.registry.infrastructure import pinned_acquisition
 
@@ -47,7 +48,7 @@ def test_real_r6_source_is_verified_and_content_addressed(tmp_path: Path) -> Non
 
     source_path = os.environ.get("REFSPEC_ELSST_R6_PATH")
     if source_path is None:
-        pytest.skip("real ELSST R6 source is not configured")
+        missing_pinned_input("real ELSST R6 source is not configured")
 
     acquired = acquisition.acquire_elsst_release(
         acquisition.ELSST_R6,

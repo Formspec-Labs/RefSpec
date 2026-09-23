@@ -560,7 +560,7 @@ PINNED_LCSH_BULK_PATH = (
 )
 
 
-@pytest.mark.skipif(not PINNED_LCSH_BULK_PATH.is_file(), reason="pinned LCSH bulk file is not cached")
+@pytest.mark.pinned_input(not PINNED_LCSH_BULK_PATH.is_file(), reason="pinned LCSH bulk file is not cached")
 def test_real_pinned_bulk_prefix_carries_a_real_deprecated_authority() -> None:
     """Pins that a 200-line prefix of the real bulk file holds the sh00000273 deprecated record."""
     # A bounded 200-line prefix of the real pinned file, not the full

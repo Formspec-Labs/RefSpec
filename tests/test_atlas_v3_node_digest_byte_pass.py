@@ -15,7 +15,6 @@ import json
 import sys
 from pathlib import Path
 
-import pytest
 from rdflib import Namespace, URIRef
 from rdflib.namespace import RDF
 
@@ -27,6 +26,8 @@ RKAF = Namespace("https://rulespec.org/ns/v1#")
 sys.path.insert(0, str(BINDING_ROOT / "tools"))
 import validate as atlas_validate
 
+from conftest import missing_pinned_input
+
 
 def _parse_with_byte_pass():
     """Parse the materialized fixture distribution with the byte-pass digest
@@ -34,7 +35,7 @@ def _parse_with_byte_pass():
     """
 
     if not (VALID_DISTRIBUTION / "atlas-manifest.json").is_file():
-        pytest.skip("Atlas 3.1 fixtures are not materialized; run make atlas-v3-fixtures")
+        missing_pinned_input("Atlas 3.1 fixtures are not materialized; run make atlas-v3-fixtures")
     manifest = json.loads(
         (VALID_DISTRIBUTION / "atlas-manifest.json").read_text(encoding="utf-8")
     )

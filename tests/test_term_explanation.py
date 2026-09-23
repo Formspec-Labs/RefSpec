@@ -34,7 +34,7 @@ from refspec.registry.term_explanation import (
 
 ROOT = Path(__file__).resolve().parents[1]
 ACT_INDEX = ROOT / "output" / "usc-act-index-2026-08-22"
-artifact = pytest.mark.skipif(not ACT_INDEX.is_dir(), reason="the sealed act index is not present")
+artifact = pytest.mark.pinned_input(not ACT_INDEX.is_dir(), reason="the sealed act index is not present")
 
 
 @pytest.fixture(scope="module")

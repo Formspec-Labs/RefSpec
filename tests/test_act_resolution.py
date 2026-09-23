@@ -53,12 +53,6 @@ ACT_DIR = ROOT / "output" / "usc-act-index-2026-08-02"
 BULK_ACT_DIR = ROOT / "output" / "usc-act-index-2026-08-22"
 CREDIT_DIR = ROOT / "output" / "usc-source-credit-index-2026-08-02"
 
-artifact = pytest.mark.skipif(
-    not (ACT_DIR.is_dir() and BULK_ACT_DIR.is_dir() and CREDIT_DIR.is_dir()),
-    reason="pinned OLRC artifacts are not present",
-)
-
-
 def _citation(act: str, section: str, division: str | None = None) -> ActRelativeCitation:
     """One act-relative citation whose key is the normalized act name."""
 
@@ -699,7 +693,6 @@ def test_a_parenthetical_is_dropped_not_refused() -> None:
 # Real-artifact cases.
 
 
-@artifact
 def test_the_pinned_artifacts_load_and_carry_their_receipted_coverage(index, credits) -> None:
     """Both artifacts load: the index holds over 10,000 keys and one recorded incomplete source."""
 
@@ -710,7 +703,6 @@ def test_the_pinned_artifacts_load_and_carry_their_receipted_coverage(index, cre
     assert len(index.incomplete_sources) == 1
 
 
-@artifact
 def test_the_pins_restate_the_receipts_they_are_meant_to_outrank() -> None:
     """Two copies of one digest, deliberately, held together by this test.
 
@@ -733,7 +725,6 @@ def test_the_pins_restate_the_receipts_they_are_meant_to_outrank() -> None:
         assert set(pins) <= set(receipted[artifact_name]), artifact_name
 
 
-@artifact
 def test_only_a_pinned_table_can_be_read_through_this_door(tmp_path) -> None:
     """The pin is the authentication, so an unpinned table has no way in."""
 
@@ -742,7 +733,6 @@ def test_only_a_pinned_table_can_be_read_through_this_door(tmp_path) -> None:
         _read_pinned_parquet(tmp_path, "unlisted.parquet")
 
 
-@artifact
 def test_a_drifted_artifact_refuses_to_load() -> None:
     """One appended byte to a pinned table refuses with the drifted-artifact error."""
 
@@ -755,7 +745,6 @@ def test_a_drifted_artifact_refuses_to_load() -> None:
             ActIndex.from_artifact(copy)
 
 
-@artifact
 def test_the_two_act_indexes_share_names_but_have_distinct_classifications_and_quarantine() -> None:
     """What the artifact-keyed pins can and cannot tell apart, stated.
 
@@ -781,7 +770,6 @@ def test_the_two_act_indexes_share_names_but_have_distinct_classifications_and_q
     )
 
 
-@artifact
 def test_the_bulk_built_index_loads_through_the_same_door_and_carries_more(index) -> None:
     """The 2026-08-22 rebuild is read by this module unchanged.
 
@@ -801,7 +789,6 @@ def test_the_bulk_built_index_loads_through_the_same_door_and_carries_more(index
     assert "119-21" in bulk.classifications
 
 
-@artifact
 def test_a_directory_that_is_not_the_artifact_fails_loudly() -> None:
     """Both loaders read the receipt first, so a wrong directory raises rather
     than yielding an empty index that would look like a source with no
@@ -815,7 +802,6 @@ def test_a_directory_that_is_not_the_artifact_fails_loudly() -> None:
             SourceCreditIndex.from_artifact(empty)
 
 
-@artifact
 def test_clean_air_act_section_111_resolves_from_the_real_tables(index, credits) -> None:
     """Clean Air Act section 111 resolves to 42 U.S.C. 7411 via Table III alone; its chapter key is no_key for credits."""
 
@@ -831,7 +817,6 @@ def test_clean_air_act_section_111_resolves_from_the_real_tables(index, credits)
     assert resolution.answered_by == "table3"
 
 
-@artifact
 def test_a_session_law_chapter_is_never_offered_to_the_credits(index) -> None:
     """1,921 of the index's 8,391 Table III keys pre-date public-law numbering.
 
@@ -853,7 +838,6 @@ def test_a_session_law_chapter_is_never_offered_to_the_credits(index) -> None:
     assert all(re.fullmatch(r"\d{4}:\d+", k) for k in chapters)
 
 
-@artifact
 def test_table_iii_always_states_an_identifier_or_a_reason(index) -> None:
     """The invariant that made two branches in the composer unreachable.
 
@@ -883,7 +867,6 @@ def test_table_iii_always_states_an_identifier_or_a_reason(index) -> None:
     assert set(reasons) <= set(UNRESOLVED_REASONS)
 
 
-@artifact
 def test_every_answer_is_a_name_the_index_actually_keys(index, every_name) -> None:
     """An alias chain ends inside the index or nowhere. It never invents a key."""
 
@@ -892,7 +875,6 @@ def test_every_answer_is_a_name_the_index_actually_keys(index, every_name) -> No
         assert answer is None or answer in index.table3_key_by_name, name
 
 
-@artifact
 def test_resolution_is_deterministic_and_independent_of_call_order(index, every_name) -> None:
     """The derived stem map is a cache, so a wrong one would show as history.
 
@@ -913,7 +895,6 @@ def test_resolution_is_deterministic_and_independent_of_call_order(index, every_
     }
 
 
-@artifact
 def test_the_longest_stated_chain_in_the_pinned_index_is_two_hops(index) -> None:
     """Measured headroom for :data:`ALIAS_MAX_DEPTH`.
 
@@ -940,7 +921,6 @@ def test_the_longest_stated_chain_in_the_pinned_index_is_two_hops(index) -> None
     assert longest < ALIAS_MAX_DEPTH
 
 
-@artifact
 def test_the_refusals_are_mostly_names_the_tool_does_list(index, every_name) -> None:
     """``act_not_in_index`` is true of 19 of the 107 names it is published for.
 
@@ -984,7 +964,6 @@ def test_the_refusals_are_mostly_names_the_tool_does_list(index, every_name) -> 
         assert listed in cited and listed in refused
 
 
-@artifact
 def test_every_name_the_index_keys_is_a_name_a_query_can_spell(index) -> None:
     """A join key must be a fixed point of the function that builds queries.
 
@@ -1019,7 +998,6 @@ def test_every_name_the_index_keys_is_a_name_a_query_can_spell(index) -> None:
     assert resolve_act_name("``Kick-Back'' Racket Act", index) == "copeland anti-kickback act"
 
 
-@artifact
 def test_an_article_the_tool_wrote_into_its_own_cross_reference_is_spelling(index) -> None:
     """Four names, named — and the precedence that lets them through.
 
@@ -1050,7 +1028,6 @@ def test_an_article_the_tool_wrote_into_its_own_cross_reference_is_spelling(inde
         assert resolve_act_name(name, index) == name, name
 
 
-@artifact
 def test_the_article_strip_moves_exactly_four_names_and_nothing_else(index, every_name) -> None:
     """The blast radius, measured over every name the tool writes.
 
@@ -1084,7 +1061,6 @@ def test_the_article_strip_moves_exactly_four_names_and_nothing_else(index, ever
     ]
 
 
-@artifact
 def test_the_minted_space_is_the_contract_verbatim() -> None:
     """:data:`_RKAF_USC_IRI` restates rkaf. This holds the copy true.
 
@@ -1109,7 +1085,6 @@ def test_the_minted_space_is_the_contract_verbatim() -> None:
     assert _RKAF_USC_IRI.pattern.replace("(?:", "(") == next(iter(stated))
 
 
-@artifact
 def test_every_identifier_this_module_mints_satisfies_the_contract(index) -> None:
     """The property, over every classification in the artifact.
 
@@ -1137,7 +1112,6 @@ def test_every_identifier_this_module_mints_satisfies_the_contract(index) -> Non
     assert (minted, refused, len(targets)) == (6_236, 1_286, 7_522)
 
 
-@artifact
 def test_what_the_space_still_cannot_express_is_a_gap_in_rkaf(index) -> None:
     """1,286 targets still refuse. None is a section; two kinds are citable.
 
@@ -1196,7 +1170,6 @@ def test_what_the_space_still_cannot_express_is_a_gap_in_rkaf(index) -> None:
     assert sum(census.values()) == 1_286
 
 
-@artifact
 def test_act_section_not_classified_is_mostly_never_fetched(index) -> None:
     """The module's commonest refusal is a false absence, and here is its size.
 
@@ -1239,7 +1212,6 @@ def test_act_section_not_classified_is_mostly_never_fetched(index) -> None:
     assert resolution.unresolved_reason == "act_section_not_classified"
 
 
-@artifact
 def test_the_appendix_to_title_five_is_a_real_place(index) -> None:
     """Five rows classify to "5 App." with no section. Real, and mislabelled.
 
@@ -1279,7 +1251,6 @@ def test_the_appendix_to_title_five_is_a_real_place(index) -> None:
             }, (key, section, verdict.reason)
 
 
-@artifact
 def test_one_credit_target_never_hides_two_pages(credits) -> None:
     """``lookup`` reads ``found[0]``'s provenance. That must not be a choice.
 
@@ -1303,7 +1274,6 @@ def test_one_credit_target_never_hides_two_pages(credits) -> None:
     ) == 325
 
 
-@artifact
 def test_the_credits_key_needs_a_division_and_lose_nothing_by_it(credits) -> None:
     """The asymmetry between the two sources, measured rather than assumed.
 
@@ -1319,7 +1289,6 @@ def test_the_credits_key_needs_a_division_and_lose_nothing_by_it(credits) -> Non
     assert len({row["public_law"] for row in rows}) == 109
 
 
-@artifact
 def test_every_resolution_over_the_real_tables_keeps_its_contract(index, credits, every_name) -> None:
     """The whole pipeline, over a wide real slice: every published field legal.
 
@@ -1381,7 +1350,6 @@ DOWNSTREAM_SPECIMENS = (
 )
 
 
-@artifact
 @pytest.mark.parametrize(("weight", "act_key", "section", "iri", "outcome"), DOWNSTREAM_SPECIMENS)
 def test_a_real_downstream_citation_resolves_the_way_it_did(
     index, credits, weight, act_key, section, iri, outcome
@@ -1402,7 +1370,7 @@ def test_a_real_downstream_citation_resolves_the_way_it_did(
     assert (resolution.answered_by or resolution.unresolved_reason) == outcome
 
 
-@artifact
+@pytest.mark.reads_built_artifact
 def test_every_pair_the_agenda_produced_keeps_its_contract(index, credits) -> None:
     """The whole live corpus, checked for contract rather than for a count.
 
@@ -1420,9 +1388,6 @@ def test_every_pair_the_agenda_produced_keeps_its_contract(index, credits) -> No
         / "output/registry-real-data-sources/unified-agenda-parquet"
         / "unified_agenda_legal_authorities.parquet"
     )
-    if not agenda.is_file():
-        pytest.skip("the unified agenda artifact is not present")
-
     table = pq.read_table(agenda, columns=["act_key", "act_section"])
     pairs = sorted(
         {
@@ -1455,7 +1420,6 @@ def test_every_pair_the_agenda_produced_keeps_its_contract(index, credits) -> No
     assert answered > 150
 
 
-@artifact
 def test_the_four_names_where_a_stated_reference_and_a_year_both_offer_an_answer(index) -> None:
     """Every real case of the precedence, read off the pinned popularnames.htm.
 
@@ -1497,7 +1461,6 @@ def test_the_four_names_where_a_stated_reference_and_a_year_both_offer_an_answer
     ]
 
 
-@artifact
 def test_a_typo_in_the_tools_own_cross_reference_refuses(index) -> None:
     """"Canal Zone Code — see Panana Canal Code". The Code is real; the
     spelling is not, and this module does not repair it.
@@ -1511,7 +1474,6 @@ def test_a_typo_in_the_tools_own_cross_reference_refuses(index) -> None:
     assert resolve_act_name("Canal Zone Code", index) is None
 
 
-@artifact
 def test_a_cross_reference_naming_two_acts_is_not_one_act(index) -> None:
     """"Lea-Wagner Act — see Investment Advisers Act of 1940; Investment
     Company Act of 1940" names TWO acts, and refuses.
@@ -1532,7 +1494,6 @@ def test_a_cross_reference_naming_two_acts_is_not_one_act(index) -> None:
     assert resolve_act_name("Lea-Wagner Act", index) is None
 
 
-@artifact
 def test_the_three_absences_are_told_apart_and_the_source_is_quoted_right(index, every_name) -> None:
     """`act_not_in_index` was published for 107 names and true of 19.
 

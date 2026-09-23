@@ -12,6 +12,7 @@ from pathlib import Path
 import pytest
 from rdflib import Graph
 
+from conftest import missing_pinned_input
 from refspec.registry.eurovoc_organization_experiment import (
     ASSERTIONS_PATH,
     CANDIDATES_PATH,
@@ -300,7 +301,7 @@ def test_real_pinned_release_builds_the_frozen_organization_counts() -> None:
     archive_text = os.environ.get("REFSPEC_EUROVOC_SKOS_CORE_PATH")
     metadata_text = os.environ.get("REFSPEC_EUROVOC_METADATA_PATH")
     if archive_text is None or metadata_text is None:
-        pytest.skip("real EuroVoc publisher distribution is not configured")
+        missing_pinned_input("real EuroVoc publisher distribution is not configured")
 
     artifact = build_eurovoc_organization_artifact_from_paths(
         EUROVOC_RELEASE_4_24,

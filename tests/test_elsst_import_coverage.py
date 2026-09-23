@@ -12,6 +12,7 @@ import pytest
 from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import SKOS
 
+from conftest import missing_pinned_input
 from refspec.registry.adapters.elsst_acquisition import ELSST_R6
 from refspec.registry.adapters.elsst_import_coverage import (
     ELSST_COVERAGE_FEATURES,
@@ -92,7 +93,7 @@ def test_real_r6_bytes_are_censused_directly() -> None:
 
     source_path = os.environ.get("REFSPEC_ELSST_R6_PATH")
     if source_path is None:
-        pytest.skip("real ELSST R6 source is not configured")
+        missing_pinned_input("real ELSST R6 source is not configured")
     source = Path(source_path).read_bytes()
 
     census = census_raw_elsst_turtle(

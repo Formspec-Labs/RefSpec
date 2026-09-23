@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry import oclc_fast_external_links as fast
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -73,7 +74,7 @@ def capture():
     """Parse the pinned archive retaining one subject, skipping when it is not cached."""
 
     if not HAS_SOURCE:
-        pytest.skip("pinned OCLC FAST external-links archive is not cached")
+        missing_pinned_input("pinned OCLC FAST external-links archive is not cached")
     return fast.parse_oclc_fast_external_links_file(
         SOURCE,
         retained_subject_iris={"http://id.worldcat.org/fast/1023619"},

@@ -41,10 +41,10 @@ def without_writer_stamp(data: bytes) -> bytes:
 
     return _WRITER_STAMP.sub(b"parquet-cpp-arrow version", data)
 
-archive_required = pytest.mark.skipif(
+archive_required = pytest.mark.pinned_input(
     not builder.DEFAULT_ARCHIVE.exists(), reason=f"release-point archive absent: {builder.DEFAULT_ARCHIVE}"
 )
-frozen_required = pytest.mark.skipif(
+frozen_required = pytest.mark.pinned_input(
     not FROZEN_TABLE.exists(), reason=f"frozen source-credit table absent: {FROZEN_TABLE}"
 )
 

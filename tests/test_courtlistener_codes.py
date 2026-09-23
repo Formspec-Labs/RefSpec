@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry import courtlistener_codes as cl
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 from refspec.registry.infrastructure.source_controlled_resource import (
@@ -47,7 +48,7 @@ def test_real_publisher_table_shape_count_and_boundary_samples(tmp_path: Path) -
 
     source_path_text = os.environ.get("REFSPEC_COURTLISTENER_JURISDICTIONS_PATH")
     if source_path_text is None:
-        pytest.skip("real CourtListener publisher capture is not configured")
+        missing_pinned_input("real CourtListener publisher capture is not configured")
     pin = cl.CourtListenerJurisdictionsSnapshotPin(
         source_url=cl.COURTLISTENER_JURISDICTIONS_URL,
         retrieved_at="2026-08-03T00:00:00Z",

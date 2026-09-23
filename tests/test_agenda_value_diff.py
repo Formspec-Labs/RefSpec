@@ -233,9 +233,8 @@ def test_timetables_value_column_count() -> None:
 # what changed, per AGENTS.md.
 # ---------------------------------------------------------------------------
 
-pytestmark_real_artifact = pytest.mark.skipif(
-    not ARTIFACT.is_dir(), reason="derived Unified Agenda Parquet artifact is not built"
-)
+# Built by `make build-derived`; these run in the slow tier, which builds it first.
+pytestmark_real_artifact = pytest.mark.reads_built_artifact
 
 
 @pytestmark_real_artifact

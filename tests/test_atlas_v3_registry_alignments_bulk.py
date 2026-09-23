@@ -16,6 +16,7 @@ from types import SimpleNamespace
 import pytest
 from rdflib.namespace import SKOS
 
+from conftest import missing_pinned_input
 from refspec.atlas import v3_registry_alignments_bulk as adapters
 from refspec.registry import eurovoc_alignment_portfolio as eurovoc
 from refspec.registry import oclc_fast_external_links as fast
@@ -40,7 +41,7 @@ def _generator_module():
 @pytest.fixture(scope="module")
 def releases():
     if not HAS_REAL_SOURCES:
-        pytest.skip("pinned bulk mapping sources are not cached")
+        missing_pinned_input("pinned bulk mapping sources are not cached")
     loaded = adapters.load_all_registry_bulk_mapping_releases(SOURCE_ROOT)
     return {release.key: release for release in loaded}
 
@@ -48,7 +49,7 @@ def releases():
 @pytest.fixture(scope="module")
 def see_also_endpoint():
     if not HAS_REAL_SOURCES:
-        pytest.skip("pinned bulk mapping sources are not cached")
+        missing_pinned_input("pinned bulk mapping sources are not cached")
     return adapters.load_fast_bulk_see_also_endpoint_release(SOURCE_ROOT)
 
 

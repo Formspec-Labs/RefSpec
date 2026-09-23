@@ -16,6 +16,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry.gemet_thesaurus import (
     ACRONYM_LABEL_PREDICATE_IRI,
     ALT_LABEL_PREDICATE_IRI,
@@ -711,7 +712,7 @@ def test_opt_in_pinned_real_distribution_counts() -> None:
 
     source_path = os.environ.get("REFSPEC_GEMET_PATH")
     if source_path is None:
-        pytest.skip(
+        missing_pinned_input(
             "set REFSPEC_GEMET_PATH to the exact verified, decompressed gemet.rdf distribution "
             f"({GEMET_RELEASE_4_2_3.expected_sha256})"
         )

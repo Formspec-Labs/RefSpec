@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry import crs_legislative_resources as crs
 from refspec.registry.infrastructure.source_identity import derive_uuid7
 
@@ -124,7 +125,7 @@ def test_all_four_full_publisher_pages_parse_to_observed_current_counts(tmp_path
     for source, environment_name, default_path, digest, byte_length in FULL_CAPTURE_SPECS:
         path = Path(os.environ.get(environment_name, REFSPEC_ROOT / default_path))
         if not path.is_file():
-            pytest.skip(f"full CRS publisher capture is unavailable: {path}")
+            missing_pinned_input(f"full CRS publisher capture is unavailable: {path}")
         pin = crs.CRSPageSnapshotPin(
             source=source,
             retrieved_at="2026-07-30T12:46:40Z",

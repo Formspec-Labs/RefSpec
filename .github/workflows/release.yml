@@ -161,18 +161,17 @@ jobs:
         timeout-minutes: 120 # 2x the ~1h measured budget (plan item 3)
         env:
           REFSPEC_ATLAS_VALIDATION_MODE: audit
-          # Release tier: the corpus-wide cross-mode SHACL parity sweep
-          # (REF-027 carry-forward; 46 cases, ~34s) runs only here, not in
-          # the dev budget.
-          REFSPEC_RELEASE_TIER: "1"
         run: |
           uv run --no-project \
             --with-requirements bindings/atlas/3.1/requirements.txt \
             python bindings/atlas/3.1/tools/validate.py \
             --distribution "$DISTRIBUTION_ROOT"
+          # Release tier: the corpus-wide cross-mode SHACL parity sweep
+          # (REF-027 carry-forward; 46 cases, ~34s), selected by its marker
+          # (REF-071); `make test-package` leaves it out of the dev budget.
           uv run --no-sync pytest \
             tests/test_atlas_v3_validator_regressions.py \
-            -q -k "corpus_wide"
+            -q -m release_tier
 
       # Job 3b: shapes scale gate. Constraint cost is emergent, not
       # compositional: the Jena spike measured every constraint in one node

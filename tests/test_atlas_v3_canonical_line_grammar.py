@@ -41,6 +41,8 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
+
 ROOT = Path(__file__).resolve().parents[1]
 BINDING_TOOLS = ROOT / "bindings" / "atlas" / "3.1" / "tools"
 FIXTURE_ROOT = ROOT / "bindings" / "atlas" / "3.1" / "fixtures"
@@ -508,7 +510,7 @@ def _real_canonical_lines(limit: int = 400) -> list[bytes]:
 
     packs = sorted((FIXTURE_ROOT / "valid" / "all-resource-profiles").rglob("*.nq"))
     if not packs:  # pragma: no cover - the fixtures are generated
-        pytest.skip("Atlas 3.1 fixtures are not materialized; run make atlas-v3-fixtures")
+        missing_pinned_input("Atlas 3.1 fixtures are not materialized; run make atlas-v3-fixtures")
     lines: list[bytes] = []
     seen_shapes: set[tuple[bool, bool, bool]] = set()
     for pack in packs:

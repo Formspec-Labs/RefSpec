@@ -19,6 +19,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry import naics_psc_codes as npc
 from refspec.registry.infrastructure.source_controlled_resource import SourceControlledResourceView
 
@@ -70,7 +71,7 @@ def test_full_official_naics_workbook_shape_count_and_samples(tmp_path: Path) ->
 
     source_path = os.environ.get("REFSPEC_NAICS_2022_XLSX_PATH")
     if source_path is None:
-        pytest.skip("full official Census NAICS workbook is not materialized")
+        missing_pinned_input("full official Census NAICS workbook is not materialized")
 
     acquired = _acquire(tmp_path, npc.NAICS_CODES_2022_XLSX, Path(source_path))
     resource = npc.parse_naics_codes(acquired)
@@ -91,7 +92,7 @@ def test_full_official_psc_workbook_shape_count_and_samples(tmp_path: Path) -> N
 
     source_path = os.environ.get("REFSPEC_PSC_APRIL_2025_XLSX_PATH")
     if source_path is None:
-        pytest.skip("full official PSC workbook is not materialized")
+        missing_pinned_input("full official PSC workbook is not materialized")
 
     acquired = _acquire(tmp_path, npc.PSC_CODES_APRIL_2025_XLSX, Path(source_path))
     resource = npc.parse_psc_codes(acquired)
@@ -123,7 +124,7 @@ def test_real_psc_package_uses_workbook_without_constructed_fixture_gaps(tmp_pat
 
     source_path = os.environ.get("REFSPEC_PSC_APRIL_2025_XLSX_PATH")
     if source_path is None:
-        pytest.skip("full official PSC workbook is not materialized")
+        missing_pinned_input("full official PSC workbook is not materialized")
 
     acquired = _acquire(tmp_path, npc.PSC_CODES_APRIL_2025_XLSX, Path(source_path))
     parsed = npc.parse_psc_codes(acquired)

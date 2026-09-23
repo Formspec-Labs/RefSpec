@@ -178,7 +178,6 @@ def test_summary_reports_relation_types_separately_and_keeps_zero_opportunities(
 def test_rapidfuzz_ties_and_input_order_are_canonical() -> None:
     """Tied scores and reversed input order give identical ranks and feature/ranking digests."""
 
-    pytest.importorskip("rapidfuzz")
     source_a = _concept("source", "a", "Same")
     source_b = _concept("source", "b", "Same")
     target_a = _concept("target", "a", "Same")

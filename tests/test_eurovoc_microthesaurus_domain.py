@@ -507,7 +507,7 @@ def test_validator_row_and_replay_are_scoped_to_both_eurovoc_schemes() -> None:
 
 
 @pytest.mark.slow
-@pytest.mark.skipif(
+@pytest.mark.pinned_input(
     not (DEFAULT_SOURCE_ROOT / "eurovoc-4.24-skos-core.zip").is_file(),
     reason="exact cached EuroVoc 4.24 SKOS Core archive is not available",
 )

@@ -629,7 +629,7 @@ def test_the_pinned_raw_captures_back_the_8284_claim() -> None:
     assert "Prescribing the Duties of the Librarian Emeritus of the Library of Congress" in nara
     assert "4 FR 4603, November 17, 1939" in nara
 
-    pypdf = pytest.importorskip("pypdf")
+    import pypdf
     reader = pypdf.PdfReader(str(raw / "govinfo-FR-1939-11-17.pdf"))
     text = "".join(page.extract_text() or "" for page in reader.pages)
     assert "Librarian Emeritus" in text

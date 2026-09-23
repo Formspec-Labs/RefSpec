@@ -13,6 +13,7 @@ import pytest
 from rdflib import RDF, Dataset, Namespace, URIRef
 from rdflib.namespace import SKOS
 
+from conftest import missing_pinned_input
 from refspec.atlas import v3_registry_alignments_lcsh as lcsh_release
 from refspec.atlas import v3_registry_alignments_subject as adapters
 from refspec.registry import gemet_alignments as gemet
@@ -49,28 +50,28 @@ def _generator_module():
 @pytest.fixture(scope="module")
 def gemet_release():
     if not HAS_REAL_SOURCES:
-        pytest.skip("pinned subject-mapping sources are not cached")
+        missing_pinned_input("pinned subject-mapping sources are not cached")
     return adapters.load_gemet_eurovoc_mapping_release(SOURCE_ROOT)
 
 
 @pytest.fixture(scope="module")
 def mesh_mapping_release():
     if not HAS_REAL_SOURCES:
-        pytest.skip("pinned subject-mapping sources are not cached")
+        missing_pinned_input("pinned subject-mapping sources are not cached")
     return adapters._lcsh_mesh_mapping_release(SOURCE_ROOT)
 
 
 @pytest.fixture(scope="module")
 def consolidated_lcsh_release():
     if not HAS_REAL_SOURCES:
-        pytest.skip("pinned subject-mapping sources are not cached")
+        missing_pinned_input("pinned subject-mapping sources are not cached")
     return lcsh_release.load_lcsh_consolidated_release(SOURCE_ROOT)
 
 
 @pytest.fixture(scope="module")
 def umthes_assets():
     if not HAS_REAL_SOURCES:
-        pytest.skip("pinned subject-mapping sources are not cached")
+        missing_pinned_input("pinned subject-mapping sources are not cached")
     return adapters._umthes_assets(SOURCE_ROOT)
 
 
@@ -359,7 +360,7 @@ def test_group_loaders_refuse_unknown_keys_without_opening_sources() -> None:
         )
 
 
-@pytest.mark.skipif(not HAS_REAL_SOURCES, reason="pinned subject-mapping sources are not cached")
+@pytest.mark.pinned_input(not HAS_REAL_SOURCES, reason="pinned subject-mapping sources are not cached")
 def test_mapping_group_loader_selects_only_the_requested_release() -> None:
     """Pins that only_keys selects exactly the requested GEMET mapping release."""
     releases = adapters.load_subject_registry_mapping_releases(
@@ -370,7 +371,7 @@ def test_mapping_group_loader_selects_only_the_requested_release() -> None:
     assert [release.key for release in releases] == ["gemet-eurovoc-alignments-4.2.3"]
 
 
-@pytest.mark.skipif(not HAS_REAL_SOURCES, reason="pinned subject-mapping sources are not cached")
+@pytest.mark.pinned_input(not HAS_REAL_SOURCES, reason="pinned subject-mapping sources are not cached")
 def test_adapter_refuses_gemet_source_drift(tmp_path: Path) -> None:
     """Pins that appended bytes in the GEMET source make the input pin differ and raise ValueError."""
     target = tmp_path / gemet.GEMET_ALIGNMENT_FILENAME

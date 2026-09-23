@@ -19,6 +19,7 @@ from pathlib import Path
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry.unified_agenda_parquet import (
     _INITIALISM_ROSTER_CSV,
     _INITIALISM_ROSTER_FIELDS,
@@ -183,7 +184,7 @@ def test_the_roster_file_is_what_its_generator_writes() -> None:
 
     script = Path(__file__).resolve().parents[1] / "research/evidence/initialism-roster-2026-08-24/build_roster.py"
     if not script.is_file():
-        pytest.skip("the roster generator is not in this checkout")
+        missing_pinned_input("the roster generator is not in this checkout")
     spec = importlib.util.spec_from_file_location("_build_roster_under_test", script)
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
@@ -847,23 +848,20 @@ def test_placeholder_candidates_gate_drops_only_the_offending_candidate() -> Non
 
 @cache
 def _receipt() -> dict:
-    """The built artifact's receipt, skipping where the artifact is not built."""
+    """The built artifact's receipt (`make build-derived`); its readers are `reads_built_artifact`."""
 
-    path = ARTIFACT / "receipt.json"
-    if not path.is_file():
-        pytest.skip("the derived Parquet artifact is not built")
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json.loads((ARTIFACT / "receipt.json").read_text(encoding="utf-8"))
 
 
 def _declared(key: str):
-    """Return one declared classification from the receipt, skipping if the build predates it."""
+    """Return one declared classification from the receipt; a build that predates it fails."""
 
     declared = _receipt()["contract"]["declaredClassifications"]
-    if key not in declared:
-        pytest.skip(f"the built artifact predates {key}; the integrator's rebuild writes it")
+    assert key in declared, f"the built artifact predates {key}; rebuild it with `make build-derived`"
     return declared[key]
 
 
+@pytest.mark.reads_built_artifact
 def test_the_c3_promotion_receipt_is_the_measured_census() -> None:
     """1,417 rows reach this fence; 200 publish and 1,217 refuse, for four
     different reasons kept apart. Measured 2026-08-31 over the then-current
@@ -880,6 +878,7 @@ def test_the_c3_promotion_receipt_is_the_measured_census() -> None:
     }
 
 
+@pytest.mark.reads_built_artifact
 def test_the_placeholder_candidate_receipt_is_the_measured_census() -> None:
     """1,279 placeholder rows publish a candidate; 23 candidates are refused
     by the section oracle across 15 of them, and no row loses its whole
@@ -898,6 +897,7 @@ def test_the_placeholder_candidate_receipt_is_the_measured_census() -> None:
     }
 
 
+@pytest.mark.reads_built_artifact
 def test_the_usc_slot_reading_receipt_is_the_measured_census() -> None:
     """190 reg-suffix rows, every one witnessed by its own rule's CFR_LIST,
     and 1,685 chapter-in-slot rows -- the ones the oracle does NOT also
@@ -912,6 +912,7 @@ def test_the_usc_slot_reading_receipt_is_the_measured_census() -> None:
     assert _declared("uscSlotReadingRows") == {"reg-suffix": 190, "chapter-in-slot": 1_625}
 
 
+@pytest.mark.reads_built_artifact
 def test_the_act_derived_unattested_rider_matches_the_current_oracle() -> None:
     """The rider says 3 act-derived rows are not attested at their citing edition, where the 2026-08-24 wave said 19.
 
@@ -925,7 +926,7 @@ def test_the_act_derived_unattested_rider_matches_the_current_oracle() -> None:
 
     oracle = _oracle()
     if oracle is None:
-        pytest.skip("the pinned section oracle is not in this checkout")
+        missing_pinned_input("the pinned section oracle is not in this checkout")
     # The extractor fix, at the specimen: title 33 is printed in the 2012
     # annual volume (member `2012USC33.htm`, uppercase, the twelve files the
     # lowercase-only matcher skipped) and 33 U.S.C. 1251 attests there.
@@ -941,6 +942,7 @@ def test_the_act_derived_unattested_rider_matches_the_current_oracle() -> None:
     assert _declared("actSectionVerdictRows")["exists"] in {5_657, 6_768}
 
 
+@pytest.mark.reads_built_artifact
 def test_the_promotion_outcomes_are_a_closed_named_set() -> None:
     """The receipt's key set is the module's own tuple, so a new outcome
     cannot arrive unnamed and un-pinned."""

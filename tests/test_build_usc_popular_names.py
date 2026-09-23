@@ -65,10 +65,10 @@ DELIBERATE_KEY_DIVERGENCES = (
     "``Six Triple Eight'' Congressional Gold Medal Act of 2021",
 )
 
-frozen_table_required = pytest.mark.skipif(
+frozen_table_required = pytest.mark.pinned_input(
     not FROZEN_TABLE.exists(), reason=f"frozen popular-name table absent: {FROZEN_TABLE}"
 )
-pinned_html_required = pytest.mark.skipif(
+pinned_html_required = pytest.mark.pinned_input(
     not builder.PINNED_HTML.exists(), reason=f"pinned capture absent: {builder.PINNED_HTML}"
 )
 

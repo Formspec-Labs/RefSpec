@@ -10,6 +10,7 @@ from typing import Any
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry import crs_legislative_resources as crs
 from refspec.registry.infrastructure.source_concept_release import (
     SourceConceptReleaseBundle,
@@ -251,7 +252,7 @@ def test_exact_publisher_captures_build_all_three_ring_scoped_releases() -> None
     """Pins the real 2026-07-30 capture at 565/478/32 concepts, four artifact digests, and direct-build ids."""
 
     if not FULL_CAPTURE_ROOT.is_dir():
-        pytest.skip("exact 2026-07-30 CRS captures are not present")
+        missing_pinned_input("exact 2026-07-30 CRS captures are not present")
 
     packages = build_crs_source_packages_from_capture_root(FULL_CAPTURE_ROOT)
     releases = build_crs_source_concept_releases(packages)

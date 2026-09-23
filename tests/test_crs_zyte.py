@@ -11,6 +11,7 @@ from typing import Self
 
 import pytest
 
+from conftest import missing_pinned_input
 from refspec.registry.adapters import crs_zyte
 from refspec.registry.infrastructure import zyte_transport
 
@@ -30,7 +31,7 @@ def test_crs_fetcher_preserves_pinned_publisher_response(
 
     source_path = os.environ.get("REFSPEC_CRS_LEGISLATIVE_SUBJECTS_PATH")
     if source_path is None:
-        pytest.skip("real CRS publisher response is not configured")
+        missing_pinned_input("real CRS publisher response is not configured")
     source_url = "https://www.congress.gov/help/field-values/legislative-subject-terms"
     body = Path(source_path).read_bytes()
 
