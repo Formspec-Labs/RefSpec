@@ -487,7 +487,7 @@ wheels = [
 
 [[package]]
 name = "refspec"
-version = "0.1.0.dev13"
+version = "0.1.0.dev14"
 source = { editable = "." }
 dependencies = [
     { name = "backports-zstd" },
@@ -530,9 +530,9 @@ requires-dist = [
     { name = "pypdf", specifier = ">=6,<7" },
     { name = "rdflib", specifier = ">=7.1,<8" },
     { name = "referencing", specifier = ">=0.37,<1" },
-    { name = "rulespec-artifacts", path = "vendor/rulespec_artifacts-1.1.0-py3-none-any.whl" },
+    { name = "rulespec-artifacts", path = "vendor/rulespec_artifacts-1.1.1-py3-none-any.whl" },
     { name = "rulespec-conformance", path = "vendor/rulespec_conformance-0.2.0rc19-py3-none-any.whl" },
-    { name = "spicy-docs", extras = ["acquisition", "pdf-pypdf"], path = "vendor/spicy_docs-0.26.5-py3-none-any.whl" },
+    { name = "spicy-docs", extras = ["acquisition", "pdf-pypdf"], path = "vendor/spicy_docs-0.26.6-py3-none-any.whl" },
     { name = "typing-extensions", specifier = ">=4.12,<5" },
 ]
 
@@ -598,10 +598,10 @@ wheels = [
 
 [[package]]
 name = "rulespec-artifacts"
-version = "1.1.0"
-source = { path = "vendor/rulespec_artifacts-1.1.0-py3-none-any.whl" }
+version = "1.1.1"
+source = { path = "vendor/rulespec_artifacts-1.1.1-py3-none-any.whl" }
 wheels = [
-    { filename = "rulespec_artifacts-1.1.0-py3-none-any.whl", hash = "sha256:3b2abcdcfa082f34baa3b03042c54fcc4e5e713901cd505cbd777dfd9bdf23cd" },
+    { filename = "rulespec_artifacts-1.1.1-py3-none-any.whl", hash = "sha256:63ad763f5e5f13ddba571225503c6ad7a4aa2bd7ea5d818e209fbf832285c8c8" },
 ]
 
 [[package]]
@@ -679,14 +679,14 @@ wheels = [
 
 [[package]]
 name = "spicy-docs"
-version = "0.26.5"
-source = { path = "vendor/spicy_docs-0.26.5-py3-none-any.whl" }
+version = "0.26.6"
+source = { path = "vendor/spicy_docs-0.26.6-py3-none-any.whl" }
 dependencies = [
     { name = "jsonschema" },
     { name = "rulespec-artifacts" },
 ]
 wheels = [
-    { filename = "spicy_docs-0.26.5-py3-none-any.whl", hash = "sha256:c17453a827f45c514196ac8dace414a4f50b6f8859b5fb8f2d0153d1a32e3a5d" },
+    { filename = "spicy_docs-0.26.6-py3-none-any.whl", hash = "sha256:ce319f2a068881abc46cc0e6eb102b318c4150f081d8497daf002214fe75bddb" },
 ]
 
 [package.optional-dependencies]
@@ -718,7 +718,7 @@ requires-dist = [
     { name = "pymupdf", marker = "extra == 'pdf'", specifier = ">=1.28,<2" },
     { name = "pypdf", marker = "extra == 'pdf-pypdf'", specifier = ">=6,<7" },
     { name = "rapidocr-onnxruntime", marker = "extra == 'pdf-rapidocr'", specifier = ">=1.4.4,<2" },
-    { name = "rulespec-artifacts", specifier = "==1.1.0" },
+    { name = "rulespec-artifacts", specifier = "==1.1.1" },
     { name = "tqdm", marker = "extra == 'acquisition'" },
 ]
 provides-extras = ["acquisition", "bill-diff", "html", "pdf", "pdf-apple", "pdf-gemini", "pdf-mlx", "pdf-pypdf", "pdf-rapidocr", "public-table", "reconstruct"]

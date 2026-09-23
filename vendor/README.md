@@ -1,16 +1,16 @@
 # Vendored dependencies
 
-`spicy_docs-0.26.5-py3-none-any.whl` supplies shared source readers and
+`spicy_docs-0.26.6-py3-none-any.whl` supplies shared source readers and
 bounded U.S. Code acquisition with validated archive member delivery.
-SHA-256: `c17453a827f45c514196ac8dace414a4f50b6f8859b5fb8f2d0153d1a32e3a5d`.
-Provider source: SpicyDocs `1dc77011d79eeef26024396626a1200059a6e09a` on `main`, with Rulespec Artifacts 1.1.0.
+SHA-256: `ce319f2a068881abc46cc0e6eb102b318c4150f081d8497daf002214fe75bddb`.
+Provider source: SpicyDocs `6673fa3413cb8887057ac2b262dc4b0b2bb88083` on `main`, with Rulespec Artifacts 1.1.1.
 RefSpec 0.1.0.dev10 retains snapshot acceptance, normalization and interpretation.
 Its title cache records original HTTP facts; its corpus and annual tools process
 validated members without reopening ZIPs. See [U.S. Code inputs](../docs/uscode-acquisition.md).
 
 Python 3.12, PyArrow 25.0.1 and DuckDB 1.5.5 or later remain unchanged. Existing
 sealed artifacts are unchanged; comparing a new writer to older Parquet bytes
-requires a row comparison. RefSpec 0.1.0.dev12 is qualified with SpicyDocs 0.26.5 and Rulespec Artifacts 1.1.0,
+requires a row comparison. RefSpec 0.1.0.dev14 is qualified with SpicyDocs 0.26.6 and Rulespec Artifacts 1.1.1,
 shared by the whole stack.
 The current DocSpec 0.6/Search 0.2/Engine 0.4 stack pins SpicyDocs 0.17 and cannot
 share this environment until a coordinated adoption. Search's optional identity
@@ -80,18 +80,19 @@ bytes come from, not whether anyone else can get them, so that field stays
 `localUnpublished` until an index exists -- the same event that deletes this
 directory.
 
-**Why a second wheel.** `rulespec_artifacts-1.1.0-py3-none-any.whl` is
+**Why a second wheel.** `rulespec_artifacts-1.1.1-py3-none-any.whl` is
 vendored alongside it because rc19, like rc18, declares a `rulespec-artifacts>=1.0.11`
 floor where rc16 and rc17 declared a hard `==1.0.9`, so 1.0.9 no longer
 satisfies it. That dependency arrived with the shared platform-artifact
 protocol. RefSpec now uses its bounded local blob writer for BILLSTATUS
 captures. The package is also required by rulespec-conformance, and `rulespec-artifacts` is on no index either, so it
 is vendored on the same interim terms and should be deleted at the same
-time. Version 1.1.0 is the exact dependency of SpicyDocs 0.26.5, built from
-Rulespec commit `dba6c0a9a54e64b74d48aa1393bf75460fb41e8a` on 2026-09-22 and shared by the whole stack. Its SHA-256
-digest is `3b2abcdcfa082f34baa3b03042c54fcc4e5e713901cd505cbd777dfd9bdf23cd`.
-It adds opt-in DocumentCapture v2 and v1 checker fixes after 1.0.14; the
-bounded local blob writer and public exports remain.
+time. Version 1.1.1 is the exact dependency of SpicyDocs 0.26.6, built from
+Rulespec commit `a3acb04cbfe2cc32a89622a3523da48aa6958348` on 2026-09-22 and shared by the whole stack. Its SHA-256
+digest is `63ad763f5e5f13ddba571225503c6ad7a4aa2bd7ea5d818e209fbf832285c8c8`.
+It adds opt-in DocumentCapture v2 and v1 checker fixes after 1.0.14, and 1.1.1
+ships the repaired platform fixtures; the bounded local blob writer and public
+exports remain.
 
 **What rc19 changed in the contract.** The context declares `oa:XPathSelector`,
 already a bound Core selector class, and the release version; no space widened.
