@@ -102,7 +102,7 @@ jobs:
       (github.event_name == 'schedule' && github.event.schedule == '17 6 * * 1')
       || (github.event_name == 'workflow_dispatch' && inputs.tier != 'full-atlas')
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 150
 
     steps:
       - name: Check out source
@@ -116,9 +116,12 @@ jobs:
 
       # `make test-slow` builds every derived artifact the tier reads at HEAD (the
       # FR Thesaurus release, the Unified Agenda Parquet artifact and the
-      # EuroVoc/GEMET claim releases) and runs it on SLOW_WORKERS workers.
+      # EuroVoc/GEMET claim releases; ~10 minutes on a hosted runner) and runs
+      # the tier. Two workers, not the Makefile's four: on 2026-09-23 four workers
+      # took a 16 GB hosted runner down at 70% of the tier (run 35879235424), after
+      # 23 minutes of tests; the tier is weekly, so it trades time for memory.
       - name: Run the slow tier
-        run: make test-slow PYTEST_ARGS="--junitxml=$RUNNER_TEMP/pytest.xml"
+        run: make test-slow SLOW_WORKERS=2 PYTEST_ARGS="--junitxml=$RUNNER_TEMP/pytest.xml --durations=25"
 
       - name: Check skips against the slow tier's allowlist
         run: uv run python tools/check_skips.py "$RUNNER_TEMP/pytest.xml" --tier slow
