@@ -27,6 +27,16 @@ rather than this file — `git rev-list --count origin/main..HEAD` — because a
 number written here goes stale on the next commit, including the commit that
 updates this line.
 
+## SpicyDocs 0.31.0 repin (in progress, 2026-09-24)
+
+Step 1, on `wt/repin-0.31.0`: the pin (dev15), B14 (the Zyte transport from
+`spicy_docs.sources.zyte`) and B21 (readers SpicyDocs already ships, adopted
+only where agreement was measured). Step 2 needs the Unified Agenda rebuild:
+import the grammar, shapes and minters from SpicyDocs, keeping RefSpec's
+modules as test oracles; three expectations move and seven Unified Agenda
+count pins re-adjudicate. Sequence and measurements: SpicyDocs
+`docs/research/consolidation-path-2026-09-22.md`, rows B14 and B21.
+
 ## Merged, and the one parked item
 
 The Unified Agenda receipt rebuild (move five of the SpicySearch v14 batch)

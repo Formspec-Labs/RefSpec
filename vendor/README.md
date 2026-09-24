@@ -1,21 +1,34 @@
 # Vendored dependencies
 
-`spicy_docs-0.26.6-py3-none-any.whl` supplies shared source readers and
+`spicy_docs-0.31.0-py3-none-any.whl` supplies shared source readers and
 bounded U.S. Code acquisition with validated archive member delivery.
-SHA-256: `ce319f2a068881abc46cc0e6eb102b318c4150f081d8497daf002214fe75bddb`.
-Provider source: SpicyDocs `6673fa3413cb8887057ac2b262dc4b0b2bb88083` on `main`, with Rulespec Artifacts 1.1.1.
+SHA-256: `87ef3880ca2b79727a0f25d7eedce699c0ec42e2d31527c46bcf424d631e7d5c`.
+Provider source: SpicyDocs `7b65900481461ed70a9b83ca2cee40532a58544f` (the 0.31.0
+release commit on `main`), with Rulespec Artifacts 1.1.1; the same bytes SpicyRegs vendors.
 RefSpec 0.1.0.dev10 retains snapshot acceptance, normalization and interpretation.
 Its title cache records original HTTP facts; its corpus and annual tools process
 validated members without reopening ZIPs. See [U.S. Code inputs](../docs/uscode-acquisition.md).
 
 Python 3.12, PyArrow 25.0.1 and DuckDB 1.5.5 or later remain unchanged. Existing
 sealed artifacts are unchanged; comparing a new writer to older Parquet bytes
-requires a row comparison. RefSpec 0.1.0.dev14 is qualified with SpicyDocs 0.26.6 and Rulespec Artifacts 1.1.1,
-shared by the whole stack.
-The current DocSpec 0.6/Search 0.2/Engine 0.4 stack pins SpicyDocs 0.17 and cannot
-share this environment until a coordinated adoption. Search's optional identity
-comparison group still uses the separately qualified RefSpec dev9; its runtime
-does not depend on RefSpec. SpicyRegs 0.1.6 remains qualified with SpicyDocs 0.18.
+requires a row comparison. RefSpec 0.1.0.dev15 is qualified with SpicyDocs 0.31.0
+and Rulespec Artifacts 1.1.1. Sibling pins move on their own schedule, so read
+each repository's `pyproject.toml` rather than a list here; SpicySearch vendors
+RefSpec in optional groups only, and its runtime does not depend on RefSpec.
+
+**What 0.31.0 adds for RefSpec.** The canonical citation grammar, identifier
+shapes and `urn:rkaf` minting (`spicy_docs.interpretation.citation_grammar`,
+`identifier_shapes` with `normalize_docket_references`, and `iri_minting`),
+ported from RefSpec's own modules, and the Unified Agenda field-path projection
+(`spicy_docs.sources.unified_agenda.projection`), moved from
+`unified_agenda_editions`. RefSpec does not import these yet: the switch moves
+expectations and Unified Agenda counts, so it waits for a rebuild (see
+[PLAN.md](../PLAN.md)). Every module RefSpec hashes into a receipt is
+byte-identical to 0.26.6, and the only new `Requires-Dist` is the unused
+`courtlistener-local` extra. OLRC Table III's `iter_table3_chain` is NOT in
+these bytes: it landed on SpicyDocs `main` at `a016670`, after the release
+commit and still under the 0.31.0 version string, so adopting it needs a
+new wheel with a new version.
 
 The `acquisition` extra supplies explicit Topics and U.S. Code HTTP routes.
 Imports remain offline. The `pdf-pypdf` extra supplies shared GAO page reading.
