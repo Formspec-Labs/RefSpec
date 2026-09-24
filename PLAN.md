@@ -37,6 +37,8 @@ modules as test oracles; three expectations move and seven Unified Agenda
 count pins re-adjudicate. Sequence and measurements: SpicyDocs
 `docs/research/consolidation-path-2026-09-22.md`, rows B14 and B21.
 
+REF-024 amended 2026-09-24 (the minters live in SpicyDocs): step 2 also adds a test holding `_FR_COLLISION_TABLE`'s verdicts equal to SpicyDocs' `_FR_COLLISION_VERDICTS` and points `test_the_minted_spaces_are_the_contract_verbatim` at SpicyDocs' `IDENTIFIER_SPACES`.
+
 Not switched in step 1, each with why (B21 moved only the PDF page reads):
 
 - eCFR titles: real bytes agree 50/50, but SpicyDocs' `parse_ecfr_titles` accepts three of the four mutations RefSpec refuses (extra top-level field, reserved title with dates, active title without); waits for SpicyDocs to take those refusals and a new wheel.

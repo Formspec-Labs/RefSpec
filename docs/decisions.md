@@ -1117,6 +1117,8 @@ the cited paths are sufficient.
   renditions, text representations, and structural passages to SpicyRegs and
   topic assignments to Rulespec Extrapolator, and the older Rulespec and README
   prose carrying those same assignments. The rest of Decision 0001 stands.
+- **Amended:** 2026-09-24, the "identity functions" clause only (spicy-regs
+  decision 28); see the amendment at the end of this entry.
 
 The platform has five products and six ownership rows, extending
 [REF-008](#ref-008-count-four-products-and-five-ownership-rows)'s counting rule
@@ -1150,6 +1152,52 @@ suffice to prove a consumable surface. One decision, cited by identifier rather
 than by checkout path, is the fix. This entry changes the day a product's
 published release shape changes; another document needing one of its rows is not
 that day.
+
+**Amended 2026-09-24 (spicy-regs decision 28): Rulespec Core owns the
+identifier lexical spaces, not the functions that mint into them.** The
+ownership paragraph above gives Rulespec Core "identity functions". That
+clause is narrowed: Core owns the lexical spaces, the `urn:rkaf:us:*` patterns
+its compiled profiles state, and the IRI minters live in SpicyDocs beside the
+identifier shapes they refuse over, as `spicy_docs.interpretation.iri_minting`
+(shipped in SpicyDocs 0.31.0). SpicyDocs' tests hold those minters to Core's
+spaces, which it restates verbatim as `IDENTIFIER_SPACES`. The text above
+stands as written; every other clause remains in force.
+
+The owner confirmed spicy-regs decision 28 (spicy-regs
+`docs/research/fork-delivery-decisions-2026-09-22.md`, row 28) on 2026-09-24;
+SpicyDocs records the move in its `docs/decisions.md` entry "The stack's
+identifier minting lives beside the shapes". A minter is refusal logic over
+the shapes and a collision table, not a format: a Core minter would either
+copy the shapes or take pre-validated strings, and adding
+`rulespec-conformance` (rdflib, pyshacl) to spicy-regs for an f-string is not
+justified. The exchange rule above is unchanged: every consumer installs the
+SpicyDocs wheel, and none reads a sibling tree.
+
+Measured over 3,966,225 paired calls (RefSpec's pinned Federal Register and
+Unified Agenda columns, every literal in its minting, zero-part and shape
+tests, and fuzz), SpicyDocs 0.31.0's minters and
+`src/refspec/registry/iri_minting.py` (as of `4a680c81`, unchanged since)
+return byte-identical results, `ValueError` messages included, except three
+dockets ending in a `-RULE`-family token, which 0.31.0's column docket reader
+admits and RefSpec refuses. One is real:
+`Docket #GIPSA-2010-FGIS-0014-NONRULEMAKING`, the only such value in the
+pinned Federal Register `docket_ids_json`.
+
+At its step-2 import switch (PLAN.md, the SpicyDocs 0.31.0 repin), RefSpec
+imports `iri_minting` from SpicyDocs. Until then its own
+`src/refspec/registry/iri_minting.py` stays the minter; at the switch it
+becomes a test-only oracle, per this repository's rule for a replaced check.
+The switch also adds a test holding RefSpec's collision table (the verdicts
+of `hand_validated_interpretations._FR_COLLISION_TABLE`, REF-066's seven rows)
+equal to the imported `_FR_COLLISION_VERDICTS`, and points
+`test_the_minted_spaces_are_the_contract_verbatim` (`tests/test_iri_minting.py`)
+at the imported `IDENTIFIER_SPACES`. Both checks live here because SpicyDocs
+can read neither source: the collision census, witnesses and audit stay in
+RefSpec, and SpicyDocs deliberately does not depend on the vendored
+`rulespec-conformance` wheel. The `-RULE`-family refusal asserted in
+`tests/test_identifier_shapes.py` moves with the switch, and a new Federal
+Register collision lands in RefSpec's evidence first, then in SpicyDocs'
+table.
 
 ### REF-025: Retain canonical Label.id in the next search view
 
