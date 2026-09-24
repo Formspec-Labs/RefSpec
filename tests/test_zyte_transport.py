@@ -227,3 +227,23 @@ def test_generic_transport_refuses_a_reflected_credential(
             timeout_seconds=7.0,
             max_bytes=1024,
         )
+
+
+def test_fetch_tool_refuses_an_empty_body_and_saves_nothing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """The shared fetcher returns an empty body as exactly that; the fetch tool must not save it as a 0-byte capture."""
+
+    from tools import fetch_registry_source_via_zyte as tool
+
+    def fake_urlopen(*args: object, **kwargs: object) -> _Response:
+        return _provider_response(b"", headers=[{"name": "Content-Type", "value": "text/html"}])
+
+    monkeypatch.setattr(zyte.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setenv("ZYTE_TOKEN", "test-token")
+    output = tmp_path / "capture.html"
+    monkeypatch.setattr("sys.argv", ["fetch", "https://example.test/source", str(output)])
+    with pytest.raises(ValueError, match="empty body"):
+        tool.main()
+    assert not output.exists()

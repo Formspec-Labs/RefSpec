@@ -35,7 +35,7 @@ from urllib.parse import urlsplit
 
 from spicy_docs.extraction.pypdf import PdfReadError
 
-from refspec.pdf_text import fold_pdf_text, pdf_page_texts
+from refspec.pdf_text import fold_pdf_text, open_pdf
 from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 from refspec.registry.infrastructure.source_controlled_resource import (
     SourceControlledResourceBundle,
@@ -657,14 +657,17 @@ def parse_gnis_file_format(acquired: AcquiredGNISFileFormat) -> tuple[GNISFieldD
 
     payload = acquired.path.read_bytes()
     _verify_gnis_payload(payload, acquired.pin, location="parsed GNIS PDF")
+    # The table is on pages 1 and 2; the other 21 pages are never read.
     try:
-        texts = pdf_page_texts(payload)
+        with open_pdf(payload) as document:
+            page_count = document.page_count
+            texts = [document.read_page(number) or "" for number in (1, 2) if number <= page_count]
     except (PdfReadError, ValueError) as error:
         raise CensusGeoSourceDriftError(f"GNIS file-format source is not a readable PDF: {error}") from error
-    if len(texts) != acquired.pin.expected_page_count:
+    if page_count != acquired.pin.expected_page_count:
         raise CensusGeoSourceDriftError("GNIS file-format PDF page count drifted")
 
-    pages = [re.sub(r"\s+", " ", fold_pdf_text(texts[index])).strip() for index in (0, 1)]
+    pages = [re.sub(r"\s+", " ", fold_pdf_text(text)).strip() for text in texts]
     header_index = pages[0].find(_GNIS_TABLE_HEADER)
     if header_index == -1 or _GNIS_TABLE_HEADER not in pages[1]:
         raise CensusGeoSourceDriftError("GNIS National File table header was not found on both table pages")

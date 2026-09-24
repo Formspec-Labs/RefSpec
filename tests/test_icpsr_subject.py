@@ -267,11 +267,8 @@ def test_capture_digest_is_deterministic_and_capture_writes_exact_bytes(
     assert icpsr.write_icpsr_subject_index_capture(first, tmp_path) == manifest
 
 
-def test_acquisition_is_robots_checked_and_bounded_to_28_requests() -> None:
-    """Pin robots-first acquisition bounded to 28 requests with the 0.25s interval."""
-
-    calls: list[str] = []
-    sleeps: list[float] = []
+def _synthetic_fetcher(calls: list[str], *, empty_url: str | None = None) -> icpsr.IcpsrPageFetcher:
+    """A fetcher answering robots and all 27 index pages, with ``empty_url`` answered by an empty 200."""
 
     def fake_fetch(
         url: str,
@@ -280,7 +277,9 @@ def test_acquisition_is_robots_checked_and_bounded_to_28_requests() -> None:
         max_bytes: int,
     ) -> icpsr.IcpsrFetchedPage:
         calls.append(url)
-        if url == icpsr.ICPSR_ROBOTS_URL:
+        if url == empty_url:
+            body = b""
+        elif url == icpsr.ICPSR_ROBOTS_URL:
             body = ROBOTS
         else:
             letter = dict(item.split("=", 1) for item in url.split("?", 1)[1].split("&"))["letter"]
@@ -302,6 +301,16 @@ def test_acquisition_is_robots_checked_and_bounded_to_28_requests() -> None:
             body=body,
         )
 
+    return fake_fetch
+
+
+def test_acquisition_is_robots_checked_and_bounded_to_28_requests() -> None:
+    """Pin robots-first acquisition bounded to 28 requests with the 0.25s interval."""
+
+    calls: list[str] = []
+    sleeps: list[float] = []
+    fake_fetch = _synthetic_fetcher(calls)
+
     index = icpsr.acquire_icpsr_subject_index(
         fetch_page=fake_fetch,
         minimum_interval_seconds=0.25,
@@ -313,6 +322,21 @@ def test_acquisition_is_robots_checked_and_bounded_to_28_requests() -> None:
     assert len(calls) == 28
     assert calls[0] == icpsr.ICPSR_ROBOTS_URL
     assert sleeps == [0.25] * 27
+
+
+@pytest.mark.parametrize("empty_url", [icpsr.ICPSR_ROBOTS_URL, icpsr._index_url("#")])
+def test_an_empty_body_is_refused_not_captured(empty_url: str) -> None:
+    """An empty robots.txt would read as allow-everything and an empty "#" page is exempt from the no-terms
+    refusal; each is refused at fetch instead of captured as 0 bytes."""
+
+    calls: list[str] = []
+    with pytest.raises(icpsr.IcpsrSubjectError, match="empty body"):
+        icpsr.acquire_icpsr_subject_index(
+            fetch_page=_synthetic_fetcher(calls, empty_url=empty_url),
+            minimum_interval_seconds=0,
+            sleep=lambda _seconds: None,
+        )
+    assert calls[-1] == empty_url
 
 
 def test_network_is_never_implicit() -> None:

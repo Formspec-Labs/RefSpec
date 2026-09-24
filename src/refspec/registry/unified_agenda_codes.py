@@ -840,7 +840,7 @@ def _verify_citation_type_definitions(payload: bytes) -> None:
 
     try:
         text = " ".join(" ".join(page.split()) for page in pdf_page_texts(payload))
-    except (PdfReadError, ValueError) as error:  # pragma: no cover - unreadable pinned source
+    except (PdfReadError, ValueError) as error:
         raise UnifiedAgendaSourceDriftError("pinned RISC Preamble is unreadable") from error
     for citation_type, definition in UA_LEGAL_AUTHORITY_CITATION_TYPE_DEFINITIONS.items():
         if definition not in text:

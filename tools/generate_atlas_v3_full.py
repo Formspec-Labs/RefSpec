@@ -715,6 +715,10 @@ REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-d
 REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:f4ca83a852748a90cf4f1cf67a5bb954b76f42ecc39ac9b6ec57d4934fbfb5a4"
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
+# 2026-09-24 (repin review fixes): the empty-body refusal in icpsr_subject and
+# its test, the two-page GNIS read in census_geo_codes, and a dropped pragma in
+# unified_agenda_codes edit files the index hashes as evidence. The .nq graph
+# is byte-identical; the proof pin alone moves.
 # 2026-09-24 (B21): the shared PDF page reads edit four modules the index
 # hashes as source-implementation evidence (census_geo_codes,
 # ferc_elibrary_codes, gao_cra_form_codes, unified_agenda_codes). The .nq
@@ -776,7 +780,7 @@ REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/regi
 # edited that day, is NOT index evidence and moved nothing here). The
 # descriptors .nq graph is byte-identical both times; only the proof's
 # inputs.atlasIndexDigest moved, and this pin moves with it.
-REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:e12ec65ff3102118ec5f89eb2faf8febda4731cf0d291e3f4c04ed9a7df8f329"
+REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:f25bbaf76fc1c6649845f09ae07f54c7291913d26be52fbf416472edb5cca00d"
 
 
 def _load_validator() -> Any:

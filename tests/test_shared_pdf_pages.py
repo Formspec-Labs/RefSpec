@@ -3,13 +3,16 @@
 GAO's forms keep a full frozen reader (``gao_cra_form_oracle``). The census
 GNIS layout, Unified Agenda RISC preamble and both FERC PDFs moved later and
 only their page read changed, so their oracle is that read, copied: pypdf's
-own constructor and every page's text layer. Their one deliberate divergence
-is where a refusal surfaces: a protected file or an unreadable page now
-refuses as the module's own drift error instead of a raw pypdf exception.
+own constructor and every page's text layer (GNIS reads only pages 1 and 2,
+as its direct loop did). Their one deliberate divergence is where a refusal
+surfaces: a protected file or an unreadable page now refuses as the module's
+own drift error instead of a raw pypdf exception, which the last test pins at
+each module's entry point.
 """
 
 from __future__ import annotations
 
+import hashlib
 import io
 import os
 from dataclasses import asdict, replace
@@ -18,11 +21,14 @@ from pathlib import Path
 import gao_cra_form_oracle as old
 import pytest
 from pypdf import PdfReader, PdfWriter
-from spicy_docs.extraction.pypdf import PypdfReader
+from spicy_docs.extraction.pypdf import PdfReadError, PypdfReader
 
 from conftest import missing_pinned_input
 from refspec.pdf_text import pdf_page_texts
+from refspec.registry import census_geo_codes as geo
+from refspec.registry import ferc_elibrary_codes as ferc
 from refspec.registry import gao_cra_form_codes as current
+from refspec.registry import unified_agenda_codes as ua
 
 FIXTURES = Path(__file__).parent / "fixtures/gao_cra_form_codes"
 CASES = (
@@ -144,3 +150,71 @@ def test_ported_pdfs_read_every_page_as_the_direct_loop_did(name, kind, where, m
     if mutation is not None:
         payload = _mutation(payload, mutation)
     assert _read(pdf_page_texts, payload) == _read(_direct_loop, payload)
+
+
+def _digest(payload: bytes) -> str:
+    return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+
+def _gnis(payload, tmp_path, monkeypatch):
+    pin = replace(geo.GNIS_FILE_FORMAT_PIN_2026_08_03, expected_sha256=_digest(payload), expected_byte_length=len(payload))
+    source = tmp_path / "gnis.pdf"
+    source.write_bytes(payload)
+    geo.parse_gnis_file_format(geo.acquire_gnis_file_format(pin, tmp_path / "store", source_path=source))
+
+
+def _risc(payload, tmp_path, monkeypatch):
+    pin = replace(ua.UA_RISC_PREAMBLE_2026_08_03, expected_sha256=_digest(payload), expected_byte_length=len(payload))
+    source = tmp_path / "risc.pdf"
+    source.write_bytes(payload)
+    ua.pin_risc_preamble_evidence(ua.acquire_unified_agenda_document(pin, tmp_path / "store", source_path=source))
+
+
+def _ferc(prefix, parse):
+    def entry(payload, tmp_path, monkeypatch):
+        monkeypatch.setattr(ferc, f"{prefix}_SHA256", _digest(payload))
+        monkeypatch.setattr(ferc, f"{prefix}_BYTE_LENGTH", len(payload))
+        parse(payload)
+
+    return entry
+
+
+ENTRY_POINTS = {
+    "census GNIS layout": (_gnis, geo.CensusGeoSourceDriftError, "not a readable PDF"),
+    "Unified Agenda RISC preamble": (_risc, ua.UnifiedAgendaSourceDriftError, "RISC Preamble is unreadable"),
+    "FERC class types": (
+        _ferc("FERC_CLASS_TYPE_PDF", ferc.parse_ferc_class_type_pdf),
+        ferc.FercSourceDriftError,
+        "class/type PDF is unreadable",
+    ),
+    "FERC docket prefixes": (
+        _ferc("FERC_DOCKET_PREFIX_PDF", ferc.parse_ferc_docket_prefix_pdf),
+        ferc.FercSourceDriftError,
+        "docket-prefix PDF is unreadable",
+    ),
+}
+
+
+@pytest.mark.parametrize("name,kind,where", PORTED)
+@pytest.mark.parametrize("failure", ["protected", "failing-page"])
+def test_each_entry_point_refuses_an_unreadable_pdf_as_its_own_drift_error(
+    name, kind, where, failure, tmp_path, monkeypatch
+):
+    """A protected file or a page that cannot be read reaches the caller as the module's own drift error,
+    caused by the shared reader's refusal, never as a raw reader exception or an empty page."""
+
+    from pypdf._page import PageObject
+
+    payload = _ported_payload(kind, where)
+    if failure == "protected":
+        payload = _mutation(payload, "protected")
+    else:
+
+        def fail(page):
+            raise RuntimeError("test failed text page")
+
+        monkeypatch.setattr(PageObject, "extract_text", fail)
+    entry, error_type, message = ENTRY_POINTS[name]
+    with pytest.raises(error_type, match=message) as refused:
+        entry(payload, tmp_path, monkeypatch)
+    assert isinstance(refused.value.__cause__, PdfReadError)

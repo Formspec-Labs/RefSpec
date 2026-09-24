@@ -647,6 +647,11 @@ def acquire_icpsr_subject_index(
             raise IcpsrSubjectError(f"page fetcher exceeded max_page_bytes={max_page_bytes}")
         if page.status_code != 200:
             raise IcpsrSubjectError(f"ICPSR returned HTTP {page.status_code} for {url}")
+        # An empty robots.txt parses as allow-everything, and the "#" page is
+        # exempt from the no-terms refusal, so an empty body would pass both
+        # and be captured as 0 bytes. Neither is an answer ICPSR gives.
+        if not page.body:
+            raise IcpsrSubjectError(f"ICPSR returned an empty body for {url}")
         return page
 
     robots = fetch(ICPSR_ROBOTS_URL)

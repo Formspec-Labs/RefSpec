@@ -2,9 +2,9 @@
 """Fetch one exact publisher artifact through Zyte into RefSpec's ignored output.
 
 Loads ``ZYTE_TOKEN`` from the local dotenv without logging it, refuses a non-200
-response, a digest that drifts from ``--expected-sha256``, or a byte length that
-drifts from ``--expected-byte-length``, then saves the body under the repository
-root.
+response, an empty body, a digest that drifts from ``--expected-sha256``, or a
+byte length that drifts from ``--expected-byte-length``, then saves the body under
+the repository root.
 """
 
 from __future__ import annotations
@@ -58,6 +58,8 @@ def main() -> int:
     )
     if response.status_code != 200:
         raise ValueError(f"publisher returned HTTP {response.status_code} through Zyte")
+    if not response.body:
+        raise ValueError("publisher returned an empty body through Zyte; nothing is saved")
     digest = "sha256:" + hashlib.sha256(response.body).hexdigest()
     if args.expected_sha256 is not None and digest != args.expected_sha256:
         raise ValueError(f"source digest drift: expected {args.expected_sha256}, got {digest}")
