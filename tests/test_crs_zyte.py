@@ -6,17 +6,22 @@ import base64
 import io
 import json
 import os
+from http.client import HTTPMessage
 from pathlib import Path
 from typing import Self
 
 import pytest
+from spicy_docs.sources import zyte
 
 from conftest import missing_pinned_input
 from refspec.registry.adapters import crs_zyte
-from refspec.registry.infrastructure import zyte_transport
 
 
 class _Response(io.BytesIO):
+    """A BytesIO context manager standing in for urlopen's response."""
+
+    headers = HTTPMessage()
+
     def __enter__(self) -> Self:
         return self
 
@@ -49,7 +54,7 @@ def test_crs_fetcher_preserves_pinned_publisher_response(
             ).encode()
         )
 
-    monkeypatch.setattr(zyte_transport.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(zyte.urllib.request, "urlopen", fake_urlopen)
     fetched = crs_zyte.ZyteCRSPageFetcher(
         token="test-token",
         max_bytes=len(body) + 1,
@@ -85,7 +90,7 @@ def test_crs_fetcher_returns_real_content_type_and_exact_bytes(
         )
 
     monkeypatch.setattr(
-        zyte_transport.urllib.request,
+        zyte.urllib.request,
         "urlopen",
         fake_urlopen,
     )
@@ -118,7 +123,7 @@ def test_crs_fetcher_requires_target_content_type(
         )
 
     monkeypatch.setattr(
-        zyte_transport.urllib.request,
+        zyte.urllib.request,
         "urlopen",
         fake_urlopen,
     )

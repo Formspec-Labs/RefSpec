@@ -4,16 +4,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from refspec.registry.crs_legislative_resources import (
-    CRSAcquisitionError,
-    CRSPageFetcher,
-    FetchedCRSPage,
-)
-from refspec.registry.infrastructure.zyte_transport import (
+from spicy_docs.sources.zyte import (
     ZYTE_API_URL,
     ZyteHttpFetcher,
     ZyteTransportError,
     require_zyte_token_from_environment,
+)
+
+from refspec.registry.crs_legislative_resources import (
+    CRSAcquisitionError,
+    CRSPageFetcher,
+    FetchedCRSPage,
 )
 
 DEFAULT_CRS_MAX_BYTES = 5 * 1024 * 1024

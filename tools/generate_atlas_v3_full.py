@@ -715,6 +715,10 @@ REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-d
 REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:f4ca83a852748a90cf4f1cf67a5bb954b76f42ecc39ac9b6ec57d4934fbfb5a4"
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
+# 2026-09-24 (B14): infrastructure.zyte_transport leaves the implementation
+# modules; the Zyte adapters use SpicyDocs' spicy_docs.sources.zyte. The .nq
+# graph is byte-identical; only the proof's inputs.atlasIndexDigest moves, so
+# this is the proof pin alone.
 # 2026-09-22 (REF-071): pinned inputs arrive from R2 and the suite stops
 # skipping for absent data, so parser test files the index hashes as readiness
 # evidence (vocabularies, EuroVoc and others) moved. The .nq graph is
@@ -768,7 +772,7 @@ REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/regi
 # edited that day, is NOT index evidence and moved nothing here). The
 # descriptors .nq graph is byte-identical both times; only the proof's
 # inputs.atlasIndexDigest moved, and this pin moves with it.
-REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:0409bed4eccac3cc72dce13b76751b4b42e5a77199cf5bbb178bd233978a90cb"
+REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:794ce328b89f9de8a71569a45e57d6755d387eb800d44e3306d917cd84b41a32"
 
 
 def _load_validator() -> Any:

@@ -9,6 +9,13 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
+from spicy_docs.sources.zyte import (
+    ZYTE_API_URL,
+    ZyteHttpFetcher,
+    ZyteTransportError,
+    require_zyte_token_from_environment,
+)
+
 from refspec.registry.icpsr_subject import (
     DEFAULT_MAX_PAGE_BYTES,
     DEFAULT_MINIMUM_INTERVAL_SECONDS,
@@ -19,12 +26,6 @@ from refspec.registry.icpsr_subject import (
     join_icpsr_xml_to_official_index,
     open_pinned_icpsr_subject_xml,
     write_icpsr_subject_index_capture,
-)
-from refspec.registry.infrastructure.zyte_transport import (
-    ZYTE_API_URL,
-    ZyteHttpFetcher,
-    ZyteTransportError,
-    require_zyte_token_from_environment,
 )
 
 

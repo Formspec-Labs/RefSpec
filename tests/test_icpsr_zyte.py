@@ -12,18 +12,21 @@ import io
 import json
 import os
 import urllib.error
+from http.client import HTTPMessage
 from pathlib import Path
 from typing import Any, Self
 
 import pytest
+from spicy_docs.sources import zyte
 
 from conftest import missing_pinned_input
 from refspec.registry.adapters import icpsr_zyte
-from refspec.registry.infrastructure import zyte_transport
 
 
 class _Response(io.BytesIO):
     """Context-manager BytesIO standing in for a urlopen response."""
+
+    headers = HTTPMessage()
 
     def __enter__(self) -> Self:
         return self
@@ -57,7 +60,7 @@ def test_icpsr_fetcher_preserves_pinned_publisher_response(
             ).encode()
         )
 
-    monkeypatch.setattr(zyte_transport.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(zyte.urllib.request, "urlopen", fake_urlopen)
     fetched = icpsr_zyte.ZyteIcpsrPageFetcher(token="test-token")(
         target_url,
         timeout_seconds=5.0,
@@ -91,7 +94,7 @@ def test_zyte_fetcher_posts_expected_request_without_exposing_token(
         return _Response(provider_body)
 
     monkeypatch.setattr(
-        zyte_transport.urllib.request,
+        zyte.urllib.request,
         "urlopen",
         fake_urlopen,
     )
@@ -144,7 +147,7 @@ def test_zyte_provider_error_does_not_include_body_or_secret(
 
     secret = "do-not-print"
     provider_error = urllib.error.HTTPError(
-        zyte_transport.ZYTE_API_URL,
+        zyte.ZYTE_API_URL,
         403,
         "provider says " + secret,
         {},
@@ -154,7 +157,7 @@ def test_zyte_provider_error_does_not_include_body_or_secret(
     def fail(*args: object, **kwargs: object) -> object:
         raise provider_error
 
-    monkeypatch.setattr(zyte_transport.urllib.request, "urlopen", fail)
+    monkeypatch.setattr(zyte.urllib.request, "urlopen", fail)
     fetcher = icpsr_zyte.ZyteIcpsrPageFetcher(token=secret)
 
     with pytest.raises(icpsr_zyte.IcpsrZyteError) as raised:
@@ -193,7 +196,7 @@ def test_zyte_malformed_responses_fail_explicitly(
         return _Response(json.dumps(provider_value).encode())
 
     monkeypatch.setattr(
-        zyte_transport.urllib.request,
+        zyte.urllib.request,
         "urlopen",
         fake_urlopen,
     )

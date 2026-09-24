@@ -105,10 +105,12 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
         # RESOURCE, so the indexed counts hold while both module counts move
         # by four. The 97 -> 100 step (the 2026-08-31/09-01 wave's three
         # modules) is recorded beside the index pin.
-        "implementationModuleCount": 45,
+        # 45 -> 44 and 105 -> 104: infrastructure.zyte_transport is deleted
+        # for SpicyDocs' `spicy_docs.sources.zyte` (B14); it published nothing.
+        "implementationModuleCount": 44,
         "indexedResourceCount": 98,
         "indexedWithoutExactReleaseCount": 93,
-        "registryModuleCount": 105,
+        "registryModuleCount": 104,
         "releaseReadyIndexedResourceCount": 5,
         # REF-033 ring corrections move three catalog kinds: the LDA general
         # issue codes and the NASA technology taxonomy are code lists (the

@@ -14,7 +14,7 @@ import hashlib
 import os
 from pathlib import Path
 
-from refspec.registry.infrastructure.zyte_transport import ZyteHttpFetcher
+from spicy_docs.sources.zyte import ZyteHttpFetcher
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 

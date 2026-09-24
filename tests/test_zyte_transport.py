@@ -1,8 +1,9 @@
-"""Provider-level tests shared by every Zyte-backed source adapter.
+"""Provider-level tests of SpicyDocs' Zyte transport, which every RefSpec Zyte adapter uses.
 
 The fetcher must reconstruct the target URL and exact content type from Zyte's JSON envelope,
-preserve the resolved URL, enforce max_bytes on decoded bytes, and refuse missing or ambiguous
-Content-Type headers; two environment-named real captures pin exact publisher bytes when present."""
+preserve the resolved URL, enforce max_bytes on decoded bytes, refuse missing or ambiguous
+Content-Type headers and a reflected credential; two environment-named real captures pin exact
+publisher bytes when present."""
 
 from __future__ import annotations
 
@@ -11,17 +12,20 @@ import hashlib
 import io
 import json
 import os
+from http.client import HTTPMessage
 from pathlib import Path
 from typing import Any, Self
 
 import pytest
+from spicy_docs.sources import zyte
 
 from conftest import missing_pinned_input
-from refspec.registry.infrastructure import zyte_transport
 
 
 class _Response(io.BytesIO):
     """A BytesIO context manager standing in for urlopen's response."""
+
+    headers = HTTPMessage()
 
     def __enter__(self) -> Self:
         return self
@@ -86,8 +90,8 @@ def test_generic_transport_preserves_pinned_real_publisher_bytes(
             resolved_url=target_url,
         )
 
-    monkeypatch.setattr(zyte_transport.urllib.request, "urlopen", fake_urlopen)
-    response = zyte_transport.ZyteHttpFetcher(token="test-token").fetch(
+    monkeypatch.setattr(zyte.urllib.request, "urlopen", fake_urlopen)
+    response = zyte.ZyteHttpFetcher(token="test-token").fetch(
         target_url,
         timeout_seconds=30.0,
         max_bytes=len(body),
@@ -119,11 +123,11 @@ def test_generic_transport_preserves_target_content_type(
         )
 
     monkeypatch.setattr(
-        zyte_transport.urllib.request,
+        zyte.urllib.request,
         "urlopen",
         fake_urlopen,
     )
-    response = zyte_transport.ZyteHttpFetcher(token="test-token").fetch(
+    response = zyte.ZyteHttpFetcher(token="test-token").fetch(
         "https://example.test/source",
         timeout_seconds=7.0,
         max_bytes=1024,
@@ -151,15 +155,15 @@ def test_generic_transport_enforces_decoded_target_bound(
         )
 
     monkeypatch.setattr(
-        zyte_transport.urllib.request,
+        zyte.urllib.request,
         "urlopen",
         fake_urlopen,
     )
     with pytest.raises(
-        zyte_transport.ZyteTransportError,
+        zyte.ZyteTransportError,
         match="exceeds max_bytes=4",
     ):
-        zyte_transport.ZyteHttpFetcher(token="test-token").fetch(
+        zyte.ZyteHttpFetcher(token="test-token").fetch(
             "https://example.test/source",
             timeout_seconds=7.0,
             max_bytes=4,
@@ -191,12 +195,34 @@ def test_generic_transport_rejects_missing_or_ambiguous_headers(
         return _Response(json.dumps(value).encode())
 
     monkeypatch.setattr(
-        zyte_transport.urllib.request,
+        zyte.urllib.request,
         "urlopen",
         fake_urlopen,
     )
-    with pytest.raises(zyte_transport.ZyteTransportError):
-        zyte_transport.ZyteHttpFetcher(token="test-token").fetch(
+    with pytest.raises(zyte.ZyteTransportError):
+        zyte.ZyteHttpFetcher(token="test-token").fetch(
+            "https://example.test/source",
+            timeout_seconds=7.0,
+            max_bytes=1024,
+        )
+
+
+@pytest.mark.parametrize(
+    "body",
+    [b"<p>test-token</p>", b"<p>" + base64.b64encode(b"test-token:") + b"</p>"],
+)
+def test_generic_transport_refuses_a_reflected_credential(
+    monkeypatch: pytest.MonkeyPatch,
+    body: bytes,
+) -> None:
+    """A target body echoing the token or its Basic form is refused, never retained as an exact capture."""
+
+    def fake_urlopen(*args: object, **kwargs: object) -> _Response:
+        return _provider_response(body, headers=[{"name": "Content-Type", "value": "text/html"}])
+
+    monkeypatch.setattr(zyte.urllib.request, "urlopen", fake_urlopen)
+    with pytest.raises(zyte.ZyteTransportError, match="reflected transport credential"):
+        zyte.ZyteHttpFetcher(token="test-token").fetch(
             "https://example.test/source",
             timeout_seconds=7.0,
             max_bytes=1024,

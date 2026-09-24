@@ -126,7 +126,7 @@ flowchart TB
     SOURCEID["source_identity.py<br/>capture and registration UUID version 7"]
     SCR["source_controlled_resource.py<br/>closed packages and verified views"]
     STORE["storage.canonical_json"]
-    ZYTETR["zyte_transport.py"]
+    ZYTETR["spicy_docs.sources.zyte<br/>SpicyDocs Zyte transport"]
 
     CRSZYTE["adapters/crs_zyte.py"]
     CROSS["agency_crosswalk.py"]

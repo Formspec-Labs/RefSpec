@@ -110,7 +110,7 @@ flowchart TD
     elsstCoverage --> elsstModel["registry.elsst typed model and predicate constants"]
     elsstCoverage --> canonicalJson["storage.canonical_json"]
 
-    icpsrAdapter["adapters.icpsr_zyte"] --> zyteTransport["infrastructure.zyte_transport"]
+    icpsrAdapter["adapters.icpsr_zyte"] --> zyteTransport["spicy_docs.sources.zyte"]
     icpsrAdapter --> icpsrSubject["registry.icpsr_subject"]
 
     atlasLoader["atlas.v3_registry_vocabularies"] -->|imports ELSST_R6 pin| elsstAcquire

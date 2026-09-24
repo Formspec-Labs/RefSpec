@@ -1506,14 +1506,6 @@ NESTED_MODULE_AUDIT: dict[str, dict[str, Any]] = {
         "coveredBy": [],
         "inputRefs": [],
     },
-    "infrastructure/zyte_transport.py": {
-        "auditRole": "networkHarness",
-        "coveredBy": ["adapters/crs_zyte.py", "adapters/icpsr_zyte.py"],
-        "inputRefs": [
-            ("crs_legislative_resources.py", "crsLegislativeSubjects20260730"),
-            ("adapters/icpsr_zyte.py", "icpsrManagedIndexA"),
-        ],
-    },
     "managed_releases/federal_register_thesaurus_2025_managed_release.py": {
         "auditRole": "downstreamProjection",
         "coveredBy": ["federal_register_thesaurus_2025.py"],
