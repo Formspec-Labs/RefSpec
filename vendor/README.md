@@ -31,7 +31,8 @@ commit and still under the 0.31.0 version string, so adopting it needs a
 new wheel with a new version.
 
 The `acquisition` extra supplies explicit Topics and U.S. Code HTTP routes.
-Imports remain offline. The `pdf-pypdf` extra supplies shared GAO page reading.
+Imports remain offline. The `pdf-pypdf` extra supplies shared PDF page reading
+(`refspec.pdf_text.pdf_page_texts`: the GAO, GNIS, FERC and RISC captures).
 USLM/eCFR formatting, Unicode positions and section interpretation stay here.
 
 PAR07 compares the complete CFR preservation record and its three accepted
@@ -43,8 +44,8 @@ separate SpicyDocs byte comparer checks selected file consistency, not authentic
 This wheel is vendored for reproducible installation and is not published to
 an index. Earlier qualification covers all 7,767 FR topic rows and 241,726
 Agenda records. Sealed data remains unchanged. Topics runs now retain separate producer receipts,
-and source-credit receipts include installed reader hashes. The `pdf-pypdf` extra
-shares raw GAO PDF page reading while RefSpec retains folding and interpretation.
+and source-credit receipts include installed reader hashes. RefSpec retains PDF
+text folding and interpretation.
 
 Prior U.S. Code structure corrections remain unadopted candidates. CFR authority
 observations retain actual scope; the existing authority cache is unchanged.

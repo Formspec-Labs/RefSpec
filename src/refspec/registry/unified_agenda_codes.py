@@ -34,7 +34,6 @@ this module never opens a network connection.
 from __future__ import annotations
 
 import hashlib
-import io
 import os
 import re
 import tempfile
@@ -46,6 +45,9 @@ from types import MappingProxyType
 from typing import Literal, Protocol, cast
 from urllib.parse import urlsplit
 
+from spicy_docs.extraction.pypdf import PdfReadError
+
+from refspec.pdf_text import pdf_page_texts
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 
@@ -837,15 +839,8 @@ def _verify_citation_type_definitions(payload: bytes) -> None:
     """
 
     try:
-        from pypdf import PdfReader
-    except ImportError as error:  # pragma: no cover - dependency gate
-        raise UnifiedAgendaSourceDriftError(
-            "pypdf is required to verify the RISC Preamble citation-type definitions"
-        ) from error
-    try:
-        reader = PdfReader(io.BytesIO(payload))
-        text = " ".join(" ".join((page.extract_text() or "").split()) for page in reader.pages)
-    except Exception as error:  # pragma: no cover - unreadable pinned source
+        text = " ".join(" ".join(page.split()) for page in pdf_page_texts(payload))
+    except (PdfReadError, ValueError) as error:  # pragma: no cover - unreadable pinned source
         raise UnifiedAgendaSourceDriftError("pinned RISC Preamble is unreadable") from error
     for citation_type, definition in UA_LEGAL_AUTHORITY_CITATION_TYPE_DEFINITIONS.items():
         if definition not in text:

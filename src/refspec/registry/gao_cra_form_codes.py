@@ -31,7 +31,7 @@ import re
 from dataclasses import dataclass
 from typing import Literal
 
-from refspec.pdf_text import fold_pdf_text
+from refspec.pdf_text import fold_pdf_text, pdf_page_texts
 
 GAO_PUBLISHER = "U.S. Government Accountability Office"
 GAO_FORM_NUMBER = "GAO Form 41217"
@@ -243,15 +243,8 @@ def sha256_digest(payload: bytes) -> str:
 
 def _normalized_pdf_text(payload: bytes) -> str:
     """Keep GAO's ligature/whitespace policy around shared raw page reading."""
-    from spicy_docs.extraction.pypdf import PypdfReader
 
-    # pypdf previously tried the empty password itself. Preserve that explicit
-    # choice here; a protected file or unreadable page still refuses the input.
-    with PypdfReader().open(payload, password="") as document:
-        return " ".join(
-            " ".join(fold_pdf_text(document.read_page(number) or "").split())
-            for number in range(1, document.page_count + 1)
-        )
+    return " ".join(" ".join(fold_pdf_text(text).split()) for text in pdf_page_texts(payload))
 
 
 def _verified_normalized_text(payload: bytes, pin: GaoCraFormPin) -> str:

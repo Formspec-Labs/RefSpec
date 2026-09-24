@@ -37,6 +37,16 @@ modules as test oracles; three expectations move and seven Unified Agenda
 count pins re-adjudicate. Sequence and measurements: SpicyDocs
 `docs/research/consolidation-path-2026-09-22.md`, rows B14 and B21.
 
+Not switched in step 1, each with why (B21 moved only the PDF page reads):
+
+- eCFR titles: real bytes agree 50/50, but SpicyDocs' `parse_ecfr_titles` accepts three of the four mutations RefSpec refuses (extra top-level field, reserved title with dates, active title without); waits for SpicyDocs to take those refusals and a new wheel.
+- CBO feed: 1,058/1,058 items agree, but the refusals are disjoint (RefSpec alone refuses reordered children, an empty description, a missing bill number; SpicyDocs alone a duplicate item and a key off its position); waits for SpicyDocs to refuse the union.
+- Source-domain parsers: `xsd_documented_options` refuses 2 of the 20 Unified Agenda lists RefSpec reads (RFA_REQUIRED, TTBL_ACTION), and `openapi_schema_enum` agrees on the 3 real enums but differs on all 5 mutations tried (it accepts a blank member); waits for SpicyDocs.
+- HTML and XML: the registry's `HTMLParser` subclasses and `ElementTree` parses call the stdlib parsers SpicyDocs wraps; `read_html_events` and `parse_xml` return events and trees of another shape, so each is a parser port with its own oracle and mutation battery, not a re-point.
+- PDF: the Federal Register thesaurus (positioned, font-tagged text) and the NRC APS guides (document-information dates) need pypdf features the shared reader does not expose; `tools/verify_atlas_source_fidelity.py` keeps its own reads as the independent verifier.
+- Unified Agenda projection: collapses whitespace where RefSpec strips (4,748 records differ, scout 2026-09-24); waits for the step-2 rebuild.
+- OLRC Table III and popular names: independent parsers (B15), switched at the step-2 rebuild; `iter_table3_chain` is not in the vendored 0.31.0 bytes, so it also needs a new wheel.
+
 ## Merged, and the one parked item
 
 The Unified Agenda receipt rebuild (move five of the SpicySearch v14 batch)

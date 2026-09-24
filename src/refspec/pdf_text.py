@@ -41,6 +41,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from types import MappingProxyType
 
+from spicy_docs.extraction.pypdf import PypdfReader
+
 # Presentation forms and typographic hyphens, mapped to what the author wrote.
 # Enumerated rather than derived from a Unicode category so that adding a
 # character to this fold is a visible, reviewable decision.
@@ -73,3 +75,15 @@ def pdf_text_fold_counts(value: str) -> Mapping[str, int]:
     """Report which folds ``value`` would trigger, for evidence and tests."""
 
     return {source: value.count(source) for source in PDF_TEXT_FOLDS if source in value}
+
+
+def pdf_page_texts(payload: bytes) -> tuple[str, ...]:
+    """Every page's raw text layer, read through SpicyDocs' shared pypdf reader; a page with none reads ``""``.
+
+    The empty password is tried explicitly, as pypdf's own constructor did for
+    the direct loops this replaced. A protected file or an unreadable page
+    raises ``spicy_docs.extraction.pypdf.PdfReadError``; it never reads as empty.
+    """
+
+    with PypdfReader().open(payload, password="") as document:
+        return tuple(document.read_page(number) or "" for number in range(1, document.page_count + 1))

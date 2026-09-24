@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import hashlib
 import html
-import io
 import os
 import re
 import tempfile
@@ -36,9 +35,9 @@ from pathlib import Path
 from typing import Literal, Protocol, cast
 from urllib.parse import urlsplit
 
-from pypdf import PdfReader
+from spicy_docs.extraction.pypdf import PdfReadError
 
-from refspec.pdf_text import fold_pdf_text
+from refspec.pdf_text import fold_pdf_text, pdf_page_texts
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 
@@ -291,25 +290,22 @@ def parse_ferc_class_type_pdf(payload: bytes) -> FercPublishedClassTypeCapture:
     if len(payload) != FERC_CLASS_TYPE_PDF_BYTE_LENGTH or sha256_digest(payload) != FERC_CLASS_TYPE_PDF_SHA256:
         raise FercSourceDriftError("FERC class/type PDF failed its exact byte pin")
     try:
-        reader = PdfReader(io.BytesIO(payload))
-    except Exception as error:
+        pages = pdf_page_texts(payload)
+    except (PdfReadError, ValueError) as error:
         raise FercSourceDriftError("FERC class/type PDF is unreadable") from error
     rows: list[FercPublishedClassTypeRow] = []
-    for page in reader.pages:
-        text = page.extract_text() or ""
+    for text in pages:
         for raw_line in text.splitlines():
             line = fold_pdf_text(" ".join(raw_line.split()))
             if line.startswith(("Issuance ", "Submittal ")):
                 rows.append(_split_class_type_row(line))
-    if len(reader.pages) != 7 or len(rows) != FERC_CLASS_TYPE_PDF_ROW_COUNT:
-        raise FercSourceDriftError(
-            f"FERC class/type PDF shape drifted: pages={len(reader.pages)}, rows={len(rows)}"
-        )
+    if len(pages) != 7 or len(rows) != FERC_CLASS_TYPE_PDF_ROW_COUNT:
+        raise FercSourceDriftError(f"FERC class/type PDF shape drifted: pages={len(pages)}, rows={len(rows)}")
     return FercPublishedClassTypeCapture(
         source_url=FERC_CLASS_TYPE_PDF_URL,
         source_sha256=FERC_CLASS_TYPE_PDF_SHA256,
         source_byte_length=len(payload),
-        page_count=len(reader.pages),
+        page_count=len(pages),
         rows=tuple(rows),
     )
 
@@ -333,13 +329,13 @@ def parse_ferc_docket_prefix_pdf(payload: bytes) -> FercPublishedDocketPrefixCap
     if len(payload) != FERC_DOCKET_PREFIX_PDF_BYTE_LENGTH or sha256_digest(payload) != FERC_DOCKET_PREFIX_PDF_SHA256:
         raise FercSourceDriftError("FERC docket-prefix PDF failed its exact byte pin")
     try:
-        reader = PdfReader(io.BytesIO(payload))
-    except Exception as error:
+        pages = pdf_page_texts(payload)
+    except (PdfReadError, ValueError) as error:
         raise FercSourceDriftError("FERC docket-prefix PDF is unreadable") from error
     rows: list[FercPublishedDocketPrefixRow] = []
     status: Literal["active", "discontinued"] | None = None
-    for page in reader.pages:
-        for raw_line in (page.extract_text() or "").splitlines():
+    for text in pages:
+        for raw_line in text.splitlines():
             line = fold_pdf_text(" ".join(raw_line.split()))
             if "Table 1" in line or "Table 2" in line:
                 status = "active"
@@ -373,13 +369,13 @@ def parse_ferc_docket_prefix_pdf(payload: bytes) -> FercPublishedDocketPrefixCap
                     library=previous.library,
                     definition=f"{previous.definition} {line}",
                 )
-    if len(reader.pages) != 6 or len(rows) != 95:
-        raise FercSourceDriftError(f"FERC docket-prefix PDF shape drifted: pages={len(reader.pages)}, rows={len(rows)}")
+    if len(pages) != 6 or len(rows) != 95:
+        raise FercSourceDriftError(f"FERC docket-prefix PDF shape drifted: pages={len(pages)}, rows={len(rows)}")
     return FercPublishedDocketPrefixCapture(
         source_url=FERC_DOCKET_PREFIX_PDF_URL,
         source_sha256=FERC_DOCKET_PREFIX_PDF_SHA256,
         source_byte_length=len(payload),
-        page_count=len(reader.pages),
+        page_count=len(pages),
         rows=tuple(rows),
     )
 

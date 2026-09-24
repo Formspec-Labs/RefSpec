@@ -1,8 +1,17 @@
-"""Compare shared page reading with the copied pre-port GAO implementation."""
+"""Compare shared page reading with the copied pre-port implementations.
+
+GAO's forms keep a full frozen reader (``gao_cra_form_oracle``). The census
+GNIS layout, Unified Agenda RISC preamble and both FERC PDFs moved later and
+only their page read changed, so their oracle is that read, copied: pypdf's
+own constructor and every page's text layer. Their one deliberate divergence
+is where a refusal surfaces: a protected file or an unreadable page now
+refuses as the module's own drift error instead of a raw pypdf exception.
+"""
 
 from __future__ import annotations
 
 import io
+import os
 from dataclasses import asdict, replace
 from pathlib import Path
 
@@ -11,6 +20,8 @@ import pytest
 from pypdf import PdfReader, PdfWriter
 from spicy_docs.extraction.pypdf import PypdfReader
 
+from conftest import missing_pinned_input
+from refspec.pdf_text import pdf_page_texts
 from refspec.registry import gao_cra_form_codes as current
 
 FIXTURES = Path(__file__).parent / "fixtures/gao_cra_form_codes"
@@ -92,3 +103,44 @@ def test_failed_page_refuses_the_form_with_original_failure_cause(monkeypatch):
         current.parse_gao_cra_current_form((FIXTURES / CASES[0][0]).read_bytes())
     assert failure.value.__cause__.page == 1
     assert str(failure.value.__cause__.__cause__) == "test failed text page"
+
+
+PORTED = (
+    ("census GNIS layout", "fixture", "census_geo_codes/gnis-file-format-2026-08-03.pdf"),
+    ("Unified Agenda RISC preamble", "fixture", "unified_agenda_codes/risc-preamble-202210.pdf"),
+    ("FERC class types", "environment", "REFSPEC_FERC_CLASS_TYPES_2025_PDF_PATH"),
+    ("FERC docket prefixes", "environment", "REFSPEC_FERC_DOCKET_PREFIX_2025_PDF_PATH"),
+)
+
+
+def _ported_payload(kind: str, where: str) -> bytes:
+    if kind == "fixture":
+        return (Path(__file__).parent / "fixtures" / where).read_bytes()
+    path = os.environ.get(where)
+    if path is None:
+        missing_pinned_input(f"{where} is not materialized")
+    return Path(path).read_bytes()
+
+
+def _direct_loop(payload: bytes) -> list[str]:
+    """The pre-port read those modules made, copied rather than imported."""
+
+    return [page.extract_text() or "" for page in PdfReader(io.BytesIO(payload)).pages]
+
+
+def _read(reader, payload):
+    try:
+        return "accepted", list(reader(payload))
+    except Exception:  # noqa: BLE001 - a verdict is any refusal, whatever raised it
+        return "refused", None
+
+
+@pytest.mark.parametrize("name,kind,where", PORTED)
+@pytest.mark.parametrize("mutation", [None, "header", "truncated", "blank-page", "empty-password", "protected"])
+def test_ported_pdfs_read_every_page_as_the_direct_loop_did(name, kind, where, mutation):
+    """The pinned bytes read identically page for page, and every mutation gets the direct loop's verdict."""
+
+    payload = _ported_payload(kind, where)
+    if mutation is not None:
+        payload = _mutation(payload, mutation)
+    assert _read(pdf_page_texts, payload) == _read(_direct_loop, payload)

@@ -29,12 +29,13 @@ import re
 import tempfile
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from io import BytesIO
 from pathlib import Path
 from typing import Any, Literal, Protocol
 from urllib.parse import urlsplit
 
-from refspec.pdf_text import fold_pdf_text
+from spicy_docs.extraction.pypdf import PdfReadError
+
+from refspec.pdf_text import fold_pdf_text, pdf_page_texts
 from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 from refspec.registry.infrastructure.source_controlled_resource import (
     SourceControlledResourceBundle,
@@ -657,20 +658,13 @@ def parse_gnis_file_format(acquired: AcquiredGNISFileFormat) -> tuple[GNISFieldD
     payload = acquired.path.read_bytes()
     _verify_gnis_payload(payload, acquired.pin, location="parsed GNIS PDF")
     try:
-        from pypdf import PdfReader
-    except ImportError as error:  # pragma: no cover - dependency gate
-        raise CensusGeoResourceError("pypdf is required to parse the GNIS file-format PDF") from error
-    try:
-        reader = PdfReader(BytesIO(payload))
-    except Exception as error:
+        texts = pdf_page_texts(payload)
+    except (PdfReadError, ValueError) as error:
         raise CensusGeoSourceDriftError(f"GNIS file-format source is not a readable PDF: {error}") from error
-    if len(reader.pages) != acquired.pin.expected_page_count:
+    if len(texts) != acquired.pin.expected_page_count:
         raise CensusGeoSourceDriftError("GNIS file-format PDF page count drifted")
 
-    pages = [
-        re.sub(r"\s+", " ", fold_pdf_text(reader.pages[index].extract_text() or "")).strip()
-        for index in (0, 1)
-    ]
+    pages = [re.sub(r"\s+", " ", fold_pdf_text(texts[index])).strip() for index in (0, 1)]
     header_index = pages[0].find(_GNIS_TABLE_HEADER)
     if header_index == -1 or _GNIS_TABLE_HEADER not in pages[1]:
         raise CensusGeoSourceDriftError("GNIS National File table header was not found on both table pages")

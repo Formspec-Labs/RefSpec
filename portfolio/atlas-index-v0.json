@@ -47,8 +47,8 @@
     "refspec.registry.uslm",
     "refspec.registry.xml_text"
   ],
-  "indexDigest": "sha256:69bf2dc7e28f3dadbc8fc8c63fad9045f4dc9dd95e7f9f9e277f3b033de73f19",
-  "indexId": "urn:ref:atlas-index:69bf2dc7e28f3dadbc8fc8c63fad9045f4dc9dd95e7f9f9e277f3b033de73f19",
+  "indexDigest": "sha256:7c86f3159e07051acb0e8a875766d399cba482591401db9dcffe38831a07e7fb",
+  "indexId": "urn:ref:atlas-index:7c86f3159e07051acb0e8a875766d399cba482591401db9dcffe38831a07e7fb",
   "nonAuthorizing": true,
   "recordedAt": "2026-09-21T00:00:00Z",
   "resourceCatalogDigest": "sha256:51f9d1085b5eabc35713c5d10fb1c6c4c6da50b09bf31e51da97b2abce8cf2c8",
@@ -183,13 +183,13 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/census_geo_codes.py",
-          "sha256": "sha256:df2fcbd3f27f9f9ddaa6c912fa63615142f42e86da7ee7bbb3122d1695b02fbe"
+          "sha256": "sha256:8a924e9544157e59cfe795ec1f28d20cd931694516b8b645571602e8923a708d"
         }
       ],
       "release": null,
       "resourceId": "census-acs-geography-identifiers",
-      "rowDigest": "sha256:1da230c4c35113590e3d8b966b404cc067c202d73de73d351f1d066830f9706a",
-      "rowId": "urn:ref:atlas-index-row:1da230c4c35113590e3d8b966b404cc067c202d73de73d351f1d066830f9706a",
+      "rowDigest": "sha256:78a3958007b5057a8c85e53b02fd174214ce44df2fe3bb4533acceabc6b82466",
+      "rowId": "urn:ref:atlas-index-row:78a3958007b5057a8c85e53b02fd174214ce44df2fe3bb4533acceabc6b82466",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.census_geo_codes"
     },
@@ -211,13 +211,13 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/census_geo_codes.py",
-          "sha256": "sha256:df2fcbd3f27f9f9ddaa6c912fa63615142f42e86da7ee7bbb3122d1695b02fbe"
+          "sha256": "sha256:8a924e9544157e59cfe795ec1f28d20cd931694516b8b645571602e8923a708d"
         }
       ],
       "release": null,
       "resourceId": "census-tiger-geoid-structure",
-      "rowDigest": "sha256:7bf681714856b30110981a46e747c893a9a4413f938b090e5c2818d753fed7b2",
-      "rowId": "urn:ref:atlas-index-row:7bf681714856b30110981a46e747c893a9a4413f938b090e5c2818d753fed7b2",
+      "rowDigest": "sha256:b686237b9f5aa088ac623ee534349dfce65feb51567e3d7e1d4896ffa4e9a3f2",
+      "rowId": "urn:ref:atlas-index-row:b686237b9f5aa088ac623ee534349dfce65feb51567e3d7e1d4896ffa4e9a3f2",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.census_geo_codes"
     },
@@ -239,13 +239,13 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/census_geo_codes.py",
-          "sha256": "sha256:df2fcbd3f27f9f9ddaa6c912fa63615142f42e86da7ee7bbb3122d1695b02fbe"
+          "sha256": "sha256:8a924e9544157e59cfe795ec1f28d20cd931694516b8b645571602e8923a708d"
         }
       ],
       "release": null,
       "resourceId": "usgs-gnis-identifiers",
-      "rowDigest": "sha256:31704fd96b09162f87755b6a8ee5e8e6b5083d9e676f607a38ff8eba32402793",
-      "rowId": "urn:ref:atlas-index-row:31704fd96b09162f87755b6a8ee5e8e6b5083d9e676f607a38ff8eba32402793",
+      "rowDigest": "sha256:d65264fa17e8b842da85827e88a126bedc5b390c153dbd1316581eea0121a864",
+      "rowId": "urn:ref:atlas-index-row:d65264fa17e8b842da85827e88a126bedc5b390c153dbd1316581eea0121a864",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.census_geo_codes"
     },
@@ -1355,13 +1355,13 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/ferc_elibrary_codes.py",
-          "sha256": "sha256:7c219450f2e572e36038466e9fc3516fa464b72473db01972a2bad248013e36e"
+          "sha256": "sha256:e22b34f8fa92da5ae300f22ffa419412ff1524a3d3d36cc2ebb5009acf02b586"
         }
       ],
       "release": null,
       "resourceId": "ferc-elibrary-identifiers",
-      "rowDigest": "sha256:ca42d2192f0b83190806eb45c8eac88d49003cc3a033490f09acd2fa5cc8b0c5",
-      "rowId": "urn:ref:atlas-index-row:ca42d2192f0b83190806eb45c8eac88d49003cc3a033490f09acd2fa5cc8b0c5",
+      "rowDigest": "sha256:b027fc88208e12db9c51b20bfd1d416fff3dea7dd1cd2c8eb021f3d0afdc9766",
+      "rowId": "urn:ref:atlas-index-row:b027fc88208e12db9c51b20bfd1d416fff3dea7dd1cd2c8eb021f3d0afdc9766",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.ferc_elibrary_codes"
     },
@@ -1383,13 +1383,13 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/ferc_elibrary_codes.py",
-          "sha256": "sha256:7c219450f2e572e36038466e9fc3516fa464b72473db01972a2bad248013e36e"
+          "sha256": "sha256:e22b34f8fa92da5ae300f22ffa419412ff1524a3d3d36cc2ebb5009acf02b586"
         }
       ],
       "release": null,
       "resourceId": "ferc-elibrary-native-controls",
-      "rowDigest": "sha256:6cf11508f6f666bd4ecbb6c198e7f065444169891045ae6f2cf2c652d2c0dac6",
-      "rowId": "urn:ref:atlas-index-row:6cf11508f6f666bd4ecbb6c198e7f065444169891045ae6f2cf2c652d2c0dac6",
+      "rowDigest": "sha256:8c79b91cabaf57a67eaa17fb4e0ff381f0723aa4b9b1559b7ea1be074aa48c2f",
+      "rowId": "urn:ref:atlas-index-row:8c79b91cabaf57a67eaa17fb4e0ff381f0723aa4b9b1559b7ea1be074aa48c2f",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.ferc_elibrary_codes"
     },
@@ -1411,13 +1411,13 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/gao_cra_form_codes.py",
-          "sha256": "sha256:33f7d0052a024ae55d5060815f291b8f269bfbf3b67f87e0e61bc0313d07707b"
+          "sha256": "sha256:8d0ddd6226ec7159764b7e714fff8a81f17fd82d10c5174a563d93b8b8d3cbfa"
         }
       ],
       "release": null,
       "resourceId": "gao-cra-submission-form-controls",
-      "rowDigest": "sha256:04aa5398f4d37c2aed84b530e914c799fb0603e66d00fcb19af8af544f5f9a4d",
-      "rowId": "urn:ref:atlas-index-row:04aa5398f4d37c2aed84b530e914c799fb0603e66d00fcb19af8af544f5f9a4d",
+      "rowDigest": "sha256:402467d3ee587636aeb130f69ec81b5f561c821e92a91304cfa9b3f2d9e72004",
+      "rowId": "urn:ref:atlas-index-row:402467d3ee587636aeb130f69ec81b5f561c821e92a91304cfa9b3f2d9e72004",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.gao_cra_form_codes"
     },
@@ -3496,18 +3496,18 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/gao_cra_form_codes.py",
-          "sha256": "sha256:33f7d0052a024ae55d5060815f291b8f269bfbf3b67f87e0e61bc0313d07707b"
+          "sha256": "sha256:8d0ddd6226ec7159764b7e714fff8a81f17fd82d10c5174a563d93b8b8d3cbfa"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/unified_agenda_codes.py",
-          "sha256": "sha256:abf1a47e2949e43a0aa1e39ba57084d2813deb14dbb0fa86e6b4f08ff6479ead"
+          "sha256": "sha256:122e24f671f7f2f575b8fbceb2213b6a5cd081faecb36894f5a3930650e6161f"
         }
       ],
       "release": null,
       "resourceId": "unified-agenda-gao-cra-priority-mapping",
-      "rowDigest": "sha256:4746684c4ebb7b4ba890c9b85cc25f276c57dc8bada68bd0c70c253f9e14b0ed",
-      "rowId": "urn:ref:atlas-index-row:4746684c4ebb7b4ba890c9b85cc25f276c57dc8bada68bd0c70c253f9e14b0ed",
+      "rowDigest": "sha256:1d63a149cced3d7b7a8caf669ce889bba4b400a365c45705791c29ff84e106e9",
+      "rowId": "urn:ref:atlas-index-row:1d63a149cced3d7b7a8caf669ce889bba4b400a365c45705791c29ff84e106e9",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.unified_agenda_codes"
     },
@@ -3529,13 +3529,13 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/unified_agenda_codes.py",
-          "sha256": "sha256:abf1a47e2949e43a0aa1e39ba57084d2813deb14dbb0fa86e6b4f08ff6479ead"
+          "sha256": "sha256:122e24f671f7f2f575b8fbceb2213b6a5cd081faecb36894f5a3930650e6161f"
         }
       ],
       "release": null,
       "resourceId": "unified-agenda-legal-authority-citations",
-      "rowDigest": "sha256:5cadb315f4185f59d2628bf388a66c4ccb03180e8ef8e527d490a090a0092d3e",
-      "rowId": "urn:ref:atlas-index-row:5cadb315f4185f59d2628bf388a66c4ccb03180e8ef8e527d490a090a0092d3e",
+      "rowDigest": "sha256:dd93ae5fb2594aa662d0328cfdddb48dd5caa2d8bdac5f16ac208651f619a116",
+      "rowId": "urn:ref:atlas-index-row:dd93ae5fb2594aa662d0328cfdddb48dd5caa2d8bdac5f16ac208651f619a116",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.unified_agenda_codes"
     },
@@ -3557,13 +3557,13 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/unified_agenda_codes.py",
-          "sha256": "sha256:abf1a47e2949e43a0aa1e39ba57084d2813deb14dbb0fa86e6b4f08ff6479ead"
+          "sha256": "sha256:122e24f671f7f2f575b8fbceb2213b6a5cd081faecb36894f5a3930650e6161f"
         }
       ],
       "release": null,
       "resourceId": "unified-agenda-native-controls",
-      "rowDigest": "sha256:cbb364d9042d93af9482dd1828eee36b4b556f29da99ed3329621d2064565711",
-      "rowId": "urn:ref:atlas-index-row:cbb364d9042d93af9482dd1828eee36b4b556f29da99ed3329621d2064565711",
+      "rowDigest": "sha256:dea2123db013ab118c5b6b4f2bfc2ad524b0f275f66b8e56ede40b2f2cc56428",
+      "rowId": "urn:ref:atlas-index-row:dea2123db013ab118c5b6b4f2bfc2ad524b0f275f66b8e56ede40b2f2cc56428",
       "semanticRing": "value",
       "sourceModule": "refspec.registry.unified_agenda_codes"
     },
