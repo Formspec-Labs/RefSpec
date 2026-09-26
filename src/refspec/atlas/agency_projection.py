@@ -4,10 +4,11 @@ REF-038 projects regulations.gov docket-ID prefixes from the asserted agency
 identity mapping release. The release owns every identity decision; this module
 adds no mapping and makes no matching decision. It joins asserted mappings and
 metadata abstentions to the five pinned roster releases, then selects labels and
-parent relations already present in those releases.
+parent relations already present in those releases. The reverse lookup reads
+the projection backwards for consumers and asserts nothing.
 
-The builder performs no file or network I/O, normalizes no identifier, and
-never compares names for similarity.
+Neither performs file or network I/O, normalizes an identifier, or compares
+names for similarity.
 """
 
 from __future__ import annotations
@@ -788,6 +789,52 @@ def build_agency_projection(
     )
 
 
+@dataclass(frozen=True, slots=True)
+class AgencyReverseProjection:
+    """Target organizations read back to regulations.gov codes, ordered by organization IRI.
+
+    ``resolved`` maps an organization exactly one projection row selects to that
+    row's code; ``ambiguous`` maps an organization several rows select to all of
+    their codes, sorted, and such an organization is absent from ``resolved``.
+    """
+
+    resolved: Mapping[str, str]
+    ambiguous: Mapping[str, tuple[str, ...]]
+
+    def __post_init__(self) -> None:
+        if not self.resolved.keys().isdisjoint(self.ambiguous):
+            raise ValueError("agency reverse projection resolves an ambiguous organization")
+        if any(len(codes) < 2 for codes in self.ambiguous.values()):
+            raise ValueError("agency reverse projection lists an organization one code selects as ambiguous")
+
+
+def reverse_agency_projection(projection: AgencyProjection) -> AgencyReverseProjection:
+    """Read the projection backwards: an organization resolves only where one code selects it.
+
+    This is a consumer's interpretation, not an assertion. REF-038's release
+    asserts ``atlas:sameEntityAs`` one way, from each regulations.gov resource to
+    its counterpart, and deliberately mints no inverse; nothing here mints one,
+    and the output must never be emitted as an identity claim. An organization
+    is the IRI a row's ``org`` carries: ``urn:ref:federal-register-agency:<id>``,
+    ``urn:ref:ecfr-agency:<slug>`` or ``urn:ref:federal-hierarchy-org:<id>``.
+    Where several codes select one organization (``FR`` and ``OFR`` both select
+    the Office of the Federal Register) no code is the organization's own, so it
+    resolves to nothing and is listed as ambiguous. Unresolved rows select no
+    organization and contribute nothing, closest candidates included.
+    """
+
+    codes_by_org: dict[str, list[str]] = defaultdict(list)
+    for row in projection.rows:
+        codes_by_org[row.org].append(row.source_value)
+    by_org = sorted(codes_by_org.items())
+    return AgencyReverseProjection(
+        resolved=_frozen_mapping({org: codes[0] for org, codes in by_org if len(codes) == 1}),
+        ambiguous=_frozen_mapping(
+            {org: tuple(sorted(codes)) for org, codes in by_org if len(codes) > 1}
+        ),
+    )
+
+
 __all__ = [
     "ADMISSIBLE_ACRONYM_PAIRS",
     "AGENCY_ROSTER_ORDER",
@@ -807,6 +854,8 @@ __all__ = [
     "AgencyProjectionRow",
     "AgencyProjectionSourceRecord",
     "AgencyProjectionUnresolvedRow",
+    "AgencyReverseProjection",
     "build_agency_projection",
     "extract_agency_identifier_claims",
+    "reverse_agency_projection",
 ]

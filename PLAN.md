@@ -55,6 +55,14 @@ Not switched in step 1, each with why (B21 moved only the PDF page reads):
 - Unified Agenda projection: collapses whitespace where RefSpec strips (4,748 records differ, scout 2026-09-24); waits for the step-2 rebuild.
 - OLRC Table III and popular names: independent parsers (B15), switched at the step-2 rebuild; SpicyDocs 0.40.0 removed `iter_table3_chain` and reads an act's absence from the bulk file (`read_table3_bulk_archive`).
 
+## REF-038 reverse lookup (dev19, 2026-09-26)
+
+`reverse_agency_projection()` reads the agency projection backwards for
+spicy-regs decision 56, under an amendment to REF-038: an organization resolves
+only where one code selects it. 311 of the 321 codes reverse; five
+organizations are ambiguous, two codes each. It asserts nothing, so no Atlas
+build or view changes; nothing is open here.
+
 ## Merged, and the one parked item
 
 The Unified Agenda receipt rebuild (move five of the SpicySearch v14 batch)

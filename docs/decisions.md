@@ -2555,6 +2555,8 @@ then verifies that every unchanged mapping names the selected endpoint release.
   identifier census, 321-assertion entity mapping release, pure projection
   builder, producer, portfolio chain, Atlas binding, and Parquet view are
   registered and checked together.
+- **Amended:** 2026-09-26, a consumer-side reverse lookup beside the builder
+  (spicy-regs decision 56); see the amendment at the end of this entry.
 
 **The roster closes REF-034's credential barrier.** The owner supplied a
 `REGULATIONS_GOV_API_KEY`, and the publisher returned 331 records from
@@ -2695,6 +2697,31 @@ fixture check both sides of that invariant. Adding the required corpus case
 moved `fixtures-receipt.json`'s `fixturesDigest` from
 `sha256:6ffa6fc58ba290961b55bcf0428e46482c63ac41d7029f0d011063bcad05a95c`
 to `sha256:6043d5867474942264cc235cde63ec30e43572cb38ecbc565c969909e7ab0938`.
+
+**Amended 2026-09-26 (spicy-regs decision 56): a reverse lookup reads the
+projection backwards and asserts nothing.** `reverse_agency_projection()`, beside
+the builder in `src/refspec/atlas/agency_projection.py`, maps a selected
+organization (the IRI a row's `org` carries, whose suffix is the Federal
+Register agency id, the eCFR slug or the Federal Hierarchy organization id)
+back to a regulations.gov code. An organization resolves only where exactly one
+row selects it; an organization several rows select resolves to nothing and is
+listed as ambiguous with every code; unresolved rows contribute nothing, closest
+candidates included. It is a pure function of the projection, deterministic and
+frozen like the projection. It is a consumer's interpretation, not a claim: the
+release above still asserts one direction and mints no inverse, and the reverse
+lookup must never be emitted as an `atlas:sameEntityAs` assertion; beside the
+forward one, the binding's `dataset.mapping-direction` check would refuse it.
+
+On the pinned projection, 311 of the 321 codes reverse. Five organizations are
+ambiguous, two codes each: the Office of the Federal Register (`FR`, `OFR`,
+an eCFR organization), the Federal Procurement Policy Office (`FPPO`, `OFPP`),
+the Advisory Council on Historic Preservation (`ACHP`, `HPAC`), the Community
+Development Financial Institutions Fund (`CDFI`, `CDFIF`) and the Corporation
+for National and Community Service (`CNCS`, `CORP`). None is a parent
+department: the projection selects each bureau's own organization, so no
+department collects its bureaus' codes. `tests/test_agency_projection.py` pins those counts, a
+round trip for every reversible pair, and a fixture of real rows in which
+`MMA`'s closest candidate, the organization `MMS` selects, stays resolved.
 
 ### REF-039: Two retained validation structures remain acceptable only at the measured corpus scale
 

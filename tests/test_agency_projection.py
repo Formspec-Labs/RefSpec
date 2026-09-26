@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+from collections import Counter
 from pathlib import Path
 
 import pyarrow as pa
@@ -356,3 +357,117 @@ def test_projection_parquet_refuses_changed_manifest_metadata(
             tmp_path,
             {"agencyProjection": metadata},
         )
+
+
+def _projection_of(
+    rows: list[agency_projection.AgencyProjectionRow],
+    unresolved: list[agency_projection.AgencyProjectionUnresolvedRow],
+) -> agency_projection.AgencyProjection:
+    """Assemble a valid projection, coverage and digest included, from chosen real rows."""
+    coverage = agency_projection.AgencyProjectionCoverage(
+        source_value_kind="regulationsGovAgencyId",
+        source_value_count=len(rows) + len(unresolved),
+        resolved_value_count=len(rows),
+        unresolved_value_count=len(unresolved),
+        basis_counts=dict(Counter(row.basis for row in rows)),
+        unresolved_reason_counts=dict(Counter(row.reason for row in unresolved)),
+        rows_with_parent_org=sum(row.parent_org is not None for row in rows),
+        evidence_record_count=len(rows),
+    )
+    content = {
+        "rows": [row.to_dict() for row in rows],
+        "unresolved": [row.to_dict() for row in unresolved],
+        "coverage": coverage.to_dict(),
+    }
+    return agency_projection.AgencyProjection(
+        rows=tuple(rows),
+        unresolved=tuple(unresolved),
+        coverage=coverage,
+        digest=agency_projection._digest(content),
+    )
+
+
+FR_OFFICE = "urn:ref:ecfr-agency:federal-register-office"
+EPA_ORG = "urn:ref:federal-register-agency:145"
+MMS_ORG = "urn:ref:federal-register-agency:289"
+
+
+def test_reverse_projection_resolves_only_a_target_one_code_selects(
+    projection: agency_projection.AgencyProjection,
+) -> None:
+    """Pins one-to-one reversal, many-to-one as ambiguous and absent, and unresolved rows adding nothing."""
+    rows = {row.source_value: row for row in projection.rows}
+    abstentions = {row.source_value: row for row in projection.unresolved}
+    # MMA abstains naming MMS's organization as its closest candidate: were
+    # unresolved rows counted, that organization would turn ambiguous.
+    assert abstentions["MMA"].candidate_resources == (MMS_ORG,)
+    chosen = [rows[code] for code in ("EPA", "FR", "MMS", "OFR")]
+    unresolved = [abstentions["MMA"], abstentions["USC"]]
+
+    reverse = agency_projection.reverse_agency_projection(_projection_of(chosen, unresolved))
+    again = agency_projection.reverse_agency_projection(
+        _projection_of(chosen[::-1], unresolved[::-1])
+    )
+
+    assert list(reverse.resolved.items()) == [(EPA_ORG, "EPA"), (MMS_ORG, "MMS")]
+    assert list(reverse.ambiguous.items()) == [(FR_OFFICE, ("FR", "OFR"))]
+    assert reverse.resolved.get(FR_OFFICE) is None
+    assert list(again.resolved.items()) == list(reverse.resolved.items())
+    assert list(again.ambiguous.items()) == list(reverse.ambiguous.items())
+    with pytest.raises(TypeError):
+        reverse.resolved[FR_OFFICE] = "FR"  # type: ignore[index]
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        reverse.ambiguous = {}  # type: ignore[misc]
+
+
+@pytest.mark.parametrize(
+    ("resolved", "ambiguous", "match"),
+    [
+        ({FR_OFFICE: "FR"}, {FR_OFFICE: ("FR", "OFR")}, "resolves an ambiguous"),
+        ({}, {FR_OFFICE: ("FR",)}, "one code selects"),
+    ],
+)
+def test_reverse_projection_refuses_a_contradictory_reading(
+    resolved: dict[str, str],
+    ambiguous: dict[str, tuple[str, ...]],
+    match: str,
+) -> None:
+    """Pins refusal of an organization both resolved and ambiguous, or ambiguous on a single code."""
+    with pytest.raises(ValueError, match=match):
+        agency_projection.AgencyReverseProjection(resolved=resolved, ambiguous=ambiguous)
+
+
+def test_reverse_projection_of_the_real_projection(
+    projection: agency_projection.AgencyProjection,
+) -> None:
+    """Pins 311 of 321 codes reversible and the five organizations two codes each select."""
+    reverse = agency_projection.reverse_agency_projection(projection)
+
+    assert len(reverse.resolved) == 311
+    assert dict(reverse.ambiguous) == {
+        FR_OFFICE: ("FR", "OFR"),
+        "urn:ref:federal-register-agency:184": ("FPPO", "OFPP"),
+        "urn:ref:federal-register-agency:225": ("ACHP", "HPAC"),
+        "urn:ref:federal-register-agency:78": ("CDFI", "CDFIF"),
+        "urn:ref:federal-register-agency:91": ("CNCS", "CORP"),
+    }
+    assert len(reverse.resolved) + sum(map(len, reverse.ambiguous.values())) == 321
+    assert list(reverse.resolved) == sorted(reverse.resolved)
+    assert list(reverse.ambiguous) == sorted(reverse.ambiguous)
+
+
+def test_every_reversible_pair_round_trips(
+    projection: agency_projection.AgencyProjection,
+) -> None:
+    """Pins that each resolved organization's code projects back onto it and every row lands exactly once."""
+    reverse = agency_projection.reverse_agency_projection(projection)
+    org_by_code = {row.source_value: row.org for row in projection.rows}
+
+    assert all(org_by_code[code] == org for org, code in reverse.resolved.items())
+    for row in projection.rows:
+        in_resolved = reverse.resolved.get(row.org) == row.source_value
+        in_ambiguous = row.source_value in reverse.ambiguous.get(row.org, ())
+        assert in_resolved != in_ambiguous, row.source_value
+    reversed_codes = [*reverse.resolved.values(), *(c for cs in reverse.ambiguous.values() for c in cs)]
+    assert sorted(reversed_codes) == sorted(org_by_code)
+    assert {row.source_value for row in projection.unresolved}.isdisjoint(reversed_codes)
