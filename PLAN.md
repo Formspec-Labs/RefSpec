@@ -37,9 +37,9 @@ modules as test oracles; three expectations move and seven Unified Agenda
 count pins re-adjudicate. Sequence and measurements: SpicyDocs
 `docs/research/consolidation-path-2026-09-22.md`, rows B14 and B21.
 
-The pin moved to SpicyDocs 0.36.0 (dev16) and then 0.39.2 (dev17, 2026-09-26),
-the release DocSpec 0.11.2 and SpicyRegs pin, so one environment holding RefSpec
-and a 0.39.2 consumer resolves one SpicyDocs; nothing new is imported. Step 2's
+The pin moved to SpicyDocs 0.36.0 (dev16), 0.39.2 (dev17) and 0.42.0 (dev18,
+2026-09-26), the release DocSpec 0.11.3 pins, so one environment holding RefSpec
+and a 0.42.0 consumer resolves one SpicyDocs; nothing new is imported. Step 2's
 moves were measured against 0.31.0, and `identifier_shapes`, `citation_grammar`
 and `iri_minting` changed since, so they need measuring again before the switch.
 
@@ -53,7 +53,7 @@ Not switched in step 1, each with why (B21 moved only the PDF page reads):
 - HTML and XML: the registry's `HTMLParser` subclasses and `ElementTree` parses call the stdlib parsers SpicyDocs wraps; `read_html_events` and `parse_xml` return events and trees of another shape, so each is a parser port with its own oracle and mutation battery, not a re-point.
 - PDF: the Federal Register thesaurus (positioned, font-tagged text) and the NRC APS guides (document-information dates) need pypdf features the shared reader does not expose; `tools/verify_atlas_source_fidelity.py` keeps its own reads as the independent verifier.
 - Unified Agenda projection: collapses whitespace where RefSpec strips (4,748 records differ, scout 2026-09-24); waits for the step-2 rebuild.
-- OLRC Table III and popular names: independent parsers (B15), switched at the step-2 rebuild; `iter_table3_chain` is in the vendored bytes (since 0.36.0).
+- OLRC Table III and popular names: independent parsers (B15), switched at the step-2 rebuild; SpicyDocs 0.40.0 removed `iter_table3_chain` and reads an act's absence from the bulk file (`read_table3_bulk_archive`).
 
 ## Merged, and the one parked item
 
