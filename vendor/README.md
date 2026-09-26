@@ -1,17 +1,18 @@
 # Vendored dependencies
 
-`spicy_docs-0.31.0-py3-none-any.whl` supplies shared source readers and
+`spicy_docs-0.36.0-py3-none-any.whl` supplies shared source readers and
 bounded U.S. Code acquisition with validated archive member delivery.
-SHA-256: `87ef3880ca2b79727a0f25d7eedce699c0ec42e2d31527c46bcf424d631e7d5c`.
-Provider source: SpicyDocs `7b65900481461ed70a9b83ca2cee40532a58544f` (the 0.31.0
-release commit on `main`), with Rulespec Artifacts 1.1.1; the same bytes SpicyRegs vendors.
+SHA-256: `7b2c61240c63e76d73a8e2fc3bdf85d9b78e766f1297343ac5f8cf3a1786887c`.
+Provider source: SpicyDocs `b299db90372f3ce96332776f2880d850b1a2994e` (the 0.36.0
+release commit on `main`), with Rulespec Artifacts 1.1.1; the same bytes SpicyRegs
+vendors, and a rebuild from a clean archive of that commit reproduces them.
 RefSpec 0.1.0.dev10 retains snapshot acceptance, normalization and interpretation.
 Its title cache records original HTTP facts; its corpus and annual tools process
 validated members without reopening ZIPs. See [U.S. Code inputs](../docs/uscode-acquisition.md).
 
 Python 3.12, PyArrow 25.0.1 and DuckDB 1.5.5 or later remain unchanged. Existing
 sealed artifacts are unchanged; comparing a new writer to older Parquet bytes
-requires a row comparison. RefSpec 0.1.0.dev15 is qualified with SpicyDocs 0.31.0
+requires a row comparison. RefSpec 0.1.0.dev16 is qualified with SpicyDocs 0.36.0
 and Rulespec Artifacts 1.1.1. Sibling pins move on their own schedule, so read
 each repository's `pyproject.toml` rather than a list here; SpicySearch vendors
 RefSpec in optional groups only, and its runtime does not depend on RefSpec.
@@ -23,12 +24,23 @@ ported from RefSpec's own modules, and the Unified Agenda field-path projection
 (`spicy_docs.sources.unified_agenda.projection`), moved from
 `unified_agenda_editions`. RefSpec does not import these yet: the switch moves
 expectations and Unified Agenda counts, so it waits for a rebuild (see
-[PLAN.md](../PLAN.md)). Every module RefSpec hashes into a receipt is
-byte-identical to 0.26.6, and the only new `Requires-Dist` is the unused
-`courtlistener-local` extra. OLRC Table III's `iter_table3_chain` is NOT in
-these bytes: it landed on SpicyDocs `main` at `a016670`, after the release
-commit and still under the 0.31.0 version string, so adopting it needs a
-new wheel with a new version.
+[PLAN.md](../PLAN.md)). The only new `Requires-Dist` against 0.26.6 is the
+unused `courtlistener-local` extra.
+
+**What 0.36.0 changes for RefSpec.** Its `Requires-Dist` equals 0.31.0's. Of
+the modules RefSpec imports, four changed: `sources.uscode` now ships OLRC
+Table III's `iter_table3_chain`, and an act without a Table III page is a
+retried transport failure that keeps the dropped body rather than a refusal;
+`sources.zyte` moved its shared provider rules into `transport.provider_api`,
+with the names RefSpec imports unchanged; `transport.credentials` makes `CREDENTIAL_PARAMETERS`
+public and lets `scrub_credential` take several keys; `reading.zip_archive`
+gains an optional per-member observer. The Unified Agenda and Federal Register
+Topics receipts hash unchanged modules, so their producer blocks do not move;
+a rebuilt U.S. Code source-credit receipt records new digests for
+`sources.uscode` and `reading.zip_archive`. Since 0.31.0 the grammar, shapes and
+minters RefSpec has not yet imported changed too (`identifier_shapes` most),
+and the table contracts gained cross-table references; RefSpec imports neither
+`spicy_docs.interpretation` nor `spicy_docs.schemas`.
 
 The `acquisition` extra supplies explicit Topics and U.S. Code HTTP routes.
 Imports remain offline. The `pdf-pypdf` extra supplies shared PDF page reading

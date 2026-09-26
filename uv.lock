@@ -524,7 +524,7 @@ wheels = [
 
 [[package]]
 name = "refspec"
-version = "0.1.0.dev15"
+version = "0.1.0.dev16"
 source = { editable = "." }
 dependencies = [
     { name = "backports-zstd" },
@@ -572,7 +572,7 @@ requires-dist = [
     { name = "referencing", specifier = ">=0.37,<1" },
     { name = "rulespec-artifacts", path = "vendor/rulespec_artifacts-1.1.1-py3-none-any.whl" },
     { name = "rulespec-conformance", path = "vendor/rulespec_conformance-0.2.0rc19-py3-none-any.whl" },
-    { name = "spicy-docs", extras = ["acquisition", "pdf-pypdf"], path = "vendor/spicy_docs-0.31.0-py3-none-any.whl" },
+    { name = "spicy-docs", extras = ["acquisition", "pdf-pypdf"], path = "vendor/spicy_docs-0.36.0-py3-none-any.whl" },
     { name = "typing-extensions", specifier = ">=4.12,<5" },
 ]
 
@@ -722,14 +722,14 @@ wheels = [
 
 [[package]]
 name = "spicy-docs"
-version = "0.31.0"
-source = { path = "vendor/spicy_docs-0.31.0-py3-none-any.whl" }
+version = "0.36.0"
+source = { path = "vendor/spicy_docs-0.36.0-py3-none-any.whl" }
 dependencies = [
     { name = "jsonschema" },
     { name = "rulespec-artifacts" },
 ]
 wheels = [
-    { filename = "spicy_docs-0.31.0-py3-none-any.whl", hash = "sha256:87ef3880ca2b79727a0f25d7eedce699c0ec42e2d31527c46bcf424d631e7d5c" },
+    { filename = "spicy_docs-0.36.0-py3-none-any.whl", hash = "sha256:7b2c61240c63e76d73a8e2fc3bdf85d9b78e766f1297343ac5f8cf3a1786887c" },
 ]
 
 [package.optional-dependencies]
