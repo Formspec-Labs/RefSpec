@@ -1,10 +1,10 @@
 # Vendored dependencies
 
-`spicy_docs-0.36.0-py3-none-any.whl` supplies shared source readers and
+`spicy_docs-0.39.2-py3-none-any.whl` supplies shared source readers and
 bounded U.S. Code acquisition with validated archive member delivery.
-SHA-256: `7b2c61240c63e76d73a8e2fc3bdf85d9b78e766f1297343ac5f8cf3a1786887c`.
-Provider source: SpicyDocs `b299db90372f3ce96332776f2880d850b1a2994e` (the 0.36.0
-release commit on `main`), with Rulespec Artifacts 1.1.1; the same bytes SpicyRegs
+SHA-256: `254fbecb17a01067843167512b7a6b34750735f526c9e968b359723e08641e6d`.
+Provider source: SpicyDocs `d6b700324595afa23818d126fa68e01f8977292f` (the 0.39.2
+release commit on `main`), with Rulespec Artifacts 1.1.2; the same bytes SpicyRegs
 vendors, and a rebuild from a clean archive of that commit reproduces them.
 RefSpec 0.1.0.dev10 retains snapshot acceptance, normalization and interpretation.
 Its title cache records original HTTP facts; its corpus and annual tools process
@@ -12,8 +12,8 @@ validated members without reopening ZIPs. See [U.S. Code inputs](../docs/uscode-
 
 Python 3.12, PyArrow 25.0.1 and DuckDB 1.5.5 or later remain unchanged. Existing
 sealed artifacts are unchanged; comparing a new writer to older Parquet bytes
-requires a row comparison. RefSpec 0.1.0.dev16 is qualified with SpicyDocs 0.36.0
-and Rulespec Artifacts 1.1.1. Sibling pins move on their own schedule, so read
+requires a row comparison. RefSpec 0.1.0.dev17 is qualified with SpicyDocs 0.39.2
+and Rulespec Artifacts 1.1.2. Sibling pins move on their own schedule, so read
 each repository's `pyproject.toml` rather than a list here; SpicySearch vendors
 RefSpec in optional groups only, and its runtime does not depend on RefSpec.
 
@@ -41,6 +41,11 @@ a rebuilt U.S. Code source-credit receipt records new digests for
 minters RefSpec has not yet imported changed too (`identifier_shapes` most),
 and the table contracts gained cross-table references; RefSpec imports neither
 `spicy_docs.interpretation` nor `spicy_docs.schemas`.
+
+**What 0.39.2 changes for RefSpec.** Nothing it imports. Since 0.36.0
+SpicyDocs changed bill families, citations, SAM extracts, bill-version codes and
+three bill-table descriptions; 0.39.2 is 0.39.1's code requiring Rulespec
+Artifacts 1.1.2 exactly, its only `Requires-Dist` change.
 
 The `acquisition` extra supplies explicit Topics and U.S. Code HTTP routes.
 Imports remain offline. The `pdf-pypdf` extra supplies shared PDF page reading
@@ -106,19 +111,21 @@ bytes come from, not whether anyone else can get them, so that field stays
 `localUnpublished` until an index exists -- the same event that deletes this
 directory.
 
-**Why a second wheel.** `rulespec_artifacts-1.1.1-py3-none-any.whl` is
+**Why a second wheel.** `rulespec_artifacts-1.1.2-py3-none-any.whl` is
 vendored alongside it because rc19, like rc18, declares a `rulespec-artifacts>=1.0.11`
 floor where rc16 and rc17 declared a hard `==1.0.9`, so 1.0.9 no longer
 satisfies it. That dependency arrived with the shared platform-artifact
 protocol. RefSpec now uses its bounded local blob writer for BILLSTATUS
 captures. The package is also required by rulespec-conformance, and `rulespec-artifacts` is on no index either, so it
 is vendored on the same interim terms and should be deleted at the same
-time. Version 1.1.1 is the exact dependency of SpicyDocs 0.26.6, built from
-Rulespec commit `a3acb04cbfe2cc32a89622a3523da48aa6958348` on 2026-09-22 and shared by the whole stack. Its SHA-256
-digest is `63ad763f5e5f13ddba571225503c6ad7a4aa2bd7ea5d818e209fbf832285c8c8`.
-It adds opt-in DocumentCapture v2 and v1 checker fixes after 1.0.14, and 1.1.1
-ships the repaired platform fixtures; the bounded local blob writer and public
-exports remain.
+time. Version 1.1.2 is the exact dependency of SpicyDocs 0.39.2, built in
+`packages/rulespec-artifacts` from Rulespec's release commit
+`23d5f2d98973b2a7f1bf7ce4c9c7a786a4f369ab` and shared by the whole stack; the same
+procedure reproduces 1.1.1 from `a3acb04`. Its SHA-256 digest is
+`7d547cd432b1d533b93dcfd3802e4a0e179de6e89301fd6faa8bb917b99830ef`.
+It adds opt-in DocumentCapture v2 and v1 checker fixes after 1.0.14; 1.1.2 changes
+only its version and ships platform fixtures that name it, where 1.1.1's named
+1.1.0. The bounded local blob writer and public exports remain.
 
 **What rc19 changed in the contract.** The context declares `oa:XPathSelector`,
 already a bound Core selector class, and the release version; no space widened.
