@@ -755,6 +755,76 @@ def test_a_missing_or_unparseable_receipt_falls_back_to_the_rebuild(tmp_path: Pa
     assert "rebuilt and compared" in missing.stdout
 
 
+def _sandboxed_make_fixtures(root: Path) -> subprocess.CompletedProcess[str]:
+    """Run `make atlas-v3-fixtures`, every tier's prerequisite, inside the sandboxed copy."""
+
+    shutil.copy2(MAKEFILE, root / "Makefile")
+    return subprocess.run(
+        ["make", "--no-print-directory", "atlas-v3-fixtures"], cwd=root, check=False, capture_output=True, text=True
+    )
+
+
+def _stale_the_case_tree(fixtures: Path) -> tuple[Path, bytes, Path]:
+    """Edit one byte of a valid case and add a case another commit had; return the edited file, its bytes, the stray."""
+
+    edited = min((fixtures / "valid").rglob("atlas-acceptance.json"))
+    original = edited.read_bytes()
+    edited.write_bytes(original.replace(b"{", b"{ ", 1))
+    stray = fixtures / "invalid" / "a-case-another-commit-had" / "atlas-manifest.json"
+    stray.parent.mkdir()
+    stray.write_bytes(b"{}\n")
+    return edited, original, stray
+
+
+def test_a_stale_or_mutated_case_file_is_not_the_tree_the_receipt_pins(tmp_path: Path, monkeypatch) -> None:
+    """Pin that `make atlas-v3-fixtures`' question sees one edited byte under valid/ and one stray file under invalid/.
+
+    Until 2026-09-27 the target asked only whether `valid/` existed, so the
+    suite at another commit read the old commit's cases. The clean copy is the
+    control, and the make run shows the target answers it without a rebuild.
+    """
+
+    import build_fixtures as atlas_fixtures
+
+    root = _sandboxed_repository(tmp_path)
+    fixtures = root / "bindings" / "atlas" / "3.1" / "fixtures"
+    monkeypatch.setattr(atlas_fixtures, "FIXTURE_ROOT", fixtures)
+    monkeypatch.setattr(atlas_fixtures, "GENERATED_ROOTS", (fixtures / "valid", fixtures / "invalid"))
+    monkeypatch.setattr(atlas_fixtures, "RECEIPT_PATH", fixtures.parent / "fixtures-receipt.json")
+    assert atlas_fixtures._tree_is_the_receipts()
+
+    clean = _sandboxed_make_fixtures(root)
+    assert clean.returncode == 0, clean.stderr
+    assert "are the tree fixtures-receipt.json pins" in clean.stdout
+    assert "rebuilding" not in clean.stdout
+
+    edited, original, stray = _stale_the_case_tree(fixtures)
+    assert not atlas_fixtures._tree_is_the_receipts()
+    edited.write_bytes(original)
+    assert not atlas_fixtures._tree_is_the_receipts(), "the stray alone"
+    stray.unlink()
+    stray.parent.rmdir()
+    assert atlas_fixtures._tree_is_the_receipts()
+
+
+@pytest.mark.slow
+def test_make_atlas_v3_fixtures_rebuilds_a_stale_tree_to_the_receipts(tmp_path: Path) -> None:
+    """Pin that the tiers' prerequisite replaces a stale case tree with the one the receipt pins (~20s rebuild)."""
+
+    root = _sandboxed_repository(tmp_path)
+    fixtures = root / "bindings" / "atlas" / "3.1" / "fixtures"
+    edited, original, stray = _stale_the_case_tree(fixtures)
+
+    result = _sandboxed_make_fixtures(root)
+
+    assert result.returncode == 0, result.stderr
+    assert "rebuilding" in result.stdout
+    assert "matched the committed receipt" in result.stdout
+    assert edited.read_bytes() == original
+    assert not stray.parent.exists()
+    assert _sandboxed_make_fixtures(root).stdout.count("are the tree fixtures-receipt.json pins") == 1
+
+
 def test_tool_edits_do_not_move_the_contract_digest_but_ontology_edits_do() -> None:
     """Pin that the three contract inputs reissue contractDigest while tool edits are refused as not in the contract.
 

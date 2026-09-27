@@ -6224,6 +6224,22 @@ def _recorded_receipt() -> dict[str, Any] | None:
         return None
 
 
+def _tree_is_the_receipts() -> bool:
+    """Whether the case tree on disk is the one the committed receipt pins, by one streamed digest over it.
+
+    The suite's question (``--materialize``), narrower than ``--check``'s: not
+    whether the receipt still describes its inputs, only whether these files
+    are the ones it names.
+    """
+
+    recorded = _recorded_receipt()
+    return (
+        recorded is not None
+        and all(root.is_dir() for root in GENERATED_ROOTS)
+        and recorded.get("fixturesDigest") == _fixtures_tree_digest(FIXTURE_ROOT)
+    )
+
+
 def _receipt_is_current() -> bool:
     """Fail closed: any doubt at all returns False and the full rebuild runs."""
 
@@ -6342,16 +6358,31 @@ def _derive_shacl_components(
         shutil.rmtree(probe_root, ignore_errors=True)
 
 
-def build(*, check: bool) -> None:
-    if check and _receipt_is_current():
+def build(*, check: bool, materialize: bool = False) -> None:
+    """Write the corpus, prove it (``check``), or make the gitignored case tree the receipt's (``materialize``).
+
+    ``materialize`` is ``make atlas-v3-fixtures``, run before every tier that
+    reads the tree. The tree survives a checkout of another commit, so it
+    rebuilds whenever the files on disk are not the ones the committed receipt
+    pins, and proves the rebuild against that receipt before replacing them.
+    """
+
+    if materialize:
+        if _tree_is_the_receipts():
+            print("Atlas 3.1 fixtures on disk are the tree fixtures-receipt.json pins")
+            return
+        print("Atlas 3.1 fixtures on disk are absent or not the tree fixtures-receipt.json pins; rebuilding")
+    elif check and _receipt_is_current():
         print(
             f"Atlas 3.1 fixtures are current: receipt matches {len(_receipt_inputs())} inputs and the committed corpus"
         )
         return
     # Has anyone built the case tree here yet? `--check` compares against it
     # when it exists and materializes it when it does not, which is what makes
-    # a cold checkout self-healing without a second entry point.
-    materialized = any(root.is_dir() for root in GENERATED_ROOTS)
+    # a cold checkout self-healing without a second entry point. `materialize`
+    # never compares against it: a tree the receipt does not pin is the stale
+    # cache being replaced, so the receipt is the comparand.
+    materialized = not materialize and any(root.is_dir() for root in GENERATED_ROOTS)
     output_root = FIXTURE_ROOT
     temporary_root = output_root.parent / ".atlas-3.1-fixtures.tmp"
     if temporary_root.exists():
@@ -6393,15 +6424,13 @@ def build(*, check: bool) -> None:
             distribution_id=f"urn:ref:atlas-fixture:distribution:{name}",
         )
 
-    expected_files = {
-        path.relative_to(temporary_root): path.read_bytes() for path in temporary_root.rglob("*") if path.is_file()
-    }
-    current_files = (
-        {path.relative_to(output_root): path.read_bytes() for path in output_root.rglob("*") if path.is_file()}
-        if output_root.exists()
-        else {}
-    )
     if check and materialized:
+        expected_files = {
+            path.relative_to(temporary_root): path.read_bytes() for path in temporary_root.rglob("*") if path.is_file()
+        }
+        current_files = {
+            path.relative_to(output_root): path.read_bytes() for path in output_root.rglob("*") if path.is_file()
+        }
         shutil.rmtree(temporary_root)
         if current_files != expected_files:
             missing = sorted(str(path) for path in expected_files.keys() - current_files.keys())
@@ -6419,10 +6448,11 @@ def build(*, check: bool) -> None:
         print(f"Atlas 3.1 fixtures rebuilt and compared: {len(expected_files)} files identical")
         return
 
-    # Cold checkout: the case tree is generated and gitignored, so there is
-    # nothing on disk to compare against. The committed receipt is the
-    # comparand instead -- the rebuild must reproduce its `fixturesDigest`
-    # before the tree is materialized for the validator and the suite to read.
+    # Cold checkout, or a tree `materialize` is replacing: nothing on disk is a
+    # comparand. The committed receipt is instead -- the rebuild must reproduce
+    # its `fixturesDigest` before the tree is materialized for the validator
+    # and the suite to read.
+    file_count = sum(1 for path in temporary_root.rglob("*") if path.is_file())
     recorded_digest = None
     if check:
         recorded = _recorded_receipt()
@@ -6435,40 +6465,49 @@ def build(*, check: bool) -> None:
                 f"{built_digest} but fixtures-receipt.json records {recorded_digest}. "
                 "Run build_fixtures.py and commit the receipt."
             )
+        # `corpus.json` is tracked: an edit to it is `--check`'s to report,
+        # never the suite's prerequisite's to undo.
+        committed_corpus = output_root / "corpus.json"
+        if materialize and committed_corpus.is_file() and committed_corpus.read_bytes() != corpus_bytes:
+            shutil.rmtree(temporary_root)
+            raise SystemExit(
+                "fixtures/corpus.json is not the corpus fixtures-receipt.json pins; "
+                "run make check-generated to see why"
+            )
 
     output_root.mkdir(parents=True, exist_ok=True)
     for generated_root in GENERATED_ROOTS:
         if generated_root.exists():
             shutil.rmtree(generated_root)
-    for path in list(output_root.glob("corpus.json")):
-        path.unlink()
-    for source in sorted(temporary_root.rglob("*")):
-        relative = source.relative_to(temporary_root)
-        target = output_root / relative
-        if source.is_dir():
-            target.mkdir(parents=True, exist_ok=True)
-        else:
-            target.write_bytes(source.read_bytes())
-    shutil.rmtree(temporary_root)
+    # Renamed into place, not copied: the digest above was the one read.
+    for source in temporary_root.iterdir():
+        source.replace(output_root / source.name)
+    temporary_root.rmdir()
     if check and recorded_digest is not None:
         # The committed receipt already pins exactly these bytes, so leave it
         # alone: rewriting it here would dirty a checked-in file on every cold
         # build for no new information.
-        print(f"Atlas 3.1 fixtures materialized and matched the committed receipt: {len(expected_files)} files")
+        print(f"Atlas 3.1 fixtures materialized and matched the committed receipt: {file_count} files")
         return
     RECEIPT_PATH.write_bytes(atlas_validate.canonical_json_bytes(_current_receipt()))
-    print(f"Atlas 3.1 fixtures written: {len(expected_files)} files, receipt over {len(_receipt_inputs())} inputs")
+    print(f"Atlas 3.1 fixtures written: {file_count} files, receipt over {len(_receipt_inputs())} inputs")
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--check", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--check", action="store_true", help="prove the committed corpus and receipt current")
+    mode.add_argument(
+        "--materialize",
+        action="store_true",
+        help="rebuild the case tree only if it is not the one fixtures-receipt.json pins",
+    )
     return parser
 
 
 def main(argv: Iterable[str] | None = None) -> int:
     args = _parser().parse_args(list(argv) if argv is not None else None)
-    build(check=args.check)
+    build(check=args.check or args.materialize, materialize=args.materialize)
     return 0
 
 

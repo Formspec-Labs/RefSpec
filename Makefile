@@ -33,13 +33,12 @@ generate:
 	uv run --no-project --with-requirements bindings/atlas/3.1/requirements.txt \
 		python bindings/atlas/3.1/tools/build_fixtures.py
 
-# The last step here also MATERIALIZES the Atlas 3.0 case tree. Those 8,339
-# files are generated and gitignored, so on a cold checkout that rebuild writes
-# them and proves them against the committed `fixtures-receipt.json`; on a warm
-# one the receipt answers in ~1.5s. `test` lists this target before
-# `test-package` for exactly that reason -- four test modules read case
-# directories directly.
-check-generated:
+# The prerequisite first makes the gitignored Atlas 3.0 case tree the one the
+# committed `fixtures-receipt.json` pins, so the last step compares the builder
+# with the receipt's tree, not with whatever an earlier checkout left on disk
+# (which used to fail here as "fixtures differ"); on a warm tree the receipt
+# answers in ~0.5s. Four test modules read case directories directly.
+check-generated: atlas-v3-fixtures
 	python3 tools/generate_model.py --check
 	uv run python tools/generate_crs_source_concept_releases.py --check
 	uv run python tools/generate_resource_catalog.py --check
@@ -72,16 +71,17 @@ check-generated:
 # ordering.
 test: lint lint-rdf-strict check-generated audit-registry-inventory test-json-binding test-package test-slow
 
-# Build the Atlas 3.0 case tree if, and only if, it is not there. `--check`
-# both builds and proves (against `fixtures-receipt.json`), so the cold path
-# gets its ~9s build and the warm path pays one directory test. Anything that
-# reads `bindings/atlas/3.1/fixtures/valid|invalid` should depend on this.
+# Make the Atlas 3.0 case tree the one `fixtures-receipt.json` pins. The tree is
+# generated and gitignored, so it survives a checkout of another commit; until
+# 2026-09-27 this target built it only when `valid/` was missing, and the suite
+# at another commit read the old commit's cases. `--materialize` hashes the tree
+# on disk once (~0.5s warm) and rebuilds only when that digest is not the
+# receipt's (~20s), proving the rebuild against the receipt before replacing
+# the tree. Anything that reads `bindings/atlas/3.1/fixtures/valid|invalid`
+# should depend on this.
 atlas-v3-fixtures:
-	@if [ ! -d bindings/atlas/3.1/fixtures/valid ]; then \
-		echo "Atlas 3.0 fixtures absent (generated, gitignored); building once"; \
-		uv run --no-project --with-requirements bindings/atlas/3.1/requirements.txt \
-			python bindings/atlas/3.1/tools/build_fixtures.py --check; \
-	fi
+	uv run --no-project --with-requirements bindings/atlas/3.1/requirements.txt \
+		python bindings/atlas/3.1/tools/build_fixtures.py --materialize
 
 # First, because it is the cheapest gate in the pipeline (~1s against ~1.7min).
 # The rule set is stated in pyproject.toml and the ruff version is pinned there.
