@@ -2418,6 +2418,25 @@ English-only, but remain non-empty, explicitly language-tagged, canonical
 lowercase BCP 47 literals with at most one preferred label per language.
 Definitions and notes remain English-only.
 
+**Shape correction, 2026-09-27.** The resource shape still limited
+`skosxl:prefLabel` to one node in total, contradicting this decision, the
+binding README and both the producer and independent label checks. The pinned
+UMTHES response `records/_00000013.nt` demonstrates the difference: the same
+concept publishes `"Abbau"@de` and `"degradation"@en`, alongside separately
+marked alternative labels and broader concepts. Neither preferred label is
+an alternative spelling or a label borrowed from its broader concept.
+The shape now checks `sh:uniqueLang` on the preferred labels' literal forms.
+The old cardinality clause remains a test-only oracle: distinct-language
+preferred labels are the sole intended acceptance change. Distinct literals
+with the same language still fail SHACL; the linear label-integrity check
+counts label nodes before deduplicating literal values, so two nodes with an
+identical preferred literal remain refused too. Role disjointness stays
+unchanged. The corpus tests both cases and two preferred languages on one
+resource; its older
+`multilingual-label` case changed one label's language and could not detect
+this defect. This correction changes the binding digest and bounded-release
+pins, not publisher inputs or the adopted language policy.
+
 **OCLC and the Publications Office.** OCLC's pinned FAST bulk is licensed under
 the **“Open Data Commons Attribution License (ODC-By) v1.0.”** It contains
 935,540 admitted topical relations or mappings: 311,890 `schema:sameAs`,
@@ -6093,3 +6112,12 @@ The existing contract-edit test now covers the profile map. Restoring the
 file digests to `indexDigest` fails all three new tests (measured). By hand,
 `make contract-dev` printed the same pair before and after the module comment
 and `make generate`, which moved only that module and the index.
+
+**Later moves.** One line each, with the change that moved the pair.
+
+- The per-language preferred-label shape (`atlas.shacl.ttl`, a contract
+  file) and its new conformance cases (`fixtures/corpus.json`, whose digest
+  the acceptance receipt records and the manifest pins as a member):
+  `5344028b…` / `c792a2f9…` (manifest / view). Measured on dev22 one file at
+  a time: the shape alone gives `a0e51c56…` / `b2dd370a…`, the corpus alone
+  `76c7cbd5…` / `c7dba413…`.

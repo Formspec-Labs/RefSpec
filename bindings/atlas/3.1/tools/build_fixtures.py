@@ -3510,6 +3510,19 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         fixture.asserted.add((label, SKOSXL.literalForm, Literal("Agence exemplaire", lang="fr")))
         fixture.projection = atlas_validate._expected_projection(fixture.asserted)
 
+    def multilingual_preferred_labels(fixture: Fixture) -> None:
+        # REF-037 permits one preferred label per language on the SAME resource.
+        # The multilingual-label case changes a language but never adds a label,
+        # so it cannot catch a stale resource-wide sh:maxCount 1.
+        resource = URIRef("urn:ref:atlas-fixture:resource:subject-c")
+        label = URIRef("urn:ref:atlas-fixture:label:subject-c:preferred:de")
+        fixture.asserted.add((resource, SKOSXL.prefLabel, label))
+        fixture.asserted.add((label, RDF.type, SKOSXL.Label))
+        fixture.asserted.add((label, SKOSXL.literalForm, Literal("Verwaltungsrecht", lang="de")))
+        for predicate in (ATLAS.inRelease, ATLAS.sourceRecord):
+            fixture.asserted.add((label, predicate, next(fixture.asserted.objects(resource, predicate))))
+        fixture.projection = atlas_validate._expected_projection(fixture.asserted)
+
     def non_english_definition(fixture: Fixture) -> None:
         resource = next(fixture.asserted.subjects(ATLAS.definition, None))
         definition = next(fixture.asserted.objects(resource, ATLAS.definition))
@@ -3579,6 +3592,15 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         fixture.asserted.add((label, SKOSXL.literalForm, Literal("Duplicate", lang="en")))
         fixture.asserted.add((label, ATLAS.inRelease, release))
         fixture.asserted.add((label, ATLAS.sourceRecord, source))
+
+    def duplicate_preferred_literal(fixture: Fixture) -> None:
+        resource = URIRef("urn:ref:atlas-fixture:resource:subject-c")
+        original = next(fixture.asserted.objects(resource, SKOSXL.prefLabel))
+        label = URIRef("urn:ref:atlas-fixture:label:duplicate-literal:en")
+        fixture.asserted.add((resource, SKOSXL.prefLabel, label))
+        for predicate, value in list(fixture.asserted.predicate_objects(original)):
+            fixture.asserted.add((label, predicate, value))
+        fixture.projection = atlas_validate._expected_projection(fixture.asserted)
 
     def missing_evidence(fixture: Fixture) -> None:
         assertion = next(fixture.asserted.subjects(RDF.type, ATLAS.MappingAssertion))
@@ -5348,12 +5370,19 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             multilingual_label,
         ),
         (
+            "multilingual-preferred-labels",
+            ["rdf", "shacl", "dataset"],
+            "valid",
+            multilingual_preferred_labels,
+        ),
+        (
             "non-english-definition",
             ["shacl"],
             "shacl.data",
             non_english_definition,
         ),
         ("duplicate-preferred-language", ["shacl"], "shacl.data", duplicate_preferred_language),
+        ("duplicate-preferred-literal", ["dataset"], "dataset.label-integrity", duplicate_preferred_literal),
         ("mapping-missing-evidence", ["shacl", "dataset"], "shacl.data", missing_evidence),
         (
             "cross-ring-missing-evidence",

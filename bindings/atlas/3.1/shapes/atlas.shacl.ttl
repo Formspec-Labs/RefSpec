@@ -340,11 +340,15 @@ atlas:AtlasResourceShape
   ] ;
   sh:property [
     sh:path skosxl:prefLabel ;
-    sh:maxCount 1 ;
     sh:nodeKind sh:IRI ;
     sh:class skosxl:Label ;
     sh:disjoint skosxl:altLabel ;
     sh:disjoint skosxl:hiddenLabel
+  ] ;
+  # REF-037: preferred labels are unique per language, not per resource.
+  sh:property [
+    sh:path ( skosxl:prefLabel skosxl:literalForm ) ;
+    sh:uniqueLang true
   ] ;
   sh:property [
     sh:path skosxl:altLabel ;

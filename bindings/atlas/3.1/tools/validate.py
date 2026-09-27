@@ -1083,6 +1083,7 @@ REQUIRED_CORPUS_CASES = frozenset(
         "derived-reflexive-output",
         "derived-rescinded-input",
         "duplicate-preferred-language",
+        "duplicate-preferred-literal",
         "eurovoc-microthesaurus-domain-broader",
         "eurovoc-microthesaurus-domain-duplicates-asserted",
         "eurovoc-microthesaurus-domain-malformed-inputs",
@@ -1167,6 +1168,7 @@ REQUIRED_CORPUS_CASES = frozenset(
         "naked-projected-mapping",
         "no-derived",
         "multilingual-label",
+        "multilingual-preferred-labels",
         "multiple-assertions-one-projection",
         "multiple-evidence-one-assertion",
         "multiple-evidence-stale-count",
@@ -6845,6 +6847,7 @@ def _check_label_integrity(
         source_records = set(facts.objects(resource, ATLAS.sourceRecord))
         labels_by_role: dict[URIRef, set[URIRef]] = {}
         literals_by_role: dict[URIRef, set[Literal]] = {}
+        preferred_languages: list[str] = []
         for role in role_predicates:
             labels: set[URIRef] = set()
             literals: set[Literal] = set()
@@ -6873,11 +6876,12 @@ def _check_label_integrity(
                 )
                 if not isinstance(literal, Literal):
                     _fail("dataset.label-integrity", f"{label} literalForm is not a literal")
+                if role == SKOSXL.prefLabel:
+                    preferred_languages.append((literal.language or "").lower())
                 literals.add(literal)
             labels_by_role[role] = labels
             literals_by_role[role] = literals
 
-        preferred_languages = [(literal.language or "").lower() for literal in literals_by_role[SKOSXL.prefLabel]]
         if len(preferred_languages) != len(set(preferred_languages)):
             _fail(
                 "dataset.label-integrity",
