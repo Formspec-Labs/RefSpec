@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 from typing import NoReturn
 
@@ -53,6 +54,45 @@ def tier_of(item: pytest.Item) -> str:
     if item.get_closest_marker("slow") or item.get_closest_marker("release_tier"):
         return "slow"
     return "fast"
+
+
+#: The variables that tell git WHICH repository, index, object store, namespace or
+#: config file to use. Run from a linked worktree, `git rebase --exec` exports
+#: GIT_DIR=<main>/.git/worktrees/<name> (git 2.50, measured 2026-09-27), whose
+#: config is the main checkout's, and GIT_DIR outranks `git -C`: a test's
+#: `git -C <tmp> config` or `commit` then writes into the caller's repository,
+#: as one wrote into this repository's `.git/config` that day. Named rather
+#: than every ``GIT_*``, so GIT_TRACE, GIT_SSH and GIT_EDITOR, which choose no
+#: repository, still reach a developer's debugging run.
+GIT_REPOSITORY_VARIABLES = (
+    "GIT_DIR",
+    "GIT_WORK_TREE",
+    "GIT_INDEX_FILE",
+    "GIT_COMMON_DIR",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    "GIT_NAMESPACE",
+    "GIT_PREFIX",
+    "GIT_CONFIG",
+    "GIT_CONFIG_GLOBAL",
+    "GIT_CONFIG_SYSTEM",
+)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _no_inherited_git_repository() -> Iterator[None]:
+    """Run the whole session with no inherited git repository, so every git call answers for the directory it names.
+
+    What this cannot see: a git call made before the first test's setup, at
+    import or collection time; none exists today. tests/test_git_environment.py
+    proves it in a subprocess whose parent environment points GIT_DIR at a
+    throwaway repository.
+    """
+
+    with pytest.MonkeyPatch.context() as patch:
+        for name in GIT_REPOSITORY_VARIABLES:
+            patch.delenv(name, raising=False)
+        yield
 
 
 def missing_pinned_input(reason: str) -> NoReturn:
