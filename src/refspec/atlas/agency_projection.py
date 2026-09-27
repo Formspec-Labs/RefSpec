@@ -478,7 +478,9 @@ def _preferred_label(resource: RegistryResource) -> str:
     return labels[0]
 
 
-def _parent_by_subject(release: RegistryRelease) -> dict[str, str]:
+def parent_by_subject(release: RegistryRelease) -> dict[str, str]:
+    """Each resource's one publisher-stated parent in its own roster; raises on a second parent or an outside one."""
+
     parents: dict[str, str] = {}
     resource_iris = {resource.iri for resource in release.resources}
     for relation in release.relations:
@@ -634,7 +636,7 @@ def build_agency_projection(
         key: _resources_by_iri(by_key[key]) for key in AGENCY_ROSTER_RELEASE_KEYS
     }
     parents = {
-        key: _parent_by_subject(by_key[key]) for key in AGENCY_ROSTER_RELEASE_KEYS
+        key: parent_by_subject(by_key[key]) for key in AGENCY_ROSTER_RELEASE_KEYS
     }
     releases_by_atlas_iri = {
         release.atlas_release_iri: release for release in by_key.values()
@@ -857,5 +859,6 @@ __all__ = [
     "AgencyReverseProjection",
     "build_agency_projection",
     "extract_agency_identifier_claims",
+    "parent_by_subject",
     "reverse_agency_projection",
 ]

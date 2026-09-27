@@ -47,8 +47,8 @@
     "refspec.registry.uslm",
     "refspec.registry.xml_text"
   ],
-  "indexDigest": "sha256:2426e505a424daa1dcd0944c6d5af834b2a69ad0e7599c6563b2691c430253e0",
-  "indexId": "urn:ref:atlas-index:2426e505a424daa1dcd0944c6d5af834b2a69ad0e7599c6563b2691c430253e0",
+  "indexDigest": "sha256:382904ac0b4be705b935d4177495acca25b8dea609fe094a6f6d4cc52d09839e",
+  "indexId": "urn:ref:atlas-index:382904ac0b4be705b935d4177495acca25b8dea609fe094a6f6d4cc52d09839e",
   "nonAuthorizing": true,
   "recordedAt": "2026-09-21T00:00:00Z",
   "resourceCatalogDigest": "sha256:51f9d1085b5eabc35713c5d10fb1c6c4c6da50b09bf31e51da97b2abce8cf2c8",
@@ -3122,7 +3122,7 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_entity.py",
-          "sha256": "sha256:1fa6ce1ac59bde82ee750a8f0938566c56a2aeb79ae75d9e773abb58d8b4dde4"
+          "sha256": "sha256:ab8d7f83dd629d3426782fe1659ad69c1169adb7307bb643879d8f8d5ef242b8"
         },
         {
           "kind": "sourceObservation",
@@ -3132,8 +3132,8 @@
       ],
       "release": null,
       "resourceId": "regulations-gov-agency-identity",
-      "rowDigest": "sha256:52944b1aa7ec304a9363201c51369bfce0a5d86bc75eeaef41a38ce9880935ba",
-      "rowId": "urn:ref:atlas-index-row:52944b1aa7ec304a9363201c51369bfce0a5d86bc75eeaef41a38ce9880935ba",
+      "rowDigest": "sha256:f6272aa6020a5758f34d95c057b737b460751591eae4d82d7bdddc751a2bc324",
+      "rowId": "urn:ref:atlas-index-row:f6272aa6020a5758f34d95c057b737b460751591eae4d82d7bdddc751a2bc324",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.regulations_gov_agencies"
     },

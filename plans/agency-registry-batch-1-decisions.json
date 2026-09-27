@@ -1,0 +1,166 @@
+{
+  "schema_version": "refspec-agency-registry-batch-1-decisions/2",
+  "reviewer_iri": "urn:ref:reviewer:refspec-owner",
+  "decisions": {
+    "event:fr150": {
+      "answer": "accept",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:356837bb8a866841611c316cfb2a027b03f46059fad62d7a018248841f07d2af",
+      "channel": "questionTool",
+      "note": "Research 2026-09-26 confirmed: 67 FR 20630 states the rule is effective 2002-04-18, the date of Amendment 3 to DOO 50-1."
+    },
+    "event:fr232": {
+      "answer": "accept-every-row",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:920b5dbfae9ff3e0661dacbe13ca061c416f53cada7150afe83429e999f4c692",
+      "channel": "questionTool"
+    },
+    "event:fr259": {
+      "answer": "accept",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:c98c04fb57995b4757dd03bce11aa10f988fab7d1db5711320cf0e2b536ec998",
+      "channel": "questionTool",
+      "note": "2008-11-21, the roster's stated change date, chosen over the 2008-12-22 CFR-heading date."
+    },
+    "event:fr404": {
+      "answer": "accept",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:33b405f386f33bc77f251ae3a61ae7ec15f78b712797e60910280aa3cc1c7f4e",
+      "channel": "questionTool",
+      "note": "Research 2026-09-26 confirmed: Secretary's Order 1-2003 is effective on publication, 2003-02-03."
+    },
+    "event:fr510": {
+      "answer": "accept-every-row",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:3285f1f2d21f2ffe39a5c090be8fcfc72c9ea544bc1d72eaee2ceaba965a11f2",
+      "channel": "questionTool"
+    },
+    "event:fr543": {
+      "answer": "accept-every-row",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:a0a34a81fc975917a74d4f9df898e4f6ff5b98c285ee0868384c8ddbe90a0083",
+      "channel": "questionTool"
+    },
+    "event:fr559": {
+      "answer": "accept",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:07155f72952462546e26b7d54aa69fd885be51e0eebf758ada7a88b2e4853ab8",
+      "channel": "questionTool",
+      "note": "Kept the order's own date, 2001-06-29, over the 2001-07-01 that secondary records (66 FR 38447; CMS biographies) call effective."
+    },
+    "event:fr564": {
+      "answer": "1",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:b6c4a424a1b26378d9223dccecde2d3f8febb54cf25ad571517f71e64aa67b61",
+      "channel": "questionTool"
+    },
+    "event:fr96": {
+      "answer": "accept-every-row",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:fa18fe419e2d525c745b58c7aa9ff90e9b3075292eceeaef92048f7c428bdc28",
+      "channel": "questionTool"
+    },
+    "no-fr-bridge:regs:CISA": {
+      "answer": "confirm",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:1d829cd829c7205639a448d1b64c7f981eab484ba1e4384e94c04ed3834a38f6",
+      "channel": "questionTool"
+    },
+    "same:fr118:ecfr:economic-analysis-bureau": {
+      "answer": "yes",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:d6337973959b633bc77ab4dbfced7bd54bd171c39f1a9dd0cbc0eafc4b99165e",
+      "channel": "questionTool"
+    },
+    "same:fr136:ecfr:energy-department": {
+      "answer": "yes",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:45fb22665147ceca9843ab9946c361de9ae768a4c6d96618feced2ac41f61c8b",
+      "channel": "questionTool"
+    },
+    "same:fr151:ecfr:export-import-bank": {
+      "answer": "2",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:8098a457be196e15c109f06682a7e64e98d6f4ee4fa898e75f2d1b7197da1748",
+      "channel": "questionTool"
+    },
+    "same:fr186:ecfr:federal-register-office": {
+      "answer": "yes",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:ffc8ab24080790b482b24128506e0bb4ce49158ffba82bad01aeaef2efe98455",
+      "channel": "questionTool"
+    },
+    "same:fr244:fh:100006936": {
+      "answer": "yes",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:8b92a7b43ceef6bbf9061b4ac7bb3032aba799a40565ad05160ecbf5897ea292",
+      "channel": "questionTool"
+    },
+    "same:fr245:fh:100004455": {
+      "answer": "yes",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:e382ea673b6109651dcf83c2c6de5d65f5d6ad46aad9c425b20e47abd1bb373f",
+      "channel": "questionTool"
+    },
+    "same:fr255:ecfr:international-boundary-and-water-commission-united-states-and-mexico": {
+      "answer": "confirm",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:1ed962cf1a958d1e5f510d847a4859d63d4d75c9923901cf296f740104e09510",
+      "channel": "questionTool"
+    },
+    "same:fr271:ecfr:labor-department": {
+      "answer": "yes",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:948eb955087fc79aa73a0f535412385e4641feaafe5328355f58d476adebb6c1",
+      "channel": "questionTool"
+    },
+    "same:fr277:ecfr:library-of-congress": {
+      "answer": "yes",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:ab8e33fcb6c86e1756e5287b5dc0fd2d50396d1cee51b54949a89be813ea8a62",
+      "channel": "questionTool"
+    },
+    "same:fr296:fh:300000070": {
+      "answer": "1",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:37e122e07a9f0542ec8c4ba4565b88318426508902d521a3d6a982219c575afb",
+      "channel": "questionTool"
+    },
+    "same:fr409:ecfr:postal-regulatory-commission": {
+      "answer": "yes",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:07c30ec02a64ec49c9960c67cc03d7f44a806b56cdf1c2a5f6db474385a229fe",
+      "channel": "questionTool"
+    },
+    "same:fr4:ecfr:african-development-foundation": {
+      "answer": "yes",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:5f47df2bcc29a48cf9251000b561b44a7008238ae40251c4f94c93bf4ad7dede",
+      "channel": "questionTool"
+    },
+    "same:fr503:fh:100012075": {
+      "answer": "yes",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:29a4c8f57806cec928f0441637e6f1e79e30818ffe8b212ff549cf7635669469",
+      "channel": "questionTool"
+    },
+    "same:fr587:fh:100525875": {
+      "answer": "yes",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:63de839e25b54e8c15e8a3cb6d997df5dd83545c5f2a5e9578ea67360575ed2c",
+      "channel": "questionTool"
+    },
+    "same:fr603:ecfr:investment-security-office": {
+      "answer": "yes",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:1f63e7d636f6f8a9a60a60d904e1a7d207b23c8a9dc823225fdaba3ebc515cbf",
+      "channel": "questionTool"
+    },
+    "same:fr88:ecfr:copyright-royalty-board": {
+      "answer": "yes",
+      "decided_on": "2026-09-26",
+      "content_digest": "sha256:e1845dec02312895a961975b02de375478c3d54b362e6f6888365e9f8a5cc270",
+      "channel": "questionTool"
+    }
+  }
+}

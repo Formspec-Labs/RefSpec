@@ -17,7 +17,6 @@ from typing import Any, Literal, cast
 from urllib.parse import quote
 
 from refspec.atlas import agency_projection
-from refspec.atlas.v3_registry_rosters import ATLAS_PARENT_ENTITY
 from refspec.atlas.v3_source_data import (
     RegistryInputPin,
     RegistryMapping,
@@ -697,7 +696,9 @@ def _resources_by_iri(release: RegistryRelease) -> dict[str, RegistryResource]:
     return resources
 
 
-def _publisher_name(release_key: str, resource: RegistryResource) -> tuple[str, str]:
+def publisher_name(release_key: str, resource: RegistryResource) -> tuple[str, str]:
+    """The sealed publisher-name field and its value for one agency roster resource."""
+
     if release_key == agency_projection.REGULATIONS_GOV_RELEASE_KEY:
         return "name", str(resource.native_payload["name"])
     if release_key == FR:
@@ -719,14 +720,6 @@ def _publisher_label(release_key: str) -> str:
         ECFR: "eCFR",
         agency_projection.OPM_RELEASE_KEY: "OPM EHRI",
     }[release_key]
-
-
-def _parent_by_subject(release: RegistryRelease) -> dict[str, str]:
-    return {
-        relation.subject: relation.object
-        for relation in release.relations
-        if relation.predicate == ATLAS_PARENT_ENTITY
-    }
 
 
 def _pin_for_resource(
@@ -908,7 +901,7 @@ def _mapping_and_decision(
         "sourceResource": source_resource.iri,
         "sourceValue": source_value,
     }
-    source_parent_resource = _parent_by_subject(source_release).get(
+    source_parent_resource = agency_projection.parent_by_subject(source_release).get(
         source_resource.iri
     )
     if source_parent_resource is not None:
@@ -993,7 +986,7 @@ def load_regulations_gov_agency_identity_mapping_release(
         source_resource = resources[agency_projection.REGULATIONS_GOV_RELEASE_KEY][
             source_iris[0]
         ]
-        _, source_name = _publisher_name(regs_release.key, source_resource)
+        _, source_name = publisher_name(regs_release.key, source_resource)
         fr_candidates = sorted(fr_claims.get(source_value, set()))
         ecfr_candidates = sorted(ecfr_claims.get(source_value, set()))
         target_release: RegistryRelease | None = None
@@ -1012,11 +1005,11 @@ def load_regulations_gov_agency_identity_mapping_release(
             basis = "ecfrAgencyShortNameEqualsRegulationsGovAgencyId"
 
         if target_release is not None and target_resource is not None and basis is not None:
-            _, target_name = _publisher_name(target_release.key, target_resource)
+            _, target_name = publisher_name(target_release.key, target_resource)
             other_candidates = [
                 {
                     "resource": iri,
-                    "publisherName": _publisher_name(
+                    "publisherName": publisher_name(
                         FR if iri in resources[FR] else ECFR,
                         resources[FR].get(iri, resources[ECFR].get(iri)),  # type: ignore[arg-type]
                     )[1],
@@ -1061,7 +1054,7 @@ def load_regulations_gov_agency_identity_mapping_release(
             target_resource = resources[adoption.target_release_key][
                 adoption.target_resource
             ]
-            target_field, target_name = _publisher_name(
+            target_field, target_name = publisher_name(
                 target_release.key,
                 target_resource,
             )
@@ -1102,7 +1095,7 @@ def load_regulations_gov_agency_identity_mapping_release(
             "sourceResource": source_resource.iri,
             "sourceValue": source_value,
         }
-        source_parent_resource = _parent_by_subject(regs_release).get(
+        source_parent_resource = agency_projection.parent_by_subject(regs_release).get(
             source_resource.iri
         )
         if source_parent_resource is not None:
@@ -1224,4 +1217,5 @@ __all__ = [
     "ResidueAbstention",
     "ResidueAdoption",
     "load_regulations_gov_agency_identity_mapping_release",
+    "publisher_name",
 ]
