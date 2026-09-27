@@ -1,10 +1,10 @@
 # Vendored dependencies
 
-`spicy_docs-0.42.0-py3-none-any.whl` supplies shared source readers and
+`spicy_docs-0.44.0-py3-none-any.whl` supplies shared source readers and
 bounded U.S. Code acquisition with validated archive member delivery.
-SHA-256: `183a6efd622d5607d71f7311c37db91afb416ab185387e29aa3c8adef548602f`.
-Provider source: SpicyDocs `28bb9209fa73cbd12410745319e9f69fa7be6e2a` (the 0.42.0
-release commit on `main`), with Rulespec Artifacts 1.1.2; the same bytes SpicyRegs
+SHA-256: `6aaad5433a483f9b85d123c31d3b9a44fb4b6eb3078f58a0e1c71361f356d5cc`.
+Provider source: SpicyDocs `70c26c2d9a5e33a42ab50354ed50fb7682da2927` (the 0.44.0
+release commit on `main`), with Rulespec Artifacts 1.1.2; the bytes DocSpec 0.11.4
 vendors, and a rebuild from a clean archive of that commit reproduces them.
 RefSpec 0.1.0.dev10 retains snapshot acceptance, normalization and interpretation.
 Its title cache records original HTTP facts; its corpus and annual tools process
@@ -12,7 +12,7 @@ validated members without reopening ZIPs. See [U.S. Code inputs](../docs/uscode-
 
 Python 3.12, PyArrow 25.0.1 and DuckDB 1.5.5 or later remain unchanged. Existing
 sealed artifacts are unchanged; comparing a new writer to older Parquet bytes
-requires a row comparison. RefSpec 0.1.0.dev18 is qualified with SpicyDocs 0.42.0
+requires a row comparison. RefSpec 0.1.0.dev20 is qualified with SpicyDocs 0.44.0
 and Rulespec Artifacts 1.1.2. Sibling pins move on their own schedule, so read
 each repository's `pyproject.toml` rather than a list here; SpicySearch vendors
 RefSpec in optional groups only, and its runtime does not depend on RefSpec.
@@ -55,6 +55,14 @@ source-credit receipt therefore records a new digest for `sources.uscode`; the
 Unified Agenda and Federal Register Topics receipts hash unchanged modules. The
 new `federal_register` table contract is in `spicy_docs.schemas`, which RefSpec
 does not import. The `Requires-Dist` set is unchanged.
+
+**What 0.44.0 changes for RefSpec.** Nothing it imports. Since 0.42.0 SpicyDocs
+added per-column types to its table contracts, the typed `document_attributes`
+and `docket_attributes` contracts with their projections, and the
+`fec_committee_history` contract with the FEC committee master reader, all under
+`spicy_docs.schemas` and `spicy_docs.sources.fec`, which RefSpec does not
+import. Every module RefSpec imports has the same bytes, so no receipt's
+producer digest moves. The `Requires-Dist` set is unchanged.
 
 The `acquisition` extra supplies explicit Topics and U.S. Code HTTP routes.
 Imports remain offline. The `pdf-pypdf` extra supplies shared PDF page reading
@@ -127,7 +135,7 @@ satisfies it. That dependency arrived with the shared platform-artifact
 protocol. RefSpec now uses its bounded local blob writer for BILLSTATUS
 captures. The package is also required by rulespec-conformance, and `rulespec-artifacts` is on no index either, so it
 is vendored on the same interim terms and should be deleted at the same
-time. Version 1.1.2 is the exact dependency of SpicyDocs 0.42.0, built in
+time. Version 1.1.2 is the exact dependency of SpicyDocs 0.44.0, built in
 `packages/rulespec-artifacts` from Rulespec's release commit
 `23d5f2d98973b2a7f1bf7ce4c9c7a786a4f369ab` and shared by the whole stack; the same
 procedure reproduces 1.1.1 from `a3acb04`. Its SHA-256 digest is
