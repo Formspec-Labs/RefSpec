@@ -64,6 +64,19 @@ only where one code selects it. 311 of the 321 codes reverse; five
 organizations are ambiguous, two codes each. It asserts nothing, so no Atlas
 build or view changes; nothing is open here.
 
+## RefSpec 0.1.0.dev21 (2026-09-27)
+
+dev21 carries agency registry batch 1 (REF-072): the owner's 26 decisions as
+the `agency-registry-2026-09-26` release (13 bridges, 9 change events, 4
+recorded non-emissions), its own sealed view and `current_agency_successors()`;
+`build_agency_projection()` still reads REF-038 alone. With it: the slow tier
+compares the whole-graph ledger after its writer stamps it (`19b348be`); the
+Federal Register thesaurus pins, re-recorded and verified by `make test-package`
+(`4108e8b8`); a suite that ignores an inherited git repository, and a fixture
+case tree rebuilt whenever it is not the receipt's; SpicyDocs 0.46.0. Open:
+batch 2 (register-only agencies) and the later succession batch, which as built
+cannot be an events-only release ([design, section 7](plans/agency-registry-design.md)).
+
 ## Merged, and the one parked item
 
 The Unified Agenda receipt rebuild (move five of the SpicySearch v14 batch)
