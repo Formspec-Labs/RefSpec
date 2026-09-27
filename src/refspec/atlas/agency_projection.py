@@ -7,6 +7,11 @@ metadata abstentions to the five pinned roster releases, then selects labels and
 parent relations already present in those releases. The reverse lookup reads
 the projection backwards for consumers and asserts nothing.
 
+REF-072's agency-registry release has its own view beside it, never folded into
+the REF-038 projection: its bridges, one row per (change event, result), and its
+recorded non-emissions, plus the forward successor lookup, which is derived and
+never asserted.
+
 Neither performs file or network I/O, normalizes an identifier, or compares
 names for similarity.
 """
@@ -29,6 +34,7 @@ from refspec.atlas.v3_source_data import (
     RegistryResource,
 )
 from refspec.immutable import deep_freeze_json
+from refspec.registry.infrastructure.artifact_serialization import plain_json
 
 ATLAS_SAME_ENTITY_AS = "https://refspec.org/ns/atlas/v3#sameEntityAs"
 REF_038_DECISION_RECORD = "docs/decisions.md#ref-038"
@@ -849,6 +855,239 @@ def reverse_agency_projection(projection: AgencyProjection) -> AgencyReverseProj
     )
 
 
+# ---------------------------------------------------------------------------
+# REF-072: the agency registry's own view and its forward successor lookup.
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class AgencyRegistryView:
+    """The agency-registry release as consumer rows: bridges, event results, and non-emissions.
+
+    Each row is a plain dict whose shape is its Parquet table's, so the digest a
+    reader recomputes from the tables is this one. One event row per (event,
+    result) carries the event's date, its public records, and the functions that
+    result took; a rename has one row, a split one per result.
+    """
+
+    bridges: tuple[Mapping[str, Any], ...]
+    events: tuple[Mapping[str, Any], ...]
+    non_emissions: tuple[Mapping[str, Any], ...]
+    coverage: Mapping[str, int]
+    release: Mapping[str, str]
+    digest: str
+
+    def __post_init__(self) -> None:
+        if self.digest != agency_registry_view_digest(self.bridges, self.events, self.non_emissions, self.coverage):
+            raise ValueError("agency registry view digest is not content-derived")
+
+
+def agency_registry_view_digest(
+    bridges: Sequence[Mapping[str, Any]],
+    events: Sequence[Mapping[str, Any]],
+    non_emissions: Sequence[Mapping[str, Any]],
+    coverage: Mapping[str, int],
+) -> str:
+    """The logical-content digest of the view, the same whether computed from the release or the tables."""
+
+    return _digest(
+        plain_json(
+            {
+                "bridges": bridges,
+                "coverage": coverage,
+                "events": events,
+                "nonEmissions": non_emissions,
+            }
+        )
+    )
+
+
+def _owner_decision_row(decision: Mapping[str, Any], reviewer: str) -> dict[str, Any]:
+    return {
+        "answer": str(decision["answer"]),
+        "channel": str(decision["channel"]),
+        "content_digest": str(decision["contentDigest"]),
+        "decided_on": str(decision["decidedOn"]),
+        "note": decision.get("note"),
+        "reviewer": reviewer,
+    }
+
+
+def build_agency_registry_view(release: RegistryMappingRelease) -> AgencyRegistryView:
+    """Project the agency-registry release into its view rows; add nothing, match nothing.
+
+    Rows equal the release's assertions and records exactly: every bridge row
+    is one of its ``atlas:sameEntityAs`` mappings, every event row one result
+    of one of its change events, and every decided item appears once.
+    """
+
+    if release.key != AGENCY_REGISTRY_RELEASE_KEY or release.ring != "entity":
+        raise ValueError("the agency registry view reads the agency-registry release only")
+    reviewer = REF_038_REVIEWER_IRI
+    bridges: list[dict[str, Any]] = []
+    events: list[dict[str, Any]] = []
+    non_emissions: list[dict[str, Any]] = []
+    for decision in release.metadata["decisions"]:
+        owner = _owner_decision_row(decision["ownerDecision"], reviewer)
+        if decision["decision"] == "adopted":
+            parents = decision.get("parents", {})
+            bridges.append(
+                {
+                    "candidate_id": str(decision["candidateId"]),
+                    "subject": str(decision["sourceResource"]),
+                    "subject_publisher_name": str(decision["sourcePublisherName"]),
+                    "subject_parent": parents["subject"]["resourceIri"] if "subject" in parents else None,
+                    "object": str(decision["objectResource"]),
+                    "object_release_key": str(decision["objectReleaseKey"]),
+                    "object_publisher_name": str(decision["objectPublisherName"]),
+                    "object_parent": parents["object"]["resourceIri"] if "object" in parents else None,
+                    "relation": str(decision["predicateIri"]),
+                    "basis": str(decision["basis"]),
+                    "reasoning": str(decision["reasoning"]),
+                    "evidence_tier": "E4",
+                    "warrant": "humanReview",
+                    "decision": owner,
+                }
+            )
+        elif decision["decision"] == "event":
+            records = [
+                {key: str(record[key]) for key in ("citation", "kind", "note", "url")}
+                for record in decision["publicRecords"]
+            ]
+            originals = [str(row["resourceIri"]) for row in decision["originals"]]
+            for result in decision["results"]:
+                events.append(
+                    {
+                        "event_id": str(decision["eventId"]),
+                        "effective_date": str(decision["effectiveDate"]),
+                        "date_basis": str(decision["dateBasis"]),
+                        "originals": originals,
+                        "result": str(result["resourceIri"]),
+                        "result_publisher_name": str(result["publisherName"]),
+                        "functions_taken": result.get("functionsTaken"),
+                        "reasoning": str(result["reasoning"]),
+                        "public_records": records,
+                        "evidence_tier": "E4",
+                        "warrant": "humanReview",
+                        "decision": owner,
+                    }
+                )
+        elif decision["decision"] == "nonEmission":
+            closest = decision.get("closestAlternative")
+            non_emissions.append(
+                {
+                    "item_id": str(decision["candidateId"]),
+                    "reason": str(decision["reason"]),
+                    "reasoning": str(decision["reasoning"]),
+                    "subject": decision.get("sourceResource"),
+                    "subject_value": decision.get("sourceValue"),
+                    "object": decision.get("objectResource"),
+                    "closest_alternative": (
+                        None
+                        if closest is None
+                        else {key: str(closest[key]) for key in ("description", "relation", "why_not_proposed")}
+                    ),
+                    "decision": owner,
+                }
+            )
+        else:
+            raise ValueError(f"agency registry decision has an unknown kind: {decision['decision']!r}")
+
+    bridges.sort(key=lambda row: row["candidate_id"])
+    events.sort(key=lambda row: (row["event_id"], row["result"]))
+    non_emissions.sort(key=lambda row: row["item_id"])
+    claims = {(mapping.subject, mapping.predicate, mapping.object) for mapping in release.mappings}
+    if {(row["subject"], row["relation"], row["object"]) for row in bridges} != claims or len(bridges) != len(claims):
+        raise ValueError("agency registry bridge rows are not exactly the release's mappings")
+    event_links = {
+        (original, result) for event in release.change_events for original in event.originals for result in event.results
+    }
+    if {(original, row["result"]) for row in events for original in row["originals"]} != event_links:
+        raise ValueError("agency registry event rows are not exactly the release's change events")
+    coverage = {
+        "bridgeCount": len(bridges),
+        "decidedItemCount": len(bridges) + len({row["event_id"] for row in events}) + len(non_emissions),
+        "eventCount": len({row["event_id"] for row in events}),
+        "eventResultRowCount": len(events),
+        "nonEmissionCount": len(non_emissions),
+    }
+    if coverage["decidedItemCount"] != release.metadata["decidedItemCount"]:
+        raise ValueError("agency registry view does not account for every decided item")
+    return AgencyRegistryView(
+        bridges=tuple(_frozen_mapping(row) for row in bridges),
+        events=tuple(_frozen_mapping(row) for row in events),
+        non_emissions=tuple(_frozen_mapping(row) for row in non_emissions),
+        coverage=_frozen_mapping(coverage),
+        release=_frozen_mapping(
+            {
+                "candidatesDigest": str(release.metadata["candidatesDigest"]),
+                "decisionRecord": str(release.metadata["decisionRecord"]),
+                "key": release.key,
+                "sourceReleaseDigest": release.source_release_digest,
+            }
+        ),
+        digest=agency_registry_view_digest(bridges, events, non_emissions, coverage),
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class AgencySuccessors:
+    """Each defunct organization read forward to the organizations that hold its functions now.
+
+    ``current`` maps an event's original to the results no later event
+    replaced, walking every chain to its end; a split keeps every result. An
+    organization no event names as an original has no successors.
+    """
+
+    current: Mapping[str, frozenset[str]]
+
+    def of(self, organization: str) -> frozenset[str]:
+        return self.current.get(organization, frozenset())
+
+
+def current_agency_successors(events: Sequence[Mapping[str, Any]]) -> AgencySuccessors:
+    """Walk the change events forward; derived for consumers, never asserted.
+
+    The same standing as ``reverse_agency_projection()``: a reading of
+    adjudicated events, not a claim, and never emitted as ``atlas:sameEntityAs``
+    or as a succession. A consumer that needs one code applies its own
+    exactly-one rule, so a split yields no single successor by design. Takes the
+    view's event rows (``AgencyRegistryView.events`` or the Parquet table's), one
+    per (event, result). An iterative depth-first walk, so a long chain cannot
+    exhaust the stack: each organization's answer is settled once, after all its
+    results, and reused along every chain through it. A cycle, which the binding
+    refuses on the wire, is refused here too.
+    """
+
+    results_of: dict[str, set[str]] = defaultdict(set)
+    for row in events:
+        for original in row["originals"]:
+            results_of[str(original)].add(str(row["result"]))
+    settled: dict[str, frozenset[str]] = {}
+    for root in sorted(results_of):
+        if root in settled:
+            continue
+        path = {root}
+        stack = [(root, iter(sorted(results_of[root])))]
+        while stack:
+            organization, pending = stack[-1]
+            for result in pending:
+                if result in settled or result not in results_of:
+                    continue
+                if result in path:
+                    raise ValueError(f"agency change events form a cycle through {result}")
+                path.add(result)
+                stack.append((result, iter(sorted(results_of[result]))))
+                break
+            else:
+                stack.pop()
+                path.discard(organization)
+                current: set[str] = set()
+                for result in results_of[organization]:
+                    current |= settled[result] if result in results_of else {result}
+                settled[organization] = frozenset(current)
+    return AgencySuccessors(current=_frozen_mapping(dict(sorted(settled.items()))))
+
 __all__ = [
     "ADMISSIBLE_ACRONYM_PAIRS",
     "AGENCY_REGISTRY_NON_EMISSION_REASONS",
@@ -871,8 +1110,13 @@ __all__ = [
     "AgencyProjectionSourceRecord",
     "AgencyProjectionUnresolvedRow",
     "AgencyRegistryNonEmissionReason",
+    "AgencyRegistryView",
     "AgencyReverseProjection",
+    "AgencySuccessors",
+    "agency_registry_view_digest",
     "build_agency_projection",
+    "build_agency_registry_view",
+    "current_agency_successors",
     "extract_agency_identifier_claims",
     "parent_by_subject",
     "reverse_agency_projection",

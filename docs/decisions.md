@@ -5994,6 +5994,20 @@ the omission). The construction counts still count them. A bounded build of the 
 rosters, the two releases they reference (the Treasury accounts and the eCFR
 CFR titles) and both entity releases validated whole under the binding, with
 the legacy and streamed writers byte-identical; REF-038's pack did not move.
+The new catalog resource adds one descriptor (1,252 -> 1,257 quads), and
+because `v3_source_data.py` and the descriptors are fixture-receipt inputs,
+`fixturesDigest` re-seals again (`bindings/atlas/3.1/fixtures-receipt.json`).
+
+**The view and the lookup.** The release has its own sealed Parquet view,
+never rows in REF-038's projection: `build_agency_registry_view()` projects it
+into bridges, one row per (event, result), and non-emissions, refusing rows
+that are not exactly the release's claims, and `seal_agency_registry_view()`
+writes them with the Atlas view's writer contract
+(`tools/build_agency_registry_view.py`; manifest
+`sha256:77b357cc06fe3e67bcacb0591833884087572727064f89643e10aa2a28ad6b87`,
+members named in the design note §8). `current_agency_successors()`, beside
+`reverse_agency_projection()`, walks the events forward and returns a set --
+every result of a split, the end of a chain -- and is never asserted.
 
 **Recorded readings, for the owner to overrule.** "A dated public record" is
 read, on the wire, as a public record its publisher serves at an `https` URL.

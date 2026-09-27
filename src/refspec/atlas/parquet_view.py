@@ -16,6 +16,11 @@ The view is written beside the distribution, never inside it -- a distribution
 validates its own membership as a closed set.  What binds the two is the seal:
 its signed payload carries this view manifest's digest alongside the
 distribution manifest's, so one signature reaches every byte of both.
+
+REF-072's agency registry has its own small view on the same path and the same
+writer contract (:func:`seal_agency_registry_view`), sealed from its release
+rather than from a distribution: bridges, change-event results, and recorded
+non-emissions, pinned by its manifest digest for a consumer to vendor.
 """
 
 from __future__ import annotations
@@ -24,6 +29,7 @@ import importlib.metadata
 import json
 import os
 import re
+import tempfile
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -34,6 +40,11 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
+from refspec.atlas.agency_projection import (
+    AGENCY_REGISTRY_NON_EMISSION_REASONS,
+    AgencyRegistryView,
+    agency_registry_view_digest,
+)
 from refspec.atlas.compact_pack import CompactRecordRole
 from refspec.atlas.parquet_artifact import (
     PARQUET_MEMBER_FIELDS,
@@ -47,6 +58,10 @@ from refspec.atlas.parquet_tables import (
     AGENCY_PROJECTION_ROLE,
     AGENCY_PROJECTION_TABLE_SCHEMAS,
     AGENCY_PROJECTION_UNRESOLVED_ROLE,
+    AGENCY_REGISTRY_BRIDGE_ROLE,
+    AGENCY_REGISTRY_EVENT_ROLE,
+    AGENCY_REGISTRY_NON_EMISSION_ROLE,
+    AGENCY_REGISTRY_TABLE_SCHEMAS,
     COMPRESSION,
     COMPRESSION_LEVEL,
     DERIVED_RELATION_DECISION,
@@ -58,6 +73,7 @@ from refspec.atlas.parquet_tables import (
     TABLE_MEDIA_TYPE,
     TABLE_SCHEMAS,
     agency_projection_table_relative_path,
+    agency_registry_table_relative_path,
     derived_relation_content_digest,
     derived_relation_coverage,
     derived_relation_logical_row,
@@ -65,6 +81,7 @@ from refspec.atlas.parquet_tables import (
     logical_records_preserved,
     table_relative_path,
     unpreserved_record_fields,
+    write_agency_registry_tables,
 )
 from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
@@ -1043,12 +1060,165 @@ def verify_atlas_parquet_view(
     return manifest
 
 
+AGENCY_REGISTRY_VIEW_RECORD_TYPE = "AgencyRegistryViewManifest"
+AGENCY_REGISTRY_VIEW_SCHEMA_VERSION = "1.0"
+AGENCY_REGISTRY_VIEW_ID_PREFIX = "urn:ref:agency-registry-view:"
+_AGENCY_REGISTRY_VIEW_FIELDS = frozenset(
+    {
+        "canonicalPayloadDigest",
+        "construction",
+        "counts",
+        "coverage",
+        "digest",
+        "members",
+        "recordType",
+        "release",
+        "schemaVersion",
+        "viewId",
+    }
+)
+
+
+def _agency_registry_members(directory: Path) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    members: list[dict[str, Any]] = []
+    counts: dict[str, int] = {}
+    for role, schema in AGENCY_REGISTRY_TABLE_SCHEMAS.items():
+        relative = agency_registry_table_relative_path(role)
+        target = _safe_path(directory, relative)
+        if target.is_symlink() or not target.is_file():
+            raise AtlasParquetViewError(f"agency registry table is missing or unsafe: {relative}")
+        parquet = pq.ParquetFile(target)
+        if parquet.schema_arrow != schema:
+            raise AtlasParquetViewError(f"agency registry table schema differs: {relative}")
+        counts[role] = parquet.metadata.num_rows
+        members.append(
+            {
+                "byteLength": target.stat().st_size,
+                "mediaType": TABLE_MEDIA_TYPE,
+                "path": relative,
+                "role": role,
+                "rowCount": counts[role],
+                "schemaDigest": arrow_schema_sha256(parquet.schema_arrow),
+                "sha256": file_sha256(target),
+            }
+        )
+    return members, counts
+
+
+def seal_agency_registry_view(output: Path, view: AgencyRegistryView) -> dict[str, Any]:
+    """Write the REF-072 agency registry view as its own closed, digest-pinned directory.
+
+    Three tables and a manifest, written with the Atlas view's one writer
+    contract, re-verified from the bytes on disk, then promoted. The manifest's
+    own sha256 is the pin a consumer vendors the view by.
+    """
+
+    if output.is_symlink() or output.exists():
+        raise AtlasParquetViewError(f"refusing to replace existing output: {output}")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    staged = Path(tempfile.mkdtemp(prefix=f".{output.name}.", dir=output.parent))
+    write_agency_registry_tables(staged, view)
+    members, counts = _agency_registry_members(staged)
+    construction = {
+        "compression": COMPRESSION,
+        "compressionLevel": COMPRESSION_LEVEL,
+        "implementation": VIEW_IMPLEMENTATION,
+        "implementationVersion": VIEW_IMPLEMENTATION_VERSION,
+        "parquetVersion": PARQUET_VERSION,
+        "pyarrowVersion": importlib.metadata.version("pyarrow"),
+        "rowGroupSize": ROW_GROUP_SIZE,
+    }
+    release = dict(view.release)
+    manifest: dict[str, Any] = {
+        "construction": construction,
+        "counts": counts,
+        "coverage": dict(view.coverage),
+        "digest": view.digest,
+        "members": members,
+        "recordType": AGENCY_REGISTRY_VIEW_RECORD_TYPE,
+        "release": release,
+        "schemaVersion": AGENCY_REGISTRY_VIEW_SCHEMA_VERSION,
+        "viewId": AGENCY_REGISTRY_VIEW_ID_PREFIX
+        + canonical_payload_sha256({"construction": construction, "digest": view.digest, "release": release}).removeprefix(
+            "sha256:"
+        ),
+    }
+    manifest["canonicalPayloadDigest"] = canonical_payload_sha256(manifest)
+    (staged / MANIFEST_FILE).write_bytes(canonical_json_bytes(manifest))
+    verify_agency_registry_view(staged, expected_manifest_digest=file_sha256(staged / MANIFEST_FILE))
+    os.rename(staged, output)
+    return manifest
+
+
+def verify_agency_registry_view(directory: Path, *, expected_manifest_digest: str) -> dict[str, Any]:
+    """Verify a closed agency registry view against its external manifest pin, down to its rows.
+
+    Members, schemas, row counts and bytes are checked against the manifest,
+    and the rows themselves are read back: their coverage and logical-content
+    digest must be the ones the release produced, so a table re-sealed after
+    an edit fails here rather than at the consumer.
+    """
+
+    if directory.is_symlink() or not directory.is_dir():
+        raise AtlasParquetViewError("agency registry view must be a regular directory")
+    expected_manifest_digest = normalize_sha256_prefix(expected_manifest_digest)
+    _digest_text(expected_manifest_digest, "expected view manifest digest")
+    manifest = _strict_json(directory / MANIFEST_FILE, expected_digest=expected_manifest_digest)
+    if (
+        set(manifest) != _AGENCY_REGISTRY_VIEW_FIELDS
+        or manifest["recordType"] != AGENCY_REGISTRY_VIEW_RECORD_TYPE
+        or manifest["schemaVersion"] != AGENCY_REGISTRY_VIEW_SCHEMA_VERSION
+    ):
+        raise AtlasParquetViewError("agency registry view manifest type, version or fields are unsupported")
+    payload = dict(manifest)
+    stated_payload_digest = _digest_text(payload.pop("canonicalPayloadDigest"), "view payload digest")
+    if canonical_payload_sha256(payload) != stated_payload_digest:
+        raise AtlasParquetViewError("agency registry view canonicalPayloadDigest differs")
+    members, counts = _agency_registry_members(directory)
+    if manifest["members"] != members or manifest["counts"] != counts:
+        raise AtlasParquetViewError("agency registry view members or counts differ from the bytes on disk")
+    if artifact_file_paths(directory) != {MANIFEST_FILE, *(member["path"] for member in members)}:
+        raise AtlasParquetViewError("agency registry view file membership is not closed")
+    rows = {
+        role: pq.read_table(_safe_path(directory, agency_registry_table_relative_path(role))).to_pylist()
+        for role in AGENCY_REGISTRY_TABLE_SCHEMAS
+    }
+    bridges = rows[AGENCY_REGISTRY_BRIDGE_ROLE]
+    events = rows[AGENCY_REGISTRY_EVENT_ROLE]
+    non_emissions = rows[AGENCY_REGISTRY_NON_EMISSION_ROLE]
+    event_ids = {row["event_id"] for row in events}
+    coverage = {
+        "bridgeCount": len(bridges),
+        "decidedItemCount": len(bridges) + len(event_ids) + len(non_emissions),
+        "eventCount": len(event_ids),
+        "eventResultRowCount": len(events),
+        "nonEmissionCount": len(non_emissions),
+    }
+    if coverage != manifest["coverage"]:
+        raise AtlasParquetViewError("agency registry view coverage differs from its rows")
+    if any(
+        row["evidence_tier"] != "E4" or row["warrant"] != "humanReview" or row["originals"] == []
+        for row in events
+    ) or any(row["evidence_tier"] != "E4" or row["warrant"] != "humanReview" for row in bridges):
+        raise AtlasParquetViewError("agency registry view row is not an E4 human-review decision")
+    unknown_reasons = sorted({row["reason"] for row in non_emissions} - AGENCY_REGISTRY_NON_EMISSION_REASONS)
+    if unknown_reasons:
+        raise AtlasParquetViewError(f"agency registry view non-emission reason is outside the closed vocabulary: {unknown_reasons}")
+    if agency_registry_view_digest(bridges, events, non_emissions, coverage) != manifest["digest"]:
+        raise AtlasParquetViewError("agency registry view logical-content digest differs")
+    return manifest
+
+
 __all__ = [
+    "AGENCY_REGISTRY_VIEW_RECORD_TYPE",
+    "AGENCY_REGISTRY_VIEW_SCHEMA_VERSION",
     "BUILDER_SOURCE_REPRESENTATION",
     "AtlasParquetViewError",
     "VerifiedAtlasParquetSourceMetadata",
     "atlas_parquet_view_manifest",
+    "seal_agency_registry_view",
     "seal_atlas_parquet_view",
+    "verify_agency_registry_view",
     "verify_atlas_parquet_source_metadata",
     "verify_atlas_parquet_view",
 ]

@@ -271,7 +271,8 @@ against 739a3b3c):
   chosen at 4493-4499 applies only where the ring is `atlas:subject`, line
   4502), so raw W3C ORG terms cannot appear on the wire.
 
-**The owner's event design** (decided; to build after batch 1 is adjudicated):
+**The owner's event design** (decided, and built after batch 1's adjudication;
+see REF-072):
 
 - **Atlas terms** subclassing W3C ORG: an event class under `org:ChangeEvent`
   and two properties under `org:originalOrganization` and
@@ -292,6 +293,26 @@ against 739a3b3c):
   forward, returns a set, and is never asserted — the same standing as
   `reverse_agency_projection()`. `dcterms:isReplacedBy` stays release-level
   (`src/refspec/managed_release.py:149`) and is not reused for organizations.
+
+**As built (REF-072).** The builder stays REF-038-only:
+`build_agency_projection()` still refuses every release but REF-038's. The
+owner's decisions land in their own release, `agency-registry-2026-09-26`
+(13 bridges, 9 events, 4 recorded non-emissions), and the release has its own
+view: `tools/build_agency_registry_view.py` seals
+`output/agency-registry-view/` with `seal_agency_registry_view()` on the
+Atlas view's writer contract, and `--check` rebuilds it against the pin.
+
+| Member | Rows | sha256 |
+| --- | ---: | --- |
+| `view-manifest.json` (the pin) | | `77b357cc06fe3e67bcacb0591833884087572727064f89643e10aa2a28ad6b87` |
+| `tables/agency-registry-bridges.parquet` | 13 | `2e33905b475c6a1adf27960ecf170a1b4c82df2baf20ac13df9307bb687dd898` |
+| `tables/agency-registry-events.parquet` (one row per event and result) | 14 | `09e35a12adcb16581b131fcb187d4d2e07b8d005d431163431c303f1b6fecf2e` |
+| `tables/agency-registry-non-emissions.parquet` | 4 | `da863e467f00f16a6b7a9ff1a3e1182fb8e7488f8b7d33f0d7f0c403a0663e24` |
+
+Its logical-content digest is
+`sha256:9bc9eb0360d73c2815c2e1bfc2ed8953efbffa27a36052fdb389be137ecaff16`. The
+lookup is `current_agency_successors()`, beside `reverse_agency_projection()`,
+over the view's event rows.
 
 ## 9. Measured gaps (re-measured 2026-09-26)
 

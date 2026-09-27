@@ -32,13 +32,14 @@ from typing import TYPE_CHECKING, Any
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from refspec.atlas.agency_projection import AgencyProjection
+from refspec.atlas.agency_projection import AgencyProjection, AgencyRegistryView
 from refspec.atlas.compact_pack import CompactRecordRole, compact_record_fields
 from refspec.atlas.parquet_artifact import (
     arrow_schema_sha256,
     canonical_payload_sha256,
     file_sha256,
 )
+from refspec.registry.infrastructure.artifact_serialization import plain_json
 from refspec.registry.infrastructure.semantic_foundation import SEMANTIC_RINGS
 from refspec.release_model import canonical_native_json_bytes
 
@@ -314,6 +315,99 @@ def agency_projection_table_relative_path(role: str) -> str:
     return f"{TABLE_DIRECTORY}/{AGENCY_PROJECTION_TABLE_NAMES[role]}"
 
 
+#: REF-072's agency registry view: its own three tables, never rows in the
+#: REF-038 projection. The owner's decision rides on every row as one struct,
+#: so a consumer reads who decided, when, how and on which content digest
+#: beside the claim itself.
+AGENCY_REGISTRY_BRIDGE_ROLE = "agencyRegistryBridges"
+AGENCY_REGISTRY_EVENT_ROLE = "agencyRegistryEvents"
+AGENCY_REGISTRY_NON_EMISSION_ROLE = "agencyRegistryNonEmissions"
+_AGENCY_REGISTRY_DECISION = pa.struct(
+    [
+        pa.field("answer", pa.string(), nullable=False),
+        pa.field("channel", pa.string(), nullable=False),
+        pa.field("content_digest", pa.string(), nullable=False),
+        pa.field("decided_on", pa.string(), nullable=False),
+        pa.field("note", pa.string()),
+        pa.field("reviewer", pa.string(), nullable=False),
+    ]
+)
+_AGENCY_REGISTRY_PUBLIC_RECORD = pa.struct(
+    [
+        pa.field("citation", pa.string(), nullable=False),
+        pa.field("kind", pa.string(), nullable=False),
+        pa.field("note", pa.string(), nullable=False),
+        pa.field("url", pa.string(), nullable=False),
+    ]
+)
+_AGENCY_REGISTRY_CLOSEST_ALTERNATIVE = pa.struct(
+    [
+        pa.field("description", pa.string(), nullable=False),
+        pa.field("relation", pa.string(), nullable=False),
+        pa.field("why_not_proposed", pa.string(), nullable=False),
+    ]
+)
+AGENCY_REGISTRY_TABLE_SCHEMAS: Mapping[str, pa.Schema] = {
+    AGENCY_REGISTRY_BRIDGE_ROLE: pa.schema(
+        [
+            pa.field("candidate_id", pa.string(), nullable=False),
+            pa.field("subject", pa.string(), nullable=False),
+            pa.field("subject_publisher_name", pa.string(), nullable=False),
+            pa.field("subject_parent", pa.string()),
+            pa.field("object", pa.string(), nullable=False),
+            pa.field("object_release_key", pa.string(), nullable=False),
+            pa.field("object_publisher_name", pa.string(), nullable=False),
+            pa.field("object_parent", pa.string()),
+            pa.field("relation", pa.string(), nullable=False),
+            pa.field("basis", pa.string(), nullable=False),
+            pa.field("reasoning", pa.string(), nullable=False),
+            pa.field("evidence_tier", pa.string(), nullable=False),
+            pa.field("warrant", pa.string(), nullable=False),
+            pa.field("decision", _AGENCY_REGISTRY_DECISION, nullable=False),
+        ]
+    ),
+    AGENCY_REGISTRY_EVENT_ROLE: pa.schema(
+        [
+            pa.field("event_id", pa.string(), nullable=False),
+            pa.field("effective_date", pa.string(), nullable=False),
+            pa.field("date_basis", pa.string(), nullable=False),
+            pa.field("originals", pa.list_(pa.string()), nullable=False),
+            pa.field("result", pa.string(), nullable=False),
+            pa.field("result_publisher_name", pa.string(), nullable=False),
+            pa.field("functions_taken", pa.string()),
+            pa.field("reasoning", pa.string(), nullable=False),
+            pa.field("public_records", pa.list_(_AGENCY_REGISTRY_PUBLIC_RECORD), nullable=False),
+            pa.field("evidence_tier", pa.string(), nullable=False),
+            pa.field("warrant", pa.string(), nullable=False),
+            pa.field("decision", _AGENCY_REGISTRY_DECISION, nullable=False),
+        ]
+    ),
+    AGENCY_REGISTRY_NON_EMISSION_ROLE: pa.schema(
+        [
+            pa.field("item_id", pa.string(), nullable=False),
+            pa.field("reason", pa.string(), nullable=False),
+            pa.field("reasoning", pa.string(), nullable=False),
+            pa.field("subject", pa.string()),
+            pa.field("subject_value", pa.string()),
+            pa.field("object", pa.string()),
+            pa.field("closest_alternative", _AGENCY_REGISTRY_CLOSEST_ALTERNATIVE),
+            pa.field("decision", _AGENCY_REGISTRY_DECISION, nullable=False),
+        ]
+    ),
+}
+AGENCY_REGISTRY_TABLE_NAMES: Mapping[str, str] = {
+    AGENCY_REGISTRY_BRIDGE_ROLE: "agency-registry-bridges.parquet",
+    AGENCY_REGISTRY_EVENT_ROLE: "agency-registry-events.parquet",
+    AGENCY_REGISTRY_NON_EMISSION_ROLE: "agency-registry-non-emissions.parquet",
+}
+
+
+def agency_registry_table_relative_path(role: str) -> str:
+    """Return one agency registry table's view-relative path."""
+
+    return f"{TABLE_DIRECTORY}/{AGENCY_REGISTRY_TABLE_NAMES[role]}"
+
+
 #: The derived graph is non-authoritative and opt-in by contract, so its rows
 #: are a separate optional table, never rows inside ``statements.parquet`` --
 #: a consumer reading the statements table keeps getting asserted content
@@ -498,17 +592,13 @@ def derived_relation_manifest_metadata(rows: Sequence[Any]) -> dict[str, Any]:
     }
 
 
-def write_derived_relation_table(output: Path, rows: Sequence[Any]) -> None:
-    """Write and round-trip-check the optional derived-relation view table."""
+def _write_checked_table(target: Path, rows: list[dict[str, Any]], schema: pa.Schema, label: str) -> None:
+    """Write one view table with the one writer configuration and prove it reads back as written."""
 
-    parquet_rows = [derived_relation_parquet_row(row) for row in rows]
-    directory = output / TABLE_DIRECTORY
-    directory.mkdir(parents=True, exist_ok=True)
-    target = directory / DERIVED_RELATION_TABLE_NAME
     if target.exists():
-        raise FileExistsError(f"derived relation table already exists: {target}")
+        raise FileExistsError(f"{label} table already exists: {target}")
     pq.write_table(
-        pa.Table.from_pylist(parquet_rows, schema=DERIVED_RELATION_TABLE_SCHEMA),
+        pa.Table.from_pylist(rows, schema=schema),
         target,
         compression=COMPRESSION,
         compression_level=COMPRESSION_LEVEL,
@@ -518,8 +608,21 @@ def write_derived_relation_table(output: Path, rows: Sequence[Any]) -> None:
         data_page_version=DATA_PAGE_VERSION,
         row_group_size=ROW_GROUP_SIZE,
     )
-    if pq.read_table(target).to_pylist() != parquet_rows:
-        raise AtlasParquetTableError("derived relation Parquet round trip differs")
+    if pq.read_table(target).to_pylist() != rows:
+        raise AtlasParquetTableError(f"{label} Parquet round trip differs")
+
+
+def write_derived_relation_table(output: Path, rows: Sequence[Any]) -> None:
+    """Write and round-trip-check the optional derived-relation view table."""
+
+    directory = output / TABLE_DIRECTORY
+    directory.mkdir(parents=True, exist_ok=True)
+    _write_checked_table(
+        directory / DERIVED_RELATION_TABLE_NAME,
+        [derived_relation_parquet_row(row) for row in rows],
+        DERIVED_RELATION_TABLE_SCHEMA,
+        "derived relation",
+    )
 
 
 def write_agency_projection_tables(
@@ -537,29 +640,31 @@ def write_agency_projection_tables(
     directory = output / TABLE_DIRECTORY
     directory.mkdir(parents=True, exist_ok=True)
     for role, rows in rows_by_role.items():
-        target = directory / AGENCY_PROJECTION_TABLE_NAMES[role]
-        if target.exists():
-            raise FileExistsError(
-                f"agency projection table already exists: {target}"
-            )
-        pq.write_table(
-            pa.Table.from_pylist(
-                rows,
-                schema=AGENCY_PROJECTION_TABLE_SCHEMAS[role],
-            ),
-            target,
-            compression=COMPRESSION,
-            compression_level=COMPRESSION_LEVEL,
-            use_dictionary=True,
-            write_statistics=True,
-            version=PARQUET_VERSION,
-            data_page_version=DATA_PAGE_VERSION,
-            row_group_size=ROW_GROUP_SIZE,
+        _write_checked_table(
+            directory / AGENCY_PROJECTION_TABLE_NAMES[role],
+            rows,
+            AGENCY_PROJECTION_TABLE_SCHEMAS[role],
+            f"agency projection {role}",
         )
-        if pq.read_table(target).to_pylist() != rows:
-            raise AtlasParquetTableError(
-                f"agency projection Parquet round trip differs: {role}"
-            )
+
+
+def write_agency_registry_tables(output: Path, view: AgencyRegistryView) -> None:
+    """Write and round-trip-check the three REF-072 agency registry tables."""
+
+    rows_by_role = {
+        AGENCY_REGISTRY_BRIDGE_ROLE: plain_json(view.bridges),
+        AGENCY_REGISTRY_EVENT_ROLE: plain_json(view.events),
+        AGENCY_REGISTRY_NON_EMISSION_ROLE: plain_json(view.non_emissions),
+    }
+    directory = output / TABLE_DIRECTORY
+    directory.mkdir(parents=True, exist_ok=True)
+    for role, rows in rows_by_role.items():
+        _write_checked_table(
+            directory / AGENCY_REGISTRY_TABLE_NAMES[role],
+            rows,
+            AGENCY_REGISTRY_TABLE_SCHEMAS[role],
+            f"agency registry {role}",
+        )
 
 
 def table_relative_path(role: CompactRecordRole) -> str:
@@ -837,6 +942,11 @@ __all__ = [
     "AGENCY_PROJECTION_TABLE_NAMES",
     "AGENCY_PROJECTION_TABLE_SCHEMAS",
     "AGENCY_PROJECTION_UNRESOLVED_ROLE",
+    "AGENCY_REGISTRY_BRIDGE_ROLE",
+    "AGENCY_REGISTRY_EVENT_ROLE",
+    "AGENCY_REGISTRY_NON_EMISSION_ROLE",
+    "AGENCY_REGISTRY_TABLE_NAMES",
+    "AGENCY_REGISTRY_TABLE_SCHEMAS",
     "COMPRESSION",
     "COMPRESSION_LEVEL",
     "DATA_PAGE_VERSION",
@@ -854,6 +964,7 @@ __all__ = [
     "AtlasParquetTableError",
     "AtlasParquetTableWriter",
     "agency_projection_table_relative_path",
+    "agency_registry_table_relative_path",
     "column_name",
     "derived_relation_content_digest",
     "derived_relation_coverage",
@@ -866,6 +977,7 @@ __all__ = [
     "table_relative_path",
     "unpreserved_record_fields",
     "write_agency_projection_tables",
+    "write_agency_registry_tables",
     "write_derived_relation_table",
     "write_parquet_tables",
 ]
