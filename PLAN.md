@@ -37,12 +37,12 @@ modules as test oracles; three expectations move and seven Unified Agenda
 count pins re-adjudicate. Sequence and measurements: SpicyDocs
 `docs/research/consolidation-path-2026-09-22.md`, rows B14 and B21.
 
-The pin moved to SpicyDocs 0.36.0 (dev16), 0.39.2 (dev17), 0.42.0 (dev18) and
-0.44.0 (dev20, 2026-09-27), the release DocSpec 0.11.4 pins, so one environment
-holding RefSpec and a 0.44.0 consumer resolves one SpicyDocs; nothing new is
-imported. Step 2's moves were measured against 0.31.0, and `identifier_shapes`,
-`citation_grammar` and `iri_minting` changed since, so they need measuring again
-before the switch.
+The pin moved to SpicyDocs 0.36.0 (dev16), 0.39.2 (dev17), 0.42.0 (dev18),
+0.44.0 (dev20) and 0.46.0 (dev21, 2026-09-27), which changes nothing RefSpec
+imports or reads (vendor/README.md); a consumer still on 0.44.0 (DocSpec 0.11.4)
+and RefSpec no longer resolve one SpicyDocs until that consumer moves. Step 2's
+moves were measured against 0.31.0, and `identifier_shapes`, `citation_grammar`
+and `iri_minting` changed since, so they need measuring again before the switch.
 
 REF-024 amended 2026-09-24 (the minters live in SpicyDocs): step 2 also adds a test holding `_FR_COLLISION_TABLE`'s verdicts equal to SpicyDocs' `_FR_COLLISION_VERDICTS` and points `test_the_minted_spaces_are_the_contract_verbatim` at SpicyDocs' `IDENTIFIER_SPACES`.
 
