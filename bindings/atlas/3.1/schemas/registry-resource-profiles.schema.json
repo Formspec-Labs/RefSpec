@@ -40,6 +40,34 @@
       ],
       "type": "object"
     },
+    "changeEventPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "eventClass": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
+        },
+        "originalPredicate": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
+        },
+        "resourceClass": {
+          "$ref": "#/$defs/ringResourceClass"
+        },
+        "resultingPredicate": {
+          "$ref": "common.schema.json#/$defs/absoluteIri"
+        },
+        "semanticRing": {
+          "$ref": "#/$defs/semanticRing"
+        }
+      },
+      "required": [
+        "eventClass",
+        "originalPredicate",
+        "resourceClass",
+        "resultingPredicate",
+        "semanticRing"
+      ],
+      "type": "object"
+    },
     "crossRingRelationPolicy": {
       "additionalProperties": false,
       "properties": {
@@ -219,6 +247,15 @@
     "format": {
       "const": "refspec-atlas-registry-resource-profiles/3.1"
     },
+    "changeEventPolicies": {
+      "items": {
+        "$ref": "#/$defs/changeEventPolicy"
+      },
+      "maxItems": 1,
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
     "crossRingRelationPolicies": {
       "items": {
         "$ref": "#/$defs/crossRingRelationPolicy"
@@ -259,6 +296,7 @@
   },
   "required": [
     "format",
+    "changeEventPolicies",
     "crossRingRelationPolicies",
     "namespace",
     "profileDigest",

@@ -1,4 +1,5 @@
 @prefix atlas:  <https://refspec.org/ns/atlas/v3#> .
+@prefix org:    <http://www.w3.org/ns/org#> .
 @prefix owl:    <http://www.w3.org/2002/07/owl#> .
 @prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
@@ -420,6 +421,45 @@ atlas:DerivedRelation
   a owl:Class ;
   rdfs:label "derived relation"@en .
 
+# ORGANIZATION CHANGE -- one Atlas class and two Atlas properties, each a
+# specialization of a W3C ORG term, and no raw org: term on the wire.
+#
+# A succession (a rename, a split, a merger) is a dated event, never an
+# identity. atlas:sameEntityAs is symmetric in meaning and timeless: folding a
+# rename into it would equate two records the publisher files apart, send
+# every pre-change document to an organization that never published it, and
+# destroy the date the public record states. So the claim is the event
+# itself: one atlas:OrganizationChangeEvent names its defunct
+# atlas:originalOrganization(s), every atlas:resultingOrganization, the one
+# rkaf:effectiveDate a public record states, and its evidence -- the owner's
+# E4 human review of each public record behind it (REF-072, amending REF-038).
+#
+# W3C ORG already models this (org:ChangeEvent, org:originalOrganization,
+# org:resultingOrganization), so Atlas specializes it rather than minting a
+# parallel vocabulary: an ORG-aware consumer reading this ontology infers the
+# org: statements. The wire carries only the atlas: terms, for the reason the
+# relation policy states for every ring outside the subject ring -- the
+# closed policy admits Atlas predicates only, and a raw org: triple is
+# refused like any other unallowlisted predicate. The event is an n-ary
+# record, not an atlas:RelationAssertion: a split has several results and a
+# merger several originals, which rdf:subject/rdf:object cannot hold.
+#
+# rkaf:effectiveDate is rkaf's own date for an event taking effect
+# (rkaf:LifecycleEvent's field), reused here by domain expansion rather than
+# restated. It is one instant, the UTC midnight that begins the day the record
+# states, and never an rkaf:EffectivePeriod: an event happens on a day; it is
+# not "in force" over a period.
+#
+# The shape (atlas:OrganizationChangeEventShape) and the corpus-wide rules --
+# no cycle through events, no inverse pair, no atlas:sameEntityAs between an
+# event's original and any of its results -- are in
+# shapes/atlas.shacl.ttl and tools/validate.py.
+atlas:OrganizationChangeEvent
+  a owl:Class ;
+  rdfs:subClassOf org:ChangeEvent ;
+  rdfs:label "organization change event"@en ;
+  rdfs:comment "One dated, owner-reviewed change in which one or more original organizations ceased and one or more resulting organizations took their functions: a rename, a split, or a merger. Never an identity claim."@en .
+
 # The four semantic resource types are mutually exclusive. Identifier is a
 # separate record and is deliberately not a fifth AtlasResource subtype.
 
@@ -444,6 +484,7 @@ atlas:AtlasResource
     atlas:RelationAssertion,
     atlas:ProjectedRelation,
     atlas:DerivedRelation,
+    atlas:OrganizationChangeEvent,
     skosxl:Label .
 
 atlas:Identifier
@@ -476,7 +517,8 @@ atlas:RegistrySource
 
 atlas:RelationAssertion
   owl:disjointWith atlas:ProjectedRelation,
-    atlas:DerivedRelation .
+    atlas:DerivedRelation,
+    atlas:OrganizationChangeEvent .
 
 atlas:MappingAssertion
   owl:disjointWith atlas:NativeRelationAssertion,
@@ -855,6 +897,24 @@ atlas:sameEntityAs
   rdfs:domain atlas:EntityResource ;
   rdfs:range atlas:EntityResource ;
   rdfs:label "same entity as"@en .
+
+# The two organization-change links. Domain and range are the Atlas classes;
+# the org: superproperty is what an ORG-aware consumer infers. Neither is an
+# assertion predicate: they are the n-ary event record's own fields, admitted
+# by the closed changeEventPolicies entry in registry-resource-profiles.json.
+atlas:originalOrganization
+  a owl:ObjectProperty ;
+  rdfs:subPropertyOf org:originalOrganization ;
+  rdfs:domain atlas:OrganizationChangeEvent ;
+  rdfs:range atlas:EntityResource ;
+  rdfs:label "original organization"@en .
+
+atlas:resultingOrganization
+  a owl:ObjectProperty ;
+  rdfs:subPropertyOf org:resultingOrganization ;
+  rdfs:domain atlas:OrganizationChangeEvent ;
+  rdfs:range atlas:EntityResource ;
+  rdfs:label "resulting organization"@en .
 
 atlas:parentEntity
   a owl:ObjectProperty ;

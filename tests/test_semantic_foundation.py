@@ -14,6 +14,7 @@ import pytest
 
 from refspec.registry.infrastructure.semantic_foundation import (
     ENTITY_SAME_IDENTITY,
+    ENTITY_SUCCESSOR,
     EVIDENCE_USE_CEILINGS,
     LEGAL_CITES,
     SUBJECT_BROAD_MATCH,
@@ -428,6 +429,48 @@ def test_value_crosswalk_and_legal_identity_require_typed_time_context() -> None
     assert validate_mapping_assertions((legal,), evidence_assertions=(legal_evidence,))[0].context == {
         "effectiveFrom": "2026-08-04"
     }
+
+
+def test_a_succession_carries_its_day_and_identity_still_refuses_one() -> None:
+    """REF-072: the entity ring's successorOf states the day it took effect; sameIdentityAs refuses any context.
+
+    A succession is an event on a day a public record states, so it carries
+    exactly that day -- no effectiveThrough, because a rename does not end --
+    and is refused without it. Identity keeps the rule the Atlas wire keeps
+    for atlas:sameEntityAs: no period at all.
+    """
+
+    evidence = _human(ring="entity")
+    with pytest.raises(SemanticFoundationError, match="require the day of the succession"):
+        _mapping(ring="entity", relation=ENTITY_SUCCESSOR, evidence=(evidence.identifier,))
+    with pytest.raises(SemanticFoundationError, match=r"unknown fields \['effectiveThrough'\]"):
+        _mapping(
+            ring="entity",
+            relation=ENTITY_SUCCESSOR,
+            evidence=(evidence.identifier,),
+            context={"effectiveFrom": "2003-03-01", "effectiveThrough": "2003-03-02"},
+        )
+    succession = _mapping(
+        ring="entity",
+        relation=ENTITY_SUCCESSOR,
+        evidence=(evidence.identifier,),
+        context={"effectiveFrom": "2003-03-01"},
+    )
+    assert validate_mapping_assertions((succession,), evidence_assertions=(evidence,))[0].context == {
+        "effectiveFrom": "2003-03-01"
+    }
+    assert MappingAssertion.from_record(succession.as_record()) == succession
+    unrecorded = {key: value for key, value in succession.as_record().items() if key != "context"}
+    with pytest.raises(SemanticFoundationError, match=r"missing fields \['context'\]"):
+        MappingAssertion.from_record(unrecorded)
+
+    with pytest.raises(SemanticFoundationError, match="entity relation records do not accept context"):
+        _mapping(
+            ring="entity",
+            relation=ENTITY_SAME_IDENTITY,
+            evidence=(evidence.identifier,),
+            context={"effectiveFrom": "2003-03-01"},
+        )
 
 
 def test_a_legal_identity_mapping_states_a_period_rather_than_an_instant() -> None:

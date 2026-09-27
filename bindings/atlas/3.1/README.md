@@ -259,7 +259,9 @@ combined SKOS dataset is an OWL 2 RL ontology.
 
 The Atlas-owned ontology in [`ontology/atlas.ttl`](ontology/atlas.ttl) uses a
 small OWL 2 RL-safe subset: named classes, subclass and disjointness axioms,
-named properties, domains, ranges, and the OWL 2 RL datatype allowlist. The
+named properties, subproperty axioms (today only toward W3C ORG; one under a
+SKOS property is refused), domains, ranges, and the OWL 2 RL datatype
+allowlist. The
 ontology uses `rdfs:Literal` as the range for RDF JSON fields; SHACL applies the
 more specific `rdf:JSON` publication constraint. The ontology contains no
 property chain, functional property, inverse-property axiom, or Atlas-authored
@@ -539,6 +541,35 @@ subject, and source release. A non-terminal record MUST be `atlas:superseded`; a
 terminal record MUST NOT be. Only a terminal `atlas:current` assertion is
 admitted to the projection. A terminal `atlas:withdrawn` assertion remains
 auditable but has no public relation triple.
+
+### Organization change events
+
+A rename, split, or merger of organizations is an `atlas:OrganizationChangeEvent`
+(REF-072), never an identity: `atlas:sameEntityAs` is timeless, and a
+succession happened on a day. The event is one n-ary record in the entity
+ring. It names every defunct `atlas:originalOrganization` and every
+`atlas:resultingOrganization`, carries exactly one `rkaf:effectiveDate` (the
+UTC midnight beginning the day a public record states), and is bound by
+`rkaf:bindsAssertion` evidence exactly as an assertion is. The class and the
+two properties specialize W3C ORG's `org:ChangeEvent`,
+`org:originalOrganization`, and `org:resultingOrganization` in the ontology;
+the wire carries only the Atlas terms, and a raw `org:` predicate is refused.
+The profile map's `changeEventPolicies` entry is the one policy that admits
+the event class, its two links, its ring, and the resource class its links
+reach.
+
+`atlas:OrganizationChangeEventShape` requires one date, at least one original
+and one result, no original among the results, at least one binding whose
+evidence is a public record served at an `https` URL, and human review by
+`urn:ref:reviewer:refspec-owner` on every binding. The validator then refuses
+an event outside its policy's ring or naming an organization outside it
+(`dataset.change-event-policy`), an event whose IRI is not
+`urn:ref:atlas-change-event:<digest hex>` over its own facts
+(`dataset.change-event-identity`), and, across the whole distribution, an
+inverse pair (`dataset.change-event-inverse`), a cycle through events
+(`dataset.change-event-cycle`), and a current `atlas:sameEntityAs` between an
+event's original and any of its results (`dataset.change-event-same-entity`).
+Change events have no projection triple and no compact-record role.
 
 ## Projection and inference
 

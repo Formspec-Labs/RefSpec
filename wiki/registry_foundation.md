@@ -687,9 +687,14 @@ must not be confused with this Python record.
 | Ring | Supported relations | Required context |
 | --- | --- | --- |
 | `subject` | Simple Knowledge Organization System (SKOS) `exactMatch`, `closeMatch`, `broadMatch`, `narrowMatch`, `relatedMatch` | None; context is rejected. |
-| `entity` | `sameIdentityAs`, `successorOf`, `relatedEntity` | None; context is rejected. |
+| `entity` | `sameIdentityAs`, `successorOf`, `relatedEntity` | `successorOf`: `effectiveFrom` only, the day the succession took effect (REF-072). `sameIdentityAs` and `relatedEntity`: none; context is rejected. |
 | `value` | `exactCrosswalk`, `broadCrosswalk`, `narrowCrosswalk`, `replacedBy` | `effectiveFrom`; optional `effectiveThrough`. |
 | `legalIdentity` | `cites`, `amends`, `authorizes`, `implements` | `effectiveFrom`; optional `effectiveThrough`. |
+
+A succession is an event on one day, not a period, so `successorOf` takes no
+`effectiveThrough`; identity holds of the two records, not of a period, so
+`sameIdentityAs` still refuses any context. On the Atlas wire the succession is
+an `atlas:OrganizationChangeEvent` carrying its `rkaf:effectiveDate`.
 
 The value and legal-identity bounds are inclusive ISO 8601 calendar dates. An
 end date cannot precede the start. A producer that knows only that a mapping

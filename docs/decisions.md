@@ -2556,7 +2556,9 @@ then verifies that every unchanged mapping names the selected endpoint release.
   builder, producer, portfolio chain, Atlas binding, and Parquet view are
   registered and checked together.
 - **Amended:** 2026-09-26, a consumer-side reverse lookup beside the builder
-  (spicy-regs decision 56); see the amendment at the end of this entry.
+  (spicy-regs decision 56); see the amendment at the end of this entry. Also
+  2026-09-26 by [REF-072](#ref-072-an-organizations-succession-is-a-dated-event-never-an-identity):
+  organization change events join the entity ring.
 
 **The roster closes REF-034's credential barrier.** The owner supplied a
 `REGULATIONS_GOV_API_KEY`, and the publisher returned 331 records from
@@ -5866,3 +5868,94 @@ pinned-column census moves exactly five values from `first-class` to
 `refused` (480,566 → 480,561; 360 → 365 of 1,004,233) and zero values
 anywhere else -- the two `consulted` numbers were already counted
 first-class and stay there.
+
+### REF-072: An organization's succession is a dated event, never an identity
+
+- **Date:** 2026-09-26
+- **Status:** Accepted and executed in the Atlas 3.1 binding. Amends REF-038.
+  The owner decided the design (`plans/agency-registry-design.md` §8) and
+  adjudicated the batch-1 events it first carries
+  (`plans/agency-registry-batch-1-decisions.json`).
+
+**What REF-038 could not say.** REF-038's wire carries identity: one-way
+`atlas:sameEntityAs` mappings, undated, because an identity holds of two
+records rather than of a period. Agency registry batch 1 adds successions --
+five renames and four splits of Federal Register agencies, each on a day a
+public record states. None fits a mapping. A split has several results, a
+merger several originals, and `rdf:subject`/`rdf:object` hold one of each; the
+entity-ring branch of `atlas:MappingAssertionShape`'s ring-context `sh:xone`
+refuses a date on any entity mapping; and `_validated_relation_context` in
+`semantic_foundation.py` refused context on every entity relation record.
+
+**The event.** A succession is one `atlas:OrganizationChangeEvent`, an n-ary
+record in the entity ring, specializing W3C ORG rather than minting a parallel
+vocabulary: the class is `rdfs:subClassOf org:ChangeEvent`, and
+`atlas:originalOrganization` and `atlas:resultingOrganization` are
+`rdfs:subPropertyOf` `org:originalOrganization` and `org:resultingOrganization`.
+An ORG-aware consumer infers the `org:` statements from the ontology; the wire
+carries only the Atlas terms, and a raw `org:` predicate is refused
+(`change-event-raw-org-predicate`). The date is `rkaf:effectiveDate`, the one
+instant rkaf gives an event taking effect, never an `rkaf:EffectivePeriod`: an
+event happens on a day, and a period would claim it is "in force". The event is
+evidence-bound exactly as an assertion is, through `rkaf:bindsAssertion`, and
+its IRI is `urn:ref:atlas-change-event:<digest hex>` over its own facts, so the
+owner's review stays bound to exactly the event reviewed.
+
+The profile map gains one `changeEventPolicies` entry: it admits the event
+class, its two links, the entity ring, and `atlas:EntityResource` as the class
+the links reach (`profileDigest`
+`sha256:7d7c4933…` → `sha256:d69a48c6c3de33007aea900d8ae4341c493cdf205bbcc201395c48a0d5409d9c`).
+Its loader refuses a non-Atlas term and a link any assertion cell admits.
+`atlas:OrganizationChangeEventShape` states the owner's clauses, one property
+shape each: exactly one date; at least one original; at least one result; no
+original among the results (`sh:disjoint`); at least one binding whose
+evidence is a public record, served by its publisher at an `https` URL; and
+human review by `urn:ref:reviewer:refspec-owner` on every binding
+(`atlas:OwnerHumanReviewShape`). `tools/validate.py` adds what relates several
+records: the event's ring and every organization it names against the policy
+(`dataset.change-event-policy`), the content-derived IRI
+(`dataset.change-event-identity`), and over the whole distribution no inverse
+pair (`dataset.change-event-inverse`), no cycle through events
+(`dataset.change-event-cycle`, the hierarchy check's Tarjan pass), and no
+current `atlas:sameEntityAs` between an event's original and any of its results
+(`dataset.change-event-same-entity`). Each clause and each rule has its own
+negative case, and `organization-change-events` is the valid one -- a split
+and a later rename of one of its results, a chain the cycle rule must admit.
+`tests/test_atlas_v3_change_events.py` pins that each negative fails on its own
+clause's path, since two pairs share a SHACL component. The corpus grows from
+174 to 188 cases (151 to 164 invalid), and `fixturesDigest` re-seals
+(`bindings/atlas/3.1/fixtures-receipt.json`).
+
+**Why a succession never folds into identity.** `atlas:sameEntityAs` is
+timeless and, in meaning, symmetric. Folding a rename or a split into it would
+equate two records the Register files apart, route every pre-change document
+to an organization that never published it (every pre-2003 INS document to
+three DHS components), and drop the date the record states. The validator
+therefore refuses both at once for one pair. The entity ring's no-period rule
+for mappings is untouched: `mapping-entity-identity-dated` proves a period on
+`atlas:sameEntityAs` is still refused. The registry mirrors the wire: in
+`semantic_foundation.py`, an entity `successorOf` record now requires the day
+it took effect (`effectiveFrom`, and no `effectiveThrough`), and identity and
+related-entity records still refuse any context.
+
+**`dcterms:isReplacedBy` is not reused.** It stays a release-level native
+identity property (`src/refspec/managed_release.py:149`, beside
+`dcterms:isVersionOf` and `owl:priorVersion`), relating a release to the one
+that supersedes it. A successor organization is not a later version of its
+predecessor's record, a split has no single replacement, and the property
+carries no date, so organizations use the event.
+
+**Recorded readings, for the owner to overrule.** "A dated public record" is
+read, on the wire, as a public record its publisher serves at an `https` URL.
+The batch-1 records carry kind, citation, URL and note but no structured date,
+and a date lifted from a citation's text would be a new claim; so the wire
+checks what it can see, and the date-bearing kinds (statute, reorganization
+plan, Federal Register notice or document, as against a roster description)
+are checked where the kind is known, when the release is assembled. The kind
+stays a release-time check, not a shape rule: it is a field of this producer's
+evidence payload, not a binding term, and checking it would tie the
+independent validator to that payload's shape. SHACL Core also cannot see
+inside the payload's canonical `rdf:JSON`. Any change is the assertions
+follow-up's. The ring-context `sh:xone` needed no constraint change: it
+targets `atlas:MappingAssertion`, which the event is not, so the amendment
+there is the comment that says so.

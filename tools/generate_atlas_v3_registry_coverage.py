@@ -338,9 +338,13 @@ def validate_profile_map(
 ) -> dict[str, Mapping[str, Any]]:
     """Validate the closed five-profile map and return resource-kind lookup rows."""
 
+    # changeEventPolicies (REF-072) is required but not re-derived here: this
+    # tool reads the matrix to account for resource kinds, and the binding
+    # validator is the one reader of the event entry.
     _require_keys(
         profile_map,
         {
+            "changeEventPolicies",
             "crossRingRelationPolicies",
             "format",
             "namespace",

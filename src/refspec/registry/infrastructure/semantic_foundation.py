@@ -282,12 +282,31 @@ def _require_closed_fields(
         raise SemanticFoundationError(f"{label} has missing fields {missing!r} and unknown fields {unknown!r}")
 
 
+def _requires_relation_context(semantic_ring: SemanticRing, relation: str) -> bool:
+    """Whether one relation record must state when it holds: the two dated rings, and a succession."""
+
+    return semantic_ring in {"value", "legalIdentity"} or relation == ENTITY_SUCCESSOR
+
+
 def _validated_relation_context(
     semantic_ring: SemanticRing,
     value: Mapping[str, str] | None,
     *,
     label: str,
+    relation: str,
 ) -> Mapping[str, str] | None:
+    # The entity ring's one dated relation (REF-072). A succession happened on
+    # the day a public record states, so it carries that day and nothing else:
+    # no effectiveThrough, because a rename is an event, not a period that
+    # could end. Identity and related-entity records still refuse any context
+    # -- atlas:sameEntityAs holds of the organizations, not of a period -- which
+    # is the rule the Atlas wire states for atlas:OrganizationChangeEvent and
+    # atlas:sameEntityAs.
+    if relation == ENTITY_SUCCESSOR:
+        if not isinstance(value, Mapping):
+            raise SemanticFoundationError("entity successorOf relation records require the day of the succession")
+        _require_closed_fields(value, label=label, required={"effectiveFrom"})
+        return MappingProxyType({"effectiveFrom": _require_date(value.get("effectiveFrom"), f"{label}.effectiveFrom")})
     if semantic_ring in {"subject", "entity"}:
         if value is not None:
             raise SemanticFoundationError(f"{semantic_ring} relation records do not accept context")
@@ -507,6 +526,7 @@ def validate_machine_evidence_proof_pin(
         ring,
         cast(Mapping[str, str], context_value) if isinstance(context_value, Mapping) else None,
         label="machine_evidence_proof.context",
+        relation=relation,
     )
 
     basis: dict[str, Any] = {
@@ -1049,6 +1069,7 @@ class MappingAssertion:
                 ring,
                 self.context,
                 label="mapping_assertion.context",
+                relation=relation,
             ),
         )
         if self.identifier in self.supersedes:
@@ -1077,7 +1098,7 @@ class MappingAssertion:
             "lifecycleStatus",
             "supersedes",
         }
-        if ring in {"value", "legalIdentity"}:
+        if _requires_relation_context(ring, str(value.get("relation"))):
             required.add("context")
         _require_closed_fields(value, label="mapping_assertion", required=required)
         if value.get("type") != "MappingAssertion":

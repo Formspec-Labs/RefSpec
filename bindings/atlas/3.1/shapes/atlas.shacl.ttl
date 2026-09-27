@@ -758,8 +758,16 @@ atlas:MappingAssertionShape
   # would be a fact no source states and nothing could check. That asymmetry is
   # exactly what the registry has enforced since it had rings
   # (semantic_foundation.py's _validated_relation_context, which requires the
-  # context for value and legalIdentity and REFUSES it for subject and entity);
-  # this is the same rule on the wire.
+  # context for value and legalIdentity and REFUSES it for subject and entity
+  # mappings); this is the same rule on the wire.
+  #
+  # The entity ring's one dated fact is not a mapping (REF-072). A rename, a
+  # split or a merger happened on a day a public record states, and it is an
+  # atlas:OrganizationChangeEvent whose own shape requires exactly one
+  # rkaf:effectiveDate -- never a period on atlas:sameEntityAs, which the
+  # entity branch below still refuses (mapping-entity-identity-dated). The
+  # registry mirrors it: an entity successorOf record requires its day, and
+  # identity still refuses one.
   #
   # sh:xone, not two sh:or branches: the ring sets partition the four rings and
   # an assertion carries exactly one ring, so precisely one branch can match the
@@ -937,12 +945,19 @@ atlas:EvidenceBindingShape
   sh:nodeKind sh:IRI ;
   sh:closed true ;
   sh:ignoredProperties ( rdf:type ) ;
+  # A binding supports a relation assertion or an organization change event,
+  # the one n-ary claim Atlas carries (REF-072). The event is deliberately not
+  # an atlas:RelationAssertion -- rdf:subject/rdf:object cannot hold a split --
+  # so the class test names both.
   sh:property [
     sh:path rkaf:bindsAssertion ;
     sh:minCount 1 ;
     sh:maxCount 1 ;
     sh:nodeKind sh:IRI ;
-    sh:class atlas:RelationAssertion
+    sh:or (
+      [ sh:class atlas:RelationAssertion ]
+      [ sh:class atlas:OrganizationChangeEvent ]
+    )
   ] ;
   sh:property [
     sh:path atlas:evidenceSourceRecord ;
@@ -1192,6 +1207,91 @@ atlas:LifecycleEventShape
       sh:property [ sh:path atlas:fromRelease ; sh:maxCount 0 ]
     ]
   ) .
+
+# ORGANIZATION CHANGE EVENTS (REF-072, amending REF-038)
+#
+# The owner's event design, one clause per property shape so each refusal
+# names its own clause:
+#
+#   exactly one date            rkaf:effectiveDate, [1,1], the UTC midnight
+#                               that begins the day the record states (the
+#                               day-to-instant rule atlas:EffectivePeriodShape
+#                               pins for a period start)
+#   at least one original       atlas:originalOrganization, minCount 1
+#   at least one result         atlas:resultingOrganization, minCount 1
+#   original not among results  sh:disjoint between the two
+#   a dated public record       at least one binding whose evidence source
+#                               record is a public record: one the publisher
+#                               serves at an https URL -- a statute, a
+#                               reorganization plan, a Federal Register notice
+#                               or document, each dated by its own enactment or
+#                               publication -- never a RefSpec-internal pin
+#   E4 human review by the      every binding is the owner's human review, and
+#   owner                       there is at least one
+#
+# The event's ring and the ring and class of every organization it names are
+# the changeEventPolicies entry's rule, and a comparison across nodes, so
+# tools/validate.py owns them (dataset.change-event-policy), with the event's
+# content-derived IRI and the three corpus-wide rules: no inverse pair, no
+# cycle, no atlas:sameEntityAs between an original and a result.
+atlas:OrganizationChangeEventShape
+  a sh:NodeShape ;
+  sh:targetClass atlas:OrganizationChangeEvent ;
+  sh:nodeKind sh:IRI ;
+  sh:closed true ;
+  sh:ignoredProperties ( rdf:type ) ;
+  sh:property [
+    sh:path atlas:semanticRing ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:SemanticRingValueShape
+  ] ;
+  sh:property [
+    sh:path rkaf:effectiveDate ;
+    sh:minCount 1 ;
+    sh:maxCount 1 ;
+    sh:node atlas:DateTimeValueShape ;
+    sh:pattern "^-?[0-9]{4,}-[0-9]{2}-[0-9]{2}T00:00:00[+]00:00$"
+  ] ;
+  sh:property [
+    sh:path atlas:originalOrganization ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI ;
+    sh:disjoint atlas:resultingOrganization
+  ] ;
+  sh:property [
+    sh:path atlas:resultingOrganization ;
+    sh:minCount 1 ;
+    sh:nodeKind sh:IRI
+  ] ;
+  sh:property [
+    sh:path [ sh:inversePath rkaf:bindsAssertion ] ;
+    sh:minCount 1 ;
+    sh:node atlas:OwnerHumanReviewShape
+  ] ;
+  sh:property [
+    sh:path [ sh:inversePath rkaf:bindsAssertion ] ;
+    sh:qualifiedValueShape atlas:PublicRecordEvidenceShape ;
+    sh:qualifiedMinCount 1
+  ] .
+
+# The humanReview warrant (atlas:EvidenceBindingShape's third branch) given by
+# the one reviewer the agency registry admits. Only the owner adjudicates.
+atlas:OwnerHumanReviewShape
+  a sh:NodeShape ;
+  sh:property [ sh:path rkaf:attestor ; sh:hasValue <urn:ref:reviewer:refspec-owner> ] ;
+  sh:property [ sh:path rkaf:assertionOrigin ; sh:hasValue rkaf:humanAsserted ] ;
+  sh:property [ sh:path rkaf:attestorKind ; sh:hasValue rkaf:humanUser ] ;
+  sh:property [ sh:path rkaf:epistemicBasis ; sh:hasValue rkaf:editorialAssertion ] ;
+  sh:property [ sh:path rkaf:evidenceRole ; sh:hasValue rkaf:textualEvidence ] .
+
+atlas:PublicRecordEvidenceShape
+  a sh:NodeShape ;
+  sh:property [
+    sh:path ( atlas:evidenceSourceRecord atlas:sourceLocator ) ;
+    sh:minCount 1 ;
+    sh:pattern "^https://"
+  ] .
 
 # Machine-adjudication proof records
 #

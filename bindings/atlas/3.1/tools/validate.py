@@ -698,6 +698,9 @@ MEMBER_DISPOSITIONS = frozenset(
         "reviewWithheld",
     }
 )
+# REF-072: an organization change event is named by the digest of its own
+# facts (dataset.change-event-identity), so the prefix alone says a node is one.
+CHANGE_EVENT_IRI_PREFIX = "urn:ref:atlas-change-event:"
 RING_RESOURCE_CLASSES = {
     ATLAS.entity: ATLAS.EntityResource,
     ATLAS.legalIdentity: ATLAS.LegalIdentityResource,
@@ -730,6 +733,7 @@ ALLOWED_ASSERTED_TYPES = frozenset(
         RKAF.RelationComparisonContext,
         RKAF.EffectivePeriod,
         RKAF.RegistryConflict,
+        ATLAS.OrganizationChangeEvent,
         ATLAS.RelationAssertion,
         *ASSERTION_TYPES,
         ATLAS.SkosMappingAssertion,
@@ -757,6 +761,7 @@ ASSERTED_CARRIER_TYPES = frozenset(
         RKAF.RelationComparisonContext,
         RKAF.EffectivePeriod,
         RKAF.RegistryConflict,
+        ATLAS.OrganizationChangeEvent,
         *ASSERTION_TYPES,
         SKOSXL.Label,
     }
@@ -878,6 +883,8 @@ ALLOWED_ASSERTED_PREDICATES = frozenset(
         RKAF.conflictingEntries,
         RKAF.severity,
         RKAF.detectedAt,
+        ATLAS.originalOrganization,
+        ATLAS.resultingOrganization,
         ATLAS.contentDigest,
     }
 )
@@ -975,6 +982,8 @@ _INDEXED_ASSERTED_PREDICATES = (
             RKAF.appliesTo,
             RKAF.lifecycleEventKind,
             RKAF.conflictingEntries,
+            ATLAS.originalOrganization,
+            ATLAS.resultingOrganization,
         }
     )
     | _MACHINE_ADJUDICATION_INDEXED_PREDICATES
@@ -1129,6 +1138,22 @@ REQUIRED_CORPUS_CASES = frozenset(
         "mapping-publisher-without-standing",
         "mapping-silent-predicate-rewrite",
         "mapping-subject-ring-dated",
+        "mapping-entity-identity-dated",
+        # REF-072: organization change events, one valid pair of events and a
+        # negative per shape clause and per corpus-wide rule.
+        "organization-change-events",
+        "change-event-two-dates",
+        "change-event-no-original",
+        "change-event-no-result",
+        "change-event-original-among-results",
+        "change-event-no-public-record",
+        "change-event-not-owner-reviewed",
+        "change-event-raw-org-predicate",
+        "change-event-result-outside-entity-ring",
+        "change-event-identity-drift",
+        "change-event-inverse-pair",
+        "change-event-cycle",
+        "change-event-same-entity",
         "mapping-undated-legal-identity",
         "mapping-undated-value-crosswalk",
         "mapping-wrong-endpoint-release",
@@ -3231,6 +3256,7 @@ def _lint_ontology(ontology: Graph) -> None:
         RDFS.label,
         RDFS.range,
         RDFS.subClassOf,
+        RDFS.subPropertyOf,
         OWL.disjointWith,
         OWL.versionInfo,
     }
@@ -3259,6 +3285,11 @@ def _lint_ontology(ontology: Graph) -> None:
             _fail("ontology.profile", f"Atlas ontology uses non-allowlisted predicate {predicate}")
         if predicate == RDF.type and obj not in allowed_declaration_types:
             _fail("ontology.profile", f"Atlas ontology uses non-allowlisted rdf:type {obj}")
+        # Subproperty axioms exist to specialize W3C ORG (REF-072); one under a
+        # SKOS or SKOS-XL property would change what a SKOS consumer infers,
+        # which the standards boundary in README.md rules out.
+        if predicate == RDFS.subPropertyOf and str(obj).startswith((str(SKOS), str(SKOSXL))):
+            _fail("ontology.profile", f"Atlas ontology specializes the SKOS property {obj}")
         if (
             predicate == RDFS.range
             and (subject, RDF.type, OWL.DatatypeProperty) in ontology
@@ -4365,6 +4396,7 @@ def _asserted_facts(
 def _profile_policy_document() -> Mapping[str, Any]:
     profile_map = _load_json(PROFILE_MAP_PATH, require_canonical=True)
     expected_keys = {
+        "changeEventPolicies",
         "crossRingRelationPolicies",
         "format",
         "namespace",
@@ -4590,6 +4622,56 @@ def _cross_ring_relation_policies() -> dict[tuple[URIRef, URIRef], frozenset[URI
             "crossRingRelationPolicies differ from the closed Atlas 3.1 matrix",
         )
     return policies
+
+
+@dataclass(frozen=True, slots=True)
+class _ChangeEventPolicy:
+    """The one entry that admits an n-ary change event, its two links, and its ring (REF-072)."""
+
+    event_class: URIRef
+    original_predicate: URIRef
+    resulting_predicate: URIRef
+    resource_class: URIRef
+    ring: URIRef
+
+
+def _change_event_policies() -> tuple[_ChangeEventPolicy, ...]:
+    """Load the closed change-event policy: Atlas terms only, no predicate shared with an assertion cell.
+
+    The two links are the event record's own fields, not assertion predicates,
+    so an overlap would make one predicate both a bare asserted fact and a
+    projection-only relation. A raw W3C ORG term is refused here as every
+    non-Atlas predicate outside the subject ring is refused in the relation
+    policy: the wire carries the Atlas specializations only.
+    """
+
+    rows = _profile_policy_document().get("changeEventPolicies")
+    if not isinstance(rows, list) or not rows:
+        _fail("profile.policy", "changeEventPolicies must be a nonempty list")
+    assertion_predicates = frozenset().union(
+        *(predicates for ring_policy in _relation_policies().values() for predicates in ring_policy.values()),
+        *_cross_ring_relation_policies().values(),
+    )
+    policies: list[_ChangeEventPolicy] = []
+    for position, row in enumerate(rows):
+        location = f"changeEventPolicies[{position}]"
+        fields = ("eventClass", "originalPredicate", "resourceClass", "resultingPredicate", "semanticRing")
+        if not isinstance(row, Mapping) or set(row) != set(fields):
+            _fail("profile.policy", f"{location} fields are incomplete or unknown")
+        if not all(isinstance(row[field], str) for field in fields):
+            _fail("profile.policy", f"{location} fields must be strings")
+        ring = URIRef(str(ATLAS) + row["semanticRing"])
+        if RING_RESOURCE_CLASSES.get(ring) != URIRef(row["resourceClass"]):
+            _fail("profile.policy", f"{location}.resourceClass does not match its ring")
+        terms = tuple(URIRef(row[field]) for field in ("eventClass", "originalPredicate", "resultingPredicate"))
+        if any(not str(term).startswith(str(ATLAS)) for term in terms):
+            _fail("profile.policy", f"{location} names a non-Atlas term")
+        if terms[1] == terms[2] or {terms[1], terms[2]} & assertion_predicates:
+            _fail("profile.policy", f"{location} links must be two predicates no assertion cell admits")
+        policies.append(_ChangeEventPolicy(*terms, resource_class=URIRef(row["resourceClass"]), ring=ring))
+    if len({policy.event_class for policy in policies}) != len(policies):
+        _fail("profile.policy", "changeEventPolicies repeat an event class")
+    return tuple(policies)
 
 
 def _projection_only_predicates() -> frozenset[URIRef]:
@@ -5167,6 +5249,9 @@ def _check_evidence_bindings(
     )
     source_records = _carrier_nodes(asserted, ATLAS.SourceRecord, inventory)
     bindings = _carrier_nodes(asserted, RKAF.EvidenceBinding, inventory)
+    # A change event is an n-ary claim, not a RelationAssertion, and carries its
+    # review the same way (REF-072); its shape requires the owner's.
+    change_events = _carrier_nodes(asserted, ATLAS.OrganizationChangeEvent, inventory)
 
     # Only an operatorAdoption binding may name a prior attestation, and when it
     # names one, the chain it starts must resolve to a non-adoption terminal
@@ -5242,7 +5327,10 @@ def _check_evidence_bindings(
             code="dataset.evidence",
             label="evidence source record",
         )
-        if not inventory.is_assertion(assertion) if inventory is not None else assertion not in assertions:
+        binds_change_event = assertion in change_events
+        if not binds_change_event and (
+            not inventory.is_assertion(assertion) if inventory is not None else assertion not in assertions
+        ):
             _fail("dataset.evidence", f"{binding} binds unknown assertion {assertion}")
         if source_record not in source_records:
             _fail("dataset.evidence", f"{binding} names unknown source record {source_record}")
@@ -5261,11 +5349,15 @@ def _check_evidence_bindings(
                 f"{binding} combines evidence axes no review warrant sanctions",
             )
         declared_warrant = next(iter(declared_warrants))
-        assertion_type = _assertion_type(
-            asserted,
-            assertion,
-            facts=facts,
-            inventory=inventory,
+        assertion_type = (
+            ATLAS.OrganizationChangeEvent
+            if binds_change_event
+            else _assertion_type(
+                asserted,
+                assertion,
+                facts=facts,
+                inventory=inventory,
+            )
         )
         if assertion_type == ATLAS.MappingAssertion:
             mapping_subject = _iri(
@@ -5421,6 +5513,83 @@ def _check_evidence_bindings(
     )
     if missing is not None:
         _fail("dataset.evidence", f"assertion has no immutable evidence binding: {missing}")
+
+
+def _check_change_events(
+    asserted: Graph,
+    current: Mapping[AssertionTriple, AssertionSupport],
+    inventory: SemanticInventory | None = None,
+    *,
+    node_digests: _AssertedNodeDigests | None = None,
+) -> None:
+    """The rules over organization change events that no per-node shape can state (REF-072).
+
+    atlas:OrganizationChangeEventShape holds each event to its own clauses.
+    Here: its ring and every organization it names against the one
+    changeEventPolicies entry; its IRI against its own facts, so the owner's
+    review stays bound to exactly the event reviewed; and three rules over the
+    whole distribution -- no inverse pair (A to B in one event, B to A in any),
+    no cycle through events, and no current atlas:sameEntityAs between an
+    event's original and any of its results in either direction, because a
+    succession is never folded into identity. Linear in events and links: one
+    pass builds the edge set, and the hierarchy check's iterative Tarjan pass
+    finds any cycle. The one pass over every current assertion, for the
+    identity pairs, runs only when some event names a link.
+    """
+
+    facts = _asserted_facts(asserted, inventory)
+    same_entity: set[tuple[URIRef, URIRef]] | None = None
+    for policy in _change_event_policies():
+        # First event naming each (original, result) link, for the refusals.
+        edges: dict[tuple[URIRef, URIRef], URIRef] = {}
+        for event in sorted(_carrier_nodes(asserted, policy.event_class, inventory), key=str):
+            if facts.objects(event, ATLAS.semanticRing) != (policy.ring,):
+                _fail("dataset.change-event-policy", f"{event} is not in the {policy.ring} ring its policy admits")
+            originals = facts.objects(event, policy.original_predicate)
+            results = facts.objects(event, policy.resulting_predicate)
+            for endpoint in (*originals, *results):
+                if not _has_carrier_type(asserted, endpoint, policy.resource_class, inventory) or (
+                    facts.objects(endpoint, ATLAS.semanticRing) != (policy.ring,)
+                ):
+                    _fail(
+                        "dataset.change-event-policy",
+                        f"{event} names {endpoint}, which is no {policy.resource_class} in the {policy.ring} ring",
+                    )
+            digest = _node_digest(asserted, event, node_digests)
+            if event != URIRef(CHANGE_EVENT_IRI_PREFIX + digest.removeprefix("sha256:")):
+                _fail("dataset.change-event-identity", f"{event} is not its content-derived IRI")
+            for original in originals:
+                for result in results:
+                    edges.setdefault((original, result), event)
+        if not edges:
+            continue
+        for (original, result), event in sorted(edges.items()):
+            reverse = edges.get((result, original))
+            if reverse is not None:
+                _fail(
+                    "dataset.change-event-inverse",
+                    f"{event} turns {original} into {result} and {reverse} turns it back",
+                )
+        vertices = sorted({vertex for edge in edges for vertex in edge}, key=str)
+        position = {vertex: index for index, vertex in enumerate(vertices)}
+        adjacency: list[list[int]] = [[] for _ in vertices]
+        self_loops = [0] * len(vertices)
+        for original, result in sorted(edges):
+            adjacency[position[original]].append(position[result])
+            if original == result:
+                self_loops[position[original]] = 1
+        component_by_vertex, component_is_cyclic = _hierarchy_strong_components(adjacency, self_loops)
+        cyclic = [vertex for vertex in vertices if component_is_cyclic[component_by_vertex[position[vertex]]]]
+        if cyclic:
+            _fail("dataset.change-event-cycle", f"organization change events form a cycle through {cyclic[0]}")
+        if same_entity is None:
+            same_entity = {(subject, obj) for subject, predicate, obj in current if predicate == ATLAS.sameEntityAs}
+        for (original, result), event in sorted(edges.items()):
+            if (original, result) in same_entity or (result, original) in same_entity:
+                _fail(
+                    "dataset.change-event-same-entity",
+                    f"{event} changes {original} into {result}, which atlas:sameEntityAs already identifies with it",
+                )
 
 
 def _adjudicated_relation(verdicts: AbstractSet[URIRef]) -> URIRef | None:
@@ -6906,7 +7075,9 @@ def _check_source_accounting(
                     f"{record} is {status} but names a represented assertion",
                 )
             for assertion in ledger_assertions:
-                if not facts.has_type(assertion, ATLAS.RelationAssertion):
+                if not facts.has_type(assertion, ATLAS.RelationAssertion) and not _has_carrier_type(
+                    asserted, assertion, ATLAS.OrganizationChangeEvent, inventory
+                ):
                     _fail(
                         "source.accounting",
                         f"{record} names unknown Atlas assertion {assertion}",
@@ -9973,6 +10144,7 @@ def _validate_semantic_graphs(
     _STATUS.phase("check-evidence-and-assertions")
     _check_evidence_bindings(graphs["asserted"], inventory, node_digests=node_digests)
     current_assertions = _validate_assertions(graphs["asserted"], inventory)
+    _check_change_events(graphs["asserted"], current_assertions, inventory, node_digests=node_digests)
     _STATUS.phase("check-machine-adjudication")
     _check_machine_adjudication(
         graphs["asserted"],

@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 from rdflib import Dataset, Graph, Literal, Namespace, URIRef
-from rdflib.namespace import OWL, RDF, SKOS
+from rdflib.namespace import OWL, RDF, RDFS, SKOS
 
 ROOT = Path(__file__).resolve().parents[1]
 BINDING_ROOT = ROOT / "bindings" / "atlas" / "3.1"
@@ -113,8 +113,8 @@ def test_atlas_v3_binding_and_sealed_corpus_pass() -> None:
     completed = _standalone()
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
-        "caseCount": 174,
-        "invalidCount": 151,
+        "caseCount": 188,
+        "invalidCount": 164,
         "registryDescriptorCount": 106,
         "registryDescriptorQuadCount": 1252,
         "schemaCount": 10,
@@ -130,8 +130,8 @@ def test_memory_fallback_matches_the_sealed_corpus() -> None:
     )
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
-        "caseCount": 174,
-        "invalidCount": 151,
+        "caseCount": 188,
+        "invalidCount": 164,
         "registryDescriptorCount": 106,
         "registryDescriptorQuadCount": 1252,
         "schemaCount": 10,
@@ -424,6 +424,14 @@ def test_ontology_uses_the_declared_safe_local_profile() -> None:
         str(subject).startswith(str(SKOS)) or str(subject).startswith(str(SKOSXL))
         for subject in graph.subjects()
     )
+
+    atlas_validate._lint_ontology(graph)
+    specializes_skos = Graph()
+    for triple in graph:
+        specializes_skos.add(triple)
+    specializes_skos.add((ATLAS.originalOrganization, RDFS.subPropertyOf, SKOS.exactMatch))
+    with pytest.raises(atlas_validate.AtlasValidationError, match="specializes the SKOS property"):
+        atlas_validate._lint_ontology(specializes_skos)
 
     graph.add((ATLAS.injected, OWL.inverseOf, ATLAS.other))
     with pytest.raises(atlas_validate.AtlasValidationError, match="ontology.profile"):

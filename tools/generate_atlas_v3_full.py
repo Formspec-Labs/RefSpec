@@ -715,6 +715,9 @@ REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-d
 REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:f4ca83a852748a90cf4f1cf67a5bb954b76f42ecc39ac9b6ec57d4934fbfb5a4"
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
+# 2026-09-26 (REF-072): the profile map gains the changeEventPolicies entry,
+# so the proof's inputs.registryResourceProfilesDigest moves. The .nq graph is
+# byte-identical; the proof pin alone moves.
 # 2026-09-26 (agency registry batch 1): v3_registry_alignments_entity.py, which
 # the index hashes as evidence, loses its private parent map to
 # agency_projection.parent_by_subject. The .nq graph is byte-identical; the
@@ -784,7 +787,7 @@ REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/regi
 # edited that day, is NOT index evidence and moved nothing here). The
 # descriptors .nq graph is byte-identical both times; only the proof's
 # inputs.atlasIndexDigest moved, and this pin moves with it.
-REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:2b52d3f8d51ca9480ca14af2e2792695e81de258db0e69af7ecb60e05b76caea"
+REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:6dbd0fec76544d9339c2fdff6d55e3ae54546611781b219a02d9371e2b7fc9dd"
 
 
 def _load_validator() -> Any:
