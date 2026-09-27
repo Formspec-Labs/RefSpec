@@ -19,6 +19,10 @@ ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+# A shared assertion helper under tests/ is not a test module, so pytest would
+# not rewrite its asserts; a failure there would print a bare AssertionError.
+pytest.register_assert_rewrite("writer_path_equivalence")
+
 # The sealed-corpus pass validates all 159 conformance cases in one indivisible
 # subprocess. At ~40s (39.96s measured 2026-08-23) it is still the longest
 # single test by a wide margin, and pytest-xdist hands work out in collection

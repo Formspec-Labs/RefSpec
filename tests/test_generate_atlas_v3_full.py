@@ -19,6 +19,7 @@ import pyarrow.parquet as pq
 import pytest
 from rdflib import Graph, Literal, URIRef
 from rdflib.namespace import RDF
+from writer_path_equivalence import write_both_and_compare
 
 from conftest import missing_pinned_input
 from refspec.atlas.v3_source_data import (
@@ -1822,37 +1823,6 @@ def test_streamed_construction_matches_the_whole_graph_oracle(
     )
     releases, mapping_release = _compiled_mapping_case(tmp_path)
     mapping_releases = (mapping_release,)
-    prebuild = _compiled_stream_prebuild(releases, mapping_releases)
-    compiled_rows = prebuild.compiled_rows
-    pack_plans = prebuild.pack_plans
-    construction_seeds = prebuild.construction_seeds
-
-    graphs = generator._build_graphs(
-        releases,
-        mapping_releases=mapping_releases,
-        include_projection=False,
-    )
-    try:
-        legacy_validation = generator._validate_compiled_producer_output(
-            releases,
-            graphs,
-            compiled_rows,
-            mapping_releases,
-        )
-        legacy_accounting = generator._plain(graphs.accounting)
-        legacy_root = tmp_path / "whole-graph"
-        legacy_result, legacy_manifest = generator._write_candidate_distribution(
-            legacy_root / "distribution",
-            graphs,
-            releases=pack_plans,
-            created_at=_TEST_CREATED_AT,
-            compiled_validation=legacy_validation,
-            construction_seeds=construction_seeds,
-            parquet_tables=legacy_root / "parquet-view",
-        )
-    finally:
-        graphs.release()
-
     comparand_calls = {"idsByRole": 0, "reachability": 0}
     original_ids_by_role = generator.ATLAS_VALIDATE._rdf_record_ids_by_role
     original_reachability = generator.ATLAS_VALIDATE._check_explorer_reachability
@@ -1868,47 +1838,28 @@ def test_streamed_construction_matches_the_whole_graph_oracle(
         comparand_calls["reachability"] += 1
         original_reachability(served, asserted)
 
-    monkeypatch.setattr(
-        generator.ATLAS_VALIDATE,
-        "_rdf_record_ids_by_role",
-        counted_ids_by_role,
-    )
-    monkeypatch.setattr(
-        generator.ATLAS_VALIDATE,
-        "_check_explorer_reachability",
-        counted_reachability,
-    )
-    streamed = generator._stream_construct_graphs(
-        list(releases),
-        list(mapping_releases),
-        prebuild=prebuild,
-        spool_root=tmp_path / "stream-spool",
-    )
-    streamed_root = tmp_path / "streamed"
-    streamed_result, streamed_manifest = generator._write_streamed_candidate_distribution(
-        streamed_root / "distribution",
-        streamed,
-        pack_plans,
+    def count_streamed_comparands() -> None:
+        monkeypatch.setattr(
+            generator.ATLAS_VALIDATE,
+            "_rdf_record_ids_by_role",
+            counted_ids_by_role,
+        )
+        monkeypatch.setattr(
+            generator.ATLAS_VALIDATE,
+            "_check_explorer_reachability",
+            counted_reachability,
+        )
+
+    streamed, _manifest = write_both_and_compare(
+        tmp_path,
+        releases,
+        mapping_releases,
+        _compiled_stream_prebuild(releases, mapping_releases),
         created_at=_TEST_CREATED_AT,
-        construction_seeds=construction_seeds,
-        parquet_tables=streamed_root / "parquet-view",
+        before_streaming=count_streamed_comparands,
     )
-
-    def files(root: Path) -> dict[str, bytes]:
-        return {
-            path.relative_to(root).as_posix(): path.read_bytes()
-            for path in root.rglob("*")
-            if path.is_file()
-        }
-
-    unstamped = generator.UNSTAMPED_ASSERTED_INVENTORY_DIGEST
-    assert generator._stamped_source_accounting(
-        streamed.accounting, unstamped
-    ) == generator._stamped_source_accounting(legacy_accounting, unstamped)
-    assert streamed.compiled_validation == legacy_validation
-    assert streamed_manifest == legacy_manifest
-    assert streamed_result == legacy_result
-    assert files(streamed_root) == files(legacy_root)
+    legacy_root = tmp_path / "legacy"
+    streamed_root = tmp_path / "streamed"
     assert comparand_calls["idsByRole"] > 0
     assert comparand_calls["reachability"] > 0
 

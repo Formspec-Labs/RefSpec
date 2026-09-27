@@ -18,6 +18,7 @@ from pathlib import Path
 import pytest
 from rdflib import Graph, URIRef
 from rdflib.namespace import RDF, SKOS
+from writer_path_equivalence import write_both_and_compare
 
 from conftest import missing_pinned_input
 from refspec.atlas import v3_registry_alignments as base_alignments
@@ -1189,76 +1190,19 @@ def test_bounded_real_releases_match_streamed_and_legacy_bytes(
     created_at = prebuild.generation_report["createdAt"]
     assert isinstance(created_at, str)
 
-    legacy_graphs = generator._build_graphs(
+    _streamed, manifest = write_both_and_compare(
+        tmp_path,
         releases,
-        mapping_releases=mapping_releases,
-        include_projection=False,
-    )
-    try:
-        legacy_validation = generator._validate_compiled_producer_output(
-            releases,
-            legacy_graphs,
-            prebuild.compiled_rows,
-            mapping_releases,
-        )
-        legacy_accounting = generator._plain(legacy_graphs.accounting)
-        legacy_root = tmp_path / "legacy"
-        legacy_result, legacy_manifest = generator._write_candidate_distribution(
-            legacy_root / "distribution",
-            legacy_graphs,
-            releases=prebuild.pack_plans,
-            created_at=created_at,
-            compiled_validation=legacy_validation,
-            construction_seeds=prebuild.construction_seeds,
-            parquet_tables=legacy_root / "parquet-view",
-            agency_projection=agency_projection,
-        )
-    finally:
-        legacy_graphs.release()
-
-    streamed = generator._stream_construct_graphs(
-        list(releases),
-        list(mapping_releases),
-        prebuild=prebuild,
-        spool_root=tmp_path / "stream-spool",
-    )
-    streamed_root = tmp_path / "streamed"
-    streamed_result, streamed_manifest = generator._write_streamed_candidate_distribution(
-        streamed_root / "distribution",
-        streamed,
-        prebuild.pack_plans,
+        mapping_releases,
+        prebuild,
         created_at=created_at,
-        construction_seeds=prebuild.construction_seeds,
-        parquet_tables=streamed_root / "parquet-view",
         agency_projection=agency_projection,
     )
-
-    def files(root: Path) -> dict[str, bytes]:
-        """Every file under root, keyed by relative POSIX path."""
-        return {
-            path.relative_to(root).as_posix(): path.read_bytes()
-            for path in root.rglob("*")
-            if path.is_file()
-        }
-
-    legacy_distribution = files(legacy_root / "distribution")
-    streamed_distribution = files(streamed_root / "distribution")
-    legacy_parquet = files(legacy_root / "parquet-view")
-    streamed_parquet = files(streamed_root / "parquet-view")
-
-    assert streamed.accounting == legacy_accounting
-    assert streamed.compiled_validation == legacy_validation
-    assert streamed_result["status"] == legacy_result["status"] == "passed"
-    assert streamed_manifest == legacy_manifest
-    assert streamed_manifest["counts"]["evidenceBindings"] > (
-        streamed_manifest["counts"]["relationAssertions"]
-    )
+    assert manifest["counts"]["evidenceBindings"] > manifest["counts"]["relationAssertions"]
     assert {
         "atlas-acceptance.json",
         "atlas-construction-summary.json",
         "atlas-manifest.json",
         "atlas-producer-validation.json",
         "atlas-source-accounting.json",
-    } <= set(legacy_distribution)
-    assert streamed_distribution == legacy_distribution
-    assert streamed_parquet == legacy_parquet
+    } <= {path.name for path in (tmp_path / "legacy" / "distribution").iterdir()}
