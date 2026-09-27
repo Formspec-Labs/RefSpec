@@ -235,6 +235,11 @@ An agent is never the reviewer. Exactly:
   Global Media) belong there too.
 - **Later batches:** the Federal Hierarchy as a first-class dimension, then
   lobbying filing names, then court-docket names. Designed for here, not built.
+- **Known limit (REF-072): events cannot stand alone.** A mapping release must
+  carry at least one mapping, and the producer writes a release's change
+  events with its first mapping batch, so the later succession batch, if it
+  holds only events, cannot be a release of its own as built. It either rides
+  in a release with bridges or needs that limit lifted first.
 
 ## 8. Release and artifact
 

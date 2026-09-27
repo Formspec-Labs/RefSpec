@@ -1,10 +1,23 @@
 {
-  "catalogDigest": "sha256:51f9d1085b5eabc35713c5d10fb1c6c4c6da50b09bf31e51da97b2abce8cf2c8",
-  "catalogId": "urn:ref:resource-catalog:51f9d1085b5eabc35713c5d10fb1c6c4c6da50b09bf31e51da97b2abce8cf2c8",
+  "catalogDigest": "sha256:7764cdd375eb30519179d6c029433c77d7b65fc08b111d458c8bd9212c592987",
+  "catalogId": "urn:ref:resource-catalog:7764cdd375eb30519179d6c029433c77d7b65fc08b111d458c8bd9212c592987",
   "experimental": true,
   "format": "refspec-resource-catalog/experimental-v0",
-  "recordedAt": "2026-09-05T00:00:00Z",
+  "recordedAt": "2026-09-26T00:00:00Z",
   "resources": [
+    {
+      "consumability": "inventoryOnly",
+      "distributions": [],
+      "evidence": [],
+      "gap": "No publisher states a cross-roster identity or a succession as data. RefSpec retains the owner's E4 decisions on the batch-1 candidates, bound by digest to the content decided, beside both publishers' records and the public records behind each event, and records every decided item that emits nothing.",
+      "identifierRepresentation": "Preserve each one-way Federal Register-to-eCFR or Federal Hierarchy atlas:sameEntityAs bridge with both sealed publisher names and parents, each dated atlas:OrganizationChangeEvent with its originals, results, functions and public records, and each recorded non-emission with its reason. Emit no inverse, and never fold a succession into identity.",
+      "officialLocator": "plans/agency-registry-batch-1-decisions.json",
+      "resourceId": "agency-registry",
+      "resourceKind": "mappingReference",
+      "sourceAvailability": "available",
+      "title": "Agency registry mapping release",
+      "versionRepresentation": "Pin the five agency rosters, the batch-1 candidates and the owner's decisions by digest: 13 bridges with 26 E4 evidence records, 9 change events with one E4 record per public record, and 4 recorded non-emissions under REF-072."
+    },
     {
       "consumability": "inventoryOnly",
       "distributions": [],
@@ -1955,8 +1968,8 @@
   ],
   "summary": {
     "evidenceOnlyCount": 7,
-    "inventoryOnlyCount": 106,
-    "resourceCount": 117,
+    "inventoryOnlyCount": 107,
+    "resourceCount": 118,
     "verifiedDistributionCount": 6,
     "verifiedResourceCount": 4
   }

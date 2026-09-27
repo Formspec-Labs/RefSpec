@@ -19,7 +19,7 @@ import json
 from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Literal, cast
+from typing import Any, Literal, cast, get_args
 
 from refspec.atlas.v3_registry_rosters import ATLAS_PARENT_ENTITY
 from refspec.atlas.v3_source_data import (
@@ -34,6 +34,18 @@ ATLAS_SAME_ENTITY_AS = "https://refspec.org/ns/atlas/v3#sameEntityAs"
 REF_038_DECISION_RECORD = "docs/decisions.md#ref-038"
 REF_038_REVIEWER_IRI = "urn:ref:reviewer:refspec-owner"
 REF_038_ADJUDICATED_ON = "2026-08-16"
+# REF-072's release sits beside REF-038's and never feeds its projection.
+AGENCY_REGISTRY_RELEASE_KEY = "agency-registry-2026-09-26"
+# Why a decided item emits nothing -- closed, so the release and every reader
+# of its view refuse a reason nobody defined. The owner's own words ride beside
+# each code as its reasoning.
+AgencyRegistryNonEmissionReason = Literal[
+    "heldForStatutoryRenameBasis",
+    "noCounterpartInHeldFRRoster",
+    "sameOrganizationReverseLookupCostRejected",
+    "withdrawn",
+]
+AGENCY_REGISTRY_NON_EMISSION_REASONS = frozenset(get_args(AgencyRegistryNonEmissionReason))
 
 FR_RELEASE_KEY = "federal-register-agencies-roster-2026-08-15"
 FH_RELEASE_KEY = "federal-hierarchy-orgs-complete-2026-08-15"
@@ -839,6 +851,8 @@ def reverse_agency_projection(projection: AgencyProjection) -> AgencyReverseProj
 
 __all__ = [
     "ADMISSIBLE_ACRONYM_PAIRS",
+    "AGENCY_REGISTRY_NON_EMISSION_REASONS",
+    "AGENCY_REGISTRY_RELEASE_KEY",
     "AGENCY_ROSTER_ORDER",
     "AGENCY_ROSTER_RELEASE_KEYS",
     "ATLAS_SAME_ENTITY_AS",
@@ -856,6 +870,7 @@ __all__ = [
     "AgencyProjectionRow",
     "AgencyProjectionSourceRecord",
     "AgencyProjectionUnresolvedRow",
+    "AgencyRegistryNonEmissionReason",
     "AgencyReverseProjection",
     "build_agency_projection",
     "extract_agency_identifier_claims",

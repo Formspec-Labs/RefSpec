@@ -149,10 +149,13 @@ def test_checked_catalog_is_exact_and_two_tier() -> None:
     # That is the tier SpicySearch's decision 0008 condition 1 needs: owned AND
     # published through a product path rather than read out of a sibling's
     # gitignored output/ directory.
+    # REF-072 adds `agency-registry` at inventoryOnly (106 -> 107, 117 -> 118):
+    # a mapping release built from committed plans, with no portable
+    # distribution of its own.
     assert catalog["summary"] == {
         "evidenceOnlyCount": 7,
-        "inventoryOnlyCount": 106,
-        "resourceCount": 117,
+        "inventoryOnlyCount": 107,
+        "resourceCount": 118,
         "verifiedDistributionCount": 6,
         "verifiedResourceCount": 4,
     }

@@ -569,7 +569,13 @@ an event outside its policy's ring or naming an organization outside it
 inverse pair (`dataset.change-event-inverse`), a cycle through events
 (`dataset.change-event-cycle`), and a current `atlas:sameEntityAs` between an
 event's original and any of its results (`dataset.change-event-same-entity`).
-Change events have no projection triple and no compact-record role.
+Change events have no projection triple and no compact-record role, and the
+typed Parquet view omits them together with their evidence bindings: a served
+binding must bind a served statement, which the view verifier checks. The
+public records behind the events -- 22 in the agency-registry release -- stay
+in `source-records.parquet`, where no served binding points at them. The
+construction counts still count every binding, since they describe the RDF.
+The agency-registry release's own sealed view serves the events.
 
 ## Projection and inference
 

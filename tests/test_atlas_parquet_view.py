@@ -829,6 +829,18 @@ def test_refuses_input_manifest_drift_and_output_tampering(tmp_path: Path) -> No
         verify_atlas_parquet_view(output, expected_manifest_digest=view_pin)
 
 
+def test_refuses_an_evidence_binding_that_binds_no_served_statement(tmp_path: Path) -> None:
+    """Pin that every served binding supports a served statement (REF-072 omits change events and their bindings)."""
+
+    source = tmp_path / "atlas"
+    source.mkdir()
+    source_pin = _fixture_distribution(source)
+    bindings = _STAGED_RECORDS[str(source.resolve())][CompactRecordRole.EVIDENCE_BINDING]
+    bindings[0] = {**bindings[0], "statement": "urn:ref:atlas-change-event:" + "9" * 64}
+    with pytest.raises(AtlasParquetViewError, match="binds no served statement"):
+        _seal_view(source, tmp_path / "view", expected_manifest_digest=source_pin)
+
+
 def test_refuses_extra_input_or_view_member(tmp_path: Path) -> None:
     """Pin closure refusal for an extra input file and an extra view member."""
 

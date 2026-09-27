@@ -1510,7 +1510,7 @@ def test_registry_mapping_policy_pins_index_content_and_descriptor_proof(
 
     index = generator._read_json(generator.ROOT / "portfolio/atlas-index-v0.json")
     proof = generator._read_json(generator.REGISTRY_DESCRIPTORS_PROOF)
-    assert len(generator._validated_registry_index_rows(index, proof)) == 112
+    assert len(generator._validated_registry_index_rows(index, proof)) == 113
 
     changed_index = json.loads(json.dumps(index))
     mapping_row = next(row for row in changed_index["rows"] if row["resourceId"] == "eurovoc-lcsh-alignment")

@@ -185,3 +185,23 @@ def test_a_distribution_without_events_never_reads_the_current_assertions() -> N
     atlas_validate._check_change_events(Graph(), _Unread())
     with pytest.raises(AssertionError, match="identity pass ran"):
         atlas_validate._check_change_events(_event_graph(), _Unread())
+
+
+def test_the_served_view_identity_omits_change_event_bindings_only() -> None:
+    """Pin B1's served identity: a binding naming an event is counted in the RDF but never served; others are."""
+
+    rkaf = Namespace("https://rulespec.org/ns/v1#")
+    graph = _event_graph()
+    event = next(graph.subjects(RDF.type, ATLAS_NS.OrganizationChangeEvent))
+    statement = URIRef("urn:ref:atlas-assertion:" + "3" * 64)
+    event_binding = URIRef("urn:ref:atlas-evidence:" + "1" * 64)
+    statement_binding = URIRef("urn:ref:atlas-evidence:" + "2" * 64)
+    graph.add((statement, RDF.type, ATLAS_NS.RelationAssertion))
+    for binding, claim in ((event_binding, event), (statement_binding, statement)):
+        graph.add((binding, RDF.type, rkaf.EvidenceBinding))
+        graph.add((binding, rkaf.bindsAssertion, claim))
+
+    assert atlas_validate.binds_change_event(graph, event_binding)
+    assert not atlas_validate.binds_change_event(graph, statement_binding)
+    assert atlas_validate._rdf_record_ids_by_role(graph)["EvidenceBinding"] == {str(event_binding), str(statement_binding)}
+    assert atlas_validate._served_record_ids_by_role(graph)["EvidenceBinding"] == {str(statement_binding)}

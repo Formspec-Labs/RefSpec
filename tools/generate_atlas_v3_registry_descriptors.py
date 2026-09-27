@@ -48,6 +48,7 @@ RESOURCE_PROFILES = frozenset(
 _DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 NON_MEMBER_DISPOSITIONS: Mapping[str, str] = {
+    "agency-registry": "mappingAssertionsOnly",
     "cbo-cost-estimate-feed": "assignmentEvidenceOnly",
     "cfr-list-of-subjects": "assignmentEvidenceOnly",
     "cfr47-procedure": "noPublisherRecord",

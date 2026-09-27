@@ -9633,6 +9633,34 @@ def _rdf_record_ids_by_role(asserted: Graph) -> dict[str, set[str]]:
     }
 
 
+def binds_change_event(graph: Graph, binding: URIRef) -> bool:
+    """Whether one evidence binding supports an organization change event rather than a relation assertion.
+
+    Read off the binding's own rkaf:bindsAssertion object, whose IRI names an
+    event exactly when it carries CHANGE_EVENT_IRI_PREFIX
+    (dataset.change-event-identity), so one subject's own lines decide it.
+    """
+
+    return str(graph.value(binding, RKAF.bindsAssertion)).startswith(CHANGE_EVENT_IRI_PREFIX)
+
+
+def _served_record_ids_by_role(asserted: Graph) -> dict[str, set[str]]:
+    """The logical records the Atlas Parquet view serves: every asserted record but a change event's bindings.
+
+    A change event has no compact-record role, so the view omits it, and with
+    it the evidence bindings that support it -- a served binding must bind a
+    served statement. The agency-registry release's own sealed view serves the
+    events instead (REF-072). The construction counts still count every
+    binding: they describe the RDF, not the view.
+    """
+
+    ids = _rdf_record_ids_by_role(asserted)
+    ids["EvidenceBinding"] = {
+        binding for binding in ids["EvidenceBinding"] if not binds_change_event(asserted, URIRef(binding))
+    }
+    return ids
+
+
 def _check_explorer_reachability(
     served_ids_by_role: Mapping[str, Sequence[str]],
     rdf_ids_by_role: Mapping[str, AbstractSet[str]],

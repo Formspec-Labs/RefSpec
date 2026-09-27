@@ -58,10 +58,13 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
     assert REPORT.read_text(encoding="utf-8") == coverage.render_json(generated)
     assert PROFILES.read_bytes() == canonical_json_bytes(profiles) + b"\n"
     assert load_json(REPORT) == generated
+    # REF-072 adds `agency-registry`, a mapping-only catalog resource with one
+    # entity-ring index row: catalog 117 -> 118, index rows 112 -> 113, indexed
+    # 98 -> 99 (93 -> 94 without an exact release), mappingReference 38 -> 39.
     assert generated["summary"] == {
-        "atlasIndexRowCount": 112,
+        "atlasIndexRowCount": 113,
         "catalogOnlyDescriptorCount": 19,
-        "catalogResourceCount": 117,
+        "catalogResourceCount": 118,
         # 31 -> 32 and 91 -> 92: usc_act_index, which builds the act index
         # act_resolution reads from OLRC's whole-of-Table-III release. It
         # published no registry RESOURCE, so registry-descriptors.nq did not
@@ -108,8 +111,8 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
         # 45 -> 44 and 105 -> 104: infrastructure.zyte_transport is deleted
         # for SpicyDocs' `spicy_docs.sources.zyte` (B14); it published nothing.
         "implementationModuleCount": 44,
-        "indexedResourceCount": 98,
-        "indexedWithoutExactReleaseCount": 93,
+        "indexedResourceCount": 99,
+        "indexedWithoutExactReleaseCount": 94,
         "registryModuleCount": 104,
         "releaseReadyIndexedResourceCount": 5,
         # REF-033 ring corrections move three catalog kinds: the LDA general
@@ -130,7 +133,7 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
             "codeList": 26,
             "historicalVocabulary": 1,
             "identifierAuthority": 20,
-            "mappingReference": 38,
+            "mappingReference": 39,
             "resourceFamily": 1,
             "sourceAssignedVocabulary": 8,
             "structuralSchema": 11,

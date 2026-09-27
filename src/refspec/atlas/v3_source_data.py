@@ -359,24 +359,7 @@ class RegistryMapping:
             raise ValueError("mapping claim must have at least one evidence decision")
         if any(not isinstance(item, RegistryMappingEvidence) for item in self.evidence):
             raise TypeError("mapping evidence rows must be RegistryMappingEvidence")
-        evidence_keys = [
-            canonical_digest(
-                {
-                    "attestedAt": _canonical_aware_datetime(
-                        item.attested_at,
-                        field_name="mapping evidence attested_at",
-                    )
-                    .astimezone(UTC)
-                    .isoformat(),
-                    "nativePayload": item.native_payload,
-                    "reviewWarrant": item.review_warrant,
-                    "attestor": item.reviewer_iri,
-                    "sourceDigest": item.source_digest,
-                    "sourceLocator": item.source_locator,
-                }
-            )
-            for item in self.evidence
-        ]
+        evidence_keys = _evidence_keys(self.evidence)
         if len(evidence_keys) != len(set(evidence_keys)):
             raise ValueError("mapping claim repeats an evidence decision")
         if all(
@@ -388,6 +371,79 @@ class RegistryMapping:
             for item in self.evidence
         ):
             raise ValueError("mapping claim was asserted before every approving decision")
+
+
+def _evidence_keys(evidence: Sequence[RegistryMappingEvidence]) -> list[str]:
+    """One content key per approval, so a claim cannot repeat an evidence decision."""
+
+    return [
+        canonical_digest(
+            {
+                "attestedAt": _canonical_aware_datetime(
+                    item.attested_at,
+                    field_name="mapping evidence attested_at",
+                )
+                .astimezone(UTC)
+                .isoformat(),
+                "nativePayload": item.native_payload,
+                "reviewWarrant": item.review_warrant,
+                "attestor": item.reviewer_iri,
+                "sourceDigest": item.source_digest,
+                "sourceLocator": item.source_locator,
+            }
+        )
+        for item in evidence
+    ]
+
+
+@dataclass(frozen=True, slots=True)
+class RegistryChangeEvent:
+    """One dated organization change (REF-072): its originals, every result, their releases, and its approvals.
+
+    Never a mapping: a split has several results and a merger several
+    originals, and the event is one decision over all of them. ``release_iris``
+    pins each named organization's exact Atlas release, as a mapping pins its
+    two endpoints'.
+    """
+
+    originals: Sequence[str]
+    results: Sequence[str]
+    release_iris: Mapping[str, str]
+    effective_date: str
+    asserted_at: str
+    evidence: Sequence[RegistryMappingEvidence]
+
+    def __post_init__(self) -> None:
+        for label, values in (("originals", self.originals), ("results", self.results)):
+            if (
+                not values
+                or len(set(values)) != len(values)
+                or any(not isinstance(value, str) or _ABSOLUTE_IRI.fullmatch(value) is None for value in values)
+            ):
+                raise ValueError(f"change event {label} must be unique absolute IRIs, at least one")
+        if set(self.originals) & set(self.results):
+            raise ValueError("change event names an original among its results")
+        if set(self.release_iris) != {*self.originals, *self.results} or any(
+            not isinstance(value, str) or _ABSOLUTE_IRI.fullmatch(value) is None for value in self.release_iris.values()
+        ):
+            raise ValueError("change event must pin exactly one Atlas release per named organization")
+        try:
+            effective = date.fromisoformat(self.effective_date)
+        except (TypeError, ValueError) as error:
+            raise ValueError("change event effective_date must be an ISO 8601 date") from error
+        if effective.isoformat() != self.effective_date:
+            raise ValueError("change event effective_date must use canonical YYYY-MM-DD")
+        asserted_at = _canonical_aware_datetime(self.asserted_at, field_name="change event asserted_at")
+        if not self.evidence or any(not isinstance(item, RegistryMappingEvidence) for item in self.evidence):
+            raise ValueError("change event must have at least one RegistryMappingEvidence approval")
+        keys = _evidence_keys(self.evidence)
+        if len(keys) != len(set(keys)):
+            raise ValueError("change event repeats an evidence decision")
+        if all(
+            _canonical_aware_datetime(item.attested_at, field_name="change event attested_at") > asserted_at
+            for item in self.evidence
+        ):
+            raise ValueError("change event was asserted before every approving decision")
 
 
 @dataclass(frozen=True, slots=True)
@@ -412,6 +468,8 @@ class RegistryMappingRelease:
     editorial_policy: Mapping[str, Any]
     metadata: Mapping[str, Any] = field(default_factory=dict)
     source_release_input_roles: Sequence[str] = ()
+    # REF-072: dated organization change events, entity ring only.
+    change_events: Sequence[RegistryChangeEvent] = ()
 
     def __post_init__(self) -> None:
         if not self.resource_id or self.resource_id != self.resource_id.strip():
@@ -467,6 +525,16 @@ class RegistryMappingRelease:
                 raise ValueError(f"mapping release {self.key} {self.ring} mapping has no effective period")
             if not dated_ring and has_period:
                 raise ValueError(f"mapping release {self.key} {self.ring} mapping must not carry an effective period")
+        if any(not isinstance(event, RegistryChangeEvent) for event in self.change_events):
+            raise TypeError(f"mapping release {self.key} contains a non-event change row")
+        if self.change_events and self.ring != "entity":
+            raise ValueError(f"mapping release {self.key} carries change events outside the entity ring")
+        event_claims = [
+            (tuple(sorted(event.originals)), tuple(sorted(event.results)), event.effective_date)
+            for event in self.change_events
+        ]
+        if len(event_claims) != len(set(event_claims)):
+            raise ValueError(f"mapping release {self.key} repeats a change event")
         if not isinstance(self.editorial_policy, Mapping) or not self.editorial_policy:
             raise ValueError(f"mapping release {self.key} has no editorial policy payload")
         _canonical_json_bytes(self.editorial_policy)
@@ -482,7 +550,7 @@ class RegistryMappingRelease:
             parsed_issued.day,
             tzinfo=UTC,
         )
-        for mapping in self.mappings:
+        for mapping in (*self.mappings, *self.change_events):
             if (
                 _canonical_aware_datetime(
                     mapping.asserted_at,
@@ -584,6 +652,7 @@ __all__ = [
     "SEMANTIC_RINGS",
     "LabelRole",
     "MappingReviewMethod",
+    "RegistryChangeEvent",
     "RegistryCrossRingRelation",
     "RegistryIdentifier",
     "RegistryInputPin",

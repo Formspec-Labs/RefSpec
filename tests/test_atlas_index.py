@@ -160,18 +160,19 @@ def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
         # entity-ring sources.
         # The OFR's CFR List of Subjects part index lands in the legal-identity
         # ring (3 -> 4): 8,423 CFR parts, the first CFR parts the Atlas holds.
+        # REF-072's agency registry adds one planned entity-ring row (18 -> 19).
         "semanticRingCounts": {
-            "entity": 18,
+            "entity": 19,
             "legalIdentity": 4,
             "subject": 45,
             "value": 45,
         },
-        "rowCount": 112,
+        "rowCount": 113,
         "sourceModuleCount": 60,
         "statusCounts": {
             "deferred": 2,
             "notApplicable": 44,
-            "planned": 56,
+            "planned": 57,
             # REF-030: the four registrant-population authorities (UEI, CAGE,
             # NPI, CompTox) are rejected for Atlas participation; they live in
             # the entity-registry object instead. REF-031: the three

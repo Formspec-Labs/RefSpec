@@ -259,11 +259,11 @@ audit-atlas-v3-source-fidelity:
 ATLAS_FR_RELEASE_KEY ?= federal-register-thesaurus-2025
 ATLAS_FR_RELEASE_ROOT ?= output/atlas-3.1-federal-register-thesaurus-2025-04-01
 ATLAS_FR_RELEASE_SOURCE_ROOT ?= output/registry-real-data-sources
-ATLAS_FR_RELEASE_MANIFEST_SHA256 ?= c0adb27dbc8fd6ee2dd4b962e3dc7a0ae701f7be3ce358b826e258826473bce1
+ATLAS_FR_RELEASE_MANIFEST_SHA256 ?= fc25fcf78042cc3dffe73a384ff68689b2cdbb92ffd7b50184dba3dbc0810649
 # The served Parquet view is a separate sealed artifact with its own external
 # pin; the seal payload binds both digests, and the view manifest names this
 # distribution manifest back.
-ATLAS_FR_RELEASE_VIEW_SHA256 ?= 1b2c19004fad60adafb698d57a55449730db5a8c3dc5a2ef0c275d1e649185a6
+ATLAS_FR_RELEASE_VIEW_SHA256 ?= 6b37b199a814f6eab058a74cb7d50936e88cfcb2ad5cf50e50a4214db1d799e3
 # Beside the distribution, never inside it, for the reason stated above the
 # source-fidelity receipt.
 ATLAS_FR_RELEASE_RECEIPT ?= $(ATLAS_FR_RELEASE_ROOT)-verification-receipt.json

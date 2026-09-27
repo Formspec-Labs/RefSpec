@@ -47,12 +47,12 @@
     "refspec.registry.uslm",
     "refspec.registry.xml_text"
   ],
-  "indexDigest": "sha256:382904ac0b4be705b935d4177495acca25b8dea609fe094a6f6d4cc52d09839e",
-  "indexId": "urn:ref:atlas-index:382904ac0b4be705b935d4177495acca25b8dea609fe094a6f6d4cc52d09839e",
+  "indexDigest": "sha256:a5ab65d88851654edc859cb7a1919a310ea7c0329c0d43d0c01ecff53938a758",
+  "indexId": "urn:ref:atlas-index:a5ab65d88851654edc859cb7a1919a310ea7c0329c0d43d0c01ecff53938a758",
   "nonAuthorizing": true,
-  "recordedAt": "2026-09-21T00:00:00Z",
-  "resourceCatalogDigest": "sha256:51f9d1085b5eabc35713c5d10fb1c6c4c6da50b09bf31e51da97b2abce8cf2c8",
-  "resourceCatalogId": "urn:ref:resource-catalog:51f9d1085b5eabc35713c5d10fb1c6c4c6da50b09bf31e51da97b2abce8cf2c8",
+  "recordedAt": "2026-09-26T00:00:00Z",
+  "resourceCatalogDigest": "sha256:7764cdd375eb30519179d6c029433c77d7b65fc08b111d458c8bd9212c592987",
+  "resourceCatalogId": "urn:ref:resource-catalog:7764cdd375eb30519179d6c029433c77d7b65fc08b111d458c8bd9212c592987",
   "rows": [
     {
       "assignmentRole": "https://rulespec.org/ns/v1#assignmentContextual",
@@ -1214,6 +1214,39 @@
       "rowId": "urn:ref:atlas-index-row:3d6e165e4e7f644a8470e4361b35c047414facac6cf482aa20130b5c675cdc96",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.federal_hierarchy_orgs"
+    },
+    {
+      "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
+      "atlasParticipation": null,
+      "facet": "urn:ref:facet:entity",
+      "intendedUses": [
+        "entityResolution",
+        "mappingReference"
+      ],
+      "planningStatus": "planned",
+      "readinessEvidence": [
+        {
+          "kind": "parserTest",
+          "path": "tests/test_atlas_v3_agency_registry_release.py",
+          "sha256": "sha256:93cbd1d7fc6e620ee1c104bfa20e3b9b0db3e91f09074a8b625589746733deb3"
+        },
+        {
+          "kind": "sourceImplementation",
+          "path": "src/refspec/atlas/v3_registry_alignments_entity.py",
+          "sha256": "sha256:479707238555a1bde49b31c1a1dcdcd2cee474ffa1777c4e5f86ea8cc7ec76d0"
+        },
+        {
+          "kind": "sourceObservation",
+          "path": "plans/agency-registry-batch-1-decisions.json",
+          "sha256": "sha256:a454ea277d533ce25a331a996a676d58f0bd2573700a43893a1f52b6c8938098"
+        }
+      ],
+      "release": null,
+      "resourceId": "agency-registry",
+      "rowDigest": "sha256:81138415a7f3e859c36807ec190de592cde9e8d71ce864d44924352ee3e41b3d",
+      "rowId": "urn:ref:atlas-index-row:81138415a7f3e859c36807ec190de592cde9e8d71ce864d44924352ee3e41b3d",
+      "semanticRing": "entity",
+      "sourceModule": "refspec.registry.federal_register_native_controls"
     },
     {
       "assignmentRole": "https://rulespec.org/ns/v1#assignmentMention",
@@ -3122,7 +3155,7 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_entity.py",
-          "sha256": "sha256:ab8d7f83dd629d3426782fe1659ad69c1169adb7307bb643879d8f8d5ef242b8"
+          "sha256": "sha256:479707238555a1bde49b31c1a1dcdcd2cee474ffa1777c4e5f86ea8cc7ec76d0"
         },
         {
           "kind": "sourceObservation",
@@ -3132,8 +3165,8 @@
       ],
       "release": null,
       "resourceId": "regulations-gov-agency-identity",
-      "rowDigest": "sha256:f6272aa6020a5758f34d95c057b737b460751591eae4d82d7bdddc751a2bc324",
-      "rowId": "urn:ref:atlas-index-row:f6272aa6020a5758f34d95c057b737b460751591eae4d82d7bdddc751a2bc324",
+      "rowDigest": "sha256:48a636b7da21307b820ee9bf32f823edc68e642a66b2864e1c390337811484bb",
+      "rowId": "urn:ref:atlas-index-row:48a636b7da21307b820ee9bf32f823edc68e642a66b2864e1c390337811484bb",
       "semanticRing": "entity",
       "sourceModule": "refspec.registry.regulations_gov_agencies"
     },
@@ -3632,9 +3665,9 @@
       "core": 1,
       "specialist": 3
     },
-    "rowCount": 112,
+    "rowCount": 113,
     "semanticRingCounts": {
-      "entity": 18,
+      "entity": 19,
       "legalIdentity": 4,
       "subject": 45,
       "value": 45
@@ -3643,7 +3676,7 @@
     "statusCounts": {
       "deferred": 2,
       "notApplicable": 44,
-      "planned": 56,
+      "planned": 57,
       "rejected": 10,
       "superseded": 0,
       "unassessed": 0

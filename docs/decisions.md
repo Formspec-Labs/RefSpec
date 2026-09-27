@@ -5872,7 +5872,8 @@ first-class and stay there.
 ### REF-072: An organization's succession is a dated event, never an identity
 
 - **Date:** 2026-09-26
-- **Status:** Accepted and executed in the Atlas 3.1 binding. Amends REF-038.
+- **Status:** Accepted and executed: the event design in the Atlas 3.1
+  binding, then the release `agency-registry-2026-09-26`. Amends REF-038.
   The owner decided the design (`plans/agency-registry-design.md` §8) and
   adjudicated the batch-1 events it first carries
   (`plans/agency-registry-batch-1-decisions.json`).
@@ -5944,6 +5945,55 @@ identity property (`src/refspec/managed_release.py:149`, beside
 that supersedes it. A successor organization is not a later version of its
 predecessor's record, a split has no single replacement, and the property
 carries no date, so organizations use the event.
+
+**The release: `agency-registry-2026-09-26`.** A new entity-ring mapping
+release beside REF-038's, never a revision of it: REF-038's release and its
+331 = 321 + 10 parity are byte-identical, and `build_agency_projection()`
+still reads REF-038 alone and refuses this release. It is a new mapping-only
+catalog resource, `agency-registry`, loaded by
+`load_agency_registry_mapping_release()` in
+`src/refspec/atlas/v3_registry_alignments_entity.py`, the entity group module
+every entity release's recipe pins; the owner's decision contract
+(`load_decisions`, `decision_digests`, `decision_answers`) moved there from
+`tools/assemble_agency_registry_batch_1.py`, which imports it, so the sheet and
+the release read one file one way. The release reads the committed candidates
+and decisions by file digest, recomputes the candidates digest the owner
+decided on (`sha256:7fe88a9167a9363f5c2bfdcd3911953b7323abe1564d40586991c9612f95f4bc`),
+binds each decision to its item's `content_digest`, and refuses the whole
+release while any decision is stale or missing or any answer has no rule: the
+generic answers mean the same everywhere, and the three numbered options it
+reads (`same:fr151…` option 2, `same:fr296…` option 1, `event:fr564` option 1)
+are named one by one, their text sealed inside the item digest. Candidates
+never enter the release; it re-derives every sealed name and parent from the
+pinned rosters and refuses drift.
+
+It emits exactly the owner's 26 decisions: 13 one-way Federal Register bridges
+to eCFR or Federal Hierarchy organizations in REF-038's shape (the proposed
+basis, both sealed names, both parents, two E4 records each, citing the
+decisions file and the `questionTool` channel), 9 change events (5 renames, 4
+splits; one E4 record per public record, 22 in all, each result's functions in
+the evidence and the metadata), and 4 recorded non-emissions (the
+Export-Import Bank, same organization but the reverse-lookup cost refused; the
+Udall Foundation, held until the basis vocabulary gains a statutory-rename
+value, which this release does not add; the IBWC withdrawal; CISA with no
+Federal Register counterpart). Parity: 26 = 13 + 9 + 4, checked as REF-038
+checks 331 = 321 + 10. An event whose public records include no statute,
+reorganization plan, or Federal Register notice or document is refused
+(`DATED_PUBLIC_RECORD_KINDS`), and so is one naming any organization that is
+not a Federal Register roster record, rather than pinning it to the Register's
+release. Each item attests the day its own decision records (`decided_on`),
+and the release is issued on its earliest decision day, since a mapping
+release refuses evidence older than its issue. A non-emission's reason is one
+of four closed codes (`AGENCY_REGISTRY_NON_EMISSION_REASONS`), refused
+otherwise by the release and by the view's verifier. The producer writes each
+event into its mapping release's pack. It has no compact-record role, so the
+typed Atlas Parquet view omits it, and its bindings with it: a served binding
+must bind a served statement, which `verify_atlas_parquet_view` checks (an
+independent review found the 22 event bindings orphaned in the view before
+the omission). The construction counts still count them. A bounded build of the five
+rosters, the two releases they reference (the Treasury accounts and the eCFR
+CFR titles) and both entity releases validated whole under the binding, with
+the legacy and streamed writers byte-identical; REF-038's pack did not move.
 
 **Recorded readings, for the owner to overrule.** "A dated public record" is
 read, on the wire, as a public record its publisher serves at an `https` URL.

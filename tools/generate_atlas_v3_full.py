@@ -33,7 +33,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from contextlib import ExitStack
 from dataclasses import dataclass
 from datetime import date
-from itertools import islice
+from itertools import chain, islice
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, TextIO, cast
@@ -110,6 +110,7 @@ from refspec.atlas.v3_source_data import (
     MAPPING_REVIEW_METHODS,
     SEMANTIC_RINGS,
     MappingReviewMethod,
+    RegistryChangeEvent,
     RegistryCrossRingRelation,
     RegistryIdentifier,
     RegistryInputPin,
@@ -712,9 +713,13 @@ SOURCE_LANGUAGE_PROFILES = MappingProxyType(
 
 REGISTRY_DESCRIPTORS = BINDING_ROOT / "tests" / "registry-descriptors.nq"
 REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.nq"
-REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:f4ca83a852748a90cf4f1cf67a5bb954b76f42ecc39ac9b6ec57d4934fbfb5a4"
+REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:9ce73ea445b8a0c3dca64129aef15bed8bd5872d2ba32eb5ae5fdfc6bc098222"
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
+# 2026-09-26 (REF-072, the release): `agency-registry` joins the resource
+# inventory as a mappingAssertionsOnly source, the second time the .nq graph
+# itself moves: one RegistrySource descriptor and no scheme, 5 quads (1,252 ->
+# 1,257), 118 sources, 106 schemes unchanged. Both pins move.
 # 2026-09-26 (REF-072): the profile map gains the changeEventPolicies entry,
 # so the proof's inputs.registryResourceProfilesDigest moves. The .nq graph is
 # byte-identical; the proof pin alone moves.
@@ -787,7 +792,7 @@ REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/regi
 # edited that day, is NOT index evidence and moved nothing here). The
 # descriptors .nq graph is byte-identical both times; only the proof's
 # inputs.atlasIndexDigest moved, and this pin moves with it.
-REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:6dbd0fec76544d9339c2fdff6d55e3ae54546611781b219a02d9371e2b7fc9dd"
+REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:b066dca6c92b56efed2b8e09f7dc95310fa7d50d24d78fb95b9d0c47d1e4ad5b"
 
 
 def _load_validator() -> Any:
@@ -806,6 +811,9 @@ def _load_validator() -> Any:
 ATLAS_VALIDATE = _load_validator()
 ATLAS = ATLAS_VALIDATE.ATLAS
 RKAF = ATLAS_VALIDATE.RKAF
+# The one other line the served identity reads: a binding naming a change event
+# (REF-072), which the Atlas Parquet view omits.
+_CHANGE_EVENT_BINDING_BYTES = f" <{RKAF.bindsAssertion}> <{ATLAS_VALIDATE.CHANGE_EVENT_IRI_PREFIX}"
 SKOSXL = ATLAS_VALIDATE.SKOSXL
 _RING_RELATION_POLICIES = ATLAS_VALIDATE._relation_policies()
 _SOURCE_LABEL_PREDICATES = MappingProxyType(
@@ -2752,13 +2760,26 @@ def _pin_mapping_endpoints_to_loaded_releases(
                     object_atlas_release_iri=object_release,
                 )
             )
+        events: list[RegistryChangeEvent] = []
+        for event in release.change_events:
+            try:
+                owners = {iri: owner_by_iri[iri] for iri in event.release_iris}
+            except KeyError as error:
+                raise ValueError(
+                    f"{release.key} change event organization is outside loaded releases: {error.args[0]}"
+                ) from error
+            if owners != dict(event.release_iris):
+                repinned += 1
+            events.append(dataclasses.replace(event, release_iris=owners))
         metadata = dict(release.metadata)
         metadata["endpointOwnership"] = {
             "mappingCount": len(mappings),
             "repinnedMappingCount": repinned,
             "rule": "pin each mapping endpoint to its unique owning loaded Atlas release",
         }
-        pinned_releases.append(dataclasses.replace(release, mappings=tuple(mappings), metadata=metadata))
+        pinned_releases.append(
+            dataclasses.replace(release, mappings=tuple(mappings), change_events=tuple(events), metadata=metadata)
+        )
     return tuple(pinned_releases)
 
 
@@ -2925,7 +2946,10 @@ def load_mapping_releases(
         load_all_registry_bulk_mapping_releases,
     )
     from refspec.atlas.v3_registry_alignments_entity import (
+        AGENCY_REGISTRY_RELEASE_KEY,
         ENTITY_REGISTRY_MAPPING_RELEASE_KEYS,
+        REGULATIONS_GOV_AGENCY_IDENTITY_RELEASE_KEY,
+        load_agency_registry_mapping_release,
         load_regulations_gov_agency_identity_mapping_release,
     )
     from refspec.atlas.v3_registry_alignments_lc import (
@@ -2955,8 +2979,16 @@ def load_mapping_releases(
             for release in source_releases
             if release.spec.key in AGENCY_ROSTER_RELEASE_KEYS
         )
-        entity_mapping_releases = (
-            load_regulations_gov_agency_identity_mapping_release(rosters),
+        entity_loaders = {
+            AGENCY_REGISTRY_RELEASE_KEY: load_agency_registry_mapping_release,
+            REGULATIONS_GOV_AGENCY_IDENTITY_RELEASE_KEY: load_regulations_gov_agency_identity_mapping_release,
+        }
+        if set(entity_loaders) != ENTITY_REGISTRY_MAPPING_RELEASE_KEYS:
+            raise AssertionError("every entity mapping release key needs exactly one loader")
+        entity_mapping_releases = tuple(
+            entity_loaders[key](rosters)
+            for key in sorted(ENTITY_REGISTRY_MAPPING_RELEASE_KEYS)
+            if include_keys is None or key in include_keys
         )
     releases = (
         *load_all_registry_mapping_releases(
@@ -3820,6 +3852,96 @@ def _add_assertion(
     return assertion
 
 
+def _change_event_evidence(
+    release: RegistryMappingRelease,
+    evidence: RegistryMappingEvidence,
+) -> tuple[URIRef, str, Mapping[str, Any]]:
+    """Return one change-event approval: its public record's https locator and the pin its text is read from.
+
+    A mapping's evidence names a pinned roster record; a change event's names
+    the public record behind it (REF-072), served by its publisher, whose text
+    the release read from one of its own pinned inputs.
+    """
+
+    if not evidence.source_locator.startswith("https://"):
+        raise ValueError(f"{release.key} change-event evidence is not a public https record: {evidence.source_locator}")
+    if sum(pin.sha256 == evidence.source_digest for pin in release.inputs) != 1:
+        raise ValueError(f"{release.key} change-event evidence digest must identify exactly one pinned input")
+    payload = _plain(evidence.native_payload)
+    if not isinstance(payload, Mapping):
+        raise TypeError(f"{release.key} change-event evidence payload must be an object")
+    ATLAS_VALIDATE.canonical_native_json_bytes(payload)
+    return URIRef(evidence.source_locator), evidence.source_digest, payload
+
+
+def _add_change_event(
+    graph: Graph,
+    *,
+    release: RegistryMappingRelease,
+    event: RegistryChangeEvent,
+    source_release: URIRef,
+) -> tuple[URIRef, tuple[URIRef, ...]]:
+    """Mint one content-addressed atlas:OrganizationChangeEvent and bind each approval to it (REF-072).
+
+    The IRI is the digest of the event's own facts, which is what the binding's
+    identity check recomputes, so a review stays bound to exactly the event
+    reviewed. Returns the event and its evidence SourceRecords.
+    """
+
+    facts: list[tuple[URIRef, URIRef | Literal]] = [
+        (RDF.type, ATLAS.OrganizationChangeEvent),
+        (ATLAS.semanticRing, _mapping_release_ring(release.ring)),
+        *((ATLAS.originalOrganization, URIRef(iri)) for iri in event.originals),
+        *((ATLAS.resultingOrganization, URIRef(iri)) for iri in event.results),
+        (
+            RKAF.effectiveDate,
+            Literal(event.effective_date + "T00:00:00+00:00", datatype=XSD.dateTime, normalize=False),
+        ),
+    ]
+    node = URIRef("urn:ref:atlas-change-event:" + ATLAS_VALIDATE._outgoing_facts_digest(facts).removeprefix("sha256:"))
+    if (node, RDF.type, None) in graph:
+        raise ValueError(f"change events collapse to one node: {node}")
+    for predicate, obj in facts:
+        graph.add((node, predicate, obj))
+    records: list[URIRef] = []
+    for evidence in event.evidence:
+        locator, digest, payload = _change_event_evidence(release, evidence)
+        record = _add_source_record(
+            graph,
+            source_release=source_release,
+            source_locator=locator,
+            source_digest=digest,
+            native_payload=payload,
+            represents_resource=None,
+        )
+        _add_evidence_binding(
+            graph,
+            assertion=node,
+            evidence_record=record,
+            reviewer=URIRef(evidence.reviewer_iri),
+            review_warrant=_mapping_review_method(evidence.review_warrant),
+            decided_at=evidence.attested_at,
+        )
+        records.append(record)
+    return node, tuple(records)
+
+
+def _check_change_event_endpoints(
+    release: RegistryMappingRelease,
+    event: RegistryChangeEvent,
+    facts_for: Callable[[str], tuple[URIRef, URIRef] | None],
+) -> None:
+    """Require every organization an event names to be a loaded resource in its pinned release and the event's ring."""
+
+    ring = _mapping_release_ring(release.ring)
+    for iri in (*event.originals, *event.results):
+        facts = facts_for(iri)
+        if facts is None:
+            raise ValueError(f"{release.key} change event names an organization outside loaded releases: {iri}")
+        if facts != (URIRef(event.release_iris[iri]), ring):
+            raise ValueError(f"{release.key} change event organization release or ring differs: {iri}")
+
+
 def _add_evidence_binding(
     graph: Graph,
     *,
@@ -3963,6 +4085,8 @@ def _expected_mapping_asserted_graph(
                     review_warrant=_mapping_review_method(evidence.review_warrant),
                     decided_at=evidence.attested_at,
                 )
+        for event in release.change_events:
+            _add_change_event(graph, release=release, event=event, source_release=source_release)
     return graph
 
 
@@ -4002,12 +4126,15 @@ def _validate_compiled_evidence_output(
         actual_assertions = set(asserted.subjects(RDF.type, ATLAS.MappingAssertion))
         if actual_assertions != expected_assertions:
             raise ValueError("compiled mapping assertion identities differ")
+        expected_events = set(expected_mapping.subjects(RDF.type, ATLAS.OrganizationChangeEvent))
+        if set(asserted.subjects(RDF.type, ATLAS.OrganizationChangeEvent)) != expected_events:
+            raise ValueError("compiled change event identities differ")
 
         def mapping_subjects(graph: Graph) -> set[URIRef]:
             bindings = {
                 URIRef(binding)
-                for assertion in expected_assertions
-                for binding in graph.subjects(RKAF.bindsAssertion, assertion)
+                for claim in expected_assertions | expected_events
+                for binding in graph.subjects(RKAF.bindsAssertion, claim)
             }
             records = {
                 URIRef(record)
@@ -4021,7 +4148,7 @@ def _validate_compiled_evidence_output(
                 for policy in graph.objects(assertion, ATLAS.governedByPolicy)
                 if isinstance(policy, URIRef)
             }
-            return expected_assertions | bindings | records | policies
+            return expected_assertions | expected_events | bindings | records | policies
 
         expected_subjects = mapping_subjects(expected_mapping)
         actual_subjects = mapping_subjects(asserted)
@@ -4055,6 +4182,8 @@ def _validate_compiled_evidence_output(
             if len(bindings) != expected_count:
                 raise ValueError(f"compiled assertion evidence count differs: {assertion}")
             bound_bindings.update(bindings)
+        for event in expected_events:
+            bound_bindings.update(URIRef(binding) for binding in asserted.subjects(RKAF.bindsAssertion, event))
         expected_binding_count = (
             expected_counts["relationAssertions"]
             - expected_counts["mappingAssertions"]
@@ -4781,6 +4910,29 @@ def _validate_compiled_producer_rows(
                 if triple in current_relations:
                     raise ValueError(f"mapping duplicates another relation: {triple}")
                 current_relations[triple] = ()
+            for event in mapping_release.change_events:
+                _check_change_event_endpoints(
+                    mapping_release,
+                    event,
+                    lambda iri: None if (facts := resource_facts(iri)) is None else (facts[1], facts[2]),
+                )
+                _rdf_datetime(event.asserted_at)
+                for evidence in event.evidence:
+                    mapping_evidence_binding_count += 1
+                    _require_absolute_iri(
+                        evidence.reviewer_iri,
+                        context=f"{mapping_release.key} change event evidence reviewer",
+                    )
+                    _mapping_review_method(evidence.review_warrant)
+                    _rdf_datetime(evidence.attested_at)
+                    locator, digest, payload = _change_event_evidence(mapping_release, evidence)
+                    evidence_record, _ = _source_record_constructor(
+                        source_release=URIRef(mapping_release.source_release_iri),
+                        source_locator=locator,
+                        source_digest=digest,
+                        native_payload=payload,
+                    )
+                    mapping_evidence_records.add(evidence_record)
 
         if relation_payload_count != english_only_scan["relationPayloadsChecked"]:
             raise ValueError("relation payload validation count differs")
@@ -5535,6 +5687,20 @@ def _build_graphs(
                 )
                 mapping_dispositions[str(evidence_record)].add(str(assertion))
             mapping_count += 1
+        for event in mapping_release.change_events:
+            _check_change_event_endpoints(
+                mapping_release,
+                event,
+                lambda iri: None if (facts := resource_facts.get(iri)) is None else (facts[1], facts[2]),
+            )
+            node, records = _add_change_event(
+                asserted,
+                release=mapping_release,
+                event=event,
+                source_release=source_release_nodes[mapping_release.source_release_iri],
+            )
+            for record in records:
+                mapping_dispositions[str(record)].add(str(node))
         accounting_row["dispositions"].extend(
             {
                 "atlasAssertions": sorted(assertions),
@@ -5951,8 +6117,13 @@ class _StreamingGraphSpool:
         subject: URIRef,
         role: CompactRecordRole,
         owner_key: str,
+        *,
+        served: bool = True,
     ) -> None:
-        self.role_counts[role] += 1
+        # role_counts is what the served view must hold; record_counts and
+        # counts describe the RDF, which also carries change-event bindings.
+        if served:
+            self.role_counts[role] += 1
         self.record_counts[owner_key][_COMPACT_ROLE_COUNT_FIELDS[role.value]] += 1
         if role is CompactRecordRole.RESOURCE:
             self.counts["resources"] += 1
@@ -6046,6 +6217,13 @@ class _StreamingGraphSpool:
                     if target is not None and target != key:
                         self.dependencies[key].add(target)
 
+                if ATLAS.OrganizationChangeEvent in types:
+                    # REF-072: an event is its mapping release's own claim, so
+                    # its facts ride in the release's pack (which already
+                    # depends on the rosters it names), but it has no
+                    # compact-record role; its bindings and records carry the
+                    # release's counts.
+                    continue
                 role = _compact_record_role(graph, subject)
                 independent_role = ATLAS_VALIDATE._construction_record_role(graph, subject)
                 if independent_role != role.value:
@@ -6053,6 +6231,11 @@ class _StreamingGraphSpool:
                         f"producer and binding compact roles differ for {subject}: "
                         f"{role.value}, {independent_role}"
                     )
+                if role is CompactRecordRole.EVIDENCE_BINDING and ATLAS_VALIDATE.binds_change_event(graph, subject):
+                    # Counted, never served: the Atlas view omits change events
+                    # and their bindings (REF-072).
+                    self._increment_counts(graph, subject, role, plan.key, served=False)
+                    continue
                 record = normalize_compact_record(
                     role,
                     _compact_record_from_graph(graph, subject, role),
@@ -6303,7 +6486,7 @@ class _StreamingGraphSpool:
                         io.StringIO("".join(lines)),
                     )
                     asserted = dataset.graph(URIRef(_ROLE_GRAPH_IDS["asserted"]))
-                    ids_by_role = ATLAS_VALIDATE._rdf_record_ids_by_role(asserted)
+                    ids_by_role = ATLAS_VALIDATE._served_record_ids_by_role(asserted)
                     for role in CompactRecordRole:
                         for identity in sorted(ids_by_role[role.value]):
                             streams[role].write(identity + "\n")
@@ -6325,7 +6508,7 @@ class _StreamingGraphSpool:
                 subject_count = 0
                 with path.open("r", encoding="utf-8", newline="") as rdf:
                     for line in rdf:
-                        if _RDF_TYPE_PREDICATE_BYTES not in line:
+                        if _RDF_TYPE_PREDICATE_BYTES not in line and _CHANGE_EVENT_BINDING_BYTES not in line:
                             continue
                         subject = line.partition(" ")[0]
                         if subject != current_subject:
@@ -6858,7 +7041,10 @@ def _stream_mapping_release(
     for batch_position, batch in enumerate(_stream_batches(release.mappings), start=1):
         graph = _new_build_graph()
         _copy_subject_facts(spool.catalog, graph, mapping_policy)
-        batch_release = dataclasses.replace(release, mappings=tuple(batch))
+        # Change events (REF-072) ride with the first batch, and only it, so
+        # each batch's oracle expects exactly the claims that batch writes.
+        batch_events = tuple(release.change_events) if batch_position == 1 else ()
+        batch_release = dataclasses.replace(release, mappings=tuple(batch), change_events=batch_events)
         for mapping in batch:
             source_token = spool.resource_owner_tokens.get(mapping.subject)
             target_token = spool.resource_owner_tokens.get(mapping.object)
@@ -6911,6 +7097,16 @@ def _stream_mapping_release(
                     decided_at=evidence.attested_at,
                 )
                 mapping_dispositions[str(evidence_record)].add(str(assertion))
+        for event in batch_events:
+
+            def owner_facts(iri: str) -> tuple[URIRef, URIRef] | None:
+                token = spool.resource_owner_tokens.get(iri)
+                return None if token is None else facts_by_token[token]
+
+            _check_change_event_endpoints(release, event, owner_facts)
+            node, records = _add_change_event(graph, release=release, event=event, source_release=source_release)
+            for record in records:
+                mapping_dispositions[str(record)].add(str(node))
         periods = {
             URIRef(subject)
             for subject in graph.subjects(RDF.type, RKAF.EffectivePeriod)
@@ -7356,7 +7552,12 @@ def _release_subject_owners(
             raise ValueError(f"identifier {identifier} has no release-owned resource")
         owners[URIRef(identifier)] = owner
 
-    for assertion in asserted.subjects(RDF.type, ATLAS.RelationAssertion):
+    # A change event (REF-072) is owned like an assertion: by the one release
+    # its evidence records belong to.
+    for assertion in chain(
+        asserted.subjects(RDF.type, ATLAS.RelationAssertion),
+        asserted.subjects(RDF.type, ATLAS.OrganizationChangeEvent),
+    ):
         evidence_bindings = list(asserted.subjects(RKAF.bindsAssertion, assertion))
         if not evidence_bindings:
             raise ValueError(f"relation assertion {assertion} has no evidence binding")
@@ -8060,6 +8261,8 @@ def _project_logical_records(
     unit_key_by_token = {token: release.key for token, release in releases_by_key.items()}
     subjects_by_role: dict[CompactRecordRole, list[tuple[URIRef, str]]] = {role: [] for role in CompactRecordRole}
     for subject, (token, _) in pack_owners.items():
+        if (subject, RDF.type, ATLAS.OrganizationChangeEvent) in asserted:
+            continue  # owned by its release's pack, but no compact-record role (REF-072)
         subjects_by_role[_compact_record_role(asserted, subject)].append((subject, unit_key_by_token[token]))
     record_counts: dict[str, dict[str, int]] = {
         unit_key_by_token[token]: dict.fromkeys(_COMPACT_ROLE_COUNT_FIELDS.values(), 0)
@@ -8071,6 +8274,8 @@ def _project_logical_records(
         count_field = _COMPACT_ROLE_COUNT_FIELDS[role.value]
         for subject, owner in rows:
             record_counts[owner][count_field] += 1
+            if role is CompactRecordRole.EVIDENCE_BINDING and ATLAS_VALIDATE.binds_change_event(asserted, subject):
+                continue  # counted, never served: the Atlas view omits change events (REF-072)
             if parquet is None:
                 # `--no-parquet-view`: the counts are a construction fact and
                 # are still owed, but projecting each record would be work
@@ -9538,11 +9743,15 @@ def _mapping_release_summary(
 
     return {
         "editorialPolicyDigest": _canonical_digest(release.editorial_policy),
-        "evidenceBindingCount": sum(len(mapping.evidence) for mapping in release.mappings),
+        "evidenceBindingCount": sum(len(claim.evidence) for claim in (*release.mappings, *release.change_events)),
         "key": release.key,
         "mappingCount": len(release.mappings),
         "reviewMethods": sorted(
-            {evidence.review_warrant for mapping in release.mappings for evidence in mapping.evidence}
+            {
+                evidence.review_warrant
+                for claim in (*release.mappings, *release.change_events)
+                for evidence in claim.evidence
+            }
         ),
         "scope": release.scope,
         "sourceRelease": release.source_release_iri,
@@ -9805,6 +10014,10 @@ def _release_construction_seeds(
             endpoint_owner(endpoint, context=f"{release.key} mapping")
             for mapping in release.mappings
             for endpoint in (mapping.subject, mapping.object)
+        } | {
+            endpoint_owner(organization, context=f"{release.key} change event")
+            for event in release.change_events
+            for organization in event.release_iris
         }
         seeds.append(
             ReleaseConstructionSeed(
@@ -9911,7 +10124,7 @@ def _check_parquet_view_against_graph(view: Path, asserted: Graph) -> dict[str, 
     # sample first would report the absence rather than the substitution.
     ATLAS_VALIDATE._check_explorer_reachability(
         served_ids,
-        ATLAS_VALIDATE._rdf_record_ids_by_role(asserted),
+        ATLAS_VALIDATE._served_record_ids_by_role(asserted),
     )
 
     sampled_rows = 0

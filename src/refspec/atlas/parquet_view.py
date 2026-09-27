@@ -31,6 +31,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 import pyarrow as pa
+import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
 from refspec.atlas.compact_pack import CompactRecordRole
@@ -911,6 +912,31 @@ def _staged_table_members(staged: Path) -> tuple[list[dict[str, Any]], dict[str,
     return members, counts
 
 
+def _verify_evidence_binds_served_statements(directory: Path) -> None:
+    """Refuse an evidence-binding row whose statement is no row of the statements table.
+
+    A served binding must support a served claim. The view omits organization
+    change events and their bindings (REF-072), so a binding left behind for an
+    event -- or for any claim the view does not carry -- is refused here rather
+    than read by a consumer as evidence for nothing.
+    """
+
+    statements = pq.read_table(
+        _safe_path(directory, table_relative_path(CompactRecordRole.STATEMENT)),
+        columns=["id"],
+    )["id"]
+    evidence = pq.read_table(
+        _safe_path(directory, table_relative_path(CompactRecordRole.EVIDENCE_BINDING)),
+        columns=["id", "statement"],
+    )
+    unbound = pc.invert(pc.is_in(evidence["statement"], value_set=statements))
+    if pc.any(unbound).as_py():
+        first = evidence.filter(unbound).slice(0, 1).to_pylist()[0]
+        raise AtlasParquetViewError(
+            f"Atlas Parquet evidence binding {first['id']} binds no served statement: {first['statement']}"
+        )
+
+
 def verify_atlas_parquet_view(
     directory: Path,
     *,
@@ -998,6 +1024,7 @@ def verify_atlas_parquet_view(
         counts[role] = row_count
     if observed_roles != expected_roles or counts != manifest["counts"]:
         raise AtlasParquetViewError("Atlas Parquet roles or aggregate counts differ")
+    _verify_evidence_binds_served_statements(directory)
     if schema_version in (VIEW_SCHEMA_VERSION, LEGACY_VIEW_SCHEMA_VERSION):
         _validated_agency_projection_metadata(
             manifest["agencyProjection"],

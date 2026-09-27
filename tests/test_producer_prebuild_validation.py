@@ -129,7 +129,11 @@ def test_complete_producer_prebuild_validation_runs_before_distribution_writes(
 ) -> None:
     releases, mapping_releases, validation, _elapsed = complete_prebuild
 
-    assert len(mapping_releases) == 11
+    # REF-072 adds agency-registry-2026-09-26: 13 bridges (26 evidence
+    # records) and 9 change events (22 evidence records, no assertion), so
+    # mappings +13 and evidence bindings minus relation assertions +35.
+    # Derived, not re-run here: the full-atlas tier needs the pinned inputs.
+    assert len(mapping_releases) == 12
     # 1,506,266 since REF-071 re-ran this test (it had been opt-in and drifted
     # from the 1,344,511 of 6535f570, 2026-08-16). Traced 2026-09-22: 118 of the
     # 119 releases match the sealed 2026-08-21d search view's per-release
@@ -149,13 +153,13 @@ def test_complete_producer_prebuild_validation_runs_before_distribution_writes(
     # native-relation (969,735), cross-ring (32,131) and source-assignment
     # (4,885) counts match expected_counts below -- a full build agreeing with
     # the prebuild through a different code path.
-    assert sum(len(release.mappings) for release in mapping_releases) == 1_252_692
+    assert sum(len(release.mappings) for release in mapping_releases) == 1_252_705
     assert validation.compiled_rows.expected_counts["resources"] == 1_506_266
-    assert validation.compiled_rows.expected_counts["mappingAssertions"] == 1_252_692
+    assert validation.compiled_rows.expected_counts["mappingAssertions"] == 1_252_705
     assert (
         validation.compiled_rows.expected_counts["evidenceBindings"]
         - validation.compiled_rows.expected_counts["relationAssertions"]
-        == 339
+        == 374
     )
     assert {
         release.key: sum(len(mapping.evidence) for mapping in release.mappings)
@@ -165,6 +169,7 @@ def test_complete_producer_prebuild_validation_runs_before_distribution_writes(
         != len(release.mappings)
     } == {
         "mesh-lcsh-mapping-2021-03-31": 8,
+        "agency-registry-2026-09-26": 13,
         "regulations-gov-agency-identity-2026-08-16": 321,
         "unified-agenda-gao-cra-priority-2026-08-15": 10,
     }

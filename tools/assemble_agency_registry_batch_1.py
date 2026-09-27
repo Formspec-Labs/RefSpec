@@ -40,7 +40,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import re
 import sys
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
@@ -58,14 +57,22 @@ except ImportError:  # Direct execution places tools/ on sys.path.
     import analyze_agency_roster_identifiers as census
 
 CANDIDATE_STATUS = "candidate-pending-owner-adjudication"
-OWNER_REVIEWER_IRI = "urn:ref:reviewer:refspec-owner"
+OWNER_REVIEWER_IRI = entity_alignments.AGENCY_REGISTRY_REVIEWER_IRI
 REPORT_JSON = Path("plans/agency-registry-batch-1-candidates.json")
 REPORT_MARKDOWN = Path("plans/agency-registry-batch-1-candidates.md")
 ADJUDICATION_MARKDOWN = Path("plans/agency-registry-batch-1-adjudication.md")
 DECISIONS_JSON = Path("plans/agency-registry-batch-1-decisions.json")
 DESIGN_NOTE = Path("plans/agency-registry-design.md")
-DECISIONS_SCHEMA_VERSION = "refspec-agency-registry-batch-1-decisions/2"
-DECISION_CHANNELS = ("questionTool", "decisionsFile")
+# The owner's decision contract lives beside the release that reads it
+# (v3_registry_alignments_entity), so the release and this sheet agree by
+# construction; these names stay importable from here.
+DECISIONS_SCHEMA_VERSION = entity_alignments.DECISIONS_SCHEMA_VERSION
+DECISION_CHANNELS = entity_alignments.DECISION_CHANNELS
+Decisions = entity_alignments.Decisions
+NO_DECISIONS = entity_alignments.NO_DECISIONS
+decision_digests = entity_alignments.decision_digests
+decision_answers = entity_alignments.decision_answers
+load_decisions = entity_alignments.load_decisions
 # spicy-regs' side of the rule effects, pinned as design note section 9 cites it; the
 # module digest catches a measurement run from an uncommitted spicy-regs tree.
 SPICY_REGS_COMMIT = "680009a5b761bc07c955d0c23fe56fd0799fa4ec"
@@ -78,8 +85,7 @@ MEASUREMENT_SCRIPT_SHA256 = "sha256:0c31ebffa9de5133ee9f7432d1513f7b919c48b14a24
 _OUTSIDE_CONTENT = frozenset({"content_digest", "effect_note"})
 SCHEMA_VERSION = "refspec-agency-registry-batch-1-candidates/4"
 FR_PARQUET = "federal_register.parquet"
-# The adjudicable content; replay-derived counts sit outside it on purpose.
-CANDIDATES_DIGEST_COVERS = ("candidates", "events", "non_emissions", "no_fr_bridge")
+CANDIDATES_DIGEST_COVERS = entity_alignments.CANDIDATES_DIGEST_COVERS
 
 FR = agency_projection.FR_RELEASE_KEY
 FH = agency_projection.FH_RELEASE_KEY
@@ -2238,102 +2244,6 @@ def render_markdown(report: Mapping[str, Any]) -> str:
         "",
     ]
     return "\n".join(lines)
-
-
-class Decisions(NamedTuple):
-    """The owner's recorded answers: bound to the current candidates, or stale (kept, never dropped)."""
-
-    current: Mapping[str, Mapping[str, Any]]
-    stale: Mapping[str, Mapping[str, Any]]
-
-
-NO_DECISIONS = Decisions({}, {})
-_DECISION_REQUIRED = {"answer", "decided_on", "content_digest", "channel"}
-_DIGEST_RE = re.compile(r"sha256:[0-9a-f]{64}")
-_DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
-_NEEDS_NOTE = frozenset({"wrong-date", "wrong-functions"})
-
-
-def decision_digests(report: Mapping[str, Any]) -> dict[str, str]:
-    """Every decidable id and the content digest its decisions bind to."""
-
-    entries = [row for row in report["candidates"] if row["relation"] == "sameEntityAs"]
-    entries += [*report["non_emissions"], *report["events"]]
-    digests = {entry.get("candidate_id") or entry["event_id"]: entry["content_digest"] for entry in entries}
-    digests.update({row["value_id"]: row["content_digest"] for row in report["no_fr_bridge"]})
-    return digests
-
-
-def decision_answers(report: Mapping[str, Any]) -> dict[str, tuple[str, ...]]:
-    """Every decidable id and the answers the sheet offers for it; event rows are never decided alone."""
-
-    answers: dict[str, tuple[str, ...]] = {}
-    for row in report["candidates"]:
-        if row["relation"] != "sameEntityAs":
-            continue
-        question = row.get("owner_question")
-        answers[row["candidate_id"]] = (
-            ("yes", "no") if question is None else tuple(str(n) for n in range(1, len(question["options"]) + 1))
-        )
-    for row in report["non_emissions"]:
-        answers[row["candidate_id"]] = ("confirm", "overrule")
-    for row in report["no_fr_bridge"]:
-        answers[row["value_id"]] = ("confirm", "overrule")
-    for event in report["events"]:
-        question = event.get("owner_question")
-        if question is not None:
-            answers[event["event_id"]] = tuple(str(n) for n in range(1, len(question["options"]) + 1))
-        elif event["group"] == "C":
-            answers[event["event_id"]] = ("accept", "wrong-date", "not-a-succession")
-        else:
-            answers[event["event_id"]] = ("accept-every-row", "wrong-date", "wrong-functions", "not-a-succession")
-    return answers
-
-
-def load_decisions(path: Path, report: Mapping[str, Any]) -> Decisions:
-    """Read the owner's decisions file; an absent file is no decisions.
-
-    Each decision names a decidable id and is bound to the ``content_digest`` of
-    that row or event as it stood when decided. When its own row or event changes,
-    the decision is stale: returned and rendered as stale, never dropped. A change
-    to any other row leaves it current. An id that names no decidable row or
-    event is refused, so a removed or re-keyed row is reconciled by hand. A
-    current decision must give one of the answers the sheet offers.
-    """
-
-    if not path.is_file():
-        return NO_DECISIONS
-    data = json.loads(path.read_text())
-    _require(isinstance(data, dict) and set(data) == {"schema_version", "reviewer_iri", "decisions"}, "decisions file fields differ")
-    _require(data["schema_version"] == DECISIONS_SCHEMA_VERSION, f"decisions file is not {DECISIONS_SCHEMA_VERSION}")
-    _require(data["reviewer_iri"] == OWNER_REVIEWER_IRI, "decisions come only from the owner's reviewer IRI")
-    _require(isinstance(data["decisions"], dict), "decisions must be an object keyed by candidate or event id")
-    answers = decision_answers(report)
-    digests = decision_digests(report)
-    unknown = sorted(set(data["decisions"]) - set(answers))
-    if unknown:
-        event_of = {row["candidate_id"]: row["event_id"] for row in report["candidates"] if "event_id" in row}
-        named = [f"{key} (a row of {event_of[key]}; decide the event)" if key in event_of else key for key in unknown]
-        raise ValueError(
-            f"{path}: decisions for unknown ids {', '.join(named)}; a removed or re-keyed row is reconciled by hand"
-        )
-    current: dict[str, Mapping[str, Any]] = {}
-    stale: dict[str, Mapping[str, Any]] = {}
-    for key, decision in sorted(data["decisions"].items()):
-        _require(isinstance(decision, dict), f"decision {key!r} must be an object")
-        fields = set(decision)
-        _require(_DECISION_REQUIRED <= fields <= _DECISION_REQUIRED | {"note"}, f"decision {key!r} fields differ")
-        _require(bool(_DIGEST_RE.fullmatch(str(decision["content_digest"]))), f"decision {key!r} digest malformed")
-        _require(bool(_DATE_RE.fullmatch(str(decision["decided_on"]))), f"decision {key!r} date is not YYYY-MM-DD")
-        _require(decision["channel"] in DECISION_CHANNELS, f"decision {key!r} channel is not one of {DECISION_CHANNELS}")
-        _require("note" not in decision or (isinstance(decision["note"], str) and decision["note"]), f"decision {key!r} note is empty")
-        if decision["content_digest"] != digests[key]:
-            stale[key] = decision
-            continue
-        _require(decision["answer"] in answers[key], f"decision {key!r} answers {decision['answer']!r}, not one of {answers[key]}")
-        _require(decision["answer"] not in _NEEDS_NOTE or "note" in decision, f"decision {key!r} needs a note saying what is wrong")
-        current[key] = decision
-    return Decisions(current, stale)
 
 
 def _decision_cell(decisions: Decisions, key: str) -> str:
