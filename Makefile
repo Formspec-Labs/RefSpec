@@ -158,7 +158,10 @@ SLOW_WORKERS ?= 4
 PYTEST_ARGS ?=
 TEST_PACKAGE_FAIL_SECONDS ?= 240
 
-test-package: atlas-v3-fixtures pinned-inputs-present release-atlas-federal-register-thesaurus
+# The release this tier reads is also verified against its committed pins
+# (~2.4s measured 2026-09-27). The build alone never compared them, so the
+# pins went stale at a5a0aa2b (2026-08-14) and stayed stale for six weeks.
+test-package: atlas-v3-fixtures pinned-inputs-present release-atlas-federal-register-thesaurus verify-atlas-federal-register-thesaurus
 	@start=$$(date +%s); \
 	uv run pytest -q -n auto --tier fast $(PYTEST_ARGS); \
 	status=$$?; \
@@ -249,15 +252,18 @@ audit-atlas-v3-source-fidelity:
 # the whole code-declared topology -- and the identity is derived from the
 # source accounting, so the same source bytes rebuild the same tree byte for
 # byte and the manifest digest below stays an external pin rather than a
-# reading of whatever happens to be on disk.
+# reading of whatever happens to be on disk. The manifest binds the contract
+# digest, so a change to any contract file -- the generated registry coverage
+# and descriptors included -- moves both pins; `make contract-dev` prints the
+# new pair to record in the same commit, and `make test-package` fails until then.
 ATLAS_FR_RELEASE_KEY ?= federal-register-thesaurus-2025
 ATLAS_FR_RELEASE_ROOT ?= output/atlas-3.1-federal-register-thesaurus-2025-04-01
 ATLAS_FR_RELEASE_SOURCE_ROOT ?= output/registry-real-data-sources
-ATLAS_FR_RELEASE_MANIFEST_SHA256 ?= 5af4afc8b426ca72b503621ddcbeee7cd1a8becffee5b41985986b3b9708cc9d
+ATLAS_FR_RELEASE_MANIFEST_SHA256 ?= 4730fbff282ad421dedc23dec1a351dce3179c4c69563a3285771b5fac172842
 # The served Parquet view is a separate sealed artifact with its own external
 # pin; the seal payload binds both digests, and the view manifest names this
 # distribution manifest back.
-ATLAS_FR_RELEASE_VIEW_SHA256 ?= ffea1b83bee61ac1ea5e2680852d5e18a409e54f4b41d3035367887b9fe36a57
+ATLAS_FR_RELEASE_VIEW_SHA256 ?= 680803834ac5ba7aff4ae853bdfd2866015a9b38fb6be1d37edde308f8fcc03c
 # Beside the distribution, never inside it, for the reason stated above the
 # source-fidelity receipt.
 ATLAS_FR_RELEASE_RECEIPT ?= $(ATLAS_FR_RELEASE_ROOT)-verification-receipt.json

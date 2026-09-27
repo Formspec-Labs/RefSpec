@@ -72,7 +72,8 @@ jobs:
         run: make test-json-binding
 
       # `make test-package` builds the Federal Register Thesaurus release it reads
-      # (seconds) and runs the fast tier. The report is written outside the
+      # (seconds), verifies it against the Makefile's pins and the publisher PDF,
+      # and runs the fast tier. The report is written outside the
       # checkout for the skip check; the runaway guard is raised because a hosted
       # runner is not the machine it was measured on, and the job timeout guards.
       - name: Run the fast tier
