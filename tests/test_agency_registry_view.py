@@ -27,7 +27,7 @@ from refspec.atlas.parquet_view import (
     seal_agency_registry_view,
     verify_agency_registry_view,
 )
-from refspec.atlas.v3_source_data import RegistryMappingRelease, RegistryRelease
+from refspec.atlas.v3_source_data import RegistryMappingEvidence, RegistryMappingRelease, RegistryRelease
 from refspec.registry.infrastructure.artifact_serialization import canonical_json_bytes
 from tools import analyze_agency_roster_identifiers as census
 from tools import build_agency_registry_view as view_tool
@@ -83,11 +83,11 @@ def test_the_view_builder_reads_the_registry_release_only(rosters: tuple[Registr
         )
 
 
-def test_the_sealed_view_is_deterministic_and_pinned(tmp_path: Path, view) -> None:
+def test_the_sealed_view_is_deterministic_and_pinned(tmp_path: Path, release, view) -> None:
     """Pin the manifest digest the design note names, reproduced twice from the same release."""
 
-    first = seal_agency_registry_view(tmp_path / "a", view)
-    second = seal_agency_registry_view(tmp_path / "b", view)
+    first = seal_agency_registry_view(tmp_path / "a", release)
+    second = seal_agency_registry_view(tmp_path / "b", release)
     assert first == second
     assert file_sha256(tmp_path / "a" / MANIFEST_FILE) == view_tool.VIEW_MANIFEST_SHA256
     assert {member["path"]: member["rowCount"] for member in first["members"]} == {
@@ -98,11 +98,11 @@ def test_the_sealed_view_is_deterministic_and_pinned(tmp_path: Path, view) -> No
     assert first["digest"] == view.digest
 
 
-def test_a_resealed_row_edit_is_refused(tmp_path: Path, view) -> None:
+def test_a_resealed_row_edit_is_refused(tmp_path: Path, release) -> None:
     """Pin that a table rewritten and re-pinned in the manifest still fails on the rows' logical digest."""
 
     root = tmp_path / "view"
-    seal_agency_registry_view(root, view)
+    seal_agency_registry_view(root, release)
     table = root / agency_registry_table_relative_path(AGENCY_REGISTRY_EVENT_ROLE)
     rows = pq.read_table(table).to_pylist()
     rows[0]["effective_date"] = "1900-01-01"
@@ -118,7 +118,7 @@ def test_a_resealed_row_edit_is_refused(tmp_path: Path, view) -> None:
     (root / MANIFEST_FILE).write_bytes(canonical_json_bytes(manifest))
 
     with pytest.raises(AtlasParquetViewError, match="logical-content digest differs"):
-        verify_agency_registry_view(root, expected_manifest_digest=file_sha256(root / MANIFEST_FILE))
+        verify_agency_registry_view(root, expected_manifest_digest=file_sha256(root / MANIFEST_FILE), release=release)
 
 
 def _resealed_rows(root: Path, mutate: Callable[[dict[str, list[dict]]], None]) -> str:
@@ -156,40 +156,184 @@ def _resealed_rows(root: Path, mutate: Callable[[dict[str, list[dict]]], None]) 
         (AGENCY_REGISTRY_BRIDGE_ROLE, "evidence_tier", "E3"),
         (AGENCY_REGISTRY_EVENT_ROLE, "warrant", "publisherAssertion"),
         (AGENCY_REGISTRY_EVENT_ROLE, "originals", []),
+        (AGENCY_REGISTRY_NON_EMISSION_ROLE, "decision", {"reviewer": "urn:ref:reviewer:someone-else"}),
     ),
 )
-def test_a_resealed_row_that_is_not_an_e4_owner_decision_is_refused(
+def test_a_resealed_row_that_is_not_its_release_is_refused(
     tmp_path: Path,
-    view,
+    release: RegistryMappingRelease,
     role: str,
     field: str,
     value: object,
 ) -> None:
-    """Pin the verifier's E4 human-review row rule, with every digest re-sealed so nothing else refuses."""
+    """Pin that the verifier compares the rows with the release, with every digest re-sealed so nothing else refuses."""
 
     root = tmp_path / "view"
-    seal_agency_registry_view(root, view)
+    seal_agency_registry_view(root, release)
 
     def edit(rows: dict[str, list[dict]]) -> None:
-        rows[role][0][field] = value
+        rows[role][0][field] = {**rows[role][0][field], **value} if isinstance(value, dict) else value
 
     pin = _resealed_rows(root, edit)
-    with pytest.raises(AtlasParquetViewError, match="not an E4 human-review decision"):
-        verify_agency_registry_view(root, expected_manifest_digest=pin)
+    with pytest.raises(AtlasParquetViewError, match="differs from what its release states"):
+        verify_agency_registry_view(root, expected_manifest_digest=pin, release=release)
 
 
-def test_a_resealed_non_emission_reason_outside_the_vocabulary_is_refused(tmp_path: Path, view) -> None:
+def _with_evidence(
+    release: RegistryMappingRelease,
+    change: Callable[[RegistryMappingEvidence], RegistryMappingEvidence],
+    *,
+    claims: slice = slice(None),
+) -> RegistryMappingRelease:
+    """The release with ``change`` applied to every approval of the bridges and events ``claims`` selects."""
+
+    def changed(claim):
+        return dataclasses.replace(claim, evidence=tuple(change(item) for item in claim.evidence))
+
+    mappings, events = list(release.mappings), list(release.change_events)
+    mappings[claims] = [changed(mapping) for mapping in mappings[claims]]
+    events[claims] = [changed(event) for event in events[claims]]
+    return dataclasses.replace(release, mappings=tuple(mappings), change_events=tuple(events))
+
+
+SHORT_EVIDENCE = {
+    "evidence_tier": lambda item: dataclasses.replace(item, native_payload={**item.native_payload, "evidenceTier": "E3"}),
+    "warrant": lambda item: dataclasses.replace(item, review_warrant="operatorAdoption"),
+    "reviewer": lambda item: dataclasses.replace(item, reviewer_iri="urn:ref:reviewer:someone-else"),
+}
+SHORT_VALUES = {"evidence_tier": "E3", "warrant": "operatorAdoption", "reviewer": "urn:ref:reviewer:someone-else"}
+
+
+@pytest.mark.parametrize("field", SHORT_EVIDENCE)
+def test_the_view_states_what_its_releases_evidence_states(release: RegistryMappingRelease, field: str) -> None:
+    """Pin F3: tier, warrant and reviewer are read off the release's approvals, so a short release shows as short."""
+
+    view = agency_projection.build_agency_registry_view(_with_evidence(release, SHORT_EVIDENCE[field]))
+
+    for row in (*view.bridges, *view.events, *(view.non_emissions if field == "reviewer" else ())):
+        stated = row["decision"]["reviewer"] if field == "reviewer" else row[field]
+        assert stated == SHORT_VALUES[field]
+
+
+@pytest.mark.parametrize("field", SHORT_EVIDENCE)
+def test_the_verifier_refuses_a_view_whose_release_states_less(
+    tmp_path: Path, release: RegistryMappingRelease, field: str
+) -> None:
+    """Pin F3: the view sealed from the owner's E4 release is refused as the view of a release whose evidence differs."""
+
+    root = tmp_path / "view"
+    seal_agency_registry_view(root, release)
+
+    with pytest.raises(AtlasParquetViewError, match="differs from what its release states"):
+        verify_agency_registry_view(
+            root,
+            expected_manifest_digest=file_sha256(root / MANIFEST_FILE),
+            release=_with_evidence(release, SHORT_EVIDENCE[field]),
+        )
+
+
+def test_the_view_refuses_approvals_that_do_not_state_one_review(release: RegistryMappingRelease) -> None:
+    """Pin that one claim's approvals must agree, and that the release must name one reviewer for its non-emissions."""
+
+    def first_approval_e3(item: RegistryMappingEvidence) -> RegistryMappingEvidence:
+        if item.native_payload.get("endpointRole") != "subject":
+            return item
+        return SHORT_EVIDENCE["evidence_tier"](item)
+
+    with pytest.raises(ValueError, match="approvals differ in evidence tier, warrant or reviewer"):
+        agency_projection.build_agency_registry_view(_with_evidence(release, first_approval_e3, claims=slice(0, 1)))
+    with pytest.raises(ValueError, match="more than one reviewer"):
+        agency_projection.build_agency_registry_view(
+            _with_evidence(release, SHORT_EVIDENCE["reviewer"], claims=slice(0, 1))
+        )
+
+
+def _e4_row_rule_oracle(rows: dict[str, list[dict]]) -> bool:
+    """The verifier's row rule before F3, copied rather than imported: accept only E4 human-review rows with originals."""
+
+    bridges, events = rows[AGENCY_REGISTRY_BRIDGE_ROLE], rows[AGENCY_REGISTRY_EVENT_ROLE]
+    return not (
+        any(
+            row["evidence_tier"] != "E4" or row["warrant"] != "humanReview" or row["originals"] == []
+            for row in events
+        )
+        or any(row["evidence_tier"] != "E4" or row["warrant"] != "humanReview" for row in bridges)
+    )
+
+
+# Where the release comparison and the literal rule part on purpose: the view
+# must state what its release states. An E4 view of a release whose evidence
+# says less is refused now and was accepted; an honest view of that release is
+# accepted now and was refused; and the reviewer was never checked at all.
+DELIBERATE_E4_RULE_DIVERGENCES = frozenset(
+    {
+        ("owner view of a short release", "evidence_tier"),
+        ("owner view of a short release", "warrant"),
+        ("owner view of a short release", "reviewer"),
+        ("honest view of a short release", "evidence_tier"),
+        ("honest view of a short release", "warrant"),
+        ("resealed row edit", "non-emission reviewer"),
+    }
+)
+
+
+def test_the_release_comparison_agrees_with_the_e4_rule_it_replaced_except_where_listed(
+    tmp_path: Path, release: RegistryMappingRelease
+) -> None:
+    """Pin verdict agreement with the replaced literal rule over the real view and a mutation battery; list the rest."""
+
+    def verdicts(label: str, root: Path, pin: str, against: RegistryMappingRelease) -> tuple[str, bool, bool]:
+        rows = {
+            role: pq.read_table(root / agency_registry_table_relative_path(role)).to_pylist()
+            for role in AGENCY_REGISTRY_TABLE_SCHEMAS
+        }
+        try:
+            verify_agency_registry_view(root, expected_manifest_digest=pin, release=against)
+        except AtlasParquetViewError:
+            return label, _e4_row_rule_oracle(rows), False
+        return label, _e4_row_rule_oracle(rows), True
+
+    def sealed(name: str, of: RegistryMappingRelease) -> tuple[Path, str]:
+        seal_agency_registry_view(tmp_path / name, of)
+        return tmp_path / name, file_sha256(tmp_path / name / MANIFEST_FILE)
+
+    battery = [verdicts("real", *sealed("real", release), release)]
+    for role, field, value, label in (
+        (AGENCY_REGISTRY_BRIDGE_ROLE, "warrant", "publisherAssertion", "bridge warrant"),
+        (AGENCY_REGISTRY_BRIDGE_ROLE, "evidence_tier", "E3", "bridge tier"),
+        (AGENCY_REGISTRY_EVENT_ROLE, "warrant", "publisherAssertion", "event warrant"),
+        (AGENCY_REGISTRY_EVENT_ROLE, "originals", [], "event originals"),
+        (AGENCY_REGISTRY_NON_EMISSION_ROLE, "decision", "urn:ref:reviewer:someone-else", "non-emission reviewer"),
+    ):
+        root, _ = sealed(label, release)
+
+        def edit(rows: dict[str, list[dict]], role=role, field=field, value=value) -> None:
+            row = rows[role][0]
+            row[field] = {**row[field], "reviewer": value} if field == "decision" else value
+
+        battery.append(verdicts(("resealed row edit", label), root, _resealed_rows(root, edit), release))
+    for field, change in SHORT_EVIDENCE.items():
+        short = _with_evidence(release, change)
+        battery.append(verdicts(("owner view of a short release", field), *sealed(f"owner-{field}", release), short))
+        battery.append(verdicts(("honest view of a short release", field), *sealed(f"honest-{field}", short), short))
+
+    assert battery[0] == ("real", True, True)
+    divergences = {label for label, old, new in battery if old != new}
+    assert divergences == DELIBERATE_E4_RULE_DIVERGENCES
+
+
+def test_a_resealed_non_emission_reason_outside_the_vocabulary_is_refused(tmp_path: Path, release) -> None:
     """Pin the verifier's closed non-emission reasons, with every digest re-sealed so nothing else refuses."""
 
     root = tmp_path / "view"
-    seal_agency_registry_view(root, view)
+    seal_agency_registry_view(root, release)
 
     def edit(rows: dict[str, list[dict]]) -> None:
         rows[AGENCY_REGISTRY_NON_EMISSION_ROLE][0]["reason"] = "notReviewedYet"
 
     pin = _resealed_rows(root, edit)
     with pytest.raises(AtlasParquetViewError, match="outside the closed vocabulary"):
-        verify_agency_registry_view(root, expected_manifest_digest=pin)
+        verify_agency_registry_view(root, expected_manifest_digest=pin, release=release)
 
 
 def test_the_view_refuses_rows_that_are_not_exactly_the_release(release: RegistryMappingRelease) -> None:

@@ -29,6 +29,7 @@ from typing import Any, Literal, cast, get_args
 from refspec.atlas.v3_registry_rosters import ATLAS_PARENT_ENTITY
 from refspec.atlas.v3_source_data import (
     RegistryMapping,
+    RegistryMappingEvidence,
     RegistryMappingRelease,
     RegistryRelease,
     RegistryResource,
@@ -38,7 +39,6 @@ from refspec.registry.infrastructure.artifact_serialization import plain_json
 
 ATLAS_SAME_ENTITY_AS = "https://refspec.org/ns/atlas/v3#sameEntityAs"
 REF_038_DECISION_RECORD = "docs/decisions.md#ref-038"
-REF_038_REVIEWER_IRI = "urn:ref:reviewer:refspec-owner"
 REF_038_ADJUDICATED_ON = "2026-08-16"
 # REF-072's release sits beside REF-038's and never feeds its projection.
 AGENCY_REGISTRY_RELEASE_KEY = "agency-registry-2026-09-26"
@@ -913,23 +913,75 @@ def _owner_decision_row(decision: Mapping[str, Any], reviewer: str) -> dict[str,
     }
 
 
+def _stated_review(evidence: Sequence[RegistryMappingEvidence], claim: str) -> tuple[str, str, str]:
+    """The evidence tier, warrant and reviewer every approval of one claim states; refused unless they agree.
+
+    A view row states one of each, so approvals that disagree are refused
+    rather than one of them chosen.
+    """
+
+    reviews = {
+        (item.native_payload.get("evidenceTier"), item.review_warrant, item.reviewer_iri) for item in evidence
+    }
+    if len(reviews) != 1:
+        raise ValueError(f"agency registry {claim} approvals differ in evidence tier, warrant or reviewer")
+    ((tier, warrant, reviewer),) = reviews
+    if not isinstance(tier, str) or not tier:
+        raise ValueError(f"agency registry {claim} approvals state no evidence tier")
+    return tier, warrant, reviewer
+
+
+def _release_reviews(
+    release: RegistryMappingRelease,
+) -> tuple[dict[tuple[str, str, str], tuple[str, str, str]], dict[str, tuple[str, str, str]], str]:
+    """What the release's evidence states for each bridge and each event, and the one reviewer it names.
+
+    Bridges are keyed by their triple and events by the event id their
+    evidence carries. A non-emission has no evidence of its own; it is the
+    decision of the reviewer every approval in the release names, so a release
+    naming more than one is refused rather than guessed at.
+    """
+
+    bridges = {
+        (mapping.subject, mapping.predicate, mapping.object): _stated_review(mapping.evidence, mapping.subject)
+        for mapping in release.mappings
+    }
+    events: dict[str, tuple[str, str, str]] = {}
+    for event in release.change_events:
+        event_ids = {item.native_payload.get("event", {}).get("eventId") for item in event.evidence}
+        event_id = event_ids.pop() if len(event_ids) == 1 else None
+        if not isinstance(event_id, str):
+            raise ValueError("agency registry change event evidence does not name one event")
+        events[event_id] = _stated_review(event.evidence, event_id)
+    reviewers = {reviewer for _tier, _warrant, reviewer in (*bridges.values(), *events.values())}
+    if len(reviewers) != 1:
+        raise ValueError("agency registry approvals name more than one reviewer; a non-emission's is unknown")
+    (reviewer,) = reviewers
+    return bridges, events, reviewer
+
+
 def build_agency_registry_view(release: RegistryMappingRelease) -> AgencyRegistryView:
     """Project the agency-registry release into its view rows; add nothing, match nothing.
 
     Rows equal the release's assertions and records exactly: every bridge row
     is one of its ``atlas:sameEntityAs`` mappings, every event row one result
-    of one of its change events, and every decided item appears once.
+    of one of its change events, and every decided item appears once. Each
+    row's evidence tier, warrant and reviewer are what the release's evidence
+    states, never constants, so a release whose evidence falls short shows it.
     """
 
     if release.key != AGENCY_REGISTRY_RELEASE_KEY or release.ring != "entity":
         raise ValueError("the agency registry view reads the agency-registry release only")
-    reviewer = REF_038_REVIEWER_IRI
+    bridge_reviews, event_reviews, release_reviewer = _release_reviews(release)
     bridges: list[dict[str, Any]] = []
     events: list[dict[str, Any]] = []
     non_emissions: list[dict[str, Any]] = []
     for decision in release.metadata["decisions"]:
-        owner = _owner_decision_row(decision["ownerDecision"], reviewer)
         if decision["decision"] == "adopted":
+            triple = (str(decision["sourceResource"]), str(decision["predicateIri"]), str(decision["objectResource"]))
+            if triple not in bridge_reviews:
+                raise ValueError("agency registry bridge rows are not exactly the release's mappings")
+            tier, warrant, reviewer = bridge_reviews[triple]
             parents = decision.get("parents", {})
             bridges.append(
                 {
@@ -944,12 +996,15 @@ def build_agency_registry_view(release: RegistryMappingRelease) -> AgencyRegistr
                     "relation": str(decision["predicateIri"]),
                     "basis": str(decision["basis"]),
                     "reasoning": str(decision["reasoning"]),
-                    "evidence_tier": "E4",
-                    "warrant": "humanReview",
-                    "decision": owner,
+                    "evidence_tier": tier,
+                    "warrant": warrant,
+                    "decision": _owner_decision_row(decision["ownerDecision"], reviewer),
                 }
             )
         elif decision["decision"] == "event":
+            if str(decision["eventId"]) not in event_reviews:
+                raise ValueError("agency registry event rows are not exactly the release's change events")
+            tier, warrant, reviewer = event_reviews[str(decision["eventId"])]
             records = [
                 {key: str(record[key]) for key in ("citation", "kind", "note", "url")}
                 for record in decision["publicRecords"]
@@ -967,9 +1022,9 @@ def build_agency_registry_view(release: RegistryMappingRelease) -> AgencyRegistr
                         "functions_taken": result.get("functionsTaken"),
                         "reasoning": str(result["reasoning"]),
                         "public_records": records,
-                        "evidence_tier": "E4",
-                        "warrant": "humanReview",
-                        "decision": owner,
+                        "evidence_tier": tier,
+                        "warrant": warrant,
+                        "decision": _owner_decision_row(decision["ownerDecision"], reviewer),
                     }
                 )
         elif decision["decision"] == "nonEmission":
@@ -987,7 +1042,7 @@ def build_agency_registry_view(release: RegistryMappingRelease) -> AgencyRegistr
                         if closest is None
                         else {key: str(closest[key]) for key in ("description", "relation", "why_not_proposed")}
                     ),
-                    "decision": owner,
+                    "decision": _owner_decision_row(decision["ownerDecision"], release_reviewer),
                 }
             )
         else:

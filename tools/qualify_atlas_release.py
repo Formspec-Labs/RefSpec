@@ -304,9 +304,10 @@ print("authenticated transport inventory; full audit checks decompressed bytes")
             "verify-agency-view",
             [
                 sys.executable,
-                "-c",
-                "import sys; from pathlib import Path; from refspec.atlas.parquet_view import verify_agency_registry_view; verify_agency_registry_view(Path(sys.argv[1]), expected_manifest_digest=sys.argv[2])",
+                str(ROOT / "tools/build_agency_registry_view.py"),
+                "--verify",
                 str(agency_view),
+                "--expected-manifest-sha256",
                 agency_pin,
             ],
         )

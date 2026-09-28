@@ -42,8 +42,8 @@ import pyarrow.parquet as pq
 
 from refspec.atlas.agency_projection import (
     AGENCY_REGISTRY_NON_EMISSION_REASONS,
-    AgencyRegistryView,
     agency_registry_view_digest,
+    build_agency_registry_view,
 )
 from refspec.atlas.compact_pack import CompactRecordRole
 from refspec.atlas.parquet_artifact import (
@@ -83,6 +83,7 @@ from refspec.atlas.parquet_tables import (
     unpreserved_record_fields,
     write_agency_registry_tables,
 )
+from refspec.atlas.v3_source_data import RegistryMappingRelease
 from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
     sha256_digest,
@@ -1105,16 +1106,17 @@ def _agency_registry_members(directory: Path) -> tuple[list[dict[str, Any]], dic
     return members, counts
 
 
-def seal_agency_registry_view(output: Path, view: AgencyRegistryView) -> dict[str, Any]:
-    """Write the REF-072 agency registry view as its own closed, digest-pinned directory.
+def seal_agency_registry_view(output: Path, release: RegistryMappingRelease) -> dict[str, Any]:
+    """Write the REF-072 agency registry view of ``release`` as its own closed, digest-pinned directory.
 
     Three tables and a manifest, written with the Atlas view's one writer
-    contract, re-verified from the bytes on disk, then promoted. The manifest's
-    own sha256 is the pin a consumer vendors the view by.
+    contract, re-verified from the bytes on disk against the release, then
+    promoted. The manifest's own sha256 is the pin a consumer vendors the view by.
     """
 
     if output.is_symlink() or output.exists():
         raise AtlasParquetViewError(f"refusing to replace existing output: {output}")
+    view = build_agency_registry_view(release)
     output.parent.mkdir(parents=True, exist_ok=True)
     staged = Path(tempfile.mkdtemp(prefix=f".{output.name}.", dir=output.parent))
     write_agency_registry_tables(staged, view)
@@ -1128,7 +1130,7 @@ def seal_agency_registry_view(output: Path, view: AgencyRegistryView) -> dict[st
         "pyarrowVersion": importlib.metadata.version("pyarrow"),
         "rowGroupSize": ROW_GROUP_SIZE,
     }
-    release = dict(view.release)
+    identity = dict(view.release)
     manifest: dict[str, Any] = {
         "construction": construction,
         "counts": counts,
@@ -1136,27 +1138,34 @@ def seal_agency_registry_view(output: Path, view: AgencyRegistryView) -> dict[st
         "digest": view.digest,
         "members": members,
         "recordType": AGENCY_REGISTRY_VIEW_RECORD_TYPE,
-        "release": release,
+        "release": identity,
         "schemaVersion": AGENCY_REGISTRY_VIEW_SCHEMA_VERSION,
         "viewId": AGENCY_REGISTRY_VIEW_ID_PREFIX
-        + canonical_payload_sha256({"construction": construction, "digest": view.digest, "release": release}).removeprefix(
+        + canonical_payload_sha256({"construction": construction, "digest": view.digest, "release": identity}).removeprefix(
             "sha256:"
         ),
     }
     manifest["canonicalPayloadDigest"] = canonical_payload_sha256(manifest)
     (staged / MANIFEST_FILE).write_bytes(canonical_json_bytes(manifest))
-    verify_agency_registry_view(staged, expected_manifest_digest=file_sha256(staged / MANIFEST_FILE))
+    verify_agency_registry_view(staged, expected_manifest_digest=file_sha256(staged / MANIFEST_FILE), release=release)
     os.rename(staged, output)
     return manifest
 
 
-def verify_agency_registry_view(directory: Path, *, expected_manifest_digest: str) -> dict[str, Any]:
-    """Verify a closed agency registry view against its external manifest pin, down to its rows.
+def verify_agency_registry_view(
+    directory: Path,
+    *,
+    expected_manifest_digest: str,
+    release: RegistryMappingRelease,
+) -> dict[str, Any]:
+    """Verify a closed agency registry view against its external manifest pin and its release, down to its rows.
 
     Members, schemas, row counts and bytes are checked against the manifest,
     and the rows themselves are read back: their coverage and logical-content
-    digest must be the ones the release produced, so a table re-sealed after
-    an edit fails here rather than at the consumer.
+    digest must be the manifest's, and the manifest's must be what
+    ``release`` projects to -- evidence tier, warrant and reviewer included --
+    so a table re-sealed after an edit, or a view whose evidence claims more
+    than its release states, fails here rather than at the consumer.
     """
 
     if directory.is_symlink() or not directory.is_dir():
@@ -1196,16 +1205,21 @@ def verify_agency_registry_view(directory: Path, *, expected_manifest_digest: st
     }
     if coverage != manifest["coverage"]:
         raise AtlasParquetViewError("agency registry view coverage differs from its rows")
-    if any(
-        row["evidence_tier"] != "E4" or row["warrant"] != "humanReview" or row["originals"] == []
-        for row in events
-    ) or any(row["evidence_tier"] != "E4" or row["warrant"] != "humanReview" for row in bridges):
-        raise AtlasParquetViewError("agency registry view row is not an E4 human-review decision")
     unknown_reasons = sorted({row["reason"] for row in non_emissions} - AGENCY_REGISTRY_NON_EMISSION_REASONS)
     if unknown_reasons:
         raise AtlasParquetViewError(f"agency registry view non-emission reason is outside the closed vocabulary: {unknown_reasons}")
     if agency_registry_view_digest(bridges, events, non_emissions, coverage) != manifest["digest"]:
         raise AtlasParquetViewError("agency registry view logical-content digest differs")
+    try:
+        expected = build_agency_registry_view(release)
+    except ValueError as error:
+        raise AtlasParquetViewError(f"agency registry view's release does not project: {error}") from error
+    if (manifest["digest"], manifest["coverage"], manifest["release"]) != (
+        expected.digest,
+        dict(expected.coverage),
+        dict(expected.release),
+    ):
+        raise AtlasParquetViewError("agency registry view differs from what its release states")
     return manifest
 
 
