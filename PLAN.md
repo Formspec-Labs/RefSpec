@@ -6,7 +6,25 @@ Longer-running plan detail is in [plans/](plans/) — start with
 [validation-cost-reset-plan.md](plans/validation-cost-reset-plan.md) and read
 its CONTINUATION header.
 
-## State as of 2026-09-17
+## Atlas refresh (local, 2026-09-27)
+
+`lane/atlas-refresh-20260927` starts from the dev21 candidate and corrects
+the preferred-label shape to the adopted one-per-language policy, including
+refusal of duplicate label records with identical text. The old clause stays
+as a test oracle. Bounded conformance and the Federal Register thesaurus
+publisher check pass with regenerated release pins. Independent rechecks
+confirm source-fidelity verifier defects and provide bounded source comparisons.
+The full build stopped at its memory guard before producing a distribution;
+full artifact qualification remains blocked. See the
+[refresh evidence](research/atlas-refresh-2026-09-27/README.md) for commands,
+digests and the remaining acceptance steps. The August artifact remains intact.
+The separate dev21 worktree and downstream adoption work retain their owners.
+
+The [repair proposal](plans/atlas-refresh-repair-plan-2026-09-27.md) covers the
+verified gaps, performance bounds, DRY/KISS audit and acceptance criteria.
+It is proposed work; no implementation or full requalification is claimed.
+
+## State as of 2026-09-17 (historical)
 
 Branch `main`, tree clean, at `0.1.0.dev11` pinning the vendored SpicyDocs
 0.20.0 wheel. dev8→dev11 (2026-09-14→16) completed the shared-reader

@@ -4,6 +4,15 @@
 **Artifacts:** `atlas-3.1-full-2026-08-21c`, `atlas-3.1-full-2026-08-21d`
 (both recorded `verdict: passed`, 13 of 13 gates)
 
+**Follow-up, 2026-09-27:** the language remedy proposed below is superseded.
+REF-037 already allowed one preferred label per language; the shape was stale,
+so discarding a publisher's preferred language would have contradicted that
+policy. commit `9855dff5` corrects the shape and preserves duplicate-language refusals.
+The complete UMTHES slice now passes the independent distribution validator.
+Full-build progress and the separate source-fidelity blockers are recorded in
+[the refresh evidence](atlas-refresh-2026-09-27/README.md). The dated findings
+below remain the evidence for the August artifacts.
+
 A 32-second smoke check found what 13 passing gates did not. Both findings
 below are in 21c as well as 21d, so neither is new to today's contract work,
 and both trace to `6535f570` (2026-08-16, the mapping-era seal).
