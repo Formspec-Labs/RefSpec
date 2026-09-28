@@ -1,29 +1,28 @@
 """Differential proof for the bounded SHACL red-path report, against the whole-graph fallback it replaced.
 
-When the fail-fast red path's focused re-run could not reproduce what the
-fast path had found, `_run_shacl` used to fall back to the whole-graph
-normative report -- the run measured at 94 minutes on a 32M-quad red build.
-The focused re-run named its shapes through pySHACL's `use_shapes`, which
-skips every named shape they reach through `sh:node` or
-`sh:qualifiedValueShape`, so every red build with a violation inside one of
-the binding's eight named value shapes paid it: ten of the 62 `shacl.data`
-corpus cases did. The re-run now retargets a copy of the shapes onto the
-sampled nodes, and when a sample still falls short the fallback re-validates
-every node the fast path refused the same way; neither touches the rest of
-the graph.
+Until the change REF-072 records ("The red path's bounded fallback"), a red
+build whose focused re-run fell short of what the fast path found took the
+whole-graph normative report instead. The red path now reports from a sample
+of the refused nodes and, when the sample falls short, re-validates every
+refused node; neither touches the rest of the graph.
 
 So the whole-graph fallback is reconstructed here as the ORACLE -- a copy of
 its engine call and its report reading, not an import, because it is the
-thing being replaced -- and the bounded report is held to it over the red
+thing being replaced -- and `_run_shacl` itself is held to it, over the red
 corpus and over a mutation battery that plants, on valid fixtures, a
-violation inside each named value shape and each sample shape the `use_shapes`
-run could not take. For every input, two equalities:
+violation inside each named value shape and each sample shape the old
+`use_shapes` run could not take. One `_run_shacl` run per input, on its own
+wiring: `_focused_report_is_complete` is spied, answers for the sample, and
+is then forced false, so the fallback `_run_shacl` takes is the one compared.
 
-* the red path names exactly the oracle's constraint components, for the
-  role the oracle refuses, in one focused run and without the whole graph;
-* the fallback, the re-validation of every refused node, reports exactly the
-  oracle's violations, node for node -- the fast path refused every node the
-  engine refuses, and no other.
+* The sample is complete: the tripwire accepts it, and it names exactly the
+  oracle's constraint components, for the role the oracle refuses.
+* The fallback reports exactly the oracle's violations, node for node: the
+  fast path refused every node the engine refuses, and `_run_shacl` handed
+  every one of them on.
+* Neither run resolves a target over the graph: the shapes graph a focused
+  run is given carries `sh:targetNode` targets and no other, and no run is
+  given the normative shapes.
 
 No divergence is deliberate. `DELIBERATE_DIVERGENCES` is where one would be
 recorded, with its reason, so that an unlisted divergence fails the suite
@@ -36,6 +35,7 @@ import json
 import re
 import sys
 from collections.abc import Callable
+from functools import cache
 from pathlib import Path
 from typing import Any
 
@@ -53,6 +53,7 @@ import validate as atlas_validate
 ATLAS = Namespace("https://refspec.org/ns/atlas/v3#")
 RKAF = Namespace("https://rulespec.org/ns/v1#")
 ROLES = ("asserted", "derived")
+RESOLVED_TARGETS = (SH.targetClass, SH.targetSubjectsOf, SH.targetObjectsOf)
 
 # Input name -> why the bounded report may differ from the oracle there.
 DELIBERATE_DIVERGENCES: dict[str, str] = {}
@@ -87,65 +88,70 @@ def whole_graph_violations(graph: Graph, ontology: Graph, shapes: Graph) -> set[
     return violations
 
 
-def every_refused_node_violations(graph: Graph, ontology: Graph, shapes: Graph) -> set[Violation]:
-    """The bounded fallback, taken whether or not the sample needed it: every refused node, re-validated."""
+def assert_bounded_report_is_the_oracles(name: str, graphs: dict[str, Graph], monkeypatch: pytest.MonkeyPatch) -> None:
+    """Hold `_run_shacl`'s sample and its own fallback to the whole-graph oracle on one input."""
 
-    view = atlas_validate._ShaclDataView([graph, inoculate(Graph(), ontology)])
-    plan = atlas_validate._batched_shacl_plan(shapes)
-    refused = atlas_validate._batched_shacl_precheck_misses(view, shapes, plan, first_only=False)
-    _, batched, _ = atlas_validate._validate_shacl_data(view, plan.shapes)
-    focused = atlas_validate._focused_shacl_report(view, shapes, atlas_validate._refused_focus_nodes(refused, batched))
-    assert focused is not None
-    return set(focused[1])
+    ontology, shapes = atlas_validate._parse_binding_graphs()
+    oracle: set[Violation] = set()
+    refused_role = ""
+    for refused_role in ROLES:
+        oracle = whole_graph_violations(graphs[refused_role], ontology, shapes)
+        if oracle:
+            break
+    assert oracle, f"{name}: the oracle refuses nothing"
+    expected = sorted({component for *_, component in oracle})
 
-
-def red_path(
-    graphs: dict[str, Graph],
-    ontology: Graph,
-    shapes: Graph,
-    monkeypatch: pytest.MonkeyPatch,
-) -> tuple[str, list[str], int]:
-    """Refuse the graphs on the default red path; return the role it refused, the components it named, and its focused runs."""
-
-    focused_runs = 0
+    focused: list[set[Violation] | None] = []
+    tripwire: list[bool] = []
+    in_focused_run = False
     real_focused = atlas_validate._focused_shacl_report
+    real_complete = atlas_validate._focused_report_is_complete
     real_validate = atlas_validate._validate_shacl_data
 
-    def counted(data_graph: Graph, shape_graph: Graph, focus_nodes: Any) -> Any:
-        nonlocal focused_runs
-        focused_runs += 1
-        return real_focused(data_graph, shape_graph, focus_nodes)
+    def spy_focused(data_graph: Graph, shape_graph: Graph, focus_nodes: Any) -> Any:
+        nonlocal in_focused_run
+        in_focused_run = True
+        try:
+            result = real_focused(data_graph, shape_graph, focus_nodes)
+        finally:
+            in_focused_run = False
+        focused.append(None if result is None else set(result[1]))
+        return result
+
+    def forced_incomplete(rows: Any, batched: Any, misses: Any) -> bool:
+        tripwire.append(real_complete(rows, batched, misses))
+        return False
 
     def bounded(data_graph: Graph, shape_graph: Graph) -> tuple[bool, Any, str]:
         assert shape_graph is not shapes, "the red path ran the whole-graph report"
+        if in_focused_run:
+            assert not any((None, target, None) in shape_graph for target in RESOLVED_TARGETS), (
+                "a focused run resolves targets over the graph"
+            )
         return real_validate(data_graph, shape_graph)
 
     with monkeypatch.context() as patch:
         patch.delenv(atlas_validate.VALIDATION_MODE_ENV, raising=False)
-        patch.setattr(atlas_validate, "_focused_shacl_report", counted)
+        patch.setattr(atlas_validate, "_focused_shacl_report", spy_focused)
+        patch.setattr(atlas_validate, "_focused_report_is_complete", forced_incomplete)
         patch.setattr(atlas_validate, "_validate_shacl_data", bounded)
-        with pytest.raises(atlas_validate.AtlasValidationError) as error:
+        try:
             atlas_validate._run_shacl(graphs, ontology, shapes)
-    match = re.match(r"(\w+) graph does not conform \[([^\]]*)\]", error.value.detail)
-    assert error.value.code == "shacl.data" and match is not None, error.value.detail
-    return match.group(1), match.group(2).split(", "), focused_runs
+        except atlas_validate.AtlasValidationError as error:
+            match = re.match(r"(\w+) graph does not conform \[([^\]]*)\]", error.detail)
+            assert error.code == "shacl.data" and match is not None, error.detail
+            refused, components = match.group(1), match.group(2).split(", ")
+        else:
+            refused, components = "no role", []
+    sample, every = [*focused, None, None][:2]
+    sample_components = sorted({component for *_, component in sample or ()})
 
-
-def assert_bounded_report_is_the_oracles(name: str, graphs: dict[str, Graph], monkeypatch: pytest.MonkeyPatch) -> None:
-    """Hold the red path and its fallback to the whole-graph oracle on one input."""
-
-    ontology, shapes = atlas_validate._parse_binding_graphs()
-    oracle = {role: whole_graph_violations(graphs[role], ontology, shapes) for role in ROLES}
-    refused_role = next(role for role in ROLES if oracle[role])
-    expected = sorted({component for *_, component in oracle[refused_role]})
-
-    role, components, focused_runs = red_path(graphs, ontology, shapes, monkeypatch)
-    every = every_refused_node_violations(graphs[refused_role], ontology, shapes)
-
-    diverged = (role, components, focused_runs, every) != (refused_role, expected, 1, oracle[refused_role])
+    observed = (refused, len(focused), tripwire, sample_components, every, components)
+    diverged = observed != (refused_role, 2, [True], expected, oracle, expected)
     assert diverged == (name in DELIBERATE_DIVERGENCES), (
-        f"{name}: red path {role} {components} in {focused_runs} focused runs, oracle {refused_role} {expected}; "
-        f"fallback-only {sorted(every - oracle[refused_role])}, oracle-only {sorted(oracle[refused_role] - every)}"
+        f"{name}: refused {refused} {components}, oracle {refused_role} {expected}; {len(focused)} focused runs; "
+        f"tripwire {tripwire}; sample {sample_components}; fallback-only {sorted((every or set()) - oracle)}, "
+        f"oracle-only {sorted(oracle - (every or set()))}"
     )
 
 
@@ -320,6 +326,50 @@ def _named_shape_beside_another_root(asserted: Graph) -> None:
     _undated_until(asserted)
 
 
+def _every_named_kind_at_once(asserted: Graph) -> None:
+    """A violation inside every named shape at once, each at its own top-level node: the sample needs a node per kind."""
+
+    resources = sorted(set(asserted.subjects(ATLAS.inScheme, None)))
+    record, _ = _first(asserted, ATLAS.sourceDigest)
+    _set(asserted, record, ATLAS.sourceDigest, Literal("not-a-digest"))
+    _set(asserted, resources[0], ATLAS.semanticRing, Literal("entity"))
+    _set(asserted, resources[1], ATLAS.resourceProfile, Literal("entity"))
+    _set(asserted, resources[2], ATLAS.notation, Literal(""))
+    _set(asserted, resources[3], ATLAS.validUntil, Literal("2030-01-01"))
+    _set(asserted, resources[4], ATLAS.definition, Literal("une définition", lang="fr"))
+    first_event, second_event = sorted(asserted.subjects(RDF.type, ATLAS.OrganizationChangeEvent))[:2]
+    binding = min(asserted.subjects(RKAF.bindsAssertion, first_event))
+    _set(asserted, binding, RKAF.attestor, URIRef("urn:ref:reviewer:someone-else"))
+    for event_binding in list(asserted.subjects(RKAF.bindsAssertion, second_event)):
+        for source in list(asserted.objects(event_binding, ATLAS.evidenceSourceRecord)):
+            locator = asserted.value(source, ATLAS.sourceLocator)
+            _set(asserted, source, ATLAS.sourceLocator, URIRef(str(locator).replace("https://", "http://", 1)))
+
+
+def _three_warrants_broken(asserted: Graph) -> None:
+    """One lifted constraint refusing three nodes: the fallback must re-validate every one, not only the least."""
+
+    for binding in sorted(asserted.subjects(RDF.type, RKAF.EvidenceBinding))[:3]:
+        _set(asserted, binding, RKAF.evidenceRole, RKAF.retrievalSignal)
+
+
+def _targeted_through_a_subclass_only(asserted: Graph) -> None:
+    """A node atlas:MappingAssertionShape reaches only through rdfs:subClassOf, refused by that shape alone.
+
+    The producer states every supertype, so no fixture needs the subclass
+    walk in `_root_shape_focus_groups`; the engine takes it, so a hostile
+    distribution can. The SKOS mapping keeps only its subclass type, and its
+    source release stops being its subject's release (an sh:equals of
+    atlas:MappingAssertionShape).
+    """
+
+    mapping = min(asserted.subjects(RDF.type, ATLAS.SkosMappingAssertion))
+    asserted.remove((mapping, RDF.type, ATLAS.MappingAssertion))
+    releases = sorted(set(asserted.subjects(RDF.type, ATLAS.AtlasRelease)))
+    current = asserted.value(mapping, ATLAS.sourceRelease)
+    _set(asserted, mapping, ATLAS.sourceRelease, next(release for release in releases if release != current))
+
+
 VALID = BINDING_ROOT / "fixtures" / "valid"
 # Keyed by the named shape each plants a violation inside, where there is one.
 MUTATIONS: dict[str, tuple[Path, Callable[[Graph], None]]] = {
@@ -337,7 +387,25 @@ MUTATIONS: dict[str, tuple[Path, Callable[[Graph], None]]] = {
     "two-nested-kinds-one-signature": (VALID / "all-resource-profiles", _two_kinds_under_one_signature),
     "literal-focus-node": (VALID / "all-resource-profiles", _literal_concept_scheme),
     "every-digest-bad": (VALID / "all-resource-profiles", _every_digest_bad),
+    "every-named-kind-at-once": (VALID / "organization-change-events", _every_named_kind_at_once),
+    "three-warrants-broken": (VALID / "all-resource-profiles", _three_warrants_broken),
+    "targeted-through-a-subclass-only": (VALID / "organization-change-events", _targeted_through_a_subclass_only),
 }
+
+
+@cache
+def _parsed(distribution: Path) -> dict[str, Graph]:
+    return _load_graphs(distribution)
+
+
+def _fresh(distribution: Path) -> dict[str, Graph]:
+    """A mutable copy of a valid fixture, parsed once per worker rather than once per mutation."""
+
+    copies: dict[str, Graph] = {}
+    for role, graph in _parsed(distribution).items():
+        copies[role] = Graph(identifier=graph.identifier)
+        copies[role] += graph
+    return copies
 
 
 @pytest.mark.parametrize("name", MUTATIONS)
@@ -348,7 +416,7 @@ def test_the_bounded_report_is_the_whole_graph_report_on_the_mutation_battery(
     """Over planted violations: each named value shape, and each sample shape the `use_shapes` run could not take."""
 
     distribution, mutate = MUTATIONS[name]
-    graphs = _load_graphs(distribution)
+    graphs = _fresh(distribution)
     mutate(graphs["asserted"])
     assert_bounded_report_is_the_oracles(name, graphs, monkeypatch)
 
