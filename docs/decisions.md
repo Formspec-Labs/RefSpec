@@ -6097,6 +6097,44 @@ attestor and the origin, or to a reference to the humanReview branch, would
 move the contract digest and the release pins, so it is the owner's call;
 nothing has been changed.
 
+**The red path's bounded fallback (2026-09-28).** Building the
+owner-review negatives above found the fail-fast red path's focused re-run
+incomplete, and the fix sent such a red build to the whole-graph normative
+report instead -- the run measured at 94 minutes on a 32M-quad red build --
+recorded in `_run_shacl` as a known limit. The cause was pySHACL 0.31's
+`use_shapes`: it loads the shapes it names and the blank nodes under them,
+and skips every named shape they reach through `sh:node` or
+`sh:qualifiedValueShape` as if it conformed. All eight of the binding's
+named value shapes were skipped, and ten of the 62 `shacl.data` corpus cases
+paid the whole-graph run for it: the seven change-event cases on
+`atlas:OwnerHumanReviewShape` and `atlas:PublicRecordEvidenceShape`, the two
+`atlas:DateTimeValueShape` cases, and `non-english-definition`, whose nested
+literal focus node the sampler refused outright. Now the focused re-run is
+one engine run on a copy of the shapes whose targets are replaced by
+`sh:targetNode` of the sampled nodes, so every shape is loaded and
+traversed; the sampler takes a nested result by its top-level result's
+node; and when a sample still falls short of what the fast path found, the
+fallback re-validates every node the fast path refused the same way, the
+engine's answer there final. The report costs O(|shapes| + k·c) for its k
+nodes -- at most one per violated signature, or in the fallback one per
+refused node -- and c the node's shape closure, never the graph. The
+sample-size cap and the IRI-only focus guard, which served `use_shapes` and
+routed to the whole-graph run, are gone. The whole-graph run stays audit
+mode's report and the answer to a fast path that cannot be read (an engine
+exception, a node no shape targets), and the replaced fallback lives on as
+the test-only oracle in `tests/test_atlas_v3_red_path_oracle.py`: over the
+red corpus and a mutation battery that plants a violation inside each named
+shape, the red path names the oracle's components in one focused run, and
+the every-refused-node fallback reports its violations node for node; no
+divergence is deliberate. Measured on the bounded agency build (2,249,294
+quads) with one violation planted inside each named shape: the whole-graph
+report took 264 s over 292,174 (shape, node) pairs, the sample 0.03 s over
+11, the every-refused-node fallback 0.34 s over 741 and the same 379
+violations; on the ten corpus cases, 82-98 ms over 239-262 pairs against
+11-18 ms over one or two. The fast path that finds the build red (36 s
+there) is unchanged. No corpus case's recorded components moved, and
+neither did the contract pair.
+
 ### REF-073: The Atlas contract covers what a release serves, never module source
 
 - **Date:** 2026-09-28

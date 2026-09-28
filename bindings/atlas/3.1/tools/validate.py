@@ -3138,14 +3138,6 @@ _EVIDENCE_WARRANT_BRANCH_SIGNATURES = frozenset(
 # Which SHACL report a refused distribution gets. See `_run_shacl`.
 VALIDATION_MODE_ENV = "REFSPEC_ATLAS_VALIDATION_MODE"
 AUDIT_VALIDATION_MODE = "audit"
-# How many distinct violated constraints the focused red path reproduces. The
-# number of distinct (shape, component, path) signatures a graph can violate is
-# bounded by the shapes file, so this only binds on a distribution that
-# violates nearly all of the binding at once -- and when it binds, the
-# whole-graph report is used rather than risk naming fewer components than the
-# audit run would.
-SHACL_FOCUS_SAMPLE_LIMIT = 256
-_FOCUS_NODE_SCHEMES = ("http:", "https:", "urn:", "file:")
 
 
 def _copy_graph(graph: Graph) -> Graph:
@@ -3499,20 +3491,20 @@ def _batched_shacl_precheck_misses(
     plan: _BatchedShaclPlan,
     *,
     first_only: bool,
-) -> list[Any]:
-    """Return one focus node per lifted constraint that the fast path refuses.
+) -> list[list[Any]]:
+    """Return every focus node each lifted constraint refuses, one list per constraint that refuses any.
 
     Each lifted constraint (one closed shape, the relation ring context, or
     the evidence warrant) can only ever produce its own constraint component,
-    so one violating focus node per lifted constraint is enough to reproduce
-    that component under the normative shapes.  `first_only` stops at the
-    first miss for the plain conformance question, which is all the audit path
-    needs.
+    so the red path samples one node per list to reproduce that component
+    under the normative shapes, and re-validates the rest only if that sample
+    falls short (`_run_shacl`). `first_only` stops at the first miss for the
+    plain conformance question, which is all the audit path needs.
     """
 
-    misses: list[Any] = []
+    refused: list[list[Any]] = []
     for closed in plan.closed_shapes:
-        miss: Any = None
+        misses: list[Any] = []
         for focus in _core_shacl_targets(data_graph, normative_shapes, closed.shape):
             if any(
                 (predicate, obj) != (RDF.type, RDFS.Resource)
@@ -3521,17 +3513,13 @@ def _batched_shacl_precheck_misses(
                 for predicate, obj in data_graph.predicate_objects(focus)
             ):
                 if first_only:
-                    return [focus]
-                # Keep the lexicographically least violating node so the
-                # red-path sample -- and the report built from it -- is
-                # stable across runs; set iteration order is not.
-                if miss is None or str(focus) < str(miss):
-                    miss = focus
-        if miss is not None:
-            misses.append(miss)
+                    return [[focus]]
+                misses.append(focus)
+        if misses:
+            refused.append(misses)
 
     if plan.checks_relation_ring_context:
-        miss = None
+        misses = []
         for focus in _core_shacl_targets(data_graph, normative_shapes, ATLAS.RelationAssertionShape):
             semantic_count = sum(1 for _ in data_graph.objects(focus, ATLAS.semanticRing))
             source_count = sum(1 for _ in data_graph.objects(focus, ATLAS.sourceRing))
@@ -3540,11 +3528,10 @@ def _batched_shacl_precheck_misses(
             cross_ring = semantic_count == 0 and source_count >= 1 and target_count >= 1
             if same_ring == cross_ring:
                 if first_only:
-                    return [focus]
-                if miss is None or str(focus) < str(miss):
-                    miss = focus
-        if miss is not None:
-            misses.append(miss)
+                    return [[focus]]
+                misses.append(focus)
+        if misses:
+            refused.append(misses)
 
     if plan.warrant_branches is not None:
         # One indexed read per constrained path per binding, then the parsed
@@ -3552,7 +3539,7 @@ def _batched_shacl_precheck_misses(
         # so both zero and two are misses and both hand the same
         # XoneConstraintComponent back through focused re-validation.
         warrant_paths = tuple({row[0] for branch in plan.warrant_branches for row in branch})
-        miss = None
+        misses = []
         for focus in _core_shacl_targets(data_graph, normative_shapes, ATLAS.EvidenceBindingShape):
             values = {path: set(data_graph.objects(focus, path)) for path in warrant_paths}
             matched = 0
@@ -3563,12 +3550,11 @@ def _batched_shacl_precheck_misses(
                         break
             if matched != 1:
                 if first_only:
-                    return [focus]
-                if miss is None or str(focus) < str(miss):
-                    miss = focus
-        if miss is not None:
-            misses.append(miss)
-    return misses
+                    return [[focus]]
+                misses.append(focus)
+        if misses:
+            refused.append(misses)
+    return refused
 
 
 def _batched_shacl_prechecks(data_graph: Graph, normative_shapes: Graph, plan: _BatchedShaclPlan) -> bool:
@@ -3596,49 +3582,60 @@ def _validate_shacl_data(data_graph: Graph, shapes: Graph) -> tuple[bool, Any, s
     )
 
 
-def _shacl_focus_samples(precheck_misses: Sequence[Any], report: Any) -> list[URIRef] | None:
+def _shacl_focus_samples(precheck_misses: Sequence[Any], report: Any) -> list[Any] | None:
     """Name focus nodes that reproduce every violation the fast path found.
 
     The fast path knows more than "no". Its precheck misses arrive as focus
     nodes already, and its batched report carries one `sh:focusNode` per
-    violation. Two violations of the same `(sourceShape, component, path)` can
+    violation. Two violations of the same `(resultPath, component)` can
     only ever produce the same constraint component, so one focus node per
     distinct signature reproduces the whole component list -- 2,003 identical
     evidence-binding violations become one node to re-validate.
 
-    Returns None whenever the sample cannot be trusted to be complete or
-    usable, which sends the caller back to the whole-graph normative report.
+    A violation nested under another through `sh:detail` -- one inside a
+    named shape that `sh:node` reaches -- is sampled by its top-level result's
+    focus node, because re-validating that node is what reproduces it; its own
+    focus is a value node that no shape targets, a literal for a language or
+    datatype value shape.
+
+    Returns None when the report cannot be read as a sample (a result without
+    a focus node or a component), which sends the caller back to the
+    whole-graph normative report.
     """
 
     sampled: list[Any] = list(precheck_misses)
     if isinstance(report, Graph):
         by_signature: dict[tuple[str, str], Any] = {}
-        for result in report.subjects(RDF.type, SH.ValidationResult):
-            focus = next(report.objects(result, SH.focusNode), None)
-            component = next(report.objects(result, SH.sourceConstraintComponent), None)
-            if focus is None or component is None:
+        for top in report.objects(None, SH.result):
+            focus = next(report.objects(top, SH.focusNode), None)
+            if focus is None:
                 return None
-            signature = (
-                str(next(report.objects(result, SH.resultPath), "")),
-                str(component),
-            )
-            # Keep the lexicographically least focus node per signature so
-            # the red-path sample is run-stable (graph iteration order is
-            # not). The signature is `(resultPath, component)` and NOT
-            # `sh:sourceShape`: an engine may leave the source shape an
-            # anonymous node -- Jena does -- and a sample keyed on a blank
-            # node id would be stable for one processor only. Nothing is lost
-            # by dropping it, because the component the sample exists to
-            # reproduce is still part of the key; `_root_shape_focus_groups`
-            # then re-derives every shape that targets the sampled node from
-            # the shapes graph, not from the report.
-            previous = by_signature.get(signature)
-            if previous is None or str(focus) < str(previous):
-                by_signature[signature] = focus
+            # `transitive_objects` yields the top-level result first, then
+            # every result nested under it.
+            for result in report.transitive_objects(top, SH.detail):
+                component = next(report.objects(result, SH.sourceConstraintComponent), None)
+                if component is None:
+                    return None
+                signature = (
+                    str(next(report.objects(result, SH.resultPath), "")),
+                    str(component),
+                )
+                # Keep the lexicographically least focus node per signature so
+                # the red-path sample is run-stable (graph iteration order is
+                # not). The signature is `(resultPath, component)` and NOT
+                # `sh:sourceShape`: an engine may leave the source shape an
+                # anonymous node -- Jena does -- and a sample keyed on a blank
+                # node id would be stable for one processor only. Nothing is
+                # lost by dropping it, because the component the sample exists
+                # to reproduce is still part of the key; `_root_shape_focus_groups`
+                # then re-derives every shape that targets the sampled node
+                # from the shapes graph, not from the report.
+                previous = by_signature.get(signature)
+                if previous is None or str(focus) < str(previous):
+                    by_signature[signature] = focus
         # Emitted in the canonical report order, `(focusNode, resultPath,
-        # component)`. The focus node is carried as the term the report named,
-        # never re-minted from its string: a non-IRI focus must stay non-IRI so
-        # the guard below still sends it back to the whole-graph run.
+        # component)`. The focus node is carried as the term the report
+        # named, never re-minted from its string.
         sampled.extend(
             focus
             for _key, focus in sorted(
@@ -3647,19 +3644,9 @@ def _shacl_focus_samples(precheck_misses: Sequence[Any], report: Any) -> list[UR
             )
         )
 
-    if not sampled or len(sampled) > SHACL_FOCUS_SAMPLE_LIMIT:
+    if not sampled:
         return None
-    unique: list[URIRef] = []
-    seen: set[Any] = set()
-    for focus in sampled:
-        # pySHACL resolves anything else through its CURIE expander, which
-        # would hand the engine a different node than the one that failed.
-        if not isinstance(focus, URIRef) or not str(focus).lower().startswith(_FOCUS_NODE_SCHEMES):
-            return None
-        if focus not in seen:
-            seen.add(focus)
-            unique.append(focus)
-    return unique
+    return list(dict.fromkeys(sampled))
 
 
 def _report_violations(report: Any) -> list[tuple[str, str, str]]:
@@ -3699,8 +3686,8 @@ def _report_violations(report: Any) -> list[tuple[str, str, str]]:
 def _root_shape_focus_groups(
     data_graph: Graph,
     shapes: Graph,
-    focus_nodes: Sequence[URIRef],
-) -> dict[URIRef, list[URIRef]] | None:
+    focus_nodes: Sequence[Any],
+) -> dict[Any, list[Any]] | None:
     """Group sampled focus nodes under the normative shapes that target them.
 
     This is `_core_shacl_targets` read backwards: instead of resolving one
@@ -3719,18 +3706,16 @@ def _root_shape_focus_groups(
     list, which is contractual.
     """
 
-    targeting: dict[URIRef, dict[Any, list[URIRef]]] = {
+    targeting: dict[URIRef, dict[Any, list[Any]]] = {
         predicate: defaultdict(list) for predicate in _SHACL_TARGET_PREDICATES
     }
     for predicate in _SHACL_TARGET_PREDICATES:
         for shape, value in shapes.subject_objects(predicate):
-            if not isinstance(shape, URIRef):
-                return None
             targeting[predicate][value].append(shape)
 
-    groups: dict[URIRef, list[URIRef]] = defaultdict(list)
+    groups: dict[Any, list[Any]] = defaultdict(list)
     for focus in focus_nodes:
-        matched: set[URIRef] = set(targeting[SH.targetNode].get(focus, ()))
+        matched: set[Any] = set(targeting[SH.targetNode].get(focus, ()))
         for node_type in data_graph.objects(focus, RDF.type):
             for target_class in data_graph.transitive_objects(node_type, RDFS.subClassOf):
                 matched.update(targeting[SH.targetClass].get(target_class, ()))
@@ -3750,59 +3735,50 @@ def _root_shape_focus_groups(
 def _focused_shacl_report(
     data_graph: Graph,
     shapes: Graph,
-    focus_nodes: Sequence[URIRef],
+    focus_nodes: Sequence[Any],
 ) -> tuple[str, list[tuple[str, str, str]]] | None:
-    """Report the sampled focus nodes under the unmodified normative shapes.
+    """Report the given focus nodes under the normative shapes, and no other node of the graph.
 
-    pySHACL's `use_shapes` plus `focus_nodes` skips target resolution
-    entirely: each named shape is evaluated against exactly the sampled nodes
-    it targets, over the same full data graph, so every value-side constraint
-    (`sh:class`, sequence paths, inverse paths) still sees the whole
-    distribution and the components are the engine's own. Returns None when
-    nothing was reproduced, which sends the caller back to the whole-graph run.
+    One engine run over the full data graph, with a copy of the shapes whose
+    targets are replaced by `sh:targetNode` of exactly these nodes, each under
+    every shape that targets it (`_root_shape_focus_groups`). Every constraint
+    is the binding's own and every value-side lookup (`sh:class`, sequence and
+    inverse paths) still sees the whole distribution, so each node gets the
+    violations the whole-graph run gives it. The cost is these nodes and the
+    shapes they reach; no target is resolved over the graph.
 
-    One report is assembled from several runs, so the assembly needs an order.
-    It is the canonical one -- each run's least
-    `(focusNode, resultPath, component)` -- rather than the shape IRI it used
-    to be. The shape IRIs here are the binding's own and would have been
-    stable, but ordering a report by a shape identity is the habit the engine
-    comparison ruled out, and this is the only place the validator had one.
+    The targets are rewritten rather than named through pySHACL's `use_shapes`
+    and `focus_nodes`, which is what this did until 2026-09-28: `use_shapes`
+    loads only the shapes it names and the blank nodes under them, and skips
+    every named shape they reach through `sh:node` or `sh:qualifiedValueShape`
+    as if it conformed (pySHACL 0.31 `_build_node_shape_cache_from_list`). All
+    eight of the binding's named value shapes were skipped that way, so a
+    violation inside one -- atlas:OwnerHumanReviewShape, atlas:DateTimeValueShape
+    -- or a missing atlas:PublicRecordEvidenceShape match never reappeared, and
+    the red path paid the whole-graph run instead. With every shape loaded the
+    engine traverses them as the whole-graph run does. The nodes go in as RDF
+    terms, not strings, so no CURIE expansion can hand the engine a different
+    node than the one that failed.
+
+    Returns the report text and its canonical violations -- empty when the
+    nodes conform -- or None when a node is targeted by no shape or the engine
+    raises, neither of which the caller can trust as a report.
     """
 
     groups = _root_shape_focus_groups(data_graph, shapes, focus_nodes)
     if not groups:
         return None
-    reports: list[tuple[tuple[str, str, str], str, list[tuple[str, str, str]]]] = []
-    for shape in sorted(groups, key=str):
-        try:
-            conforms, results, report = shacl_validate(
-                data_graph,
-                shacl_graph=shapes,
-                use_shapes=[shape],
-                focus_nodes=groups[shape],
-                inference="none",
-                inplace=True,
-                advanced=False,
-                abort_on_first=False,
-                allow_infos=False,
-                allow_warnings=False,
-                meta_shacl=False,
-            )
-        except Exception:  # noqa: BLE001 - fall back to the whole-graph report
-            return None
-        if conforms:
-            continue
-        violations = _report_violations(results)
-        if not violations:
-            return None
-        reports.append((violations[0], " ".join(str(report).split()), violations))
-    if not reports:
+    targeted = _copy_graph(shapes)
+    for predicate in _SHACL_TARGET_PREDICATES:
+        targeted.remove((None, predicate, None))
+    for shape, nodes in groups.items():
+        for node in nodes:
+            targeted.add((shape, SH.targetNode, node))
+    try:
+        _conforms, results, report = _validate_shacl_data(data_graph, targeted)
+    except Exception:  # noqa: BLE001 - the caller takes the whole-graph report
         return None
-    reports.sort(key=lambda row: row[0])
-    return (
-        " ".join(row[1] for row in reports),
-        sorted({violation for row in reports for violation in row[2]}),
-    )
+    return " ".join(str(report).split()), _report_violations(results)
 
 
 def _focused_report_is_complete(
@@ -3814,13 +3790,11 @@ def _focused_report_is_complete(
 
     Two things must reappear: every component the batched run named, and a
     violation at every node a lifted precheck (a closed shape, the ring-context
-    or the warrant sh:xone) refused. pySHACL's `use_shapes` filters out every
-    named shape it was not given, `sh:node` targets included, so a root shape
-    whose violation lies inside a named value shape (atlas:OwnerHumanReviewShape,
-    say) re-validates as conforming: alone, that reproduces nothing and already
-    falls back; beside another root's reproduced violation it used to leave the
-    fast path naming fewer components than the batched run found and the audit
-    mode names.
+    or the warrant sh:xone) refused. The sample reproduces both by
+    construction once the engine traverses named shapes; what is left to trip
+    this is the batched plan and the normative shapes disagreeing about a
+    node, which no corpus case or mutation does
+    (tests/test_atlas_v3_red_path_oracle.py).
     """
 
     named_components = {component for _focus, _path, component in focused}
@@ -3828,6 +3802,19 @@ def _focused_report_is_complete(
     return {component for *_, component in _report_violations(batched_report)} <= named_components and {
         str(miss) for miss in precheck_misses
     } <= named_nodes
+
+
+def _refused_focus_nodes(refused: Sequence[Sequence[Any]], batched_report: Any) -> list[Any]:
+    """Every node the fast path refused: each lifted constraint's misses and each top-level batched result's focus.
+
+    A nested result is left out: its top-level result's node reproduces it.
+    """
+
+    nodes = {node for misses in refused for node in misses}
+    if isinstance(batched_report, Graph):
+        for top in batched_report.objects(None, SH.result):
+            nodes.update(batched_report.objects(top, SH.focusNode))
+    return list(nodes)
 
 
 @lru_cache(maxsize=1)
@@ -3892,15 +3879,34 @@ def _run_shacl(graphs: Mapping[str, Graph], ontology: Graph, shapes: Graph) -> N
     each mode. Anything else, including unset, fails fast. The failure code is
     `shacl.data` and the message names every violated constraint component in
     both modes; the focused path only narrows which nodes the engine is asked
-    about, and falls back to the whole-graph report whenever the sample cannot
-    be trusted to reproduce the same components (`_focused_report_is_complete`).
+    about.
 
-    Known limit: that fallback IS the whole-graph normative report, the run
-    measured above at 94 minutes on a 32M-quad red build. A red build whose
-    focused re-run comes back incomplete -- a violation inside a named
-    `sh:node` shape beside another root's, say -- pays it rather than report
-    fewer components than the audit mode would. Not re-measured at release
-    scale.
+    The bound. Past the batched run and the prechecks, which read the whole
+    graph once to find that it is red, the report is one engine run over k
+    nodes (`_focused_shacl_report`) and costs O(|shapes| + k * c), c being
+    one node under the shapes that target it and the named shapes they
+    reach. k is one node per violated `(resultPath, component)` signature
+    plus one per refusing lifted constraint: never more than the nodes
+    refused, and at most the signatures the shapes file can produce --
+    every closed shape is lifted, so no signature carries a data predicate
+    -- however many nodes violate them. Should that sample ever fall short
+    of what the fast path found (`_focused_report_is_complete`), the report
+    re-validates every node the fast path refused instead, k becoming their
+    number, and the engine's answer on those nodes is final: if they
+    conform, so does the role, as the whole-graph run would have said.
+    Measured on the bounded agency build (2.25M quads) with a violation
+    planted inside each named shape: the whole-graph report took 264s over
+    292,174 (shape, node) pairs, the sample 0.03s over 11, and the
+    every-refused-node fallback 0.34s over 741.
+
+    Until 2026-09-28 that fallback was the whole-graph run itself, and every
+    red build with a violation inside a named shape paid it, ten of the 62
+    `shacl.data` corpus cases among them (REF-072, "The red path's bounded
+    fallback"); tests/test_atlas_v3_red_path_oracle.py holds the bounded
+    report to it. The whole-graph run remains audit mode's report and the
+    answer when the fast path itself cannot be read -- an engine exception,
+    a result without a focus node, a node no shape targets -- never a cost
+    of what a red build violates.
     """
 
     _prove_shape_graph_conforms(file_sha256(ONTOLOGY_PATH), file_sha256(SHAPES_PATH))
@@ -3914,7 +3920,7 @@ def _run_shacl(graphs: Mapping[str, Graph], ontology: Graph, shapes: Graph) -> N
             validation_view.namespace_manager.bind(prefix, namespace)
         conforms = False
         report: Any = ""
-        focus_samples: list[URIRef] | None = None
+        focus_samples: list[Any] | None = None
         try:
             if audit:
                 if _batched_shacl_prechecks(validation_view, shapes, plan):
@@ -3925,14 +3931,18 @@ def _run_shacl(graphs: Mapping[str, Graph], ontology: Graph, shapes: Graph) -> N
                 # warrant constraints, the batched shapes answer for every
                 # other one, and only their union is a complete sample of what
                 # failed.
-                misses = _batched_shacl_precheck_misses(
+                refused = _batched_shacl_precheck_misses(
                     validation_view,
                     shapes,
                     plan,
                     first_only=False,
                 )
+                # The least node per lifted constraint, so the sample -- and
+                # the report built from it -- is stable across runs; set
+                # iteration order is not.
+                misses = [min(nodes, key=str) for nodes in refused]
                 conforms, results, report = _validate_shacl_data(validation_view, plan.shapes)
-                conforms = conforms and not misses
+                conforms = conforms and not refused
                 if not conforms:
                     focus_samples = _shacl_focus_samples(misses, results)
         except Exception as exc:  # noqa: BLE001 - normalize SHACL processor failures
@@ -3944,11 +3954,12 @@ def _run_shacl(graphs: Mapping[str, Graph], ontology: Graph, shapes: Graph) -> N
 
         focused = _focused_shacl_report(validation_view, shapes, focus_samples) if focus_samples else None
         if focused is not None and not _focused_report_is_complete(focused[1], results, misses):
-            focused = None
+            focused = _focused_shacl_report(validation_view, shapes, _refused_focus_nodes(refused, results))
+            if focused is not None and not focused[1]:
+                continue
         if focused is None:
             # Keep the normative processor's exact report and error behavior
-            # for audit mode, for every unsupported fast-path condition, and
-            # for any sample the focused run could not reproduce.
+            # for audit mode and for a fast path that cannot be read.
             try:
                 conforms, results, report = _validate_shacl_data(validation_view, shapes)
             except Exception as exc:  # noqa: BLE001 - normalize SHACL processor failures

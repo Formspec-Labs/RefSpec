@@ -1815,7 +1815,9 @@ def test_red_path_reports_without_running_the_whole_graph_normative_engine(
     with pytest.raises(atlas_validate.AtlasValidationError) as fast_error:
         atlas_validate._run_shacl(graphs, ontology, shapes)
 
-    assert [call is shapes for call in calls] == [False]
+    # The batched run, then the focused one over a retargeted copy.
+    assert len(calls) == 2
+    assert all(call is not shapes for call in calls)
 
     calls.clear()
     monkeypatch.setenv(atlas_validate.VALIDATION_MODE_ENV, atlas_validate.AUDIT_VALIDATION_MODE)
@@ -1828,7 +1830,7 @@ def test_red_path_reports_without_running_the_whole_graph_normative_engine(
 
 
 @pytest.mark.parametrize("drop", ("precheck-miss-node", "batched-component"))
-def test_an_incomplete_focused_report_falls_back_to_the_whole_graph(
+def test_an_incomplete_focused_report_re_validates_every_refused_node(
     monkeypatch: pytest.MonkeyPatch,
     drop: str,
 ) -> None:
@@ -1838,8 +1840,8 @@ def test_an_incomplete_focused_report_falls_back_to_the_whole_graph(
     precheck, so that binding is a node the focused re-run must name; another
     assertion loses its bindings, which the batched run names, so that is a
     component it must name. The focused report is stubbed to lose one of the
-    two, and the red path must then take the whole-graph report -- the same
-    components the audit mode names -- rather than the partial one.
+    two, and the red path must then re-validate every node the fast path
+    refused -- never the whole graph -- and name the audit mode's components.
     """
 
     monkeypatch.delenv(atlas_validate.VALIDATION_MODE_ENV, raising=False)
@@ -1857,9 +1859,13 @@ def test_an_incomplete_focused_report_falls_back_to_the_whole_graph(
     ontology, shapes = atlas_validate._parse_binding_graphs()
     miss = str(warrant_miss)
     real_focused = atlas_validate._focused_shacl_report
+    focused_calls: list[set[Any]] = []
 
-    def incomplete(data_graph: Graph, shape_graph: Graph, focus_nodes: Any) -> Any:
+    def incomplete_once(data_graph: Graph, shape_graph: Graph, focus_nodes: Any) -> Any:
+        focused_calls.append(set(focus_nodes))
         compact, violations = real_focused(data_graph, shape_graph, focus_nodes)
+        if len(focused_calls) > 1:
+            return compact, violations
         if drop == "precheck-miss-node":
             kept = [row for row in violations if row[0] != miss]
             kept += [("urn:ref:test:elsewhere", "", component) for focus, _, component in violations if focus == miss]
@@ -1874,16 +1880,60 @@ def test_an_incomplete_focused_report_falls_back_to_the_whole_graph(
         calls.append(shape_graph)
         return original_validate(data_graph, shape_graph)
 
-    monkeypatch.setattr(atlas_validate, "_focused_shacl_report", incomplete)
+    monkeypatch.setattr(atlas_validate, "_focused_shacl_report", incomplete_once)
     monkeypatch.setattr(atlas_validate, "_validate_shacl_data", counted)
     with pytest.raises(atlas_validate.AtlasValidationError) as fast_error:
         atlas_validate._run_shacl(graphs, ontology, shapes)
 
-    assert calls[-1] is shapes, "the incomplete focused report was reported instead of the whole-graph one"
+    assert all(call is not shapes for call in calls), "the red path ran the whole-graph report"
+    assert len(focused_calls) == 2
+    assert {warrant_miss, unbound} <= focused_calls[1]
     monkeypatch.setenv(atlas_validate.VALIDATION_MODE_ENV, atlas_validate.AUDIT_VALIDATION_MODE)
     with pytest.raises(atlas_validate.AtlasValidationError) as audit_error:
         atlas_validate._run_shacl(graphs, ontology, shapes)
     assert _shacl_components(fast_error.value) == _shacl_components(audit_error.value)
+
+
+def test_a_node_the_engine_clears_is_not_a_rejection_in_either_mode(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The engine, not the fast path, has the last word on a node the fast path refused.
+
+    A precheck is stubbed to refuse one binding the normative shapes accept.
+    The focused report then names nothing, the re-validation of every refused
+    node names nothing either, and the role conforms -- as the audit mode's
+    whole-graph run says it does -- without the red path running the whole
+    graph.
+    """
+
+    _, graphs, _ = _load_valid_graphs()
+    conforming = min(graphs["asserted"].subjects(RDF.type, RKAF.EvidenceBinding))
+    ontology, shapes = atlas_validate._parse_binding_graphs()
+    real_misses = atlas_validate._batched_shacl_precheck_misses
+
+    def wrongly_refused(data_graph: Graph, normative: Graph, plan: Any, *, first_only: bool) -> list[list[Any]]:
+        refused = real_misses(data_graph, normative, plan, first_only=first_only)
+        if next(data_graph.triples((conforming, RDF.type, None)), None) is None:
+            return refused
+        return [*refused, [conforming]]
+
+    calls: list[Graph] = []
+    original_validate = atlas_validate._validate_shacl_data
+
+    def counted(data_graph: Graph, shape_graph: Graph) -> tuple[bool, Any, str]:
+        calls.append(shape_graph)
+        return original_validate(data_graph, shape_graph)
+
+    monkeypatch.setattr(atlas_validate, "_batched_shacl_precheck_misses", wrongly_refused)
+    monkeypatch.setattr(atlas_validate, "_validate_shacl_data", counted)
+    monkeypatch.delenv(atlas_validate.VALIDATION_MODE_ENV, raising=False)
+    atlas_validate._run_shacl(graphs, ontology, shapes)
+    assert all(call is not shapes for call in calls)
+
+    calls.clear()
+    monkeypatch.setenv(atlas_validate.VALIDATION_MODE_ENV, atlas_validate.AUDIT_VALIDATION_MODE)
+    atlas_validate._run_shacl(graphs, ontology, shapes)
+    assert any(call is shapes for call in calls), "audit mode did not run the whole-graph report"
 
 
 @pytest.mark.parametrize(
@@ -1893,7 +1943,7 @@ def test_an_incomplete_focused_report_falls_back_to_the_whole_graph(
         # shape, a lifted ring-context xone, an inlined value shape, a
         # value-side class constraint, and the derived role rather than the
         # asserted one. The last is a lifted warrant xone beside a violation
-        # inside a named sh:node shape, which the focused run cannot see.
+        # inside a named sh:node shape, which pySHACL's `use_shapes` skipped.
         "assertion-extra-property",
         "mapping-subject-ring-dated",
         "mapping-period-start-not-datetime",
