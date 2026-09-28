@@ -38,9 +38,10 @@ count pins re-adjudicate. Sequence and measurements: SpicyDocs
 `docs/research/consolidation-path-2026-09-22.md`, rows B14 and B21.
 
 The pin moved to SpicyDocs 0.36.0 (dev16), 0.39.2 (dev17), 0.42.0 (dev18),
-0.44.0 (dev20) and 0.46.0 (dev21, 2026-09-27), which changes nothing RefSpec
-imports or reads (vendor/README.md); a consumer still on 0.44.0 (DocSpec 0.11.4)
-and RefSpec no longer resolve one SpicyDocs until that consumer moves. Step 2's
+0.44.0 (dev20), 0.46.0 (dev21) and 0.50.0 (dev22, 2026-09-28), which changes
+nothing RefSpec imports or reads (vendor/README.md); SpicyRegs pins 0.50.0 too,
+and a consumer still on 0.46.0 (DocSpec, SpicySearch, Engine) and RefSpec do
+not resolve one SpicyDocs until that consumer moves. Step 2's
 moves were measured against 0.31.0, and `identifier_shapes`, `citation_grammar`
 and `iri_minting` changed since, so they need measuring again before the switch.
 
