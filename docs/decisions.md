@@ -6017,6 +6017,19 @@ The new catalog resource adds one descriptor (1,252 -> 1,257 quads), and
 because `v3_source_data.py` and the descriptors are fixture-receipt inputs,
 `fixturesDigest` re-seals again (`bindings/atlas/3.1/fixtures-receipt.json`).
 
+**What an edit to the entity module moves (2026-09-28).** Both entity
+releases' adapter recipes pin `src/refspec/atlas/v3_registry_alignments_entity.py`
+by its bytes (`_adapter_recipe_inputs`), so any edit to it -- the parent-map
+change after batch 1 is one -- moves `atlas-manifest.json`,
+`atlas-construction-summary.json`, `atlas-acceptance.json` and
+`atlas-producer-validation.json` in every distribution that carries the
+registry release or REF-038's, while the N-Quads packs stay byte-identical
+when the claims did not change. The independent review measured it on the
+bounded agency distribution, built at two commits that differ in that
+module's bytes: those four files moved, and nothing else did. The Federal
+Register thesaurus pair does not move: that release's recipe does not pin
+this module.
+
 **The view and the lookup.** The release has its own sealed Parquet view,
 never rows in REF-038's projection: `build_agency_registry_view()` projects it
 into bridges, one row per (event, result), and non-emissions, refusing rows
