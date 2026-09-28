@@ -1045,11 +1045,17 @@ REQUIRED_CORPUS_CASES = frozenset(
         # negative per shape clause and per corpus-wide rule.
         "organization-change-events",
         "change-event-two-dates",
+        "change-event-no-date",
+        "change-event-date-not-midnight",
         "change-event-no-original",
         "change-event-no-result",
         "change-event-original-among-results",
         "change-event-no-public-record",
         "change-event-not-owner-reviewed",
+        "change-event-owner-review-origin",
+        "change-event-owner-review-attestor-kind",
+        "change-event-owner-review-basis",
+        "change-event-owner-review-role",
         "change-event-raw-org-predicate",
         "change-event-result-outside-entity-ring",
         "change-event-identity-drift",
@@ -3904,6 +3910,18 @@ def _run_shacl(graphs: Mapping[str, Graph], ontology: Graph, shapes: Graph) -> N
             continue
 
         focused = _focused_shacl_report(validation_view, shapes, focus_samples) if focus_samples else None
+        if focused is not None and not {component for *_, component in _report_violations(results)} <= {
+            component for *_, component in focused[1]
+        }:
+            # A partial reproduction is not a sample to trust. pySHACL's
+            # `use_shapes` filters out every named shape it was not given,
+            # `sh:node` targets included, so a root shape whose violation lies
+            # inside a named value shape (atlas:OwnerHumanReviewShape, say)
+            # re-validates as conforming. Alone, that reproduces nothing and
+            # already falls back; beside another root's reproduced violation,
+            # it used to leave the fast path naming fewer components than the
+            # batched run had found and the audit mode names.
+            focused = None
         if focused is None:
             # Keep the normative processor's exact report and error behavior
             # for audit mode, for every unsupported fast-path condition, and

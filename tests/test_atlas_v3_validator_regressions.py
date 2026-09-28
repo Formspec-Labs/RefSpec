@@ -1833,13 +1833,15 @@ def test_red_path_reports_without_running_the_whole_graph_normative_engine(
         # One case per way the fast path can detect a miss: a lifted closed
         # shape, a lifted ring-context xone, an inlined value shape, a
         # value-side class constraint, and the derived role rather than the
-        # asserted one.
+        # asserted one. The last is a lifted warrant xone beside a violation
+        # inside a named sh:node shape, which the focused run cannot see.
         "assertion-extra-property",
         "mapping-subject-ring-dated",
         "mapping-period-start-not-datetime",
         "mapping-missing-evidence",
         "derived-is-authoritative",
         "evidence-warrant-unsanctioned",
+        "change-event-owner-review-origin",
     ),
 )
 def test_fail_fast_and_audit_name_the_same_constraint_components(

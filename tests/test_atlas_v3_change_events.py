@@ -26,12 +26,25 @@ import validate as atlas_validate
 
 ATLAS = "https://refspec.org/ns/atlas/v3#"
 ATLAS_NS = Namespace(ATLAS)
+RKAF = Namespace("https://rulespec.org/ns/v1#")
 INVERSE_BINDING = "[ sh:inversePath rkaf:bindsAssertion ]"
 ORIGINAL = URIRef("urn:ref:test:organization:original")
 RESULT = URIRef("urn:ref:test:organization:result")
 CANONICAL = URIRef("urn:ref:test:organization:canonical")
 OTHER_CANONICAL = URIRef("urn:ref:test:organization:other-canonical")
 SAME = ATLAS_NS.sameEntityAs
+
+
+# The owner's four fixed review values, one negative each. Each also fails
+# atlas:EvidenceBindingShape's warrant sh:xone, whose humanReview branch pins
+# the same values, so the message cannot say which clause refused; the
+# report graph can.
+OWNER_REVIEW_CASES = {
+    "change-event-owner-review-origin": RKAF.assertionOrigin,
+    "change-event-owner-review-attestor-kind": RKAF.attestorKind,
+    "change-event-owner-review-basis": RKAF.epistemicBasis,
+    "change-event-owner-review-role": RKAF.evidenceRole,
+}
 
 
 def _event_graph(*, ring: URIRef = ATLAS_NS.entity) -> Graph:
@@ -60,6 +73,8 @@ def _event_graph(*, ring: URIRef = ATLAS_NS.entity) -> Graph:
     ("case", "components", "paths"),
     (
         ("change-event-two-dates", ["MaxCountConstraintComponent"], {"rkaf:effectiveDate"}),
+        ("change-event-no-date", ["MinCountConstraintComponent"], {"rkaf:effectiveDate"}),
+        ("change-event-date-not-midnight", ["PatternConstraintComponent"], {"rkaf:effectiveDate"}),
         ("change-event-no-original", ["MinCountConstraintComponent"], {"atlas:originalOrganization"}),
         ("change-event-no-result", ["MinCountConstraintComponent"], {"atlas:resultingOrganization"}),
         ("change-event-original-among-results", ["DisjointConstraintComponent"], {"atlas:originalOrganization"}),
@@ -70,6 +85,10 @@ def _event_graph(*, ring: URIRef = ATLAS_NS.entity) -> Graph:
             {INVERSE_BINDING},
         ),
         ("change-event-raw-org-predicate", ["ClosedConstraintComponent"], {"org:resultingOrganization"}),
+        *(
+            (case, ["HasValueConstraintComponent", "NodeConstraintComponent", "XoneConstraintComponent"], {INVERSE_BINDING})
+            for case in OWNER_REVIEW_CASES
+        ),
     ),
 )
 def test_each_change_event_shape_clause_refuses_on_its_own_path(
@@ -86,6 +105,25 @@ def test_each_change_event_shape_clause_refuses_on_its_own_path(
     assert atlas_validate.shacl_constraint_components(raised.value) == components
     named = set(re.findall(r"Result Path: (\[ sh:inversePath \S+ \]|\S+)", raised.value.detail))
     assert named == paths
+
+
+@pytest.mark.parametrize(("case", "axis"), OWNER_REVIEW_CASES.items())
+def test_each_owner_review_negative_breaks_its_own_fixed_value(case: str, axis: URIRef) -> None:
+    """Pin, off the whole-graph report graph, that each negative breaks the owner's clause on its own axis only."""
+
+    distribution = atlas_validate.FIXTURE_ROOT / "invalid" / case
+    manifest = json.loads((distribution / "atlas-manifest.json").read_text(encoding="utf-8"))
+    _, graphs = atlas_validate._parse_packed_dataset(
+        distribution, manifest, atlas_validate._check_pack_manifest(manifest)
+    )
+    ontology, shapes = atlas_validate._parse_binding_graphs()
+    view = atlas_validate._ShaclDataView([graphs["asserted"], atlas_validate.inoculate(Graph(), ontology)])
+    conforms, results, _ = atlas_validate._validate_shacl_data(view, shapes)
+
+    assert not conforms
+    violations = atlas_validate._report_violations(results)
+    owner_clauses = {path for _focus, path, component in violations if component == "HasValueConstraintComponent"}
+    assert owner_clauses == {str(axis)}
 
 
 @pytest.mark.parametrize(

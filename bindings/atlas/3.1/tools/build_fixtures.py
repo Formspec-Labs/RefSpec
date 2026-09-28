@@ -4166,6 +4166,42 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
     def change_event_no_result(fixture: Fixture, orgs: list[URIRef], record: URIRef) -> None:
         add_change_event(fixture, "no-result", originals=orgs[:1], results=(), record=record)
 
+    def change_event_no_date(fixture: Fixture, orgs: list[URIRef], record: URIRef) -> None:
+        add_change_event(fixture, "no-date", originals=orgs[:1], results=orgs[1:2], record=record, dates=())
+
+    def change_event_date_not_midnight(fixture: Fixture, orgs: list[URIRef], record: URIRef) -> None:
+        # An event takes effect on a day, stated as that day's UTC midnight;
+        # noon is an instant no public record states.
+        add_change_event(
+            fixture,
+            "date-not-midnight",
+            originals=orgs[:1],
+            results=orgs[1:2],
+            record=record,
+            dates=("2003-03-01T12:00:00+00:00",),
+        )
+
+    def change_event_owner_review(name: str, axis: URIRef, value: URIRef) -> Callable[[Fixture, list[URIRef], URIRef], None]:
+        """The owner's review with one of its four fixed values changed, the binding re-minted over it.
+
+        Each value stays inside its axis's own sh:in, so no enum refuses it.
+        atlas:EvidenceBindingShape's humanReview branch pins the same four
+        values, and no other warrant pairs humanAsserted with textualEvidence,
+        so each case also fails that shape's sh:xone: no one-axis change
+        satisfies another warrant. The corpus pins both shapes' components;
+        tests/test_atlas_v3_change_events.py reads the refused axis off the
+        report graph.
+        """
+
+        def defect(fixture: Fixture, orgs: list[URIRef], record: URIRef) -> None:
+            event = add_change_event(fixture, name, originals=orgs[:1], results=orgs[1:2], record=record)
+            binding = next(fixture.asserted.subjects(RKAF.bindsAssertion, event))
+            _remove_subject_predicate(fixture.asserted, binding, axis)
+            fixture.asserted.add((binding, axis, value))
+            _reseal_evidence_to_fixed_point(fixture.asserted)
+
+        return defect
+
     def change_event_original_among_results(fixture: Fixture, orgs: list[URIRef], record: URIRef) -> None:
         add_change_event(
             fixture, "original-among-results", originals=orgs[:1], results=orgs[:2], record=record
@@ -5543,6 +5579,18 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             change_event_case(change_event_two_dates),
         ),
         (
+            "change-event-no-date",
+            ["shacl"],
+            "shacl.data",
+            change_event_case(change_event_no_date),
+        ),
+        (
+            "change-event-date-not-midnight",
+            ["shacl"],
+            "shacl.data",
+            change_event_case(change_event_date_not_midnight),
+        ),
+        (
             "change-event-no-original",
             ["shacl"],
             "shacl.data",
@@ -5571,6 +5619,30 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             ["shacl"],
             "shacl.data",
             change_event_case(change_event_not_owner_reviewed),
+        ),
+        (
+            "change-event-owner-review-origin",
+            ["shacl"],
+            "shacl.data",
+            change_event_case(change_event_owner_review("owner-review-origin", RKAF.assertionOrigin, RKAF.aiSuggested)),
+        ),
+        (
+            "change-event-owner-review-attestor-kind",
+            ["shacl"],
+            "shacl.data",
+            change_event_case(change_event_owner_review("owner-review-attestor-kind", RKAF.attestorKind, RKAF.aiAgent)),
+        ),
+        (
+            "change-event-owner-review-basis",
+            ["shacl"],
+            "shacl.data",
+            change_event_case(change_event_owner_review("owner-review-basis", RKAF.epistemicBasis, RKAF.sourceExplicit)),
+        ),
+        (
+            "change-event-owner-review-role",
+            ["shacl"],
+            "shacl.data",
+            change_event_case(change_event_owner_review("owner-review-role", RKAF.evidenceRole, RKAF.officialSourceMetadata)),
         ),
         (
             "change-event-raw-org-predicate",

@@ -6124,3 +6124,7 @@ and `make generate`, which moved only that module and the index.
 - The change-event same-entity check reading identity's closure, and its
   negative `change-event-same-entity-closure` (a new case in
   `fixtures/corpus.json`): `525e6a04…` / `65103a92…`.
+- REF-072's six missing change-event negatives -- no date, a non-midnight
+  date, and one per fixed value of the owner's review (origin, attestor
+  kind, basis, role) -- as new cases in `fixtures/corpus.json`:
+  `8ef2e5df…` / `aa3e5785…`.
