@@ -30,7 +30,12 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname.startsWith(DATA_PREFIX)) {
-      return handleData(request, env, url);
+      const response = await handleData(request, env, url);
+      const versioned = new Response(response.body, response);
+      if (env.CF_VERSION_METADATA?.id) {
+        versioned.headers.set("x-atlas-worker-version", env.CF_VERSION_METADATA.id);
+      }
+      return versioned;
     }
 
     const rewrite = PAGE_ROUTES[url.pathname];
@@ -57,9 +62,18 @@ async function handleData(request, env, url) {
     return new Response("Method not allowed", { status: 405, headers: { allow: "GET, HEAD" } });
   }
 
-  const key = decodeKey(url.pathname.slice(DATA_PREFIX.length));
+  let key = decodeKey(url.pathname.slice(DATA_PREFIX.length));
   if (!key) {
     return new Response("Not found", { status: 404 });
+  }
+
+  // Candidate URLs remain directly addressable for verification. Promotion
+  // changes one versioned binding, never copies files over active object keys.
+  if (env.DATA_CANDIDATE_PREFIX && !key.startsWith("candidates/")) {
+    if (!/^candidates\/[0-9a-f]{64}$/.test(env.DATA_CANDIDATE_PREFIX)) {
+      return new Response("Invalid data candidate configuration", { status: 503 });
+    }
+    key = `${env.DATA_CANDIDATE_PREFIX}/${key}`;
   }
 
   if (request.method === "HEAD") {
