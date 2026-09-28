@@ -172,7 +172,7 @@ test-package: atlas-v3-fixtures pinned-inputs-present release-atlas-federal-regi
 		echo "test-package budget FAIL: took $${elapsed}s, exceeds the $(TEST_PACKAGE_FAIL_SECONDS)s runaway-guard budget" >&2; \
 		exit 1; \
 	elif [ "$$elapsed" -gt 130 ]; then \
-		echo "test-package budget WARN: took $${elapsed}s, over the 130s target (within the 240s fail budget)" >&2; \
+		echo "test-package budget WARN: took $${elapsed}s, over the 130s target (within the $(TEST_PACKAGE_FAIL_SECONDS)s fail budget)" >&2; \
 	fi
 
 # The slow tier `test-package` excludes: registry alignment/vocabulary tests
