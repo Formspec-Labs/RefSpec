@@ -3805,6 +3805,31 @@ def _focused_shacl_report(
     )
 
 
+def _focused_report_is_complete(
+    focused: Sequence[tuple[str, str, str]],
+    batched_report: Any,
+    precheck_misses: Sequence[Any],
+) -> bool:
+    """Whether the focused re-run reproduced all the fast path found; if not, its sample is not one to trust.
+
+    Two things must reappear: every component the batched run named, and a
+    violation at every node a lifted precheck (a closed shape, the ring-context
+    or the warrant sh:xone) refused. pySHACL's `use_shapes` filters out every
+    named shape it was not given, `sh:node` targets included, so a root shape
+    whose violation lies inside a named value shape (atlas:OwnerHumanReviewShape,
+    say) re-validates as conforming: alone, that reproduces nothing and already
+    falls back; beside another root's reproduced violation it used to leave the
+    fast path naming fewer components than the batched run found and the audit
+    mode names.
+    """
+
+    named_components = {component for _focus, _path, component in focused}
+    named_nodes = {focus for focus, _path, _component in focused}
+    return {component for *_, component in _report_violations(batched_report)} <= named_components and {
+        str(miss) for miss in precheck_misses
+    } <= named_nodes
+
+
 @lru_cache(maxsize=1)
 def _prove_shape_graph_conforms(ontology_digest: str, shapes_digest: str) -> None:
     """Prove the shape graph is well-formed SHACL and the ontology conforms to it.
@@ -3868,7 +3893,14 @@ def _run_shacl(graphs: Mapping[str, Graph], ontology: Graph, shapes: Graph) -> N
     `shacl.data` and the message names every violated constraint component in
     both modes; the focused path only narrows which nodes the engine is asked
     about, and falls back to the whole-graph report whenever the sample cannot
-    be trusted to reproduce the same components.
+    be trusted to reproduce the same components (`_focused_report_is_complete`).
+
+    Known limit: that fallback IS the whole-graph normative report, the run
+    measured above at 94 minutes on a 32M-quad red build. A red build whose
+    focused re-run comes back incomplete -- a violation inside a named
+    `sh:node` shape beside another root's, say -- pays it rather than report
+    fewer components than the audit mode would. Not re-measured at release
+    scale.
     """
 
     _prove_shape_graph_conforms(file_sha256(ONTOLOGY_PATH), file_sha256(SHAPES_PATH))
@@ -3911,17 +3943,7 @@ def _run_shacl(graphs: Mapping[str, Graph], ontology: Graph, shapes: Graph) -> N
             continue
 
         focused = _focused_shacl_report(validation_view, shapes, focus_samples) if focus_samples else None
-        if focused is not None and not {component for *_, component in _report_violations(results)} <= {
-            component for *_, component in focused[1]
-        }:
-            # A partial reproduction is not a sample to trust. pySHACL's
-            # `use_shapes` filters out every named shape it was not given,
-            # `sh:node` targets included, so a root shape whose violation lies
-            # inside a named value shape (atlas:OwnerHumanReviewShape, say)
-            # re-validates as conforming. Alone, that reproduces nothing and
-            # already falls back; beside another root's reproduced violation,
-            # it used to leave the fast path naming fewer components than the
-            # batched run had found and the audit mode names.
+        if focused is not None and not _focused_report_is_complete(focused[1], results, misses):
             focused = None
         if focused is None:
             # Keep the normative processor's exact report and error behavior

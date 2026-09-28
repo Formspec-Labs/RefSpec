@@ -1827,6 +1827,65 @@ def test_red_path_reports_without_running_the_whole_graph_normative_engine(
     assert _shacl_components(fast_error.value) == _shacl_components(audit_error.value)
 
 
+@pytest.mark.parametrize("drop", ("precheck-miss-node", "batched-component"))
+def test_an_incomplete_focused_report_falls_back_to_the_whole_graph(
+    monkeypatch: pytest.MonkeyPatch,
+    drop: str,
+) -> None:
+    """Pin the red path's completeness guard: a focused report missing what the fast path found is not reported.
+
+    One binding's warrant is broken, and the warrant is lifted into a
+    precheck, so that binding is a node the focused re-run must name; another
+    assertion loses its bindings, which the batched run names, so that is a
+    component it must name. The focused report is stubbed to lose one of the
+    two, and the red path must then take the whole-graph report -- the same
+    components the audit mode names -- rather than the partial one.
+    """
+
+    monkeypatch.delenv(atlas_validate.VALIDATION_MODE_ENV, raising=False)
+    _, graphs, _ = _load_valid_graphs()
+    asserted = graphs["asserted"]
+    warrant_miss = min(asserted.subjects(RDF.type, RKAF.EvidenceBinding))
+    _replace_object(asserted, warrant_miss, RKAF.evidenceRole, RKAF.retrievalSignal)
+    unbound = next(
+        assertion
+        for assertion in sorted(asserted.subjects(RDF.type, ATLAS.MappingAssertion))
+        if (warrant_miss, RKAF.bindsAssertion, assertion) not in asserted
+    )
+    for binding in list(asserted.subjects(RKAF.bindsAssertion, unbound)):
+        asserted.remove((binding, None, None))
+    ontology, shapes = atlas_validate._parse_binding_graphs()
+    miss = str(warrant_miss)
+    real_focused = atlas_validate._focused_shacl_report
+
+    def incomplete(data_graph: Graph, shape_graph: Graph, focus_nodes: Any) -> Any:
+        compact, violations = real_focused(data_graph, shape_graph, focus_nodes)
+        if drop == "precheck-miss-node":
+            kept = [row for row in violations if row[0] != miss]
+            kept += [("urn:ref:test:elsewhere", "", component) for focus, _, component in violations if focus == miss]
+        else:
+            kept = [row for row in violations if row[0] == miss]
+        return compact, kept
+
+    calls: list[Graph] = []
+    original_validate = atlas_validate._validate_shacl_data
+
+    def counted(data_graph: Graph, shape_graph: Graph) -> tuple[bool, Any, str]:
+        calls.append(shape_graph)
+        return original_validate(data_graph, shape_graph)
+
+    monkeypatch.setattr(atlas_validate, "_focused_shacl_report", incomplete)
+    monkeypatch.setattr(atlas_validate, "_validate_shacl_data", counted)
+    with pytest.raises(atlas_validate.AtlasValidationError) as fast_error:
+        atlas_validate._run_shacl(graphs, ontology, shapes)
+
+    assert calls[-1] is shapes, "the incomplete focused report was reported instead of the whole-graph one"
+    monkeypatch.setenv(atlas_validate.VALIDATION_MODE_ENV, atlas_validate.AUDIT_VALIDATION_MODE)
+    with pytest.raises(atlas_validate.AtlasValidationError) as audit_error:
+        atlas_validate._run_shacl(graphs, ontology, shapes)
+    assert _shacl_components(fast_error.value) == _shacl_components(audit_error.value)
+
+
 @pytest.mark.parametrize(
     "case",
     (
