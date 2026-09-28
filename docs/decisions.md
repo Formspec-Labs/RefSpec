@@ -6024,11 +6024,14 @@ change after batch 1 is one -- moves `atlas-manifest.json`,
 `atlas-construction-summary.json`, `atlas-acceptance.json` and
 `atlas-producer-validation.json` in every distribution that carries the
 registry release or REF-038's, while the N-Quads packs stay byte-identical
-when the claims did not change. The independent review measured it on the
-bounded agency distribution, built at two commits that differ in that
-module's bytes: those four files moved, and nothing else did. The Federal
-Register thesaurus pair does not move: that release's recipe does not pin
-this module.
+when the claims did not change. The distribution's Parquet view manifest
+moves with them, because it names the distribution manifest. The independent
+review measured this for the registry release only: the bounded agency
+distribution it built at two commits that differ in that module's bytes
+holds no REF-038 release. Of that distribution's 14 files, those four moved
+and the rest did not; for REF-038's release the move follows from the same
+recipe pin and was not measured. The Federal Register thesaurus pair does
+not move: that release's recipe does not pin this module.
 
 **The view and the lookup.** The release has its own sealed Parquet view,
 never rows in REF-038's projection: `build_agency_registry_view()` projects it
@@ -6049,6 +6052,24 @@ aside. The release's claims and evidence did not move, and neither did the
 Federal Register thesaurus pair `make contract-dev` prints; the entity module
 edit moved the agency distributions' manifest files as recorded above.
 
+**What keeps the view's rows at E4 owner review (2026-09-28).** Since then
+the view states the evidence tier, warrant and reviewer that the release's
+approvals state, and its verifier compares the view with the release, not
+with literals: an honest view of a release whose evidence falls short
+verifies as that release's view, and shows the shortfall to its consumer. So
+the view does not keep the release at E4 owner review, and what does differs
+by claim. For the 9 change events, SHACL enforces the owner's human review on
+the wire: `atlas:OwnerHumanReviewShape` refuses any binding that is not it.
+For the 13 bridges, SHACL enforces no owner review -- an entity-ring mapping
+takes any sanctioned warrant -- so it rests on three things: the release
+builder's constants (`_mapping_evidence()` writes `evidenceTier` E4,
+`humanReview` and the owner's IRI), the independent agency checker
+(`tools/atlas_independent_agency.py`, slow tier), which expects E4 human
+review of every bridge and event row from the plans themselves, and the
+view's manifest pin, which a changed row moves. The tier label E4 is a field
+of the evidence payload, which SHACL Core cannot read, so for the events too
+the label rests on the builder and the checker.
+
 **Recorded readings, for the owner to overrule.** "A dated public record" is
 read, on the wire, as a public record its publisher serves at an `https` URL.
 The batch-1 records carry kind, citation, URL and note but no structured date,
@@ -6063,6 +6084,18 @@ inside the payload's canonical `rdf:JSON`. Any change is the assertions
 follow-up's. The ring-context `sh:xone` needed no constraint change: it
 targets `atlas:MappingAssertion`, which the event is not, so the amendment
 there is the comment that says so.
+
+**Open for the owner (2026-09-28).** `atlas:OwnerHumanReviewShape` fixes four
+values on every change-event binding -- origin, attestor kind, basis and
+role -- but only the warrant `sh:xone`'s humanReview branch admits
+`rkaf:humanAsserted`, and that branch pins the other three. So the origin
+clause, beside the warrant rule, implies the other three: no binding breaks
+any one of the four without also failing the xone (the one-axis negatives
+are refused by both), and `change-event-owner-attested-other-warrant`, which
+passes the xone, breaks all four together. Trimming the shape to the
+attestor and the origin, or to a reference to the humanReview branch, would
+move the contract digest and the release pins, so it is the owner's call;
+nothing has been changed.
 
 ### REF-073: The Atlas contract covers what a release serves, never module source
 
@@ -6142,9 +6175,10 @@ and `make generate`, which moved only that module and the index.
   `5344028b…` / `c792a2f9…` (manifest / view). Measured on dev22 one file at
   a time: the shape alone gives `a0e51c56…` / `b2dd370a…`, the corpus alone
   `76c7cbd5…` / `c7dba413…`.
-- The change-event same-entity check reading identity's closure, and its
-  negative `change-event-same-entity-closure` (a new case in
-  `fixtures/corpus.json`): `525e6a04…` / `65103a92…`.
+- The negative `change-event-same-entity-closure` (a new case in
+  `fixtures/corpus.json`) for the same-entity check's reading of identity's
+  closure; the case alone moves the pair, the validator edit moves nothing:
+  `525e6a04…` / `65103a92…`.
 - REF-072's six missing change-event negatives -- no date, a non-midnight
   date, and one per fixed value of the owner's review (origin, attestor
   kind, basis, role) -- as new cases in `fixtures/corpus.json`:
