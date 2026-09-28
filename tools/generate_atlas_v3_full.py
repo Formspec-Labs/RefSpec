@@ -126,6 +126,7 @@ from refspec.atlas.v3_source_data import (
 from refspec.atlas.v3_source_data import (
     LabelRole as SourceLabelRole,
 )
+from refspec.atlas_index import verify_atlas_index_digests
 from refspec.managed_release import ManagedReleaseGraphFactsView
 from refspec.registry.infrastructure.source_concept_release import (
     SourceConceptReleaseView,
@@ -143,7 +144,6 @@ from refspec.registry.managed_releases.icpsr_managed_release import (
     IcpsrManagedReleaseView,
     open_icpsr_managed_release_sources,
 )
-from refspec.release_model import canonical_sha256 as refspec_canonical_sha256
 from refspec.vocabulary import is_english_language_tag
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -716,6 +716,11 @@ REGISTRY_DESCRIPTORS_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-d
 REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = "sha256:9ce73ea445b8a0c3dca64129aef15bed8bd5872d2ba32eb5ae5fdfc6bc098222"
 REGISTRY_DESCRIPTORS_PROOF = BINDING_ROOT / "tests" / "registry-descriptors.json"
 REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/registry-descriptors.json"
+# 2026-09-28 (REF-073): the index's digest stops covering the bytes of the
+# files it cites (those go to its own evidenceDigest), so inputs.atlasIndexDigest
+# moves one last time for that reason. Most entries below were an evidence edit
+# moving this pin; from here on a module or test edit moves neither pin. The
+# .nq graph is byte-identical; the proof pin alone moves.
 # 2026-09-26 (REF-072, the release): `agency-registry` joins the resource
 # inventory as a mappingAssertionsOnly source, the second time the .nq graph
 # itself moves: one RegistrySource descriptor and no scheme, 5 quads (1,252 ->
@@ -792,7 +797,7 @@ REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/regi
 # edited that day, is NOT index evidence and moved nothing here). The
 # descriptors .nq graph is byte-identical both times; only the proof's
 # inputs.atlasIndexDigest moved, and this pin moves with it.
-REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:b066dca6c92b56efed2b8e09f7dc95310fa7d50d24d78fb95b9d0c47d1e4ad5b"
+REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:a78d988a7d6199970cc31d683d5d59ce3a99026c40a34c74122081855e7f3a71"
 
 
 def _load_validator() -> Any:
@@ -3263,13 +3268,8 @@ def _validated_registry_index_rows(
     index: Mapping[str, Any],
     descriptor_proof: Mapping[str, Any],
 ) -> tuple[Mapping[str, Any], ...]:
-    """Return index rows once the index digest, identity, and descriptor-proof pin all agree."""
-    actual_index_digest = _registry_index_content_digest(index)
-    if index.get("indexDigest") != actual_index_digest:
-        raise ValueError("Atlas registry index content digest differs")
-    expected_index_id = "urn:ref:atlas-index:" + actual_index_digest.removeprefix("sha256:")
-    if index.get("indexId") != expected_index_id:
-        raise ValueError("Atlas registry index identity differs")
+    """Return index rows once the index digests, identity, and descriptor-proof pin all agree."""
+    actual_index_digest = verify_atlas_index_digests(index)
 
     artifact = descriptor_proof.get("artifact")
     proof_inputs = descriptor_proof.get("inputs")
@@ -3286,11 +3286,6 @@ def _validated_registry_index_rows(
     if any(not isinstance(row, Mapping) for row in rows):
         raise TypeError("Atlas registry index contains a non-object row")
     return tuple(rows)
-
-
-def _registry_index_content_digest(index: Mapping[str, Any]) -> str:
-    index_basis = {key: value for key, value in index.items() if key not in {"indexDigest", "indexId"}}
-    return refspec_canonical_sha256(index_basis)
 
 
 def _registry_index_rows() -> tuple[Mapping[str, Any], ...]:

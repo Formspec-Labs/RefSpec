@@ -256,14 +256,17 @@ audit-atlas-v3-source-fidelity:
 # digest, so a change to any contract file -- the generated registry coverage
 # and descriptors included -- moves both pins; `make contract-dev` prints the
 # new pair to record in the same commit, and `make test-package` fails until then.
+# Editing a registry module or its test moves neither: the index digest those
+# two proofs carry covers placement, not the bytes of the files it cites
+# (REF-073). This release's own adapter recipe still does, on purpose.
 ATLAS_FR_RELEASE_KEY ?= federal-register-thesaurus-2025
 ATLAS_FR_RELEASE_ROOT ?= output/atlas-3.1-federal-register-thesaurus-2025-04-01
 ATLAS_FR_RELEASE_SOURCE_ROOT ?= output/registry-real-data-sources
-ATLAS_FR_RELEASE_MANIFEST_SHA256 ?= fc25fcf78042cc3dffe73a384ff68689b2cdbb92ffd7b50184dba3dbc0810649
+ATLAS_FR_RELEASE_MANIFEST_SHA256 ?= e8c2cc7829fa7dbecf3141b6a1df3b397685ecd9764016fdb158bac0efdbe6d6
 # The served Parquet view is a separate sealed artifact with its own external
 # pin; the seal payload binds both digests, and the view manifest names this
 # distribution manifest back.
-ATLAS_FR_RELEASE_VIEW_SHA256 ?= 6b37b199a814f6eab058a74cb7d50936e88cfcb2ad5cf50e50a4214db1d799e3
+ATLAS_FR_RELEASE_VIEW_SHA256 ?= 872df310f1fa437936f69e908cc92e8fbe4875b42f21b51d908a2bcdcb74cc1f
 # Beside the distribution, never inside it, for the reason stated above the
 # source-fidelity receipt.
 ATLAS_FR_RELEASE_RECEIPT ?= $(ATLAS_FR_RELEASE_ROOT)-verification-receipt.json

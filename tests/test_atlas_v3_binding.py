@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -838,6 +839,7 @@ def test_tool_edits_do_not_move_the_contract_digest_but_ontology_edits_do() -> N
     for contract in (
         "admitted-derived-rules.json",
         "ontology/atlas.ttl",
+        "registry-resource-profiles.json",
         "shapes/atlas.shacl.ttl",
     ):
         changed = (BINDING_ROOT / contract).read_bytes() + b"\n# contract comment\n"
@@ -851,6 +853,181 @@ def test_tool_edits_do_not_move_the_contract_digest_but_ontology_edits_do() -> N
             atlas_validate._binding_digests(content_overrides={tool: b"# edited tool\n"})
 
     assert Path("README.md") not in atlas_validate.CONTRACT_PATHS
+
+
+#: A registry module the atlas index cites as source-implementation evidence and
+#: the Federal Register release's adapter recipe does not pin. The recipe's three
+#: files (see the release's construction summary) still move the release pins on
+#: purpose: they are the code that built its pack (REF-073).
+EDITED_REGISTRY_MODULE = "src/refspec/registry/billstatus_codes.py"
+FR_RELEASE_INPUTS = (
+    "output/registry-real-data-sources/federal-register-thesaurus-2025.pdf",
+    "output/refspec-vocabulary-portfolio/federal-register-thesaurus-2025",
+)
+
+
+def _load_tool(name: str):
+    spec = importlib.util.spec_from_file_location(name, ROOT / "tools" / f"{name}.py")
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _scratch_registry_repository(tmp_path: Path, *, release_inputs: bool = False) -> Path:
+    """Copy what the registry generators read into a scratch repository, and with ``release_inputs`` what the
+    Federal Register release build reads besides: the rest of the code, the binding, and its pinned inputs.
+
+    The generated fixture cases are left behind (the build never reads them), and so is every file the index
+    does not cite.
+    """
+
+    def skip(directory: str, names: list[str]) -> list[str]:
+        generated = {"valid", "invalid"} if Path(directory).name == "fixtures" else set()
+        return [name for name in names if name == "__pycache__" or name in generated]
+
+    root = tmp_path / "registry-repo"
+    for directory in ("src", "portfolio", *(("tools", "bindings") if release_inputs else ())):
+        shutil.copytree(ROOT / directory, root / directory, ignore=skip)
+    index = json.loads((ROOT / "portfolio" / "atlas-index-v0.json").read_text(encoding="utf-8"))
+    cited = {item["path"] for row in index["rows"] for item in row["readinessEvidence"]}
+    # A source-concept release's evidence names its package beside it, so the whole directory comes.
+    cited |= {str(Path(row["release"]["evidencePath"]).parent) for row in index["rows"] if row["release"]}
+    for relative in sorted(cited | set(FR_RELEASE_INPUTS if release_inputs else ())):
+        source, target = ROOT / relative, root / relative
+        if target.exists():
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if source.is_dir():
+            shutil.copytree(source, target, ignore=skip)
+        else:
+            shutil.copy2(source, target)
+    return root
+
+
+def _append_comment(path: Path) -> None:
+    path.write_bytes(path.read_bytes() + b"\n# an edit that changes no behavior\n")
+
+
+def test_a_registry_module_edit_leaves_the_contract_digest_where_it_was(tmp_path: Path) -> None:
+    """Pin that the registry proofs regenerate byte-identical after a module edit (REF-073).
+
+    The atlas index hashes every module it cites, and until REF-073 its digest
+    carried those bytes into the registry coverage and descriptor proofs, two
+    contract files, so a comment in any cited module moved `contractDigest` and
+    the release pins. The edit still reaches the index -- its `evidenceDigest`
+    moves, which is what makes the unchanged proofs mean something.
+    """
+
+    from refspec.atlas_index import build_atlas_index
+    from refspec.resource_catalog import load_json
+
+    coverage_tool = _load_tool("generate_atlas_v3_registry_coverage")
+    descriptor_tool = _load_tool("generate_atlas_v3_registry_descriptors")
+    root = _scratch_registry_repository(tmp_path)
+    committed = load_json(ROOT / "portfolio" / "atlas-index-v0.json")
+    implementations = {
+        item["path"]
+        for row in committed["rows"]
+        for item in row["readinessEvidence"]
+        if item["kind"] == "sourceImplementation"
+    }
+    assert EDITED_REGISTRY_MODULE in implementations, "an edit the index does not hash would prove nothing"
+
+    _append_comment(root / EDITED_REGISTRY_MODULE)
+    catalog = load_json(ROOT / "portfolio" / "resource-catalog-v0.json")
+    profiles = load_json(BINDING_ROOT / "registry-resource-profiles.json")
+    index = build_atlas_index(
+        load_json(ROOT / "portfolio" / "atlas-index-input-v0.json"), catalog, repository_root=root
+    )
+    assert index["evidenceDigest"] != committed["evidenceDigest"]
+    assert index["indexDigest"] == committed["indexDigest"]
+
+    coverage = coverage_tool.render_json(
+        coverage_tool.build_registry_coverage(catalog, index, profiles, repository_root=root)
+    ).encode("utf-8")
+    dataset, proof = descriptor_tool.build_registry_descriptors(catalog, index, profiles)
+    regenerated = {
+        Path("tests/registry-coverage.json"): coverage,
+        Path("tests/registry-descriptors.json"): proof,
+        Path("tests/registry-descriptors.nq"): dataset,
+    }
+    for relative, payload in regenerated.items():
+        assert payload == (BINDING_ROOT / relative).read_bytes(), f"{relative} moved with a module edit"
+    assert (
+        atlas_validate._binding_digests(content_overrides=regenerated)["contractDigest"]
+        == atlas_validate._binding_digests()["contractDigest"]
+    )
+
+
+def _contract_dev_pair(root: Path, output: Path) -> tuple[str, str]:
+    """Build the bounded Federal Register release as `make contract-dev` does; return the two digests it prints."""
+
+    environment = {**os.environ, "PYTHONPATH": str(root / "src")}
+    for tool in (
+        "generate_atlas_index",
+        "generate_atlas_v3_registry_coverage",
+        "generate_atlas_v3_registry_descriptors",
+    ):
+        generated = subprocess.run(
+            [sys.executable, f"tools/{tool}.py", "--write"], cwd=root, env=environment, capture_output=True, text=True
+        )
+        assert generated.returncode == 0, generated.stderr
+    built = subprocess.run(
+        [
+            sys.executable,
+            "tools/generate_atlas_v3_full.py",
+            "--only-release",
+            "federal-register-thesaurus-2025",
+            "--output",
+            str(output / "distribution"),
+        ],
+        cwd=root,
+        env=environment,
+        capture_output=True,
+        text=True,
+    )
+    assert built.returncode == 0, built.stderr[-4000:]
+    manifest, view = (
+        hashlib.sha256((output / member).read_bytes()).hexdigest()
+        for member in ("distribution/atlas-manifest.json", "parquet-view/view-manifest.json")
+    )
+    return manifest, view
+
+
+@pytest.mark.slow
+@pytest.mark.pinned_input(
+    not all((ROOT / relative).exists() for relative in FR_RELEASE_INPUTS),
+    reason="the Federal Register thesaurus release inputs are absent",
+)
+def test_a_registry_module_edit_leaves_the_release_pins_and_a_contract_edit_moves_them(tmp_path: Path) -> None:
+    """Pin, end to end, the pair `make contract-dev` prints (REF-073), ~4 s a build.
+
+    The fast test above sees only the contract files; this one would also see a
+    new path from module bytes into the manifest or view that bypasses them. The
+    release is built from a scratch copy of the repository -- the same bytes at
+    another path -- once after a registry module edit, where the pair must be the
+    recorded pins, and once each after an ontology and a shapes edit, where both
+    must move.
+    """
+
+    makefile = MAKEFILE.read_text(encoding="utf-8")
+    pins = tuple(
+        re.search(rf"^{name} \?= ([0-9a-f]{{64}})$", makefile, re.MULTILINE).group(1)
+        for name in ("ATLAS_FR_RELEASE_MANIFEST_SHA256", "ATLAS_FR_RELEASE_VIEW_SHA256")
+    )
+    root = _scratch_registry_repository(tmp_path, release_inputs=True)
+
+    _append_comment(root / EDITED_REGISTRY_MODULE)
+    assert _contract_dev_pair(root, tmp_path / "module-edit") == pins
+
+    for contract in ("ontology/atlas.ttl", "shapes/atlas.shacl.ttl"):
+        path = root / "bindings" / "atlas" / "3.1" / contract
+        original = path.read_bytes()
+        _append_comment(path)
+        manifest, view = _contract_dev_pair(root, tmp_path / Path(contract).stem)
+        assert manifest != pins[0] and view != pins[1], f"{contract} must move both pins"
+        path.write_bytes(original)
 
 
 def test_derived_rule_registry_is_contract_covered_and_matches_the_executable_roster() -> None:

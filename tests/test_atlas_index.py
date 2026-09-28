@@ -1,7 +1,8 @@
 """Atlas index build, pinning, and validation against the checked portfolio artifacts.
 
 The suite pins the checked portfolio/atlas-index-v0.json summary exactly, proves PinnedAtlasIndex
-reopens only the exact file and rejects file or evidence drift, and exercises the builder's closed
+reopens only the exact file and rejects file or evidence drift, proves evidence bytes move the
+evidence digest and never the placement identity, and exercises the builder's closed
 row vocabularies, safe evidence paths, release-validation pairing, exhaustive module
 classification, and the rule that offline qualification tooling never enters the pinned closure."""
 
@@ -20,6 +21,7 @@ from refspec.atlas_index import (
     atlas_index_rows,
     build_atlas_index,
     validate_atlas_index,
+    verify_atlas_index_digests,
 )
 from refspec.resource_catalog import load_json
 
@@ -222,6 +224,7 @@ def test_pinned_atlas_index_reopens_the_exact_non_authorizing_snapshot(
         "role": "AtlasIndex",
         "id": index["indexId"],
         "indexDigest": index["indexDigest"],
+        "evidenceDigest": index["evidenceDigest"],
         "fileDigest": file_digest,
     }
     assert str(tmp_path) not in str(pinned.pin())
@@ -534,13 +537,42 @@ def test_catalog_drift_and_generated_output_drift_are_rejected(tmp_path: Path) -
         )
 
 
-def test_evidence_byte_drift_changes_the_index_identity(tmp_path: Path) -> None:
+def test_evidence_byte_drift_moves_the_evidence_digest_and_never_the_placement(tmp_path: Path) -> None:
+    """A cited file's bytes are evidence, not placement (REF-073).
+
+    They move ``evidenceDigest`` alone -- which covers exactly the bytes of every
+    cited file, recomputed here from disk -- while the index and row identities
+    that the registry proofs pin into the Atlas contract stay put, and the
+    recorded index still refuses as stale.
+    """
+
     index_input, catalog = _fixture(tmp_path)
     built = build_atlas_index(index_input, catalog, repository_root=tmp_path)
     _write(tmp_path / "evidence/alpha.json", '{"changed":true}\n')
+    rebuilt = build_atlas_index(index_input, catalog, repository_root=tmp_path)
 
+    assert rebuilt["indexDigest"] == built["indexDigest"]
+    assert rebuilt["indexId"] == built["indexId"]
+    assert [row["rowId"] for row in rebuilt["rows"]] == [row["rowId"] for row in built["rows"]]
+    assert rebuilt["evidenceDigest"] != built["evidenceDigest"]
+    on_disk = {
+        path: "sha256:" + hashlib.sha256((tmp_path / path).read_bytes()).hexdigest()
+        for path in ("evidence/alpha.json", "evidence/beta.json")
+    }
+    assert rebuilt["evidenceDigest"] == "sha256:" + hashlib.sha256(
+        json.dumps(on_disk, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
     with pytest.raises(AtlasIndexError, match="differs"):
         validate_atlas_index(built, index_input, catalog, repository_root=tmp_path)
+
+    tampered = copy.deepcopy(rebuilt)
+    tampered["rows"][0]["readinessEvidence"][0]["sha256"] = "sha256:" + "0" * 64
+    with pytest.raises(AtlasIndexError, match="evidenceDigest differs"):
+        verify_atlas_index_digests(tampered)
+    moved = copy.deepcopy(rebuilt)
+    moved["rows"][0]["planningStatus"] = "deferred"
+    with pytest.raises(AtlasIndexError, match="indexDigest differs"):
+        verify_atlas_index_digests(moved)
 
 
 def test_offline_tooling_stays_outside_the_pinned_index_closure() -> None:

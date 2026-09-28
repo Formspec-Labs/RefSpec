@@ -4,6 +4,13 @@ The resource catalog records what resources exist and which exact portable
 distributions are available. This index places every registry source in one
 semantic ring and records how subject sources participate in the vocabulary
 atlas. Neither artifact grants a product permission.
+
+The index hashes every repository file it cites as evidence, registry module
+source among them, but its identity (``indexDigest``, ``indexId``, each
+``rowDigest``) covers the placement alone; those file digests have their own
+``evidenceDigest``. The registry coverage and descriptor proofs pin
+``indexDigest`` into the Atlas contract, so editing a module never moves the
+contract (REF-073).
 """
 
 from __future__ import annotations
@@ -287,6 +294,54 @@ def _registry_modules(repository_root: Path, registry_root: Path | None) -> set[
     return result
 
 
+def _placement(row: Mapping[str, Any]) -> dict[str, Any]:
+    """One index row as a placement: its evidence named by kind and path, not by the bytes' digest."""
+
+    release = row["release"]
+    if release is not None:
+        release = {key: value for key, value in release.items() if key != "evidenceSha256"}
+    return {
+        **row,
+        "readinessEvidence": [{"kind": item["kind"], "path": item["path"]} for item in row["readinessEvidence"]],
+        "release": release,
+    }
+
+
+def atlas_index_digests(index: Mapping[str, Any]) -> dict[str, str]:
+    """Return the index's placement digest and the digest of the evidence file bytes it records.
+
+    ``indexDigest`` covers every field but the file digests, which
+    ``evidenceDigest`` covers as one path-to-digest map (REF-073).
+    """
+
+    body = {key: value for key, value in index.items() if key not in {"evidenceDigest", "indexDigest", "indexId"}}
+    evidence: dict[str, str] = {}
+    for row in body["rows"]:
+        for item in row["readinessEvidence"]:
+            evidence[item["path"]] = item["sha256"]
+        if row["release"] is not None:
+            evidence[row["release"]["evidencePath"]] = row["release"]["evidenceSha256"]
+    return {
+        "evidenceDigest": canonical_sha256(evidence),
+        "indexDigest": canonical_sha256({**body, "rows": [_placement(row) for row in body["rows"]]}),
+    }
+
+
+def verify_atlas_index_digests(index: Mapping[str, Any]) -> str:
+    """Require the embedded digests and identity to match the content; return the placement digest."""
+
+    try:
+        digests = atlas_index_digests(index)
+    except (AttributeError, KeyError, TypeError) as error:
+        raise AtlasIndexError(f"atlas index rows are malformed: {error!r}") from error
+    for field, digest in digests.items():
+        if index.get(field) != digest:
+            raise AtlasIndexError(f"atlas index {field} differs from its content")
+    if index.get("indexId") != "urn:ref:atlas-index:" + digests["indexDigest"].removeprefix("sha256:"):
+        raise AtlasIndexError("atlas index indexId differs from its content")
+    return digests["indexDigest"]
+
+
 def _catalog_resource_ids(resource_catalog: Mapping[str, Any]) -> set[str]:
     resources = resource_catalog.get("resources")
     if not isinstance(resources, Sequence) or isinstance(resources, (str, bytes)):
@@ -414,7 +469,7 @@ def build_atlas_index(
             "resourceId": resource_id,
             "sourceModule": source_module,
         }
-        row_digest = canonical_sha256(row_payload)
+        row_digest = canonical_sha256(_placement(row_payload))
         if row_digest in row_payload_digests:
             raise AtlasIndexError(f"atlas index repeats an exact row payload at {location}")
         row_payload_digests.add(row_digest)
@@ -477,11 +532,11 @@ def build_atlas_index(
             "statusCounts": status_counts,
         },
     }
-    index_digest = canonical_sha256(payload)
+    digests = atlas_index_digests(payload)
     return {
         **payload,
-        "indexDigest": index_digest,
-        "indexId": f"urn:ref:atlas-index:{index_digest.removeprefix('sha256:')}",
+        **digests,
+        "indexId": f"urn:ref:atlas-index:{digests['indexDigest'].removeprefix('sha256:')}",
     }
 
 
@@ -513,6 +568,7 @@ class PinnedAtlasIndex:
     file_digest: str
     index_id: str
     index_digest: str
+    evidence_digest: str
     _index: Mapping[str, Any]
     _index_input: Mapping[str, Any]
     _resource_catalog: Mapping[str, Any]
@@ -574,6 +630,7 @@ class PinnedAtlasIndex:
             file_digest=digest,
             index_id=index_id,
             index_digest=index_digest,
+            evidence_digest=_digest(value.get("evidenceDigest"), "atlas index evidenceDigest"),
             _index=cast(Mapping[str, Any], deep_freeze_json(value)),
             _index_input=cast(
                 Mapping[str, Any],
@@ -598,7 +655,11 @@ class PinnedAtlasIndex:
             repository_root=self._repository_root,
             registry_root=self._registry_root,
         )
-        if reopened.index_id != self.index_id or reopened.index_digest != self.index_digest:
+        if (reopened.index_id, reopened.index_digest, reopened.evidence_digest) != (
+            self.index_id,
+            self.index_digest,
+            self.evidence_digest,
+        ):
             raise AtlasIndexError("atlas index identity or content digest changed")
         return reopened._index
 
@@ -610,6 +671,7 @@ class PinnedAtlasIndex:
             "role": "AtlasIndex",
             "id": self.index_id,
             "indexDigest": self.index_digest,
+            "evidenceDigest": self.evidence_digest,
             "fileDigest": self.file_digest,
         }
 
@@ -636,7 +698,9 @@ __all__ = [
     "ATLAS_INDEX_INPUT_FORMAT",
     "AtlasIndexError",
     "PinnedAtlasIndex",
+    "atlas_index_digests",
     "atlas_index_rows",
     "build_atlas_index",
     "validate_atlas_index",
+    "verify_atlas_index_digests",
 ]

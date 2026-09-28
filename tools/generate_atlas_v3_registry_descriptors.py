@@ -29,6 +29,7 @@ BINDING_TOOLS = ROOT / "bindings" / "atlas" / "3.1" / "tools"
 sys.path.insert(0, str(BINDING_TOOLS))
 from rdf_canonical import nquads_line
 
+from refspec.atlas_index import AtlasIndexError, verify_atlas_index_digests
 from refspec.registry.infrastructure.semantic_foundation import SEMANTIC_RINGS
 
 CATALOG = ROOT / "portfolio" / "resource-catalog-v0.json"
@@ -196,13 +197,12 @@ def _validated_inputs(
         identity_prefix="urn:ref:resource-catalog:",
         location="resource catalog",
     )
-    index_digest = _verify_embedded_digest(
-        index,
-        digest_field="indexDigest",
-        identity_field="indexId",
-        identity_prefix="urn:ref:atlas-index:",
-        location="atlas index",
-    )
+    # The index's placement digest, never its evidence digest: the proof is a
+    # contract file, and the evidence digest moves with every module edit (REF-073).
+    try:
+        index_digest = verify_atlas_index_digests(index)
+    except AtlasIndexError as error:
+        _fail(str(error))
     profile_digest = _verify_embedded_digest(
         profiles,
         digest_field="profileDigest",

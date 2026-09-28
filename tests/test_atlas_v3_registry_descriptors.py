@@ -27,6 +27,8 @@ SHAPES_PATH = ROOT / "bindings" / "atlas" / "3.1" / "shapes" / "atlas.shacl.ttl"
 sys.path.insert(0, str(ROOT / "bindings" / "atlas" / "3.1" / "tools"))
 import validate as atlas_validate
 
+from refspec.atlas_index import verify_atlas_index_digests
+
 ATLAS = Namespace("https://refspec.org/ns/atlas/v3#")
 GRAPH_IRI = URIRef("urn:ref:atlas-v3:registry-descriptors")
 
@@ -81,7 +83,7 @@ def test_descriptor_proof_pins_exact_registry_inputs_and_output() -> None:
     assert proof["graphIri"] == str(GRAPH_IRI)
 
     assert catalog["catalogDigest"] == _input_digest(catalog, "catalogDigest", "catalogId")
-    assert index["indexDigest"] == _input_digest(index, "indexDigest", "indexId")
+    assert index["indexDigest"] == verify_atlas_index_digests(index)
     assert profiles["profileDigest"] == _input_digest(profiles, "profileDigest", None)
     assert proof["inputs"] == {
         "atlasIndexDigest": index["indexDigest"],

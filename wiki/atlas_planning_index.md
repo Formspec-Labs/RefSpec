@@ -135,7 +135,8 @@ receipts may appear as readiness evidence.
 | `validate_atlas_index(index, index_input, resource_catalog, *, repository_root, registry_root=None)` | Rebuild the expected index and require exact mapping equality. It returns `None` on success. |
 | `PinnedAtlasIndex.open(...)` | Authenticate exact file bytes, parse strict JSON, reproduce the index from its inputs, detect a concurrent file change, and retain immutable snapshots. |
 | `PinnedAtlasIndex.verified_index()` | Reopen the file and repeat every check before returning the frozen index mapping. |
-| `PinnedAtlasIndex.pin()` | Reverify, then return `role`, `id`, `indexDigest`, and `fileDigest`. The returned pin contains no local path. |
+| `PinnedAtlasIndex.pin()` | Reverify, then return `role`, `id`, `indexDigest`, `evidenceDigest`, and `fileDigest`. The returned pin contains no local path. |
+| `atlas_index_digests(index)`, `verify_atlas_index_digests(index)` | Compute the placement and evidence digests of an index; the second also requires the embedded digests and `indexId` to match and returns `indexDigest`. |
 | `atlas_index_rows(index, *, semantic_ring=None)` | Return all mapping-shaped rows, optionally filtered to one supported ring. This helper checks only the format marker, the non-authorizing marker, the optional ring, and the top-level row container. |
 | `AtlasIndexError` | Primary validation error for incomplete, unsafe, unsupported, drifting, or non-deterministic index state. |
 
@@ -304,10 +305,11 @@ change the result.
 
 | Identity | Digest basis | Purpose |
 | --- | --- | --- |
-| `rowDigest` | Canonical JSON for the normalized row, excluding `rowDigest` and `rowId`. | Detect any change to one placement or its pinned evidence. |
+| `rowDigest` | Canonical JSON for the normalized row, excluding `rowDigest`, `rowId`, and the evidence file digests (`sha256`, `evidenceSha256`). | Detect any change to one placement. |
 | `rowId` | `urn:ref:atlas-index-row:` plus the hex part of `rowDigest`. | Give the exact placement a stable content-derived identifier. |
-| `indexDigest` | Canonical JSON for the full generated payload, excluding `indexDigest` and `indexId`. | Bind the complete plan, summaries, catalog pin, and rows. |
+| `indexDigest` | Canonical JSON for the full generated payload, excluding `evidenceDigest`, `indexDigest`, `indexId`, and the evidence file digests. | Bind the complete plan, summaries, catalog pin, and rows. The registry coverage and descriptor proofs pin it into the Atlas contract. |
 | `indexId` | `urn:ref:atlas-index:` plus the hex part of `indexDigest`. | Identify the exact semantic index. |
+| `evidenceDigest` | Canonical JSON for the map from every cited evidence path to its file digest. | Detect any change to the bytes of a cited module, test, or record, without moving the placement identities ([REF-073](../docs/decisions.md#ref-073-the-atlas-contract-covers-what-a-release-serves-never-module-source)). |
 | `fileDigest` | SHA-256 of the stored file bytes, supplied to `PinnedAtlasIndex.open()`. | Bind encoding, whitespace, terminal newline, and every other byte-level detail. |
 
 The generator writes deterministic, key-sorted, two-space-indented JSON with a
@@ -387,7 +389,8 @@ self-consistency and defeats the external pin's purpose.
 The instance recursively freezes the verified index, planning input, and
 resource catalog. Mappings become read-only proxies and lists become tuples.
 `verified_index()` creates and validates a new instance on every call, then
-checks that its `indexId` and `indexDigest` still match the original instance.
+checks that its `indexId`, `indexDigest`, and `evidenceDigest` still match the
+original instance.
 
 ### Current callers
 

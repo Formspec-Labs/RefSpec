@@ -6023,3 +6023,73 @@ inside the payload's canonical `rdf:JSON`. Any change is the assertions
 follow-up's. The ring-context `sh:xone` needed no constraint change: it
 targets `atlas:MappingAssertion`, which the event is not, so the amendment
 there is the comment that says so.
+
+### REF-073: The Atlas contract covers what a release serves, never module source
+
+- **Date:** 2026-09-28
+- **Status:** Accepted and executed; the owner decided it on 2026-09-28.
+  Amends REF-013's index identity. REF-029's rule that `contractDigest` is the
+  rules and nothing else stands, and this entry enforces it.
+
+**What moved the pins.** The Federal Register thesaurus release's manifest
+binds `binding.contractDigest`, which hashes the binding's contract files.
+Two of them, the registry coverage and descriptor proofs, are generated from
+the atlas index and carry its `indexDigest` as `inputs.atlasIndexDigest`, and
+the coverage proof's `indexedPlacementIdentities` hashed every `rowId`. The
+index hashes every file it cites as evidence -- 69 registry and atlas module
+sources, 71 test files, and six research and plan records -- and its
+`indexDigest` and each `rowDigest` covered those file digests. A comment in
+any cited module therefore moved the index, both proofs, the contract digest,
+the manifest and both release pins, and the construction summary with them,
+since it records the descriptor proof's digest (REF-020). The owner counted 25
+such moves in six weeks that no commit recorded; the builder's own pin on the
+descriptor proof (`REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST`) has a comment
+history made mostly of them.
+
+**The change.** The index still hashes every cited file, but those digests
+are evidence, not placement. `indexDigest`, `indexId` and every
+`rowDigest`/`rowId` now cover the index with the file digests
+(`readinessEvidence[].sha256`, `release.evidenceSha256`) left out, and a new
+`evidenceDigest` covers the map from each cited path to its file digest, for
+whoever needs to know that evidence bytes changed; `PinnedAtlasIndex.pin()`
+returns it. `atlas_index_digests()` computes both, and
+`verify_atlas_index_digests()` checks both and the identity; the descriptor
+generator and the release builder call it instead of each hashing the index
+their own way. Regeneration still refuses a stale index, so an edited module
+still fails `check-generated` until `make generate` runs -- it just no longer
+moves the Atlas contract. The binding does not change: the proofs keep their
+schema, key names and validator, and `inputs.atlasIndexDigest` still names the
+index's `indexDigest`, which now means the placement.
+
+The contract digest then covers what the release serves: the ontology, the
+shapes, the schemas, the profile map, the admitted derived rules, and the
+registry coverage and descriptor data, all generated from placement, catalog
+and profile content. Three things still move the pins, on purpose: an edit to
+any of those files; a change of placement, including the registry module
+inventory (a module added, removed or reclassified), which the coverage proof
+records by name; and the release's own adapter recipe, whose three files
+(`src/refspec/atlas/v3_registry_vocabularies.py`,
+`src/refspec/registry/federal_register_thesaurus_2025.py`,
+`src/refspec/storage.py`) the construction summary pins as the code that built
+the served pack (REF-020).
+
+**The one-time move.** This change moves the pins once, for itself: every
+`rowId`, the index digest (`sha256:a5ab65d8…` →
+`sha256:fd8ba4a4dd197f5ac4ecf27af9748bf08adb793ed7206a2eab90b29e3752170f`),
+both proofs (the descriptors `.nq` graph byte-identical at 1,257 quads), the
+builder's proof pin, `fixturesDigest` (`sha256:3c0b9a62…` →
+`sha256:66d3a95c…`), the contract digest (`sha256:3cd04cf1…` →
+`sha256:3e9488ab3331ea78f6c0c04e7780f06cad6c76a8d287307b8e055e0405880f56`)
+and the release pins, re-recorded in the same commit from `make contract-dev`.
+
+**The proof.** `tests/test_atlas_v3_binding.py` regenerates the index and both
+proofs from a scratch copy of what the index reads, with a comment appended to
+`src/refspec/registry/billstatus_codes.py`: the proofs come out byte-identical
+and `contractDigest` stays, while `evidenceDigest` moves, so the edit was
+seen. A slow-tier test builds the release from a scratch copy of the
+repository as `make contract-dev` does: after that edit the pair is the
+recorded pins, and after an ontology or a shapes comment both digests move.
+The existing contract-edit test now covers the profile map. Restoring the
+file digests to `indexDigest` fails all three new tests (measured). By hand,
+`make contract-dev` printed the same pair before and after the module comment
+and `make generate`, which moved only that module and the index.

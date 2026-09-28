@@ -34,6 +34,7 @@ from refspec.atlas.v3_source_data import (
     RegistrySupplementalSourceRecord,
     mapping_triple_digest,
 )
+from refspec.atlas_index import atlas_index_digests
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
@@ -1515,12 +1516,11 @@ def test_registry_mapping_policy_pins_index_content_and_descriptor_proof(
     changed_index = json.loads(json.dumps(index))
     mapping_row = next(row for row in changed_index["rows"] if row["resourceId"] == "eurovoc-lcsh-alignment")
     mapping_row["sourceModule"] = "refspec.registry.unapproved_alignment"
-    with pytest.raises(ValueError, match="index content digest differs"):
+    with pytest.raises(ValueError, match="indexDigest differs from its content"):
         generator._validated_registry_index_rows(changed_index, proof)
 
-    changed_digest = generator._registry_index_content_digest(changed_index)
-    changed_index["indexDigest"] = changed_digest
-    changed_index["indexId"] = "urn:ref:atlas-index:" + changed_digest.removeprefix("sha256:")
+    changed_index.update(atlas_index_digests(changed_index))
+    changed_index["indexId"] = "urn:ref:atlas-index:" + changed_index["indexDigest"].removeprefix("sha256:")
     with pytest.raises(ValueError, match="differs from the descriptor proof"):
         generator._validated_registry_index_rows(changed_index, proof)
 
