@@ -1,5 +1,5 @@
 {
-  "evidenceDigest": "sha256:86101c26a0206c9e53f12255ba5f592b73ec1f0f24203744a1887f40881599fb",
+  "evidenceDigest": "sha256:fca2e7e743642cd38c41b4ad1e9813b500d07bda247d3384e6c1df44ebe6c027",
   "experimental": true,
   "format": "refspec-atlas-index/experimental-v0",
   "implementationModules": [
@@ -1229,12 +1229,12 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_agency_registry_release.py",
-          "sha256": "sha256:93cbd1d7fc6e620ee1c104bfa20e3b9b0db3e91f09074a8b625589746733deb3"
+          "sha256": "sha256:0944fa31e7992dc640e165225a4098c90e960771740ed5cb8ecad066b4f87708"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_entity.py",
-          "sha256": "sha256:479707238555a1bde49b31c1a1dcdcd2cee474ffa1777c4e5f86ea8cc7ec76d0"
+          "sha256": "sha256:f809a1f250ecea063f48a5066c349d6d32ed97e6310146b791f28b928621d3e9"
         },
         {
           "kind": "sourceObservation",
@@ -3156,7 +3156,7 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/atlas/v3_registry_alignments_entity.py",
-          "sha256": "sha256:479707238555a1bde49b31c1a1dcdcd2cee474ffa1777c4e5f86ea8cc7ec76d0"
+          "sha256": "sha256:f809a1f250ecea063f48a5066c349d6d32ed97e6310146b791f28b928621d3e9"
         },
         {
           "kind": "sourceObservation",

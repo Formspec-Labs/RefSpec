@@ -263,6 +263,31 @@ def test_ref_038_is_untouched_and_its_projection_refuses_the_new_release(
         agency_projection.build_agency_projection(rosters, release)
 
 
+def test_each_roster_parent_map_is_derived_once_per_release(
+    monkeypatch: pytest.MonkeyPatch,
+    rosters: tuple[RegistryRelease, ...],
+) -> None:
+    """Pin the scaling guard: each release derives a roster's parent map once, never once per mapping.
+
+    REF-038's release walked the regulations.gov roster 331 times, once per
+    decided value, and the registry release the Register's once per bridge.
+    """
+
+    derived: list[str] = []
+    original = agency_projection.parent_by_subject
+
+    def counting(release: RegistryRelease) -> dict[str, str]:
+        derived.append(release.key)
+        return original(release)
+
+    monkeypatch.setattr(agency_projection, "parent_by_subject", counting)
+    entity.load_regulations_gov_agency_identity_mapping_release(rosters)
+    assert derived == [agency_projection.REGULATIONS_GOV_RELEASE_KEY]
+    derived.clear()
+    entity.load_agency_registry_mapping_release(rosters)
+    assert sorted(derived) == sorted(agency_projection.AGENCY_ROSTER_RELEASE_KEYS)
+
+
 @pytest.fixture(scope="module")
 def context(rosters: tuple[RegistryRelease, ...]) -> dict:
     """The re-derivation context the loader builds: releases, resources and parents by roster key."""

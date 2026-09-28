@@ -881,6 +881,7 @@ def _mapping_and_decision(
     target_name: str,
     basis: AgencyDecisionBasis,
     reasoning: str,
+    source_parents: Mapping[str, str],
     non_emitted_candidates: Sequence[Mapping[str, str]] = (),
     source_field: str = "attributes.id",
     decided_at: str = REGULATIONS_GOV_AGENCY_IDENTITY_ASSERTED_AT,
@@ -933,9 +934,9 @@ def _mapping_and_decision(
         "sourceResource": source_resource.iri,
         "sourceValue": source_value,
     }
-    source_parent_resource = agency_projection.parent_by_subject(source_release).get(
-        source_resource.iri
-    )
+    # The caller derives the source roster's parent map once and passes it in:
+    # rebuilding it here walked the whole roster once per mapping.
+    source_parent_resource = source_parents.get(source_resource.iri)
     if source_parent_resource is not None:
         decision["sourceParentResource"] = source_parent_resource
     if non_emitted_candidates:
@@ -997,6 +998,7 @@ def load_regulations_gov_agency_identity_mapping_release(
     }
     claims = agency_projection.extract_agency_identifier_claims(releases)
     regs_release = by_key[agency_projection.REGULATIONS_GOV_RELEASE_KEY]
+    regs_parents = agency_projection.parent_by_subject(regs_release)
     fr_release = by_key[FR]
     ecfr_release = by_key[ECFR]
     residue_adoptions = {row.source_value: row for row in RESIDUE_ADOPTIONS}
@@ -1068,6 +1070,7 @@ def load_regulations_gov_agency_identity_mapping_release(
                 target_name=target_name,
                 basis=basis,
                 reasoning=reasoning,
+                source_parents=regs_parents,
                 non_emitted_candidates=other_candidates,
             )
             mappings.append(mapping)
@@ -1106,6 +1109,7 @@ def load_regulations_gov_agency_identity_mapping_release(
                 target_name=target_name,
                 basis=adoption.basis,
                 reasoning=adoption.reasoning,
+                source_parents=regs_parents,
                 non_emitted_candidates=adoption.non_emitted_candidates,
             )
             mappings.append(mapping)
@@ -1127,9 +1131,7 @@ def load_regulations_gov_agency_identity_mapping_release(
             "sourceResource": source_resource.iri,
             "sourceValue": source_value,
         }
-        source_parent_resource = agency_projection.parent_by_subject(regs_release).get(
-            source_resource.iri
-        )
+        source_parent_resource = regs_parents.get(source_resource.iri)
         if source_parent_resource is not None:
             decision["sourceParentResource"] = source_parent_resource
         if abstention.closest_candidate is not None:
@@ -1723,6 +1725,7 @@ def load_agency_registry_mapping_release(
                 target_name=target_name,
                 basis=item["proposed_basis"],
                 reasoning=str(item["reasoning"]),
+                source_parents=parents[source_release.key],
                 source_field=source_field,
                 decided_at=_decided_at(outcome.decision),
                 decision_record=AGENCY_REGISTRY_DECISION_RECORD,
