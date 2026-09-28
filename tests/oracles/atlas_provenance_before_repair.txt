@@ -1,0 +1,455 @@
+"""Frozen pre-repair provenance oracle; execute with explicit test dependencies."""
+def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
+    """Reverse source-record evidence and compare it with authenticated bytes."""
+    source = pair.spec.name
+    policy = pair.spec.rdf_source
+    if policy is None:
+        return [f"{source}: RDF comparison has no independent provenance policy"]
+
+    failures: list[str] = []
+
+    # Widened and narrowed the same way concept-traceability is: a publisher
+    # subject a declared additional-traced-type covers (GEMET's Group/
+    # SuperGroup/Theme) is a real source record target here too, not just an
+    # "unknown" concept -- and a source record representing a concept the spec
+    # declared expected-absent contradicts that declaration, so it must fail
+    # here rather than pass because the raw census still lists the identity.
+    traced_concepts = _traced_publisher_concepts(pair)
+    # Publisher subjects that reach a source record through a declared
+    # additional traced type rather than the publisher's own skos:Concept
+    # typing. Their records are validated against the organization contract
+    # below instead of the concept contract.
+    organization_subjects = _additional_traced_publisher_subjects(pair) - pair.publisher.concepts
+    organization_fields = policy.organization_record_payload_fields
+    publisher_subject_types = _publisher_subject_types(pair.publisher) if organization_fields else {}
+
+    default_digests = {
+        pair.publisher.input_content_digests[path]
+        for path in policy.record_digest_input_paths
+        if path in pair.publisher.input_content_digests
+    }
+    missing_digest_paths = sorted(set(policy.record_digest_input_paths) - set(pair.publisher.input_content_digests))
+    if missing_digest_paths:
+        failures.append(f"{source}: provenance policy names unavailable publisher inputs: {missing_digest_paths}")
+
+    per_record_resource_fields = frozenset({"publisherConceptIri", "schemeIris", "topConceptOfIris"})
+    aggregate_relation_fields = frozenset({"mappingRelations", "semanticRelations", "directSemanticRelations"})
+    aggregate_source_evidence_fields = frozenset({"labelRoleNormalization", "metadata"})
+    expected_payload_fields = policy.evaluated_native_payload_fields
+    reader_native_fields = frozenset(
+        field_name for payload in pair.publisher.expected_native_payloads.values() for field_name in payload
+    )
+    if pair.publisher.source_digest_is_native_payload_digest:
+        reader_native_fields |= expected_payload_fields
+    supported_resource_fields = (
+        per_record_resource_fields | aggregate_relation_fields | aggregate_source_evidence_fields | reader_native_fields
+    )
+    unsupported_declared_fields = sorted(expected_payload_fields - supported_resource_fields)
+    if unsupported_declared_fields:
+        failures.append(
+            f"{source}: provenance policy declares native payload fields without an "
+            f"independent inverse: {unsupported_declared_fields}"
+        )
+    unexpected_payload_fields: dict[str, list[str]] = defaultdict(list)
+    source_memberships: dict[str, set[str]] = defaultdict(set)
+    for resource, scheme in pair.publisher.memberships:
+        source_memberships[resource].add(scheme)
+    source_top_concepts: dict[str, set[str]] = defaultdict(set)
+    for resource, scheme in pair.publisher.top_concept_of:
+        source_top_concepts[resource].add(scheme)
+    for scheme, resource in pair.publisher.has_top_concept:
+        source_top_concepts[resource].add(scheme)
+    input_path_by_resource = dict(policy.record_input_path_by_resource)
+    locator_by_resource = dict(policy.record_locator_by_resource)
+
+    mapping_records: dict[tuple[str, str, str], list[str]] = defaultdict(list)
+    observed_mapping_evidence: dict[tuple[str, str, str], list[tuple[str | None, str | None, str]]] = defaultdict(list)
+    record_ids = (
+        set(pair.atlas.source_records)
+        | set(pair.atlas.record_targets)
+        | set(pair.atlas.native_payloads)
+        | set(pair.atlas.compact_native_payload_records)
+    )
+    for record in sorted(record_ids):
+        target = pair.atlas.record_targets.get(record)
+        payload = pair.atlas.native_payloads.get(record)
+        compact_payload = record in pair.atlas.compact_native_payload_records
+        if target is None:
+            if payload is None:
+                detail = "has no native payload" if not compact_payload else "has no represented publisher resource"
+                failures.append(f"{source}: targetless source record <{record}> {detail}")
+                continue
+
+            publisher_relation_digest = payload.get("publisherRelationDigest")
+            expected_relation_payload = (
+                pair.publisher.expected_relation_payloads.get(
+                    publisher_relation_digest,
+                )
+                if isinstance(publisher_relation_digest, str)
+                else None
+            )
+            if expected_relation_payload is not None:
+                publisher_relation = payload.get("publisherRelation")
+                if not isinstance(publisher_relation, Mapping):
+                    failures.append(f"{source}: source record <{record}> publisherRelation is not an object")
+                    continue
+                exact_relation_digest = _canonical_json_digest(publisher_relation)
+                if publisher_relation_digest != exact_relation_digest:
+                    failures.append(
+                        f"{source}: source record <{record}> publisherRelationDigest differs "
+                        "from its exact publisher relation payload"
+                    )
+                if payload != expected_relation_payload:
+                    failures.append(
+                        f"{source}: source record <{record}> transformed publisher relation "
+                        "payload differs from the independent source reconstruction"
+                    )
+                expected_locator = "urn:ref:publisher-relation:" + publisher_relation_digest.removeprefix("sha256:")
+                if pair.atlas.record_source_locators.get(record) != expected_locator:
+                    failures.append(
+                        f"{source}: source record <{record}> relation locator differs -- expected <{expected_locator}>"
+                    )
+                expected_digest = _canonical_json_digest(expected_relation_payload)
+                if pair.atlas.record_source_digests.get(record) != expected_digest:
+                    failures.append(
+                        f"{source}: source record <{record}> transformed relation digest "
+                        f"differs -- expected {expected_digest}"
+                    )
+                continue
+
+            publisher_relation = _payload_relation(payload.get("publisherRelation"))
+            if publisher_relation is not None:
+                relation_payload = payload["publisherRelation"]
+                relation_digest = _canonical_json_digest(relation_payload)
+                if publisher_relation not in pair.publisher.relations:
+                    failures.append(
+                        f"{source}: source record <{record}> publisherRelation "
+                        f"{publisher_relation!r} is absent from publisher bytes"
+                    )
+                if payload.get("publisherRelationDigest") != relation_digest:
+                    failures.append(
+                        f"{source}: source record <{record}> publisherRelationDigest differs "
+                        f"from its exact relation payload"
+                    )
+                if pair.atlas.record_source_digests.get(record) != relation_digest:
+                    failures.append(
+                        f"{source}: source record <{record}> sourceDigest differs from its "
+                        "exact publisherRelation payload"
+                    )
+                expected_locator = "urn:ref:publisher-relation:" + relation_digest.removeprefix("sha256:")
+                if pair.atlas.record_source_locators.get(record) != expected_locator:
+                    failures.append(
+                        f"{source}: source record <{record}> relation locator differs -- expected <{expected_locator}>"
+                    )
+                continue
+
+            mapping_relation = _payload_relation(payload)
+            if pair.spec.kind == "mapping" and mapping_relation is not None:
+                mapping_records[mapping_relation].append(record)
+                if mapping_relation not in pair.publisher.relations:
+                    failures.append(
+                        f"{source}: source record <{record}> mapping triple "
+                        f"{mapping_relation!r} is absent from publisher bytes"
+                    )
+                mapping_digest = _canonical_json_digest(
+                    {
+                        "object": mapping_relation[2],
+                        "predicate": mapping_relation[1],
+                        "subject": mapping_relation[0],
+                    }
+                )
+                if payload.get("mappingTripleDigest") != mapping_digest:
+                    failures.append(
+                        f"{source}: source record <{record}> mappingTripleDigest differs "
+                        "from its exact publisher triple"
+                    )
+                if mapping_relation in pair.publisher.expected_mapping_evidence:
+                    observed_mapping_evidence[mapping_relation].append(
+                        (
+                            pair.atlas.record_source_locators.get(record),
+                            pair.atlas.record_source_digests.get(record),
+                            _canonical_json_bytes(payload).decode("utf-8"),
+                        )
+                    )
+                    continue
+                locator = pair.atlas.record_source_locators.get(record)
+                if locator != policy.record_locator:
+                    failures.append(
+                        f"{source}: source record <{record}> locator differs -- expected "
+                        f"<{policy.record_locator}>, observed {locator!r}"
+                    )
+                observed_digest = pair.atlas.record_source_digests.get(record)
+                if len(default_digests) != 1:
+                    failures.append(
+                        f"{source}: mapping record <{record}> has {len(default_digests)} "
+                        "direct publisher digest candidates"
+                    )
+                elif observed_digest != next(iter(default_digests)):
+                    failures.append(
+                        f"{source}: mapping record <{record}> digest differs -- expected "
+                        f"{next(iter(default_digests))}, observed {observed_digest!r}"
+                    )
+                independently_checked = {
+                    "mappingTripleDigest",
+                    "objectIri",
+                    "predicateIri",
+                    "publisherAlignmentDigest",
+                    "subjectIri",
+                }
+                if len(default_digests) == 1 and payload.get("publisherAlignmentDigest") != next(iter(default_digests)):
+                    failures.append(
+                        f"{source}: source record <{record}> publisherAlignmentDigest differs "
+                        "from the pinned alignment bytes"
+                    )
+                for field_name in sorted(
+                    set(payload) - independently_checked - policy.atlas_only_native_payload_fields
+                ):
+                    unexpected_payload_fields[field_name].append(record)
+                continue
+
+            failures.append(
+                f"{source}: source record <{record}> has neither a represented publisher "
+                "resource nor an independently reversible publisher relation"
+            )
+            continue
+        if pair.spec.kind == "vocabulary" and target not in traced_concepts:
+            failures.append(
+                f"{source}: source record <{record}> represents <{target}>, which is not "
+                "a publisher concept in the selected pinned bytes"
+            )
+        locator = pair.atlas.record_source_locators.get(record)
+        expected_locator = pair.publisher.resource_locators.get(
+            target,
+            locator_by_resource.get(target, policy.record_locator or target),
+        )
+        if locator != expected_locator:
+            failures.append(
+                f"{source}: source record <{record}> locator differs -- expected "
+                f"<{expected_locator}>, observed {locator!r}"
+            )
+
+        resource_input_path = input_path_by_resource.get(target)
+        compact_resource_digest = pair.publisher.resource_input_digest_values.get(target)
+        if policy.record_digest_is_native_payload_digest and payload is not None:
+            # This spec's stated record contract: sourceDigest is the sha256
+            # over the record's own canonical nativePayload bytes, never a
+            # digest tied to the pinned publisher file. RDF sources carry no
+            # natural per-resource byte range to hash independently of what
+            # Atlas already stored, so -- honestly -- this is a FORMAT
+            # self-consistency check, not an independent publisher-fidelity
+            # proof: it can only ever confirm the same invariant the
+            # binding's own validator already enforces at build time
+            # (bindings/atlas/3.1/tools/validate.py:_check_native_payloads).
+            # The independent tie to publisher bytes for these records lives
+            # in the field-level inverses below (schemeIris/topConceptOfIris/
+            # etc.) and the release-level input-file digest pin.
+            expected_payload_digest = _canonical_json_digest(payload)
+            observed_digest = pair.atlas.record_source_digests.get(record)
+            if observed_digest != expected_payload_digest:
+                failures.append(
+                    f"{source}: source record <{record}> sourceDigest fails its own nativePayload "
+                    f"format self-consistency check (not an independent publisher-fidelity proof; "
+                    f"see record_digest_is_native_payload_digest) -- expected {expected_payload_digest} "
+                    f"over its own native payload, observed {observed_digest!r}"
+                )
+        elif resource_input_path in pair.publisher.input_content_digests:
+            expected_digests = {pair.publisher.input_content_digests[resource_input_path]}
+        elif default_digests:
+            expected_digests = default_digests
+        elif compact_resource_digest is not None:
+            expected_digests = {compact_resource_digest}
+        else:
+            expected_digests = set(pair.publisher.resource_input_digests.get(target, frozenset()))
+        if policy.record_digest_is_native_payload_digest and payload is not None:
+            expected_digests = None
+        observed_digest = pair.atlas.record_source_digests.get(record)
+        if expected_digests is None:
+            pass
+        elif len(expected_digests) != 1:
+            failures.append(
+                f"{source}: source record <{record}> has {len(expected_digests)} direct "
+                f"publisher digest candidates for <{target}>; exact sourceDigest is not proven"
+            )
+        elif observed_digest != next(iter(expected_digests)):
+            failures.append(
+                f"{source}: source record <{record}> digest differs -- expected "
+                f"{next(iter(expected_digests))}, observed {observed_digest!r}"
+            )
+
+        if payload is None and not compact_payload:
+            failures.append(f"{source}: source record <{record}> has no native payload")
+            continue
+        if payload is None:
+            digest_difference = pair.atlas.native_payload_digest_differences.get(record)
+            if digest_difference is not None:
+                payload_digest, source_digest = digest_difference
+                failures.append(
+                    f"{source}: source record <{record}> native payload digest "
+                    f"{payload_digest} differs from atlas:sourceDigest {source_digest!r}"
+                )
+            unexpected_fields, missing_fields = pair.atlas.native_payload_field_differences.get(record, ((), ()))
+            for field_name in unexpected_fields:
+                unexpected_payload_fields[field_name].append(record)
+            if missing_fields:
+                failures.append(
+                    f"{source}: source record <{record}> native payload omits independently "
+                    f"evaluated fields {list(missing_fields)}"
+                )
+            continue
+        # Which per-record contract this record answers to is decided by the
+        # publisher's own bytes, never by what the record happens to carry: a
+        # target the publisher types skos:Concept owes the concept contract, a
+        # target reached through a declared additional traced type owes the
+        # organization contract. A record that satisfies neither still fails,
+        # because the contract it owes is picked before its payload is read.
+        is_organization_record = bool(organization_fields) and target in organization_subjects
+        record_contract_fields = organization_fields if is_organization_record else frozenset()
+        for field_name in sorted(
+            set(payload) - expected_payload_fields - policy.atlas_only_native_payload_fields - record_contract_fields
+        ):
+            unexpected_payload_fields[field_name].append(record)
+        reader_expected_payload = pair.publisher.expected_native_payloads.get(
+            target,
+            {},
+        )
+        expected_top_concepts = sorted(source_top_concepts.get(target, set()))
+        if is_organization_record:
+            # The concept-shaped half of the contract (publisherConceptIri) is
+            # replaced by the organization fields; the target-keyed inverses the
+            # two contracts share (schemeIris) stay required exactly as they are.
+            # topConceptOfIris is required only when the publisher actually
+            # states one for this subject: an organization resource is not a top
+            # concept, and demanding an empty list of every one of them is what
+            # false-failed all 76 GEMET records. If GEMET ever does declare a
+            # Group a top concept, the record still has to carry it.
+            shared_fields = per_record_resource_fields - _CONCEPT_ONLY_RECORD_FIELDS
+            if not expected_top_concepts:
+                shared_fields = shared_fields - {"topConceptOfIris"}
+            expected_per_record_fields = shared_fields | frozenset(reader_expected_payload)
+        else:
+            expected_per_record_fields = per_record_resource_fields | frozenset(reader_expected_payload)
+        # expected_digests is None exactly when policy.record_digest_is_native_payload_digest
+        # already forced it above (this spec's own format self-check, not this
+        # reader-level one) -- guarded here so the two flags, which are
+        # independent and may legitimately both be set, never collide into a
+        # len(None) crash.
+        if (
+            expected_digests is not None
+            and pair.publisher.source_digest_is_native_payload_digest
+            and len(expected_digests) == 1
+            and not reader_expected_payload
+        ):
+            expected_per_record_fields |= expected_payload_fields
+        if is_organization_record:
+            # Keep the concept-only half out however it got back in above: an
+            # organization record answers to its own contract, never to this one.
+            expected_per_record_fields -= _CONCEPT_ONLY_RECORD_FIELDS
+        required_fields = expected_payload_fields & expected_per_record_fields
+        if is_organization_record:
+            # organization_record_payload_fields is a contract in its own right,
+            # not a subset of evaluated_native_payload_fields (which the concept
+            # records answer to), so it is required directly.
+            required_fields = required_fields | organization_fields
+        missing_fields = sorted(required_fields - set(payload))
+        if missing_fields:
+            failures.append(
+                f"{source}: source record <{record}> native payload omits independently "
+                f"evaluated fields {missing_fields}"
+            )
+        if is_organization_record:
+            if "publisherResourceIri" in organization_fields and payload.get("publisherResourceIri") != target:
+                failures.append(
+                    f"{source}: organization source record <{record}> publisherResourceIri does not equal <{target}>"
+                )
+            if "typeIris" in organization_fields:
+                expected = sorted(publisher_subject_types.get(target, frozenset()))
+                if payload.get("typeIris") != expected:
+                    failures.append(
+                        f"{source}: organization source record <{record}> typeIris differs from the "
+                        f"publisher's own rdf:type triples -- expected {expected!r}, "
+                        f"observed {payload.get('typeIris')!r}"
+                    )
+            if "publisherConceptIri" in payload:
+                failures.append(
+                    f"{source}: organization source record <{record}> states publisherConceptIri "
+                    f"{payload.get('publisherConceptIri')!r}, but the publisher never types <{target}> "
+                    "a concept; the record claims a contract it does not answer to"
+                )
+        elif "publisherConceptIri" in expected_payload_fields and payload.get("publisherConceptIri") != target:
+            failures.append(f"{source}: source record <{record}> publisherConceptIri does not equal <{target}>")
+        if "schemeIris" in expected_payload_fields:
+            expected = sorted(source_memberships.get(target, set()))
+            if payload.get("schemeIris") != expected:
+                failures.append(
+                    f"{source}: source record <{record}> schemeIris differs -- expected "
+                    f"{expected!r}, observed {payload.get('schemeIris')!r}"
+                )
+        organization_omits_empty_top_concepts = (
+            is_organization_record and not expected_top_concepts and "topConceptOfIris" not in payload
+        )
+        if (
+            "topConceptOfIris" in expected_payload_fields
+            and not organization_omits_empty_top_concepts
+            and payload.get("topConceptOfIris") != expected_top_concepts
+        ):
+            failures.append(
+                f"{source}: source record <{record}> topConceptOfIris differs -- expected "
+                f"{expected_top_concepts!r}, observed {payload.get('topConceptOfIris')!r}"
+            )
+        for field_name in sorted(expected_payload_fields & reader_expected_payload.keys()):
+            expected = reader_expected_payload[field_name]
+            if payload.get(field_name) != expected:
+                failures.append(
+                    f"{source}: source record <{record}> native payload {field_name} "
+                    f"differs -- expected {expected!r}, observed {payload.get(field_name)!r}"
+                )
+        if (
+            expected_digests is not None
+            and pair.publisher.source_digest_is_native_payload_digest
+            and len(expected_digests) == 1
+        ):
+            expected_payload_digest = next(iter(expected_digests))
+            observed_payload_digest = _canonical_json_digest(payload)
+            if observed_payload_digest != expected_payload_digest:
+                failures.append(
+                    f"{source}: source record <{record}> native payload digest differs -- "
+                    f"expected {expected_payload_digest}, observed {observed_payload_digest}"
+                )
+
+    if pair.spec.kind == "mapping":
+        publisher_relations = set(pair.publisher.relations)
+        observed_relations = set(mapping_records)
+        for relation in sorted(publisher_relations - observed_relations):
+            failures.append(f"{source}: publisher mapping {relation!r} has no source record payload")
+        for relation, records in sorted(mapping_records.items()):
+            expected_evidence = pair.publisher.expected_mapping_evidence.get(relation)
+            expected_count = len(expected_evidence) if expected_evidence is not None else 1
+            if len(records) != expected_count:
+                failures.append(
+                    f"{source}: mapping {relation!r} has {len(records)} source records; expected {expected_count}"
+                )
+            if expected_evidence is None:
+                continue
+            expected_rows = sorted(
+                (
+                    row.source_locator,
+                    row.source_digest,
+                    _canonical_json_bytes(row.native_payload).decode("utf-8"),
+                )
+                for row in expected_evidence
+            )
+            observed_rows = sorted(observed_mapping_evidence.get(relation, ()))
+            if observed_rows != expected_rows:
+                failures.append(
+                    f"{source}: mapping {relation!r} evidence rows differ from the independent source reconstruction"
+                )
+
+    for field_name, records in sorted(unexpected_payload_fields.items()):
+        examples = ", ".join(f"<{record}>" for record in records[:5])
+        suffix = "" if len(records) <= 5 else f"; {len(records) - 5} more records"
+        failures.append(
+            f"{source}: nativePayload field {field_name!r} is not independently evaluated "
+            f"for {len(records)} source records; examples: {examples}{suffix}"
+        )
+    return failures
+

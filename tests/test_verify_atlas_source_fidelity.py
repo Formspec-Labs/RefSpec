@@ -19,6 +19,7 @@ import io
 import json
 import zipfile
 from collections.abc import Callable, Sequence
+from contextlib import suppress
 from dataclasses import replace
 from pathlib import Path
 
@@ -132,9 +133,21 @@ def _quad(subject: str, predicate: str, obj: str, *, literal: bool = False, lang
     """Render one asserted-graph N-Quads line, escaping the object when it is a literal."""
 
     if literal:
+        if predicate == f"{ATLAS}nativePayload":
+            with suppress(ValueError):
+                obj = json.dumps(json.loads(obj), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         escaped = obj.replace("\\", "\\\\").replace('"', '\\"')
         return f'<{subject}> <{predicate}> "{escaped}"@{lang} <{GRAPH}> .'
     return f"<{subject}> <{predicate}> <{obj}> <{GRAPH}> ."
+
+
+def _payload_digest(payload: object) -> str:
+    return (
+        "sha256:"
+        + hashlib.sha256(
+            json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+    )
 
 
 def atlas_pack_lines(
@@ -164,8 +177,6 @@ def atlas_pack_lines(
     extra_native_payload = extra_native_payload or {}
     extra_native_payload_by_resource = extra_native_payload_by_resource or {}
     source_locators = source_locators or {}
-    if source_digest is None:
-        source_digest = "sha256:" + hashlib.sha256(publisher_turtle().encode("utf-8")).hexdigest()
     lines: list[str] = [
         _quad(
             scheme_target,
@@ -191,8 +202,6 @@ def atlas_pack_lines(
                 source_locators.get(iri, resource),
             )
         )
-        if include_source_digest:
-            lines.append(_plain_literal_quad(record, f"{ATLAS}sourceDigest", source_digest))
         lines.append(_quad(record, f"{ATLAS}representsResource", resource))
         native_payload: dict[str, object] = {"schemeIris": list(native_scheme_iris.get(iri, (SCHEME,)))}
         if iri in top_concepts:
@@ -201,6 +210,14 @@ def atlas_pack_lines(
             native_payload["sourceAnnotations"] = list(native_literal_evidence[iri])
         native_payload.update(extra_native_payload)
         native_payload.update(extra_native_payload_by_resource.get(iri, {}))
+        if include_source_digest:
+            from tools.verify_atlas_source_fidelity import _canonical_json_digest
+
+            lines.append(
+                _plain_literal_quad(
+                    record, f"{ATLAS}sourceDigest", source_digest or _canonical_json_digest(native_payload)
+                )
+            )
         lines.append(
             _quad(
                 record,
@@ -335,8 +352,6 @@ class Fixture:
     def write_pack(self, **kwargs: object) -> None:
         """Write an Atlas pack, defaulting the source digest to the publisher's own."""
 
-        if "source_digest" not in kwargs:
-            kwargs["source_digest"] = self.publisher_content_digest()
         lines = atlas_pack_lines(**kwargs)  # type: ignore[arg-type]
         self.write_pack_lines(lines)
 
@@ -399,6 +414,9 @@ def failed(results: Sequence) -> set[str]:
 def _plain_literal_quad(subject: str, predicate: str, value: str) -> str:
     """Render an untagged literal asserted-graph N-Quads line."""
 
+    if predicate == f"{ATLAS}nativePayload":
+        with suppress(ValueError):
+            value = json.dumps(json.loads(value), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     escaped = value.replace("\\", "\\\\").replace('"', '\\"')
     return f'<{subject}> <{predicate}> "{escaped}" <{GRAPH}> .'
 
@@ -684,7 +702,7 @@ def _add_lda_general_issue_json_source(
         _quad(resource, f"{RDF}type", f"{SKOS}Concept"),
         _quad(record, f"{RDF}type", f"{ATLAS}SourceRecord"),
         _quad(record, f"{ATLAS}sourceLocator", source_iri),
-        _plain_literal_quad(record, f"{ATLAS}sourceDigest", source_digest),
+        _plain_literal_quad(record, f"{ATLAS}sourceDigest", _payload_digest(native_payload)),
         _quad(record, f"{ATLAS}representsResource", resource),
         _plain_literal_quad(
             record,
@@ -804,7 +822,7 @@ def _add_mesh_xml_source(
         _quad(resource, f"{SKOS}inScheme", scheme),
         _quad(record, f"{RDF}type", f"{ATLAS}SourceRecord"),
         _quad(record, f"{ATLAS}sourceLocator", resource),
-        _plain_literal_quad(record, f"{ATLAS}sourceDigest", source_pin.sha256),
+        _plain_literal_quad(record, f"{ATLAS}sourceDigest", _payload_digest(native_payload)),
         _quad(record, f"{ATLAS}representsResource", resource),
         _plain_literal_quad(
             record,
@@ -934,7 +952,7 @@ def _add_single_record_stock_source(
         ),
         _quad(record, f"{RDF}type", f"{ATLAS}SourceRecord"),
         _quad(record, f"{ATLAS}sourceLocator", source_locator),
-        _plain_literal_quad(record, f"{ATLAS}sourceDigest", source_digest),
+        _plain_literal_quad(record, f"{ATLAS}sourceDigest", _payload_digest(native_payload)),
         _quad(record, f"{ATLAS}representsResource", resource),
         _plain_literal_quad(
             record,
@@ -2757,7 +2775,7 @@ def _with_group(suite: Fixture) -> None:
     """Add a publisher browsing-group layer Atlas does not model and re-write the pack."""
 
     suite.write_publisher(extra_triples=GROUP_TRIPLES)
-    suite.write_pack(source_digest=suite.publisher_content_digest())
+    suite.write_pack()
 
 
 def test_an_undeclared_publisher_entity_layer_stays_uncovered(suite: Fixture) -> None:
@@ -2820,7 +2838,7 @@ def test_a_declared_exclusion_fails_closed_when_atlas_asserts_the_layer(
 ) -> None:
     """The exclusion only ever removes publisher claims; the Atlas side stays live."""
     suite.write_publisher(extra_triples=GROUP_TRIPLES)
-    lines = atlas_pack_lines(source_digest=suite.publisher_content_digest())
+    lines = atlas_pack_lines()
     lines.append(_quad(GROUP, f"{SKOS}prefLabel", "Manufactured group", literal=True))
     suite.write_pack_lines(lines)
     spec = replace(suite.spec, declared_claim_exclusions=(GROUP_EXCLUSION,))
@@ -2856,7 +2874,7 @@ def test_a_declared_exclusion_reaches_its_own_blank_nodes_and_no_others(
             f'<{SCHEME}> <{EX}partition> [ <{EX}entities> "9" ] .'
         )
     )
-    fixture.write_pack(source_digest=fixture.publisher_content_digest())
+    fixture.write_pack()
     fixture.spec = replace(fixture.spec, declared_claim_exclusions=(GROUP_EXCLUSION,))
     monkeypatch.setattr(verifier, "SOURCES", (fixture.spec,))
     output = tmp_path / "receipt.json"
@@ -2959,7 +2977,7 @@ def test_language_exclusion_is_exact_and_itemised_in_the_receipt(
 
     fixture = Fixture(tmp_path)
     fixture.write_publisher(extra_triples=f'<{EX}c1> <{SKOS}prefLabel> "Sociedade do café"@pt .')
-    fixture.write_pack(source_digest=fixture.publisher_content_digest())
+    fixture.write_pack()
     declaration = _language_declaration({"pt": {"preferredLabels": 1}})
     fixture.spec = _declare_fixture_language_scope(fixture, declaration)
     monkeypatch.setattr(verifier, "SOURCES", (fixture.spec,))
@@ -3011,7 +3029,7 @@ def test_language_exclusion_never_removes_untagged_or_iri_claims(
             f"  <{iri_predicate}> <{EX}target> ."
         )
     )
-    suite.write_pack(source_digest=suite.publisher_content_digest())
+    suite.write_pack()
     spec = _declare_fixture_language_scope(
         suite,
         _language_declaration({"pt": {"preferredLabels": 1}}),
@@ -3033,7 +3051,7 @@ def test_language_exclusion_keeps_a_scheme_label_in_its_comparison_family(
     """Pins that an excluded scheme label stays accounted for in its own predicate family."""
 
     suite.write_publisher(extra_triples=(f'<{SCHEME}> <{SKOS}altLabel> "Vocabulário de exemplo"@pt .'))
-    suite.write_pack(source_digest=suite.publisher_content_digest())
+    suite.write_pack()
     declaration = _language_declaration(
         {"pt": {"sourceSchemeLiterals": 1}},
         predicate_families={
@@ -3071,7 +3089,7 @@ def test_language_exclusion_fails_closed_on_count_or_language_drift(
     """Pins that a declared count or language differing from the source fails language-scope."""
 
     suite.write_publisher(extra_triples=(f'<{EX}c1> <{SKOS}prefLabel> "Out of declared scope"@{source_language} .'))
-    suite.write_pack(source_digest=suite.publisher_content_digest())
+    suite.write_pack()
     spec = _declare_fixture_language_scope(
         suite,
         _language_declaration(counts),
@@ -3092,7 +3110,7 @@ def test_language_exclusion_fails_closed_on_an_undeclared_predicate_family(
 
     predicate = f"{EX}localizedMetadata"
     suite.write_publisher(extra_triples=f'<{EX}c1> <{predicate}> "Fora do escopo"@pt .')
-    suite.write_pack(source_digest=suite.publisher_content_digest())
+    suite.write_pack()
     spec = _declare_fixture_language_scope(
         suite,
         _language_declaration({}),
@@ -3112,7 +3130,7 @@ def test_language_scope_fails_when_construction_statement_is_omitted(
     """Pins that a declaration without the construction's languageScope statement fails."""
 
     suite.write_publisher(extra_triples=f'<{EX}c1> <{SKOS}prefLabel> "Sociedade do café"@pt .')
-    suite.write_pack(source_digest=suite.publisher_content_digest())
+    suite.write_pack()
     spec = replace(
         suite.spec,
         declared_language_exclusion=_language_declaration({"pt": {"preferredLabels": 1}}),
@@ -3132,7 +3150,7 @@ def test_language_scope_fails_on_a_non_english_atlas_literal_anywhere(
     """Pins that any out-of-scope non-English Atlas literal, even Atlas-only, fails language-scope."""
 
     suite.write_publisher(extra_triples=f'<{EX}c1> <{SKOS}prefLabel> "Sociedade do café"@pt .')
-    lines = atlas_pack_lines(source_digest=suite.publisher_content_digest())
+    lines = atlas_pack_lines()
     atlas_only = "urn:ref:atlas-release:language-test"
     lines.extend(
         (
@@ -3165,7 +3183,7 @@ def test_language_exclusion_leaves_english_claims_compared_both_directions(
     """Pins that English claims stay compared both ways: a missing and an extra label both fail."""
 
     suite.write_publisher(extra_triples=f'<{EX}c1> <{SKOS}prefLabel> "Source English"@en .')
-    lines = atlas_pack_lines(source_digest=suite.publisher_content_digest())
+    lines = atlas_pack_lines()
     lines.append(
         _quad(
             f"{EX}c2",
@@ -3198,7 +3216,7 @@ def _with_adopted_release(suite: Fixture, *, atlas_asserts: Sequence[str] = ()) 
             f'  <http://purl.org/dc/terms/version> "1.0" .'
         )
     )
-    lines = atlas_pack_lines(source_digest=suite.publisher_content_digest())
+    lines = atlas_pack_lines()
     lines.append(_quad(RELEASE, f"{RDF}type", f"{ATLAS}SourceRelease"))
     lines.extend(atlas_asserts)
     suite.write_pack_lines(lines)
@@ -3542,7 +3560,7 @@ def test_publisher_pin_fails_even_when_tampered_atlas_matches(suite: Fixture) ->
 def test_graph_structure_ignores_named_graph_placement(suite: Fixture) -> None:
     """Pins that moving one quad to another named graph does not fail graph-structure."""
 
-    lines = atlas_pack_lines(source_digest=suite.publisher_content_digest())
+    lines = atlas_pack_lines()
     lines[0] = lines[0].replace(f"<{GRAPH}>", "<urn:ref:atlas:graph:v3:derived>")
     suite.write_pack_lines(lines)
     check = result(suite.run(), "graph-structure")
@@ -3607,7 +3625,7 @@ def test_graph_structure_accepts_a_digested_source_shaped_editorial_relation(
         "publisherRelationDigest": relation_digest,
     }
     record = "urn:ref:atlas-source-record:editorial-relation"
-    lines = atlas_pack_lines(source_digest=suite.publisher_content_digest())
+    lines = atlas_pack_lines()
     lines.extend(
         (
             _quad(record, f"{RDF}type", f"{ATLAS}SourceRecord"),
@@ -3787,70 +3805,11 @@ def test_rdf_provenance_fails_closed_on_an_unevaluated_native_field(
     )
 
 
-def test_record_digest_is_native_payload_digest_is_honestly_a_format_check(suite: Fixture) -> None:
-    """``record_digest_is_native_payload_digest`` verifies Atlas's own
-    internal self-consistency (sourceDigest == sha256(nativePayload)), never
-    an independent tie to the publisher's bytes -- RDF sources carry no
-    natural per-resource byte range to hash independently of what Atlas
-    already stored. A real mismatch is still caught, and the failure text
-    says so honestly rather than reading like a publisher-fidelity claim."""
-    spec = replace(
-        suite.spec,
-        rdf_source=replace(suite.spec.rdf_source, record_digest_is_native_payload_digest=True),
-    )
+def test_native_payload_self_hash_is_a_format_check(suite: Fixture) -> None:
     suite.write_pack(source_digest="sha256:" + "a" * 64)
-
-    check = result(suite.run(spec=spec), "rdf-provenance-fidelity")
-
+    check = result(suite.run(), "rdf-provenance-fidelity")
     assert not check.passed
-    assert any(
-        "format self-consistency check" in text and "not an independent publisher-fidelity proof" in text
-        for text in check.failures
-    )
-
-
-def test_record_digest_is_native_payload_digest_never_crashes_alongside_an_independent_reader_digest(
-    suite: Fixture,
-) -> None:
-    """The latent ``len(None)`` TypeError this combination used to trigger.
-
-    ``RdfSourcePolicy.record_digest_is_native_payload_digest`` (this spec's
-    own format self-check) forces ``expected_digests`` to ``None``.
-    ``PublisherView.source_digest_is_native_payload_digest`` is a separate,
-    reader-level flag some non-RDF readers set independently -- the two are
-    unrelated and may legitimately both be true at once, but before the fix
-    that combination evaluated ``len(None)`` and crashed instead of the RDF
-    spec's format check and the reader's own flag coexisting cleanly.
-    """
-    import tools.verify_atlas_source_fidelity as verifier
-
-    spec = replace(
-        suite.spec,
-        rdf_source=replace(suite.spec.rdf_source, record_digest_is_native_payload_digest=True),
-    )
-    ctx = verifier.build_context(
-        suite.distribution,
-        suite.source_root,
-        Expectations(minimum_label_sample=1),
-        (spec,),
-    )
-    pair = ctx.pairs[0]
-    mutated_pair = replace(
-        pair,
-        publisher=replace(pair.publisher, source_digest_is_native_payload_digest=True),
-    )
-
-    failures = verifier._rdf_provenance_failures(mutated_pair)
-
-    assert isinstance(failures, list)
-    assert all(isinstance(item, str) for item in failures)
-
-    # The same combination through the public check function, which must
-    # also come back as ordinary failures/passes, never an internal error
-    # finding standing in for a crash.
-    checked_ctx = replace(ctx, pairs=(mutated_pair,))
-    check = verifier.check_rdf_provenance_fidelity(checked_ctx)
-    assert not any("internal error" in failure for failure in check.failures)
+    assert any("format self-consistency" in text for text in check.failures)
 
 
 # --------------------------------------------------------------------------------------
@@ -3942,7 +3901,7 @@ def _traced_group_atlas_lines(
         _quad(resource, f"{RDF}type", f"{SKOS}Concept"),
         _quad(record, f"{RDF}type", f"{ATLAS}SourceRecord"),
         _quad(record, f"{ATLAS}sourceLocator", resource),
-        _plain_literal_quad(record, f"{ATLAS}sourceDigest", source_digest),
+        _plain_literal_quad(record, f"{ATLAS}sourceDigest", _payload_digest({"schemeIris": []})),
         _quad(record, f"{ATLAS}representsResource", resource),
         _quad(
             record,
@@ -3962,7 +3921,7 @@ def test_additional_traced_publisher_type_stops_a_real_subject_from_looking_unkn
 
     suite.write_publisher(extra_triples=GROUP_TRIPLES)
     digest = suite.publisher_content_digest()
-    lines = atlas_pack_lines(source_digest=digest)
+    lines = atlas_pack_lines()
     lines.extend(_traced_group_atlas_lines(digest))
     suite.write_pack_lines(lines)
     spec = replace(
@@ -3981,7 +3940,7 @@ def test_additional_traced_publisher_type_still_fails_a_fabricated_subject(suite
     never stated must still fail concept-traceability."""
     suite.write_publisher(extra_triples=GROUP_TRIPLES)
     digest = suite.publisher_content_digest()
-    lines = atlas_pack_lines(source_digest=digest)
+    lines = atlas_pack_lines()
     lines.extend(_traced_group_atlas_lines(digest))
     ghost = f"{EX}group/ghost"
     lines.extend(
@@ -4014,7 +3973,7 @@ def test_a_declared_exclusion_still_fails_closed_for_a_now_traced_type(suite: Fi
     """
     suite.write_publisher(extra_triples=GROUP_TRIPLES)
     digest = suite.publisher_content_digest()
-    lines = atlas_pack_lines(source_digest=digest)
+    lines = atlas_pack_lines()
     lines.extend(_traced_group_atlas_lines(digest))
     suite.write_pack_lines(lines)
     spec = replace(suite.spec, declared_claim_exclusions=(GROUP_EXCLUSION,))
@@ -4044,8 +4003,7 @@ def test_expected_absent_concept_stops_a_declared_omission_from_looking_missing(
     """Pins that a declared expected-absent concept is omitted without failing traceability or labels."""
 
     suite.write_publisher()
-    digest = suite.publisher_content_digest()
-    suite.write_pack_lines(atlas_pack_lines(drop_concept=f"{EX}c3", source_digest=digest))
+    suite.write_pack_lines(atlas_pack_lines(drop_concept=f"{EX}c3"))
     spec = replace(suite.spec, expected_absent_concepts=frozenset({f"{EX}c3"}))
 
     results = suite.run(spec=spec)
@@ -4151,7 +4109,7 @@ def _organization_atlas_lines(
         _quad(resource, f"{RDF}type", f"{SKOS}Concept"),
         _quad(record, f"{RDF}type", f"{ATLAS}SourceRecord"),
         _quad(record, f"{ATLAS}sourceLocator", resource),
-        _plain_literal_quad(record, f"{ATLAS}sourceDigest", source_digest),
+        _plain_literal_quad(record, f"{ATLAS}sourceDigest", _payload_digest(native_payload)),
         _quad(record, f"{ATLAS}representsResource", resource),
         _quad(record, f"{ATLAS}nativePayload", json.dumps(native_payload, separators=(",", ":")), literal=True),
         _quad(resource, f"{SKOSXL}prefLabel", label_node),
@@ -4169,7 +4127,7 @@ def _traced_organization_pair(
     """A faithful traced-organization pair, and the spec that declares it."""
     suite.write_publisher(extra_triples=ORGANIZATION_TRIPLES)
     digest = suite.publisher_content_digest()
-    lines = atlas_pack_lines(source_digest=digest)
+    lines = atlas_pack_lines()
     lines.extend(_organization_atlas_lines(digest, native_payload=native_payload))
     if extra_atlas_lines is not None:
         lines.extend(extra_atlas_lines(digest))
@@ -4204,8 +4162,7 @@ def test_expected_absent_concept_pair_passes_every_check_not_just_traceability(
     """Same bar for the declared-absent concept: no check anywhere may report
     it as missing, and none may report its publisher claims as unlooked-at."""
     suite.write_publisher()
-    digest = suite.publisher_content_digest()
-    suite.write_pack_lines(atlas_pack_lines(drop_concept=f"{EX}c3", source_digest=digest))
+    suite.write_pack_lines(atlas_pack_lines(drop_concept=f"{EX}c3"))
     spec = replace(suite.spec, expected_absent_concepts=frozenset({f"{EX}c3"}))
 
     results = suite.run(spec=spec)
@@ -4342,7 +4299,7 @@ def test_organization_contract_still_requires_a_real_publisher_top_concept(suite
         extra_triples=ORGANIZATION_TRIPLES + f"\n<{ORGANIZATION}> <{SKOS}topConceptOf> <{SCHEME}> .",
     )
     digest = suite.publisher_content_digest()
-    lines = atlas_pack_lines(source_digest=digest)
+    lines = atlas_pack_lines()
     lines.extend(_organization_atlas_lines(digest))
     suite.write_pack_lines(lines)
     spec = replace(
@@ -4647,7 +4604,7 @@ def test_publisher_skosxl_label_is_compared_through_its_literal_form(suite: Fixt
             f'<{label_node}> <{SKOSXL}literalForm> "Private source label"@en .'
         )
     )
-    lines = atlas_pack_lines(source_digest=suite.publisher_content_digest())
+    lines = atlas_pack_lines()
     lines.append(_quad(f"{EX}c1", f"{SKOSXL}hiddenLabel", label_node))
     lines.append(_quad(label_node, f"{SKOSXL}literalForm", "Private source label", literal=True))
     suite.write_pack_lines(lines)
@@ -4669,7 +4626,7 @@ def test_empty_publisher_label_node_is_a_defect_not_an_uncovered_claim(
     """
     empty_node = f"{EX}label/empty-c1"
     suite.write_publisher(extra_triples=f"<{EX}c1> <{SKOSXL}prefLabel> <{empty_node}> .")
-    suite.write_pack(source_digest=suite.publisher_content_digest())
+    suite.write_pack()
 
     results = suite.run()
 
@@ -4693,7 +4650,7 @@ def test_publisher_label_node_with_two_literal_forms_stays_uncovered(
             f'<{node}> <{SKOSXL}literalForm> "First form"@en, "Second form"@en .'
         )
     )
-    suite.write_pack(source_digest=suite.publisher_content_digest())
+    suite.write_pack()
 
     check = result(suite.run(), "source-claim-coverage")
 
@@ -4960,7 +4917,7 @@ def test_single_declared_note_predicate_round_trips_generic_atlas_note(
     """Pins that a declared single note predicate inverse round-trips a generic Atlas note."""
 
     suite.write_publisher(extra_triples=f'<{EX}c1> <{SKOS}historyNote> "Role is source-wide."@en .')
-    lines = atlas_pack_lines(source_digest=suite.publisher_content_digest())
+    lines = atlas_pack_lines()
     lines.append(
         _quad(
             f"{EX}c1",
@@ -5060,7 +5017,6 @@ def test_resource_annotation_target_closure_round_trips_exactly(
     )
     lines = atlas_pack_lines(
         extra_relations=((f"{EX}c1", f"{SKOS}definition", definition),),
-        source_digest=suite.publisher_content_digest(),
     )
     lines.append(
         _quad(
@@ -5101,7 +5057,6 @@ def test_resource_annotation_target_closure_rejects_a_novel_atlas_predicate(
                 ]
             }
         },
-        source_digest=suite.publisher_content_digest(),
     )
     lines.append(
         _quad(
@@ -5134,7 +5089,6 @@ def test_resource_annotation_target_closure_ignores_a_direct_atlas_classificatio
     )
     lines = atlas_pack_lines(
         extra_relations=((f"{EX}c1", f"{SKOS}definition", definition),),
-        source_digest=suite.publisher_content_digest(),
     )
     lines.extend(
         [
@@ -5178,7 +5132,6 @@ def test_resource_annotation_target_closure_rejects_a_native_source_type(
                 ]
             }
         },
-        source_digest=suite.publisher_content_digest(),
     )
     lines.append(
         _quad(
@@ -5869,7 +5822,7 @@ def test_source_scheme_literal_round_trips_from_normalized_atlas_label(
 
     suite.write_publisher(extra_triples=f'<{SCHEME}> <{SKOS}prefLabel> "Publisher scheme"@en .')
     label = f"{EX}scheme-label"
-    lines = atlas_pack_lines(source_digest=suite.publisher_content_digest())
+    lines = atlas_pack_lines()
     lines.extend(
         [
             _quad(SCHEME, f"{SKOSXL}prefLabel", label),
@@ -5917,7 +5870,7 @@ def test_source_scheme_skosxl_label_value_is_compared_after_normalization(
         )
     )
     atlas_label = f"{EX}atlas-scheme-label"
-    lines = atlas_pack_lines(source_digest=suite.publisher_content_digest())
+    lines = atlas_pack_lines()
     lines.extend(
         [
             _quad(SCHEME, f"{SKOSXL}prefLabel", atlas_label),
@@ -8048,3 +8001,10 @@ def test_crs_managed_reader_accepts_a_faithful_pair_and_rejects_artifact_fault(
     (root / "source" / "sources" / "source.bin").write_bytes(b"fault")
     with pytest.raises(ValueError, match="artifact pin differs"):
         verifier._read_crs_source_concept_release(spec, {pin: manifest_payload})
+
+
+def test_noncanonical_native_payload_is_rejected_with_valid_self_hash(suite: Fixture) -> None:
+    lines = [line.replace(":[", ": [") if f"<{ATLAS}nativePayload>" in line else line for line in atlas_pack_lines()]
+    suite.write_pack_lines(lines)
+    graph = result(suite.run(), "graph-structure")
+    assert any("nativePayload is not canonical JSON" in failure for failure in graph.failures)

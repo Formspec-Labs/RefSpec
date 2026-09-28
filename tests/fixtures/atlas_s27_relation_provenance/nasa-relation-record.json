@@ -1,0 +1,38 @@
+{
+  "nativePayload": {
+    "editorialTransformation": {
+      "fromPredicate": "http://www.w3.org/2004/02/skos/core#related",
+      "reason": "SKOS-S27-hierarchy-path",
+      "rule": "preserveAuthoredAssociationOutsideSkosProjection",
+      "toPredicate": "https://refspec.org/ns/atlas/v3#thesaurusRelated"
+    },
+    "publisherRelation": {
+      "normalizedPredicateIri": "http://www.w3.org/2004/02/skos/core#related",
+      "objectIri": "https://sti.nasa.gov/docs/thesaurus/thesaurus-SKOS.xml#61980",
+      "predicateIri": "http://www.w3.org/2004/02/skos/core#related",
+      "subjectIri": "https://sti.nasa.gov/docs/thesaurus/thesaurus-SKOS.xml#47375"
+    },
+    "publisherRelationDigest": "sha256:fe084dbd4e6b405850b379c6b057ae266b6c90c2c67d01b6048669a3287e0be8"
+  },
+  "note": "One real S27 relation SourceRecord from a bounded nasa-thesaurus-skos build (generator at lane/atlas-refresh-20260927 bf9162c1), with the publisher triple and the skos:broader path that justifies moving it to atlas:thesaurusRelated. Both are in the pinned NASA thesaurus bytes.",
+  "publisherHierarchy": [
+    [
+      "https://sti.nasa.gov/docs/thesaurus/thesaurus-SKOS.xml#61980",
+      "http://www.w3.org/2004/02/skos/core#broader",
+      "https://sti.nasa.gov/docs/thesaurus/thesaurus-SKOS.xml#61976"
+    ],
+    [
+      "https://sti.nasa.gov/docs/thesaurus/thesaurus-SKOS.xml#61976",
+      "http://www.w3.org/2004/02/skos/core#broader",
+      "https://sti.nasa.gov/docs/thesaurus/thesaurus-SKOS.xml#47375"
+    ]
+  ],
+  "publisherRelation": [
+    "https://sti.nasa.gov/docs/thesaurus/thesaurus-SKOS.xml#47375",
+    "http://www.w3.org/2004/02/skos/core#related",
+    "https://sti.nasa.gov/docs/thesaurus/thesaurus-SKOS.xml#61980"
+  ],
+  "sourceDigest": "sha256:ca7b9be70e379076c4f9d2a75ed7c891119994ab389c773a667027f4ad787c14",
+  "sourceLocator": "urn:ref:publisher-relation:fe084dbd4e6b405850b379c6b057ae266b6c90c2c67d01b6048669a3287e0be8",
+  "sourceRecord": "urn:ref:atlas-source-record:017a41a1498ff65835c6b61fe7c97e051628a809736e6f8022b1d6f4047379a9"
+}

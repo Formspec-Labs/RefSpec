@@ -1,0 +1,132 @@
+def _read_lc_external_target_endpoints(
+    spec: SourceSpec,
+    payloads: Mapping[SourcePin, bytes],
+) -> PublisherView:
+    """Rebuild LC-published target endpoint records without the registry reader."""
+
+    source_pin = next(pin for pin in spec.inputs if pin.role == "publisherEndpointSource")
+    payload = payloads[source_pin]
+    vocabularies = {key.removeprefix("lc-external-").removesuffix("-endpoints-2026-08-15") for key in spec.release_keys}
+    active_fast = (
+        _fast_active_iris_from_pins(
+            spec,
+            payloads,
+            base_role="publisherBase",
+            change_role_prefix="publisherChange",
+        )
+        if "fast" in vocabularies
+        else frozenset()
+    )
+    targets: dict[str, str] = {}
+    label_rows: dict[str, list[tuple[int, str, str, str, str, str]]] = defaultdict(list)
+    try:
+        with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+            members = [name for name in archive.namelist() if name == "external_links.nt"]
+            if members != ["external_links.nt"]:
+                raise ValueError(f"{source_pin.path} external_links.nt member differs")
+            with archive.open(members[0]) as source:
+                for raw in source:
+                    line = raw.rstrip(b"\r\n").decode("ascii")
+                    if not line.startswith(f"<{_LCSH_SUBJECT_BASE}"):
+                        continue
+                    match = _FAST_SUBJECT_PREDICATE.fullmatch(line)
+                    if match is None or match.group(2) not in _LC_MADS_TO_SKOS:
+                        continue
+                    object_match = _FAST_IRI_OBJECT.fullmatch(match.group(3))
+                    if object_match is None:
+                        continue
+                    target = object_match.group(1)
+                    vocabulary = _lc_target_vocabulary(target)
+                    if vocabulary in vocabularies and target not in active_fast:
+                        targets[target] = vocabulary
+            with archive.open(members[0]) as source:
+                for line_number, raw in enumerate(source, start=1):
+                    line_bytes = raw.rstrip(b"\r\n")
+                    line = line_bytes.decode("ascii")
+                    if not line.startswith("<"):
+                        continue
+                    match = _FAST_SUBJECT_PREDICATE.fullmatch(line)
+                    if match is None or match.group(1) not in targets or match.group(2) != _LC_AUTHORITATIVE_LABEL:
+                        continue
+                    literal = _LC_LITERAL_OBJECT.fullmatch(match.group(3))
+                    if literal is None:
+                        raise ValueError(f"{source_pin.path} line {line_number} label differs")
+                    value = _unescape_ntriples_text(
+                        literal.group(1),
+                        label=f"{source_pin.path} line {line_number}",
+                    )
+                    publisher_language = literal.group(2)
+                    language, rule = _LC_TARGET_LANGUAGE_RULES[targets[match.group(1)]]
+                    if publisher_language is not None:
+                        language = publisher_language.lower()
+                        rule = "publisherLanguageTag"
+                    label_rows[match.group(1)].append(
+                        (
+                            line_number,
+                            value,
+                            language,
+                            rule,
+                            "sha256:" + hashlib.sha256(line_bytes).hexdigest(),
+                            line,
+                        )
+                    )
+    except (OSError, zipfile.BadZipFile) as error:
+        raise ValueError(f"{source_pin.path} is not a valid LC ZIP") from error
+    missing = set(targets) - set(label_rows)
+    if missing:
+        raise ValueError(f"{spec.name} target endpoints lack labels: {sorted(missing)[:5]}")
+    expected_count = sum(_LC_TARGET_ENDPOINT_COUNTS[name] for name in vocabularies)
+    if len(label_rows) != expected_count:
+        raise ValueError(f"{spec.name} endpoint count differs: expected {expected_count}, observed {len(label_rows)}")
+
+    def records() -> Iterator[_StockVocabularyRecord]:
+        for resource in sorted(label_rows):
+            rows = sorted(label_rows[resource])
+            selected: list[tuple[int, str, str, str, str, str]] = []
+            seen: set[tuple[str, str]] = set()
+            for row in rows:
+                key = (row[1].strip(), row[2])
+                if not key[0] or key in seen:
+                    continue
+                seen.add(key)
+                selected.append(row)
+            language_rules = {row[3] for row in rows}
+            if len(language_rules) != 1 or not selected:
+                raise ValueError(f"{spec.name} endpoint language evidence differs: {resource}")
+            native = {
+                "languageDeterminedBy": next(iter(language_rules)),
+                "publisherLabels": [
+                    {
+                        "determinedLanguageTag": language,
+                        "languageDeterminedBy": rule,
+                        "lineNumber": line_number,
+                        "nativeStatement": native_statement,
+                        "publisherLanguageTagPresent": False,
+                        "publisherPredicateIri": _LC_AUTHORITATIVE_LABEL,
+                        "sourceRecordDigest": digest,
+                        "value": value,
+                    }
+                    for line_number, value, language, rule, digest, native_statement in rows
+                ],
+                "publisherLanguageTagPresent": False,
+                "targetVocabulary": targets[resource],
+            }
+            digests = [row[4] for row in rows]
+            yield _StockVocabularyRecord(
+                resource=resource,
+                preferred_labels=(_literal_value(selected[0][1].strip(), selected[0][2], None),),
+                alternate_labels=tuple(_literal_value(row[1].strip(), row[2], None) for row in selected[1:]),
+                notations=(),
+                annotations=(),
+                source_locator=(f"{source_pin.source_iri}#external_links.nt-line-{rows[0][0]}"),
+                source_digest=_canonical_json_digest(digests),
+                native_payload=native,
+            )
+
+    return _stock_vocabulary_view(
+        records(),
+        (),
+        (),
+        spec.inputs,
+        source_digest_is_native_payload_digest=False,
+    )

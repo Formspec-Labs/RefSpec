@@ -1,0 +1,1090 @@
+{
+  "reviewedAtUtc": "2026-09-27T20:09:22.725652+00:00",
+  "scope": "Nine adopted events only; no owner decision changed; no artifact modified; factual source comparison, not legal advice or a full Atlas source-fidelity verdict.",
+  "counts": {
+    "events": 9,
+    "resultRows": 14,
+    "citedOriginalUrls": 19,
+    "retrievedSourcesIncludingLinkedPdf": 20
+  },
+  "blockedSources": [],
+  "contradictedEventDateOrFunctionClaims": [],
+  "qualifications": [
+    "FR559 June29 is an owner-selected order/signature date; primary text has no explicit effective-date clause.",
+    "FR259 November21 roster rename date differs from the rule December22 effective date.",
+    "FR564 uses enactment-date inference and retains an owner adjudication about successor versus duplicate roster identity.",
+    "FR510 section1301 includes an earlier-plan condition; cited roster corroborates October1, but the uncited section1601 plan was not newly acquired.",
+    "FR559 primary spelling Financing differs from the retained roster label Finance."
+  ],
+  "events": [
+    {
+      "eventId": "event:fr96",
+      "ownerDecision": {
+        "answer": "accept-every-row",
+        "decided_on": "2026-09-26",
+        "content_digest": "sha256:fa18fe419e2d525c745b58c7aa9ff90e9b3075292eceeaef92048f7c428bdc28",
+        "channel": "questionTool"
+      },
+      "decisionMatchesCandidateDigest": true,
+      "selectedDate": "2003-03-01",
+      "selectedDateBasis": "the Reorganization Plan Modification's effective date, as 68 FR 51868 recites it; the Homeland Security Act itself names no such date, since its sec. 4 takes effect 60 days after enactment",
+      "originals": [
+        {
+          "id": 96,
+          "name_field": "name",
+          "parent": {
+            "publisher_name": "Treasury Department",
+            "resource_iri": "urn:ref:federal-register-agency:497"
+          },
+          "publisher_name": "Customs Service",
+          "release_key": "federal-register-agencies-roster-2026-08-15",
+          "resource_iri": "urn:ref:federal-register-agency:96",
+          "roster": "federal-register-agencies",
+          "short_name": null,
+          "slug": "customs-service"
+        }
+      ],
+      "results": [
+        {
+          "candidateId": "succ:fr96:fr501",
+          "target": {
+            "id": 501,
+            "name_field": "name",
+            "parent": {
+              "publisher_name": "Homeland Security Department",
+              "resource_iri": "urn:ref:federal-register-agency:227"
+            },
+            "publisher_name": "U.S. Customs and Border Protection",
+            "release_key": "federal-register-agencies-roster-2026-08-15",
+            "resource_iri": "urn:ref:federal-register-agency:501",
+            "roster": "federal-register-agencies",
+            "short_name": "USCBP",
+            "slug": "u-s-customs-and-border-protection"
+          },
+          "functionsTaken": "the Customs Service's inspection and ports-of-entry side (the plan's subsection (b) bureau)"
+        },
+        {
+          "candidateId": "succ:fr96:fr503",
+          "target": {
+            "id": 503,
+            "name_field": "name",
+            "parent": {
+              "publisher_name": "Homeland Security Department",
+              "resource_iri": "urn:ref:federal-register-agency:227"
+            },
+            "publisher_name": "U.S. Immigration and Customs Enforcement",
+            "release_key": "federal-register-agencies-roster-2026-08-15",
+            "resource_iri": "urn:ref:federal-register-agency:503",
+            "roster": "federal-register-agencies",
+            "short_name": "ICE",
+            "slug": "u-s-immigration-and-customs-enforcement"
+          },
+          "functionsTaken": "the investigation arms of the former Customs Service (H. Doc. 108-32 subsection (a))"
+        }
+      ],
+      "claims": [
+        {
+          "field": "effectiveDate",
+          "status": "matched",
+          "finding": "2003-03-01 is explicitly the plan implementation date. It is distinct from the HSA general 60-day effective date and the later August 28 regulation date.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.govinfo.gov/content/pkg/CDOC-108hdoc32/pdf/CDOC-108hdoc32.pdf",
+              "sourceSha256": "f1366de6497beea9ca796327248e238eb88267c22d28de67efe41555c85d7fdf",
+              "retainedPath": "sources/ad3ab464bfe830e5.pdf",
+              "location": "PDF pages 5-6, printed pages 3-4, Plan Modifications (a)/(b), and IMPLEMENTATION DATE; viewed full pages 5-9"
+            },
+            {
+              "sourceUrl": "https://www.congress.gov/107/plaws/publ296/PLAW-107publ296.htm",
+              "sourceSha256": "e96e8b44905469d308187a78a906db5695ebb0b3c218575e55835c62526a0fd2",
+              "retainedPath": "sources/35ab9afed6eaf60b.html",
+              "location": "HSA sections 4, 403(1), 412(a)-(b), 441, 451(a)-(b), 471; text lines 558-560, 2792-2800, 2842-2894, 3682-3696, 3846-3860, 3916-3930, 4493-4500"
+            },
+            {
+              "sourceUrl": "https://www.federalregister.gov/documents/2003/08/28/03-21995/delegations-of-authority-signature-of-customs-and-border-protection-regulations-published-in-the",
+              "sourceSha256": "396036e6b56ebadf26bc50dff9ea3f8599e68e6c5ee320041fbb8e35a67ebb4a",
+              "retainedPath": "sources/cdb2702515e61d46.html",
+              "location": "68 FR 51868, SUPPLEMENTARY INFORMATION / Background; text lines 433-454"
+            }
+          ]
+        },
+        {
+          "field": "original/result organizations",
+          "status": "matched_with_roster_display_variants",
+          "finding": "The primary plan renames Customs Service to Bureau of Customs and Border Protection and places Customs interior-enforcement resources in Bureau of Immigration and Customs Enforcement. The selected roster names add U.S. and omit Bureau of.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.govinfo.gov/content/pkg/CDOC-108hdoc32/pdf/CDOC-108hdoc32.pdf",
+              "sourceSha256": "f1366de6497beea9ca796327248e238eb88267c22d28de67efe41555c85d7fdf",
+              "retainedPath": "sources/ad3ab464bfe830e5.pdf",
+              "location": "PDF pages 5-6, printed pages 3-4, Plan Modifications (a)/(b), and IMPLEMENTATION DATE; viewed full pages 5-9"
+            },
+            {
+              "sourceUrl": "https://www.federalregister.gov/documents/2003/08/28/03-21995/delegations-of-authority-signature-of-customs-and-border-protection-regulations-published-in-the",
+              "sourceSha256": "396036e6b56ebadf26bc50dff9ea3f8599e68e6c5ee320041fbb8e35a67ebb4a",
+              "retainedPath": "sources/cdb2702515e61d46.html",
+              "location": "68 FR 51868, SUPPLEMENTARY INFORMATION / Background; text lines 433-454"
+            }
+          ]
+        },
+        {
+          "field": "functionsTaken / Customs and Border Protection",
+          "status": "matched",
+          "finding": "Plan subsection (b) includes Customs borders and ports-of-entry resources and missions.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.govinfo.gov/content/pkg/CDOC-108hdoc32/pdf/CDOC-108hdoc32.pdf",
+              "sourceSha256": "f1366de6497beea9ca796327248e238eb88267c22d28de67efe41555c85d7fdf",
+              "retainedPath": "sources/ad3ab464bfe830e5.pdf",
+              "location": "PDF pages 5-6, printed pages 3-4, Plan Modifications (a)/(b), and IMPLEMENTATION DATE; viewed full pages 5-9"
+            }
+          ]
+        },
+        {
+          "field": "functionsTaken / Immigration and Customs Enforcement",
+          "status": "matched",
+          "finding": "Plan subsection (a) moves Customs interior enforcement; the FR background expressly identifies the Customs investigation arms.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.govinfo.gov/content/pkg/CDOC-108hdoc32/pdf/CDOC-108hdoc32.pdf",
+              "sourceSha256": "f1366de6497beea9ca796327248e238eb88267c22d28de67efe41555c85d7fdf",
+              "retainedPath": "sources/ad3ab464bfe830e5.pdf",
+              "location": "PDF pages 5-6, printed pages 3-4, Plan Modifications (a)/(b), and IMPLEMENTATION DATE; viewed full pages 5-9"
+            },
+            {
+              "sourceUrl": "https://www.federalregister.gov/documents/2003/08/28/03-21995/delegations-of-authority-signature-of-customs-and-border-protection-regulations-published-in-the",
+              "sourceSha256": "396036e6b56ebadf26bc50dff9ea3f8599e68e6c5ee320041fbb8e35a67ebb4a",
+              "retainedPath": "sources/cdb2702515e61d46.html",
+              "location": "68 FR 51868, SUPPLEMENTARY INFORMATION / Background; text lines 433-454"
+            }
+          ]
+        },
+        {
+          "field": "retained customs revenue authority",
+          "status": "matched",
+          "finding": "HSA section 412(a) retains the Treasury Secretary authority, permits delegation, and section 412(b) protects continued Customs revenue functions. These statements are not a third successor-identity claim.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.congress.gov/107/plaws/publ296/PLAW-107publ296.htm",
+              "sourceSha256": "e96e8b44905469d308187a78a906db5695ebb0b3c218575e55835c62526a0fd2",
+              "retainedPath": "sources/35ab9afed6eaf60b.html",
+              "location": "HSA sections 4, 403(1), 412(a)-(b), 441, 451(a)-(b), 471; text lines 558-560, 2792-2800, 2842-2894, 3682-3696, 3846-3860, 3916-3930, 4493-4500"
+            },
+            {
+              "sourceUrl": "https://www.federalregister.gov/documents/2003/08/28/03-21995/delegations-of-authority-signature-of-customs-and-border-protection-regulations-published-in-the",
+              "sourceSha256": "396036e6b56ebadf26bc50dff9ea3f8599e68e6c5ee320041fbb8e35a67ebb4a",
+              "retainedPath": "sources/cdb2702515e61d46.html",
+              "location": "68 FR 51868, SUPPLEMENTARY INFORMATION / Background; text lines 433-454"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "eventId": "event:fr150",
+      "ownerDecision": {
+        "answer": "accept",
+        "decided_on": "2026-09-26",
+        "content_digest": "sha256:356837bb8a866841611c316cfb2a027b03f46059fad62d7a018248841f07d2af",
+        "channel": "questionTool",
+        "note": "Research 2026-09-26 confirmed: 67 FR 20630 states the rule is effective 2002-04-18, the date of Amendment 3 to DOO 50-1."
+      },
+      "decisionMatchesCandidateDigest": true,
+      "selectedDate": "2002-04-18",
+      "selectedDateBasis": "the Commerce organizational order's date, on which the name-change rule took effect",
+      "originals": [
+        {
+          "id": 150,
+          "name_field": "name",
+          "parent": {
+            "publisher_name": "Commerce Department",
+            "resource_iri": "urn:ref:federal-register-agency:54"
+          },
+          "publisher_name": "Export Administration Bureau",
+          "release_key": "federal-register-agencies-roster-2026-08-15",
+          "resource_iri": "urn:ref:federal-register-agency:150",
+          "roster": "federal-register-agencies",
+          "short_name": "EAB",
+          "slug": "export-administration-bureau"
+        }
+      ],
+      "results": [
+        {
+          "candidateId": "succ:fr150:fr241",
+          "target": {
+            "id": 241,
+            "name_field": "name",
+            "parent": {
+              "publisher_name": "Commerce Department",
+              "resource_iri": "urn:ref:federal-register-agency:54"
+            },
+            "publisher_name": "Industry and Security Bureau",
+            "release_key": "federal-register-agencies-roster-2026-08-15",
+            "resource_iri": "urn:ref:federal-register-agency:241",
+            "roster": "federal-register-agencies",
+            "short_name": "BIS",
+            "slug": "industry-and-security-bureau"
+          },
+          "functionsTaken": null
+        }
+      ],
+      "claims": [
+        {
+          "field": "effectiveDate",
+          "status": "matched",
+          "finding": "The rule expressly takes effect April 18, 2002; Summary and Background identify the internal order dated that day.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.federalregister.gov/documents/2002/04/26/02-10166/industry-and-security-programs-change-of-agency-name",
+              "sourceSha256": "75bb784872d57b4da69689378b42dd4da7f02d752e3a82d1cc6afd2182ef5886",
+              "retainedPath": "sources/79f37f7c309e9701.html",
+              "location": "67 FR 20630-20631, Summary, Dates, Background; text lines 428-447"
+            }
+          ]
+        },
+        {
+          "field": "original/result organizations",
+          "status": "matched_with_roster_display_variants",
+          "finding": "Primary names are Bureau of Export Administration and Bureau of Industry and Security; the retained roster names invert that word order.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.federalregister.gov/documents/2002/04/26/02-10166/industry-and-security-programs-change-of-agency-name",
+              "sourceSha256": "75bb784872d57b4da69689378b42dd4da7f02d752e3a82d1cc6afd2182ef5886",
+              "retainedPath": "sources/79f37f7c309e9701.html",
+              "location": "Summary and Background; text lines 430 and 447"
+            }
+          ]
+        },
+        {
+          "field": "functionsTaken / no split claimed",
+          "status": "matched",
+          "finding": "The saving provision preserves actions and references under the new name. The candidate correctly carries no separate transferred-function list.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.federalregister.gov/documents/2002/04/26/02-10166/industry-and-security-programs-change-of-agency-name",
+              "sourceSha256": "75bb784872d57b4da69689378b42dd4da7f02d752e3a82d1cc6afd2182ef5886",
+              "retainedPath": "sources/79f37f7c309e9701.html",
+              "location": "Savings Provision; text line 451"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "eventId": "event:fr232",
+      "ownerDecision": {
+        "answer": "accept-every-row",
+        "decided_on": "2026-09-26",
+        "content_digest": "sha256:920b5dbfae9ff3e0661dacbe13ca061c416f53cada7150afe83429e999f4c692",
+        "channel": "questionTool"
+      },
+      "decisionMatchesCandidateDigest": true,
+      "selectedDate": "2003-03-01",
+      "selectedDateBasis": "the transfer-and-abolition date the delegation rule and the reorganization plan state",
+      "originals": [
+        {
+          "id": 232,
+          "name_field": "name",
+          "parent": {
+            "publisher_name": "Justice Department",
+            "resource_iri": "urn:ref:federal-register-agency:268"
+          },
+          "publisher_name": "Immigration and Naturalization Service",
+          "release_key": "federal-register-agencies-roster-2026-08-15",
+          "resource_iri": "urn:ref:federal-register-agency:232",
+          "roster": "federal-register-agencies",
+          "short_name": "INS",
+          "slug": "immigration-and-naturalization-service"
+        }
+      ],
+      "results": [
+        {
+          "candidateId": "succ:fr232:fr499",
+          "target": {
+            "id": 499,
+            "name_field": "name",
+            "parent": {
+              "publisher_name": "Homeland Security Department",
+              "resource_iri": "urn:ref:federal-register-agency:227"
+            },
+            "publisher_name": "U.S. Citizenship and Immigration Services",
+            "release_key": "federal-register-agencies-roster-2026-08-15",
+            "resource_iri": "urn:ref:federal-register-agency:499",
+            "roster": "federal-register-agencies",
+            "short_name": "USCIS",
+            "slug": "u-s-citizenship-and-immigration-services"
+          },
+          "functionsTaken": "immigration services and adjudications (the services bureau HSA sec. 451 establishes)"
+        },
+        {
+          "candidateId": "succ:fr232:fr501",
+          "target": {
+            "id": 501,
+            "name_field": "name",
+            "parent": {
+              "publisher_name": "Homeland Security Department",
+              "resource_iri": "urn:ref:federal-register-agency:227"
+            },
+            "publisher_name": "U.S. Customs and Border Protection",
+            "release_key": "federal-register-agencies-roster-2026-08-15",
+            "resource_iri": "urn:ref:federal-register-agency:501",
+            "roster": "federal-register-agencies",
+            "short_name": "USCBP",
+            "slug": "u-s-customs-and-border-protection"
+          },
+          "functionsTaken": "the Border Patrol and the inspections program (H. Doc. 108-32 subsection (b))"
+        },
+        {
+          "candidateId": "succ:fr232:fr503",
+          "target": {
+            "id": 503,
+            "name_field": "name",
+            "parent": {
+              "publisher_name": "Homeland Security Department",
+              "resource_iri": "urn:ref:federal-register-agency:227"
+            },
+            "publisher_name": "U.S. Immigration and Customs Enforcement",
+            "release_key": "federal-register-agencies-roster-2026-08-15",
+            "resource_iri": "urn:ref:federal-register-agency:503",
+            "roster": "federal-register-agencies",
+            "short_name": "ICE",
+            "slug": "u-s-immigration-and-customs-enforcement"
+          },
+          "functionsTaken": "investigations, detention and removal, and intelligence (H. Doc. 108-32 subsection (a))"
+        }
+      ],
+      "claims": [
+        {
+          "field": "effectiveDate",
+          "status": "matched",
+          "finding": "The plan implementation date is March 1, 2003; 68 FR 10922 expressly places the INS transfer and abolition on that day, separate from the delegation rule effective date March 6.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.govinfo.gov/content/pkg/CDOC-108hdoc32/pdf/CDOC-108hdoc32.pdf",
+              "sourceSha256": "f1366de6497beea9ca796327248e238eb88267c22d28de67efe41555c85d7fdf",
+              "retainedPath": "sources/ad3ab464bfe830e5.pdf",
+              "location": "PDF pages 5-6, printed pages 3-4, Plan Modifications (a)/(b), and IMPLEMENTATION DATE; viewed full pages 5-9"
+            },
+            {
+              "sourceUrl": "https://www.federalregister.gov/documents/2003/03/06/03-5146/authority-of-the-secretary-of-homeland-security-delegations-of-authority-immigration-laws",
+              "sourceSha256": "e1d84edcc614239190f19b26072659295ae83dd6ab4ddd2e6a18d486d77374ea",
+              "retainedPath": "sources/2173c715f866c102.html",
+              "location": "68 FR 10922, I. Background and II. The Final Rule; text lines 465-485"
+            }
+          ]
+        },
+        {
+          "field": "original/result organizations",
+          "status": "matched_with_roster_display_variants",
+          "finding": "INS is abolished; statutory Citizenship and Immigration Services bureau and the plan CBP/ICE bureaus correspond to the named roster endpoints. Current display forms add U.S. and omit Bureau of.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.congress.gov/107/plaws/publ296/PLAW-107publ296.htm",
+              "sourceSha256": "e96e8b44905469d308187a78a906db5695ebb0b3c218575e55835c62526a0fd2",
+              "retainedPath": "sources/35ab9afed6eaf60b.html",
+              "location": "HSA sections 4, 403(1), 412(a)-(b), 441, 451(a)-(b), 471; text lines 558-560, 2792-2800, 2842-2894, 3682-3696, 3846-3860, 3916-3930, 4493-4500"
+            },
+            {
+              "sourceUrl": "https://www.govinfo.gov/content/pkg/CDOC-108hdoc32/pdf/CDOC-108hdoc32.pdf",
+              "sourceSha256": "f1366de6497beea9ca796327248e238eb88267c22d28de67efe41555c85d7fdf",
+              "retainedPath": "sources/ad3ab464bfe830e5.pdf",
+              "location": "PDF pages 5-6, printed pages 3-4, Plan Modifications (a)/(b), and IMPLEMENTATION DATE; viewed full pages 5-9"
+            },
+            {
+              "sourceUrl": "https://www.federalregister.gov/documents/2003/03/06/03-5146/authority-of-the-secretary-of-homeland-security-delegations-of-authority-immigration-laws",
+              "sourceSha256": "e1d84edcc614239190f19b26072659295ae83dd6ab4ddd2e6a18d486d77374ea",
+              "retainedPath": "sources/2173c715f866c102.html",
+              "location": "68 FR 10922, I. Background and II. The Final Rule; text lines 465-485"
+            }
+          ]
+        },
+        {
+          "field": "functionsTaken / Citizenship and Immigration Services",
+          "status": "matched",
+          "finding": "Section 451(b) enumerates immigrant-visa, naturalization, asylum/refugee, service-center and other INS adjudications.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.congress.gov/107/plaws/publ296/PLAW-107publ296.htm",
+              "sourceSha256": "e96e8b44905469d308187a78a906db5695ebb0b3c218575e55835c62526a0fd2",
+              "retainedPath": "sources/35ab9afed6eaf60b.html",
+              "location": "HSA sections 4, 403(1), 412(a)-(b), 441, 451(a)-(b), 471; text lines 558-560, 2792-2800, 2842-2894, 3682-3696, 3846-3860, 3916-3930, 4493-4500"
+            }
+          ]
+        },
+        {
+          "field": "functionsTaken / Customs and Border Protection",
+          "status": "matched",
+          "finding": "Section 441 transfers the Border Patrol and inspections programs; plan subsection (b) places them in CBP.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.congress.gov/107/plaws/publ296/PLAW-107publ296.htm",
+              "sourceSha256": "e96e8b44905469d308187a78a906db5695ebb0b3c218575e55835c62526a0fd2",
+              "retainedPath": "sources/35ab9afed6eaf60b.html",
+              "location": "HSA sections 4, 403(1), 412(a)-(b), 441, 451(a)-(b), 471; text lines 558-560, 2792-2800, 2842-2894, 3682-3696, 3846-3860, 3916-3930, 4493-4500"
+            },
+            {
+              "sourceUrl": "https://www.govinfo.gov/content/pkg/CDOC-108hdoc32/pdf/CDOC-108hdoc32.pdf",
+              "sourceSha256": "f1366de6497beea9ca796327248e238eb88267c22d28de67efe41555c85d7fdf",
+              "retainedPath": "sources/ad3ab464bfe830e5.pdf",
+              "location": "PDF pages 5-6, printed pages 3-4, Plan Modifications (a)/(b), and IMPLEMENTATION DATE; viewed full pages 5-9"
+            }
+          ]
+        },
+        {
+          "field": "functionsTaken / Immigration and Customs Enforcement",
+          "status": "matched",
+          "finding": "Section 441 and plan subsection (a) cover investigations, detention/removal and intelligence programs.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.congress.gov/107/plaws/publ296/PLAW-107publ296.htm",
+              "sourceSha256": "e96e8b44905469d308187a78a906db5695ebb0b3c218575e55835c62526a0fd2",
+              "retainedPath": "sources/35ab9afed6eaf60b.html",
+              "location": "HSA sections 4, 403(1), 412(a)-(b), 441, 451(a)-(b), 471; text lines 558-560, 2792-2800, 2842-2894, 3682-3696, 3846-3860, 3916-3930, 4493-4500"
+            },
+            {
+              "sourceUrl": "https://www.govinfo.gov/content/pkg/CDOC-108hdoc32/pdf/CDOC-108hdoc32.pdf",
+              "sourceSha256": "f1366de6497beea9ca796327248e238eb88267c22d28de67efe41555c85d7fdf",
+              "retainedPath": "sources/ad3ab464bfe830e5.pdf",
+              "location": "PDF pages 5-6, printed pages 3-4, Plan Modifications (a)/(b), and IMPLEMENTATION DATE; viewed full pages 5-9"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "eventId": "event:fr259",
+      "ownerDecision": {
+        "answer": "accept",
+        "decided_on": "2026-09-26",
+        "content_digest": "sha256:c98c04fb57995b4757dd03bce11aa10f988fab7d1db5711320cf0e2b536ec998",
+        "channel": "questionTool",
+        "note": "2008-11-21, the roster's stated change date, chosen over the 2008-12-22 CFR-heading date."
+      },
+      "decisionMatchesCandidateDigest": true,
+      "selectedDate": "2008-11-21",
+      "selectedDateBasis": "the change date the Federal Register roster states, the day E8-27525 published the renamed heading",
+      "originals": [
+        {
+          "id": 259,
+          "name_field": "name",
+          "parent": {
+            "publisher_name": "Treasury Department",
+            "resource_iri": "urn:ref:federal-register-agency:497"
+          },
+          "publisher_name": "International Investment Office",
+          "release_key": "federal-register-agencies-roster-2026-08-15",
+          "resource_iri": "urn:ref:federal-register-agency:259",
+          "roster": "federal-register-agencies",
+          "short_name": "IIO",
+          "slug": "international-investment-office"
+        }
+      ],
+      "results": [
+        {
+          "candidateId": "succ:fr259:fr603",
+          "target": {
+            "id": 603,
+            "name_field": "name",
+            "parent": {
+              "publisher_name": "Treasury Department",
+              "resource_iri": "urn:ref:federal-register-agency:497"
+            },
+            "publisher_name": "Investment Security Office",
+            "release_key": "federal-register-agencies-roster-2026-08-15",
+            "resource_iri": "urn:ref:federal-register-agency:603",
+            "roster": "federal-register-agencies",
+            "short_name": "IIO",
+            "slug": "investment-security-office"
+          },
+          "functionsTaken": null
+        }
+      ],
+      "claims": [
+        {
+          "field": "effectiveDate",
+          "status": "matched_owner_date_policy",
+          "finding": "The roster explicitly says the name changed November 21, 2008. The rule was published that day but specifies December 22 for its own effective date. The owner chose the roster rename date; it is not the rule effective date.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.federalregister.gov/agencies/international-investment-office",
+              "sourceSha256": "b283958ea4bf5913874ec42c2f315ae219ee4265d5753c3768cbc9ff2986c37d",
+              "retainedPath": "sources/537e0775eed13a8d.html",
+              "location": "Agency description; text lines 168-176"
+            },
+            {
+              "sourceUrl": "https://www.federalregister.gov/documents/2008/11/21/E8-27525/regulations-pertaining-to-mergers-acquisitions-and-takeovers-by-foreign-persons",
+              "sourceSha256": "7c64cc6dd814370b80cc5970068698e78db610fbe6ff97de17831cf550b98bbf",
+              "retainedPath": "sources/caa1e88772320756.html",
+              "location": "73 FR 70702 Dates; text lines 629-635; 73 FR 70716 chapter-heading amendment, lines 1155-1159"
+            }
+          ]
+        },
+        {
+          "field": "original/result organizations",
+          "status": "matched_with_roster_display_variants",
+          "finding": "April proposed-rule heading is Office of International Investment; November rule revises chapter VIII to Office of Investment Security. Roster names invert the Office word order.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.federalregister.gov/documents/2008/04/23/08-1172/regulations-pertaining-to-mergers-acquisitions-and-takeovers-by-foreign-persons",
+              "sourceSha256": "993b94ae55c437c3396b4feadcd4c3efde9428ed639ce78695cd3f5d82f7df9f",
+              "retainedPath": "sources/1ea0510288ece4c9.html",
+              "location": "Document headings, text lines 547-551"
+            },
+            {
+              "sourceUrl": "https://www.federalregister.gov/documents/2008/11/21/E8-27525/regulations-pertaining-to-mergers-acquisitions-and-takeovers-by-foreign-persons",
+              "sourceSha256": "7c64cc6dd814370b80cc5970068698e78db610fbe6ff97de17831cf550b98bbf",
+              "retainedPath": "sources/caa1e88772320756.html",
+              "location": "Chapter VIII heading and amendment 1, text lines 1155-1159"
+            }
+          ]
+        },
+        {
+          "field": "functionsTaken / no split claimed",
+          "status": "not_claimed",
+          "finding": "The accepted row is a rename with no enumerated function transfer. The source checks support the heading change; no additional function-transfer conclusion is made.",
+          "evidence": []
+        }
+      ]
+    },
+    {
+      "eventId": "event:fr404",
+      "ownerDecision": {
+        "answer": "accept",
+        "decided_on": "2026-09-26",
+        "content_digest": "sha256:33b405f386f33bc77f251ae3a61ae7ec15f78b712797e60910280aa3cc1c7f4e",
+        "channel": "questionTool",
+        "note": "Research 2026-09-26 confirmed: Secretary's Order 1-2003 is effective on publication, 2003-02-03."
+      },
+      "decisionMatchesCandidateDigest": true,
+      "selectedDate": "2003-02-03",
+      "selectedDateBasis": "the Secretary's Order's effective date, 'upon the date of publication in the Federal Register'",
+      "originals": [
+        {
+          "id": 404,
+          "name_field": "name",
+          "parent": {
+            "publisher_name": "Labor Department",
+            "resource_iri": "urn:ref:federal-register-agency:271"
+          },
+          "publisher_name": "Pension and Welfare Benefits Administration",
+          "release_key": "federal-register-agencies-roster-2026-08-15",
+          "resource_iri": "urn:ref:federal-register-agency:404",
+          "roster": "federal-register-agencies",
+          "short_name": "PWBA",
+          "slug": "pension-and-welfare-benefits-administration"
+        }
+      ],
+      "results": [
+        {
+          "candidateId": "succ:fr404:fr131",
+          "target": {
+            "id": 131,
+            "name_field": "name",
+            "parent": {
+              "publisher_name": "Labor Department",
+              "resource_iri": "urn:ref:federal-register-agency:271"
+            },
+            "publisher_name": "Employee Benefits Security Administration",
+            "release_key": "federal-register-agencies-roster-2026-08-15",
+            "resource_iri": "urn:ref:federal-register-agency:131",
+            "roster": "federal-register-agencies",
+            "short_name": "EBSA",
+            "slug": "employee-benefits-security-administration"
+          },
+          "functionsTaken": null
+        }
+      ],
+      "claims": [
+        {
+          "field": "effectiveDate",
+          "status": "matched",
+          "finding": "Order 1-2003 section 7 says effective upon Federal Register publication: February 3, 2003. Signature January 23 and conforming-rule April 3 dates remain separate.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.federalregister.gov/documents/2003/02/03/03-2163/delegation-of-authority-and-assignment-of-responsibilities-to-the-employee-benefits-security",
+              "sourceSha256": "0a3065449a3eadae9830718449a10c0f09fcd18467169fbff9b1f766fc7be881",
+              "retainedPath": "sources/e4a09765e26b15ab.html",
+              "location": "68 FR 5374, section 7 and signature; text lines 438-448; publication header line 145"
+            },
+            {
+              "sourceUrl": "https://www.federalregister.gov/documents/2003/04/03/03-8099/change-of-agency-name-technical-amendments",
+              "sourceSha256": "e4862f910f30d61a13e38d305eed5bdd8a548340d05403f464f2a58a6a31adcf",
+              "retainedPath": "sources/8232e4abe25872cb.html",
+              "location": "68 FR 16399 Dates and Background; text lines 461-476"
+            }
+          ]
+        },
+        {
+          "field": "original/result organizations",
+          "status": "matched",
+          "finding": "Section 4(b) redesignates Pension and Welfare Benefits Administration as Employee Benefits Security Administration.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.federalregister.gov/documents/2003/02/03/03-2163/delegation-of-authority-and-assignment-of-responsibilities-to-the-employee-benefits-security",
+              "sourceSha256": "0a3065449a3eadae9830718449a10c0f09fcd18467169fbff9b1f766fc7be881",
+              "retainedPath": "sources/e4a09765e26b15ab.html",
+              "location": "Order section 4, text lines 376-388"
+            }
+          ]
+        },
+        {
+          "field": "functionsTaken / no split claimed",
+          "status": "matched",
+          "finding": "Order sections 4(d)-(f) carry employees, programs, responsibilities and delegations into the renamed organization; the conforming rule says functions remain unchanged.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.federalregister.gov/documents/2003/02/03/03-2163/delegation-of-authority-and-assignment-of-responsibilities-to-the-employee-benefits-security",
+              "sourceSha256": "0a3065449a3eadae9830718449a10c0f09fcd18467169fbff9b1f766fc7be881",
+              "retainedPath": "sources/e4a09765e26b15ab.html",
+              "location": "Order sections 4(d)-(f), text lines 384-388"
+            },
+            {
+              "sourceUrl": "https://www.federalregister.gov/documents/2003/04/03/03-8099/change-of-agency-name-technical-amendments",
+              "sourceSha256": "e4862f910f30d61a13e38d305eed5bdd8a548340d05403f464f2a58a6a31adcf",
+              "retainedPath": "sources/8232e4abe25872cb.html",
+              "location": "Background, text line 476"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "eventId": "event:fr510",
+      "ownerDecision": {
+        "answer": "accept-every-row",
+        "decided_on": "2026-09-26",
+        "content_digest": "sha256:3285f1f2d21f2ffe39a5c090be8fcfc72c9ea544bc1d72eaee2ceaba965a11f2",
+        "channel": "questionTool"
+      },
+      "decisionMatchesCandidateDigest": true,
+      "selectedDate": "1999-10-01",
+      "selectedDateBasis": "FARRA sec. 1301's effective date, the earlier of 1999-10-01 or the sec. 1601 plan's abolition date",
+      "originals": [
+        {
+          "id": 510,
+          "name_field": "name",
+          "parent": null,
+          "publisher_name": "United States Information Agency",
+          "release_key": "federal-register-agencies-roster-2026-08-15",
+          "resource_iri": "urn:ref:federal-register-agency:510",
+          "roster": "federal-register-agencies",
+          "short_name": "USIA",
+          "slug": "united-states-information-agency"
+        }
+      ],
+      "results": [
+        {
+          "candidateId": "succ:fr510:fr41",
+          "target": {
+            "id": 41,
+            "name_field": "name",
+            "parent": null,
+            "publisher_name": "Broadcasting Board of Governors",
+            "release_key": "federal-register-agencies-roster-2026-08-15",
+            "resource_iri": "urn:ref:federal-register-agency:41",
+            "roster": "federal-register-agencies",
+            "short_name": "BBG",
+            "slug": "broadcasting-board-of-governors"
+          },
+          "functionsTaken": "international broadcasting, which the Board already held inside USIA and kept: sec. 1311 excepts the Board and the International Broadcasting Bureau from the abolition, sec. 1312(b) keeps them and their functions out of the transfer to State, and sec. 1322 continues the Board as an independent establishment"
+        },
+        {
+          "candidateId": "succ:fr510:fr476",
+          "target": {
+            "id": 476,
+            "name_field": "name",
+            "parent": null,
+            "publisher_name": "State Department",
+            "release_key": "federal-register-agencies-roster-2026-08-15",
+            "resource_iri": "urn:ref:federal-register-agency:476",
+            "roster": "federal-register-agencies",
+            "short_name": "DOS",
+            "slug": "state-department"
+          },
+          "functionsTaken": "every USIA function other than broadcasting: all functions of the Director and of the agency, transferred to the Secretary of State (FARRA sec. 1312(a))"
+        }
+      ],
+      "claims": [
+        {
+          "field": "effectiveDate",
+          "status": "matched_with_stated_condition",
+          "finding": "Section 1301 uses the earlier of October 1, 1999 or a plan abolition date. The cited FR BBG roster independently states it became an independent agency October 1, 1999. This supports the chosen date but does not itself inspect the uncited section 1601 reorganization plan.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.govinfo.gov/content/pkg/PLAW-105publ277/html/PLAW-105publ277.htm",
+              "sourceSha256": "da69e92dc00a751292a3109c0202654497637d51a946b7491580c8bc19ef935d",
+              "retainedPath": "sources/c7639aac3b9db7d9.html",
+              "location": "112 Stat. 2681-776 to 2681-778; title XIII sections 1301, 1311, 1312(a)-(b), 1322; text lines 46024-46056 and 46133-46145"
+            },
+            {
+              "sourceUrl": "https://www.federalregister.gov/agencies/broadcasting-board-of-governors",
+              "sourceSha256": "4b14e55f730788856035745c47cb5157127ceea843c8cc71c83844f843b46832",
+              "retainedPath": "sources/ca93b66ec51d7e1e.html",
+              "location": "Agency description, text lines 147-153"
+            }
+          ]
+        },
+        {
+          "field": "original/result organizations",
+          "status": "matched_with_roster_display_variants",
+          "finding": "The statute expressly names USIA, Broadcasting Board of Governors, International Broadcasting Bureau, and Secretary of State. State Department is the selected organization endpoint for functions vested in the Secretary.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.govinfo.gov/content/pkg/PLAW-105publ277/html/PLAW-105publ277.htm",
+              "sourceSha256": "da69e92dc00a751292a3109c0202654497637d51a946b7491580c8bc19ef935d",
+              "retainedPath": "sources/c7639aac3b9db7d9.html",
+              "location": "112 Stat. 2681-776 to 2681-778; title XIII sections 1301, 1311, 1312(a)-(b), 1322; text lines 46024-46056 and 46133-46145"
+            }
+          ]
+        },
+        {
+          "field": "functionsTaken / Broadcasting Board of Governors",
+          "status": "matched_retained_functions",
+          "finding": "Sections 1311 and 1312(b) exclude BBG, IBB and their functions from abolition/transfer to State; section 1322 continues the existing BBG. These are retained broadcasting functions, not a newly created board or a transfer from State.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.govinfo.gov/content/pkg/PLAW-105publ277/html/PLAW-105publ277.htm",
+              "sourceSha256": "da69e92dc00a751292a3109c0202654497637d51a946b7491580c8bc19ef935d",
+              "retainedPath": "sources/c7639aac3b9db7d9.html",
+              "location": "112 Stat. 2681-776 to 2681-778; title XIII sections 1301, 1311, 1312(a)-(b), 1322; text lines 46024-46056 and 46133-46145"
+            }
+          ]
+        },
+        {
+          "field": "functionsTaken / State Department",
+          "status": "matched",
+          "finding": "Section 1312(a) transfers USIA/director/component functions to the Secretary of State, subject to section 1312(b) broadcasting exceptions.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.govinfo.gov/content/pkg/PLAW-105publ277/html/PLAW-105publ277.htm",
+              "sourceSha256": "da69e92dc00a751292a3109c0202654497637d51a946b7491580c8bc19ef935d",
+              "retainedPath": "sources/c7639aac3b9db7d9.html",
+              "location": "112 Stat. 2681-776 to 2681-778; title XIII sections 1301, 1311, 1312(a)-(b), 1322; text lines 46024-46056 and 46133-46145"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "eventId": "event:fr543",
+      "ownerDecision": {
+        "answer": "accept-every-row",
+        "decided_on": "2026-09-26",
+        "content_digest": "sha256:a0a34a81fc975917a74d4f9df898e4f6ff5b98c285ee0868384c8ddbe90a0083",
+        "channel": "questionTool"
+      },
+      "decisionMatchesCandidateDigest": true,
+      "selectedDate": "1996-01-01",
+      "selectedDateBasis": "ICCTA sec. 2's effective date for the Act",
+      "originals": [
+        {
+          "id": 543,
+          "name_field": "name",
+          "parent": null,
+          "publisher_name": "Interstate Commerce Commission",
+          "release_key": "federal-register-agencies-roster-2026-08-15",
+          "resource_iri": "urn:ref:federal-register-agency:543",
+          "roster": "federal-register-agencies",
+          "short_name": "ICC",
+          "slug": "interstate-commerce-commission"
+        }
+      ],
+      "results": [
+        {
+          "candidateId": "succ:fr543:fr481",
+          "target": {
+            "id": 481,
+            "name_field": "name",
+            "parent": null,
+            "publisher_name": "Surface Transportation Board",
+            "release_key": "federal-register-agencies-roster-2026-08-15",
+            "resource_iri": "urn:ref:federal-register-agency:481",
+            "roster": "federal-register-agencies",
+            "short_name": "STB",
+            "slug": "surface-transportation-board"
+          },
+          "functionsTaken": "the surviving economic regulation: rail rate and service regulation and the residual carrier jurisdiction the Act recodifies into subtitle IV, chartered as the Board (ICCTA title II)"
+        },
+        {
+          "candidateId": "succ:fr543:fr492",
+          "target": {
+            "id": 492,
+            "name_field": "name",
+            "parent": null,
+            "publisher_name": "Transportation Department",
+            "release_key": "federal-register-agencies-roster-2026-08-15",
+            "resource_iri": "urn:ref:federal-register-agency:492",
+            "roster": "federal-register-agencies",
+            "short_name": "DOT",
+            "slug": "transportation-department"
+          },
+          "functionsTaken": "the functions the Act vests in the Secretary: carrying out the recodified motor-carrier part (49 U.S.C. 13301(a): 'Except as otherwise specified, the Secretary shall carry out this part') and the carrier-related consumer-protection enforcement the conforming amendments redirect (ICCTA secs. 314-316)"
+        }
+      ],
+      "claims": [
+        {
+          "field": "effectiveDate",
+          "status": "matched",
+          "finding": "Section 2 makes the Act effective January 1, 1996 except as otherwise provided. Sections 101 and 201 abolish ICC and establish STB; cited provisions do not state a different date for those changes.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.congress.gov/104/plaws/publ88/PLAW-104publ88.htm",
+              "sourceSha256": "e5e91df73059690f35cd1d06cd6c183dddcd2f40b27817bfbccc70ba493aa655",
+              "retainedPath": "sources/29829e8ffd8d0a6e.html",
+              "location": "ICCTA sections 2, 101, 102 (49 USC 10501), 103 (49 USC 13301), 201 (49 USC 701), 203, 205, 314-316; text lines 117-126, 289-325, 3377-3385, 8077-8110, 8618-8643, 8745-8752, 9114-9142"
+            }
+          ]
+        },
+        {
+          "field": "original/result organizations",
+          "status": "matched_with_roster_display_variants",
+          "finding": "The Act names ICC and STB and assigns separate functions/personnel to the Secretary of Transportation. Transportation Department is the selected organization endpoint for those Secretary functions.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.congress.gov/104/plaws/publ88/PLAW-104publ88.htm",
+              "sourceSha256": "e5e91df73059690f35cd1d06cd6c183dddcd2f40b27817bfbccc70ba493aa655",
+              "retainedPath": "sources/29829e8ffd8d0a6e.html",
+              "location": "ICCTA sections 2, 101, 102 (49 USC 10501), 103 (49 USC 13301), 201 (49 USC 701), 203, 205, 314-316; text lines 117-126, 289-325, 3377-3385, 8077-8110, 8618-8643, 8745-8752, 9114-9142"
+            }
+          ]
+        },
+        {
+          "field": "functionsTaken / Surface Transportation Board",
+          "status": "matched",
+          "finding": "Section 102 recodifies Board rail jurisdiction including rates/services and residual carrier matters; section 201 establishes the Board; section 203(a) moves resources for Board functions.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.congress.gov/104/plaws/publ88/PLAW-104publ88.htm",
+              "sourceSha256": "e5e91df73059690f35cd1d06cd6c183dddcd2f40b27817bfbccc70ba493aa655",
+              "retainedPath": "sources/29829e8ffd8d0a6e.html",
+              "location": "ICCTA sections 2, 101, 102 (49 USC 10501), 103 (49 USC 13301), 201 (49 USC 701), 203, 205, 314-316; text lines 117-126, 289-325, 3377-3385, 8077-8110, 8618-8643, 8745-8752, 9114-9142"
+            }
+          ]
+        },
+        {
+          "field": "functionsTaken / Transportation Department",
+          "status": "matched",
+          "finding": "Recodified 49 USC 13301(a) directs the Secretary to carry out the motor-carrier part except as otherwise specified; sections 314-316 redirect the specified consumer-protection enforcement; section 203(b) separately transfers resources for Secretary functions.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.congress.gov/104/plaws/publ88/PLAW-104publ88.htm",
+              "sourceSha256": "e5e91df73059690f35cd1d06cd6c183dddcd2f40b27817bfbccc70ba493aa655",
+              "retainedPath": "sources/29829e8ffd8d0a6e.html",
+              "location": "ICCTA sections 2, 101, 102 (49 USC 10501), 103 (49 USC 13301), 201 (49 USC 701), 203, 205, 314-316; text lines 117-126, 289-325, 3377-3385, 8077-8110, 8618-8643, 8745-8752, 9114-9142"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "eventId": "event:fr559",
+      "ownerDecision": {
+        "answer": "accept",
+        "decided_on": "2026-09-26",
+        "content_digest": "sha256:07155f72952462546e26b7d54aa69fd885be51e0eebf758ada7a88b2e4853ab8",
+        "channel": "questionTool",
+        "note": "Kept the order's own date, 2001-06-29, over the 2001-07-01 that secondary records (66 FR 38447; CMS biographies) call effective."
+      },
+      "decisionMatchesCandidateDigest": true,
+      "selectedDate": "2001-06-29",
+      "selectedDateBasis": "the Reorganization Order's signature date -- the order states no effective date, and 66 FR 39450 records the Secretary's 2001-06-14 announcement of the new name",
+      "originals": [
+        {
+          "id": 559,
+          "name_field": "name",
+          "parent": {
+            "publisher_name": "Health and Human Services Department",
+            "resource_iri": "urn:ref:federal-register-agency:221"
+          },
+          "publisher_name": "Health Care Finance Administration",
+          "release_key": "federal-register-agencies-roster-2026-08-15",
+          "resource_iri": "urn:ref:federal-register-agency:559",
+          "roster": "federal-register-agencies",
+          "short_name": "HCFA",
+          "slug": "health-care-finance-administration"
+        }
+      ],
+      "results": [
+        {
+          "candidateId": "succ:fr559:fr45",
+          "target": {
+            "id": 45,
+            "name_field": "name",
+            "parent": {
+              "publisher_name": "Health and Human Services Department",
+              "resource_iri": "urn:ref:federal-register-agency:221"
+            },
+            "publisher_name": "Centers for Medicare & Medicaid Services",
+            "release_key": "federal-register-agencies-roster-2026-08-15",
+            "resource_iri": "urn:ref:federal-register-agency:45",
+            "roster": "federal-register-agencies",
+            "short_name": "CMS",
+            "slug": "centers-for-medicare-medicaid-services"
+          },
+          "functionsTaken": null
+        }
+      ],
+      "claims": [
+        {
+          "field": "effectiveDate",
+          "status": "owner_policy_supported_but_not_explicit_effective_date",
+          "finding": "The primary order is dated June 29, 2001 and filed that day, but contains no effective-date clause. June 14 is the announced-name date in the later rule; July 31 is that rule effective date. The owner expressly chose June 29. An unqualified claim that the primary record expressly declares June 29 effective is unsupported.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.federalregister.gov/documents/2001/07/05/01-16800/centers-for-medicare-and-medicaid-services-statement-of-organization-functions-and-delegations-of",
+              "sourceSha256": "37d0fa7df57b8d57c14c15266f1ab67b6276a31d1af5830e97a3a509137b8468",
+              "retainedPath": "sources/af68d1d2ca29e819.html",
+              "location": "66 FR 35437, complete order and signature/filing line; text lines 342-360"
+            },
+            {
+              "sourceUrl": "https://www.federalregister.gov/documents/2001/07/31/01-18959/medicare-and-medicaid-programs-change-of-agency-name-technical-amendments",
+              "sourceSha256": "e24ae5439fa1048e239486fe44475bd99df318d21195c44fc9cb66ea46ab21fe",
+              "retainedPath": "sources/4e87de1104a56376.html",
+              "location": "66 FR 39450-39451, Dates and Background; text lines 479-483 and 510-516"
+            }
+          ]
+        },
+        {
+          "field": "original organization literal name",
+          "status": "different_source_spelling",
+          "finding": "The retained roster label is Health Care Finance Administration; the order consistently says Health Care Financing Administration. The event endpoint retains its roster spelling; this is not an exact legal-name transcription.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.federalregister.gov/documents/2001/07/05/01-16800/centers-for-medicare-and-medicaid-services-statement-of-organization-functions-and-delegations-of",
+              "sourceSha256": "37d0fa7df57b8d57c14c15266f1ab67b6276a31d1af5830e97a3a509137b8468",
+              "retainedPath": "sources/af68d1d2ca29e819.html",
+              "location": "Complete order, text lines 345-351"
+            }
+          ]
+        },
+        {
+          "field": "result organization",
+          "status": "matched",
+          "finding": "The primary order names Centers for Medicare & Medicaid Services.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.federalregister.gov/documents/2001/07/05/01-16800/centers-for-medicare-and-medicaid-services-statement-of-organization-functions-and-delegations-of",
+              "sourceSha256": "37d0fa7df57b8d57c14c15266f1ab67b6276a31d1af5830e97a3a509137b8468",
+              "retainedPath": "sources/af68d1d2ca29e819.html",
+              "location": "Order clauses 1-3, text lines 347-351"
+            }
+          ]
+        },
+        {
+          "field": "functionsTaken / no split claimed",
+          "status": "matched",
+          "finding": "All HCFA delegations are vested in the CMS Administrator and subordinate employees and remain until revoked/modified. No new functional split is claimed.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.federalregister.gov/documents/2001/07/05/01-16800/centers-for-medicare-and-medicaid-services-statement-of-organization-functions-and-delegations-of",
+              "sourceSha256": "37d0fa7df57b8d57c14c15266f1ab67b6276a31d1af5830e97a3a509137b8468",
+              "retainedPath": "sources/af68d1d2ca29e819.html",
+              "location": "Order clause 3, text line 351"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "eventId": "event:fr564",
+      "ownerDecision": {
+        "answer": "1",
+        "decided_on": "2026-09-26",
+        "content_digest": "sha256:b6c4a424a1b26378d9223dccecde2d3f8febb54cf25ad571517f71e64aa67b61",
+        "channel": "questionTool"
+      },
+      "decisionMatchesCandidateDigest": true,
+      "selectedDate": "2006-12-20",
+      "selectedDateBasis": "PAEA's approval date; sec. 604 states no separate effective date, and title VI's one effective-date clause, sec. 603(d)(1), governs appropriations, not the redesignation",
+      "originals": [
+        {
+          "id": 564,
+          "name_field": "name",
+          "parent": null,
+          "publisher_name": "Postal Rate Commission",
+          "release_key": "federal-register-agencies-roster-2026-08-15",
+          "resource_iri": "urn:ref:federal-register-agency:564",
+          "roster": "federal-register-agencies",
+          "short_name": "PRC",
+          "slug": "postal-rate-commission"
+        }
+      ],
+      "results": [
+        {
+          "candidateId": "succ:fr564:fr409",
+          "target": {
+            "id": 409,
+            "name_field": "name",
+            "parent": null,
+            "publisher_name": "Postal Regulatory Commission",
+            "release_key": "federal-register-agencies-roster-2026-08-15",
+            "resource_iri": "urn:ref:federal-register-agency:409",
+            "roster": "federal-register-agencies",
+            "short_name": "PRC",
+            "slug": "postal-regulatory-commission"
+          },
+          "functionsTaken": null
+        }
+      ],
+      "claims": [
+        {
+          "field": "effectiveDate",
+          "status": "matched_enactment_basis_not_explicit_effective_clause",
+          "finding": "Approval is December 20, 2006. Section 604 redesignates the Commission without its own effective-date clause; section 603(d) explicitly applies only to amendments made by section 603. This matches the owner stated enactment-date basis, not a verbatim section 604 effective-date statement.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.congress.gov/109/plaws/publ435/PLAW-109publ435.htm",
+              "sourceSha256": "cd70d4e9f6c5cb2014a1a33c1f99342efd43060931e84ae00c8d9c32690d8cac",
+              "retainedPath": "sources/cd2a0dd0ec06a2a8.html",
+              "location": "PAEA sections 603(d) and 604(a)-(f), 120 Stat. 3241-3242; approval line at 120 Stat. 3263; text lines 2745-2791 and 4084"
+            }
+          ]
+        },
+        {
+          "field": "original/result organizations",
+          "status": "matched",
+          "finding": "Section 604 replaces Postal Rate Commission with Postal Regulatory Commission; the FR409 roster expressly calls the latter the successor agency.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.congress.gov/109/plaws/publ435/PLAW-109publ435.htm",
+              "sourceSha256": "cd70d4e9f6c5cb2014a1a33c1f99342efd43060931e84ae00c8d9c32690d8cac",
+              "retainedPath": "sources/cd2a0dd0ec06a2a8.html",
+              "location": "PAEA sections 603(d) and 604(a)-(f), 120 Stat. 3241-3242; approval line at 120 Stat. 3263; text lines 2745-2791 and 4084"
+            },
+            {
+              "sourceUrl": "https://www.federalregister.gov/agencies/postal-regulatory-commission",
+              "sourceSha256": "d8537d140b76fdac9465eeaad75d84f14812cc17f5641ac96f47f90a13c2569b",
+              "retainedPath": "sources/73e4041b63980bb2.html",
+              "location": "Agency description; text lines 170-174"
+            }
+          ]
+        },
+        {
+          "field": "identity versus succession of roster records",
+          "status": "owner_adjudication_not_proved_by_rename_alone",
+          "finding": "The primary law proves a statutory redesignation. It does not establish that FR564 and FR409 are period-disjoint records. FR564 itself uses a post-PAEA PRC description, and its cited 2003 document remains under the old name. Preserve the accepted answer 1; do not silently substitute sameEntityAs or claim that this source check independently resolves the two-record modeling choice.",
+          "evidence": [
+            {
+              "sourceUrl": "https://www.federalregister.gov/agencies/postal-rate-commission",
+              "sourceSha256": "59ff5d687acb6fca44d33da89b5a919ae0e25d7f59f0287f2aefac9070d443c2",
+              "retainedPath": "sources/f3f1b940395ed0c8.html",
+              "location": "Agency description and listed document; text lines 145-174"
+            },
+            {
+              "sourceUrl": "https://www.govinfo.gov/content/pkg/FR-2003-03-25/pdf/03-7022.pdf",
+              "sourceSha256": "659d34b95893f779adb9fa1dfe854de7b539473f64ad63a07b3394c705100cce",
+              "retainedPath": "sources/504b26f0eaf7d236.pdf",
+              "location": "PDF page 1, printed 68 FR 14435; middle-column heading and AGENCY line visually inspected"
+            }
+          ]
+        },
+        {
+          "field": "functionsTaken / no split claimed",
+          "status": "not_claimed",
+          "finding": "The selected row is a redesignation with no enumerated function transfer. No additional function-transfer conclusion is made.",
+          "evidence": []
+        }
+      ]
+    }
+  ]
+}

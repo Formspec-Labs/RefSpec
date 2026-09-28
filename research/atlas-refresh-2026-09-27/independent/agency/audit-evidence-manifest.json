@@ -1,0 +1,193 @@
+{
+  "schemaVersion": "1.0",
+  "scope": "Offline authentication of retained primary sources and recorded review; construction inputs remain unchanged",
+  "candidatesDigest": "sha256:7fe88a9167a9363f5c2bfdcd3911953b7323abe1564d40586991c9612f95f4bc",
+  "reviewReceiptSha256": "sha256:4b6a8e01b2d589ad1a2fcad17406070da15c9d31c725f127450efc70ae2ba9ed",
+  "members": [
+    {
+      "path": "plans/agency-registry-batch-1-candidates.json",
+      "sha256": "sha256:6bb7c2d4dc818b24cb92b1e220704b9d9acb9afc6be6fc400c0daccde14b71d2",
+      "byteLength": 191706
+    },
+    {
+      "path": "plans/agency-registry-batch-1-decisions.json",
+      "sha256": "sha256:a454ea277d533ce25a331a996a676d58f0bd2573700a43893a1f52b6c8938098",
+      "byteLength": 6744
+    },
+    {
+      "path": "tests/fixtures/federal_register_native_controls/fr-agencies-2026-08-15.json",
+      "sha256": "sha256:70dd0e8fa373a22d5c9577ac1f70ea736542f0e564f816c3caf28014bd05a92b",
+      "byteLength": 694024
+    },
+    {
+      "path": "tests/fixtures/cfr_list_of_subjects/ecfr-agencies-2026-08-15.json",
+      "sha256": "sha256:766685f466d62fa558a504cdeac23eef1d41f3ea24a2f5a3f78b38f2bcd5365e",
+      "byteLength": 98197
+    },
+    {
+      "path": "tests/fixtures/federal_hierarchy_complete/fh-orgs-all-page-0.json",
+      "sha256": "sha256:b684a583f8775ee109cf113949fe1a1c59d1166d2db718b48583272274bca8ff",
+      "byteLength": 183892
+    },
+    {
+      "path": "tests/fixtures/federal_hierarchy_complete/fh-orgs-all-page-1.json",
+      "sha256": "sha256:8043dd5bcc850b0036ed1c28c5f36a55d1bb44e4c0c934548c9f8086f21ad6e2",
+      "byteLength": 179237
+    },
+    {
+      "path": "tests/fixtures/federal_hierarchy_complete/fh-orgs-all-page-2.json",
+      "sha256": "sha256:7dbb2ab10f480f08f661049cda4753d5618983d4ba0c95fca314348f53804c64",
+      "byteLength": 181649
+    },
+    {
+      "path": "tests/fixtures/federal_hierarchy_complete/fh-orgs-all-page-3.json",
+      "sha256": "sha256:90be1eb4f7dafdea9e26e87596f2c17df8d09cdcc8b0a228758ef29a94af1e96",
+      "byteLength": 182189
+    },
+    {
+      "path": "tests/fixtures/federal_hierarchy_complete/fh-orgs-all-page-4.json",
+      "sha256": "sha256:bb78b6c039167ef158bea672275c86961be784e269f4db41a52e4b0cd09c277e",
+      "byteLength": 100030
+    },
+    {
+      "path": "output/atlas-refresh-2026-09-27-evidence/agency-primary-sources/sources/29829e8ffd8d0a6e.html",
+      "retainedPath": "sources/29829e8ffd8d0a6e.html",
+      "sourceUrl": "https://www.congress.gov/104/plaws/publ88/PLAW-104publ88.htm",
+      "sha256": "sha256:e5e91df73059690f35cd1d06cd6c183dddcd2f40b27817bfbccc70ba493aa655",
+      "byteLength": 529742
+    },
+    {
+      "path": "output/atlas-refresh-2026-09-27-evidence/agency-primary-sources/sources/35ab9afed6eaf60b.html",
+      "retainedPath": "sources/35ab9afed6eaf60b.html",
+      "sourceUrl": "https://www.congress.gov/107/plaws/publ296/PLAW-107publ296.htm",
+      "sha256": "sha256:e96e8b44905469d308187a78a906db5695ebb0b3c218575e55835c62526a0fd2",
+      "byteLength": 639666
+    },
+    {
+      "path": "output/atlas-refresh-2026-09-27-evidence/agency-primary-sources/sources/cd2a0dd0ec06a2a8.html",
+      "retainedPath": "sources/cd2a0dd0ec06a2a8.html",
+      "sourceUrl": "https://www.congress.gov/109/plaws/publ435/PLAW-109publ435.htm",
+      "sha256": "sha256:cd70d4e9f6c5cb2014a1a33c1f99342efd43060931e84ae00c8d9c32690d8cac",
+      "byteLength": 220632
+    },
+    {
+      "path": "output/atlas-refresh-2026-09-27-evidence/agency-primary-sources/sources/ca93b66ec51d7e1e.html",
+      "retainedPath": "sources/ca93b66ec51d7e1e.html",
+      "sourceUrl": "https://www.federalregister.gov/agencies/broadcasting-board-of-governors",
+      "sha256": "sha256:4b14e55f730788856035745c47cb5157127ceea843c8cc71c83844f843b46832",
+      "byteLength": 53176
+    },
+    {
+      "path": "output/atlas-refresh-2026-09-27-evidence/agency-primary-sources/sources/537e0775eed13a8d.html",
+      "retainedPath": "sources/537e0775eed13a8d.html",
+      "sourceUrl": "https://www.federalregister.gov/agencies/international-investment-office",
+      "sha256": "sha256:b283958ea4bf5913874ec42c2f315ae219ee4265d5753c3768cbc9ff2986c37d",
+      "byteLength": 55626
+    },
+    {
+      "path": "output/atlas-refresh-2026-09-27-evidence/agency-primary-sources/sources/f3f1b940395ed0c8.html",
+      "retainedPath": "sources/f3f1b940395ed0c8.html",
+      "sourceUrl": "https://www.federalregister.gov/agencies/postal-rate-commission",
+      "sha256": "sha256:59ff5d687acb6fca44d33da89b5a919ae0e25d7f59f0287f2aefac9070d443c2",
+      "byteLength": 36795
+    },
+    {
+      "path": "output/atlas-refresh-2026-09-27-evidence/agency-primary-sources/sources/73e4041b63980bb2.html",
+      "retainedPath": "sources/73e4041b63980bb2.html",
+      "sourceUrl": "https://www.federalregister.gov/agencies/postal-regulatory-commission",
+      "sha256": "sha256:d8537d140b76fdac9465eeaad75d84f14812cc17f5641ac96f47f90a13c2569b",
+      "byteLength": 70706
+    },
+    {
+      "path": "output/atlas-refresh-2026-09-27-evidence/agency-primary-sources/sources/af68d1d2ca29e819.html",
+      "retainedPath": "sources/af68d1d2ca29e819.html",
+      "sourceUrl": "https://www.federalregister.gov/documents/2001/07/05/01-16800/centers-for-medicare-and-medicaid-services-statement-of-organization-functions-and-delegations-of",
+      "sha256": "sha256:37d0fa7df57b8d57c14c15266f1ab67b6276a31d1af5830e97a3a509137b8468",
+      "byteLength": 54707
+    },
+    {
+      "path": "output/atlas-refresh-2026-09-27-evidence/agency-primary-sources/sources/4e87de1104a56376.html",
+      "retainedPath": "sources/4e87de1104a56376.html",
+      "sourceUrl": "https://www.federalregister.gov/documents/2001/07/31/01-18959/medicare-and-medicaid-programs-change-of-agency-name-technical-amendments",
+      "sha256": "sha256:e24ae5439fa1048e239486fe44475bd99df318d21195c44fc9cb66ea46ab21fe",
+      "byteLength": 87576
+    },
+    {
+      "path": "output/atlas-refresh-2026-09-27-evidence/agency-primary-sources/sources/79f37f7c309e9701.html",
+      "retainedPath": "sources/79f37f7c309e9701.html",
+      "sourceUrl": "https://www.federalregister.gov/documents/2002/04/26/02-10166/industry-and-security-programs-change-of-agency-name",
+      "sha256": "sha256:75bb784872d57b4da69689378b42dd4da7f02d752e3a82d1cc6afd2182ef5886",
+      "byteLength": 76412
+    },
+    {
+      "path": "output/atlas-refresh-2026-09-27-evidence/agency-primary-sources/sources/e4a09765e26b15ab.html",
+      "retainedPath": "sources/e4a09765e26b15ab.html",
+      "sourceUrl": "https://www.federalregister.gov/documents/2003/02/03/03-2163/delegation-of-authority-and-assignment-of-responsibilities-to-the-employee-benefits-security",
+      "sha256": "sha256:0a3065449a3eadae9830718449a10c0f09fcd18467169fbff9b1f766fc7be881",
+      "byteLength": 67682
+    },
+    {
+      "path": "output/atlas-refresh-2026-09-27-evidence/agency-primary-sources/sources/2173c715f866c102.html",
+      "retainedPath": "sources/2173c715f866c102.html",
+      "sourceUrl": "https://www.federalregister.gov/documents/2003/03/06/03-5146/authority-of-the-secretary-of-homeland-security-delegations-of-authority-immigration-laws",
+      "sha256": "sha256:e1d84edcc614239190f19b26072659295ae83dd6ab4ddd2e6a18d486d77374ea",
+      "byteLength": 93981
+    },
+    {
+      "path": "output/atlas-refresh-2026-09-27-evidence/agency-primary-sources/sources/79463679c5ee7974.html",
+      "retainedPath": "sources/79463679c5ee7974.html",
+      "sourceUrl": "https://www.federalregister.gov/documents/2003/03/25/03-7022/customized-market-mail",
+      "sha256": "sha256:86ca43396232d6a65edb348fe34e925b5042b6b6b027061c5b5f960e5164ca7c",
+      "byteLength": 83368
+    },
+    {
+      "path": "output/atlas-refresh-2026-09-27-evidence/agency-primary-sources/sources/8232e4abe25872cb.html",
+      "retainedPath": "sources/8232e4abe25872cb.html",
+      "sourceUrl": "https://www.federalregister.gov/documents/2003/04/03/03-8099/change-of-agency-name-technical-amendments",
+      "sha256": "sha256:e4862f910f30d61a13e38d305eed5bdd8a548340d05403f464f2a58a6a31adcf",
+      "byteLength": 96471
+    },
+    {
+      "path": "output/atlas-refresh-2026-09-27-evidence/agency-primary-sources/sources/cdb2702515e61d46.html",
+      "retainedPath": "sources/cdb2702515e61d46.html",
+      "sourceUrl": "https://www.federalregister.gov/documents/2003/08/28/03-21995/delegations-of-authority-signature-of-customs-and-border-protection-regulations-published-in-the",
+      "sha256": "sha256:396036e6b56ebadf26bc50dff9ea3f8599e68e6c5ee320041fbb8e35a67ebb4a",
+      "byteLength": 87215
+    },
+    {
+      "path": "output/atlas-refresh-2026-09-27-evidence/agency-primary-sources/sources/1ea0510288ece4c9.html",
+      "retainedPath": "sources/1ea0510288ece4c9.html",
+      "sourceUrl": "https://www.federalregister.gov/documents/2008/04/23/08-1172/regulations-pertaining-to-mergers-acquisitions-and-takeovers-by-foreign-persons",
+      "sha256": "sha256:993b94ae55c437c3396b4feadcd4c3efde9428ed639ce78695cd3f5d82f7df9f",
+      "byteLength": 293134
+    },
+    {
+      "path": "output/atlas-refresh-2026-09-27-evidence/agency-primary-sources/sources/caa1e88772320756.html",
+      "retainedPath": "sources/caa1e88772320756.html",
+      "sourceUrl": "https://www.federalregister.gov/documents/2008/11/21/E8-27525/regulations-pertaining-to-mergers-acquisitions-and-takeovers-by-foreign-persons",
+      "sha256": "sha256:7c64cc6dd814370b80cc5970068698e78db610fbe6ff97de17831cf550b98bbf",
+      "byteLength": 380030
+    },
+    {
+      "path": "output/atlas-refresh-2026-09-27-evidence/agency-primary-sources/sources/ad3ab464bfe830e5.pdf",
+      "retainedPath": "sources/ad3ab464bfe830e5.pdf",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/CDOC-108hdoc32/pdf/CDOC-108hdoc32.pdf",
+      "sha256": "sha256:f1366de6497beea9ca796327248e238eb88267c22d28de67efe41555c85d7fdf",
+      "byteLength": 266009
+    },
+    {
+      "path": "output/atlas-refresh-2026-09-27-evidence/agency-primary-sources/sources/c7639aac3b9db7d9.html",
+      "retainedPath": "sources/c7639aac3b9db7d9.html",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/PLAW-105publ277/html/PLAW-105publ277.htm",
+      "sha256": "sha256:da69e92dc00a751292a3109c0202654497637d51a946b7491580c8bc19ef935d",
+      "byteLength": 3115796
+    },
+    {
+      "path": "output/atlas-refresh-2026-09-27-evidence/agency-primary-sources/sources/504b26f0eaf7d236.pdf",
+      "retainedPath": "sources/504b26f0eaf7d236.pdf",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/FR-2003-03-25/pdf/03-7022.pdf",
+      "sha256": "sha256:659d34b95893f779adb9fa1dfe854de7b539473f64ad63a07b3394c705100cce",
+      "byteLength": 141213
+    }
+  ]
+}

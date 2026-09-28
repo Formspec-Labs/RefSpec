@@ -1,4 +1,4 @@
-.PHONY: fetch-pinned-inputs pinned-inputs-present build-derived test-full-atlas seal-distribution verify-distribution-seal generate check-generated lint lint-rdf-strict test test-package test-slow test-json-binding test-atlas-v3 \
+.PHONY: fetch-pinned-inputs pinned-inputs-present build-derived build-atlas-umthes build-atlas-agency build-agency-registry-view test-full-atlas seal-distribution verify-distribution-seal generate check-generated lint lint-rdf-strict test test-package test-slow test-json-binding test-atlas-v3 \
 	atlas-v3-fixtures contract-dev \
 	audit-atlas-v3-source-fidelity audit-registry-inventory audit-registry-real-data \
 	release-atlas-federal-register-thesaurus verify-atlas-federal-register-thesaurus \
@@ -288,19 +288,50 @@ release-atlas-federal-register-thesaurus:
 # Every derived artifact the suite reads, built from the pinned inputs
 # (`make fetch-pinned-inputs`): the Federal Register Thesaurus release with its
 # Parquet view (seconds; the fast tier reads it), the Unified Agenda Parquet
-# artifact (189 s measured 2026-09-22) and the EuroVoc/GEMET claim releases. The
-# slow tier reads all of them; its tests fail, not skip, when one is missing.
+# artifact (189 s measured 2026-09-22), the EuroVoc/GEMET claim releases, and
+# the bounded UMTHES and agency distributions with the agency registry view
+# (below). The slow tier reads all of them; its tests fail, not skip, when one
+# is missing.
 # The claim exporter refuses to replace a release, so a checkout that already
 # holds one exports beside it and swaps, keeping one previous generation.
 CLAIM_RELEASES_ROOT ?= output/registry-claim-releases
 
-build-derived: release-atlas-federal-register-thesaurus
+build-derived: release-atlas-federal-register-thesaurus build-atlas-umthes build-atlas-agency build-agency-registry-view
 	uv run python -m refspec.registry.unified_agenda_parquet
 	rm -rf "$(CLAIM_RELEASES_ROOT).building"
 	uv run python tools/export_registry_claim_releases.py --output-root "$(CLAIM_RELEASES_ROOT).building"
 	rm -rf "$(CLAIM_RELEASES_ROOT).previous"
 	if [ -d "$(CLAIM_RELEASES_ROOT)" ]; then mv "$(CLAIM_RELEASES_ROOT)" "$(CLAIM_RELEASES_ROOT).previous"; fi
 	mv "$(CLAIM_RELEASES_ROOT).building" "$(CLAIM_RELEASES_ROOT)"
+
+# The bounded distributions the independent source-fidelity tests read, each a
+# cold build of pinned inputs: the complete UMTHES slice (~16 s measured
+# 2026-09-27; test_atlas_provenance_repair, test_atlas_asserted_facts_equivalence,
+# test_atlas_parquet_sample_scan) and the agency registry with the rosters,
+# Treasury accounts and CFR titles its endpoints need (~81 s), which
+# test_atlas_independent_adapters compares with the registry's own sealed view.
+ATLAS_UMTHES_ROOT ?= output/atlas-3.1-umthes-2026-09-27
+ATLAS_AGENCY_ROOT ?= output/atlas-3.1-agency-2026-09-27
+ATLAS_AGENCY_RELEASES = agency-registry-2026-09-26 ecfr-cfr-titles ecfr-agencies-roster-2026-08-15 \
+	federal-hierarchy-orgs-complete-2026-08-15 federal-register-agencies-roster-2026-08-15 \
+	opm-ehri-agency-subelement-2026-08-04 regulations-gov-agencies-roster-2026-08-16 \
+	treasury-fast-book-accounts-parts-ii-iii-2026-07
+AGENCY_REGISTRY_VIEW_ROOT ?= output/agency-registry-view
+
+build-atlas-umthes:
+	uv run python tools/generate_atlas_v3_full.py \
+		--only-release umthes-gemet-endpoints-2026-08-15 \
+		--output "$(ATLAS_UMTHES_ROOT)/distribution"
+
+build-atlas-agency:
+	uv run python tools/generate_atlas_v3_full.py \
+		$(foreach key,$(ATLAS_AGENCY_RELEASES),--only-release $(key)) \
+		--output "$(ATLAS_AGENCY_ROOT)/distribution"
+
+# The view refuses to replace a directory, so the rebuild starts empty.
+build-agency-registry-view:
+	rm -rf "$(AGENCY_REGISTRY_VIEW_ROOT)"
+	uv run python tools/build_agency_registry_view.py --output "$(AGENCY_REGISTRY_VIEW_ROOT)"
 
 # The determinism gate, in the miniature that runs in 6.4s measured (both
 # builds plus the comparison, 2026-08-13): build the same bounded release twice,

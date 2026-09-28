@@ -107,14 +107,14 @@ def test_the_class_pdf_row_split_matches_the_pages(class_rows) -> None:
 
 def test_the_class_pdf_preserves_publisher_defects(class_rows) -> None:
     """Publisher defects survive: a trailing comma, prose "and", and a
-    mid-word truncation in one Hinshaw Pipe row.
+    visible ending in one Hinshaw Pipe row.
     """
     libraries = {row.library for row in class_rows}
     # A trailing comma the publisher wrote, kept rather than stripped.
     assert "H, O, G," in libraries
     # Prose "and" rather than a comma, kept rather than normalised.
     assert "H, E and RM" in libraries
-    # The publisher's own text stops mid-word; almost certainly "Pipelines".
+    # The rendered page ends at "Hinshaw Pipe"; no intended missing word is inferred.
     truncated = [row for row in class_rows if row.type_description.endswith("Hinshaw Pipe")]
     assert len(truncated) == 1
     assert truncated[0].type_description.startswith("Form 549D-Quarterly Transportation & Storage")

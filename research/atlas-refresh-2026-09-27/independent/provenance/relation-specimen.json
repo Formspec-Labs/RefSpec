@@ -1,0 +1,22 @@
+{
+  "id": "urn:ref:atlas-source-record:09b0253340c314e63927ff3d813873652ecc74cf0c55cee4c9b4b1f9de5351e4",
+  "native_payload": {
+    "editorialTransformation": {
+      "fromPredicate": "http://www.w3.org/2004/02/skos/core#related",
+      "reason": "SKOS-S27-hierarchy-path",
+      "rule": "preserveAuthoredAssociationOutsideSkosProjection",
+      "toPredicate": "https://refspec.org/ns/atlas/v3#thesaurusRelated"
+    },
+    "publisherRelation": {
+      "objectIri": "https://sns.uba.de/umthes/_00046593",
+      "predicateIri": "http://www.w3.org/2004/02/skos/core#related",
+      "responseDigest": "sha256:4c85e9379e83719ec067aadfc7c691361a3449160986d11db27edbf14ca04681",
+      "subjectIri": "https://sns.uba.de/umthes/_00025839"
+    },
+    "publisherRelationDigest": "sha256:5900d163acfb3214ded05afc9ae5b10a7f02157ee7400d6ea92e185174f57cb7"
+  },
+  "source_digest": "sha256:7f5ddd47751ebc7707f6fde8429470468c6b49d8660a748911216decdc64e938",
+  "source_locator": "urn:ref:publisher-relation:5900d163acfb3214ded05afc9ae5b10a7f02157ee7400d6ea92e185174f57cb7",
+  "source_release": "urn:ref:source-release:umthes:gemet-endpoints:978b10cd1e3f2f8729372a86f2afa1b62d2790e4810c6d57af5343835259d25f",
+  "publisher_triple_present": true
+}

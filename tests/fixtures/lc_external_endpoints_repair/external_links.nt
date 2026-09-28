@@ -1,0 +1,4 @@
+<http://id.loc.gov/authorities/subjects/sh85031676> <http://www.loc.gov/mads/rdf/v1#hasExactExternalAuthority> <http://aims.fao.org/aos/agrovoc/c_1845> .
+<http://aims.fao.org/aos/agrovoc/c_1845> <http://www.loc.gov/mads/rdf/v1#authoritativeLabel> "Convallaria" .
+<http://id.loc.gov/authorities/subjects/sh99011234> <http://www.loc.gov/mads/rdf/v1#hasCloseExternalAuthority> <http://vocab.getty.edu/aat/300265816> .
+<http://vocab.getty.edu/aat/300265816> <http://www.loc.gov/mads/rdf/v1#authoritativeLabel> "MP3 players" .

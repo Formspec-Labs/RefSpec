@@ -67,6 +67,12 @@ Publisher defects preserved rather than repaired, each confirmed against the pag
 - `H, E and RM` — prose `and` instead of a comma, not normalised.
 - `Form 549D-Quarterly Transportation & Storage Report for Intrastate Natural Gas and Hinshaw Pipe` — the publisher's text stops at `Pipe`, almost certainly a cut-off `Pipelines`. Preserved.
 
+Addendum, 2026-09-27 (the [Atlas refresh](../../atlas-refresh-2026-09-27/README.md)):
+the rendered row ends at `Pipe`, while Poppler's text layer also carries
+`lines`. The producer and the independent positioned-PDF reader keep the
+rendered reading; `Pipelines` stays an inference, recorded as the verifier's
+one exact reading exception rather than emitted.
+
 ## What this attestation is and is not
 
 It **is** an independent comparison: the pages were read directly, and the

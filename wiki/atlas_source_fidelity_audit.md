@@ -242,10 +242,14 @@ The main join depends on the comparison type:
 | Native control | Controlled values and occurrence counts come directly from the pinned Parquet field selected by `NativeControlSelector`. |
 | Source extract | Atlas records are re-keyed by the source-local identity in `atlas:nativePayload`, because the publisher artifact supplies no IRIs. |
 
-`atlas:sourceDigest` has source-specific meaning. A source may use an input-file
-digest, archive-member digest, or digest of a reconstructed native relation or
-payload. `RdfSourcePolicy` and the specialized readers declare the applicable
-rule. The audit still compares the underlying fields.
+A SourceRecord's `atlas:sourceDigest` hashes its complete canonical
+`nativePayload` without a terminal LF. Publisher input and archive-member
+hashes remain distinct evidence inside the independently reconstructed payload
+and input pins. The verifier checks both the internal payload hash and the
+publisher fields. SourceRelease identity and EvidenceBinding's referenced
+SourceRecord content digest are separate hashes. Structural ownership and
+binding joins require the paired standalone binding validation receipt; a
+payload digest map does not establish record minting.
 
 ## Core data model
 

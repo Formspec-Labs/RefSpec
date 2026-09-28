@@ -385,11 +385,14 @@ pair of `atlas:identifierScheme` and `atlas:identifierValue` MUST identify
 exactly one `atlas:AtlasResource`. More than one identifier record MAY repeat
 the pair only when every record identifies that same resource.
 
-`atlas:SourceRecord` identifies the source-local record and pins the exact
-external locator and digest from which normalized resources, labels, or
-assertions were derived. It carries a canonical English-only normalized native
-view and explicit `atlas:representsResource` links; it does not claim to copy a
-multilingual publisher record verbatim. Source record, label, and normalized
+`atlas:SourceRecord` identifies a source-local record. Its `atlas:sourceDigest`
+hashes the complete canonical `atlas:nativePayload` without a terminal LF.
+Publisher-byte digests and archive-member locators remain distinct evidence
+inside the payload and input pins. The payload is a normalized evidence view;
+its language scope follows the distribution's declared scope, including
+multilingual evidence when admitted. It carries explicit
+`atlas:representsResource` links and need not copy publisher bytes verbatim.
+Source record, label, and normalized
 resource identities MUST be distinct. A source record belongs to exactly one
 captured source release and has exactly one disposition in
 `atlas-source-accounting.json` when that source release has enumerated
