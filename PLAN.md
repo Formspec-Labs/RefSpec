@@ -78,6 +78,17 @@ case tree rebuilt whenever it is not the receipt's; SpicyDocs 0.46.0. Open:
 batch 2 (register-only agencies) and the later succession batch, which as built
 cannot be an events-only release ([design, section 7](plans/agency-registry-design.md)).
 
+## RefSpec 0.1.0.dev22 (2026-09-28)
+
+dev22 carries the owner's contract-digest decision (REF-073): the atlas
+index's digest covers placement, not the bytes of the modules and tests it
+cites (those have their own `evidenceDigest`), so a registry code edit no
+longer moves the Atlas contract or the Federal Register thesaurus pins; the
+pins moved once for the change and were re-recorded. With it: SpicyDocs
+0.50.0, which changes nothing RefSpec imports or reads. The slow and
+full-Atlas tiers are left to the operator on this commit, the slow tier now
+including the end-to-end pin test REF-073 adds.
+
 ## Merged, and the one parked item
 
 The Unified Agenda receipt rebuild (move five of the SpicySearch v14 batch)
