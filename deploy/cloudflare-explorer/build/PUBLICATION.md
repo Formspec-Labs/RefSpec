@@ -1,10 +1,9 @@
 # Qualify and promote a candidate
 
-`precompute.py` freezes an inventory of everything it wrote and prints its
-pin. The inventory is release-grade only when `--manifest-digest` supplied the
-trusted search-view manifest pin; a self-hashed input yields a development
-inventory, which publication verification refuses. Retain the printed
-inventory pin with the trusted search-view manifest pin.
+`precompute.py` requires `--manifest-digest` for release input and an empty
+output directory. `--local-development` permits a self-hashed input, but its
+inventory is refused by publication verification. Retain the printed inventory
+pin with the trusted search-view manifest pin.
 
 After running the existing vendor bundling step, freeze the complete output
 inventory again. The previous inventory pin authenticates the input provenance;

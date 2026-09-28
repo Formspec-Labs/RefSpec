@@ -172,11 +172,16 @@ cd RefSpec
 export UV_CACHE_DIR=/tmp/uv-cf2
 uv run python deploy/cloudflare-explorer/build/precompute.py \
   output/atlas-3.1-parquet-search-view-2026-08-17 \
+  --manifest-digest "sha256:<trusted search-view manifest digest>" \
   --out deploy/cloudflare-explorer/precomputed
 ```
 
 Takes about a minute and prints artifact sizes at the end. Nothing here
-mutates the source search view; it only reads it.
+mutates the source search view; it only reads it. `--out` must be empty, and
+the search-view pin must come from where the view was qualified, not from the
+bytes on disk; `--local-development` instead accepts a self-hashed view and a
+non-empty directory, and its output cannot be published (see
+[the publication procedure](build/PUBLICATION.md)).
 
 ### 2. Vendor DuckDB-Wasm (one-time, or when bumping the version)
 

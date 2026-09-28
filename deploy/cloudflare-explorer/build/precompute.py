@@ -330,11 +330,17 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("search_view", type=Path, help="verified compact Parquet search view directory")
     parser.add_argument("--out", type=Path, required=True, help="output directory for precomputed artifacts")
-    parser.add_argument("--manifest-digest", help="trusted manifest digest; defaults to the local manifest bytes")
+    parser.add_argument("--manifest-digest", help="externally trusted search-view manifest digest (required for release)")
+    parser.add_argument("--local-development", action="store_true", help="allow a self-hashed input; output cannot qualify a release")
     args = parser.parse_args()
+
+    if not args.manifest_digest and not args.local_development:
+        parser.error("--manifest-digest is required unless --local-development is explicit")
 
     root = args.search_view.resolve(strict=True)
     out = args.out.resolve()
+    if not args.local_development and out.exists() and any(out.iterdir()):
+        parser.error("release precompute requires an empty output directory")
     (out / "tables").mkdir(parents=True, exist_ok=True)
     (out / "search").mkdir(parents=True, exist_ok=True)
     (out / "release-graph").mkdir(parents=True, exist_ok=True)
@@ -791,8 +797,7 @@ def main() -> int:
     )
 
     view.close()
-    # Release-grade only when the search-view pin came from outside this run.
-    inventory_digest = freeze_inventory(out, search_view_digest=digest, release=args.manifest_digest is not None)
+    inventory_digest = freeze_inventory(out, search_view_digest=digest, release=not args.local_development)
     print(f"publication inventory digest: {inventory_digest}")
 
     # ---- report sizes ---------------------------------------------------
