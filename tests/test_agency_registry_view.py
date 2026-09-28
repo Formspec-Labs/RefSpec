@@ -6,6 +6,7 @@ import dataclasses
 import json
 from collections.abc import Callable
 from pathlib import Path
+from types import SimpleNamespace
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -262,10 +263,14 @@ def test_the_view_refuses_approvals_that_do_not_state_one_review(release: Regist
 
     with pytest.raises(ValueError, match="approvals differ in evidence tier, warrant or reviewer"):
         agency_projection.build_agency_registry_view(_with_evidence(release, first_approval_e3, claims=slice(0, 1)))
-    with pytest.raises(ValueError, match="more than one reviewer"):
+    with pytest.raises(ValueError, match="approvals name 2 reviewers"):
         agency_projection.build_agency_registry_view(
             _with_evidence(release, SHORT_EVIDENCE["reviewer"], claims=slice(0, 1))
         )
+    # No valid release has no approval -- every claim carries one -- so the
+    # wording for none is pinned on the reader alone.
+    with pytest.raises(ValueError, match="approvals name no reviewer"):
+        agency_projection._release_reviews(SimpleNamespace(mappings=(), change_events=()))
 
 
 def _e4_row_rule_oracle(rows: dict[str, list[dict]]) -> bool:

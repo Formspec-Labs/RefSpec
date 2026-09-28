@@ -955,7 +955,8 @@ def _release_reviews(
         events[event_id] = _stated_review(event.evidence, event_id)
     reviewers = {reviewer for _tier, _warrant, reviewer in (*bridges.values(), *events.values())}
     if len(reviewers) != 1:
-        raise ValueError("agency registry approvals name more than one reviewer; a non-emission's is unknown")
+        named = "no reviewer" if not reviewers else f"{len(reviewers)} reviewers"
+        raise ValueError(f"agency registry approvals name {named}; a non-emission's reviewer is unknown")
     (reviewer,) = reviewers
     return bridges, events, reviewer
 
