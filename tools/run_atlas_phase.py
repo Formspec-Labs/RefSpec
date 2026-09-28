@@ -1,7 +1,8 @@
 """Run one exclusive Atlas phase with measured, enforced resource budgets.
 
-macOS records physical footprint separately from RSS. Linux requires a delegated
-cgroup v2 parent: memory.max covers descendants and memory.swap.max is explicit.
+macOS records process-group physical footprint separately from RSS. Descendants
+that create another session/group escape that macOS scope. Linux requires a
+delegated cgroup v2 parent: memory.max covers descendants and memory.swap.max is explicit.
 Receipts distinguish a capacity stop from a command's semantic failure.
 """
 
@@ -207,6 +208,11 @@ def run_phase(
         if sys.platform == "darwin"
         else "cgroup memory.swap.max enforced",
         "physicalMetric": "physical-footprint" if sys.platform == "darwin" else "cgroup-memory-current",
+        "rssMeasurementScope": "supervised-process-group",
+        "physicalMeasurementScope": "supervised-process-group" if sys.platform == "darwin" else "job-cgroup",
+        "containmentLimitation": "new sessions/groups escape macOS sampling and process-group cleanup"
+        if sys.platform == "darwin"
+        else None,
         "peakRssBytes": 0,
         "peakFootprintBytes": 0,
         "peakDiskBytes": 0,
