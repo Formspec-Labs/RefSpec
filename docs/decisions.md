@@ -6121,3 +6121,6 @@ and `make generate`, which moved only that module and the index.
   `5344028b…` / `c792a2f9…` (manifest / view). Measured on dev22 one file at
   a time: the shape alone gives `a0e51c56…` / `b2dd370a…`, the corpus alone
   `76c7cbd5…` / `c7dba413…`.
+- The change-event same-entity check reading identity's closure, and its
+  negative `change-event-same-entity-closure` (a new case in
+  `fixtures/corpus.json`): `525e6a04…` / `65103a92…`.

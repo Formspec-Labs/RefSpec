@@ -1056,6 +1056,7 @@ REQUIRED_CORPUS_CASES = frozenset(
         "change-event-inverse-pair",
         "change-event-cycle",
         "change-event-same-entity",
+        "change-event-same-entity-closure",
         "mapping-undated-legal-identity",
         "mapping-undated-value-crosswalk",
         "mapping-wrong-endpoint-release",
@@ -5243,16 +5244,20 @@ def _check_change_events(
     changeEventPolicies entry; its IRI against its own facts, so the owner's
     review stays bound to exactly the event reviewed; and three rules over the
     whole distribution -- no inverse pair (A to B in one event, B to A in any),
-    no cycle through events, and no current atlas:sameEntityAs between an
-    event's original and any of its results in either direction, because a
-    succession is never folded into identity. Linear in events and links: one
-    pass builds the edge set, and the hierarchy check's iterative Tarjan pass
-    finds any cycle. The one pass over every current assertion, for the
-    identity pairs, runs only when some event names a link.
+    no cycle through events, and no original that current atlas:sameEntityAs
+    identifies with any of its results, because a succession is never folded
+    into identity. Identity is read through its symmetric, transitive closure,
+    not only its direct links: bridging A and B each to X identifies A with B,
+    so an event from A to B is refused as surely as a direct link would refuse
+    it. Linear in events, links and identity pairs: one pass builds the edge
+    set, the hierarchy check's iterative Tarjan pass finds any cycle, and the
+    exactMatch component index, built over the atlas:sameEntityAs pairs, holds
+    the closure without materializing it. The one pass over every current
+    assertion, for those pairs, runs only when some event names a link.
     """
 
     facts = _asserted_facts(asserted, inventory)
-    same_entity: set[tuple[URIRef, URIRef]] | None = None
+    same_entity: ExactMatchIndex | None = None
     for policy in _change_event_policies():
         # First event naming each (original, result) link, for the refusals.
         edges: dict[tuple[URIRef, URIRef], URIRef] = {}
@@ -5297,12 +5302,15 @@ def _check_change_events(
         if cyclic:
             _fail("dataset.change-event-cycle", f"organization change events form a cycle through {cyclic[0]}")
         if same_entity is None:
-            same_entity = {(subject, obj) for subject, predicate, obj in current if predicate == ATLAS.sameEntityAs}
+            same_entity = _build_exact_match_index_from_triples(
+                frozenset(triple for triple in current if triple[1] == ATLAS.sameEntityAs)
+            )
         for (original, result), event in sorted(edges.items()):
-            if (original, result) in same_entity or (result, original) in same_entity:
+            if same_entity.same_component(original, result):
                 _fail(
                     "dataset.change-event-same-entity",
-                    f"{event} changes {original} into {result}, which atlas:sameEntityAs already identifies with it",
+                    f"{event} changes {original} into {result}, which atlas:sameEntityAs already identifies with it"
+                    " directly or through other records",
                 )
 
 
@@ -6213,7 +6221,11 @@ def _build_exact_match_index(
 def _build_exact_match_index_from_triples(
     direct_triples: frozenset[AssertionTriple],
 ) -> ExactMatchIndex:
-    """Build the exactMatch index from triples collected by another graph pass."""
+    """Build the exactMatch index from triples collected by another graph pass.
+
+    Only the pairs matter, so any symmetric, transitive relation's closure is
+    held the same way: _check_change_events builds one over atlas:sameEntityAs.
+    """
 
     adjacency: dict[URIRef, set[URIRef]] = defaultdict(set)
     for subject, _, obj in direct_triples:

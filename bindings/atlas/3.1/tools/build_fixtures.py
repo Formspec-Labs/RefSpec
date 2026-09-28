@@ -4214,6 +4214,26 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             record=record,
         )
 
+    def change_event_same_entity_closure(fixture: Fixture, orgs: list[URIRef], record: URIRef) -> None:
+        # No direct link: each of the two organizations is bridged to one
+        # canonical record, so identity's closure makes them one entity, and
+        # the event from one to the other is refused as a direct link is.
+        canonical = URIRef("urn:ref:atlas-fixture:resource:entity-agency-canonical")
+        for index, organization in enumerate(orgs[:2]):
+            _add_assertion(
+                fixture.asserted,
+                assertion_type=ATLAS.MappingAssertion,
+                ring=ATLAS.entity,
+                subject=organization,
+                predicate=ATLAS.sameEntityAs,
+                obj=canonical,
+                source_release=next(fixture.asserted.objects(organization, ATLAS.inRelease)),
+                target_release=next(fixture.asserted.objects(canonical, ATLAS.inRelease)),
+                evidence_record=next(fixture.asserted.objects(organization, ATLAS.sourceRecord)),
+                evidence_name=f"change-event-bridge-{index}",
+            )
+        add_change_event(fixture, "same-entity-closure", originals=orgs[:1], results=orgs[1:2], record=record)
+
     def change_event_raw_org_predicate(fixture: Fixture, orgs: list[URIRef], record: URIRef) -> None:
         # The ORG superproperty is what a consumer infers; on the wire it is
         # refused like any other unadmitted predicate.
@@ -5587,6 +5607,12 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             ["dataset"],
             "dataset.change-event-same-entity",
             change_event_case(change_event_same_entity),
+        ),
+        (
+            "change-event-same-entity-closure",
+            ["dataset"],
+            "dataset.change-event-same-entity",
+            change_event_case(change_event_same_entity_closure),
         ),
         (
             "mapping-entity-identity-dated",

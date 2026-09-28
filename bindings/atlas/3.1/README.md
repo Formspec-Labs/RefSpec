@@ -570,8 +570,11 @@ an event outside its policy's ring or naming an organization outside it
 `urn:ref:atlas-change-event:<digest hex>` over its own facts
 (`dataset.change-event-identity`), and, across the whole distribution, an
 inverse pair (`dataset.change-event-inverse`), a cycle through events
-(`dataset.change-event-cycle`), and a current `atlas:sameEntityAs` between an
-event's original and any of its results (`dataset.change-event-same-entity`).
+(`dataset.change-event-cycle`), and an original that current
+`atlas:sameEntityAs` identifies with any of its results
+(`dataset.change-event-same-entity`) -- through identity's symmetric,
+transitive closure, so two records each bridged to a third are one entity
+too.
 Change events have no projection triple and no compact-record role, and the
 typed Parquet view omits them together with their evidence bindings: a served
 binding must bind a served statement, which the view verifier checks. The

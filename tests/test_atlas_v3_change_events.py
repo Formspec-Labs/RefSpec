@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pytest
 from rdflib import Graph, Namespace, URIRef
-from rdflib.namespace import RDF
+from rdflib.namespace import RDF, SKOS
 
 ROOT = Path(__file__).resolve().parents[1]
 BINDING_ROOT = ROOT / "bindings" / "atlas" / "3.1"
@@ -29,6 +29,9 @@ ATLAS_NS = Namespace(ATLAS)
 INVERSE_BINDING = "[ sh:inversePath rkaf:bindsAssertion ]"
 ORIGINAL = URIRef("urn:ref:test:organization:original")
 RESULT = URIRef("urn:ref:test:organization:result")
+CANONICAL = URIRef("urn:ref:test:organization:canonical")
+OTHER_CANONICAL = URIRef("urn:ref:test:organization:other-canonical")
+SAME = ATLAS_NS.sameEntityAs
 
 
 def _event_graph(*, ring: URIRef = ATLAS_NS.entity) -> Graph:
@@ -93,6 +96,7 @@ def test_each_change_event_shape_clause_refuses_on_its_own_path(
         ("change-event-inverse-pair", "dataset.change-event-inverse"),
         ("change-event-cycle", "dataset.change-event-cycle"),
         ("change-event-same-entity", "dataset.change-event-same-entity"),
+        ("change-event-same-entity-closure", "dataset.change-event-same-entity"),
     ),
 )
 def test_each_change_event_rule_refuses_its_own_negative(case: str, code: str) -> None:
@@ -162,6 +166,43 @@ def test_an_event_between_two_identified_records_is_refused_in_either_direction(
     with pytest.raises(atlas_validate.AtlasValidationError) as raised:
         atlas_validate._check_change_events(graph, {(subject, ATLAS_NS.sameEntityAs, obj): ()})
     assert raised.value.code == "dataset.change-event-same-entity"
+
+
+@pytest.mark.parametrize(
+    "identity",
+    (
+        ((ORIGINAL, CANONICAL), (RESULT, CANONICAL)),
+        ((CANONICAL, ORIGINAL), (CANONICAL, RESULT)),
+        ((ORIGINAL, CANONICAL), (OTHER_CANONICAL, CANONICAL), (RESULT, OTHER_CANONICAL)),
+    ),
+    ids=("both-bridged-to-one-record", "one-record-bridged-to-both", "a-longer-path"),
+)
+def test_an_event_between_records_identity_joins_only_through_others_is_refused(
+    identity: tuple[tuple[URIRef, URIRef], ...],
+) -> None:
+    """Pin the closure: no direct link joins the original to its result, but identity does, so the event is refused."""
+
+    current = {(subject, SAME, obj): () for subject, obj in identity}
+    with pytest.raises(atlas_validate.AtlasValidationError, match="directly or through other records") as raised:
+        atlas_validate._check_change_events(_event_graph(), current)
+    assert raised.value.code == "dataset.change-event-same-entity"
+
+
+@pytest.mark.parametrize(
+    "current",
+    (
+        {(ORIGINAL, SAME, CANONICAL): (), (RESULT, SAME, OTHER_CANONICAL): ()},
+        {(ORIGINAL, SAME, CANONICAL): ()},
+        {(ORIGINAL, SAME, CANONICAL): (), (RESULT, SKOS.exactMatch, CANONICAL): ()},
+    ),
+    ids=("two-separate-identities", "one-side-identified", "joined-by-another-predicate"),
+)
+def test_an_event_between_records_identity_keeps_apart_is_admitted(
+    current: dict[tuple[URIRef, URIRef, URIRef], tuple[()]],
+) -> None:
+    """The closure's positive control: identity that never joins the original to its result refuses nothing."""
+
+    atlas_validate._check_change_events(_event_graph(), current)
 
 
 def test_an_event_outside_its_policys_ring_is_refused() -> None:
