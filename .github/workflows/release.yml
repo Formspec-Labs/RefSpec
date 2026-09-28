@@ -245,8 +245,13 @@ jobs:
       # receipt whose digest the manifest pins as a member, the
       # producer-validation receipt the acceptance receipt's own digest
       # inputs reference, and the served Parquet view's manifest, whose
-      # digest the 3.1 seal payload binds directly.
+      # digest the 3.1 seal payload binds directly. The qualification and
+      # phase receipts follow them, and the step runs after a failure too:
+      # a failed or capacity-stopped phase is exactly the evidence to keep.
+      # if-no-files-found stays `error`: it fires only when no path matches
+      # at all, which means the job never reached a receipt-writing step.
       - name: Upload the distribution and view receipts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: atlas-release-receipts-${{ inputs.output_suffix }}
@@ -258,6 +263,7 @@ jobs:
             ${{ env.COMPACT_VIEW_ROOT }}/search-view-manifest.json
             ${{ env.QUALIFICATION_ROOT }}/qualification.json
             ${{ env.QUALIFICATION_ROOT }}/source-fidelity.json
+            ${{ env.QUALIFICATION_ROOT }}/*.json
             ${{ env.QUALIFICATION_ROOT }}/*.log
             ${{ env.QUALIFICATION_ROOT }}/*.samples.jsonl
             ${{ env.QUALIFICATION_ROOT }}/agency-view/view-manifest.json
