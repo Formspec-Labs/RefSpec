@@ -30,6 +30,7 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 import duckdb
 import pyarrow as pa
 import pyarrow.parquet as pq
+from publication_integrity import freeze_inventory
 
 from refspec.atlas.duckdb_view import open_atlas_duckdb_view
 from refspec.registry.infrastructure.artifact_serialization import (
@@ -790,6 +791,9 @@ def main() -> int:
     )
 
     view.close()
+    # Release-grade only when the search-view pin came from outside this run.
+    inventory_digest = freeze_inventory(out, search_view_digest=digest, release=args.manifest_digest is not None)
+    print(f"publication inventory digest: {inventory_digest}")
 
     # ---- report sizes ---------------------------------------------------
     print(f"\nDone in {time.time() - t0:.1f}s. Artifact sizes:")

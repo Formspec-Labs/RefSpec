@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Robust variant of upload.sh for unreliable network conditions: uploads
-# each file, then verifies it actually landed in R2 by HEAD-checking the
-# live Worker and comparing Content-Length against the local file size --
+# each file into an immutable candidate, then verifies actual served bytes
+# against the pinned inventory as well as the cheap byte-range probe --
 # `wrangler r2 object put` was observed to exit 0 and log "Upload complete"
 # for objects that did not actually exist afterward (confirmed via direct
 # HEAD checks against the deployed Worker), which plain upload.sh has no
@@ -55,7 +55,7 @@ verify_one() {
   # it wasn't buying any integrity property, just burning bandwidth on every
   # object before the real check below. Dropped.)
   local range_result
-  range_result="$(curl -s -m 20 -H 'Range: bytes=0-0' -D - -o /dev/null "$WORKER_BASE/data/$key" 2>/dev/null || true)"
+  range_result="$(curl -s -m 20 -H 'Range: bytes=0-0' -D - -o /dev/null "$WORKER_BASE/data/$CANDIDATE_PREFIX/$key" 2>/dev/null || true)"
   local content_range
   content_range="$(echo "$range_result" | grep -i '^content-range:' | tr -d '\r' | sed -E 's#.*/([0-9]+)#\1#')"
   [[ "$content_range" == "$expected_size" ]]
@@ -71,7 +71,7 @@ upload_one() {
 
   for attempt in $(seq 1 "$RETRIES"); do
     echo "uploading $key attempt $attempt/$RETRIES ($(du -h "$file" | cut -f1))"
-    if timeout "$PUT_TIMEOUT" npx wrangler r2 object put "$BUCKET/$key" \
+    if timeout "$PUT_TIMEOUT" npx wrangler r2 object put "$BUCKET/$CANDIDATE_PREFIX/$key" \
         --file "$file" \
         --content-type "$ct" \
         --cache-control "public, max-age=300, must-revalidate" \
@@ -163,11 +163,15 @@ if [[ "$total" -eq 0 ]]; then
   exit 1
 fi
 
+
+source "$PWD/build/publication-common.sh"
+
 xargs -P "$PARALLEL" -I{} bash -c 'upload_one "$@"' _ {} <"$file_list"
 status=$?
 
 if [[ "$status" -eq 0 ]]; then
-  echo "upload-verified complete -- all $total files uploaded and verified"
+  verify_publication || exit $?
+  echo "upload-verified complete -- immutable candidate $CANDIDATE_PREFIX verified; receipt $PUBLICATION_RECEIPT (not promoted)"
 else
   echo "upload-verified FAILED -- one or more of $total files did not upload/verify (xargs exit $status)" >&2
 fi

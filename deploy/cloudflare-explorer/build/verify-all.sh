@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Full-bucket audit: for every local file under precomputed/, confirm R2 has
-# an object of the exact same size, checked via a byte-range GET against the
+# an object matching its frozen digest, plus the byte-range GET against the
 # live Worker (bypasses trusting any past upload log). Prints MISMATCH/MISSING
 # for anything wrong; prints a final OK/PROBLEMS summary line.
 #
@@ -62,7 +62,7 @@ check_one() {
     # a definitive claim about R2's contents that a timed-out or refused
     # connection cannot support. A DNS failure during a deploy would have
     # reported the whole corpus as absent from a bucket it never reached.
-    result="$(curl -s -m 20 -H 'Range: bytes=0-0' -D - -o /dev/null "$WORKER_BASE/data/$key" 2>/dev/null)"
+    result="$(curl -s -m 20 -H 'Range: bytes=0-0' -D - -o /dev/null "$WORKER_BASE/data/${READ_PREFIX}$key" 2>/dev/null)"
     curl_rc=$?
     # Last status line wins, so a redirect chain is judged on where it landed.
     status="$(printf '%s\n' "$result" | awk 'toupper($1) ~ /^HTTP\// {code=$2} END {print code}')"
@@ -128,6 +128,17 @@ if [[ "$total" -eq 0 ]]; then
   exit 2
 fi
 
+
+source "$PWD/build/publication-common.sh"
+verification_scope="candidate"
+READ_PREFIX="$CANDIDATE_PREFIX/"
+case "${VERIFY_ACTIVE_DATA:-0}" in
+  0) ;;
+  1) verification_scope="active"; READ_PREFIX="" ;;
+  *) echo "ERROR VERIFY_ACTIVE_DATA must be 0 or 1" >&2; exit 2 ;;
+esac
+export READ_PREFIX
+
 xargs -P "$PARALLEL" -I{} bash -c 'check_one "$@"' _ {} <"$file_list" | tee "$tmp_report"
 check_status="${PIPESTATUS[0]}"
 
@@ -150,7 +161,12 @@ if [[ "$checked" -ne "$total" || "$errors" -gt 0 ]]; then
        "Nothing is proven about the files in those two counts." >&2
   exit 2
 elif [[ "$problems" -eq 0 ]]; then
-  echo "verify-all complete: OK ($total files, 0 problems)"
+  if [[ "$verification_scope" == "active" ]]; then
+    verify_publication --active || exit $?
+  else
+    verify_publication || exit $?
+  fi
+  echo "verify-all complete: OK ($total $verification_scope files, receipt $PUBLICATION_RECEIPT; no deployment performed)"
   exit 0
 else
   echo "verify-all complete: PROBLEMS ($problems of $total)" >&2
