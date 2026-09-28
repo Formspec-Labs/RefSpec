@@ -2057,7 +2057,8 @@ def _provenance(report: Mapping[str, Any]) -> str:
 REPRODUCE = (
     "Reproduce with `uv run python tools/assemble_agency_registry_batch_1.py --replay-root <replay-snapshot> "
     "--rule-effects <rule-effects.json> --check` (the measurement is spicy-regs' "
-    f"`{MEASUREMENT_SCRIPT}`, run in spicy-regs' own environment); CI runs "
+    f"`{MEASUREMENT_SCRIPT}` at commit {SPICY_REGS_COMMIT[:7]}, which holds it -- spicy-regs has since retired "
+    "the script -- run in spicy-regs' own environment); CI runs "
     "`--check-committed`, which needs neither input."
 )
 
