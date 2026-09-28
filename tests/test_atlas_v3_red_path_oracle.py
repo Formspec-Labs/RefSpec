@@ -247,15 +247,26 @@ def _french_definition(asserted: Graph) -> None:
 
 
 def _two_kinds_under_one_signature(asserted: Graph) -> None:
-    """Two atlas:definition violations, one sh:node signature, different nested components: both must be sampled."""
+    """Two atlas:definition violations under one property shape, with different nested components.
+
+    Both resources share every type, so one shape's atlas:definition clause
+    refuses both: one signature, `(atlas:definition, Node, that clause)`. The
+    least of them is French (LanguageIn nested); the later one is untagged
+    (Datatype and LanguageIn nested), so only the nested signatures make the
+    sample take it.
+    """
 
     _french_definition(asserted)
-    other = next(
+    french, _ = _first(asserted, ATLAS.definition)
+    types = set(asserted.objects(french, RDF.type))
+    untagged = next(
         resource
-        for resource in sorted(asserted.subjects(ATLAS.resourceProfile, None), reverse=True)
-        if (resource, ATLAS.definition, None) not in asserted
+        for resource in sorted(asserted.subjects(ATLAS.resourceProfile, None))
+        if str(resource) > str(french)
+        and set(asserted.objects(resource, RDF.type)) == types
+        and (resource, ATLAS.definition, None) not in asserted
     )
-    asserted.add((other, ATLAS.definition, Literal("an untagged definition")))
+    asserted.add((untagged, ATLAS.definition, Literal("an untagged definition")))
 
 
 def _literal_concept_scheme(asserted: Graph) -> None:
