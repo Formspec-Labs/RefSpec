@@ -11,13 +11,12 @@ three ways it may not be written.
 from __future__ import annotations
 
 import json
-import re
 import sys
 from pathlib import Path
 
 import pytest
 from rdflib import Graph, Namespace, URIRef
-from rdflib.namespace import RDF, SKOS
+from rdflib.namespace import RDF, SH, SKOS
 
 ROOT = Path(__file__).resolve().parents[1]
 BINDING_ROOT = ROOT / "bindings" / "atlas" / "3.1"
@@ -27,6 +26,7 @@ import validate as atlas_validate
 ATLAS = "https://refspec.org/ns/atlas/v3#"
 ATLAS_NS = Namespace(ATLAS)
 RKAF = Namespace("https://rulespec.org/ns/v1#")
+ORG = Namespace("http://www.w3.org/ns/org#")
 INVERSE_BINDING = "[ sh:inversePath rkaf:bindsAssertion ]"
 ORIGINAL = URIRef("urn:ref:test:organization:original")
 RESULT = URIRef("urn:ref:test:organization:result")
@@ -100,15 +100,50 @@ def test_each_change_event_shape_clause_refuses_on_its_own_path(
     components: list[str],
     paths: set[str],
 ) -> None:
-    """Pin the one clause each SHACL negative violates: its components and the paths the report names."""
+    """Pin the one clause each SHACL negative violates: its components, and the path each top-level result names.
+
+    The paths come off the report graph, not the message: the message is
+    capped, and which results fit under the cap moved with the hash seed.
+    """
 
     with pytest.raises(atlas_validate.AtlasValidationError) as raised:
         atlas_validate.validate_distribution(atlas_validate.FIXTURE_ROOT / "invalid" / case)
 
     assert raised.value.code == "shacl.data"
     assert atlas_validate.shacl_constraint_components(raised.value) == components
-    named = set(re.findall(r"Result Path: (\[ sh:inversePath \S+ \]|\S+)", raised.value.detail))
+    report = _whole_graph_report(case)
+    named = set()
+    for result in report.objects(None, SH.result):
+        path = report.value(result, SH.resultPath)
+        if path is None:
+            continue
+        inverse = report.value(path, SH.inversePath)
+        named.add(f"[ sh:inversePath {_curie(inverse)} ]" if inverse is not None else _curie(path))
     assert named == paths
+
+
+def _curie(term: URIRef) -> str:
+    """The shapes file's spelling of a path predicate."""
+
+    for prefix, namespace in (("rkaf", RKAF), ("atlas", ATLAS_NS), ("org", ORG)):
+        if str(term).startswith(str(namespace)):
+            return f"{prefix}:{str(term)[len(str(namespace)):]}"
+    return str(term)
+
+
+def _whole_graph_report(case: str) -> Graph:
+    """The normative engine's report graph over one invalid case's asserted graph."""
+
+    distribution = atlas_validate.FIXTURE_ROOT / "invalid" / case
+    manifest = json.loads((distribution / "atlas-manifest.json").read_text(encoding="utf-8"))
+    _, graphs = atlas_validate._parse_packed_dataset(
+        distribution, manifest, atlas_validate._check_pack_manifest(manifest)
+    )
+    ontology, shapes = atlas_validate._parse_binding_graphs()
+    view = atlas_validate._ShaclDataView([graphs["asserted"], atlas_validate.inoculate(Graph(), ontology)])
+    conforms, report, _ = atlas_validate._validate_shacl_data(view, shapes)
+    assert not conforms
+    return report
 
 
 @pytest.mark.parametrize(
@@ -121,17 +156,7 @@ def test_each_change_event_shape_clause_refuses_on_its_own_path(
 def test_each_owner_review_negative_breaks_its_own_fixed_values(case: str, axes: set[URIRef]) -> None:
     """Pin, off the whole-graph report graph, which of the owner's fixed-value clauses each negative breaks."""
 
-    distribution = atlas_validate.FIXTURE_ROOT / "invalid" / case
-    manifest = json.loads((distribution / "atlas-manifest.json").read_text(encoding="utf-8"))
-    _, graphs = atlas_validate._parse_packed_dataset(
-        distribution, manifest, atlas_validate._check_pack_manifest(manifest)
-    )
-    ontology, shapes = atlas_validate._parse_binding_graphs()
-    view = atlas_validate._ShaclDataView([graphs["asserted"], atlas_validate.inoculate(Graph(), ontology)])
-    conforms, results, _ = atlas_validate._validate_shacl_data(view, shapes)
-
-    assert not conforms
-    violations = atlas_validate._report_violations(results)
+    violations = atlas_validate._report_violations(_whole_graph_report(case))
     owner_clauses = {path for _focus, path, component in violations if component == "HasValueConstraintComponent"}
     assert owner_clauses == {str(axis) for axis in axes}
 
