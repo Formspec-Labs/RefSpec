@@ -372,6 +372,8 @@ AGENCY_REGISTRY_TABLE_SCHEMAS: Mapping[str, pa.Schema] = {
             pa.field("effective_date", pa.string(), nullable=False),
             pa.field("date_basis", pa.string(), nullable=False),
             pa.field("originals", pa.list_(pa.string()), nullable=False),
+            # Each original's roster parent, in the order of ``originals``; null for a top-level one.
+            pa.field("original_parents", pa.list_(pa.string()), nullable=False),
             pa.field("result", pa.string(), nullable=False),
             pa.field("result_publisher_name", pa.string(), nullable=False),
             pa.field("functions_taken", pa.string()),
@@ -393,6 +395,14 @@ AGENCY_REGISTRY_TABLE_SCHEMAS: Mapping[str, pa.Schema] = {
             pa.field("closest_alternative", _AGENCY_REGISTRY_CLOSEST_ALTERNATIVE),
             pa.field("decision", _AGENCY_REGISTRY_DECISION, nullable=False),
         ]
+    ),
+}
+# The 1.0 view (sealed by dev21, vendored by spicy-regs) predates original_parents;
+# it stays verifiable, so its tables keep their schema here.
+LEGACY_1_0_AGENCY_REGISTRY_TABLE_SCHEMAS: Mapping[str, pa.Schema] = {
+    **AGENCY_REGISTRY_TABLE_SCHEMAS,
+    AGENCY_REGISTRY_EVENT_ROLE: AGENCY_REGISTRY_TABLE_SCHEMAS[AGENCY_REGISTRY_EVENT_ROLE].remove(
+        AGENCY_REGISTRY_TABLE_SCHEMAS[AGENCY_REGISTRY_EVENT_ROLE].get_field_index("original_parents")
     ),
 }
 AGENCY_REGISTRY_TABLE_NAMES: Mapping[str, str] = {
@@ -956,6 +966,7 @@ __all__ = [
     "DERIVED_RELATION_ROLE",
     "DERIVED_RELATION_TABLE_NAME",
     "DERIVED_RELATION_TABLE_SCHEMA",
+    "LEGACY_1_0_AGENCY_REGISTRY_TABLE_SCHEMAS",
     "PARQUET_VERSION",
     "ROW_GROUP_SIZE",
     "TABLE_MEDIA_TYPE",

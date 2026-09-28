@@ -1620,6 +1620,15 @@ def _change_event(
     metadata = {
         **event_payload,
         "decision": "event",
+        # Each original's roster parent, as a bridge's decision carries its
+        # subject's: sealed in the candidates and re-derived from the roster
+        # above, which refuses drift. Metadata only, so the evidence the owner
+        # reviewed is unchanged; a top-level original has no key, never a null.
+        "originalParents": {
+            str(record["resource_iri"]): parent
+            for record in event["originals"]
+            if (parent := _parent_record(record)) is not None
+        },
         "ownerDecision": owner_decision,
         "publicRecords": records,
     }

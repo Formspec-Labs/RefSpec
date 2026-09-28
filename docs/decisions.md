@@ -6040,6 +6040,14 @@ writes them with the Atlas view's writer contract
 members named in the design note §8). `current_agency_successors()`, beside
 `reverse_agency_projection()`, walks the events forward and returns a set --
 every result of a split, the end of a chain -- and is never asserted.
+Later (2026-09-28): the events table gained each original's roster parent
+(`original_parents`), so the view's `schemaVersion` went from 1.0 to 1.1 and
+its manifest to
+`sha256:c7dc9310f9c11cd346245d7cf882f9eaf69b70b25f59841ae6004dca4944866e`;
+the 1.0 view above stays verifiable against the release with that column set
+aside. The release's claims and evidence did not move, and neither did the
+Federal Register thesaurus pair `make contract-dev` prints; the entity module
+edit moved the agency distributions' manifest files as recorded above.
 
 **Recorded readings, for the owner to overrule.** "A dated public record" is
 read, on the wire, as a public record its publisher serves at an `https` URL.

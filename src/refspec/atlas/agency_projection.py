@@ -866,8 +866,9 @@ class AgencyRegistryView:
 
     Each row is a plain dict whose shape is its Parquet table's, so the digest a
     reader recomputes from the tables is this one. One event row per (event,
-    result) carries the event's date, its public records, and the functions that
-    result took; a rename has one row, a split one per result.
+    result) carries the event's date, its originals with their roster parents,
+    its public records, and the functions that result took; a rename has one
+    row, a split one per result.
     """
 
     bridges: tuple[Mapping[str, Any], ...]
@@ -1011,6 +1012,10 @@ def build_agency_registry_view(release: RegistryMappingRelease) -> AgencyRegistr
                 for record in decision["publicRecords"]
             ]
             originals = [str(row["resourceIri"]) for row in decision["originals"]]
+            parents = decision.get("originalParents")
+            if not isinstance(parents, Mapping):
+                raise ValueError(f"agency registry event {decision['eventId']} states no originals' parents")
+            original_parents = [parents[original]["resourceIri"] if original in parents else None for original in originals]
             for result in decision["results"]:
                 events.append(
                     {
@@ -1018,6 +1023,7 @@ def build_agency_registry_view(release: RegistryMappingRelease) -> AgencyRegistr
                         "effective_date": str(decision["effectiveDate"]),
                         "date_basis": str(decision["dateBasis"]),
                         "originals": originals,
+                        "original_parents": original_parents,
                         "result": str(result["resourceIri"]),
                         "result_publisher_name": str(result["publisherName"]),
                         "functions_taken": result.get("functionsTaken"),

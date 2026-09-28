@@ -117,6 +117,7 @@ def expected_from_plans(c, d):
                     "effective_date": event["effective_date"],
                     "date_basis": event["date_basis"],
                     "originals": [o["resource_iri"] for o in event["originals"]],
+                    "original_parents": [parent(o) for o in event["originals"]],
                     "result": target["resource_iri"],
                     "result_publisher_name": target["publisher_name"],
                     "functions_taken": row.get("functions_taken"),

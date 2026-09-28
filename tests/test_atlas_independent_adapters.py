@@ -28,7 +28,7 @@ PDF_PATHS = {
 # changed manifest or receipt fails here too instead of being re-hashed into agreement.
 AGENCY_EVIDENCE_SHA256 = "sha256:fde4401ea78b2e0e5c1c758b90d32def2d81d40693098a5f3ca904e33344ef3b"
 AGENCY_REVIEW_SHA256 = "sha256:4b6a8e01b2d589ad1a2fcad17406070da15c9d31c725f127450efc70ae2ba9ed"
-AGENCY_VIEW_SHA256 = "sha256:77b357cc06fe3e67bcacb0591833884087572727064f89643e10aa2a28ad6b87"
+AGENCY_VIEW_SHA256 = "sha256:c7dc9310f9c11cd346245d7cf882f9eaf69b70b25f59841ae6004dca4944866e"
 
 
 def oracle(name):
@@ -107,7 +107,16 @@ def test_agency_digest_and_expected_rows_frozen_oracles(plans):
     old = oracle("agency_digests")
     assert all(r["matches"] for r in old.recompute(c))
     assert old.aggregate(c) == agency.OWNER_AGGREGATE
-    assert agency.expected_from_plans(c, d) == oracle("agency_artifacts").expected_from_plans(c, d)
+    expected, details = agency.expected_from_plans(c, d)
+    frozen_expected, frozen_details = oracle("agency_artifacts").expected_from_plans(c, d)
+    # The one deliberate divergence from the frozen oracle: the view now states
+    # each event original's roster parent (F6). Everything else still agrees.
+    assert details == frozen_details
+    assert {key for row in expected["events"] for key in row} - {
+        key for row in frozen_expected["events"] for key in row
+    } == {"original_parents"}
+    without = [{key: value for key, value in row.items() if key != "original_parents"} for row in expected["events"]]
+    assert {**expected, "events": agency.sorted_rows(without)} == frozen_expected
     for field in ("date_basis", "effective_date", "originals", "public_records"):
         changed = copy.deepcopy(c)
         changed["events"][0][field] = None
@@ -138,6 +147,7 @@ def test_agency_digest_and_expected_rows_frozen_oracles(plans):
             "date_basis",
             "functions_taken",
             "originals",
+            "original_parents",
             "result",
             "public_records",
             "decision",

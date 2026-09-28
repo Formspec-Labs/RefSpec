@@ -308,15 +308,20 @@ Atlas view's writer contract, and `--check` rebuilds it against the pin.
 
 | Member | Rows | sha256 |
 | --- | ---: | --- |
-| `view-manifest.json` (the pin) | | `77b357cc06fe3e67bcacb0591833884087572727064f89643e10aa2a28ad6b87` |
+| `view-manifest.json` (the pin) | | `c7dc9310f9c11cd346245d7cf882f9eaf69b70b25f59841ae6004dca4944866e` |
 | `tables/agency-registry-bridges.parquet` | 13 | `2e33905b475c6a1adf27960ecf170a1b4c82df2baf20ac13df9307bb687dd898` |
-| `tables/agency-registry-events.parquet` (one row per event and result) | 14 | `09e35a12adcb16581b131fcb187d4d2e07b8d005d431163431c303f1b6fecf2e` |
+| `tables/agency-registry-events.parquet` (one row per event and result) | 14 | `72f35636f9b5c93d708a364352122fb724e872f619a518c5e49ebb19518322b7` |
 | `tables/agency-registry-non-emissions.parquet` | 4 | `da863e467f00f16a6b7a9ff1a3e1182fb8e7488f8b7d33f0d7f0c403a0663e24` |
 
 Its logical-content digest is
-`sha256:9bc9eb0360d73c2815c2e1bfc2ed8953efbffa27a36052fdb389be137ecaff16`. The
-lookup is `current_agency_successors()`, beside `reverse_agency_projection()`,
-over the view's event rows.
+`sha256:777c610051c9fdcbab8e9cdb7d382dce20c4565a484b241ed784247efefc46a4`. The
+events table states each original's roster parent (`original_parents`, in the
+order of `originals`, null for a top-level organization), as the bridges table
+states `subject_parent`; that column is `schemaVersion` 1.1 and moved the
+view from the dev21 release's 1.0 `77b357cc…` (events `09e35a12…`, logical
+`9bc9eb03…`), which stays verifiable against the release; the bridges and
+non-emissions tables did not move. The lookup is `current_agency_successors()`,
+beside `reverse_agency_projection()`, over the view's event rows.
 
 ## 9. Measured gaps (re-measured 2026-09-26)
 

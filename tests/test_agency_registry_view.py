@@ -75,6 +75,96 @@ def test_the_view_rows_are_exactly_the_release(view: agency_projection.AgencyReg
     assert view.release["key"] == "agency-registry-2026-09-26"
 
 
+def test_each_event_row_states_its_originals_roster_parents(
+    view: agency_projection.AgencyRegistryView,
+    rosters: tuple[RegistryRelease, ...],
+) -> None:
+    """Pin F6: an event row names each original's parent as the Register's roster states it, null for a top-level one.
+
+    Read here from the roster directly, not from the candidates the release
+    re-derives it from: six of batch 1's nine originals have a parent.
+    """
+
+    fr_roster = next(roster for roster in rosters if roster.key == agency_projection.FR_RELEASE_KEY)
+    roster_parents = agency_projection.parent_by_subject(fr_roster)
+    for row in view.events:
+        assert list(row["original_parents"]) == [roster_parents.get(original) for original in row["originals"]]
+    stated = {
+        original: parent
+        for row in view.events
+        for original, parent in zip(row["originals"], row["original_parents"], strict=True)
+    }
+    assert stated == {
+        _fr(96): _fr(497),
+        _fr(150): _fr(54),
+        _fr(232): _fr(268),
+        _fr(259): _fr(497),
+        _fr(404): _fr(271),
+        _fr(510): None,
+        _fr(543): None,
+        _fr(559): _fr(221),
+        _fr(564): None,
+    }
+
+
+LEGACY_1_0_VIEW = ROOT / "tests" / "fixtures" / "agency_registry_view_1_0"
+# The dev21 view spicy-regs vendors, byte for byte (design note section 8's earlier table).
+LEGACY_1_0_VIEW_MANIFEST_SHA256 = "sha256:77b357cc06fe3e67bcacb0591833884087572727064f89643e10aa2a28ad6b87"
+
+
+def test_the_sealed_view_is_schema_1_1_and_the_dev21_1_0_view_still_verifies(
+    tmp_path: Path, release: RegistryMappingRelease
+) -> None:
+    """Pin F6's version: new views are 1.1; the sealed 1.0 view is held to the same release without original_parents."""
+
+    assert seal_agency_registry_view(tmp_path / "view", release)["schemaVersion"] == "1.1"
+    legacy = verify_agency_registry_view(
+        LEGACY_1_0_VIEW, expected_manifest_digest=LEGACY_1_0_VIEW_MANIFEST_SHA256, release=release
+    )
+    assert legacy["schemaVersion"] == parquet_view.LEGACY_AGENCY_REGISTRY_VIEW_SCHEMA_VERSION == "1.0"
+    with pytest.raises(AtlasParquetViewError, match="differs from what its release states"):
+        verify_agency_registry_view(
+            LEGACY_1_0_VIEW,
+            expected_manifest_digest=LEGACY_1_0_VIEW_MANIFEST_SHA256,
+            release=_with_evidence(release, SHORT_EVIDENCE["warrant"]),
+        )
+
+
+@pytest.mark.parametrize(("version", "message"), (("1.0", "table schema differs"), ("0.9", "unsupported")))
+def test_a_view_stating_another_version_is_refused(
+    tmp_path: Path, release: RegistryMappingRelease, version: str, message: str
+) -> None:
+    """Pin that a 1.1 view re-sealed as 1.0 fails on its events schema, and an unknown version fails outright."""
+
+    root = tmp_path / "view"
+    seal_agency_registry_view(root, release)
+    manifest = json.loads((root / MANIFEST_FILE).read_text())
+    manifest["schemaVersion"] = version
+    manifest.pop("canonicalPayloadDigest")
+    manifest["canonicalPayloadDigest"] = canonical_payload_sha256(manifest)
+    (root / MANIFEST_FILE).write_bytes(canonical_json_bytes(manifest))
+
+    with pytest.raises(AtlasParquetViewError, match=message):
+        verify_agency_registry_view(root, expected_manifest_digest=file_sha256(root / MANIFEST_FILE), release=release)
+
+
+def test_an_event_decision_without_its_originals_parents_is_refused(
+    tmp_path: Path, release: RegistryMappingRelease
+) -> None:
+    """Pin the error path: a release whose event decision lacks originalParents is refused, and the verifier says so."""
+
+    decisions = [
+        {key: value for key, value in row.items() if key != "originalParents"} for row in release.metadata["decisions"]
+    ]
+    bare = dataclasses.replace(release, metadata={**release.metadata, "decisions": decisions})
+    with pytest.raises(ValueError, match="states no originals' parents"):
+        agency_projection.build_agency_registry_view(bare)
+    root = tmp_path / "view"
+    seal_agency_registry_view(root, release)
+    with pytest.raises(AtlasParquetViewError, match="release does not project: .*states no originals' parents"):
+        verify_agency_registry_view(root, expected_manifest_digest=file_sha256(root / MANIFEST_FILE), release=bare)
+
+
 def test_the_view_builder_reads_the_registry_release_only(rosters: tuple[RegistryRelease, ...]) -> None:
     """Pin that REF-038's release does not feed the registry view, as the registry release does not feed REF-038's."""
 
@@ -177,6 +267,7 @@ def _resealed_rows(root: Path, mutate: Callable[[dict[str, list[dict]]], None]) 
         (AGENCY_REGISTRY_BRIDGE_ROLE, "evidence_tier", "E3"),
         (AGENCY_REGISTRY_EVENT_ROLE, "warrant", "publisherAssertion"),
         (AGENCY_REGISTRY_EVENT_ROLE, "originals", []),
+        (AGENCY_REGISTRY_EVENT_ROLE, "original_parents", [None]),
         (AGENCY_REGISTRY_NON_EMISSION_ROLE, "decision", {"reviewer": "urn:ref:reviewer:someone-else"}),
     ),
 )
