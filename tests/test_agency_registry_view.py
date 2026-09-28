@@ -121,6 +121,26 @@ def test_a_resealed_row_edit_is_refused(tmp_path: Path, release) -> None:
         verify_agency_registry_view(root, expected_manifest_digest=file_sha256(root / MANIFEST_FILE), release=release)
 
 
+def test_the_verify_command_checks_a_view_on_disk_against_the_release_it_rebuilds(
+    tmp_path: Path, release: RegistryMappingRelease
+) -> None:
+    """Pin --verify, qualification's agency-view phase: the release's own view passes, a resealed edit is refused."""
+
+    root = tmp_path / "view"
+    seal_agency_registry_view(root, release)
+    pin = file_sha256(root / MANIFEST_FILE)
+    assert view_tool.main(["--verify", str(root), "--expected-manifest-sha256", pin]) == 0
+
+    def edit(rows: dict[str, list[dict]]) -> None:
+        rows[AGENCY_REGISTRY_BRIDGE_ROLE][0]["warrant"] = "publisherAssertion"
+
+    resealed = _resealed_rows(root, edit)
+    with pytest.raises(AtlasParquetViewError, match="differs from what its release states"):
+        view_tool.main(["--verify", str(root), "--expected-manifest-sha256", resealed])
+    with pytest.raises(SystemExit):
+        view_tool.main(["--verify", str(root)])
+
+
 def _resealed_rows(root: Path, mutate: Callable[[dict[str, list[dict]]], None]) -> str:
     """Rewrite the view's rows and re-seal EVERYTHING around them: members, counts, coverage, digest, payload.
 
