@@ -103,3 +103,79 @@ put every main-thread sample in `gc.collect()`: `_stream_construct_graphs`
 collected the whole tracked heap after every release while retaining all
 source and mapping releases, which repeats work over the retained population
 once per release.
+
+## Repairs and their measurements
+
+Each finding (F1-F14 in the proposal) landed as its own commit after
+`9855dff5`: source-fidelity verifier 16, bounded accounting and sorting, the
+phase guard and qualification target, the explorer's candidate publication
+checks, and the audit refactor. Their bodies state what changed and why. The
+lane's figures, from receipts it produced and this history does not keep:
+
+- The repaired full build completed in 8,562.7 s, peaking at 8.79 GiB
+  physical footprint and 10.05 GiB RSS against 18 GiB guards, with about
+  74 GiB of build disk. The phase that failed before now takes about 108 s.
+  Its largest pack is about 0.94 GiB and the aggregate about 23.3 GiB,
+  inside the 4 GiB and 32 GiB limits.
+- Reconstruction with identical inputs reproduced both the old and the new
+  Federal Register topic release identities, attributing the change to the
+  shared reader's parser version alone; the two repartitioned mapping units
+  sort to byte-identical RDF (79.5 s comparison).
+- Accounting at 4x the probe's records and releases: all digests equal, 962
+  retained expected-graph triples instead of 15,362, 92-93 MB footprint
+  instead of 114-116 MB. These are accounting-only probes.
+- Qualification of that candidate stopped in the standalone audit at the
+  30 GiB footprint guard (30.10 GiB, about 26 minutes) after 120 packs, at
+  least 54,014,188 of 100,916,862 quads. The validator keeps every pack in
+  one two-index dataset, `O(T + U + I)` in statements, payload bytes and
+  identities; this is a capacity stop, not a verdict.
+- The columnar preflight passed on the full candidate in 14.23 s (2.35 GiB
+  peak footprint); the sampled RDF/Parquet comparison, which cost about 33
+  minutes of that run as one scan per sampled subject, now scans once
+  (0.082 s instead of 0.381 s on 50,000 lines and 45 subjects).
+
+The lane also installed a candidate wheel into DocSpec and SpicySearch and
+passed their adoption checks. This branch does not change the package
+version: it sits on dev22 as released, and the merged source needs a version
+of its own before consumers adopt it.
+
+## Retained evidence and what reads it
+
+The owner kept only the evidence a check reads (2026-09-28); the other 200
+files of the lane's evidence tree were not carried over.
+
+| File under `independent/` | Read by |
+| --- | --- |
+| `omitted-vocabularies/receipts/class-bbox.html`, `docket-bbox.html`, `ua-glossary.txt` | `tests/test_atlas_independent_adapters.py::test_pdf_frozen_oracle_and_explicit_reading_divergence` (fast): Poppler coordinate captures for the old and new page algorithms |
+| `omitted-vocabularies/receipts/artifact-observed.json` | `test_pdf_real_exact_artifact_population_and_fields` (slow): the emitted rows the positioned-PDF reader must reproduce |
+| `provenance/relation-specimen.json` | `tests/test_atlas_provenance_repair.py::test_resealed_artifact_tamper_passes_binding_but_fails_publisher` (fast) |
+| `agency/audit-evidence-manifest.json` | the release job's qualification (pinned `sha256:fde4401e...`) and the agency slow tests; it names the 20 primary sources, which are pinned inputs |
+| `agency/claim-receipt.json` | the release job's qualification (pinned `sha256:4b6a8e01...`) and the agency slow tests |
+
+## Known costs and follow-ups
+
+- The Parquet preflight issues 70 DuckDB queries on a passing view, each
+  re-reading the columns it needs: bounded memory, repeated scans.
+- The verifier re-hashes every `nativePayload`, which the binding validator
+  already checks: `O(payload bytes)` twice per audit.
+- `_requested_reachability` runs one depth-first search per start node,
+  `O(s(V + E))`, where ICPSR's reader used to memoize ancestor sets.
+- `_write_sorted_lines` encodes every line to measure it, one transient copy
+  per line (about 25 GB at full scale).
+- Derivation reads each release spool three times (facts, labels, node
+  digests) to avoid holding it; mapping accounting still retains every
+  expected identity, linear in mappings.
+- Qualification pins the compact view to the digest of the manifest it just
+  built, so `verify-compact-view` proves the view did not change between
+  build and check, not that an external party agreed to it.
+- Full publisher-fidelity capacity is unmeasured: no qualification reached it.
+
+## What remains for release
+
+- No candidate has completed qualification. The standalone audit needs more
+  than the 30 GiB guard `release.yml` keeps (`--memory-gib 30`): a bounded
+  validator, proved against the current one as an oracle, or a measured
+  larger exclusive runner.
+- `make stage-atlas-mapping-topology` exits 2 on `main` and on this branch:
+  the staged build refuses assertion `1e1194...` with
+  `dataset.assertion-identity`.

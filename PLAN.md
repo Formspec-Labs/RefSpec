@@ -6,23 +6,25 @@ Longer-running plan detail is in [plans/](plans/) — start with
 [validation-cost-reset-plan.md](plans/validation-cost-reset-plan.md) and read
 its CONTINUATION header.
 
-## Atlas refresh (local, 2026-09-27)
+## Atlas refresh (2026-09-27, fixed 2026-09-28)
 
-`lane/atlas-refresh-20260927` starts from the dev21 candidate and corrects
-the preferred-label shape to the adopted one-per-language policy, including
-refusal of duplicate label records with identical text. The old clause stays
-as a test oracle. Bounded conformance and the Federal Register thesaurus
-publisher check pass with regenerated release pins. Independent rechecks
-confirm source-fidelity verifier defects and provide bounded source comparisons.
-The full build stopped at its memory guard before producing a distribution;
-full artifact qualification remains blocked. See the
-[refresh evidence](research/atlas-refresh-2026-09-27/README.md) for commands,
-digests and the remaining acceptance steps. The August artifact remains intact.
-The separate dev21 worktree and downstream adoption work retain their owners.
+`lane/atlas-refresh-fixed` carries the refresh as reviewed, rewritten commits
+over dev22 (`2b30e432`): the per-language preferred-label shape,
+source-fidelity verifier 16 (independent payload, transformation, PDF and
+agency comparisons), bounded accounting and sorting, the phase guard and one
+qualification target shared with the release job, served-byte checks for
+explorer candidates, and the audit refactor. The slow tier builds everything
+it reads (`make build-derived`) from pinned inputs, including the agency
+review's 20 primary sources. The branch keeps dev22's version; the changed source needs the next
+version before consumers adopt it.
 
-The [repair proposal](plans/atlas-refresh-repair-plan-2026-09-27.md) covers the
-verified gaps, performance bounds, DRY/KISS audit and acceptance criteria.
-It is proposed work; no implementation or full requalification is claimed.
+Release stays blocked: no candidate has completed qualification (the
+standalone audit stops at its 30 GiB guard), and `make
+stage-atlas-mapping-topology` exits 2 on `main` and on the branch. See the
+[refresh record](research/atlas-refresh-2026-09-27/README.md) for findings,
+measurements, retained evidence, known costs and these blockers, and the
+[repair proposal](plans/atlas-refresh-repair-plan-2026-09-27.md) for the
+acceptance criteria. Nothing was published; the August artifact is intact.
 
 ## State as of 2026-09-17 (historical)
 

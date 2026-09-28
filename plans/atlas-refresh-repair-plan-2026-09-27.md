@@ -1,6 +1,10 @@
 # Atlas refresh repair proposal
 
-Status: proposed, not implemented or ratified. Reviewed against commit
+Status: implemented on `lane/atlas-refresh-fixed` (authorized 2026-09-27;
+reviewed and fixed 2026-09-28), except F12's full qualification, which has not
+completed, and F14's package version, which the next release after dev22 owns. The
+[refresh record](../research/atlas-refresh-2026-09-27/README.md) has the
+measurements and what remains. The proposal below was reviewed against commit
 `ac72b203` of `lane/atlas-refresh-20260927`, including the label correction
 (`9855dff5` here) and the
 [independent investigation](../research/atlas-refresh-2026-09-27/README.md).
