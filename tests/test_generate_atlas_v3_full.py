@@ -2239,13 +2239,14 @@ def _probe_evidence_resolution(
     def remove_mapping_evidence(
         graph: Graph,
         current_mappings: tuple[RegistryMappingRelease, ...] = (),
+        accounting_expectations=None,
     ) -> None:
         nonlocal mutated
         if current_mappings and not mutated:
             binding = next(graph.subjects(RDF.type, generator.RKAF.EvidenceBinding))
             graph.remove((binding, None, None))
             mutated = True
-        original(graph, current_mappings)
+        original(graph, current_mappings, accounting_expectations)
 
     monkeypatch.setattr(
         generator,

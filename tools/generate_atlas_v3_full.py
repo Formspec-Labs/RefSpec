@@ -17,7 +17,6 @@ import argparse
 import ast
 import base64
 import dataclasses
-import gc
 import hashlib
 import heapq
 import importlib.util
@@ -4085,38 +4084,47 @@ def _expected_mapping_asserted_graph(
     return graph
 
 
+def _accumulate_mapping_accounting(
+    graph: Graph,
+    expected: dict[str, dict[str, set[str]]],
+) -> None:
+    """Fold input-derived evidence identities before its batch graph is freed."""
+    for binding in graph.subjects(RDF.type, RKAF.EvidenceBinding):
+        assertion = graph.value(binding, RKAF.bindsAssertion)
+        record = graph.value(binding, ATLAS.evidenceSourceRecord)
+        source_release = graph.value(record, ATLAS.inSourceRelease) if isinstance(record, URIRef) else None
+        if not all(isinstance(value, URIRef) for value in (assertion, record, source_release)):
+            raise AssertionError("expected mapping evidence lacks assertion or release ownership")
+        expected.setdefault(str(source_release), {}).setdefault(str(record), set()).add(str(assertion))
+
+
 def _mapping_accounting_expectations(
     mapping_releases: Sequence[RegistryMappingRelease],
 ) -> dict[str, dict[str, set[str]]]:
-    """Group exact mapping assertion identities by evidence SourceRecord."""
-
-    graph = _expected_mapping_asserted_graph(mapping_releases)
-    expected: dict[str, dict[str, set[str]]] = defaultdict(lambda: defaultdict(set))
-    try:
-        for binding in graph.subjects(RDF.type, RKAF.EvidenceBinding):
-            assertion = graph.value(binding, RKAF.bindsAssertion)
-            record = graph.value(binding, ATLAS.evidenceSourceRecord)
-            source_release = graph.value(record, ATLAS.inSourceRelease) if isinstance(record, URIRef) else None
-            if not all(isinstance(value, URIRef) for value in (assertion, record, source_release)):
-                raise AssertionError("expected mapping evidence lacks assertion or release ownership")
-            expected[str(source_release)][str(record)].add(str(assertion))
-        return {
-            release: {record: set(assertions) for record, assertions in records.items()}
-            for release, records in expected.items()
-        }
-    finally:
-        graph.close()
+    """Retain exact IDs, constructing only one input-derived batch graph at a time."""
+    expected: dict[str, dict[str, set[str]]] = {}
+    for release in mapping_releases:
+        for batch in _mapping_batches(release):
+            graph = _expected_mapping_asserted_graph((batch,))
+            try:
+                _accumulate_mapping_accounting(graph, expected)
+            finally:
+                graph.close()
+    return expected
 
 
 def _validate_compiled_evidence_output(
     asserted: Graph,
     expected_counts: Mapping[str, int],
     mapping_releases: Sequence[RegistryMappingRelease],
+    accounting_expectations: dict[str, dict[str, set[str]]] | None = None,
 ) -> None:
     """Reconcile every approval and the exact evidence-backed mapping subgraph."""
 
     expected_mapping = _expected_mapping_asserted_graph(mapping_releases)
     try:
+        if accounting_expectations is not None:
+            _accumulate_mapping_accounting(expected_mapping, accounting_expectations)
         expected_assertions = set(expected_mapping.subjects(RDF.type, ATLAS.MappingAssertion))
         actual_assertions = set(asserted.subjects(RDF.type, ATLAS.MappingAssertion))
         if actual_assertions != expected_assertions:
@@ -4990,10 +4998,51 @@ def _validate_compiled_producer_rows(
     )
 
 
+@dataclass(frozen=True, slots=True)
+class _SourceAccountingExpectation:
+    key: str
+    scope: str
+    source_release_iri: str
+    resources: frozenset[str]
+    transformed: int
+    supplemental: frozenset[str]
+
+
+def _source_accounting_expectation(release: LoadedRelease) -> _SourceAccountingExpectation:
+    supplemental = frozenset(
+        str(
+            _source_record_constructor(
+                source_release=URIRef(release.source_release_iri),
+                source_locator=URIRef(record.source_locator),
+                source_digest=record.source_digest,
+                native_payload=record.native_payload,
+            )[0]
+        )
+        for record in release.supplemental_source_records
+    )
+    return _SourceAccountingExpectation(
+        release.spec.key,
+        release.spec.scope,
+        release.source_release_iri,
+        frozenset(resource.iri for resource in release.resources),
+        sum(relation.predicate == str(ATLAS.thesaurusRelated) for relation in release.relations),
+        supplemental,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class _MappingAccountingExpectation:
+    key: str
+    scope: str
+    source_release_iri: str
+
+
 def _validate_compiled_source_accounting(
-    releases: Sequence[LoadedRelease],
+    releases: Sequence[LoadedRelease | _SourceAccountingExpectation],
     accounting: Mapping[str, Any],
-    mapping_releases: Sequence[RegistryMappingRelease] = (),
+    mapping_releases: Sequence[RegistryMappingRelease | _MappingAccountingExpectation] = (),
+    *,
+    mapping_expectations: Mapping[str, Mapping[str, set[str]]] | None = None,
 ) -> str:
     """Reconcile the generated ledger with the compact source membership."""
 
@@ -5027,31 +5076,34 @@ def _validate_compiled_source_accounting(
     if set(rows_by_release) != expected_releases:
         raise ValueError("compiled producer source accounting release set differs")
 
-    mapping_expectations = _mapping_accounting_expectations(mapping_releases)
+    if mapping_expectations is None:
+        mapping_expectations = _mapping_accounting_expectations(mapping_releases)
     source_records: set[str] = set()
     represented_total = 0
     excluded_total = 0
     for release in releases:
+        if not isinstance(release, _SourceAccountingExpectation):
+            release = _source_accounting_expectation(release)
         row = rows_by_release[release.source_release_iri]
-        if row["membershipMode"] != _accounting_membership_mode(release.spec.scope):
-            raise ValueError(f"{release.spec.key} source accounting membership mode differs")
+        if row["membershipMode"] != _accounting_membership_mode(release.scope):
+            raise ValueError(f"{release.key} source accounting membership mode differs")
         dispositions = row["dispositions"]
         if not isinstance(dispositions, list):
-            raise ValueError(f"{release.spec.key} source accounting dispositions are not a list")
-        expected_resources = {resource.iri for resource in release.resources}
+            raise ValueError(f"{release.key} source accounting dispositions are not a list")
+        expected_resources = release.resources
         represented_resources: set[str] = set()
         excluded = 0
         supplemental_records: set[str] = set()
         for disposition in dispositions:
             if not isinstance(disposition, Mapping):
-                raise TypeError(f"{release.spec.key} source accounting disposition is not an object")
+                raise TypeError(f"{release.key} source accounting disposition is not an object")
             source_record = disposition.get("sourceRecord")
             if (
                 not isinstance(source_record, str)
                 or not source_record.startswith("urn:ref:atlas-source-record:")
                 or source_record in source_records
             ):
-                raise ValueError(f"{release.spec.key} source accounting SourceRecord is invalid or repeated")
+                raise ValueError(f"{release.key} source accounting SourceRecord is invalid or repeated")
             source_records.add(source_record)
             status = disposition.get("status")
             if status == "represented":
@@ -5060,13 +5112,13 @@ def _validate_compiled_source_accounting(
                     "sourceRecord",
                     "status",
                 }:
-                    raise ValueError(f"{release.spec.key} represented disposition fields differ")
+                    raise ValueError(f"{release.key} represented disposition fields differ")
                 resources = disposition.get("atlasResources")
                 if not isinstance(resources, list) or len(resources) != 1:
-                    raise ValueError(f"{release.spec.key} represented disposition is not one resource")
+                    raise ValueError(f"{release.key} represented disposition is not one resource")
                 resource = resources[0]
                 if not isinstance(resource, str) or resource in represented_resources:
-                    raise ValueError(f"{release.spec.key} represented resource is invalid or repeated")
+                    raise ValueError(f"{release.key} represented resource is invalid or repeated")
                 represented_resources.add(resource)
             elif status == "excluded":
                 reason = disposition.get("reason")
@@ -5074,29 +5126,21 @@ def _validate_compiled_source_accounting(
                     _TRANSFORMED_RELATION_ACCOUNTING_REASON,
                     _SOURCE_CLAIM_ACCOUNTING_REASON,
                 }:
-                    raise ValueError(f"{release.spec.key} excluded disposition differs")
+                    raise ValueError(f"{release.key} excluded disposition differs")
                 if reason == _SOURCE_CLAIM_ACCOUNTING_REASON:
                     supplemental_records.add(source_record)
                 excluded += 1
             else:
-                raise ValueError(f"{release.spec.key} source accounting status is unsupported")
+                raise ValueError(f"{release.key} source accounting status is unsupported")
         if represented_resources != expected_resources:
-            raise ValueError(f"{release.spec.key} source accounting resource membership differs")
-        expected_transformed = sum(relation.predicate == str(ATLAS.thesaurusRelated) for relation in release.relations)
-        expected_supplemental = set()
-        for supplemental in release.supplemental_source_records:
-            record, _ = _source_record_constructor(
-                source_release=URIRef(release.source_release_iri),
-                source_locator=URIRef(supplemental.source_locator),
-                source_digest=supplemental.source_digest,
-                native_payload=supplemental.native_payload,
-            )
-            expected_supplemental.add(str(record))
+            raise ValueError(f"{release.key} source accounting resource membership differs")
+        expected_transformed = release.transformed
+        expected_supplemental = release.supplemental
         if supplemental_records != expected_supplemental:
-            raise ValueError(f"{release.spec.key} supplemental SourceRecord membership differs")
+            raise ValueError(f"{release.key} supplemental SourceRecord membership differs")
         expected_excluded = expected_transformed + len(expected_supplemental)
         if excluded != expected_excluded:
-            raise ValueError(f"{release.spec.key} source accounting excluded count differs")
+            raise ValueError(f"{release.key} source accounting excluded count differs")
         represented_total += len(represented_resources)
         excluded_total += excluded
 
@@ -5852,31 +5896,39 @@ def _write_sorted_lines(
     lines: Iterable[str],
     *,
     chunk_line_count: int = 50_000,
+    chunk_byte_count: int = 64 * 1024 * 1024,
     merge_fan_in: int = 64,
 ) -> None:
     """External merge-sort N-Quads without retaining the full dataset in RAM."""
 
-    if chunk_line_count < 1 or merge_fan_in < 2:
+    if chunk_line_count < 1 or chunk_byte_count < 1 or merge_fan_in < 2:
         raise ValueError("external sort bounds must be positive")
 
     with tempfile.TemporaryDirectory(prefix="atlas3-sort-", dir=path.parent) as raw_temp:
         temp = Path(raw_temp)
         chunks: list[Path] = []
         buffered: list[str] = []
-        for line in lines:
-            buffered.append(line)
-            if len(buffered) < chunk_line_count:
-                continue
+        buffered_bytes = 0
+
+        def flush() -> None:
             buffered.sort()
             chunk = temp / f"chunk-{len(chunks):05d}.nq"
-            chunk.write_text("".join(buffered), encoding="utf-8", newline="")
+            with chunk.open("w", encoding="utf-8", newline="") as stream:
+                stream.writelines(buffered)
             chunks.append(chunk)
             buffered.clear()
+
+        for line in lines:
+            line_bytes = len(line.encode("utf-8"))
+            # A single larger row forms its own run; never accumulate another
+            # row with it. This sorter also handles non-RDF compact rows.
+            if buffered and (len(buffered) >= chunk_line_count or buffered_bytes + line_bytes > chunk_byte_count):
+                flush()
+                buffered_bytes = 0
+            buffered.append(line)
+            buffered_bytes += line_bytes
         if buffered or not chunks:
-            buffered.sort()
-            chunk = temp / f"chunk-{len(chunks):05d}.nq"
-            chunk.write_text("".join(buffered), encoding="utf-8", newline="")
-            chunks.append(chunk)
+            flush()
 
         chunks = _merge_sorted_chunks(chunks, temp, fan_in=merge_fan_in)
         streams = [chunk.open(encoding="utf-8", newline="") for chunk in chunks]
@@ -5898,6 +5950,8 @@ class _DigestingBinaryWriter:
 
     def write(self, data: bytes) -> int:
         view = memoryview(data)
+        if self.byte_length + len(view) > ATLAS_VALIDATE.NQUADS_MAX_TRANSPORT_BYTES:
+            raise ValueError("RDF pack exceeds the binding transport byte limit")
         written_total = 0
         while written_total < len(view):
             written = self._stream.write(view[written_total:])
@@ -5939,6 +5993,8 @@ def _compress_nquads(source: Path, target: Path) -> PackWriteReceipt:
             for block in iter(lambda: input_stream.read(1024 * 1024), b""):
                 content_digest.update(block)
                 content_byte_length += len(block)
+                if content_byte_length > ATLAS_VALIDATE.NQUADS_MAX_CONTENT_BYTES:
+                    raise ValueError("RDF pack exceeds the binding content byte limit")
                 content_quad_count += block.count(b"\n")
                 output_stream.write(block)
     transport_byte_length = target.stat().st_size
@@ -5953,6 +6009,19 @@ def _compress_nquads(source: Path, target: Path) -> PackWriteReceipt:
     )
 
 
+def _check_pack_byte_bounds(packs: Sequence[Mapping[str, Any]]) -> None:
+    total = 0
+    for pack in packs:
+        content = pack["content"]["byteLength"]
+        if content > ATLAS_VALIDATE.NQUADS_MAX_CONTENT_BYTES:
+            raise ValueError("RDF pack exceeds the binding content byte limit")
+        if pack["transport"]["byteLength"] > ATLAS_VALIDATE.NQUADS_MAX_TRANSPORT_BYTES:
+            raise ValueError("RDF pack exceeds the binding transport byte limit")
+        total += content
+        if total > ATLAS_VALIDATE.NQUADS_DATASET_MAX_CONTENT_BYTES:
+            raise ValueError("RDF packs exceed the aggregate dataset content byte limit")
+
+
 def _materialize_nquads_pack(
     source: Path,
     target: Path,
@@ -5962,6 +6031,9 @@ def _materialize_nquads_pack(
 ) -> PackWriteReceipt:
     """Compress current canonical content and record the write."""
 
+    if source.stat().st_size > ATLAS_VALIDATE.NQUADS_MAX_CONTENT_BYTES:
+        raise ValueError(f"RDF pack exceeds the binding content byte limit: {relative_path}")
+    _STATUS.phase("compress-rdf-pack", current=relative_path)
     receipt = _compress_nquads(source, target)
     if incremental is not None:
         incremental.rebuilt_paths.append(relative_path)
@@ -6038,6 +6110,8 @@ class _StreamingGraphSpool:
         self.spool_paths: dict[PackSpoolKey, Path] = {}
         self.sorted_rdf_paths: dict[PackSpoolKey, Path] = {}
         self.line_counts: Counter[PackSpoolKey] = Counter()
+        self.content_bytes: Counter[PackSpoolKey] = Counter()
+        self.total_content_bytes = 0
         self.dependencies: dict[PackSpoolKey, set[PackSpoolKey]] = defaultdict(set)
         self.compact_paths = {
             role: self.compact_root / f"{role.value}.jsonl" for role in CompactRecordRole
@@ -6153,6 +6227,14 @@ class _StreamingGraphSpool:
             # hide the second type.
             self.counts["relationAssertions"] += assertion_type_count
 
+    def _account_spool_bytes(self, key: PackSpoolKey, line_bytes: int) -> None:
+        if self.content_bytes[key] + line_bytes > ATLAS_VALIDATE.NQUADS_MAX_CONTENT_BYTES:
+            raise ValueError(f"RDF spool exceeds the binding content byte limit: {_pack_spool_name(*key)}")
+        if self.total_content_bytes + line_bytes > ATLAS_VALIDATE.NQUADS_DATASET_MAX_CONTENT_BYTES:
+            raise ValueError("RDF spools exceed the aggregate dataset content byte limit")
+        self.content_bytes[key] += line_bytes
+        self.total_content_bytes += line_bytes
+
     def append_graph(
         self,
         graph: Graph,
@@ -6198,8 +6280,10 @@ class _StreamingGraphSpool:
                     rdf_streams[key] = rdf_stream
                 for predicate, obj in graph.predicate_objects(subject):
                     line = ATLAS_VALIDATE.nquads_line(subject, predicate, obj, graph_id) + "\n"
-                    if len(line.encode("utf-8")) > ATLAS_VALIDATE.NQUADS_MAX_LINE_BYTES:
+                    line_bytes = len(line.encode("utf-8"))
+                    if line_bytes > ATLAS_VALIDATE.NQUADS_MAX_LINE_BYTES:
                         raise ValueError("canonical Atlas N-Quads line exceeds the binding limit")
+                    self._account_spool_bytes(key, line_bytes)
                     rdf_stream.write(line)
                     self.line_counts[key] += 1
                     if not isinstance(obj, URIRef):
@@ -6270,8 +6354,10 @@ class _StreamingGraphSpool:
         with self._spool_path(key).open("w", encoding="utf-8", newline="") as stream:
             for subject, predicate, obj in self.catalog:
                 line = ATLAS_VALIDATE.nquads_line(subject, predicate, obj, graph_id) + "\n"
-                if len(line.encode("utf-8")) > ATLAS_VALIDATE.NQUADS_MAX_LINE_BYTES:
+                line_bytes = len(line.encode("utf-8"))
+                if line_bytes > ATLAS_VALIDATE.NQUADS_MAX_LINE_BYTES:
                     raise ValueError("canonical Atlas N-Quads line exceeds the binding limit")
+                self._account_spool_bytes(key, line_bytes)
                 stream.write(line)
                 self.line_counts[key] += 1
 
@@ -6301,6 +6387,7 @@ class _StreamingGraphSpool:
                 filename = "all.nq.zst" if partition is None else f"{partition}.nq.zst"
                 relative = Path("packs") / "sources" / owner / filename
             sorted_path = self.rdf_root / (_pack_spool_name(*key) + ".sorted.nq")
+            _STATUS.phase("sort-rdf-pack", current=relative.as_posix())
             with spool_path.open("r", encoding="utf-8", newline="") as lines:
                 _write_sorted_lines(sorted_path, lines)
             self.sorted_rdf_paths[key] = sorted_path
@@ -6360,6 +6447,7 @@ class _StreamingGraphSpool:
             pack["dependencies"] = sorted(dependency_ids)
 
         packs = sorted(staged.values(), key=lambda pack: pack["packId"])
+        _check_pack_byte_bounds(packs)
         graph_descriptors = [
             {
                 "id": _ROLE_GRAPH_IDS[role],
@@ -6679,6 +6767,7 @@ def _stream_batches(values: Sequence[Any]) -> Iterable[Sequence[Any]]:
 def _validate_streamed_evidence_batch(
     graph: Graph,
     mapping_releases: Sequence[RegistryMappingRelease] = (),
+    accounting_expectations: dict[str, dict[str, set[str]]] | None = None,
 ) -> None:
     """Keep the whole-graph evidence oracle on one bounded constructor batch."""
 
@@ -6699,6 +6788,7 @@ def _validate_streamed_evidence_batch(
             graph,
             expected_counts,
             mapping_releases,
+            accounting_expectations,
         )
     finally:
         projection.close()
@@ -7011,6 +7101,16 @@ def _stream_source_release(
     return accounting_row
 
 
+def _mapping_batches(release: RegistryMappingRelease) -> Iterable[RegistryMappingRelease]:
+    """Bound mapping claims and include their release events exactly once."""
+    batches = iter(_stream_batches(release.mappings))
+    first = next(batches, ())
+    if first or release.change_events:
+        yield dataclasses.replace(release, mappings=tuple(first))
+    for batch in batches:
+        yield dataclasses.replace(release, mappings=tuple(batch), change_events=())
+
+
 def _stream_mapping_release(
     release: RegistryMappingRelease,
     *,
@@ -7018,6 +7118,7 @@ def _stream_mapping_release(
     spool: _StreamingGraphSpool,
     mapping_policy: URIRef,
     facts_by_token: Mapping[str, tuple[URIRef, URIRef]],
+    accounting_expectations: dict[str, dict[str, set[str]]] | None = None,
 ) -> dict[str, Any]:
     """Construct, oracle-check, spool, and free one mapping release."""
 
@@ -7033,13 +7134,11 @@ def _stream_mapping_release(
     header.close()
     mapping_dispositions: dict[str, set[str]] = defaultdict(set)
     seen_records: dict[URIRef, str] = {}
-    for batch_position, batch in enumerate(_stream_batches(release.mappings), start=1):
+    for batch_position, batch_release in enumerate(_mapping_batches(release), start=1):
         graph = _new_build_graph()
         _copy_subject_facts(spool.catalog, graph, mapping_policy)
-        # Change events (REF-072) ride with the first batch, and only it, so
-        # each batch's oracle expects exactly the claims that batch writes.
-        batch_events = tuple(release.change_events) if batch_position == 1 else ()
-        batch_release = dataclasses.replace(release, mappings=tuple(batch), change_events=batch_events)
+        batch = batch_release.mappings
+        batch_events = batch_release.change_events
         for mapping in batch:
             source_token = spool.resource_owner_tokens.get(mapping.subject)
             target_token = spool.resource_owner_tokens.get(mapping.object)
@@ -7108,7 +7207,7 @@ def _stream_mapping_release(
             if isinstance(subject, URIRef)
         }
         spool.add_catalog_subjects(graph, periods)
-        _validate_streamed_evidence_batch(graph, (batch_release,))
+        _validate_streamed_evidence_batch(graph, (batch_release,), accounting_expectations)
         spool.append_graph(
             graph,
             plan,
@@ -7187,9 +7286,51 @@ def _spooled_release_lines(spool: _StreamingGraphSpool, release_key: str) -> Ite
             yield from lines
 
 
+_REGISTERED_DERIVATION_RULES = (
+    (
+        MESH_DESCRIPTORS_RELEASE_KEY,
+        mesh_tree_number_evidence_nodes,
+        derive_mesh_tree_number_broader_rows,
+        None,
+        None,
+    ),
+    (
+        GCMD_SCIENCE_KEYWORDS_RELEASE_KEY,
+        gcmd_column_nesting_evidence_nodes,
+        derive_gcmd_column_nesting_rows,
+        None,
+        None,
+    ),
+    (
+        FR_THESAURUS_RELEASE_KEY,
+        fr_compound_heading_evidence_nodes,
+        derive_fr_compound_heading_broader_rows,
+        collect_fr_preferred_labels,
+        None,
+    ),
+    (
+        EUROVOC_MICROTHESAURI_RELEASE_KEY,
+        eurovoc_microthesaurus_domain_evidence_nodes,
+        derive_eurovoc_microthesaurus_domain_rows,
+        None,
+        EUROVOC_DOMAINS_RELEASE_KEY,
+    ),
+    # The only entry that is BOTH cross-scheme and label-collecting: it
+    # spans two releases like the EuroVoc rule and needs a label view like
+    # the compound-heading rule, so it is the first to use both columns.
+    (
+        FR_THESAURUS_RELEASE_KEY,
+        fr_thesaurus_api_topic_evidence_nodes,
+        derive_fr_thesaurus_api_topic_rows,
+        collect_fr_alignment_preferred_labels,
+        FR_API_TOPICS_RELEASE_KEY,
+    ),
+)
+
+
 def _derive_registered_relations(
     spool: _StreamingGraphSpool,
-    all_source_releases: Sequence[LoadedRelease],
+    release_relations: Mapping[str, frozenset[tuple[str, str, str]]],
     *,
     generated_at: str,
 ) -> tuple[Graph, int, tuple[DerivedRelationRow, ...]]:
@@ -7210,9 +7351,6 @@ def _derive_registered_relations(
     a row for them.
     """
 
-    def _release(key: str) -> LoadedRelease | None:
-        return next((release for release in all_source_releases if release.spec.key == key), None)
-
     derived = Graph()
     all_rows: list[DerivedRelationRow] = []
     total_rows = 0
@@ -7227,60 +7365,22 @@ def _derive_registered_relations(
     # an optional second release key: both must be loaded for it to fire, and
     # its fact view and cited asserted relations are read from both releases'
     # spooled lines combined.
-    for release_key, evidence_nodes, derive, collect_labels, second_release_key in (
-        (
-            MESH_DESCRIPTORS_RELEASE_KEY,
-            mesh_tree_number_evidence_nodes,
-            derive_mesh_tree_number_broader_rows,
-            None,
-            None,
-        ),
-        (
-            GCMD_SCIENCE_KEYWORDS_RELEASE_KEY,
-            gcmd_column_nesting_evidence_nodes,
-            derive_gcmd_column_nesting_rows,
-            None,
-            None,
-        ),
-        (
-            FR_THESAURUS_RELEASE_KEY,
-            fr_compound_heading_evidence_nodes,
-            derive_fr_compound_heading_broader_rows,
-            collect_fr_preferred_labels,
-            None,
-        ),
-        (
-            EUROVOC_MICROTHESAURI_RELEASE_KEY,
-            eurovoc_microthesaurus_domain_evidence_nodes,
-            derive_eurovoc_microthesaurus_domain_rows,
-            None,
-            EUROVOC_DOMAINS_RELEASE_KEY,
-        ),
-        # The only entry that is BOTH cross-scheme and label-collecting: it
-        # spans two releases like the EuroVoc rule and needs a label view like
-        # the compound-heading rule, so it is the first to use both columns.
-        (
-            FR_THESAURUS_RELEASE_KEY,
-            fr_thesaurus_api_topic_evidence_nodes,
-            derive_fr_thesaurus_api_topic_rows,
-            collect_fr_alignment_preferred_labels,
-            FR_API_TOPICS_RELEASE_KEY,
-        ),
-    ):
-        release = _release(release_key)
-        second_release = _release(second_release_key) if second_release_key is not None else None
-        if release is None or (second_release_key is not None and second_release is None):
+    for release_key, evidence_nodes, derive, collect_labels, second_release_key in _REGISTERED_DERIVATION_RULES:
+
+        if release_key not in release_relations or (
+            second_release_key is not None and second_release_key not in release_relations
+        ):
             continue
-        lines = list(_spooled_release_lines(spool, release_key))
-        if second_release is not None:
-            lines.extend(_spooled_release_lines(spool, second_release_key))
-        facts = collect_asserted_fact_view(lines)
-        # A rule with a label collector gets its label view built from the very
-        # lines the fact view just read, then passed to both of its entry
-        # points; a rule without one is called exactly as before.
-        labels = collect_labels(lines, facts) if collect_labels is not None else None
+
+        def lines(release_key: str = release_key, second_release_key: str | None = second_release_key) -> Iterable[str]:
+            yield from _spooled_release_lines(spool, release_key)
+            if second_release_key is not None:
+                yield from _spooled_release_lines(spool, second_release_key)
+
+        facts = collect_asserted_fact_view(lines())
+        labels = collect_labels(lines(), facts) if collect_labels is not None else None
         wanted = evidence_nodes(facts) if labels is None else evidence_nodes(facts, labels)
-        node_digest = collect_node_digests(lines, wanted)
+        node_digest = collect_node_digests(lines(), wanted)
         context = DerivationContext(
             facts=facts,
             node_digest=node_digest,
@@ -7292,10 +7392,7 @@ def _derive_registered_relations(
         # own asserted relations through, so a future non-empty relation
         # set (today both are exactly zero) still refuses a duplicate
         # rather than silently emitting one.
-        asserted_relations = frozenset(
-            (relation.subject, relation.predicate, relation.object)
-            for relation in (*release.relations, *(second_release.relations if second_release is not None else ()))
-        )
+        asserted_relations = release_relations[release_key] | release_relations.get(second_release_key, frozenset())
         outcome = (
             derive(context, asserted_relations=asserted_relations)
             if labels is None
@@ -7321,8 +7418,17 @@ def _stream_construct_graphs(
 ) -> _StreamedConstruction:
     """Construct the full distribution through bounded graphs and disk spools."""
 
-    all_source_releases = tuple(releases)
-    all_mapping_releases = tuple(mapping_releases)
+    source_expectations: list[_SourceAccountingExpectation] = []
+    mapping_summaries: list[_MappingAccountingExpectation] = []
+    mapping_expectations: dict[str, dict[str, set[str]]] = {}
+    derivation_keys = {
+        key for job in _REGISTERED_DERIVATION_RULES for key in (job[0], job[4]) if key is not None
+    }
+    release_relations = {
+        release.spec.key: frozenset((r.subject, r.predicate, r.object) for r in release.relations)
+        for release in releases
+        if release.spec.key in derivation_keys
+    }
     plans_by_key = {plan.key: plan for plan in prebuild.pack_plans}
     catalog = _registry_asserted_graph()
     _ensure_release_schemes(catalog, releases)
@@ -7350,8 +7456,10 @@ def _stream_construct_graphs(
     accounting_rows: list[dict[str, Any]] = []
     source_total = len(releases)
     source_position = 0
+    releases.reverse()
     while releases:
-        release = releases.pop(0)
+        release = releases.pop()
+        source_expectations.append(_source_accounting_expectation(release))
         source_position += 1
         _STATUS.phase(
             "construct-source-release",
@@ -7367,12 +7475,13 @@ def _stream_construct_graphs(
             )
         )
         del release
-        gc.collect()
 
     mapping_total = len(mapping_releases)
     mapping_position = 0
+    mapping_releases.reverse()
     while mapping_releases:
-        release = mapping_releases.pop(0)
+        release = mapping_releases.pop()
+        mapping_summaries.append(_MappingAccountingExpectation(release.key, release.scope, release.source_release_iri))
         mapping_position += 1
         _STATUS.phase(
             "construct-mapping-release",
@@ -7385,19 +7494,20 @@ def _stream_construct_graphs(
                 spool=spool,
                 mapping_policy=mapping_policies[release.key],
                 facts_by_token=facts_by_token,
+                accounting_expectations=mapping_expectations,
             )
         )
         del release
-        gc.collect()
 
     spool.append_catalog()
     _STATUS.phase("derive-registered-relations")
     derived, derived_relation_count, derived_rows = _derive_registered_relations(
         spool,
-        all_source_releases,
+        release_relations,
         generated_at=prebuild.generation_report["createdAt"],
     )
     spool.counts["derivedRelations"] = derived_relation_count
+    _STATUS.phase("construct-accounting")
     accounting_rows.sort(key=lambda row: row["sourceRelease"])
     represented = sum(
         disposition["status"] == "represented"
@@ -7429,10 +7539,12 @@ def _stream_construct_graphs(
             "version": "3.1",
         }
     )
+    _STATUS.phase("validate-accounting")
     accounting_digest = _validate_compiled_source_accounting(
-        all_source_releases,
+        source_expectations,
         accounting,
-        all_mapping_releases,
+        mapping_summaries,
+        mapping_expectations=mapping_expectations,
     )
     if spool.counts != dict(prebuild.compiled_rows.expected_counts):
         raise ValueError(
@@ -8358,6 +8470,7 @@ def _write_asserted_packs(
                 filename = "all.nq.zst" if partition is None else f"{partition}.nq.zst"
                 relative = Path("packs") / "sources" / owner / filename
             sorted_path = temporary / (_pack_spool_name(*key) + ".sorted.nq")
+            _STATUS.phase("sort-rdf-pack", current=relative.as_posix())
             with spool_path.open("r", encoding="utf-8", newline="") as lines:
                 _write_sorted_lines(sorted_path, lines)
             target = output / relative
@@ -8577,6 +8690,7 @@ def _write_graph_packs(
             if view is not None:
                 packs.append(view)
     packs.sort(key=lambda pack: pack["packId"])
+    _check_pack_byte_bounds(packs)
     graph_descriptors = []
     for role in ("asserted", "projection", "derived"):
         role_packs = [pack for pack in packs if pack["graphCounts"][role]]
@@ -8774,6 +8888,7 @@ def _construction_summary(
         seeds,
         contract_digest=contract_digest,
     )
+    _check_pack_byte_bounds(packs)
     accounting_rows = {row["sourceRelease"]: row for row in accounting.get("inputs", ())}
     if len(accounting_rows) != len(accounting.get("inputs", ())):
         raise ValueError("source accounting contains duplicate release rows")
@@ -9406,6 +9521,7 @@ def _write_streamed_candidate_distribution(
             }
             for role in ("asserted", "projection", "derived")
         ]
+    _check_pack_byte_bounds(packs)
     parquet_parity: dict[str, Any] | None = None
     if parquet_tables is not None:
         streamed.spool.write_parquet(parquet_tables)

@@ -325,6 +325,15 @@ def _transform(role: CompactRecordRole, row: Mapping[str, Any]) -> dict[str, Any
 def _write_role(source: Path, target: Path, role: CompactRecordRole) -> int:
     parquet = pq.ParquetFile(source)
     schema = _SCHEMAS[role]
+    # Decode only output columns and the fields needed by _transform's identity
+    # checks. Authentication still hashes every input file byte before this
+    # projection; native payloads need not become Python objects a second time.
+    columns = list(schema.names)
+    if role is CompactRecordRole.STATEMENT:
+        columns.append("assertion_identity_digest")
+    elif role is CompactRecordRole.EVIDENCE_BINDING:
+        columns.remove("evidence_id")
+        columns.extend(("id", "content_digest"))
     writer = pq.ParquetWriter(
         target,
         schema,
@@ -337,7 +346,7 @@ def _write_role(source: Path, target: Path, role: CompactRecordRole) -> int:
     )
     count = 0
     try:
-        for batch in parquet.iter_batches(batch_size=ROW_GROUP_SIZE):
+        for batch in parquet.iter_batches(batch_size=ROW_GROUP_SIZE, columns=columns):
             rows = [_transform(role, row) for row in batch.to_pylist()]
             writer.write_table(pa.Table.from_pylist(rows, schema=schema), row_group_size=ROW_GROUP_SIZE)
             count += len(rows)
