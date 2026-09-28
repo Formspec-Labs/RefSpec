@@ -4070,6 +4070,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         record: URIRef,
         dates: Sequence[str] = ("2003-03-01T00:00:00+00:00",),
         attestor: URIRef = OWNER_REVIEWER,
+        review_warrant: str = "humanReview",
     ) -> URIRef:
         pending = URIRef(f"urn:ref:atlas-change-event:pending:{name}")
         fixture.asserted.add((pending, RDF.type, ATLAS.OrganizationChangeEvent))
@@ -4091,7 +4092,7 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             evidence_record=record,
             evidence_name=f"change-event-{name}",
             attestor=attestor,
-            review_warrant="humanReview",
+            review_warrant=review_warrant,
         )
         return event
 
@@ -4201,6 +4202,20 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             _reseal_evidence_to_fixed_point(fixture.asserted)
 
         return defect
+
+    def change_event_owner_attested_other_warrant(fixture: Fixture, orgs: list[URIRef], record: URIRef) -> None:
+        # The owner attests, but under publisherAssertion, a sanctioned warrant:
+        # atlas:EvidenceBindingShape's sh:xone admits it, so only the owner
+        # review's four fixed values refuse it -- every one of them, which is
+        # what the one-axis negatives above cannot show.
+        add_change_event(
+            fixture,
+            "owner-attested-other-warrant",
+            originals=orgs[:1],
+            results=orgs[1:2],
+            record=record,
+            review_warrant="publisherAssertion",
+        )
 
     def change_event_original_among_results(fixture: Fixture, orgs: list[URIRef], record: URIRef) -> None:
         add_change_event(
@@ -5619,6 +5634,12 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             ["shacl"],
             "shacl.data",
             change_event_case(change_event_not_owner_reviewed),
+        ),
+        (
+            "change-event-owner-attested-other-warrant",
+            ["shacl"],
+            "shacl.data",
+            change_event_case(change_event_owner_attested_other_warrant),
         ),
         (
             "change-event-owner-review-origin",

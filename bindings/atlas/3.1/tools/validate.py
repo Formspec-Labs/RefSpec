@@ -1052,6 +1052,7 @@ REQUIRED_CORPUS_CASES = frozenset(
         "change-event-original-among-results",
         "change-event-no-public-record",
         "change-event-not-owner-reviewed",
+        "change-event-owner-attested-other-warrant",
         "change-event-owner-review-origin",
         "change-event-owner-review-attestor-kind",
         "change-event-owner-review-basis",

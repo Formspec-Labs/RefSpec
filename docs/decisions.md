@@ -6128,3 +6128,6 @@ and `make generate`, which moved only that module and the index.
   date, and one per fixed value of the owner's review (origin, attestor
   kind, basis, role) -- as new cases in `fixtures/corpus.json`:
   `8ef2e5df…` / `aa3e5785…`.
+- The owner attesting an event under publisherAssertion, the negative only
+  the owner review's four fixed values refuse (a new case in
+  `fixtures/corpus.json`): `1c14dc75…` / `e6c5d30b…`.

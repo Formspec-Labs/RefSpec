@@ -45,6 +45,9 @@ OWNER_REVIEW_CASES = {
     "change-event-owner-review-basis": RKAF.epistemicBasis,
     "change-event-owner-review-role": RKAF.evidenceRole,
 }
+# The owner attesting under publisherAssertion, a warrant the xone admits: only
+# the four fixed values refuse it, and all four do.
+OWNER_OTHER_WARRANT_CASE = "change-event-owner-attested-other-warrant"
 
 
 def _event_graph(*, ring: URIRef = ATLAS_NS.entity) -> Graph:
@@ -89,6 +92,7 @@ def _event_graph(*, ring: URIRef = ATLAS_NS.entity) -> Graph:
             (case, ["HasValueConstraintComponent", "NodeConstraintComponent", "XoneConstraintComponent"], {INVERSE_BINDING})
             for case in OWNER_REVIEW_CASES
         ),
+        (OWNER_OTHER_WARRANT_CASE, ["HasValueConstraintComponent", "NodeConstraintComponent"], {INVERSE_BINDING}),
     ),
 )
 def test_each_change_event_shape_clause_refuses_on_its_own_path(
@@ -107,9 +111,15 @@ def test_each_change_event_shape_clause_refuses_on_its_own_path(
     assert named == paths
 
 
-@pytest.mark.parametrize(("case", "axis"), OWNER_REVIEW_CASES.items())
-def test_each_owner_review_negative_breaks_its_own_fixed_value(case: str, axis: URIRef) -> None:
-    """Pin, off the whole-graph report graph, that each negative breaks the owner's clause on its own axis only."""
+@pytest.mark.parametrize(
+    ("case", "axes"),
+    (
+        *((case, {axis}) for case, axis in OWNER_REVIEW_CASES.items()),
+        (OWNER_OTHER_WARRANT_CASE, set(OWNER_REVIEW_CASES.values())),
+    ),
+)
+def test_each_owner_review_negative_breaks_its_own_fixed_values(case: str, axes: set[URIRef]) -> None:
+    """Pin, off the whole-graph report graph, which of the owner's fixed-value clauses each negative breaks."""
 
     distribution = atlas_validate.FIXTURE_ROOT / "invalid" / case
     manifest = json.loads((distribution / "atlas-manifest.json").read_text(encoding="utf-8"))
@@ -123,7 +133,7 @@ def test_each_owner_review_negative_breaks_its_own_fixed_value(case: str, axis: 
     assert not conforms
     violations = atlas_validate._report_violations(results)
     owner_clauses = {path for _focus, path, component in violations if component == "HasValueConstraintComponent"}
-    assert owner_clauses == {str(axis)}
+    assert owner_clauses == {str(axis) for axis in axes}
 
 
 @pytest.mark.parametrize(
