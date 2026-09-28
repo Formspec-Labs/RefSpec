@@ -3709,8 +3709,8 @@ def _root_shape_focus_groups(
     that would mean this resolution and the engine's disagree.
 
     Invariant this rides on: resolution reads the four SHACL Core target
-    predicates only, which is complete for today's shapes file (39
-    `sh:targetClass`, 1 `sh:targetObjectsOf`; no implicit class targets, no
+    predicates only, which is complete for today's shapes file (`sh:targetClass`
+    throughout and one `sh:targetObjectsOf`; no implicit class targets, no
     `sh:sparql`, no `sh:deactivated`). A shape acquiring any other target
     form must extend this resolution -- a node targeted by *nothing* falls
     back to the whole-graph run, but a node this resolution groups under
@@ -3760,17 +3760,13 @@ def _focused_shacl_report(
     shapes they reach; no target is resolved over the graph.
 
     The targets are rewritten rather than named through pySHACL's `use_shapes`
-    and `focus_nodes`, which is what this did until 2026-09-28: `use_shapes`
-    loads only the shapes it names and the blank nodes under them, and skips
-    every named shape they reach through `sh:node` or `sh:qualifiedValueShape`
-    as if it conformed (pySHACL 0.31 `_build_node_shape_cache_from_list`). All
-    eight of the binding's named value shapes were skipped that way, so a
-    violation inside one -- atlas:OwnerHumanReviewShape, atlas:DateTimeValueShape
-    -- or a missing atlas:PublicRecordEvidenceShape match never reappeared, and
-    the red path paid the whole-graph run instead. With every shape loaded the
-    engine traverses them as the whole-graph run does. The nodes go in as RDF
-    terms, not strings, so no CURIE expansion can hand the engine a different
-    node than the one that failed.
+    and `focus_nodes`: `use_shapes` loads only the shapes it names and the
+    blank nodes under them, and passes as conforming every named shape they
+    reach -- through `sh:node`, `sh:qualifiedValueShape`, `sh:property`,
+    `sh:not`, `sh:and`, `sh:or` or `sh:xone` (REF-072). With every shape
+    loaded the engine traverses named shapes as the whole-graph run does. The
+    nodes go in as RDF terms, not strings, so no CURIE expansion can hand the
+    engine a different node than the one that failed.
 
     Returns the report text and its canonical violations -- empty when the
     nodes conform -- or None when a node is targeted by no shape or the engine
@@ -3899,28 +3895,28 @@ def _run_shacl(graphs: Mapping[str, Graph], ontology: Graph, shapes: Graph) -> N
     graph once to find that it is red, the report is one engine run over k
     nodes (`_focused_shacl_report`) and costs O(|shapes| + k * c), c being
     one node under the shapes that target it and the named shapes they
-    reach. k is one node per violated `(resultPath, component)` signature
-    plus one per refusing lifted constraint: never more than the nodes
-    refused, and at most the signatures the shapes file can produce --
-    every closed shape is lifted, so no signature carries a data predicate
-    -- however many nodes violate them. Should that sample ever fall short
-    of what the fast path found (`_focused_report_is_complete`), the report
-    re-validates every node the fast path refused instead, k becoming their
-    number, and the engine's answer on those nodes is final: if they
-    conform, so does the role, as the whole-graph run would have said.
-    Measured on the bounded agency build (2.25M quads) with a violation
-    planted inside each named shape: the whole-graph report took 264s over
-    292,174 (shape, node) pairs, the sample 0.03s over 11, and the
-    every-refused-node fallback 0.34s over 741.
+    reach. For the sample, k is one node per violated `(resultPath,
+    component, sourceShape)` signature plus one per refusing lifted
+    constraint: at most the signatures the shapes file can produce -- every
+    closed shape is lifted, so no signature carries a data predicate --
+    however many nodes violate them. If the sample falls short of what the
+    fast path found (`_focused_report_is_complete`), the report re-validates
+    every node the fast path refused instead, and k is the refused nodes:
+    about a millisecond each, which nears the whole-graph run's cost when
+    nearly every node is refused, and never exceeds the (shape, node) pairs
+    that run evaluates.
 
-    Until 2026-09-28 that fallback was the whole-graph run itself, and every
-    red build with a violation inside a named shape paid it, ten of the 62
-    `shacl.data` corpus cases among them (REF-072, "The red path's bounded
-    fallback"); tests/test_atlas_v3_red_path_oracle.py holds the bounded
-    report to it. The whole-graph run remains audit mode's report and the
-    answer when the fast path itself cannot be read -- an engine exception,
-    a result without a focus node, a node no shape targets -- never a cost
-    of what a red build violates.
+    The engine's answer on the refused nodes is final: if every one
+    conforms, the role passes. That is the whole-graph verdict only while
+    the batched plan misses no violation, the assumption the green path
+    already rests on: a plan that wrongly refused one node and missed a real
+    violation at another would pass a build audit mode fails. The owner
+    chose this over a whole-graph check on that branch (REF-072, "The red
+    path's bounded fallback"). The whole-graph run remains audit mode's
+    report and the answer when the fast path itself cannot be read -- an
+    engine exception, a result without a focus node, a node no shape
+    targets. tests/test_atlas_v3_red_path_oracle.py holds the sample and the
+    fallback to it.
     """
 
     _prove_shape_graph_conforms(file_sha256(ONTOLOGY_PATH), file_sha256(SHAPES_PATH))

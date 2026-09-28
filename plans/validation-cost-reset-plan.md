@@ -1269,7 +1269,7 @@ product's weakest true claim.
       first — a read-only branch-match matrix (under- vs over-match per
       binding, each fix priced with blast radius incl. required negative
       corpus cases) is being produced as the decision packet.
-- [x] Red-path fail-fast + smoke tier LANDED (2026-08-11): focused
+- [x] Red-path fail-fast + smoke tier LANDED (2026-08-11) [superseded 2026-09-28: use_shapes skipped named shapes; the focused re-run is REF-072's bounded fallback]: focused
       re-validation via pySHACL focus_nodes+use_shapes (unmodified shapes,
       full data graph, named focus nodes only); cross-mode equivalence 0
       mismatches over all 115 invalid corpus cases; audit mode preserved

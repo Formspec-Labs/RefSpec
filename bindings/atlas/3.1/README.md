@@ -970,7 +970,9 @@ precedence between gates. `shaclComponents` is different in kind and is
 contractual: it is what an operator reads to know *which* constraint refused,
 it must be identical under the fail-fast red path and under
 `REFSPEC_ATLAS_VALIDATION_MODE=audit` (the release tier re-validates every
-`shacl.data` case in both modes to prove it), and a case that reported a
+`shacl.data` case in both modes to prove it, and the fast tier holds the red
+path's report to the whole-graph report over the same cases and a mutation
+battery), and a case that reported a
 different set of components would be a different rejection, not a reordered
 one.
 
