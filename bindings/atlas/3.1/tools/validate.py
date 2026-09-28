@@ -3040,6 +3040,11 @@ _SHACL_TARGET_PREDICATES = (
     SH.targetObjectsOf,
     SH.targetSubjectsOf,
 )
+# The named value shapes the batched plan folds into the property shapes that
+# reach them. atlas:EnglishTextLiteralValueShape is not one: its sh:languageIn
+# is not a constraint `_INLINE_VALUE_CONSTRAINTS` carries, so it stays a named
+# shape (its predecessor, atlas:TextLiteralValueShape, was listed here until
+# the rename left the entry dead).
 _INLINE_VALUE_SHAPES = frozenset(
     {
         ATLAS.DateTimeValueShape,
@@ -3047,7 +3052,6 @@ _INLINE_VALUE_SHAPES = frozenset(
         ATLAS.NonEmptyStringValueShape,
         ATLAS.ResourceProfileValueShape,
         ATLAS.SemanticRingValueShape,
-        ATLAS.TextLiteralValueShape,
     }
 )
 _INLINE_VALUE_CONSTRAINTS = frozenset(

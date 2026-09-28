@@ -1619,6 +1619,18 @@ def test_batched_shacl_plan_keeps_normative_shapes_and_lifts_direct_properties()
     assert list(shapes.objects(ATLAS.EvidenceBindingShape, SH.xone))
 
 
+def test_every_listed_inline_value_shape_exists_and_is_inlined() -> None:
+    """An inline entry the shapes file no longer defines, or the plan cannot fold, is dead and must fail here."""
+
+    _, shapes = atlas_validate._parse_binding_graphs()
+    plan = atlas_validate._batched_shacl_plan(shapes)
+
+    for value_shape in sorted(atlas_validate._INLINE_VALUE_SHAPES):
+        assert (value_shape, RDF.type, SH.NodeShape) in shapes, f"{value_shape} is not defined"
+        assert list(shapes.subjects(SH.node, value_shape)), f"no sh:node reaches {value_shape}"
+        assert not list(plan.shapes.subjects(SH.node, value_shape)), f"{value_shape} is not inlined"
+
+
 def test_lifted_warrant_xone_is_refused_when_the_shape_drifts() -> None:
     """A lift that outlives its shape would be a different validator.
 
