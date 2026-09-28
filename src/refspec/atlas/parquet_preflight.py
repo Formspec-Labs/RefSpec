@@ -8,14 +8,13 @@ repeatedly walking a large RDFLib graph.
 
 from __future__ import annotations
 
-from collections import Counter
 from collections.abc import Mapping
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
 
+import duckdb
 import pyarrow as pa
-import pyarrow.compute as pc
-import pyarrow.parquet as pq
 
 from refspec.atlas.compact_pack import CompactRecordRole
 from refspec.atlas.parquet_artifact import normalize_sha256_prefix
@@ -91,500 +90,236 @@ def _fail(code: str, detail: str) -> None:
     raise AtlasParquetPreflightError(code, detail)
 
 
-def _has_true(mask: pa.Array | pa.ChunkedArray) -> bool:
-    result = pc.any(pc.fill_null(mask, True)).as_py()
-    return bool(result)
+# Derived tables contribute counts, but do not carry logical-record identities.
+DERIVED_VIEW_TABLES = frozenset({"agencyProjection", "agencyProjectionUnresolved", "derivedRelations"})
 
 
-def _first_value(
-    table: pa.Table,
-    mask: pa.Array | pa.ChunkedArray,
-    column: str = "id",
-) -> object:
-    return table.filter(pc.fill_null(mask, True))[column][0].as_py()
-
-
-def _require_unique(table: pa.Table, columns: list[str], code: str) -> None:
-    grouped = table.group_by(columns).aggregate([("id", "count")])
-    count_column = "id_count"
-    duplicate = pc.greater(grouped[count_column], 1)
-    if _has_true(duplicate):
-        row = grouped.filter(duplicate).slice(0, 1).to_pylist()[0]
-        _fail(code, f"duplicate values for {columns}: {row}")
-
-
-def _validate_record_identities(tables: Mapping[str, pa.Table]) -> None:
-    """Check all logical-record identifiers with one success-path count."""
-
-    all_ids = pa.concat_arrays([table["id"].combine_chunks() for table in tables.values()])
-    counts = pc.value_counts(all_ids)
-    values = counts.field("values")
-    if _has_true(pc.is_null(values)):
-        for role, table in tables.items():
-            if _has_true(pc.is_null(table["id"])):
-                _fail(f"preflight.{role.casefold()}-identity", "logical record identifier is null")
-
-    duplicate_mask = pc.greater(counts.field("counts"), 1)
-    if not _has_true(duplicate_mask):
-        return
-
-    duplicate_ids = pc.filter(values, duplicate_mask)
-    for role, table in tables.items():
-        role_duplicates = Counter(
-            pc.filter(
-                table["id"],
-                pc.is_in(table["id"], value_set=duplicate_ids),
-            ).to_pylist()
-        )
-        repeated = next((identifier for identifier, count in role_duplicates.items() if count > 1), None)
-        if repeated is not None:
-            _fail(
-                f"preflight.{role.casefold()}-identity",
-                f"duplicate logical record identifier {repeated!r}",
-            )
-    _fail("preflight.cross-role-identity", "one logical record identifier occurs in multiple table roles")
-
-
-def _foreign_indices(
-    table: pa.Table,
-    column: str,
-    target: pa.Table,
-    *,
-    target_column: str = "id",
-    code: str,
-) -> pa.Array | pa.ChunkedArray:
-    indices = pc.index_in(table[column], value_set=target[target_column])
-    missing = pc.is_null(indices)
-    if _has_true(missing):
-        value = _first_value(table, missing, column)
-        _fail(code, f"{column} names unknown {target_column} {value!r}")
-    return indices
-
-
-def _require_columns_equal(
-    table: pa.Table,
-    left: str,
-    right: pa.Array | pa.ChunkedArray,
-    *,
-    code: str,
-    detail: str,
-) -> None:
-    differs = pc.invert(pc.equal(table[left], right))
-    if _has_true(differs):
-        _fail(code, f"{_first_value(table, differs)} {detail}")
-
-
-def _take(table: pa.Table, column: str, indices: pa.Array | pa.ChunkedArray) -> pa.ChunkedArray:
-    return pa.chunked_array([pc.take(table[column], indices)])
-
-
-def _only(table: pa.Table, column: str, value: str) -> pa.Table:
-    return table.filter(pc.equal(table[column], value))
-
-
-def _statement_counts(statements: pa.Table) -> dict[str, int]:
-    grouped = statements.group_by(["statement_type"]).aggregate([("id", "count")])
-    return {str(row["statement_type"]): int(row["id_count"]) for row in grouped.to_pylist()}
-
-
-def _validate_manifest_counts(
-    tables: Mapping[str, pa.Table],
+def _validate_relations(
+    db: duckdb.DuckDBPyConnection,
+    roles: set[str],
     view_counts: Mapping[str, Any],
     distribution_counts: Mapping[str, Any],
-    statement_counts: Mapping[str, int],
-) -> None:
-    observed = {role: table.num_rows for role, table in tables.items()}
+) -> dict[str, Any]:
+    """Run projected scans and spillable global joins; return only failure samples."""
+
+    def check(query: str, code: str, detail: str) -> None:
+        row = db.execute(query + " LIMIT 1").fetchone()
+        if row is not None:
+            _fail("preflight." + code, f"{detail}: {row}")
+
+    def bad(table: str, condition: str, code: str, detail: str) -> None:
+        check(f'SELECT id FROM "{table}" WHERE {condition}', code, detail)
+
+    def foreign(table: str, column: str, target: str, code: str) -> None:
+        check(
+            f'SELECT a.id, a."{column}" FROM "{table}" a ANTI JOIN "{target}" b ON a."{column}" = b.id',
+            code,
+            f"{column} names unknown id",
+        )
+
+    def equal(table: str, key: str, target: str, left: str, right: str, code: str, detail: str) -> None:
+        # Arrow's original comparison treats *either* null as a failure,
+        # including null/null; SQL IS DISTINCT FROM alone would weaken it.
+        check(
+            f'SELECT a.id FROM "{table}" a JOIN "{target}" b ON a."{key}" = b.id '
+            f'WHERE a."{left}" IS NULL OR b."{right}" IS NULL '
+            f'OR a."{left}" <> b."{right}"',
+            code,
+            detail,
+        )
+
+    def unique(table: str, columns: str, code: str) -> None:
+        check(
+            f'SELECT {columns} FROM "{table}" GROUP BY {columns} HAVING count(*) > 1',
+            code,
+            f"duplicate values for {columns}",
+        )
+
+    core = sorted(role.value for role in CompactRecordRole)
+    for role in core:
+        bad(role, "id IS NULL", role.casefold() + "-identity", "logical record identifier is null")
+    for role in core:
+        unique(role, "id", role.casefold() + "-identity")
+    ids = " UNION ALL ".join(f'SELECT id FROM "{role}"' for role in core)
+    check(
+        f"SELECT id FROM ({ids}) GROUP BY id HAVING count(*) > 1",
+        "cross-role-identity",
+        "one logical record identifier occurs in multiple table roles",
+    )
+
+    observed = {role: db.execute(f'SELECT count(*) FROM "{role}"').fetchone()[0] for role in sorted(roles)}
     if observed != dict(view_counts):
         _fail("preflight.counts", f"view counts differ: expected={dict(view_counts)}, actual={observed}")
-
-    releases = tables[CompactRecordRole.RELEASE.value]
-    atlas_releases = _only(releases, "release_type", "AtlasRelease").num_rows
+    statement_counts = dict(
+        db.execute('SELECT statement_type, count(*) FROM "Statement" GROUP BY statement_type').fetchall()
+    )
     expected = {
-        "resources": observed[CompactRecordRole.RESOURCE.value],
-        "labels": observed[CompactRecordRole.LABEL.value],
-        "sourceRecords": observed[CompactRecordRole.SOURCE_RECORD.value],
-        "identifiers": observed[CompactRecordRole.IDENTIFIER.value],
-        "relationAssertions": observed[CompactRecordRole.STATEMENT.value],
-        "releases": atlas_releases,
-        "mappingAssertions": statement_counts.get("MappingAssertion", 0),
-        "nativeRelationAssertions": statement_counts.get("NativeRelationAssertion", 0),
-        "crossRingRelationAssertions": statement_counts.get("CrossRingRelationAssertion", 0),
-        "sourceAssignments": statement_counts.get("SourceAssignment", 0),
+        name: observed[role]
+        for name, role in (
+            ("resources", "Resource"),
+            ("labels", "Label"),
+            ("sourceRecords", "SourceRecord"),
+            ("identifiers", "Identifier"),
+            ("relationAssertions", "Statement"),
+        )
     }
+    expected["releases"] = db.execute(
+        "SELECT count(*) FROM \"Release\" WHERE release_type = 'AtlasRelease'"
+    ).fetchone()[0]
+    expected.update(
+        {
+            name: statement_counts.get(kind, 0)
+            for name, kind in (
+                ("mappingAssertions", "MappingAssertion"),
+                ("nativeRelationAssertions", "NativeRelationAssertion"),
+                ("crossRingRelationAssertions", "CrossRingRelationAssertion"),
+                ("sourceAssignments", "SourceAssignment"),
+            )
+        }
+    )
     actual = {name: distribution_counts.get(name) for name in expected}
     if expected != actual:
         _fail("preflight.counts", f"distribution counts differ: expected={expected}, actual={actual}")
 
-
-def _validate_releases(
-    releases: pa.Table,
-    resources: pa.Table,
-    source_records: pa.Table,
-) -> None:
-    release_types = set(pc.unique(releases["release_type"]).to_pylist())
-    if release_types - {"AtlasRelease", "SourceRelease"}:
-        _fail("preflight.release-type", f"unsupported release types: {sorted(release_types)}")
-
-    atlas_releases = _only(releases, "release_type", "AtlasRelease")
-    source_releases = _only(releases, "release_type", "SourceRelease")
-    resource_release_indices = _foreign_indices(
-        resources,
-        "release",
-        atlas_releases,
-        code="preflight.resource-release",
+    foreign("Resource", "source_record", "SourceRecord", "resource-source-record")
+    bad(
+        "Release",
+        "release_type IS NULL OR release_type NOT IN ('AtlasRelease', 'SourceRelease')",
+        "release-type",
+        "unsupported release type",
     )
-    for resource_column, release_column in (
-        ("scheme", "scheme"),
-        ("semantic_ring", "semantic_ring"),
-        ("resource_profile", "resource_profile"),
-    ):
-        _require_columns_equal(
-            resources,
-            resource_column,
-            _take(atlas_releases, release_column, resource_release_indices),
-            code="preflight.resource-release",
-            detail=f"{resource_column} differs from its release",
-        )
-    _foreign_indices(
-        source_records,
-        "source_release",
-        source_releases,
-        code="preflight.source-release",
-    )
-
-
-def _validate_labels(
-    labels: pa.Table,
-    resources: pa.Table,
-    source_records: pa.Table,
-) -> None:
-    resource_indices = _foreign_indices(
-        labels,
-        "resource",
-        resources,
-        code="preflight.label-resource",
-    )
-    _foreign_indices(
-        labels,
-        "source_record",
-        source_records,
-        code="preflight.label-source-record",
-    )
-    _require_columns_equal(
-        labels,
-        "release",
-        _take(resources, "release", resource_indices),
-        code="preflight.label-release",
-        detail="release differs from its resource",
-    )
-    _require_columns_equal(
-        labels,
-        "source_record",
-        _take(resources, "source_record", resource_indices),
-        code="preflight.label-provenance",
-        detail="does not share its resource SourceRecord",
-    )
-    roles = set(pc.unique(labels["label_role"]).to_pylist())
-    if roles - LABEL_ROLES:
-        _fail("preflight.label-role", f"unsupported label roles: {sorted(roles)}")
-    preferred = _only(labels, "label_role", "preferred")
-    _require_unique(
-        preferred,
-        ["resource", "language"],
-        "preflight.label-preferred-language",
-    )
-    _require_unique(
-        labels,
-        ["resource", "value", "language"],
-        "preflight.label-role-overlap",
-    )
-
-
-def _validate_identifiers(
-    identifiers: pa.Table,
-    resources: pa.Table,
-    source_records: pa.Table,
-) -> None:
-    _foreign_indices(
-        identifiers,
-        "identifies",
-        resources,
-        code="preflight.identifier-resource",
-    )
-    _foreign_indices(
-        identifiers,
-        "source_record",
-        source_records,
-        code="preflight.identifier-source-record",
-    )
-    grouped = identifiers.group_by(["identifier_scheme", "identifier_value"]).aggregate(
-        [("identifies", "count_distinct")]
-    )
-    conflicts = pc.greater(grouped["identifies_count_distinct"], 1)
-    if _has_true(conflicts):
-        row = grouped.filter(conflicts).slice(0, 1).to_pylist()[0]
-        _fail("preflight.identifier-uniqueness", f"authority-scoped identifier is ambiguous: {row}")
-
-
-def _validate_relation_statements(statements: pa.Table, resources: pa.Table) -> None:
-    subject_indices = _foreign_indices(
-        statements,
-        "subject",
-        resources,
-        code="preflight.statement-subject",
-    )
-    object_indices = _foreign_indices(
-        statements,
-        "object",
-        resources,
-        code="preflight.statement-object",
-    )
-    for statement_column, resource_column, indices, endpoint in (
-        ("source_release", "release", subject_indices, "source"),
-        ("target_release", "release", object_indices, "target"),
-    ):
-        _require_columns_equal(
-            statements,
-            statement_column,
-            _take(resources, resource_column, indices),
-            code="preflight.statement-release",
-            detail=f"{endpoint} release does not contain its endpoint",
-        )
-
-    cross_mask = pc.equal(statements["statement_type"], "CrossRingRelationAssertion")
-    cross_ring = statements.filter(cross_mask)
-    if cross_ring.num_rows:
-        _require_columns_equal(
-            cross_ring,
-            "source_ring",
-            pc.filter(_take(resources, "semantic_ring", subject_indices), cross_mask),
-            code="preflight.statement-ring",
-            detail="source ring differs from its endpoint",
-        )
-        _require_columns_equal(
-            cross_ring,
-            "target_ring",
-            pc.filter(_take(resources, "semantic_ring", object_indices), cross_mask),
-            code="preflight.statement-ring",
-            detail="target ring differs from its endpoint",
-        )
-        same_ring = pc.equal(cross_ring["source_ring"], cross_ring["target_ring"])
-        if _has_true(same_ring):
-            _fail(
-                "preflight.statement-ring",
-                f"{_first_value(cross_ring, same_ring)} does not cross semantic rings",
-            )
-        if _has_true(pc.is_valid(cross_ring["semantic_ring"])):
-            _fail("preflight.statement-ring", "cross-ring assertion also has semantic_ring")
-
-    same_mask = pc.invert(cross_mask)
-    same_ring = statements.filter(same_mask)
-    if same_ring.num_rows:
-        for indices, endpoint in (
-            (subject_indices, "subject"),
-            (object_indices, "object"),
-        ):
-            _require_columns_equal(
-                same_ring,
-                "semantic_ring",
-                pc.filter(_take(resources, "semantic_ring", indices), same_mask),
-                code="preflight.statement-ring",
-                detail=f"semantic ring differs from its {endpoint}",
-            )
-        if _has_true(pc.or_(pc.is_valid(same_ring["source_ring"]), pc.is_valid(same_ring["target_ring"]))):
-            _fail("preflight.statement-ring", "same-ring assertion has cross-ring context")
-
-
-def _validate_source_assignments(
-    assignments: pa.Table,
-    resources: pa.Table,
-    source_records: pa.Table,
-) -> None:
-    source_indices = _foreign_indices(
-        assignments,
-        "subject",
-        source_records,
-        code="preflight.assignment-source-record",
-    )
-    resource_indices = _foreign_indices(
-        assignments,
-        "object",
-        resources,
-        code="preflight.assignment-resource",
-    )
-    for statement_column, target, target_column, indices, detail in (
-        (
-            "source_release",
-            source_records,
-            "source_release",
-            source_indices,
-            "source release differs from its SourceRecord",
-        ),
-        (
-            "target_release",
-            resources,
+    db.execute("CREATE VIEW atlas_releases AS SELECT * FROM \"Release\" WHERE release_type = 'AtlasRelease'")
+    db.execute("CREATE VIEW source_releases AS SELECT * FROM \"Release\" WHERE release_type = 'SourceRelease'")
+    foreign("Resource", "release", "atlas_releases", "resource-release")
+    for column in ("scheme", "semantic_ring", "resource_profile"):
+        equal(
+            "Resource",
             "release",
-            resource_indices,
-            "target release does not contain its resource",
-        ),
-        (
+            "atlas_releases",
+            column,
+            column,
+            "resource-release",
+            f"{column} differs from its release",
+        )
+    foreign("SourceRecord", "source_release", "source_releases", "source-release")
+
+    foreign("Label", "resource", "Resource", "label-resource")
+    foreign("Label", "source_record", "SourceRecord", "label-source-record")
+    equal("Label", "resource", "Resource", "release", "release", "label-release", "release differs from its resource")
+    equal(
+        "Label",
+        "resource",
+        "Resource",
+        "source_record",
+        "source_record",
+        "label-provenance",
+        "does not share its resource SourceRecord",
+    )
+    label_roles = ", ".join("'" + role + "'" for role in sorted(LABEL_ROLES))
+    bad("Label", f"label_role IS NULL OR label_role NOT IN ({label_roles})", "label-role", "unsupported label role")
+    db.execute("CREATE VIEW preferred AS SELECT * FROM \"Label\" WHERE label_role = 'preferred'")
+    unique("preferred", "resource, language", "label-preferred-language")
+    unique("Label", "resource, value, language", "label-role-overlap")
+
+    foreign("Identifier", "identifies", "Resource", "identifier-resource")
+    foreign("Identifier", "source_record", "SourceRecord", "identifier-source-record")
+    check(
+        'SELECT identifier_scheme, identifier_value FROM "Identifier" '
+        "GROUP BY identifier_scheme, identifier_value HAVING count(DISTINCT identifies) > 1",
+        "identifier-uniqueness",
+        "authority-scoped identifier is ambiguous",
+    )
+
+    if set(statement_counts) - STATEMENT_TYPES:
+        _fail("preflight.statement-type", f"unsupported statement types: {list(statement_counts)}")
+    db.execute("CREATE VIEW relations AS SELECT * FROM \"Statement\" WHERE statement_type <> 'SourceAssignment'")
+    db.execute("CREATE VIEW assignments AS SELECT * FROM \"Statement\" WHERE statement_type = 'SourceAssignment'")
+    foreign("relations", "subject", "Resource", "statement-subject")
+    foreign("relations", "object", "Resource", "statement-object")
+    for column, key, endpoint in (("source_release", "subject", "source"), ("target_release", "object", "target")):
+        equal(
+            "relations",
+            key,
+            "Resource",
+            column,
+            "release",
+            "statement-release",
+            f"{endpoint} release does not contain its endpoint",
+        )
+    db.execute("CREATE VIEW cross_ring AS SELECT * FROM relations WHERE statement_type = 'CrossRingRelationAssertion'")
+    db.execute("CREATE VIEW same_ring AS SELECT * FROM relations WHERE statement_type <> 'CrossRingRelationAssertion'")
+    for column, key in (("source_ring", "subject"), ("target_ring", "object")):
+        equal(
+            "cross_ring",
+            key,
+            "Resource",
+            column,
             "semantic_ring",
-            resources,
+            "statement-ring",
+            f"{column} differs from its endpoint",
+        )
+    bad("cross_ring", "source_ring = target_ring", "statement-ring", "does not cross semantic rings")
+    bad("cross_ring", "semantic_ring IS NOT NULL", "statement-ring", "cross-ring assertion also has semantic_ring")
+    for key in ("subject", "object"):
+        equal(
+            "same_ring",
+            key,
+            "Resource",
             "semantic_ring",
-            resource_indices,
-            "semantic ring differs from its resource",
-        ),
+            "semantic_ring",
+            "statement-ring",
+            f"semantic ring differs from its {key}",
+        )
+    bad(
+        "same_ring",
+        "source_ring IS NOT NULL OR target_ring IS NOT NULL",
+        "statement-ring",
+        "same-ring assertion has cross-ring context",
+    )
+
+    foreign("assignments", "subject", "SourceRecord", "assignment-source-record")
+    foreign("assignments", "object", "Resource", "assignment-resource")
+    for key, target, left, right, detail in (
+        ("subject", "SourceRecord", "source_release", "source_release", "source release differs from its SourceRecord"),
+        ("object", "Resource", "target_release", "release", "target release does not contain its resource"),
+        ("object", "Resource", "semantic_ring", "semantic_ring", "semantic ring differs from its resource"),
     ):
-        _require_columns_equal(
-            assignments,
-            statement_column,
-            _take(target, target_column, indices),
-            code="preflight.assignment",
-            detail=detail,
-        )
-
-
-def _validate_statements(
-    statements: pa.Table,
-    resources: pa.Table,
-    source_records: pa.Table,
-    statement_counts: Mapping[str, int],
-) -> None:
-    observed_types = set(statement_counts)
-    if observed_types - STATEMENT_TYPES:
-        _fail("preflight.statement-type", f"unsupported statement types: {sorted(observed_types)}")
-    assignment_mask = pc.equal(statements["statement_type"], "SourceAssignment")
-    assignments = statements.filter(assignment_mask)
-    relations = statements.filter(pc.invert(assignment_mask))
-    if relations.num_rows:
-        _validate_relation_statements(relations, resources)
-    if assignments.num_rows:
-        _validate_source_assignments(assignments, resources, source_records)
-
-    mappings = _only(statements, "statement_type", "MappingAssertion")
-    same_release = pc.equal(mappings["source_release"], mappings["target_release"])
-    if _has_true(same_release):
-        _fail(
-            "preflight.mapping-release",
-            f"{_first_value(mappings, same_release)} maps within one release",
-        )
-    superseding = statements.filter(pc.is_valid(statements["supersedes_assertion"]))
-    if superseding.num_rows:
-        _foreign_indices(
-            superseding,
-            "supersedes_assertion",
-            statements,
-            code="preflight.supersession",
-        )
-        self_supersession = pc.equal(superseding["id"], superseding["supersedes_assertion"])
-        if _has_true(self_supersession):
-            _fail(
-                "preflight.supersession",
-                f"{_first_value(superseding, self_supersession)} supersedes itself",
-            )
-        _require_unique(superseding, ["supersedes_assertion"], "preflight.supersession")
-
-
-def _validate_evidence(
-    evidence: pa.Table,
-    statements: pa.Table,
-    source_records: pa.Table,
-) -> None:
-    _foreign_indices(
-        evidence,
-        "statement",
-        statements,
-        code="preflight.evidence-statement",
+        equal("assignments", key, target, left, right, "assignment", detail)
+    bad(
+        "Statement",
+        "statement_type = 'MappingAssertion' AND source_release = target_release",
+        "mapping-release",
+        "maps within one release",
     )
-    source_indices = _foreign_indices(
-        evidence,
+    db.execute('CREATE VIEW superseding AS SELECT * FROM "Statement" WHERE supersedes_assertion IS NOT NULL')
+    foreign("superseding", "supersedes_assertion", "Statement", "supersession")
+    bad("superseding", "id = supersedes_assertion", "supersession", "supersedes itself")
+    unique("superseding", "supersedes_assertion", "supersession")
+
+    foreign("EvidenceBinding", "statement", "Statement", "evidence-statement")
+    foreign("EvidenceBinding", "source_record", "SourceRecord", "evidence-source-record")
+    equal(
+        "EvidenceBinding",
         "source_record",
-        source_records,
-        code="preflight.evidence-source-record",
-    )
-    _require_columns_equal(
-        evidence,
+        "SourceRecord",
         "evidence_source_digest",
-        _take(source_records, "content_digest", source_indices),
-        code="preflight.evidence-digest",
-        detail="does not pin its exact SourceRecord",
+        "content_digest",
+        "evidence-digest",
+        "does not pin its exact SourceRecord",
     )
-    missing_evidence = pc.is_null(pc.index_in(statements["id"], value_set=evidence["statement"]))
-    if _has_true(missing_evidence):
-        _fail(
-            "preflight.evidence-coverage",
-            f"statement has no evidence binding: {_first_value(statements, missing_evidence)}",
-        )
-    invalid_decision = pc.not_equal(evidence["decision"], APPROVED)
-    if _has_true(invalid_decision):
-        _fail(
-            "preflight.evidence-decision",
-            f"{_first_value(evidence, invalid_decision)} is not approved",
-        )
-    invalid_method = pc.invert(pc.is_in(evidence["evidence_role"], value_set=pa.array(sorted(REVIEW_METHODS))))
-    if _has_true(invalid_method):
-        _fail(
-            "preflight.evidence-method",
-            f"{_first_value(evidence, invalid_method)} uses an unsupported review method",
-        )
-
-
-#: Derived projections a view may carry beside the closed record roles.
-DERIVED_VIEW_TABLES = frozenset(
-    {"agencyProjection", "agencyProjectionUnresolved", "derivedRelations"}
-)
-
-
-def validate_atlas_parquet_tables(
-    tables: Mapping[str, pa.Table],
-    *,
-    view_counts: Mapping[str, Any],
-    distribution_counts: Mapping[str, Any],
-) -> dict[str, Any]:
-    """Validate global relational invariants over already-authenticated tables."""
-
-    # The record roles are the closed relational core every view must carry.
-    # A view may also carry derived projections beside them -- the agency
-    # projection and the derived-relation table the mapping era added -- which
-    # are checked by their own producers, not by these relational invariants.
-    expected_roles = {role.value for role in CompactRecordRole}
-    missing = sorted(expected_roles - set(tables))
-    if missing:
-        _fail("preflight.tables", f"view omits record roles: {missing}")
-    unknown = sorted(set(tables) - expected_roles - DERIVED_VIEW_TABLES)
-    if unknown:
-        _fail("preflight.tables", f"view carries unknown tables: {unknown}")
-    # Only the record roles carry a logical-record identifier; the derived
-    # projections are keyed by their own subjects.
-    _validate_record_identities({role: tables[role] for role in sorted(expected_roles)})
-
-    resources = tables[CompactRecordRole.RESOURCE.value]
-    labels = tables[CompactRecordRole.LABEL.value]
-    statements = tables[CompactRecordRole.STATEMENT.value]
-    evidence = tables[CompactRecordRole.EVIDENCE_BINDING.value]
-    source_records = tables[CompactRecordRole.SOURCE_RECORD.value]
-    releases = tables[CompactRecordRole.RELEASE.value]
-    identifiers = tables[CompactRecordRole.IDENTIFIER.value]
-    statement_counts = _statement_counts(statements)
-
-    _validate_manifest_counts(
-        tables,
-        view_counts,
-        distribution_counts,
-        statement_counts,
+    check(
+        'SELECT a.id FROM "Statement" a ANTI JOIN "EvidenceBinding" b ON a.id = b.statement',
+        "evidence-coverage",
+        "statement has no evidence binding",
     )
-    _foreign_indices(
-        resources,
-        "source_record",
-        source_records,
-        code="preflight.resource-source-record",
+    bad("EvidenceBinding", f"decision IS NULL OR decision <> '{APPROVED}'", "evidence-decision", "is not approved")
+    methods = ", ".join("'" + method + "'" for method in sorted(REVIEW_METHODS))
+    bad(
+        "EvidenceBinding",
+        f"evidence_role IS NULL OR evidence_role NOT IN ({methods})",
+        "evidence-method",
+        "uses an unsupported review method",
     )
-    _validate_releases(releases, resources, source_records)
-    _validate_labels(labels, resources, source_records)
-    _validate_identifiers(identifiers, resources, source_records)
-    _validate_statements(statements, resources, source_records, statement_counts)
-    _validate_evidence(evidence, statements, source_records)
-
     return {
         "checks": list(PREFLIGHT_CHECKS),
         "counts": dict(view_counts),
@@ -592,6 +327,40 @@ def validate_atlas_parquet_tables(
         "releaseOnlyChecks": list(RELEASE_ONLY_CHECKS),
         "status": "passed",
     }
+
+
+def validate_atlas_parquet_tables(
+    tables: Mapping[str, pa.Table | Path],
+    *,
+    view_counts: Mapping[str, Any],
+    distribution_counts: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Validate authenticated Parquet paths or caller-owned Arrow tables.
+
+    Parquet stays on disk. DuckDB selects the columns each query needs and
+    spills global aggregates/joins into a disposable directory under pressure.
+    The memory limit governs DuckDB's buffer manager, not total process RSS.
+    """
+
+    expected_roles = {role.value for role in CompactRecordRole}
+    missing = sorted(expected_roles - set(tables))
+    if missing:
+        _fail("preflight.tables", f"view omits record roles: {missing}")
+    unknown = sorted(set(tables) - expected_roles - DERIVED_VIEW_TABLES)
+    if unknown:
+        _fail("preflight.tables", f"view carries unknown tables: {unknown}")
+    with (
+        TemporaryDirectory(prefix="atlas-preflight-") as spill,
+        duckdb.connect(
+            config={"memory_limit": "512MB", "threads": 2, "temp_directory": spill, "preserve_insertion_order": False}
+        ) as db,
+    ):
+        for role, table in tables.items():
+            if isinstance(table, Path):
+                db.read_parquet(str(table)).create_view(role)
+            else:
+                db.register(role, table)
+        return _validate_relations(db, set(tables), view_counts, distribution_counts)
 
 
 def validate_atlas_parquet_preflight(
@@ -614,9 +383,9 @@ def validate_atlas_parquet_preflight(
     if view_manifest["input"] != verified_input.view_input_pin:
         _fail("preflight.input-pin", "Parquet view does not pin the complete supplied Atlas input")
 
-    tables: dict[str, pa.Table] = {}
+    tables: dict[str, Path] = {}
     for member in view_manifest["members"]:
-        tables[str(member["role"])] = pq.read_table(view / str(member["path"]))
+        tables[str(member["role"])] = view / str(member["path"])
     result = validate_atlas_parquet_tables(
         tables,
         view_counts=view_manifest["counts"],

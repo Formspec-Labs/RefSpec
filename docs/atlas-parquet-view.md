@@ -79,6 +79,17 @@ view is built; this preflight does not reread them. A full development view
 with 3,302,340 logical records completed the columnar semantic checks in 7.8
 seconds after the 2026-08-08 scan consolidation.
 
+DuckDB runs these relational checks directly over the pinned Parquet files,
+selecting needed columns and spilling intermediate joins and groups to
+temporary storage (2.35 GiB peak footprint, 14.23 s on the 2026-09-27 full
+candidate). Its buffer-manager limit does not cap total process memory; the
+preceding view verification still reads some complete projected columns. The
+checks are separate queries -- 70 on a passing view, counted 2026-09-28 -- and
+each re-reads the columns it needs, so the scan cost is that many passes over
+the selected columns rather than one; the
+[refresh record](../research/atlas-refresh-2026-09-27/README.md#known-costs-and-follow-ups)
+keeps this as a known cost.
+
 This command is a fast development gate, not the Atlas 3 release verdict. Its
 JSON result lists the remaining release-only checks: closed JSON schemas and
 binding pins; producer and acceptance receipts; normative SHACL; RDF lexical,

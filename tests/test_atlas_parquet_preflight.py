@@ -141,7 +141,7 @@ def _distribution_counts() -> dict[str, int]:
 def _replace_column(table: pa.Table, name: str, values: list[object]) -> pa.Table:
     """One table with a single column swapped, for mutation cases."""
 
-    return table.set_column(table.schema.get_field_index(name), name, pa.array(values))
+    return table.set_column(table.schema.get_field_index(name), name, pa.array(values, type=table[name].type))
 
 
 def _digest(value: str) -> str:
@@ -441,3 +441,201 @@ def test_authenticated_preflight_normalizes_returned_view_digest(
     )
 
     assert result["viewManifestDigest"] == "sha256:" + view_digest
+
+
+# Malformed nullable enumeration values cannot occur in the authenticated
+# non-null schema. The table API now emits its normal typed refusal instead
+# of crashing while the former checker sorted mixed None/string values.
+# Both implementations reject; this is an explicit diagnostic change only.
+EXPECTED_ORACLE_DIVERGENCES = {
+    f"{base}/{role}/{column}/None{suffix}": ("TypeError", f"preflight.{code}")
+    for base, suffixes in (("real", ("", "/parquet")), ("synthetic", ("",)))
+    for suffix in suffixes
+    for role, column, code in (("Release", "release_type", "release-type"), ("Label", "label_role", "label-role"))
+}
+
+
+def _observed_distribution_counts(tables: Mapping[str, pa.Table]) -> dict[str, int]:
+    from collections import Counter
+
+    counts = Counter(tables["Statement"]["statement_type"].to_pylist())
+    return {
+        **{
+            name: tables[role].num_rows if role in tables else 0
+            for name, role in (
+                ("resources", "Resource"),
+                ("labels", "Label"),
+                ("sourceRecords", "SourceRecord"),
+                ("identifiers", "Identifier"),
+                ("relationAssertions", "Statement"),
+            )
+        },
+        "releases": tables["Release"]["release_type"].to_pylist().count("AtlasRelease"),
+        **{
+            name: counts[kind]
+            for name, kind in (
+                ("mappingAssertions", "MappingAssertion"),
+                ("nativeRelationAssertions", "NativeRelationAssertion"),
+                ("crossRingRelationAssertions", "CrossRingRelationAssertion"),
+                ("sourceAssignments", "SourceAssignment"),
+            )
+        },
+    }
+
+
+def test_duckdb_matches_copied_arrow_oracle_on_real_rows_and_mutations(tmp_path: Path) -> None:
+    """Retained publisher-derived rows and field mutations exercise both input paths."""
+    import atlas_parquet_preflight_oracle as oracle
+    import pyarrow.parquet as pq
+
+    fixture = Path(__file__).parent / "fixtures" / "atlas_parquet_preflight"
+    real = {path.stem: pq.read_table(path) for path in sorted(fixture.glob("*.parquet"))}
+    assert len(real) == len(CompactRecordRole)
+    cases = {"real": real, "synthetic": _tables()}
+    # Check null propagation, every foreign key, profiles, authority scope,
+    # statement rings/types, supersession and immutable evidence semantics.
+    columns = {
+        "Resource": ("id", "release", "scheme", "semantic_ring", "resource_profile", "source_record"),
+        "Label": ("id", "resource", "source_record", "release", "label_role", "language", "value"),
+        "Statement": (
+            "id",
+            "statement_type",
+            "subject",
+            "object",
+            "source_release",
+            "target_release",
+            "semantic_ring",
+            "source_ring",
+            "target_ring",
+            "supersedes_assertion",
+        ),
+        "EvidenceBinding": ("id", "statement", "source_record", "evidence_source_digest", "decision", "evidence_role"),
+        "SourceRecord": ("id", "source_release", "content_digest"),
+        "Release": ("id", "release_type", "scheme", "semantic_ring", "resource_profile"),
+        "Identifier": ("id", "identifies", "source_record", "identifier_scheme", "identifier_value"),
+    }
+    for base_name, base in list(cases.items()):
+        for role, names in columns.items():
+            table = base[role]
+            if not table.num_rows:
+                continue
+            for column in names:
+                for value in (
+                    None,
+                    b"x" * 32
+                    if pa.types.is_binary(table[column].type) or pa.types.is_fixed_size_binary(table[column].type)
+                    else "urn:unknown",
+                ):
+                    values = table[column].to_pylist()
+                    values[0] = value
+                    changed = table.set_column(
+                        table.schema.get_field_index(column), column, pa.array(values, type=table[column].type)
+                    )
+                    cases[f"{base_name}/{role}/{column}/{value!r}"] = {**base, role: changed}
+            cases[f"{base_name}/{role}/duplicate-id"] = {**base, role: pa.concat_tables([table, table.slice(0, 1)])}
+        cases[f"{base_name}/cross-role-id"] = {
+            **base,
+            "LifecycleEvent": pa.table({"id": [base["Resource"]["id"][0].as_py()]}),
+        }
+        cases[f"{base_name}/missing-evidence"] = {**base, "EvidenceBinding": base["EvidenceBinding"].slice(0, 0)}
+        cases[f"{base_name}/missing-role"] = {key: value for key, value in base.items() if key != "Label"}
+        cases[f"{base_name}/unknown-role"] = {**base, "Unknown": pa.table({"id": []})}
+        cases[f"{base_name}/derived-counts"] = {**base, "derivedRelations": pa.table({"subject": ["a"]})}
+
+    base = _tables()
+    # Matched null/null must reject just as Arrow's filled-null masks did.
+    cases["null-null-profile"] = {
+        **base,
+        "Resource": _replace_column(base["Resource"], "semantic_ring", [None, None]),
+        "Release": _replace_column(base["Release"], "semantic_ring", [None, None]),
+    }
+    for kind in ("SourceAssignment", "CrossRingRelationAssertion", "MappingAssertion"):
+        statement = _replace_column(base["Statement"], "statement_type", [kind])
+        if kind == "SourceAssignment":
+            statement = _replace_column(statement, "subject", [base["SourceRecord"]["id"][0].as_py()])
+            statement = _replace_column(
+                statement, "source_release", [base["SourceRecord"]["source_release"][0].as_py()]
+            )
+        cases[kind] = {**base, "Statement": statement}
+        for column in ("subject", "object", "source_release", "target_release", "semantic_ring"):
+            cases[f"{kind}/{column}"] = {**base, "Statement": _replace_column(statement, column, ["urn:unknown"])}
+    cases["self-supersession"] = {
+        **base,
+        "Statement": _replace_column(base["Statement"], "supersedes_assertion", [base["Statement"]["id"][0].as_py()]),
+    }
+    labels = base["Label"]
+    cases["preferred-language-duplicate"] = {
+        **base,
+        "Label": _replace_column(labels, "resource", [labels["resource"][0].as_py()] * 2),
+    }
+    overlap = _replace_column(cases["preferred-language-duplicate"]["Label"], "label_role", ["preferred", "alternate"])
+    cases["label-role-overlap"] = {**base, "Label": _replace_column(overlap, "value", ["First", "First"])}
+    identifier = base["Identifier"]
+    other = _replace_column(identifier, "id", ["urn:other-identifier"])
+    other = _replace_column(other, "identifies", [base["Resource"]["id"][1].as_py()])
+    cases["identifier-authority-conflict"] = {**base, "Identifier": pa.concat_tables([identifier, other])}
+
+    cases["view-count-drift"] = base
+    cases["distribution-count-drift"] = base
+    # A valid cross-ring pair lets mutations reach both ring comparisons.
+    cross_resources = _replace_column(base["Resource"], "semantic_ring", ["subject", "entity"])
+    cross_resources = _replace_column(cross_resources, "release", ["urn:test:atlas-release", "urn:test:entity-release"])
+    release = base["Release"].slice(1, 1)
+    release = _replace_column(release, "id", ["urn:test:entity-release"])
+    release = _replace_column(release, "semantic_ring", ["entity"])
+    cross_statement = _replace_column(base["Statement"], "statement_type", ["CrossRingRelationAssertion"])
+    for column, value in (
+        ("target_release", "urn:test:entity-release"),
+        ("semantic_ring", None),
+        ("source_ring", "subject"),
+        ("target_ring", "entity"),
+    ):
+        cross_statement = _replace_column(cross_statement, column, [value])
+    cross = {
+        **base,
+        "Resource": cross_resources,
+        "Release": pa.concat_tables([base["Release"], release]),
+        "Statement": cross_statement,
+        "Label": _replace_column(base["Label"], "release", ["urn:test:atlas-release", "urn:test:entity-release"]),
+    }
+    cases["valid-cross-ring"] = cross
+    for column in ("source_ring", "target_ring", "semantic_ring"):
+        for value in (None, "wrong"):
+            cases[f"cross-ring/{column}/{value}"] = {
+                **cross,
+                "Statement": _replace_column(cross_statement, column, [value]),
+            }
+
+    disagreements = {}
+    for name, tables in cases.items():
+        kwargs = {"view_counts": _counts(tables), "distribution_counts": _observed_distribution_counts(tables)}
+
+        if name == "view-count-drift":
+            kwargs["view_counts"] = {**kwargs["view_counts"], "Resource": -1}
+        if name == "distribution-count-drift":
+            kwargs["distribution_counts"] = {**kwargs["distribution_counts"], "resources": -1}
+
+        def verdict(check, inputs, kwargs=kwargs):
+            try:
+                return check(inputs, **kwargs)
+            except (AtlasParquetPreflightError, oracle.AtlasParquetPreflightError) as error:
+                return error.code
+            except TypeError:
+                return "TypeError"
+
+        expected = verdict(oracle.validate_atlas_parquet_tables, tables)
+        actual = verdict(validate_atlas_parquet_tables, tables)
+        if actual != expected:
+            disagreements[name] = (expected, actual)
+        # The real input plus its mutations also exercise file scans. The
+        # larger synthetic battery above covers authority identifiers absent
+        # from this publisher's data.
+        if name.startswith("real"):
+            paths = {}
+            for role, table in tables.items():
+                paths[role] = tmp_path / f"{role}.parquet"
+                pq.write_table(table, paths[role])
+            parquet_actual = verdict(validate_atlas_parquet_tables, paths)
+            if parquet_actual != expected:
+                disagreements[name + "/parquet"] = (expected, parquet_actual)
+    assert disagreements == EXPECTED_ORACLE_DIVERGENCES

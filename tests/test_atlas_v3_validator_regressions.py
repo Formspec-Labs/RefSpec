@@ -32,6 +32,8 @@ SKOSXL = Namespace("http://www.w3.org/2008/05/skos-xl#")
 sys.path.insert(0, str(BINDING_ROOT / "tools"))
 import build_fixtures as atlas_fixtures
 import validate as atlas_validate
+from atlas_asserted_facts_oracle import _INDEXED_ASSERTED_PREDICATES as FROZEN_PREDICATES
+from atlas_asserted_facts_oracle import _INDEXED_ASSERTED_TYPES as FROZEN_TYPES
 
 
 def test_validator_status_reporter_is_rate_limited_and_quiet_is_supported() -> None:
@@ -2904,15 +2906,8 @@ def test_placement_observation_from_the_parser_matches_a_store_walk() -> None:
     assert atlas_validate._check_graph_roles(graphs, asserted_placement=parsed).resource_count > 0
 
 
-def test_asserted_fact_index_answers_exactly_what_the_store_answers() -> None:
-    """The gates' read index is an accelerator, so it must be indistinguishable.
-
-    Every folded gate reads asserted objects through `_AssertedFacts` instead
-    of querying the 29M-quad store per carrier node. That is a cost change and
-    must be nothing else: for every indexed predicate and every asserted
-    subject the index has to return what `Graph.objects` returns, in the same
-    order, whether it was filled by the parser or by a store walk.
-    """
+def test_asserted_facts_answer_exactly_what_the_store_answers() -> None:
+    """All fact reads share the graph and preserve its answers and object order."""
 
     manifest = json.loads((VALID_DISTRIBUTION / "atlas-manifest.json").read_text(encoding="utf-8"))
     graph_ids = atlas_validate._check_pack_manifest(manifest)
@@ -2933,8 +2928,8 @@ def test_asserted_fact_index_answers_exactly_what_the_store_answers() -> None:
     subjects = set(asserted.subjects())
 
     assert subjects
-    assert indexed.indexed and walked.indexed and not from_store.indexed
-    for predicate in atlas_validate._INDEXED_ASSERTED_PREDICATES:
+    assert all(facts._graph is not None for facts in (indexed, walked, from_store))
+    for predicate in FROZEN_PREDICATES:
         for subject in subjects:
             expected = tuple(asserted.objects(subject, predicate))
             assert indexed.objects(subject, predicate) == expected
@@ -2946,21 +2941,17 @@ def test_asserted_fact_index_answers_exactly_what_the_store_answers() -> None:
         assert sorted(
             (str(subject), str(obj)) for subject, obj in indexed.subject_objects(predicate)
         ) == sorted((str(subject), str(obj)) for subject, obj in asserted.subject_objects(predicate))
-    for asserted_type in atlas_validate._INDEXED_ASSERTED_TYPES:
+    for asserted_type in FROZEN_TYPES:
         assert {subject for subject in subjects if indexed.has_type(subject, asserted_type)} == set(
             asserted.subjects(RDF.type, asserted_type)
         )
         assert {subject for subject in subjects if from_store.has_type(subject, asserted_type)} == set(
             asserted.subjects(RDF.type, asserted_type)
         )
-    # A predicate no gate reads is not silently answered from the store: the
-    # index refuses, so the allowlist cannot drift out from under a check.
-    with pytest.raises(AssertionError):
-        indexed.objects(next(iter(subjects)), ATLAS.nativePayload)
 
 
-def test_folded_gates_read_the_index_rather_than_the_asserted_store() -> None:
-    """The index must replace the per-carrier store queries, not merely precede them."""
+def test_folded_gates_share_the_asserted_graph_without_a_fact_copy() -> None:
+    """The semantic gates use the same asserted graph without a duplicate index."""
 
     _, graphs, manifest = _load_valid_graphs()
     asserted = graphs["asserted"]
@@ -2973,33 +2964,22 @@ def test_folded_gates_read_the_index_rather_than_the_asserted_store() -> None:
         )
     )
     inventory = atlas_validate._check_graph_roles(graphs)
-    original_triples = Graph.triples
-
-    def reject_indexed_lookup(graph: Graph, triple: Any) -> Any:
-        subject, predicate, _ = triple
-        if subject is not None and predicate in atlas_validate._INDEXED_ASSERTED_PREDICATES:
-            raise AssertionError(
-                f"{predicate} on {subject} must come from the parse-observed index"
-            )
-        return original_triples(graph, triple)
-
-    assert inventory.facts is not None and inventory.facts.indexed
-    with pytest.MonkeyPatch.context() as patched:
-        patched.setattr(Graph, "triples", reject_indexed_lookup)
-        atlas_validate._check_profile_conformance(asserted, inventory)
-        atlas_validate._check_identifier_uniqueness(asserted, inventory)
-        atlas_validate._check_release_membership(asserted, inventory)
-        atlas_validate._check_label_integrity(asserted, inventory)
-        atlas_validate._check_evidence_bindings(asserted, inventory)
-        atlas_validate._validate_assertions(asserted, inventory)
-        atlas_validate._check_machine_adjudication(asserted, inventory)
-        atlas_validate._check_source_accounting(asserted, accounting, inventory)
-        atlas_validate._check_counts(manifest, graphs, inventory)
-        atlas_validate._check_construction_record_ownership(
-            asserted,
-            construction_summary,
-            asserted_facts=inventory.facts,
-        )
+    assert inventory.facts is not None
+    assert inventory.facts._graph is asserted
+    atlas_validate._check_profile_conformance(asserted, inventory)
+    atlas_validate._check_identifier_uniqueness(asserted, inventory)
+    atlas_validate._check_release_membership(asserted, inventory)
+    atlas_validate._check_label_integrity(asserted, inventory)
+    atlas_validate._check_evidence_bindings(asserted, inventory)
+    atlas_validate._validate_assertions(asserted, inventory)
+    atlas_validate._check_machine_adjudication(asserted, inventory)
+    atlas_validate._check_source_accounting(asserted, accounting, inventory)
+    atlas_validate._check_counts(manifest, graphs, inventory)
+    atlas_validate._check_construction_record_ownership(
+        asserted,
+        construction_summary,
+        asserted_facts=inventory.facts,
+    )
 
 
 def test_acceptance_does_not_walk_the_asserted_store_twice_for_placement(

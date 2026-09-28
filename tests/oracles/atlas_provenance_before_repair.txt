@@ -1,4 +1,21 @@
 """Frozen pre-repair provenance oracle; execute with explicit test dependencies."""
+_PUBLISHER_SUBJECT_TYPES_CACHE = {}
+
+
+def _publisher_subject_types(view):
+    # Frozen helper retained when its production global cache was removed.
+    cached = _PUBLISHER_SUBJECT_TYPES_CACHE.get(id(view))
+    if cached is not None and cached[0] is view:
+        return cached[1]
+    types = defaultdict(set)
+    for subject, predicate, obj in view.iri_claims:
+        if predicate == RDF_TYPE:
+            types[subject].add(obj)
+    resolved = {subject: frozenset(values) for subject, values in types.items()}
+    _PUBLISHER_SUBJECT_TYPES_CACHE[id(view)] = (view, resolved)
+    return resolved
+
+
 def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
     """Reverse source-record evidence and compare it with authenticated bytes."""
     source = pair.spec.name
@@ -452,4 +469,3 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
             f"for {len(records)} source records; examples: {examples}{suffix}"
         )
     return failures
-

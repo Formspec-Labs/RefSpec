@@ -91,6 +91,7 @@ from collections import Counter, defaultdict
 from collections.abc import Callable, Collection, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
+from functools import cached_property
 from html.parser import HTMLParser
 from itertools import chain
 from pathlib import Path
@@ -681,6 +682,15 @@ class PublisherView:
     # Independently reconstructed canonical payload hashes, never upstream file hashes.
     expected_native_payload_digests: Mapping[str, str] = field(default_factory=dict)
     reading_exceptions: tuple[Mapping[str, Any], ...] = ()
+
+    @cached_property
+    def subject_types(self) -> dict[str, frozenset[str]]:
+        """Index publisher types once, retaining them only for this view's lifetime."""
+        types: dict[str, set[str]] = defaultdict(set)
+        for subject, predicate, obj in self.iri_claims:
+            if predicate == RDF_TYPE:
+                types[subject].add(obj)
+        return {subject: frozenset(values) for subject, values in types.items()}
 
 
 @dataclass(frozen=True)
@@ -21463,7 +21473,7 @@ def _rdf_provenance_failures(pair: SourcePair) -> list[str]:
     # below instead of the concept contract.
     organization_subjects = _additional_traced_publisher_subjects(pair) - pair.publisher.concepts
     organization_fields = policy.organization_record_payload_fields
-    publisher_subject_types = _publisher_subject_types(pair.publisher) if organization_fields else {}
+    publisher_subject_types = pair.publisher.subject_types if organization_fields else {}
 
     default_digests = {
         pair.publisher.input_content_digests[path]
@@ -22416,7 +22426,7 @@ def _publisher_traced_subjects_for(
     """
     if policy is None or not policy.additional_traced_publisher_types:
         return frozenset()
-    types = _publisher_subject_types(view)
+    types = view.subject_types
     return frozenset(
         subject for subject, subject_types in types.items() if subject_types & policy.additional_traced_publisher_types
     )
@@ -24649,31 +24659,6 @@ def check_source_release_metadata(ctx: Context) -> CheckResult:
     )
 
 
-#: Memo for ``_publisher_subject_types``. Every claim-family comparison now asks
-#: which publisher subjects a declared additional traced type covers, and
-#: rebuilding this index over a 33 MB publisher graph once per question turns a
-#: quarter-hour audit into an hour. The entry holds the view it indexed, so an
-#: ``id()`` key can never alias a later view that reused the same address. Only
-#: a spec that declares a claim exclusion or an additional traced type ever
-#: reaches this function, so the memo holds a handful of indexes, never one per
-#: comparison in the registry.
-_PUBLISHER_SUBJECT_TYPES_CACHE: dict[int, tuple[PublisherView, dict[str, frozenset[str]]]] = {}
-
-
-def _publisher_subject_types(view: PublisherView) -> dict[str, frozenset[str]]:
-    """Index the rdf:type values the publisher's own bytes assert per subject."""
-    cached = _PUBLISHER_SUBJECT_TYPES_CACHE.get(id(view))
-    if cached is not None and cached[0] is view:
-        return cached[1]
-    types: dict[str, set[str]] = defaultdict(set)
-    for subject, predicate, obj in view.iri_claims:
-        if predicate == RDF_TYPE:
-            types[subject].add(obj)
-    resolved = {subject: frozenset(values) for subject, values in types.items()}
-    _PUBLISHER_SUBJECT_TYPES_CACHE[id(view)] = (view, resolved)
-    return resolved
-
-
 def _compared_publisher_subjects(pair: SourcePair) -> frozenset[str]:
     """Return the publisher subjects this adapter's comparisons actually read.
 
@@ -24709,7 +24694,7 @@ def _declared_exclusion_subjects(
     exclusions = pair.spec.declared_claim_exclusions
     if not exclusions:
         return ()
-    types = _publisher_subject_types(pair.publisher)
+    types = pair.publisher.subject_types
     subjects = {
         *(subject for subject, _, _ in pair.publisher.iri_claims),
         *(subject for subject, _, _ in pair.publisher.literal_claims),
@@ -24771,7 +24756,7 @@ def _declared_claim_exclusion_report(pair: SourcePair) -> list[dict[str, Any]]:
     if not resolved:
         return []
     compared = _compared_publisher_subjects(pair)
-    types = _publisher_subject_types(pair.publisher)
+    types = pair.publisher.subject_types
     empty: frozenset[str] = frozenset()
     adopted_releases = _atlas_source_release_subjects(pair)
     rows: list[dict[str, Any]] = []

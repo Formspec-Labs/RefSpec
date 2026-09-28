@@ -6319,18 +6319,10 @@ class _StreamingGraphSpool:
                     role,
                     _compact_record_from_graph(graph, subject, role),
                 )
-                # The independent Parquet row used to be computed here for
-                # EVERY subject and stored beside the record -- but
-                # `_compact_sample_indices` compares at most five positions per
-                # role, so >99.99% of those rows were computed, serialized, and
-                # then thrown away, and they were what made this spool roughly
-                # 2.3x its necessary size. Sampled positions depend on each
-                # role's FINAL count, which is unknowable while rows are still
-                # being appended, so the comparison now re-derives the row for
-                # just the sampled subjects at check time from their own quads
-                # (`_independent_row_for_subject`). Every access
-                # `_construction_record_from_rdf` makes is (subject, predicate,
-                # ?), so one subject's own quads are a sufficient graph.
+                # Final role counts determine the sample positions. Re-derive
+                # only those rows at check time from their own and inbound RDF
+                # facts; retaining an independent row for every subject would
+                # serialize rows the sample check never reads.
                 compact_stream = compact_streams.get(role)
                 if compact_stream is None:
                     compact_stream = stack.enter_context(
@@ -6486,57 +6478,54 @@ class _StreamingGraphSpool:
             writer.__exit__()
             raise
 
-    def _independent_row_for_subject(
+    def _independent_rows_for_subjects(
         self,
-        subject_id: str,
-        role: CompactRecordRole,
-    ) -> dict[str, Any]:
-        """Re-derive one subject's Parquet row from its own asserted quads.
+        subjects: Sequence[tuple[str, CompactRecordRole]],
+    ) -> list[dict[str, Any]]:
+        """Read sampled subjects in one RDF pass; keep the binding row comparand.
 
-        The binding's `parquet_row_from_rdf` stays the comparand -- this only
-        changes WHEN it runs, not what computes the expected side. Called for
-        the at-most-five sampled positions per role, never per subject.
-        `_construction_record_from_rdf` reads only (subject, predicate, ?), so
-        a graph holding this subject's own quads is a sufficient input; a
-        subject whose lines are absent is itself a finding, not a skip.
+        The canonical profile forbids angle brackets inside IRIs. Enumerating
+        bracketed strings and looking them up preserves the old exact
+        ``<subject_id>`` substring selection, including inbound label links
+        and occurrences in literals, predicates, or graph names. This is a
+        byte selector, not another RDF parser. Temporary files hold matching
+        text; memory holds one sample graph plus sampled row payloads. All
+        scratch files close before the bounded row list reaches the caller.
         """
 
-        # Not only lines where this subject is the SUBJECT: a Label's role is
-        # proved by its INBOUND triple (resource skosxl:prefLabel label), so
-        # `_construction_record_from_rdf` calls graph.subjects(predicate,
-        # subject) for that role. Match either position.
-        needle = f"<{subject_id}>"
-        lines: list[str] = []
-        for path in self.sorted_rdf_paths.values():
-            with path.open("r", encoding="utf-8", newline="") as rdf:
-                for line in rdf:
-                    if needle in line:
-                        lines.append(line)
-        if not lines:
-            raise ValueError(
-                f"sampled {role.value} record {subject_id} has no asserted quads to re-derive from"
-            )
-        dataset = Dataset(default_union=True)
-        try:
-            ATLAS_VALIDATE._parse_nquads_preserving_lexical_forms(
-                dataset,
-                io.StringIO("".join(lines)),
-            )
-            # A subject's quads span role graphs -- a Label's type claim sits
-            # in the projection graph, not the asserted one -- and the original
-            # per-subject call received the whole constructed graph. Narrowing
-            # to one role graph drops facts the row needs, so read the union.
-            return _json_restore_binary(
-                _json_safe_binary(
-                    ATLAS_VALIDATE.parquet_row_from_rdf(
-                        dataset,
-                        URIRef(subject_id),
-                        role.value,
-                    )
+        expected_rows: list[dict[str, Any]] = []
+        if not subjects:
+            return expected_rows
+        with tempfile.TemporaryDirectory(dir=self.root, prefix="parquet-samples-") as scratch, ExitStack() as stack:
+            samples = {
+                f"<{subject_id}>": stack.enter_context(
+                    (Path(scratch) / f"{index}.nq").open("w+", encoding="utf-8", newline="")
                 )
-            )
-        finally:
-            dataset.close()
+                for index, subject_id in enumerate(dict.fromkeys(subject_id for subject_id, _role in subjects))
+            }
+            bracketed = re.compile(r"<[^<>]*>")
+            for path in self.sorted_rdf_paths.values():
+                with path.open("r", encoding="utf-8", newline="") as rdf:
+                    for line in rdf:
+                        for needle in samples.keys() & set(bracketed.findall(line)):
+                            samples[needle].write(line)
+            for subject_id, role in subjects:
+                sample = samples[f"<{subject_id}>"]
+                if not sample.tell():
+                    raise ValueError(
+                        f"sampled {role.value} record {subject_id} has no asserted quads to re-derive from"
+                    )
+                sample.seek(0)
+                dataset = Dataset(default_union=True)
+                try:
+                    ATLAS_VALIDATE._parse_nquads_preserving_lexical_forms(dataset, sample)
+                    # Label type and inbound role facts can sit in different graphs.
+                    expected_rows.append(_json_restore_binary(_json_safe_binary(
+                        ATLAS_VALIDATE.parquet_row_from_rdf(dataset, URIRef(subject_id), role.value)
+                    )))
+                finally:
+                    dataset.close()
+        return expected_rows
 
     def _spooled_rdf_ids_by_role(self) -> dict[CompactRecordRole, Path]:
         """Derive logical record ids from sorted RDF in bounded graph batches.
@@ -6628,7 +6617,7 @@ class _StreamingGraphSpool:
         """Run independent reachability, payload, and stable-sample parity checks."""
 
         payload_rows = 0
-        sampled_rows = 0
+        samples: list[tuple[CompactRecordRole, dict[str, Any]]] = []
         reachability_rows = 0
         rdf_ids_by_role = self._spooled_rdf_ids_by_role()
         # Run the binding-owned exhaustive identity comparison first. A table
@@ -6701,22 +6690,7 @@ class _StreamingGraphSpool:
                                 )
                             payload_rows += 1
                         if position in wanted:
-                            expected = self._independent_row_for_subject(
-                                expected_id,
-                                role,
-                            )
-                            if observed != expected:
-                                differing = sorted(
-                                    column
-                                    for column in set(expected) | set(observed)
-                                    if expected.get(column) != observed.get(column)
-                                )
-                                ATLAS_VALIDATE._fail(
-                                    "construction.parquet",
-                                    f"{observed['id']} Parquet row differs from its RDF facts "
-                                    f"in {differing}",
-                                )
-                            sampled_rows += 1
+                            samples.append((role, observed))
                         position += 1
                 remaining = rows.readline()
                 if remaining:
@@ -6730,13 +6704,27 @@ class _StreamingGraphSpool:
                         f"served {role.value} record count differs: "
                         f"expected={self.role_counts[role]}, observed={position}"
                     )
+        expected_rows = self._independent_rows_for_subjects(
+            [(observed["id"], role) for role, observed in samples]
+        )
+        for (_role, observed), expected in zip(samples, expected_rows, strict=True):
+            if observed != expected:
+                differing = sorted(
+                    column
+                    for column in set(expected) | set(observed)
+                    if expected.get(column) != observed.get(column)
+                )
+                ATLAS_VALIDATE._fail(
+                    "construction.parquet",
+                    f"{observed['id']} Parquet row differs from its RDF facts in {differing}",
+                )
         return {
             "comparand": "bindings/atlas/3.1/tools/validate.py:parquet_row_from_rdf",
             "reachabilityComparand": (
                 "bindings/atlas/3.1/tools/validate.py:_check_explorer_reachability"
             ),
             "reachabilityRows": reachability_rows,
-            "sampledRowsAgainstRdf": sampled_rows,
+            "sampledRowsAgainstRdf": len(samples),
             "sourceRecordPayloadRows": payload_rows,
             "status": "passed",
         }
