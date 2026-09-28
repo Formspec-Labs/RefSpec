@@ -3587,9 +3587,10 @@ def _shacl_focus_samples(precheck_misses: Sequence[Any], report: Any) -> list[An
 
     The fast path knows more than "no". Its precheck misses arrive as focus
     nodes already, and its batched report carries one `sh:focusNode` per
-    violation. Two violations of the same `(resultPath, component)` can
-    only ever produce the same constraint component, so one focus node per
-    distinct signature reproduces the whole component list -- 2,003 identical
+    violation. Two violations of one shape's constraint on one path, the
+    signature `(resultPath, component, sourceShape)`, give the same
+    components under the normative shapes, so one focus node per distinct
+    signature reproduces the whole component list -- 2,003 identical
     evidence-binding violations become one node to re-validate.
 
     A violation nested under another through `sh:detail` -- one inside a
@@ -3605,7 +3606,7 @@ def _shacl_focus_samples(precheck_misses: Sequence[Any], report: Any) -> list[An
 
     sampled: list[Any] = list(precheck_misses)
     if isinstance(report, Graph):
-        by_signature: dict[tuple[str, str], Any] = {}
+        by_signature: dict[tuple[str, str, Any], Any] = {}
         for top in report.objects(None, SH.result):
             focus = next(report.objects(top, SH.focusNode), None)
             if focus is None:
@@ -3616,20 +3617,27 @@ def _shacl_focus_samples(precheck_misses: Sequence[Any], report: Any) -> list[An
                 component = next(report.objects(result, SH.sourceConstraintComponent), None)
                 if component is None:
                     return None
+                # The source shape is in the key because the batched plan
+                # inlines value shapes: two shapes can refuse one path with one
+                # component there and still differ under the normative shapes.
+                # rkaf:effectiveDate is atlas:OrganizationChangeEventShape's
+                # through `sh:node` atlas:DateTimeValueShape (normatively Node
+                # plus the nested Datatype) and atlas:LifecycleEventShape's
+                # directly (Datatype alone); keyed without the shape, a
+                # lifecycle event that sorted first stood in for the change
+                # event and its Node went unreported. The shape only groups,
+                # within one report, and never orders, so an engine that leaves
+                # it anonymous -- Jena does -- cannot make the sample unstable.
                 signature = (
                     str(next(report.objects(result, SH.resultPath), "")),
                     str(component),
+                    next(report.objects(result, SH.sourceShape), None),
                 )
                 # Keep the lexicographically least focus node per signature so
                 # the red-path sample is run-stable (graph iteration order is
-                # not). The signature is `(resultPath, component)` and NOT
-                # `sh:sourceShape`: an engine may leave the source shape an
-                # anonymous node -- Jena does -- and a sample keyed on a blank
-                # node id would be stable for one processor only. Nothing is
-                # lost by dropping it, because the component the sample exists
-                # to reproduce is still part of the key; `_root_shape_focus_groups`
-                # then re-derives every shape that targets the sampled node
-                # from the shapes graph, not from the report.
+                # not). `_root_shape_focus_groups` then re-derives every shape
+                # that targets the sampled node from the shapes graph, not from
+                # the report.
                 previous = by_signature.get(signature)
                 if previous is None or str(focus) < str(previous):
                     by_signature[signature] = focus
@@ -3639,7 +3647,7 @@ def _shacl_focus_samples(precheck_misses: Sequence[Any], report: Any) -> list[An
         sampled.extend(
             focus
             for _key, focus in sorted(
-                (((str(focus), path, component), focus) for (path, component), focus in by_signature.items()),
+                (((str(focus), path, component), focus) for (path, component, _shape), focus in by_signature.items()),
                 key=lambda row: row[0],
             )
         )
@@ -3790,11 +3798,13 @@ def _focused_report_is_complete(
 
     Two things must reappear: every component the batched run named, and a
     violation at every node a lifted precheck (a closed shape, the ring-context
-    or the warrant sh:xone) refused. The sample reproduces both by
-    construction once the engine traverses named shapes; what is left to trip
-    this is the batched plan and the normative shapes disagreeing about a
-    node, which no corpus case or mutation does
-    (tests/test_atlas_v3_red_path_oracle.py).
+    or the warrant sh:xone) refused. This is a tripwire, and it sees only what
+    the batched run names: where the plan inlines a value shape, the batched
+    run names the inner component (Datatype) and never the normative Node, so
+    a sample that lost a Node passes it. What keeps the sample complete is its
+    signature (`_shacl_focus_samples`), and tests/test_atlas_v3_red_path_oracle.py
+    holds the sample and the fallback to the whole-graph report. When this
+    trips, the batched plan and the normative shapes disagree about a node.
     """
 
     named_components = {component for _focus, _path, component in focused}

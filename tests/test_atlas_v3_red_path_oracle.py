@@ -43,7 +43,7 @@ import pytest
 from pyshacl import validate as shacl_validate
 from pyshacl.rdfutil import inoculate
 from rdflib import Graph, Literal, Namespace, URIRef
-from rdflib.namespace import RDF, SH, SKOS
+from rdflib.namespace import RDF, SH, SKOS, XSD
 
 ROOT = Path(__file__).resolve().parents[1]
 BINDING_ROOT = ROOT / "bindings" / "atlas" / "3.1"
@@ -266,6 +266,26 @@ def _every_digest_bad(asserted: Graph) -> None:
         _set(asserted, record, ATLAS.sourceDigest, Literal("not-a-digest"))
 
 
+def _effective_date_signature_collision(asserted: Graph) -> None:
+    """One batched signature from two shapes that differ normatively: the sample must take a node of each.
+
+    rkaf:effectiveDate loses its datatype on a change event, which reaches it
+    through `sh:node` atlas:DateTimeValueShape (inlined in the batched plan;
+    normatively Node plus the nested Datatype), and on a lifecycle event whose
+    IRI sorts first, which states `sh:datatype` directly (Datatype alone).
+    """
+
+    event = min(asserted.subjects(RDF.type, ATLAS.OrganizationChangeEvent))
+    lexical = str(asserted.value(event, RKAF.effectiveDate))
+    _set(asserted, event, RKAF.effectiveDate, Literal(lexical, datatype=XSD.string))
+    lifecycle = URIRef("urn:ref:atlas-agency-lifecycle:sorts-first")
+    assert str(lifecycle) < str(event)
+    asserted.add((lifecycle, RDF.type, RKAF.LifecycleEvent))
+    asserted.add((lifecycle, RKAF.appliesTo, min(asserted.subjects(RDF.type, ATLAS.MappingAssertion))))
+    asserted.add((lifecycle, RKAF.lifecycleEventKind, RKAF.rescission))
+    asserted.add((lifecycle, RKAF.effectiveDate, Literal("2026-08-05T12:00:00+00:00", datatype=XSD.string)))
+
+
 def _owner_binding(asserted: Graph) -> Any:
     event = min(asserted.subjects(RDF.type, ATLAS.OrganizationChangeEvent))
     return min(asserted.subjects(RKAF.bindsAssertion, event))
@@ -313,6 +333,7 @@ MUTATIONS: dict[str, tuple[Path, Callable[[Graph], None]]] = {
     "PublicRecordEvidenceShape": (VALID / "organization-change-events", _no_public_record),
     "owner-review-beside-its-warrant": (VALID / "organization-change-events", _owner_review_origin),
     "named-shape-beside-another-root": (VALID / "organization-change-events", _named_shape_beside_another_root),
+    "effective-date-signature-collision": (VALID / "organization-change-events", _effective_date_signature_collision),
     "two-nested-kinds-one-signature": (VALID / "all-resource-profiles", _two_kinds_under_one_signature),
     "literal-focus-node": (VALID / "all-resource-profiles", _literal_concept_scheme),
     "every-digest-bad": (VALID / "all-resource-profiles", _every_digest_bad),
