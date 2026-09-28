@@ -103,27 +103,62 @@ def require_executable_inputs(root: Path, binding: Path | None, commit: str, exp
 
 def require_complete_fidelity(path: Path, manifest_digest: str) -> dict[str, Any]:
     receipt = json.loads(path.read_text())
-    coverage = receipt["coverage"]
-    units = coverage["constructionUnits"]
+    error = "publisher fidelity is failed, scoped, incomplete, or bound to another manifest"
+    if not isinstance(receipt, dict):
+        raise ValueError(error)
+    coverage, scope, expectations = (receipt.get(key) for key in ("coverage", "scope", "expectations"))
+    comparisons = receipt.get("comparisons")
     if (
-        receipt.get("passed") is not True
+        not all(isinstance(value, dict) for value in (coverage, scope, expectations))
+        or not isinstance(comparisons, list)
+        or not all(isinstance(row, dict) for row in comparisons)
+    ):
+        raise ValueError(error)
+    units = coverage.get("constructionUnits")
+    count = coverage.get("constructionUnitCount")
+    if (
+        not isinstance(units, list)
+        or not all(isinstance(row, dict) and isinstance(row.get("key"), str) and row["key"] for row in units)
+        or type(count) is not int
+        or count < 1
+    ):
+        raise ValueError(error)
+    agency_rows = [row for row in comparisons if row.get("kind") == "agency"]
+    if len(agency_rows) != 1:
+        raise ValueError(error)
+    agency = agency_rows[0]
+    claim = agency.get("claimScope")
+    independent = claim.get("independentAgencyComparison") if isinstance(claim, dict) else None
+    agency_key = "agency-registry-2026-09-26"
+    if (
+        not isinstance(independent, dict)
+        or agency.get("name") != agency_key
+        or agency.get("publisherReader") != "independent-agency"
+        or agency.get("releaseKeys") != [agency_key]
+        or agency.get("publisherLoaded") is not True
+        or agency.get("atlasLoaded") is not True
+        or agency.get("fidelityStatus") != "exact"
+        or claim.get("status") != "exact"
+        or independent.get("status") != "passed"
+        or independent.get("failures") != []
+        or agency_key not in {row["key"] for row in units}
+        or receipt.get("passed") is not True
         or receipt.get("manifestDigest") != manifest_digest
-        or receipt["scope"].get("complete") is not True
-        or receipt["scope"].get("scopedOutUnits")
-        or receipt["scope"].get("scopedOutComparisons")
-        or coverage.get("uncoveredUnits")
-        or not coverage.get("constructionUnitCount")
-        or coverage.get("exactUnitCount") != coverage.get("constructionUnitCount")
-        or len(units) != coverage.get("constructionUnitCount")
+        or scope.get("complete") is not True
+        or scope.get("scopedOutUnits") != []
+        or scope.get("scopedOutComparisons") != []
+        or coverage.get("uncoveredUnits") != []
+        or type(coverage.get("exactUnitCount")) is not int
+        or coverage.get("exactUnitCount") != count
+        or len(units) != count
         or len({row["key"] for row in units}) != len(units)
         or any(row.get("status") != "exact" for row in units)
-        or receipt.get("independentAgencyComparison", {}).get("status") != "passed"
         or any(
-            receipt.get("expectations", {}).get(key) is not True
+            expectations.get(key) is not True
             for key in ("requireCompleteCoverage", "requireInputPins", "requirePackPins")
         )
     ):
-        raise ValueError("publisher fidelity is failed, scoped, incomplete, or bound to another manifest")
+        raise ValueError(error)
     return receipt
 
 

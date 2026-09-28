@@ -1,0 +1,23 @@
+{
+  "source": "repair-validation/agency-repaired-fidelity.json on lane/atlas-refresh-20260927, a bounded agency fidelity receipt not kept in this repository (owner decision 2026-09-28)",
+  "sourceSha256": "6519043e6f5155100be699608a148c733407b7611db78c9ca54a42b8d0666fbf",
+  "note": "The gate-relevant fields of that receipt's agency comparison, copied exactly. sourceSha256 is informational: nothing checks it, and the receipt is not here to check. The complete receipt was scoped and must not qualify a full release.",
+  "comparison": {
+    "name": "agency-registry-2026-09-26",
+    "kind": "agency",
+    "publisherReader": "independent-agency",
+    "releaseKeys": [
+      "agency-registry-2026-09-26"
+    ],
+    "publisherLoaded": true,
+    "atlasLoaded": true,
+    "fidelityStatus": "exact",
+    "claimScope": {
+      "status": "exact",
+      "independentAgencyComparison": {
+        "status": "passed",
+        "failures": []
+      }
+    }
+  }
+}

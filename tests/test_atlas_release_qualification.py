@@ -75,7 +75,11 @@ def _fixture(tmp_path):
 
 def _fidelity(pin):
     return {
-        "independentAgencyComparison": {"status": "passed"},
+        "comparisons": [
+            json.loads(
+                (Path(__file__).parent / "fixtures/atlas_release_qualification/agency-comparison.json").read_text()
+            )["comparison"]
+        ],
         "expectations": {"requireCompleteCoverage": True, "requireInputPins": True, "requirePackPins": True},
         "passed": True,
         "manifestDigest": pin,
@@ -84,7 +88,7 @@ def _fidelity(pin):
             "constructionUnitCount": 1,
             "exactUnitCount": 1,
             "uncoveredUnits": [],
-            "constructionUnits": [{"key": "example", "status": "exact"}],
+            "constructionUnits": [{"key": "agency-registry-2026-09-26", "status": "exact"}],
         },
     }
 
@@ -328,3 +332,94 @@ def test_unrelated_docs_and_generated_binding_fixtures_do_not_interrupt(tmp_path
     assert result["status"] == "passed", result
     assert result["sourceDirty"] is True
     assert "src/refspec/data/schema.json" in result["executableInputDigests"]
+
+
+def test_retained_agency_schema_qualifies_without_invented_top_level_field(tmp_path):
+    receipt = _fidelity("sha256:" + "a" * 64)
+    assert "independentAgencyComparison" not in receipt
+    assert receipt["comparisons"][0]["claimScope"]["independentAgencyComparison"]["status"] == "passed"
+    path = tmp_path / "fidelity.json"
+    path.write_text(json.dumps(receipt))
+    assert qualification.require_complete_fidelity(path, receipt["manifestDigest"]) == receipt
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("comparisons", None),
+        ("comparisons", {}),
+        ("comparisons", []),
+        ("comparisons", [None]),
+        ("coverage", []),
+        ("scope", []),
+        ("expectations", []),
+    ],
+)
+def test_malformed_receipt_container_is_refused(tmp_path, field, value):
+    receipt = _fidelity("pin")
+    receipt[field] = value
+    # A fabricated legacy field must never substitute for the emitted comparison.
+    receipt["independentAgencyComparison"] = {"status": "passed"}
+    path = tmp_path / "fidelity.json"
+    path.write_text(json.dumps(receipt))
+    with pytest.raises(ValueError, match="publisher fidelity"):
+        qualification.require_complete_fidelity(path, "pin")
+
+
+@pytest.mark.parametrize(
+    "path,value",
+    [
+        (("comparisons", 0, "name"), "other"),
+        (("comparisons", 0, "publisherReader"), "other"),
+        (("comparisons", 0, "releaseKeys"), ["other"]),
+        (("comparisons", 0, "kind"), "other"),
+        (("comparisons", 0, "publisherLoaded"), False),
+        (("comparisons", 0, "atlasLoaded"), False),
+        (("comparisons", 0, "fidelityStatus"), "not-evaluated"),
+        (("comparisons", 0, "claimScope"), None),
+        (("comparisons", 0, "claimScope"), []),
+        (("comparisons", 0, "claimScope", "status"), "not-evaluated"),
+        (("comparisons", 0, "claimScope", "independentAgencyComparison"), None),
+        (("comparisons", 0, "claimScope", "independentAgencyComparison"), []),
+        (("comparisons", 0, "claimScope", "independentAgencyComparison", "status"), "unevaluated"),
+        (("comparisons", 0, "claimScope", "independentAgencyComparison", "status"), "failed"),
+        (("comparisons", 0, "claimScope", "independentAgencyComparison", "failures"), ["mismatch"]),
+        (("coverage", "constructionUnits", 0, "key"), "other"),
+        (("coverage", "constructionUnits", 0, "status"), "not-evaluated"),
+        (("coverage", "constructionUnitCount"), 2),
+        (("coverage", "constructionUnitCount"), True),
+        (("coverage", "exactUnitCount"), True),
+        (("coverage", "constructionUnits"), [None]),
+        (("scope", "scopedOutUnits"), ["other"]),
+        (("scope", "scopedOutComparisons"), ["other"]),
+        (("scope", "complete"), False),
+        (("coverage", "uncoveredUnits"), ["other"]),
+        (("expectations", "requireInputPins"), False),
+        (("manifestDigest",), "other"),
+        (("passed",), False),
+    ],
+)
+def test_required_agency_and_coverage_conditions_fail_closed(tmp_path, path, value):
+    receipt = _fidelity("pin")
+    target = receipt
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = value
+    output = tmp_path / "fidelity.json"
+    output.write_text(json.dumps(receipt))
+    with pytest.raises(ValueError, match="publisher fidelity"):
+        qualification.require_complete_fidelity(output, "pin")
+
+
+@pytest.mark.parametrize("duplicate", ["agency", "unit"])
+def test_duplicate_agency_or_coverage_entry_is_refused(tmp_path, duplicate):
+    receipt = _fidelity("pin")
+    if duplicate == "agency":
+        receipt["comparisons"] *= 2
+    else:
+        receipt["coverage"]["constructionUnits"] *= 2
+        receipt["coverage"].update(constructionUnitCount=2, exactUnitCount=2)
+    output = tmp_path / "fidelity.json"
+    output.write_text(json.dumps(receipt))
+    with pytest.raises(ValueError, match="publisher fidelity"):
+        qualification.require_complete_fidelity(output, "pin")
