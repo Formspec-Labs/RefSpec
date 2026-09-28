@@ -37,7 +37,7 @@ permissions:
 
 jobs:
   # ---------------------------------------------------------------------
-  # Build -> smoke gate -> full independent acceptance -> seal (stub) ->
+  # Build -> complete qualification -> seal (stub) ->
   # upload receipts, as one job with ordered steps rather than four+
   # `jobs:` wired with `needs:`. Reason, since ci.yml is itself one job and
   # this is the one deliberate structural deviation from that shape worth
@@ -54,124 +54,96 @@ jobs:
   release:
     name: Build, gate, and independently validate one distribution
     if: github.event_name == 'workflow_dispatch'
-    # No such runner is registered yet -- this simply queues until one is.
-    # Runner spec, re-measured 2026-08-13 on the two-index parse substrate
-    # (bindings/atlas/3.1/tools/parse_substrate.py): a complete 29,283,283-quad
-    # acceptance run peaked at 14.31 GiB RSS in 18.5 minutes, on a quiet
-    # machine with zero swap. That is down from ~23.6 GB and 62-75 minutes on
-    # stock rdflib, so a SELF-HOSTED box is no longer required -- a managed
-    # 32 GB larger runner carries better than 2x headroom. It still does NOT
-    # fit a standard 16 GB hosted runner (~14-15 GB usable): 14.31 GiB is
-    # inside the noise of that ceiling, and disk rules it out independently
-    # (~7.3 GB decompressed per distribution plus packs and view against a
-    # 14 GB SSD). Keep ~60 GB free disk and prefer a single fast core: the
-    # pipeline is serial and memory-bound, and naive multiprocess parsing
-    # multiplies the working set rather than dividing the wall clock.
-    #
-    # `runs-on` still names the self-hosted label because the runner decision
-    # is the owner's and has not been made -- the measurement above says a
-    # managed 32 GB runner WOULD now suffice, it does not pick one. Swapping
-    # this line for a larger-runner label is the whole change; nothing else in
-    # this file assumes a self-hosted box. Stated explicitly because the
-    # comment above and this line otherwise read as contradicting each other.
+    # Runner capacity is an explicit operational choice, and no size has been
+    # measured sufficient for this generation. The 29.3M-quad August artifact's
+    # standalone acceptance peaked at 14.31 GiB RSS in 18.5 minutes
+    # (2026-08-13); the refreshed ~101M-quad candidate's standalone audit
+    # stopped at its 30 GiB footprint guard after ~54M quads (2026-09-27).
+    # The timeouts below are runaway guards, not promised completion times:
+    # 185 build + 15 smoke + 365 qualification + 120 shapes benchmark = 685
+    # minutes, leaving 35 for setup (pinned-input fetch) and the receipt upload.
     runs-on: [self-hosted, atlas-release]
-    # Sum of the step budgets below (30 build + 30 smoke + 120 acceptance +
-    # 120 shapes benchmark = 300) plus headroom for
-    # checkout/uv-setup/seal-stub/upload (~20). Each step below carries its own
-    # tighter timeout-minutes; this is the outer bound, not a budget in itself.
-    # The benchmark's 120 mirrors acceptance because it re-parses the same packs
-    # (steps are separate processes) before timing the SHACL phase.
-    timeout-minutes: 320
+    timeout-minutes: 720
     env:
       DISTRIBUTION_ROOT: output/atlas-3.1-full-${{ inputs.output_suffix }}/distribution
       PARQUET_VIEW_ROOT: output/atlas-3.1-full-${{ inputs.output_suffix }}/parquet-view
+      COMPACT_VIEW_ROOT: output/atlas-3.1-full-${{ inputs.output_suffix }}/search-view
+      QUALIFICATION_ROOT: output/atlas-3.1-full-${{ inputs.output_suffix }}/qualification
+      # Linux runners must delegate a cgroup v2 parent to the runner account.
+      ATLAS_CGROUP_PARENT: ${{ vars.ATLAS_CGROUP_PARENT }}
+      # The agency review's 20 primary sources are pinned inputs, placed by
+      # the setup step below and authenticated again against this manifest.
+      ATLAS_AGENCY_EVIDENCE_MANIFEST: research/atlas-refresh-2026-09-27/independent/agency/audit-evidence-manifest.json
+      ATLAS_AGENCY_EVIDENCE_SHA256: sha256:fde4401ea78b2e0e5c1c758b90d32def2d81d40693098a5f3ca904e33344ef3b
     steps:
       - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v6
-        with:
-          enable-cache: true
-          version: "0.11.x"
-
-      # No version argument: `uv python install` reads `.python-version`, which
-      # pins the exact patch. `3.12` here would resolve to whatever the latest
-      # 3.12 patch is on the day the job runs -- a build input nobody declared.
-      - name: Install Python
-        run: uv python install
-
-      - name: Install dependencies
-        run: uv sync --frozen
-
-      # Job 1: build. Bare `uv run python`, not `--with-requirements
-      # bindings/atlas/3.1/requirements.txt` the way the Makefile's
-      # release-atlas-federal-register-thesaurus target invokes the same
-      # generator: this generator imports refspec package code directly
-      # (binding.canonical_sha256, ManagedReleaseGraphFactsView, etc, per
-      # the plan's kill-list item 1), so it runs inside the project's own
-      # environment. Checked: every package the binding's requirements.txt
-      # pins (rdflib, pyshacl, owlrl, jsonschema, backports-zstd) is already
-      # a project or dev dependency in pyproject.toml, at compatible or
-      # identical versions, so `uv sync --frozen` above already provides
-      # them -- no second environment needed for this step.
-      - name: Build the distribution
-        timeout-minutes: 30 # measured ~25 min full build; see the smoke gate step's note below
+      - name: Validate output name and runner resource scope
+        env:
+          OUTPUT_SUFFIX: ${{ inputs.output_suffix }}
         run: |
-          uv run python tools/generate_atlas_v3_full.py \
-            --output "$DISTRIBUTION_ROOT"
+          case "$OUTPUT_SUFFIX" in
+            ''|*[!A-Za-z0-9._-]*) echo "output_suffix must contain only letters, digits, dots, underscores or hyphens" >&2; exit 2 ;;
+          esac
+          test -n "$ATLAS_CGROUP_PARENT"
+          test -f "$ATLAS_CGROUP_PARENT/cgroup.controllers"
+          test -w "$ATLAS_CGROUP_PARENT/cgroup.procs"
+          test "$(stat -f -c %T -- "$ATLAS_CGROUP_PARENT")" = cgroup2fs
 
-      # Job 2: smoke gate, FIRST, for fast feedback. Measured at real scale
-      # (plan, Open items): 92s wall on a 32M-quad build (8/126 packs,
-      # kind-covering sample) -- it is what caught the warrant defect in the
-      # 2026-08-11 build without waiting on the full run below. `--no-project
-      # --with-requirements bindings/atlas/3.1/requirements.txt` matches
-      # `make test-atlas-v3` and validate.py's own docstring: the validator
-      # "deliberately imports no RefSpec package code" so a consumer can
-      # copy the binding directory and verify offline. Running it the same
-      # way here, rather than inside the project environment used for the
-      # build step above, is what actually exercises that independence
-      # claim instead of merely asserting it.
+      - name: Set up locked dependencies and pinned construction inputs
+        uses: ./.github/actions/pinned-setup
+        with:
+          r2-access-key-id: ${{ secrets.REFSPEC_R2_ACCESS_KEY_ID }}
+          r2-secret-access-key: ${{ secrets.REFSPEC_R2_SECRET_ACCESS_KEY }}
+
+      - name: Build with an exclusive resource budget
+        timeout-minutes: 185
+        run: |
+          uv run python tools/run_atlas_phase.py \
+            --name build --report "${DISTRIBUTION_ROOT%/distribution}/build-phase.json" \
+            --rss-gib 18 --footprint-gib 18 --timeout-seconds 10800 \
+            --cgroup-parent "$ATLAS_CGROUP_PARENT" \
+            --disk-root "${DISTRIBUTION_ROOT%/distribution}" -- \
+            uv run --frozen python tools/generate_atlas_v3_full.py --output "$DISTRIBUTION_ROOT"
+
+      # Fast feedback before hours of qualification: a bounded, kind-covering
+      # sample (92 s on a 32M-quad build; it caught the 2026-08-11 warrant
+      # defect), run the way a consumer runs the copied binding. Not a verdict.
       - name: Smoke gate (bounded sample, seconds -- not a verdict)
-        timeout-minutes: 30 # generous over the measured ~92s: cold self-hosted disk, not yet characterized
+        timeout-minutes: 15
         run: |
           uv run --no-project \
             --with-requirements bindings/atlas/3.1/requirements.txt \
             python bindings/atlas/3.1/tools/validate.py \
             --smoke "$DISTRIBUTION_ROOT"
 
-      # Job 3: full independent acceptance. This is deliberately a second,
-      # separate run from the build's own self-attested atlas-acceptance.json
-      # (job 1 writes that; create_seal() below only checks its verdict, it
-      # does not itself re-run SHACL). validate_distribution's own docstring
-      # says as much: the build's return value names
-      # "bindings/atlas/3.1/tools/validate.py:validate_distribution" as
-      # "requiredForIndependentConsumers" and NOT "performedByGenerator".
-      # REFSPEC_ATLAS_VALIDATION_MODE=audit restores the whole-graph
-      # normative SHACL engine instead of the default fast/focused red-path
-      # report: dev-mode default trusts the batched fast path as the sole
-      # arbiter of a rejection (the plan's recorded accepted risk, Open
-      # items: "in default mode the fast path is the sole arbiter of a
-      # rejection ... mitigations are the pinned fast-path/normative
-      # equivalence test ... and audit mode"). The release tier is exactly
-      # where that mitigation -- the whole-graph normative run -- belongs;
-      # cost stops being the objection once this only runs here, once per
-      # release, on the runner sized for it.
-      - name: Full independent acceptance (whole-graph normative run)
-        timeout-minutes: 120 # 2x the ~1h measured budget (plan item 3)
-        env:
-          REFSPEC_ATLAS_VALIDATION_MODE: audit
+      # The same target is used locally. It copies the standalone binding,
+      # runs its cold audit, requires complete publisher fidelity and agency
+      # evidence, and verifies both views in separate serial processes. Up to
+      # eight phases of at most 7,200 s each would outrun this step, so the
+      # qualifier also holds a 20,700 s (345 min) budget for all of them and
+      # writes qualification.json when it runs out; the 20 minutes left cover
+      # pinning, the binding copy and the release-tier sweep. It writes the
+      # receipt on SIGINT/SIGTERM too, but the runner's kill grace is shorter
+      # than a phase's own cleanup, so the budget, not the step, must fire.
+      - name: Qualify the completed distribution and views
+        timeout-minutes: 365
         run: |
-          uv run --no-project \
-            --with-requirements bindings/atlas/3.1/requirements.txt \
-            python bindings/atlas/3.1/tools/validate.py \
-            --distribution "$DISTRIBUTION_ROOT"
-          # Release tier: the corpus-wide cross-mode SHACL parity sweep
-          # (REF-027 carry-forward; 46 cases, ~34s), selected by its marker
-          # (REF-071); `make test-package` leaves it out of the dev budget.
-          uv run --no-sync pytest \
-            tests/test_atlas_v3_validator_regressions.py \
-            -q -m release_tier
+          distribution_pin="$(sha256sum "$DISTRIBUTION_ROOT/atlas-manifest.json" | cut -d' ' -f1)"
+          full_view_pin="$(sha256sum "$PARQUET_VIEW_ROOT/view-manifest.json" | cut -d' ' -f1)"
+          make qualify-atlas-release ATLAS_QUALIFICATION_ARGS="\
+            --distribution $DISTRIBUTION_ROOT --distribution-manifest-sha256 $distribution_pin \
+            --full-view $PARQUET_VIEW_ROOT --full-view-manifest-sha256 $full_view_pin \
+            --compact-view $COMPACT_VIEW_ROOT --report-root $QUALIFICATION_ROOT \
+            --agency-view-manifest-sha256 sha256:77b357cc06fe3e67bcacb0591833884087572727064f89643e10aa2a28ad6b87 \
+            --agency-audit-evidence-manifest $ATLAS_AGENCY_EVIDENCE_MANIFEST \
+            --agency-audit-evidence-sha256 $ATLAS_AGENCY_EVIDENCE_SHA256 \
+            --agency-review-receipt research/atlas-refresh-2026-09-27/independent/agency/claim-receipt.json \
+            --agency-review-receipt-sha256 sha256:4b6a8e01b2d589ad1a2fcad17406070da15c9d31c725f127450efc70ae2ba9ed \
+            --memory-gib 30 --phase-timeout-seconds 7200 --total-timeout-seconds 20700 \
+            --cgroup-parent $ATLAS_CGROUP_PARENT"
+          uv run --no-sync pytest tests/test_atlas_v3_validator_regressions.py -q -m release_tier
 
       # Job 3b: shapes scale gate. Constraint cost is emergent, not
       # compositional: the Jena spike measured every constraint in one node
@@ -207,8 +179,12 @@ jobs:
         env:
           REFSPEC_ATLAS_VALIDATION_MODE: audit
         run: |
-          uv run python tools/benchmark_atlas_shacl_scale.py \
-            --distribution "$DISTRIBUTION_ROOT"
+          uv run --frozen python tools/run_atlas_phase.py \
+            --name shapes-benchmark --report "$QUALIFICATION_ROOT/shapes-benchmark.json" \
+            --rss-gib 30 --footprint-gib 30 --timeout-seconds 6900 \
+            --cgroup-parent "$ATLAS_CGROUP_PARENT" -- \
+            uv run --frozen python tools/benchmark_atlas_shacl_scale.py \
+              --distribution "$DISTRIBUTION_ROOT"
 
       # Job 4: seal minting. INTENTIONALLY A STUB -- `if: false`. Arms only
       # once the key-custody decision (Seal design §2, docs/seal-design.md)
@@ -279,6 +255,13 @@ jobs:
             ${{ env.DISTRIBUTION_ROOT }}/atlas-acceptance.json
             ${{ env.DISTRIBUTION_ROOT }}/atlas-producer-validation.json
             ${{ env.PARQUET_VIEW_ROOT }}/view-manifest.json
+            ${{ env.COMPACT_VIEW_ROOT }}/search-view-manifest.json
+            ${{ env.QUALIFICATION_ROOT }}/qualification.json
+            ${{ env.QUALIFICATION_ROOT }}/source-fidelity.json
+            ${{ env.QUALIFICATION_ROOT }}/*.log
+            ${{ env.QUALIFICATION_ROOT }}/*.samples.jsonl
+            ${{ env.QUALIFICATION_ROOT }}/agency-view/view-manifest.json
+            output/atlas-3.1-full-${{ inputs.output_suffix }}/build-phase.*
           if-no-files-found: error
 
   # ---------------------------------------------------------------------
@@ -305,7 +288,7 @@ jobs:
     name: Reproducible rebuild (weekly control)
     if: false
     runs-on: [self-hosted, atlas-release]
-    timeout-minutes: 150 # ~30 rebuild + 120 full validator, same budgets as the release job's equivalents
+    timeout-minutes: 720 # Disabled control; remeasure and use qualification target before enabling.
     steps:
       - name: Check out source
         uses: actions/checkout@v4

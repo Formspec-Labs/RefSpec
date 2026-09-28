@@ -1,4 +1,4 @@
-.PHONY: fetch-pinned-inputs pinned-inputs-present build-derived build-atlas-umthes build-atlas-agency build-agency-registry-view test-full-atlas seal-distribution verify-distribution-seal generate check-generated lint lint-rdf-strict test test-package test-slow test-json-binding test-atlas-v3 \
+.PHONY: qualify-atlas-release fetch-pinned-inputs pinned-inputs-present build-derived build-atlas-umthes build-atlas-agency build-agency-registry-view test-full-atlas seal-distribution verify-distribution-seal generate check-generated lint lint-rdf-strict test test-package test-slow test-json-binding test-atlas-v3 \
 	atlas-v3-fixtures contract-dev \
 	audit-atlas-v3-source-fidelity audit-registry-inventory audit-registry-real-data \
 	release-atlas-federal-register-thesaurus verify-atlas-federal-register-thesaurus \
@@ -497,3 +497,9 @@ verify-distribution-seal:
 		--parquet-view "$(SEAL_ROOT)/parquet-view" \
 		--seal "$(SEAL_ROOT)/distribution-seal.json" \
 		--allowed-signers "$(SEAL_ALLOWED_SIGNERS)"
+
+# Full artifact qualification consumes explicit trusted manifests. It does not
+# rebuild the distribution or replace the bounded producer prebuild test tier.
+ATLAS_QUALIFICATION_ARGS ?=
+qualify-atlas-release:
+	uv run --frozen python tools/qualify_atlas_release.py $(ATLAS_QUALIFICATION_ARGS)
