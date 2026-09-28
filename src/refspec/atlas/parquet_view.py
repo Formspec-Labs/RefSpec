@@ -17,10 +17,11 @@ validates its own membership as a closed set.  What binds the two is the seal:
 its signed payload carries this view manifest's digest alongside the
 distribution manifest's, so one signature reaches every byte of both.
 
-REF-072's agency registry has its own small view on the same path and the same
-writer contract (:func:`seal_agency_registry_view`), sealed from its release
-rather than from a distribution: bridges, change-event results, and recorded
-non-emissions, pinned by its manifest digest for a consumer to vendor.
+REF-072's agency registry has its own small view on the same writer contract
+(:func:`seal_agency_registry_view`), in its own directory
+(``output/agency-registry-view/``) rather than a distribution's, sealed from its
+release: bridges, change-event results, and recorded non-emissions, pinned by
+its manifest digest for a consumer to vendor.
 """
 
 from __future__ import annotations

@@ -243,9 +243,10 @@ An agent is never the reviewer. Exactly:
 
 ## 8. Release and artifact
 
-Adjudicated rows land in a mapping release; the registry view is sealed as a
-digest-pinned Parquet member beside the distribution, on RefSpec's existing
-parquet-view path; spicy-regs consumes it by that digest. Candidates never
+Adjudicated rows land in a mapping release; the registry view is sealed in
+its own digest-pinned Parquet directory, `output/agency-registry-view/`, on
+the Atlas view's writer contract but apart from any distribution's
+`parquet-view/`; spicy-regs consumes it by its manifest digest. Candidates never
 enter a release, so the boundary between candidates and assertions stays
 physical. Three existing constraints must be amended first (lines verified
 against 739a3b3c):
@@ -277,15 +278,18 @@ see REF-072):
 - **Atlas terms** subclassing W3C ORG: an event class under `org:ChangeEvent`
   and two properties under `org:originalOrganization` and
   `org:resultingOrganization`, in `bindings/atlas/3.1/ontology/atlas.ttl`;
-  raw `org:` predicates stay refused. A relation-policy entry admits the two
-  properties in the entity ring of `registry-resource-profiles.json` (its
+  raw `org:` predicates stay refused. One `changeEventPolicies` entry -- a
+  list of its own in `registry-resource-profiles.json`, beside
+  `relationPolicies`, not an entry in it -- admits the event class, its two
+  properties, the entity ring and the resource class the links reach (the
   `profileDigest` re-seals).
 - **A SHACL shape:** exactly one date; at least one original and at least one
   result; the original not among its results; at least one dated public
   record; E4 human review by the owner (`urn:ref:reviewer:refspec-owner`).
 - **Validator checks** in `validate.py` over the whole distribution: no cycle
   through events, no inverse pair (A→B and B→A), and no `atlas:sameEntityAs`
-  between an event's original and any of its results.
+  between an event's original and any of its results -- read through
+  identity's closure, so A→X and B→X refuse an event A→B too.
 - **A negative fixture per check** (each shape clause and each validator
   check), a fixtures re-seal (`fixtures-receipt.json` `fixturesDigest`
   moves), and a decision record amending REF-038.
