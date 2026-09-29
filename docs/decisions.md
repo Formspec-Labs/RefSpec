@@ -6167,15 +6167,20 @@ targeted only through `rdfs:subClassOf`. One `_run_shacl` run per input on
 its own wiring: the completeness check answers for the sample and is then
 forced false, so the sample must name the oracle's components, the fallback
 `_run_shacl` takes must report the oracle's violations node for node, and a
-focused run's shapes graph may carry no target but `sh:targetNode`. No
-divergence is deliberate. Every mutant of `validate.py` tried against it
-fails the red-path tests -- the review's thirteen, regenerated on the final
-code, and three more (the sample key without the source shape, an empty
-fallback reported instead of passing, the dead inline entry) -- among them
-the four the first version let through: a retarget keeping the original
-targets, a fallback given only the least miss, a sample capped at two
-nodes, and target resolution without the subclass walk. No corpus case's
-recorded components moved, and neither did the contract pair.
+focused run's shapes graph may carry no target but `sh:targetNode`, naming
+only the nodes that run was asked about. No divergence is deliberate. Every
+defect mutant of `validate.py` tried against it fails the red-path tests:
+the first review's thirteen, regenerated on the final code; three more (the
+sample key without the source shape, an empty fallback reported instead of
+passing, the dead inline entry); and the round-2 review's, among them a
+whole-graph run disguised as `sh:targetNode` on every targeted node. They
+include the five earlier versions of the oracle let through: a retarget
+keeping the original targets, a fallback given only the least miss, a
+sample capped at two nodes, target resolution without the subclass walk,
+and that disguised whole-graph run. The round-2 review's survivors are by
+design: two alternative sample keys and a probe that keeps the greatest
+node per signature instead of the least, which a sound key must pass. No
+corpus case's recorded components moved, and neither did the contract pair.
 
 ### REF-073: The Atlas contract covers what a release serves, never module source
 
