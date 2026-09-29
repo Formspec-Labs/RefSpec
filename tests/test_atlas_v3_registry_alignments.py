@@ -20,7 +20,7 @@ import pytest
 from rdflib import URIRef
 from rdflib.namespace import RDF, SKOS
 
-from conftest import missing_pinned_input
+from conftest import LCSH_RELEASE_GROUP, missing_pinned_input
 from refspec.atlas import v3_registry_alignments as alignments
 from refspec.atlas.v3_registry_vocabularies import load_eurovoc_4_24_releases
 from refspec.atlas.v3_source_data import mapping_triple_digest
@@ -684,6 +684,7 @@ def test_mapping_claims_pin_both_exact_atlas_endpoint_releases(mapping_release) 
     }
 
 
+@LCSH_RELEASE_GROUP
 def test_lcsh_endpoint_release_covers_every_alignment_target(endpoint_release) -> None:
     """The consolidated LCSH release holds 514,837 resources and contains every alignment target."""
 
@@ -710,6 +711,7 @@ def test_lcsh_endpoint_release_covers_every_alignment_target(endpoint_release) -
     assert alignment_iris <= {resource.iri for resource in endpoint_release.resources}
 
 
+@LCSH_RELEASE_GROUP
 def test_lcsh_endpoint_release_is_english_only_and_keeps_publisher_iris_without_lccn(
     endpoint_release,
 ) -> None:
@@ -727,6 +729,7 @@ def test_lcsh_endpoint_release_is_english_only_and_keeps_publisher_iris_without_
     assert all(resource.iri.startswith("http://id.loc.gov/authorities/subjects/") for resource in without_lccn)
 
 
+@LCSH_RELEASE_GROUP
 def test_lcsh_endpoint_release_preserves_all_authority_classes(endpoint_release) -> None:
     """All twelve madsrdf authority classes are retained, and every relation joins two held IRIs by skos:broader."""
 
@@ -753,6 +756,7 @@ def test_lcsh_endpoint_release_preserves_all_authority_classes(endpoint_release)
     )
 
 
+@LCSH_RELEASE_GROUP
 def test_mapping_targets_match_the_exact_lcsh_endpoint_release(
     mapping_release,
     endpoint_release,

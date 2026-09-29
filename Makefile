@@ -161,9 +161,17 @@ TEST_PACKAGE_FAIL_SECONDS ?= 240
 # The release this tier reads is also verified against its committed pins
 # (~2.4s measured 2026-09-27). The build alone never compared them, so the
 # pins went stale at a5a0aa2b (2026-08-14) and stayed stale for six weeks.
+#
+# `--dist loadgroup` keeps each `xdist_group` on one worker and deals every
+# other test out as `--dist load` does. The one group is
+# conftest.LCSH_RELEASE_GROUP: the consolidated LCSH release costs 70-90 s
+# and 4 GB per worker that loads it, and without the group two workers could
+# each pay it. Measured 2026-09-28, interleaved at the same load: the fast
+# tier took 132-152 s of pytest time with two loads, 103-119 s with one, and
+# the grouped worker (86-97 s busy) was never the busiest.
 test-package: atlas-v3-fixtures pinned-inputs-present release-atlas-federal-register-thesaurus verify-atlas-federal-register-thesaurus
 	@start=$$(date +%s); \
-	uv run pytest -q -n auto --tier fast $(PYTEST_ARGS); \
+	uv run pytest -q -n auto --dist loadgroup --tier fast $(PYTEST_ARGS); \
 	status=$$?; \
 	end=$$(date +%s); \
 	elapsed=$$((end - start)); \

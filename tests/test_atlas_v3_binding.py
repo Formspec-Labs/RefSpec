@@ -213,8 +213,8 @@ def test_the_aggregate_test_target_runs_the_sealed_corpus_exactly_once() -> None
 _SLOW_TIER_MUTATIONS = (
     (
         "test-package stops filtering, so the corpus runs in both tiers",
-        "uv run pytest -q -n auto --tier fast $(PYTEST_ARGS);",
-        "uv run pytest -q -n auto $(PYTEST_ARGS);",
+        "uv run pytest -q -n auto --dist loadgroup --tier fast $(PYTEST_ARGS);",
+        "uv run pytest -q -n auto --dist loadgroup $(PYTEST_ARGS);",
     ),
     (
         "test-slow takes the fast tier too, so the corpus runs in neither",

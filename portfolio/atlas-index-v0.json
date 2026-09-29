@@ -1,5 +1,5 @@
 {
-  "evidenceDigest": "sha256:c9a08a52b0a3c870d7ac503d7c8d1870f46d1ada025bcfa916eb79a66d1b14d1",
+  "evidenceDigest": "sha256:71db5d4f01cff37a675b594473d1d3bcfba68564c78d48c2513b4d8dc4d4da24",
   "experimental": true,
   "format": "refspec-atlas-index/experimental-v0",
   "implementationModules": [
@@ -836,7 +836,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments.py",
-          "sha256": "sha256:21bc751cfca27ecb8ba1fd5dd5f6ad1431941f9ec0b2e059ed770afc10134d36"
+          "sha256": "sha256:9577b863e380d903b47f16b84de0517df846797e45736d0ee92ff89f7f300164"
         },
         {
           "kind": "parserTest",
@@ -967,7 +967,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments.py",
-          "sha256": "sha256:21bc751cfca27ecb8ba1fd5dd5f6ad1431941f9ec0b2e059ed770afc10134d36"
+          "sha256": "sha256:9577b863e380d903b47f16b84de0517df846797e45736d0ee92ff89f7f300164"
         },
         {
           "kind": "parserTest",
@@ -2444,7 +2444,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments.py",
-          "sha256": "sha256:21bc751cfca27ecb8ba1fd5dd5f6ad1431941f9ec0b2e059ed770afc10134d36"
+          "sha256": "sha256:9577b863e380d903b47f16b84de0517df846797e45736d0ee92ff89f7f300164"
         },
         {
           "kind": "parserTest",
@@ -2454,7 +2454,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments_lcsh.py",
-          "sha256": "sha256:67c53c253b92380299b2a12784d1b151e6ac6aafd99c7c2c5b9bbb3ce47c1b1f"
+          "sha256": "sha256:8b09cc21351a6c5aac974a19444a3095c4b5d028f45f4846f968e4310d1472a0"
         },
         {
           "kind": "parserTest",
@@ -3510,7 +3510,7 @@
         {
           "kind": "parserTest",
           "path": "tests/test_atlas_v3_registry_alignments.py",
-          "sha256": "sha256:21bc751cfca27ecb8ba1fd5dd5f6ad1431941f9ec0b2e059ed770afc10134d36"
+          "sha256": "sha256:9577b863e380d903b47f16b84de0517df846797e45736d0ee92ff89f7f300164"
         },
         {
           "kind": "parserTest",

@@ -56,6 +56,17 @@ def tier_of(item: pytest.Item) -> str:
     return "fast"
 
 
+#: The consolidated LCSH release (`load_lcsh_consolidated_release`, 514,837
+#: resources) costs about 70-90 s and 4 GB to load, once per process: it is
+#: lru-cached, and a process is one xdist worker. Every fast-tier test that
+#: needs it carries this mark and `make test-package` runs `--dist loadgroup`,
+#: so one worker loads it once. Under plain `--dist load` the tests of its two
+#: modules could land on two workers, each paying the load, and whether they
+#: did moved with the test count: on a loaded host that second load pushed the
+#: tier past its runaway guard.
+LCSH_RELEASE_GROUP = pytest.mark.xdist_group("lcsh-consolidated-release")
+
+
 #: The variables that tell git WHICH repository, index, object store, namespace or
 #: config file to use. Run from a linked worktree, `git rebase --exec` exports
 #: GIT_DIR=<main>/.git/worktrees/<name> (git 2.50, measured 2026-09-27), whose
