@@ -20,7 +20,7 @@ from typing import Any
 import pytest
 import rdflib
 from rdflib import Dataset, Graph, Literal, Namespace, URIRef
-from rdflib.namespace import OWL, RDF, SH, SKOS, XSD
+from rdflib.namespace import OWL, RDF, RDFS, SH, SKOS, XSD
 
 ROOT = Path(__file__).resolve().parents[1]
 BINDING_ROOT = ROOT / "bindings" / "atlas" / "3.1"
@@ -1617,6 +1617,28 @@ def test_batched_shacl_plan_keeps_normative_shapes_and_lifts_direct_properties()
     assert not list(plan.shapes.objects(ATLAS.EvidenceBindingShape, SH.xone))
     assert not list(plan.shapes.objects(ATLAS.RelationAssertionShape, SH.xone))
     assert list(shapes.objects(ATLAS.EvidenceBindingShape, SH.xone))
+
+
+def test_the_shapes_file_uses_only_the_target_forms_the_red_path_resolves() -> None:
+    """Pin the target forms `_root_shape_focus_groups` and the focused run's retargeting are complete for.
+
+    The red path resolves a node's shapes from the four SHACL Core target
+    predicates and strips exactly those before retargeting. A target form it
+    does not read -- an implicit class target (a shape that is also a class),
+    an `sh:target`, a deactivated shape -- would group a node under only some
+    of its shapes, or survive the retarget and resolve over the whole graph.
+    """
+
+    ontology, shapes = atlas_validate._parse_binding_graphs()
+    used = {predicate for predicate in atlas_validate._SHACL_TARGET_PREDICATES if (None, predicate, None) in shapes}
+    node_shapes = set(shapes.subjects(RDF.type, SH.NodeShape)) | set(shapes.subjects(RDF.type, SH.PropertyShape))
+
+    assert used == {SH.targetClass, SH.targetObjectsOf}
+    assert not list(shapes.subject_objects(SH.target))
+    assert not list(shapes.subject_objects(SH.deactivated))
+    for graph in (shapes, ontology):
+        for class_type in (RDFS.Class, OWL.Class):
+            assert not node_shapes & set(graph.subjects(RDF.type, class_type)), f"an implicit class target in {graph}"
 
 
 def test_every_listed_inline_value_shape_exists_and_is_inlined() -> None:

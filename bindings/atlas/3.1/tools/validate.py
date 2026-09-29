@@ -3709,9 +3709,9 @@ def _root_shape_focus_groups(
     that would mean this resolution and the engine's disagree.
 
     Invariant this rides on: resolution reads the four SHACL Core target
-    predicates only, which is complete for today's shapes file (`sh:targetClass`
-    throughout and one `sh:targetObjectsOf`; no implicit class targets, no
-    `sh:sparql`, no `sh:deactivated`). A shape acquiring any other target
+    predicates only, which is complete for the target forms the shapes file
+    may use (`test_the_shapes_file_uses_only_the_target_forms_the_red_path_resolves`
+    pins them). A shape acquiring any other target
     form must extend this resolution -- a node targeted by *nothing* falls
     back to the whole-graph run, but a node this resolution groups under
     only *some* of its targeting shapes would silently shrink the component
@@ -3761,10 +3761,11 @@ def _focused_shacl_report(
 
     The targets are rewritten rather than named through pySHACL's `use_shapes`
     and `focus_nodes`: `use_shapes` loads only the shapes it names and the
-    blank nodes under them, and passes as conforming every named shape they
-    reach -- through `sh:node`, `sh:qualifiedValueShape`, `sh:property`,
-    `sh:not`, `sh:and`, `sh:or` or `sh:xone` (REF-072). With every shape
-    loaded the engine traverses named shapes as the whole-graph run does. The
+    blank nodes under them, and ignores every reference to a named shape it
+    did not load -- the `sh:node`, `sh:qualifiedValueShape`, `sh:property` or
+    `sh:not` constraint is skipped, and the member is dropped from an
+    `sh:and`/`sh:or`/`sh:xone` list (REF-072). With every shape loaded the
+    engine traverses named shapes as the whole-graph run does. The
     nodes go in as RDF terms, not strings, so no CURIE expansion can hand the
     engine a different node than the one that failed.
 

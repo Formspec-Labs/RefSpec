@@ -6103,10 +6103,12 @@ incomplete, and the fix sent such a red build to the whole-graph normative
 report instead -- the run measured at 94 minutes on a 32M-quad red build --
 recorded in `_run_shacl` as a known limit. The cause was pySHACL 0.31's
 `use_shapes`, which loads the shapes it names and the blank nodes under them
-and passes as conforming every named shape they reach, through `sh:node`,
-`sh:qualifiedValueShape`, `sh:property`, `sh:not`, `sh:and`, `sh:or` or
-`sh:xone` (`_build_node_shape_cache_from_list`); the binding reaches its
-eight named value shapes through the first two. All eight were skipped, and
+and ignores every reference to a named shape it did not load
+(`_build_node_shape_cache_from_list`): the `sh:node`,
+`sh:qualifiedValueShape`, `sh:property` or `sh:not` constraint is skipped,
+and the member is dropped from an `sh:and`/`sh:or`/`sh:xone` list. The
+binding reaches its eight named value shapes through `sh:node` and
+`sh:qualifiedValueShape`. All eight were skipped, and
 ten of the 62 `shacl.data` corpus cases paid the whole-graph run for it: the
 seven change-event cases on `atlas:OwnerHumanReviewShape` and
 `atlas:PublicRecordEvidenceShape`, the two `atlas:DateTimeValueShape` cases,
@@ -6134,12 +6136,14 @@ whole-graph run, are gone.
 
 The cost. The sample's report is O(|shapes| + k·c) with k at most one node
 per signature the shapes file can produce and c a node's shape closure: on
-the bounded agency build (2,249,294 quads) it re-validated 6-13 nodes in
-about 0.03 s from 646 to 102,288 batched violations. The fallback is
-O(refused nodes): about 1 ms a node there (0.8-1.4 ms; 81 s for 92,091
-refused nodes), so when nearly every node is refused it approaches the
-whole-graph run's cost, which it never exceeds -- 264 s over 292,174
-(shape, node) pairs on that build with one violation planted inside each
+the bounded agency build (2,249,294 quads), with the source shape in the
+key, it re-validated 12-14 nodes in about 0.03 s from 658 to 21,303 batched
+violations across 19 source shapes (the round-2 review's measurement). The
+fallback is O(refused nodes): about 1 ms a node there (0.8-1.4 ms; 81 s for
+92,091 refused nodes), so when nearly every node is refused it approaches
+the whole-graph run's cost, though it never evaluates more (shape, node)
+pairs than that run -- 264 s over 292,174 pairs on that build with one
+violation planted inside each
 named shape, against 0.03 s over 11 pairs for the sample and 0.34 s over 741
 for the fallback. On the ten corpus cases: 82-98 ms over 239-262 pairs
 against 11-18 ms over one or two. The fast path that finds a build red is
