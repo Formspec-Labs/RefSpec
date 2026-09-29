@@ -15,8 +15,8 @@ agency comparisons), bounded accounting and sorting, the phase guard and one
 qualification target shared with the release job, served-byte checks for
 explorer candidates, and the audit refactor. The slow tier builds everything
 it reads (`make build-derived`) from pinned inputs, including the agency
-review's 20 primary sources. The branch keeps dev22's version; the changed source needs the next
-version before consumers adopt it.
+review's 20 primary sources. It merged as `380308ee` and ships in dev23
+(below).
 
 Release stays blocked: no candidate has completed qualification (the
 standalone audit stops at its 30 GiB guard), and `make
@@ -108,6 +108,30 @@ pins moved once for the change and were re-recorded. With it: SpicyDocs
 0.50.0, which changes nothing RefSpec imports or reads. The slow and
 full-Atlas tiers are left to the operator on this commit, the slow tier now
 including the end-to-end pin test REF-073 adds.
+
+## RefSpec 0.1.0.dev23 (2026-09-29)
+
+dev23 carries the three branches merged since dev22. The atlas-refresh fix
+round (`380308ee`, above): source-fidelity verifier 16 with the S27
+relation-record provenance check, bounded accounting, one qualification
+budget that writes its receipts when the budget ends or a signal arrives,
+evidence pruned to what the checks read, and the 20 primary agency sources
+pinned; the contract pair moved to `5344028b...`/`c792a2f9...` for the
+preferred-label shapes and the new conformance cases. The registry
+follow-ups F1-F7 (`cd78e476`): same-entity closure through `sameEntityAs`
+chains, change-event negatives with a fail-fast fallback, an agency registry
+view that states its release's evidence and a verifier that compares the two
+both ways, the parent map derived once per roster, and `original_parents` in
+view schema 1.1 (manifest `c7dc9310...`); the pair moved to
+`1c14dc75...`/`e6c5d30b...`. The bounded red-path SHACL fallback
+(`ef6fc361`): one engine run on `sh:targetNode`-retargeted shapes replaces
+the whole-graph fallback, which stays as the test oracle (the agency red
+path went from 255 s to 34 s in the merge review), the fast tier loads LCSH
+once, and REF-072 records the pass decision, its risk and the audit-mode
+bound. The version bump moves neither the contract pair nor the view
+manifest. SpicyDocs stays 0.50.0; the next re-vendor takes 0.53.0 with the
+rest of the stack. The slow tier passed on this source tree (`dcd24ce2`);
+the owner skipped the full-Atlas tier.
 
 ## Merged, and the one parked item
 
