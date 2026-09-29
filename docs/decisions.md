@@ -6152,9 +6152,16 @@ unchanged and linear (14-17 µs a quad; 36-60 s on the agency build).
 The owner's decision (2026-09-28): when the fallback's engine run clears
 every refused node, the role passes, rather than taking a one-time
 whole-graph check. The risk is recorded with it: the pass is the whole-graph
-verdict only while the batched plan misses no violation -- the assumption
-the green path already rests on -- so a plan that wrongly refused node A and
-also missed a real violation at node B would pass a build audit mode fails.
+verdict only while the batched plan misses no violation. That is more than
+the assumption the green path rests on, because this branch fires only after
+the engine has contradicted every node the plan refused, which is itself
+proof the plan is wrong for that input. A plan that wrongly refused node A
+and also missed a real violation at node B would pass a build audit mode
+fails. What bounds the risk: release verdicts run in audit mode
+(`tools/qualify_atlas_release.py` sets `REFSPEC_ATLAS_VALIDATION_MODE=audit`,
+and `release.yml` runs it), so a release with an inlining defect plus one
+false refusal is refused rather than passed; the pass reaches default-mode
+builds only.
 The whole-graph run stays audit mode's report and the answer to a fast path
 that cannot be read (an engine exception, a result without a focus node, a
 node no shape targets).

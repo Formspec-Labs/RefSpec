@@ -166,9 +166,13 @@ TEST_PACKAGE_FAIL_SECONDS ?= 240
 # other test out as `--dist load` does. The one group is
 # conftest.LCSH_RELEASE_GROUP: the consolidated LCSH release costs 70-90 s
 # and 4 GB per worker that loads it, and without the group two workers could
-# each pay it. Measured 2026-09-28, interleaved at the same load: the fast
-# tier took 132-152 s of pytest time with two loads, 103-119 s with one, and
-# the grouped worker (86-97 s busy) was never the busiest.
+# each pay it. Main at cd78e476 happened to load it once (its tests all on
+# one worker, 2 of 2 runs); the bounded red-path branch's added tests moved
+# them onto two, which is when the double load appeared. Measured 2026-09-28
+# on that branch, interleaved at the same load: the fast tier took 132-152 s
+# of pytest time with two loads, 103-119 s with one, and the grouped worker
+# (86-97 s busy) was never the busiest. Grouping makes one load a guarantee
+# rather than an accident of the test count.
 test-package: atlas-v3-fixtures pinned-inputs-present release-atlas-federal-register-thesaurus verify-atlas-federal-register-thesaurus
 	@start=$$(date +%s); \
 	uv run pytest -q -n auto --dist loadgroup --tier fast $(PYTEST_ARGS); \
