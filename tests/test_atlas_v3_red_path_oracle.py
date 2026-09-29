@@ -21,8 +21,8 @@ is then forced false, so the fallback `_run_shacl` takes is the one compared.
   fast path refused every node the engine refuses, and `_run_shacl` handed
   every one of them on.
 * Neither run resolves a target over the graph: the shapes graph a focused
-  run is given carries `sh:targetNode` targets and no other, and no run is
-  given the normative shapes.
+  run is given carries `sh:targetNode` targets and no other, naming only the
+  nodes that run was asked about, and no run is given the normative shapes.
 
 No divergence is deliberate. `DELIBERATE_DIVERGENCES` is where one would be
 recorded, with its reason, so that an unlisted divergence fails the suite
@@ -104,6 +104,7 @@ def assert_bounded_report_is_the_oracles(name: str, graphs: dict[str, Graph], mo
     focused: list[set[Violation] | None] = []
     tripwire: list[bool] = []
     in_focused_run = False
+    asked: set[Any] = set()
     real_focused = atlas_validate._focused_shacl_report
     real_complete = atlas_validate._focused_report_is_complete
     real_validate = atlas_validate._validate_shacl_data
@@ -111,6 +112,8 @@ def assert_bounded_report_is_the_oracles(name: str, graphs: dict[str, Graph], mo
     def spy_focused(data_graph: Graph, shape_graph: Graph, focus_nodes: Any) -> Any:
         nonlocal in_focused_run
         in_focused_run = True
+        asked.clear()
+        asked.update(focus_nodes)
         try:
             result = real_focused(data_graph, shape_graph, focus_nodes)
         finally:
@@ -128,6 +131,7 @@ def assert_bounded_report_is_the_oracles(name: str, graphs: dict[str, Graph], mo
             assert not any((None, target, None) in shape_graph for target in RESOLVED_TARGETS), (
                 "a focused run resolves targets over the graph"
             )
+            assert set(shape_graph.objects(None, SH.targetNode)) <= asked, "a focused run targets nodes it was not given"
         return real_validate(data_graph, shape_graph)
 
     with monkeypatch.context() as patch:
