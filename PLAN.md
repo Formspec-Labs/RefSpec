@@ -187,3 +187,14 @@ The Atlas 3.0 bounded-build plan that used to occupy this file is at
 [plans/atlas-3.0-lineage.md](plans/atlas-3.0-lineage.md), superseded
 2026-08-12 (REF-026/027/028) and moved 2026-09-07 — a superseded document
 should not hold the name every "read the plan first" instruction resolves to.
+
+## SpicyDocs 0.53.0 adoption (local, 2026-09-30)
+
+The recovery branch prepares RefSpec dev24 on the released SpicyDocs 0.53.0
+wheel so DocSpec, Search and Engine can resolve one provider version. The
+loaded-provider comparison and exact module diff are retained under
+`~/Work/corpora/claude-recovery-20260930/`. The standard `make test-package`
+gate and lint passed; see `refspec-package-gate.log` and `refspec-lint.log`
+in that evidence directory. The existing registry-audit expected failure is
+listed in `tests/allowed_skips.json`. Slow and full-Atlas qualification were
+not rerun. No binding, sealed artifact, publication or remote branch has moved.

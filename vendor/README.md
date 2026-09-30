@@ -1,19 +1,17 @@
 # Vendored dependencies
 
-`spicy_docs-0.50.0-py3-none-any.whl` supplies shared source readers and
+`spicy_docs-0.53.0-py3-none-any.whl` supplies shared source readers and
 bounded U.S. Code acquisition with validated archive member delivery.
-SHA-256: `c739bc6f6bd488ca2afcb37d1bbcff57f14c0abe051638d4679ed17abf9eb64b`.
-Provider source: SpicyDocs `1eb3e1f363a0b1d3bcb08a981d6f2924ac9a3a2e` on `main`
-(the docs-only commit after the 0.50.0 release merge `8844068`), with Rulespec
-Artifacts 1.1.2; a rebuild from a clean archive of that commit reproduces the
-bytes.
+SHA-256: `2ec43dcec80aa65d14db0c6fb9138bd1e6c17bcfc62b0065cbab2c5aa5bfce52`.
+Provider source: SpicyDocs `4bf3d04f0de7e43bf8ca6e87194c942bcd2ba96e`, with
+Rulespec Artifacts 1.1.2. The wheel is the retained 0.53.0 release artifact.
 RefSpec 0.1.0.dev10 retains snapshot acceptance, normalization and interpretation.
 Its title cache records original HTTP facts; its corpus and annual tools process
 validated members without reopening ZIPs. See [U.S. Code inputs](../docs/uscode-acquisition.md).
 
 Python 3.12, PyArrow 25.0.1 and DuckDB 1.5.5 or later remain unchanged. Existing
 sealed artifacts are unchanged; comparing a new writer to older Parquet bytes
-requires a row comparison. RefSpec 0.1.0.dev23 is qualified with SpicyDocs 0.50.0
+requires a row comparison. RefSpec 0.1.0.dev24 selects SpicyDocs 0.53.0
 and Rulespec Artifacts 1.1.2. Sibling pins move on their own schedule, so read
 each repository's `pyproject.toml` rather than a list here; SpicySearch vendors
 RefSpec in optional groups only, and its runtime does not depend on RefSpec.
@@ -224,3 +222,14 @@ rather than sitting here for days, which is how the 2026-09-04 re-cut was
 found. Check the new wheel's `Requires-Dist` against the previous one before
 locking: an added dependency that is on no index has to be vendored too,
 which is how the second wheel above arrived.
+
+**What 0.53.0 changes for RefSpec.** The imported XML reader adds optional
+byte positions and a separate span parser; its existing calls keep their
+behavior. MODS adds access-ID properties without changing its default element
+bound. Zyte records unencoded Content-Length and rejects ambiguous lengths;
+provider read failures become the provider's own error without raw exception
+chaining. These modules change their source hashes, so new capture receipts
+record the new implementation. Existing sealed data and binding versions stay
+unchanged. Qualification evidence is retained in
+`~/Work/corpora/claude-recovery-20260930/refspec-provider-comparison.json` and
+`refspec-provider.diff` beside it.
