@@ -39,12 +39,18 @@ def test_committed_artifacts_follow_from_the_rosters_and_decisions(releases: tup
     assert succession.write_or_check(ROOT, write=False, releases=releases) == []
 
 
-def test_nothing_is_adjudicated(report: dict[str, Any]) -> None:
+def test_candidates_stay_candidates_and_the_owners_decision_binds_to_them(report: dict[str, Any]) -> None:
+    """The candidates adjudicate nothing; the owner's answer lives only in the decisions file, bound by digest."""
+
     for row in (*report["candidates"], *report["events"]):
         assert row["status"] == "candidate-pending-owner-adjudication"
     assert not _keys(report) & ADJUDICATION_KEYS
     decisions = entity_alignments.load_decisions(ROOT / succession.DECISIONS_JSON, report)
-    assert decisions == entity_alignments.NO_DECISIONS
+    assert not decisions.stale and set(decisions.current) == {"event:fr200"}
+    decision = decisions.current["event:fr200"]
+    assert (decision["answer"], decision["decided_on"], decision["channel"]) == ("accept", "2026-10-03", "questionTool")
+    assert decision["content_digest"] == report["events"][0]["content_digest"]
+    assert report["candidates_digest"] == entity_alignments.AGENCY_REGISTRY_SUCCESSION_CANDIDATES_DIGEST
 
 
 def test_fns_became_fna_as_a_dated_rename_between_two_held_register_records(report: dict[str, Any], releases: tuple[Any, ...]) -> None:

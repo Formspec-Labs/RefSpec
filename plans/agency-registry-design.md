@@ -243,8 +243,8 @@ An agent is never the reviewer. Exactly:
 - **Known limit (REF-072): events cannot stand alone.** A mapping release must
   carry at least one mapping, and the producer writes a release's change
   events with its first mapping batch, so the later succession batch, if it
-  holds only events, cannot be a release of its own as built. It either rides
-  in a release with bridges or needs that limit lifted first.
+  holds only events, cannot be a release of its own as built. It rides in the
+  agency-registry release with batch 1's bridges (section 8, 2026-10-03).
 
 ## 8. Release and artifact
 
@@ -313,14 +313,15 @@ Atlas view's writer contract, and `--check` rebuilds it against the pin.
 
 | Member | Rows | sha256 |
 | --- | ---: | --- |
-| `view-manifest.json` (the pin) | | `99b8234ad15881e411ca4af2faa9e99bb9d91a22ba140e6ae792da4a8d4e41f9` |
+| `view-manifest.json` (the pin) | | `0b39812de31930f267dea2d7d51039d71b0a1852606387d5aba64aa75d25ec17` |
 | `tables/agency-registry-bridges.parquet` | 13 | `2e33905b475c6a1adf27960ecf170a1b4c82df2baf20ac13df9307bb687dd898` |
-| `tables/agency-registry-events.parquet` (one row per event and result) | 14 | `72f35636f9b5c93d708a364352122fb724e872f619a518c5e49ebb19518322b7` |
+| `tables/agency-registry-events.parquet` (one row per event and result) | 15 | `fce2b80a184fd0de98e2d15ba2d3a68d47f84eb9b9ba1c2678bc8787af3e0c07` |
 | `tables/agency-registry-non-emissions.parquet` | 4 | `da863e467f00f16a6b7a9ff1a3e1182fb8e7488f8b7d33f0d7f0c403a0663e24` |
-| `tables/agency-registry-current-successors.parquet` (derived, one row per original and current successor) | 14 | `b43fb57a24f7eb590964bc807a34b08a579a953170ea68b1b83c716f6e2ef060` |
+| `tables/agency-registry-current-successors.parquet` (derived, one row per original and current successor) | 15 | `857abd0ca7c42a50bab7225d1036df2e498d91e1840a2007440fd10acdf97160` |
 
 Its logical-content digest is
-`sha256:777c610051c9fdcbab8e9cdb7d382dce20c4565a484b241ed784247efefc46a4`. The
+`sha256:05a360a409418313a3df9c24b644e9e4f24e1a69eea9942d5e7b143473c512e5`
+(batch 1 alone: `777c6100…`). The
 events table states each original's roster parent (`original_parents`, in the
 order of `originals`, null for a top-level organization), as the bridges table
 states `subject_parent`; that column is `schemaVersion` 1.1 and moved the
@@ -333,9 +334,22 @@ the current-successors table, derived from the events by
 `current_successor_rows()`, outside the logical-content digest and asserting
 nothing; the verifier walks the events again and refuses any other table. A
 consumer that cannot import RefSpec (spicy-regs' MCP image) reads it instead
-of porting the walk. The asserted tables and the logical digest did not move;
-the 1.1 view `c7dc9310…`, which spicy-regs vendors until it re-vendors, stays
-verifiable against the release.
+of porting the walk. The 1.1 view `c7dc9310…`, which spicy-regs vendors until
+it re-vendors, stays verifiable against batch 1 alone, as does 1.0.
+
+**The succession batch rides in the same release (2026-10-03).** The owner
+accepted `event:fr200`, FNS → FNA effective 2026-06-24. The release reads each
+batch's candidates and decisions by digest (`agency_registry_batches()`), batch
+1 then the succession batch, binds each decision to its item's content digest,
+checks each batch's parity, and emits the event beside batch 1's 13 bridges:
+the release carries 13 bridges, 10 events and 4 non-emissions (27 decided
+items), and REF-072's limit holds, since a batch of events alone would be a
+mapping release without a mapping. The key stays `agency-registry-2026-09-26`
+(its issue day, the earliest decision); its `sourceReleaseDigest` moved from
+`69001a43…` (batch 1 alone, still rebuildable) to `dc639b30…`, and the view's
+release identity names each batch's decided candidates digest
+(`candidatesDigests`). The bridges and non-emissions tables did not move; the
+events table gained the FNA row and the current successors FR 200 → FR 625.
 
 ## 9. Measured gaps (re-measured 2026-09-26)
 

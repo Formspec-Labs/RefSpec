@@ -11,8 +11,8 @@ and an event batch 1 already proposes is refused here.
 Every row is ``candidate-pending-owner-adjudication`` and carries no reviewer,
 evidence tier or decision. The owner (``urn:ref:reviewer:refspec-owner``) answers
 in plans/agency-registry-succession-batch-decisions.json, which this tool only
-reads, through the decision contract the batch-1 release reads
-(``load_decisions``). The candidates follow from the pinned rosters alone, so
+reads, through the decision contract the release reads (``load_decisions``); the
+agency-registry release reads both files by digest after batch 1's. The candidates follow from the pinned rosters alone, so
 ``--check`` re-derives the JSON and the sheet byte for byte without a replay.
 What a decided event does to spicy-regs' codes is not measured here; the owner
 note states what its rule implies.
@@ -226,9 +226,9 @@ def render_adjudication_sheet(report: Mapping[str, Any], decisions: entity_align
             "exactly as for batch 1: each decision is keyed by the event id and records the answer, the date, the "
             "channel and the event's `content_digest` (the Decision keys table). Every row is still "
             "`candidate-pending-owner-adjudication`; an accepted event becomes an assertion carrying your reviewer "
-            "IRI and the decision date. Batch 1's release cannot take these: a release of its own needs the release "
-            "step generalized beyond batch 1's pinned files, and REF-072's known limit (events cannot stand alone in "
-            "a mapping release) lifted or a bridge to ride with."
+            "IRI and the decision date. The agency-registry release reads this batch by digest after batch 1 "
+            "(`agency_registry_batches()`), so its events ride with batch 1's bridges: a mapping release carries at "
+            "least one mapping (REF-072)."
         ),
         "",
         (

@@ -28,7 +28,7 @@ PDF_PATHS = {
 # changed manifest or receipt fails here too instead of being re-hashed into agreement.
 AGENCY_EVIDENCE_SHA256 = "sha256:fde4401ea78b2e0e5c1c758b90d32def2d81d40693098a5f3ca904e33344ef3b"
 AGENCY_REVIEW_SHA256 = "sha256:4b6a8e01b2d589ad1a2fcad17406070da15c9d31c725f127450efc70ae2ba9ed"
-AGENCY_VIEW_SHA256 = "sha256:99b8234ad15881e411ca4af2faa9e99bb9d91a22ba140e6ae792da4a8d4e41f9"
+AGENCY_VIEW_SHA256 = "sha256:0b39812de31930f267dea2d7d51039d71b0a1852606387d5aba64aa75d25ec17"
 
 
 def oracle(name):
@@ -109,19 +109,14 @@ def test_agency_digest_and_expected_rows_frozen_oracles(plans):
     assert old.aggregate(c) == agency.OWNER_AGGREGATE
     expected, details = agency.expected_from_plans(c, d)
     frozen_expected, frozen_details = oracle("agency_artifacts").expected_from_plans(c, d)
-    # The deliberate divergences from the frozen oracle: the view states each
-    # event original's roster parent (F6), and since 1.2 the current successors
-    # derived from the events (RF1). Everything else still agrees.
+    # The one deliberate divergence from the frozen oracle: the view now states
+    # each event original's roster parent (F6). Everything else still agrees.
     assert details == frozen_details
     assert {key for row in expected["events"] for key in row} - {
         key for row in frozen_expected["events"] for key in row
     } == {"original_parents"}
     without = [{key: value for key, value in row.items() if key != "original_parents"} for row in expected["events"]]
-    asserted = {key: rows for key, rows in expected.items() if key != "current-successors"}
-    assert {**asserted, "events": agency.sorted_rows(without)} == frozen_expected
-    assert {(row["original"], row["successor"]) for row in expected["current-successors"]} == {
-        (original, row["result"]) for row in expected["events"] for original in row["originals"]
-    }  # batch 1 holds no chain, so each original's current successors are its own results
+    assert {**expected, "events": agency.sorted_rows(without)} == frozen_expected
     for field in ("date_basis", "effective_date", "originals", "public_records"):
         changed = copy.deepcopy(c)
         changed["events"][0][field] = None
@@ -182,10 +177,10 @@ def test_real_agency_rdf_and_semantic_mutations(plans):
     _, receipts, _ = agency.check_raw_endpoints(ROOT, c)
     endpoints = agency.independent_endpoint_records(c, receipts)
 
+    decisions_file = ("plans/agency-registry-batch-1-decisions.json", agency.sha(ROOT / "plans/agency-registry-batch-1-decisions.json"))
+
     def check(g):
-        return agency.check_rdf(
-            g, c, d, expected, details, agency.sha(ROOT / "plans/agency-registry-batch-1-decisions.json"), endpoints
-        )[0]
+        return agency.check_rdf(g, c, d, expected, details, dict.fromkeys(d["decisions"], decisions_file), endpoints)[0]
 
     assert check(graph) == []
     assert (
@@ -278,7 +273,7 @@ def test_real_agency_wrapper_checks_exact_dedicated_tables():
         agency_review_receipt_sha256=AGENCY_REVIEW_SHA256,
     )
     assert result["status"] == "passed", result["failures"]
-    assert result["comparedRows"] == {"bridges": 13, "events": 14, "non-emissions": 4, "current-successors": 14}
+    assert result["comparedRows"] == {"bridges": 13, "events": 15, "non-emissions": 4, "current-successors": 15}
 
 
 @pytest.mark.slow
@@ -341,3 +336,25 @@ def test_agency_reads_resolved_authenticated_capture_paths(tmp_path, plans):
     next(row for row in rows if row["id"] == selected_id)["name"] = "Mutated caller-selected source"
     path.write_text(json.dumps(rows))
     assert agency.check_raw_endpoints(ROOT, c, sources)[0]
+
+
+def test_the_succession_batch_joins_batch_1_in_the_expected_rows():
+    """Pin the merge: both batches' events, FNS -> FNA among the current successors, one reviewer, no item twice."""
+
+    batches = [
+        (json.loads((ROOT / cp).read_text()), json.loads((ROOT / dp).read_text())) for cp, dp, _ in agency.BATCHES
+    ]
+    for (c, d), (_, _, aggregate) in zip(batches, agency.BATCHES, strict=True):
+        assert agency.decision_failures(c, d, aggregate) == []
+    expected, details = agency.expected_from_batches(batches)
+    assert {key: len(rows) for key, rows in expected.items()} == {
+        "bridges": 13, "events": 15, "non-emissions": 4, "current-successors": 15
+    }
+    fna = "urn:ref:federal-register-agency:"
+    assert {"original": fna + "200", "successor": fna + "625"} in expected["current-successors"]
+    assert details["event:fr200"]["effectiveDate"] == "2026-06-24"
+    plan, decisions = agency.merged_plans(batches)
+    assert len(plan["events"]) == 10 and len(decisions["decisions"]) == 27
+    with pytest.raises(ValueError, match="decided in two"):
+        agency.merged_plans([*batches, batches[1]])
+

@@ -1,7 +1,9 @@
 """Read-only independent agency artifact check; no refspec/producer imports or fetching.
 
 Run with the repository's Python (rdflib, pyarrow, backports.zstd). The expected
-rows come directly from the candidate JSON and recorded owner answers. The generic fidelity verifier calls this bounded agency comparison.
+rows come directly from each batch's candidate JSON and recorded owner answers
+(batch 1, then the succession batch). The generic fidelity verifier calls this
+bounded agency comparison.
 """
 
 from __future__ import annotations
@@ -202,8 +204,41 @@ def expected_from_plans(c, d):
         "bridges": sorted_rows(bridges),
         "events": sorted_rows(events),
         "non-emissions": sorted_rows(non),
-        "current-successors": current_successors(events),
     }, event_details
+
+
+def expected_from_batches(batches):
+    """Every batch's expected rows together, and the current successors derived from all their events."""
+    expected = {"bridges": [], "events": [], "non-emissions": []}
+    details = {}
+    for c, d in batches:
+        rows, event_details = expected_from_plans(c, d)
+        for key, value in rows.items():
+            expected[key].extend(value)
+        details.update(event_details)
+    expected = {key: sorted_rows(value) for key, value in expected.items()}
+    expected["current-successors"] = current_successors(expected["events"])
+    return expected, details
+
+
+def merged_plans(batches):
+    """One plan over every batch, for the checks that read candidates and decisions together."""
+    reviewers = {d["reviewer_iri"] for _, d in batches}
+    if len(reviewers) != 1:
+        raise ValueError("agency registry batches name different reviewers")
+    rosters = {}
+    for c, _ in batches:
+        for key, digest in c["inputs"]["roster_releases"].items():
+            if rosters.setdefault(key, digest) != digest:
+                raise ValueError("agency registry batches read different roster releases: " + key)
+    plan = {key: [row for c, _ in batches for row in c[key]] for key in COVERED}
+    plan["inputs"] = {"roster_releases": rosters}
+    decisions = {"reviewer_iri": reviewers.pop(), "decisions": {}}
+    for _, d in batches:
+        if set(d["decisions"]) & set(decisions["decisions"]):
+            raise ValueError("an item is decided in two agency registry batches")
+        decisions["decisions"].update(d["decisions"])
+    return plan, decisions
 
 
 def current_successors(events):
@@ -327,7 +362,8 @@ def read_graph(path):
     return graph, len(dataset)
 
 
-def check_rdf(g, c, d, expected, details, decision_sha, endpoint_records=None):
+def check_rdf(g, c, d, expected, details, decision_files, endpoint_records=None):
+    """Compare the agency pack with the plans; ``decision_files`` maps each item to its decisions file and sha256."""
     errors = []
     snapshot = {"events": [], "bridges": [], "nonEmissionAbsences": []}
 
@@ -362,8 +398,8 @@ def check_rdf(g, c, d, expected, details, decision_sha, endpoint_records=None):
             "channel": raw.get("channel"),
             "contentDigest": raw.get("content_digest"),
             "decidedOn": raw.get("decided_on"),
-            "decisionsFile": "plans/agency-registry-batch-1-decisions.json",
-            "decisionsFileSha256": "sha256:" + decision_sha,
+            "decisionsFile": decision_files.get(item_id, (None, None))[0],
+            "decisionsFileSha256": "sha256:" + str(decision_files.get(item_id, (None, None))[1]),
             "itemId": item_id,
         }
         if "note" in raw:
@@ -569,6 +605,16 @@ def check_rdf(g, c, d, expected, details, decision_sha, endpoint_records=None):
 
 COVERED = ("candidates", "events", "non_emissions", "no_fr_bridge")
 OWNER_AGGREGATE = "sha256:7fe88a9167a9363f5c2bfdcd3911953b7323abe1564d40586991c9612f95f4bc"
+SUCCESSION_OWNER_AGGREGATE = "sha256:4d29ffd7c936159dbff13d9b228845e50d134a567a8ff6b60a3d9e2f7f7921cc"
+#: Each batch's candidates and decisions files and the aggregate the owner decided on, in release order.
+BATCHES = (
+    ("plans/agency-registry-batch-1-candidates.json", "plans/agency-registry-batch-1-decisions.json", OWNER_AGGREGATE),
+    (
+        "plans/agency-registry-succession-batch-candidates.json",
+        "plans/agency-registry-succession-batch-decisions.json",
+        SUCCESSION_OWNER_AGGREGATE,
+    ),
+)
 
 
 def digest(value):
@@ -580,7 +626,7 @@ def digest(value):
     )
 
 
-def decision_failures(c, d):
+def decision_failures(c, d, owner_aggregate=OWNER_AGGREGATE):
     """Recompute item/member digests in one indexed pass, retaining array order."""
     failures = []
     members = defaultdict(list)
@@ -616,7 +662,7 @@ def decision_failures(c, d):
         ("digest", digest({k: v for k, v in c.items() if k != "digest"})),
     ]:
         failures.extend(differences(c[key], observed, key))
-    failures.extend(differences(OWNER_AGGREGATE, aggregate, "owner-approved-aggregate"))
+    failures.extend(differences(owner_aggregate, aggregate, "owner-approved-aggregate"))
     failures.extend(differences(list(COVERED), c["candidates_digest_covers"], "aggregate-coverage"))
     failures.extend(differences(c["owner_reviewer_iri"], d["reviewer_iri"], "reviewer"))
     return failures
@@ -751,13 +797,15 @@ def verify_agency_artifacts(
         root = Path(source_root)
         dist = Path(distribution)
         view = Path(agency_view)
-        cp_name = "plans/agency-registry-batch-1-candidates.json"
-        dp_name = "plans/agency-registry-batch-1-decisions.json"
-        cp = Path(source_paths.get(cp_name, root / cp_name))
-        dp = Path(source_paths.get(dp_name, root / dp_name))
-        c = json.loads(cp.read_text())
-        d = json.loads(dp.read_text())
-        errors = decision_failures(c, d)
+        batches, decision_files, errors = [], {}, []
+        for cp_name, dp_name, owner_aggregate in BATCHES:
+            cp = Path(source_paths.get(cp_name, root / cp_name))
+            dp = Path(source_paths.get(dp_name, root / dp_name))
+            batch = (json.loads(cp.read_text()), json.loads(dp.read_text()))
+            errors.extend(decision_failures(*batch, owner_aggregate))
+            decision_files.update({item: (dp_name, sha(dp)) for item in batch[1]["decisions"]})
+            batches.append(batch)
+        # The retained source-review receipt covers batch 1; the succession batch's records are its own evidence.
         errors.extend(
             authenticate_agency_evidence(
                 root,
@@ -765,17 +813,21 @@ def verify_agency_artifacts(
                 agency_audit_evidence_sha256,
                 agency_review_receipt,
                 agency_review_receipt_sha256,
-                c,
-                d,
+                *batches[0],
                 source_paths=source_paths,
             )
         )
+        c, d = merged_plans(batches)
         if errors:
             return {"status": "failed", "failures": errors, "trustedInputs": trusted_inputs}
-        expected, details = expected_from_plans(c, d)
+        expected, details = expected_from_batches(batches)
         manifest = pinned_json(view / "view-manifest.json", agency_view_manifest_sha256)
         errors.extend(
-            differences(c["candidates_digest"], manifest["release"]["candidatesDigest"], "view/candidate-aggregate")
+            differences(
+                {cp_name: plan["candidates_digest"] for (cp_name, _, _), (plan, _) in zip(BATCHES, batches, strict=True)},
+                manifest["release"]["candidatesDigests"],
+                "view/candidate-aggregate",
+            )
         )
         paths = [f"tables/agency-registry-{key}.parquet" for key in expected]
         errors.extend(
@@ -813,7 +865,7 @@ def verify_agency_artifacts(
             raise ValueError("agency pack content digest mismatch")
         graph, count = read_graph(path)
         endpoint_records = independent_endpoint_records(c, endpoint_receipts)
-        rdf_errors, snapshot = check_rdf(graph, c, d, expected, details, sha(dp), endpoint_records)
+        rdf_errors, snapshot = check_rdf(graph, c, d, expected, details, decision_files, endpoint_records)
         errors.extend(rdf_errors)
         return {
             "status": "failed" if errors else "passed",

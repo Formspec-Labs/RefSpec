@@ -1,5 +1,13 @@
 {
   "schema_version": "refspec-agency-registry-batch-1-decisions/2",
   "reviewer_iri": "urn:ref:reviewer:refspec-owner",
-  "decisions": {}
+  "decisions": {
+    "event:fr200": {
+      "answer": "accept",
+      "decided_on": "2026-10-03",
+      "content_digest": "sha256:3e163e87f9b9aeaf6c01f9dbf56faad4fa1867c782c5ec2a5d435e6c335c475e",
+      "channel": "questionTool",
+      "note": "Effective 2026-06-24, the 7 CFR chapter II heading rename in 91 FR 37779, as proposed. Answered through the round-5 coordinator's question tool and recorded from its relay. The owner also chose that spicy-regs codes FR 200 as FNA (the current successor wins); that rule is spicy-regs'."
+    }
+  }
 }

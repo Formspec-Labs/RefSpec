@@ -1082,7 +1082,7 @@ def build_agency_registry_view(release: RegistryMappingRelease) -> AgencyRegistr
         coverage=_frozen_mapping(coverage),
         release=_frozen_mapping(
             {
-                "candidatesDigest": str(release.metadata["candidatesDigest"]),
+                "candidatesDigests": {str(path): str(digest) for path, digest in release.metadata["candidatesDigests"].items()},
                 "decisionRecord": str(release.metadata["decisionRecord"]),
                 "key": release.key,
                 "sourceReleaseDigest": release.source_release_digest,

@@ -1,4 +1,4 @@
-"""REF-072's agency-registry release: exactly the owner's batch-1 decisions, refused whole when one is stale."""
+"""REF-072's agency-registry release: exactly the owner's decisions on every batch, refused whole when one is stale."""
 
 from __future__ import annotations
 
@@ -42,6 +42,7 @@ EVENTS = {
     "event:fr232": "2003-03-01",
     "event:fr510": "1999-10-01",
     "event:fr543": "1996-01-01",
+    "event:fr200": "2026-06-24",
 }
 NON_EMISSIONS = {
     "same:fr151:ecfr:export-import-bank": "sameOrganizationReverseLookupCostRejected",
@@ -73,27 +74,39 @@ def plans() -> tuple[dict, dict]:
     )
 
 
+@pytest.fixture(scope="module")
+def succession_plans() -> tuple[dict, dict]:
+    return (
+        json.loads((ROOT / entity.AGENCY_REGISTRY_SUCCESSION_CANDIDATES_PATH).read_text()),
+        json.loads((ROOT / entity.AGENCY_REGISTRY_SUCCESSION_DECISIONS_PATH).read_text()),
+    )
+
+
 def _decided(release: RegistryMappingRelease) -> dict[str, dict]:
     return {row.get("candidateId") or row["eventId"]: row for row in release.metadata["decisions"]}
 
 
 def test_the_release_emits_exactly_the_owners_decisions_with_parity(release: RegistryMappingRelease) -> None:
-    """Pin 26 decided items = 13 bridges + 9 events + 4 recorded non-emissions, each item once."""
+    """Pin 27 decided items = 13 bridges + 10 events + 4 recorded non-emissions, each item once, over both batches."""
 
     decided = _decided(release)
     assert release.key == "agency-registry-2026-09-26"
     assert release.key in entity.ENTITY_REGISTRY_MAPPING_RELEASE_KEYS
-    assert (len(release.mappings), len(release.change_events)) == (13, 9)
+    assert (len(release.mappings), len(release.change_events)) == (13, 10)
     assert {key for key, row in decided.items() if row["decision"] == "adopted"} == BRIDGES
     assert {key for key, row in decided.items() if row["decision"] == "event"} == set(EVENTS)
     assert {key: row["reason"] for key, row in decided.items() if row["decision"] == "nonEmission"} == NON_EMISSIONS
-    assert len(decided) == release.metadata["decidedItemCount"] == 26 == 13 + 9 + 4
+    assert len(decided) == release.metadata["decidedItemCount"] == 27 == 13 + 10 + 4
     assert (release.metadata["bridgeCount"], release.metadata["eventCount"], release.metadata["nonEmissionCount"]) == (
         13,
-        9,
+        10,
         4,
     )
-    assert release.metadata["candidatesDigest"] == entity.AGENCY_REGISTRY_CANDIDATES_DIGEST
+    assert release.metadata["candidatesDigests"] == {
+        entity.AGENCY_REGISTRY_CANDIDATES_PATH: entity.AGENCY_REGISTRY_CANDIDATES_DIGEST,
+        entity.AGENCY_REGISTRY_SUCCESSION_CANDIDATES_PATH: entity.AGENCY_REGISTRY_SUCCESSION_CANDIDATES_DIGEST,
+    }
+    assert release.issued == "2026-09-26"
 
 
 def test_every_bridge_keeps_ref_038s_shape_and_cites_the_decisions_file(
@@ -150,11 +163,17 @@ def test_every_bridge_keeps_ref_038s_shape_and_cites_the_decisions_file(
 def test_every_event_carries_its_date_results_functions_and_records(
     release: RegistryMappingRelease,
     plans: tuple[dict, dict],
+    succession_plans: tuple[dict, dict],
 ) -> None:
     """Pin each event's originals, results, date, one owner E4 record per public record, and each result's functions."""
 
-    events = {row["event_id"]: row for row in plans[0]["events"]}
-    rows = {row["candidate_id"]: row for row in plans[0]["candidates"] if "event_id" in row}
+    events = {row["event_id"]: row for candidates in (plans[0], succession_plans[0]) for row in candidates["events"]}
+    rows = {
+        row["candidate_id"]: row
+        for candidates in (plans[0], succession_plans[0])
+        for row in candidates["candidates"]
+        if "event_id" in row
+    }
     decided = _decided(release)
     for change in release.change_events:
         event_id = "event:fr" + change.originals[0].rsplit(":", 1)[1]
@@ -428,3 +447,46 @@ def test_each_item_attests_the_day_the_owner_decided_it(
     assert {evidence.attested_at for evidence in ins.evidence} == {"2026-09-27T00:00:00+00:00"}
     assert {evidence.native_payload["ownerDecision"]["decidedOn"] for evidence in ins.evidence} == {"2026-09-27"}
     assert release.issued == "2026-09-25"
+
+
+def test_the_succession_batch_rides_with_batch_1s_bridges_and_cites_its_own_files(
+    release: RegistryMappingRelease,
+    rosters: tuple[RegistryRelease, ...],
+    succession_plans: tuple[dict, dict],
+) -> None:
+    """Pin FNS -> FNA: one event in the same release as batch 1's 13 bridges, its records citing its own batch.
+
+    Batch 1 alone still rebuilds the release the 1.1 and 1.0 views were sealed from, digest for digest.
+    """
+
+    (fna,) = (change for change in release.change_events if change.originals == (_fr(200),))
+    assert (fna.results, fna.effective_date, fna.asserted_at) == ((_fr(625),), "2026-06-24", "2026-10-03T00:00:00+00:00")
+    event = succession_plans[0]["events"][0]
+    assert len(fna.evidence) == len(event["public_records"]) == 3
+    for evidence in fna.evidence:
+        assert evidence.source_digest == entity._AGENCY_REGISTRY_SUCCESSION_CANDIDATES_PIN.sha256
+        decision = evidence.native_payload["ownerDecision"]
+        assert decision["decisionsFile"] == entity.AGENCY_REGISTRY_SUCCESSION_DECISIONS_PATH
+        assert decision["contentDigest"] == event["content_digest"] == succession_plans[1]["decisions"]["event:fr200"]["content_digest"]
+        assert (decision["answer"], decision["channel"], decision["decidedOn"]) == ("accept", "questionTool", "2026-10-03")
+    roles = release.source_release_input_roles[-4:]
+    assert roles == ("ownerCandidates", "ownerDecisions", "successionOwnerCandidates", "successionOwnerDecisions")
+    batch_1 = entity.load_agency_registry_mapping_release(rosters, entity.agency_registry_batches()[:1])
+    assert batch_1.source_release_digest == "sha256:69001a4381ddf35cdba6d44fa52f579d7dfa07627c4c74da3dde2b0d8a39f8f0"
+    assert (len(batch_1.mappings), len(batch_1.change_events), batch_1.metadata["decidedItemCount"]) == (13, 9, 26)
+
+
+def test_a_succession_batch_alone_or_decided_twice_is_refused(rosters: tuple[RegistryRelease, ...]) -> None:
+    """Pin REF-072's limit, the per-batch parity, and that no item is decided in two batches.
+
+    A batch of events alone is no mapping release: the succession batch is released only beside batch 1's bridges.
+    """
+
+    batch_1, succession = entity.agency_registry_batches()
+    with pytest.raises(ValueError, match="has no mappings"):
+        entity.load_agency_registry_mapping_release(rosters, (succession,))
+    with pytest.raises(ValueError, match="parity of plans/agency-registry-succession-batch-decisions.json"):
+        entity.load_agency_registry_mapping_release(rosters, (batch_1, succession._replace(parity=(0, 0, 1))))
+    with pytest.raises(ValueError, match="decided in two agency registry batches"):
+        entity.load_agency_registry_mapping_release(rosters, (batch_1, succession, succession))
+

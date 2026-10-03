@@ -6061,6 +6061,30 @@ the asserted tables, the logical-content digest `777c6100…` and the 1.1 view's
 verifiability did not move. The independent agency checker derives the table
 on its own, by a fixpoint over the plans' events rather than the producer's
 walk.
+Later still (2026-10-03): the owner accepted the succession batch's one
+event, `event:fr200` (the Food and Nutrition Service became the Food and
+Nutrition Administration, FR 200 to FR 625, effective 2026-06-24, the day 91
+FR 37779's revision of the 7 CFR chapter II heading took effect;
+`plans/agency-registry-succession-batch-decisions.json`). It is released the
+way batch 1 is, in the same release: `load_agency_registry_mapping_release()`
+reads each batch's candidates and decisions by pinned digest
+(`agency_registry_batches()`), recomputes each batch's decided candidates
+digest, refuses a stale, missing or unruled decision and a batch whose parity
+differs, and refuses an item decided in two batches. The event rides beside
+batch 1's 13 bridges, so the release keeps at least one mapping, which a
+batch of events alone could not (refused as "has no mappings"). Parity is now
+27 = 13 + 10 + 4. The key and issue day stay (`agency-registry-2026-09-26`,
+the earliest decision); the `sourceReleaseDigest` moves to
+`sha256:dc639b30526052a4cf1fa9162a201bce6476d82ec67f581e2053091a25aa367b`,
+and batch 1 alone still rebuilds `69001a43…`, which the 1.1 and 1.0 views
+verify against. The view's release identity names each batch's decided
+digest (`candidatesDigests`); its manifest is
+`sha256:0b39812de31930f267dea2d7d51039d71b0a1852606387d5aba64aa75d25ec17`
+(logical `05a360a4…`), with 15 event rows and 15 current successors, FR 200
+to FR 625 among them. The independent agency checker reads both batches; the
+retained source-review receipt still covers batch 1 only, and the succession
+batch's records are retained under
+`research/evidence/fns-fna-succession-2026-10-03/`.
 
 **What keeps the view's rows at E4 owner review (2026-09-28).** Since then
 the view states the evidence tier, warrant and reviewer that the release's

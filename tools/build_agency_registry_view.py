@@ -1,7 +1,7 @@
 """Seal REF-072's agency registry view: the release's bridges, event results and non-emissions as Parquet.
 
-Builds ``agency-registry-2026-09-26`` from the five pinned agency rosters and
-seals its projection -- the three asserted tables, the derived current
+Builds ``agency-registry-2026-09-26`` -- batch 1 and the succession batch -- from
+the five pinned agency rosters and seals its projection -- the three asserted tables, the derived current
 successors, and their manifest -- with
 ``seal_agency_registry_view()``. The manifest's sha256 is the pin a consumer
 vendors the view by; ``--check`` rebuilds the view in a scratch directory and
@@ -28,7 +28,7 @@ except ImportError:  # Direct execution places tools/ on sys.path.
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = ROOT / "output" / "agency-registry-view"
 # The sealed view the design note names (plans/agency-registry-design.md section 8).
-VIEW_MANIFEST_SHA256 = "sha256:99b8234ad15881e411ca4af2faa9e99bb9d91a22ba140e6ae792da4a8d4e41f9"
+VIEW_MANIFEST_SHA256 = "sha256:0b39812de31930f267dea2d7d51039d71b0a1852606387d5aba64aa75d25ec17"
 
 
 def build_release() -> RegistryMappingRelease:

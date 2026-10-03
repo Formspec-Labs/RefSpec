@@ -1242,6 +1242,13 @@ def verify_agency_registry_view(
     except ValueError as error:
         raise AtlasParquetViewError(f"agency registry view's release does not project: {error}") from error
     expected_digest = expected.digest
+    expected_release = dict(expected.release)
+    if schemas is not AGENCY_REGISTRY_TABLE_SCHEMAS:
+        # 1.1 and 1.0 predate the batches and name the one batch they were sealed from: verify them against batch 1.
+        digests = dict(expected_release.pop("candidatesDigests"))
+        if len(digests) != 1:
+            raise AtlasParquetViewError("a 1.1 or 1.0 agency registry view names one batch; verify it against batch 1 alone")
+        (expected_release["candidatesDigest"],) = digests.values()
     if schemas is LEGACY_1_0_AGENCY_REGISTRY_TABLE_SCHEMAS:
         legacy_events = [
             {key: value for key, value in row.items() if key != "original_parents"} for row in expected.events
@@ -1252,7 +1259,7 @@ def verify_agency_registry_view(
     if (manifest["digest"], manifest["coverage"], manifest["release"]) != (
         expected_digest,
         dict(expected.coverage),
-        dict(expected.release),
+        expected_release,
     ):
         raise AtlasParquetViewError("agency registry view differs from what its release states")
     return manifest

@@ -1254,12 +1254,23 @@ _AGENCY_REGISTRY_CANDIDATES_SHA256 = "sha256:6bb7c2d4dc818b24cb92b1e220704b9d9ac
 _AGENCY_REGISTRY_CANDIDATES_BYTE_LENGTH = 191_706
 _AGENCY_REGISTRY_DECISIONS_SHA256 = "sha256:a454ea277d533ce25a331a996a676d58f0bd2573700a43893a1f52b6c8938098"
 _AGENCY_REGISTRY_DECISIONS_BYTE_LENGTH = 6_744
+# The succession batch (plans/agency-registry-design.md section 7): dated
+# successions decided after batch 1, read the same way and released in the same
+# release, where they ride with batch 1's bridges (a mapping release needs one).
+AGENCY_REGISTRY_SUCCESSION_CANDIDATES_DIGEST = "sha256:4d29ffd7c936159dbff13d9b228845e50d134a567a8ff6b60a3d9e2f7f7921cc"
+AGENCY_REGISTRY_SUCCESSION_CANDIDATES_PATH = "plans/agency-registry-succession-batch-candidates.json"
+AGENCY_REGISTRY_SUCCESSION_DECISIONS_PATH = "plans/agency-registry-succession-batch-decisions.json"
+_AGENCY_REGISTRY_SUCCESSION_CANDIDATES_SHA256 = "sha256:92c7ef5e74b236498062034b6f71fb8e72a18309629b5de310d521ee644c9afd"
+_AGENCY_REGISTRY_SUCCESSION_CANDIDATES_BYTE_LENGTH = 9_527
+_AGENCY_REGISTRY_SUCCESSION_DECISIONS_SHA256 = "sha256:4ac49dcab3de07c31c9ba79a43f859d3ce44aa0455eeca8bf58d1480e1a9b060"
+_AGENCY_REGISTRY_SUCCESSION_DECISIONS_BYTE_LENGTH = 665
 # The adjudicable content; replay-derived counts sit outside it on purpose.
 CANDIDATES_DIGEST_COVERS = ("candidates", "events", "non_emissions", "no_fr_bridge")
+# The release's parity over every batch: batch 1's 13 + 9 + 4, and the succession batch's one event.
 EXPECTED_AGENCY_REGISTRY_BRIDGE_COUNT = 13
-EXPECTED_AGENCY_REGISTRY_EVENT_COUNT = 9
+EXPECTED_AGENCY_REGISTRY_EVENT_COUNT = 10
 EXPECTED_AGENCY_REGISTRY_NON_EMISSION_COUNT = 4
-EXPECTED_AGENCY_REGISTRY_DECISION_COUNT = 26
+EXPECTED_AGENCY_REGISTRY_DECISION_COUNT = 27
 DECISIONS_SCHEMA_VERSION = "refspec-agency-registry-batch-1-decisions/2"
 DECISION_CHANNELS = ("questionTool", "decisionsFile")
 # A public record states its own date by enactment or publication; a roster
@@ -1418,6 +1429,44 @@ _AGENCY_REGISTRY_DECISIONS_PIN = _plan_pin(
     _AGENCY_REGISTRY_DECISIONS_BYTE_LENGTH,
     "ownerDecisions",
 )
+_AGENCY_REGISTRY_SUCCESSION_CANDIDATES_PIN = _plan_pin(
+    AGENCY_REGISTRY_SUCCESSION_CANDIDATES_PATH,
+    _AGENCY_REGISTRY_SUCCESSION_CANDIDATES_SHA256,
+    _AGENCY_REGISTRY_SUCCESSION_CANDIDATES_BYTE_LENGTH,
+    "successionOwnerCandidates",
+)
+_AGENCY_REGISTRY_SUCCESSION_DECISIONS_PIN = _plan_pin(
+    AGENCY_REGISTRY_SUCCESSION_DECISIONS_PATH,
+    _AGENCY_REGISTRY_SUCCESSION_DECISIONS_SHA256,
+    _AGENCY_REGISTRY_SUCCESSION_DECISIONS_BYTE_LENGTH,
+    "successionOwnerDecisions",
+)
+
+
+class AgencyRegistryBatch(NamedTuple):
+    """One owner-adjudicated batch the release reads by digest, and the parity its decisions must give."""
+
+    candidates: RegistryInputPin
+    decisions: RegistryInputPin
+    candidates_digest: str
+    #: Bridges, events and recorded non-emissions.
+    parity: tuple[int, int, int]
+
+
+def agency_registry_batches() -> tuple[AgencyRegistryBatch, ...]:
+    """Batch 1, then the succession batch, in release order; built at call time, so a test can re-pin one file."""
+
+    return (
+        AgencyRegistryBatch(
+            _AGENCY_REGISTRY_CANDIDATES_PIN, _AGENCY_REGISTRY_DECISIONS_PIN, AGENCY_REGISTRY_CANDIDATES_DIGEST, (13, 9, 4)
+        ),
+        AgencyRegistryBatch(
+            _AGENCY_REGISTRY_SUCCESSION_CANDIDATES_PIN,
+            _AGENCY_REGISTRY_SUCCESSION_DECISIONS_PIN,
+            AGENCY_REGISTRY_SUCCESSION_CANDIDATES_DIGEST,
+            (0, 1, 0),
+        ),
+    )
 
 
 def _read_plan(pin: RegistryInputPin) -> Any:
@@ -1434,21 +1483,25 @@ def _read_plan(pin: RegistryInputPin) -> Any:
 def agency_registry_outcomes(
     candidates: Mapping[str, Any],
     decisions_document: Any,
+    *,
+    decided_digest: str = AGENCY_REGISTRY_CANDIDATES_DIGEST,
+    label: str = AGENCY_REGISTRY_DECISIONS_PATH,
 ) -> tuple[AgencyRegistryOutcome, ...]:
-    """Every owner-decided item and what it becomes, or a refusal; decides nothing itself.
+    """Every owner-decided item of one batch and what it becomes, or a refusal; decides nothing itself.
 
-    Refuses candidates whose recomputed digest is not the one the owner decided
-    on, any decision that is stale or missing, and any answer the release has
-    no rule for. The parity is exact: every decidable item has one outcome.
+    Refuses candidates whose recomputed digest is not ``decided_digest``, the one
+    the owner decided on, any decision that is stale or missing, and any answer
+    the release has no rule for. The parity is exact: every decidable item has
+    one outcome.
     """
 
     covered = {key: candidates[key] for key in CANDIDATES_DIGEST_COVERS}
     observed = canonical_digest(covered)
     _require(
-        observed == AGENCY_REGISTRY_CANDIDATES_DIGEST == candidates.get("candidates_digest"),
-        f"agency registry candidates digest {observed} is not the decided {AGENCY_REGISTRY_CANDIDATES_DIGEST}",
+        observed == decided_digest == candidates.get("candidates_digest"),
+        f"agency registry candidates digest {observed} is not the decided {decided_digest}",
     )
-    decisions = decisions_from_json(decisions_document, candidates, label=AGENCY_REGISTRY_DECISIONS_PATH)
+    decisions = decisions_from_json(decisions_document, candidates, label=label)
     _require(not decisions.stale, f"stale decisions refuse the release: {', '.join(sorted(decisions.stale))}")
     missing = sorted(set(decision_digests(candidates)) - set(decisions.current))
     _require(not missing, f"undecided items refuse the release: {', '.join(missing)}")
@@ -1543,6 +1596,7 @@ def _change_event(
     resources: Mapping[str, Mapping[str, RegistryResource]],
     parents: Mapping[str, Mapping[str, str]],
     decisions_pin: RegistryInputPin,
+    candidates_sha256: str = _AGENCY_REGISTRY_CANDIDATES_SHA256,
 ) -> tuple[RegistryChangeEvent, dict[str, Any]]:
     """One accepted event: its originals, every result with the functions it took, and one E4 record per public record.
 
@@ -1591,7 +1645,7 @@ def _change_event(
     evidence = tuple(
         RegistryMappingEvidence(
             source_locator=str(record["url"]),
-            source_digest=_AGENCY_REGISTRY_CANDIDATES_SHA256,
+            source_digest=candidates_sha256,
             native_payload={
                 "decidedAt": decided_at,
                 "decision": "adopted",
@@ -1677,113 +1731,128 @@ def _non_emission(
 
 def load_agency_registry_mapping_release(
     releases: Sequence[RegistryRelease],
+    batches: Sequence[AgencyRegistryBatch] | None = None,
 ) -> RegistryMappingRelease:
-    """Emit exactly the owner's batch-1 decisions: 13 bridges, 9 events, 4 recorded non-emissions.
+    """Emit exactly the owner's decisions on every batch: 13 bridges, 10 events, 4 recorded non-emissions.
 
-    Candidates never enter the release: it reads the owner's decisions and the
+    Candidates never enter the release: it reads each batch's decisions and the
     candidate content they are bound to, both by digest, and re-derives every
     publisher name and parent from the pinned rosters. Bridges keep REF-038's
     shape -- one way, Federal Register subject, a typed basis, both sealed
-    names, both parents, two E4 records -- and cite the decisions file. Nothing
-    here revises REF-038's release or feeds its projection.
+    names, both parents, two E4 records -- and cite their decisions file. The
+    succession batch's events ride with batch 1's bridges, since a mapping
+    release carries at least one mapping. ``batches`` defaults to every batch;
+    batch 1 alone rebuilds the release the 1.0 and 1.1 views were sealed from.
+    Nothing here revises REF-038's release or feeds its projection.
     """
 
+    batches = agency_registry_batches() if batches is None else tuple(batches)
     by_key = _releases_by_key(releases)
     resources = {key: _resources_by_iri(by_key[key]) for key in agency_projection.AGENCY_ROSTER_RELEASE_KEYS}
     parents = {key: agency_projection.parent_by_subject(by_key[key]) for key in agency_projection.AGENCY_ROSTER_RELEASE_KEYS}
-    decisions_pin = _AGENCY_REGISTRY_DECISIONS_PIN
-    candidates = _read_plan(_AGENCY_REGISTRY_CANDIDATES_PIN)
-    outcomes = agency_registry_outcomes(candidates, _read_plan(decisions_pin))
-    items: dict[str, Mapping[str, Any]] = {
-        **{row["candidate_id"]: row for row in candidates["candidates"] if row["relation"] == "sameEntityAs"},
-        **{row["candidate_id"]: row for row in candidates["non_emissions"]},
-        **{row["value_id"]: row for row in candidates["no_fr_bridge"]},
-        **{row["event_id"]: row for row in candidates["events"]},
-    }
-    rows_by_event: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
-    for row in candidates["candidates"]:
-        if "event_id" in row:
-            rows_by_event[row["event_id"]].append(row)
-
     mappings: list[RegistryMapping] = []
     events: list[RegistryChangeEvent] = []
     item_decisions: list[Mapping[str, Any]] = []
-    for outcome in outcomes:
-        item = items[outcome.item_id]
-        owner_decision = _owner_decision(outcome.item_id, outcome.decision, str(item["content_digest"]), decisions_pin)
-        if outcome.outcome == "bridge":
-            (
-                (source_release, source_resource, source_field, source_name),
-                (target_release, target_resource, target_field, target_name),
-            ) = _bridge_endpoints(item, by_key, resources, parents)
-            # A top-level organization has no parent key, never a null one.
-            both_parents = {
-                side: parent
-                for side, parent in (("object", _parent_record(item["target"])), ("subject", _parent_record(item["source"])))
-                if parent is not None
-            }
-            mapping, decision = _mapping_and_decision(
-                source_release=source_release,
-                source_resource=source_resource,
-                source_value=source_name,
-                source_name=source_name,
-                target_release=target_release,
-                target_resource=target_resource,
-                target_field=target_field,
-                target_value=target_name,
-                target_name=target_name,
-                basis=item["proposed_basis"],
-                reasoning=str(item["reasoning"]),
-                source_parents=parents[source_release.key],
-                source_field=source_field,
-                decided_at=_decided_at(outcome.decision),
-                decision_record=AGENCY_REGISTRY_DECISION_RECORD,
-                shared_extra={"ownerDecision": owner_decision, "parents": both_parents},
-                decision_extra={
-                    "candidateId": outcome.item_id,
-                    "ownerDecision": owner_decision,
-                    "parents": both_parents,
-                },
-            )
-            mappings.append(mapping)
-            item_decisions.append(decision)
-        elif outcome.outcome == "event":
-            _require(outcome.item_id in rows_by_event, f"{outcome.item_id} is not an event")
-            change, metadata = _change_event(
-                item,
-                sorted(rows_by_event[outcome.item_id], key=lambda row: row["candidate_id"]),
-                outcome.decision,
-                by_key=by_key,
-                resources=resources,
-                parents=parents,
-                decisions_pin=decisions_pin,
-            )
-            events.append(change)
-            item_decisions.append(_frozen_mapping(metadata))
-        else:
-            item_decisions.append(_non_emission(outcome, item, owner_decision))
+    decided_on: list[str] = []
+    for batch in batches:
+        candidates = _read_plan(batch.candidates)
+        outcomes = agency_registry_outcomes(
+            candidates,
+            _read_plan(batch.decisions),
+            decided_digest=batch.candidates_digest,
+            label=batch.decisions.logical_path,
+        )
+        items: dict[str, Mapping[str, Any]] = {
+            **{row["candidate_id"]: row for row in candidates["candidates"] if row["relation"] == "sameEntityAs"},
+            **{row["candidate_id"]: row for row in candidates["non_emissions"]},
+            **{row["value_id"]: row for row in candidates["no_fr_bridge"]},
+            **{row["event_id"]: row for row in candidates["events"]},
+        }
+        rows_by_event: dict[str, list[Mapping[str, Any]]] = defaultdict(list)
+        for row in candidates["candidates"]:
+            if "event_id" in row:
+                rows_by_event[row["event_id"]].append(row)
+        before = (len(mappings), len(events), len(item_decisions))
+        for outcome in outcomes:
+            item = items[outcome.item_id]
+            owner_decision = _owner_decision(outcome.item_id, outcome.decision, str(item["content_digest"]), batch.decisions)
+            decided_on.append(str(outcome.decision["decided_on"]))
+            if outcome.outcome == "bridge":
+                (
+                    (source_release, source_resource, source_field, source_name),
+                    (target_release, target_resource, target_field, target_name),
+                ) = _bridge_endpoints(item, by_key, resources, parents)
+                # A top-level organization has no parent key, never a null one.
+                both_parents = {
+                    side: parent
+                    for side, parent in (("object", _parent_record(item["target"])), ("subject", _parent_record(item["source"])))
+                    if parent is not None
+                }
+                mapping, decision = _mapping_and_decision(
+                    source_release=source_release,
+                    source_resource=source_resource,
+                    source_value=source_name,
+                    source_name=source_name,
+                    target_release=target_release,
+                    target_resource=target_resource,
+                    target_field=target_field,
+                    target_value=target_name,
+                    target_name=target_name,
+                    basis=item["proposed_basis"],
+                    reasoning=str(item["reasoning"]),
+                    source_parents=parents[source_release.key],
+                    source_field=source_field,
+                    decided_at=_decided_at(outcome.decision),
+                    decision_record=AGENCY_REGISTRY_DECISION_RECORD,
+                    shared_extra={"ownerDecision": owner_decision, "parents": both_parents},
+                    decision_extra={
+                        "candidateId": outcome.item_id,
+                        "ownerDecision": owner_decision,
+                        "parents": both_parents,
+                    },
+                )
+                mappings.append(mapping)
+                item_decisions.append(decision)
+            elif outcome.outcome == "event":
+                _require(outcome.item_id in rows_by_event, f"{outcome.item_id} is not an event")
+                change, metadata = _change_event(
+                    item,
+                    sorted(rows_by_event[outcome.item_id], key=lambda row: row["candidate_id"]),
+                    outcome.decision,
+                    by_key=by_key,
+                    resources=resources,
+                    parents=parents,
+                    decisions_pin=batch.decisions,
+                    candidates_sha256=batch.candidates.sha256,
+                )
+                events.append(change)
+                item_decisions.append(_frozen_mapping(metadata))
+            else:
+                item_decisions.append(_non_emission(outcome, item, owner_decision))
+        added = item_decisions[before[2]:]
+        parity = (
+            len(mappings) - before[0],
+            len(events) - before[1],
+            sum(row["decision"] == "nonEmission" for row in added),
+        )
+        _require(
+            parity == batch.parity and sum(parity) == len(added) == len(outcomes),
+            f"agency registry parity of {batch.decisions.logical_path} differs: {parity} over {len(added)} decided items",
+        )
 
+    keys = [str(row.get("candidateId") or row.get("eventId")) for row in item_decisions]
+    _require(len(keys) == len(set(keys)), "an item is decided in two agency registry batches")
     counts = {
         "bridge": len(mappings),
         "event": len(events),
         "nonEmission": sum(row["decision"] == "nonEmission" for row in item_decisions),
     }
-    _require(
-        (counts["bridge"], counts["event"], counts["nonEmission"], len(item_decisions))
-        == (
-            EXPECTED_AGENCY_REGISTRY_BRIDGE_COUNT,
-            EXPECTED_AGENCY_REGISTRY_EVENT_COUNT,
-            EXPECTED_AGENCY_REGISTRY_NON_EMISSION_COUNT,
-            EXPECTED_AGENCY_REGISTRY_DECISION_COUNT,
-        )
-        and sum(counts.values()) == len(item_decisions) == len(outcomes),
-        f"agency registry parity differs: {counts} over {len(item_decisions)} decided items",
-    )
-
     claims = {(mapping.subject, mapping.predicate, mapping.object) for mapping in mappings}
-    # The five roster pins REF-038 reads, then the two owner artifacts in place
-    # of its census adjudication.
-    inputs = (*_mapping_inputs(by_key)[:-1], _AGENCY_REGISTRY_CANDIDATES_PIN, decisions_pin)
+    # The five roster pins REF-038 reads, then each batch's two owner artifacts in place of its census adjudication.
+    inputs = (
+        *_mapping_inputs(by_key)[:-1],
+        *(pin for batch in batches for pin in (batch.candidates, batch.decisions)),
+    )
     source_release_digest = canonical_digest(
         [
             {"byteLength": pin.byte_length, "role": pin.role, "sha256": pin.sha256, "sourceIri": pin.source_iri}
@@ -1798,8 +1867,8 @@ def load_agency_registry_mapping_release(
         scope="captureSubset",
         # Each item attests the day the owner decided it, and a mapping release
         # refuses evidence older than its issue day, so the release is issued
-        # on its earliest decision day (2026-09-26 for all of batch 1).
-        issued=min(str(outcome.decision["decided_on"]) for outcome in outcomes),
+        # on its earliest decision day (2026-09-26, batch 1's).
+        issued=min(decided_on),
         source_release_iri=(
             "urn:ref:registry-mapping-release:agency-registry:" + source_release_digest.removeprefix("sha256:")
         ),
@@ -1810,8 +1879,8 @@ def load_agency_registry_mapping_release(
         change_events=tuple(events),
         editorial_policy={
             "admission": (
-                "emit exactly the owner's current decisions on the batch-1 candidates, bound to each item's "
-                "content digest; refuse the release while any decision is missing or stale"
+                "emit exactly the owner's current decisions on each adjudicated batch's candidates, bound to each "
+                "item's content digest; refuse the release while any decision is missing or stale"
             ),
             "direction": "Federal Register subject to one eCFR or Federal Hierarchy object; no inverse",
             "events": (
@@ -1821,11 +1890,12 @@ def load_agency_registry_mapping_release(
             "evidence": "E4 humanReview by the owner, citing the decisions file and the channel",
             "nonEmission": "record every decided item that emits nothing, with the owner's reason",
             "predicate": ATLAS_SAME_ENTITY_AS,
-            "version": "ref-072-agency-registry-batch-1-v1",
+            "version": "ref-072-agency-registry-batches-v1",
         },
         metadata={
             "bridgeCount": counts["bridge"],
-            "candidatesDigest": AGENCY_REGISTRY_CANDIDATES_DIGEST,
+            # Each batch's candidates file and the candidates digest the owner decided on, in release order.
+            "candidatesDigests": {batch.candidates.logical_path: batch.candidates_digest for batch in batches},
             "decisionRecord": AGENCY_REGISTRY_DECISION_RECORD,
             "decisions": sorted(item_decisions, key=lambda row: str(row.get("candidateId") or row.get("eventId"))),
             "decidedItemCount": len(item_decisions),
@@ -1850,6 +1920,9 @@ __all__ = [
     "AGENCY_REGISTRY_RELEASE_KEY",
     "AGENCY_REGISTRY_RESOURCE_ID",
     "AGENCY_REGISTRY_REVIEWER_IRI",
+    "AGENCY_REGISTRY_SUCCESSION_CANDIDATES_DIGEST",
+    "AGENCY_REGISTRY_SUCCESSION_CANDIDATES_PATH",
+    "AGENCY_REGISTRY_SUCCESSION_DECISIONS_PATH",
     "ATLAS_SAME_ENTITY_AS",
     "CANDIDATES_DIGEST_COVERS",
     "DATED_PUBLIC_RECORD_KINDS",
@@ -1872,10 +1945,12 @@ __all__ = [
     "RESIDUE_ABSTENTIONS",
     "RESIDUE_ADOPTIONS",
     "AgencyDecisionBasis",
+    "AgencyRegistryBatch",
     "AgencyRegistryOutcome",
     "Decisions",
     "ResidueAbstention",
     "ResidueAdoption",
+    "agency_registry_batches",
     "agency_registry_outcomes",
     "decision_answers",
     "decision_digests",

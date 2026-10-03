@@ -52,18 +52,25 @@ def release(rosters: tuple[RegistryRelease, ...]) -> RegistryMappingRelease:
 
 
 @pytest.fixture(scope="module")
+def batch_1_release(rosters: tuple[RegistryRelease, ...]) -> RegistryMappingRelease:
+    """The release as batch 1 alone made it: what the 1.1 and 1.0 views were sealed from."""
+
+    return entity.load_agency_registry_mapping_release(rosters, entity.agency_registry_batches()[:1])
+
+
+@pytest.fixture(scope="module")
 def view(release: RegistryMappingRelease) -> agency_projection.AgencyRegistryView:
     return agency_projection.build_agency_registry_view(release)
 
 
 def test_the_view_rows_are_exactly_the_release(view: agency_projection.AgencyRegistryView) -> None:
-    """Pin 13 bridges, one row per (event, result) -- 14 for 9 events -- and 4 non-emissions."""
+    """Pin 13 bridges, one row per (event, result) -- 15 for 10 events -- and 4 non-emissions."""
 
     assert dict(view.coverage) == {
         "bridgeCount": 13,
-        "decidedItemCount": 26,
-        "eventCount": 9,
-        "eventResultRowCount": 14,
+        "decidedItemCount": 27,
+        "eventCount": 10,
+        "eventResultRowCount": 15,
         "nonEmissionCount": 4,
     }
     splits = {row["result"]: row for row in view.events if row["event_id"] == "event:fr232"}
@@ -74,6 +81,12 @@ def test_the_view_rows_are_exactly_the_release(view: agency_projection.AgencyReg
     assert [(row["result"], row["functions_taken"]) for row in renames] == [(_fr(241), None)]
     assert all(row["decision"]["reviewer"] == "urn:ref:reviewer:refspec-owner" for row in (*view.bridges, *view.events))
     assert view.release["key"] == "agency-registry-2026-09-26"
+    assert dict(view.release["candidatesDigests"]) == {
+        entity.AGENCY_REGISTRY_CANDIDATES_PATH: entity.AGENCY_REGISTRY_CANDIDATES_DIGEST,
+        entity.AGENCY_REGISTRY_SUCCESSION_CANDIDATES_PATH: entity.AGENCY_REGISTRY_SUCCESSION_CANDIDATES_DIGEST,
+    }
+    (fna,) = (row for row in view.events if row["event_id"] == "event:fr200")
+    assert (fna["result"], fna["effective_date"], fna["decision"]["decided_on"]) == (_fr(625), "2026-06-24", "2026-10-03")
 
 
 def test_each_event_row_states_its_originals_roster_parents(
@@ -83,7 +96,7 @@ def test_each_event_row_states_its_originals_roster_parents(
     """Pin F6: an event row names each original's parent as the Register's roster states it, null for a top-level one.
 
     Read here from the roster directly, not from the candidates the release
-    re-derives it from: six of batch 1's nine originals have a parent.
+    re-derives it from: six of batch 1's nine originals have a parent, and FNS, the succession batch's one, has.
     """
 
     fr_roster = next(roster for roster in rosters if roster.key == agency_projection.FR_RELEASE_KEY)
@@ -98,6 +111,7 @@ def test_each_event_row_states_its_originals_roster_parents(
     assert stated == {
         _fr(96): _fr(497),
         _fr(150): _fr(54),
+        _fr(200): _fr(12),
         _fr(232): _fr(268),
         _fr(259): _fr(497),
         _fr(404): _fr(271),
@@ -117,25 +131,36 @@ LEGACY_1_1_VIEW_MANIFEST_SHA256 = "sha256:c7dc9310f9c11cd346245d7cf882f9eaf69b70
 
 
 def test_the_sealed_view_is_schema_1_2_and_the_1_1_and_1_0_views_still_verify(
-    tmp_path: Path, release: RegistryMappingRelease
+    tmp_path: Path, release: RegistryMappingRelease, batch_1_release: RegistryMappingRelease
 ) -> None:
-    """Pin RF1's version: new views are 1.2; 1.1 (no derived successors) and 1.0 (no original_parents) still verify."""
+    """Pin the versions: new views are 1.2; 1.1 (no derived successors) and 1.0 (no original_parents) still verify.
+
+    They verify against batch 1 alone, the release they were sealed from, and never against both batches.
+    """
 
     sealed = seal_agency_registry_view(tmp_path / "view", release)
     assert sealed["schemaVersion"] == "1.2"
+    assert batch_1_release.source_release_digest == (
+        "sha256:69001a4381ddf35cdba6d44fa52f579d7dfa07627c4c74da3dde2b0d8a39f8f0"
+    ) != release.source_release_digest
     vendored = verify_agency_registry_view(
-        LEGACY_1_1_VIEW, expected_manifest_digest=LEGACY_1_1_VIEW_MANIFEST_SHA256, release=release
+        LEGACY_1_1_VIEW, expected_manifest_digest=LEGACY_1_1_VIEW_MANIFEST_SHA256, release=batch_1_release
     )
-    assert vendored["schemaVersion"] == "1.1" and vendored["digest"] == sealed["digest"]
+    assert vendored["schemaVersion"] == "1.1"
+    assert vendored["digest"] == agency_projection.build_agency_registry_view(batch_1_release).digest != sealed["digest"]
     legacy = verify_agency_registry_view(
-        LEGACY_1_0_VIEW, expected_manifest_digest=LEGACY_1_0_VIEW_MANIFEST_SHA256, release=release
+        LEGACY_1_0_VIEW, expected_manifest_digest=LEGACY_1_0_VIEW_MANIFEST_SHA256, release=batch_1_release
     )
     assert legacy["schemaVersion"] == parquet_view.LEGACY_AGENCY_REGISTRY_VIEW_SCHEMA_VERSION == "1.0"
+    with pytest.raises(AtlasParquetViewError, match="names one batch"):
+        verify_agency_registry_view(
+            LEGACY_1_1_VIEW, expected_manifest_digest=LEGACY_1_1_VIEW_MANIFEST_SHA256, release=release
+        )
     with pytest.raises(AtlasParquetViewError, match="differs from what its release states"):
         verify_agency_registry_view(
             LEGACY_1_0_VIEW,
             expected_manifest_digest=LEGACY_1_0_VIEW_MANIFEST_SHA256,
-            release=_with_evidence(release, SHORT_EVIDENCE["warrant"]),
+            release=_with_evidence(batch_1_release, SHORT_EVIDENCE["warrant"]),
         )
 
 
@@ -195,9 +220,9 @@ def test_the_sealed_view_is_deterministic_and_pinned(tmp_path: Path, release, vi
     assert file_sha256(tmp_path / "a" / MANIFEST_FILE) == view_tool.VIEW_MANIFEST_SHA256
     assert {member["path"]: member["rowCount"] for member in first["members"]} == {
         "tables/agency-registry-bridges.parquet": 13,
-        "tables/agency-registry-events.parquet": 14,
+        "tables/agency-registry-events.parquet": 15,
         "tables/agency-registry-non-emissions.parquet": 4,
-        "tables/agency-registry-current-successors.parquet": 14,
+        "tables/agency-registry-current-successors.parquet": 15,
     }
     assert first["digest"] == view.digest
 
@@ -491,6 +516,7 @@ def test_current_successors_of_a_rename_and_a_split(view) -> None:
     assert successors.of(_fr(232)) == {_fr(499), _fr(501), _fr(503)}
     assert successors.of(_fr(96)) == {_fr(501), _fr(503)}
     assert successors.of(_fr(510)) == {_fr(41), _fr(476)}
+    assert successors.of(_fr(200)) == {_fr(625)}
 
 
 def test_current_successors_walk_a_chain_to_its_end() -> None:
@@ -523,7 +549,7 @@ def test_an_unknown_or_undefunct_organization_has_no_successors(view) -> None:
     successors = agency_projection.current_agency_successors(view.events)
     assert successors.of("urn:ref:federal-register-agency:999999") == frozenset()
     assert successors.of(_fr(409)) == frozenset()
-    assert set(successors.current) == {_fr(fr_id) for fr_id in (96, 150, 232, 259, 404, 510, 543, 559, 564)}
+    assert set(successors.current) == {_fr(fr_id) for fr_id in (96, 150, 200, 232, 259, 404, 510, 543, 559, 564)}
 
 
 def test_the_view_seals_its_events_current_successors_and_refuses_any_other(tmp_path: Path, release, view) -> None:
@@ -540,9 +566,7 @@ def test_the_view_seals_its_events_current_successors_and_refuses_any_other(tmp_
     assert {(row["original"], row["successor"]) for row in rows} == {
         (original, successor) for original, successors in walked.items() for successor in successors
     }
-    assert ("urn:ref:federal-register-agency:559", "urn:ref:federal-register-agency:45") in {
-        (row["original"], row["successor"]) for row in rows
-    }
+    assert {(_fr(559), _fr(45)), (_fr(200), _fr(625))} <= {(row["original"], row["successor"]) for row in rows}
     rows[0]["successor"] = rows[1]["successor"]
     table.unlink()
     pq.write_table(

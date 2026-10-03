@@ -20499,6 +20499,22 @@ SOURCES = (
                 source_iri="urn:ref:source-artifact:a454ea277d533ce25a331a996a676d58f0bd2573700a43893a1f52b6c8938098",
             ),
             SourcePin(
+                path="plans/agency-registry-succession-batch-candidates.json",
+                sha256="sha256:92c7ef5e74b236498062034b6f71fb8e72a18309629b5de310d521ee644c9afd",
+                byte_length=9527,
+                fmt="json",
+                role="successionOwnerCandidates",
+                source_iri="urn:ref:source-artifact:92c7ef5e74b236498062034b6f71fb8e72a18309629b5de310d521ee644c9afd",
+            ),
+            SourcePin(
+                path="plans/agency-registry-succession-batch-decisions.json",
+                sha256="sha256:4ac49dcab3de07c31c9ba79a43f859d3ce44aa0455eeca8bf58d1480e1a9b060",
+                byte_length=665,
+                fmt="json",
+                role="successionOwnerDecisions",
+                source_iri="urn:ref:source-artifact:4ac49dcab3de07c31c9ba79a43f859d3ce44aa0455eeca8bf58d1480e1a9b060",
+            ),
+            SourcePin(
                 path="tests/fixtures/cfr_list_of_subjects/ecfr-agencies-2026-08-15.json",
                 sha256="sha256:766685f466d62fa558a504cdeac23eef1d41f3ea24a2f5a3f78b38f2bcd5365e",
                 byte_length=98197,
