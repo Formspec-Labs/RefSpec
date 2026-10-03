@@ -1,0 +1,122 @@
+[
+  {
+    "file": "raw/fr-document-2026-12700.json",
+    "url": "https://www.federalregister.gov/api/v1/documents/2026-12700.json",
+    "http_status": 200,
+    "bytes": 5665,
+    "sha256": "sha256:8328ea088a87d001856733dc427d7cb4db946945093ae29d251557ddc0aca1c8",
+    "fetched_at": "2026-10-03T12:11:51Z"
+  },
+  {
+    "file": "raw/fr-document-2026-12700.txt",
+    "url": "https://www.federalregister.gov/documents/full_text/text/2026/06/24/2026-12700.txt",
+    "http_status": 200,
+    "bytes": 50342,
+    "sha256": "sha256:4d5aeb8aaa503dd68b9921847b312b64c18a6c8e2bceea5aea0cefa776eefeb7",
+    "fetched_at": "2026-10-03T12:11:52Z"
+  },
+  {
+    "file": "raw/fr-document-2026-11917.json",
+    "url": "https://www.federalregister.gov/api/v1/documents/2026-11917.json",
+    "http_status": 200,
+    "bytes": 4341,
+    "sha256": "sha256:29a0761b96fa4be3b69458e0a8867bfc801addf69916cd10a95462e8673a6cfd",
+    "fetched_at": "2026-10-03T12:11:53Z"
+  },
+  {
+    "file": "raw/fr-document-2026-11917.txt",
+    "url": "https://www.federalregister.gov/documents/full_text/text/2026/06/15/2026-11917.txt",
+    "http_status": 200,
+    "bytes": 6401,
+    "sha256": "sha256:1babdeafad96792f893ea05a3aba9a0357e1c4d982db99404af48f7bee02b7c0",
+    "fetched_at": "2026-10-03T12:11:54Z"
+  },
+  {
+    "file": "raw/fr-document-2026-10828.json",
+    "url": "https://www.federalregister.gov/api/v1/documents/2026-10828.json",
+    "http_status": 200,
+    "bytes": 3314,
+    "sha256": "sha256:c25ff94bcf852bb8f4f02f5d3f994a41623d2692fe65051e2ee389cd03dcbc98",
+    "fetched_at": "2026-10-03T12:11:55Z"
+  },
+  {
+    "file": "raw/fr-document-2024-07437.json",
+    "url": "https://www.federalregister.gov/api/v1/documents/2024-07437.json",
+    "http_status": 200,
+    "bytes": 23480,
+    "sha256": "sha256:1c6fda60254ab1fd8a2caf3fdc83a901b30e9f0f0fd8e13f0d637148a1c0ec74",
+    "fetched_at": "2026-10-03T12:11:56Z"
+  },
+  {
+    "file": "raw/fr-agency-625.json",
+    "url": "https://www.federalregister.gov/api/v1/agencies/625",
+    "http_status": 200,
+    "bytes": 1476,
+    "sha256": "sha256:281ceda008f37bc5acb1b58714a13a5d8d8e7b342d4fd90caad298fc2654ff42",
+    "fetched_at": "2026-10-03T12:11:57Z"
+  },
+  {
+    "file": "raw/fr-agency-200.json",
+    "url": "https://www.federalregister.gov/api/v1/agencies/200",
+    "http_status": 200,
+    "bytes": 1518,
+    "sha256": "sha256:7a28477bfc20adc0903b4aa7b9d82c0654a98ec8509e79299cc4d327d493e0bb",
+    "fetched_at": "2026-10-03T12:11:58Z"
+  },
+  {
+    "file": "raw/fr-fns-documents-since-2026-05-15.json",
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions[agencies][]=food-and-nutrition-service&conditions[publication_date][gte]=2026-05-15&order=newest&per_page=20&fields[]=document_number&fields[]=citation&fields[]=title&fields[]=publication_date&fields[]=type&fields[]=action&fields[]=agencies&fields[]=html_url&fields[]=effective_on",
+    "http_status": 200,
+    "bytes": 5238,
+    "sha256": "sha256:d6e86b897ca961067b49a507a2d888961fda10985c2dec9031572f1593becbe7",
+    "fetched_at": "2026-10-03T12:11:59Z"
+  },
+  {
+    "file": "raw/fr-fna-documents-oldest.json",
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions[agencies][]=food-and-nutrition-administration&order=oldest&per_page=5&fields[]=document_number&fields[]=citation&fields[]=title&fields[]=publication_date&fields[]=type&fields[]=action&fields[]=agencies&fields[]=html_url&fields[]=effective_on",
+    "http_status": 200,
+    "bytes": 5710,
+    "sha256": "sha256:93117827892ff920baf66e2b4c547973ea294e374aab0d4af9a4aa5abd56a12f",
+    "fetched_at": "2026-10-03T12:12:00Z"
+  },
+  {
+    "file": "raw/ecfr-title-7-chapter-II-ancestry-2026-06-23.json",
+    "url": "https://www.ecfr.gov/api/versioner/v1/ancestry/2026-06-23/title-7.json?chapter=II",
+    "http_status": 200,
+    "bytes": 721,
+    "sha256": "sha256:759590de6fd371c7c267aedec6ed41cb753da6e78683c07ae40e3a14694b2bf7",
+    "fetched_at": "2026-10-03T12:12:02Z"
+  },
+  {
+    "file": "raw/ecfr-title-7-chapter-II-ancestry-2026-06-24.json",
+    "url": "https://www.ecfr.gov/api/versioner/v1/ancestry/2026-06-24/title-7.json?chapter=II",
+    "http_status": 200,
+    "bytes": 735,
+    "sha256": "sha256:e77dd6b1c30fbdf4dd274c138e106d31a7c8ffe7f7c94cf5a852acf1f402b551",
+    "fetched_at": "2026-10-03T12:12:03Z"
+  },
+  {
+    "file": "raw/usda-press-release-0062.26.html",
+    "url": "https://www.fns.usda.gov/newsroom/usda-0062.26",
+    "http_status": 200,
+    "bytes": 44125,
+    "sha256": "sha256:2ec35aee01f1cfc64e8af1eb7eb874c5013ea80f81ddd85999508f65ff3ad3fe",
+    "fetched_at": "2026-10-03T12:12:04Z"
+  },
+  {
+    "file": "raw/fns-about-reorganization.html",
+    "url": "https://www.fns.usda.gov/about/reorganization",
+    "http_status": 200,
+    "bytes": 59856,
+    "sha256": "sha256:fd44d9421658d85496db3f36413307b0ae4c6926b4c50922267df74009d50d58",
+    "fetched_at": "2026-10-03T12:12:05Z"
+  },
+  {
+    "file": null,
+    "url": "https://www.usda.gov/sites/default/files/documents/sm-1078-015.pdf",
+    "http_status": 403,
+    "bytes": 439,
+    "sha256": "sha256:05eb84cb1d8719187eaaec76a52add57815d88b1747e89cf7a5fe713fc2056dc",
+    "fetched_at": "2026-10-03T12:12:06Z"
+  }
+]

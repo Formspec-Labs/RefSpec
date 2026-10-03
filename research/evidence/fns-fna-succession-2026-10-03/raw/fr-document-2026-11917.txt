@@ -1,0 +1,120 @@
+<html>
+<head>
+<title>Federal Register, Volume 91 Issue 114 (Monday, June 15, 2026)</title>
+</head>
+<body><pre>
+[Federal Register Volume 91, Number 114 (Monday, June 15, 2026)]
+[Notices]
+[Pages 35951-35952]
+From the Federal Register Online via the Government Publishing Office [<a href="http://www.gpo.gov">www.gpo.gov</a>]
+[FR Doc No: 2026-11917]
+
+
+-----------------------------------------------------------------------
+
+DEPARTMENT OF AGRICULTURE
+
+Food and Nutrition Administration
+
+
+Agency Information Collection Activities: Proposed Collection: 
+Comment Request--EmpowHR/Person Model Non-Employee Data Sheet--FNA-775
+
+AGENCY: Food and Nutrition Administration (FNA), USDA.
+
+ACTION: Notice.
+
+-----------------------------------------------------------------------
+
+SUMMARY: In accordance with the Paperwork Reduction Act of 1995, this 
+notice invites the general public and other public agencies to comment 
+on this proposed information collection. This collection is a revision 
+of a currently approved collection; the purpose of this information 
+collection request is to continue the use of the electronic form FNA-
+775. This form will continue to provide for the collection of Personal 
+Identifiable Information required to conduct background investigation 
+which is a pre-requisite for all non-FNA employees (contractor, intern, 
+volunteers, etc.) to be granted a security clearance for employment at 
+all FNA locations.
+
+DATES: Written comments must be received on or before August 14, 2026.
+
+ADDRESSES: Comments are invited on: (a) Whether the proposed collection 
+of information is necessary for the proper performance of the functions 
+of the agency, including whether the information shall have practical 
+utility; (b) the accuracy of the agency's estimate of the burden of the 
+proposed collection of information, including the validity of the 
+methodology and assumptions that were used; (c) ways to enhance the 
+quality, utility, and clarity of the information to be collected; and 
+(d) ways to minimize the burden of the collection of information on 
+those who are to respond, including use of appropriate automated, 
+electronic, mechanical, or other technological collection techniques or 
+other forms of information technology.
+    Comments may be sent to: Tonya Johnson, Food and Nutrition 
+Administration, U.S. Department of Agriculture, 1320 Braddock Place, 
+Alexandria, VA 22314. Comments may be sent via email to 
+<a href="/cdn-cgi/l/email-protection#f0849f9e8991de9a9f989e839f9ec2b085839491de979f86"><span class="__cf_email__" data-cfemail="a9ddc6c7d0c887c3c6c1c7dac6c79be9dcdacdc887cec6df">[email&#160;protected]</span></a>. Comments will also be accepted through the 
+Federal eRulemaking Portal. Go to <a href="http://www.regulations.gov">http://www.regulations.gov</a>, and 
+follow the online instructions for submitting comments electronically.
+    All responses to this notice will be summarized and included in the 
+request for Office of Management and Budget approval. All comments will 
+be a matter of public record.
+
+FOR FURTHER INFORMATION CONTACT: Requests for additional information or 
+copies of this information collection should be directed to Tonya 
+Johnson at 703-605-1170.
+
+SUPPLEMENTARY INFORMATION: 
+    Title: EmpowHR/Person Model Non-Employee Data Sheet.
+    Form Number: FNA-775.
+    OMB Number: 0584-0686.
+    Expiration Date: August 31, 2026.
+    Type of Request: Revision of a currently approved collection.
+    Abstract: The data collected on this sheet is used to input the 
+USDA, Food and Nutrition Administration's non-employee (contractor, 
+intern, volunteer, etc.) information into EmpowHR/Person Model. The 
+data collected is for the specific purpose of sponsorship for the 
+agency's PIV credential and background investigation required for 
+access to agency facilities, systems, and information.
+    Affected Public: (a) Individual/Households; (b) Business or Other 
+For Profit; (e) Federal Government; All USDA FNA non-employee 
+affiliates.
+    Estimated Number of Respondents: 750.
+
+[[Page 35952]]
+
+    The respondents are agency non-employee affiliates at all FNA 
+locations across the nation, inclusive of the FNA Headquarters in 
+Alexandria, VA and at the seven (7) FNA regional offices across the 
+USA. The estimated annual number of respondents who will be required to 
+provide personal data for the FNA-775 for a requisite background 
+investigation request are 750.
+    Estimated Number of Responses per Respondent: 1.
+    Estimated Total Annual Responses: 750.
+    Estimated Time per Response: 0.167 of an hour. Each respondent 
+takes approximately 0.167 of an hour, or 10 minutes, to provide the 
+required information.
+    Estimated Total Annual Burden on Respondents: 125 hours.
+    See the table below for estimated total annual burden for each type 
+of respondent.
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                    Number of
+                                                                    Number of       responses     Total annual     Estimate of  burden     Total annual
+           Affected public                    Form number          respondents    annually per      responses      hours  per response     burden hours
+                                                                                   respondent
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+Agency non-employee affiliates.......  FNA 775.................             750               1             750  0.16667 (10 minutes....             125
+Annualized Totals....................  ........................             750               1             750  10 minutes.............             125
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+Patrick A. Penn,
+Acting Administrator, Food and Nutrition Administration, U.S. 
+Department of Agriculture.
+[FR Doc. 2026-11917 Filed 6-12-26; 8:45 am]
+BILLING CODE 3410-30-P
+
+
+</pre><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
+</html>
