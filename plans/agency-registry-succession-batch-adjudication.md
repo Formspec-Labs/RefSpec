@@ -1,0 +1,34 @@
+<!-- markdownlint-disable MD013 -->
+
+# Agency registry succession batch — owner adjudication sheet
+
+Generated from [agency-registry-succession-batch-candidates.json](agency-registry-succession-batch-candidates.json) and [agency-registry-succession-batch-decisions.json](agency-registry-succession-batch-decisions.json) by `tools/assemble_agency_registry_succession_batch.py`; `--check` fails if this sheet disagrees with either. **Do not edit this sheet.** You (reviewer `urn:ref:reviewer:refspec-owner`) answer through the question tool or by editing the decisions file, exactly as for batch 1: each decision is keyed by the event id and records the answer, the date, the channel and the event's `content_digest` (the Decision keys table). Every row is still `candidate-pending-owner-adjudication`; an accepted event becomes an assertion carrying your reviewer IRI and the decision date. Batch 1's release cannot take these: a release of its own needs the release step generalized beyond batch 1's pinned files, and REF-072's known limit (events cannot stand alone in a mapping release) lifted or a bridge to ride with.
+
+Decisions recorded: 0 current, 0 stale, 1 of 1 decidable items undecided. Candidates digest `sha256:4d29ffd7c936159dbff13d9b228845e50d134a567a8ff6b60a3d9e2f7f7921cc`; evidence `research/evidence/fns-fna-succession-2026-10-03/manifest.json` (`sha256:47c7dade378cabc5c9293f00211293f64b0e3f847b759be41246280ed7a8c481`).
+
+## `event:fr200`: did FR 200 Food and Nutrition Service become FR 625 Food and Nutrition Administration?
+
+Answers: `accept` / `wrong-date` / `not-a-succession` (`wrong-date` with a note naming the date).
+
+| Field | Value |
+| --- | --- |
+| Row | `succ:fr200:fr625` |
+| Original | FR 200 Food and Nutrition Service, parent Agriculture Department (`urn:ref:federal-register-agency:12`) |
+| Result | FR 625 Food and Nutrition Administration, parent Agriculture Department (`urn:ref:federal-register-agency:12`) |
+| Proposed date | 2026-06-24 (the effective date of 91 FR 37779's revision of the 7 CFR chapter II heading, the one public record in hand that puts the new name into effect; eCFR's point-in-time API heads chapter II 'Food and Nutrition Service' on 2026-06-23 and 'Food and Nutrition Administration' on 2026-06-24. USDA's own instrument, which the agency page names as the reorganization plan SM 1078-015, refused the fetch (HTTP 403) and was not read); alternative 2026-06-15 (the Register's first document under FR 625, FR Doc 2026-11917; a filing date, not a stated effective date); alternative 2026-04-30 (USDA's announcement of 'its intention to introduce the Food and Nutrition Administration' (press release 0062.26, https://www.fns.usda.gov/newsroom/usda-0062.26); an intention, not a dated record of effect) |
+| Reasoning | USDA renamed the Food and Nutrition Service the Food and Nutrition Administration: the CFR heading of its chapter changed on 2026-06-24, the Register filed nothing under FR 200 after 2026-06-01 and has filed under FR 625 since 2026-06-15, and the new name carries on the old one's rulemaking (RIN 0584-AE82, docket FNS-2022-0007) and OMB numbers (0584-). |
+| Closest rejected alternative | Food and Nutrition Service sameEntityAs Food and Nutrition Administration, folded into identity. Rejected: The Register keeps two records and files documents under each name on either side of June 2026; identity would erase the date and file every earlier FNS document under a name that did not yet exist. |
+| Owner note | The periods are not disjoint: the Register filed FNA documents from 2026-06-15, nine days before the CFR heading changed. USDA says the Food and Nutrition Service and the Food, Nutrition, and Consumer Services mission area became FNA; the mission area has no record in any held roster, so FNS is the only original. Two publishers disagree with the Register: regulations.gov's roster (2026-08-16) files FNA under parent DOI, and eCFR's agency roster (2026-08-15) still names chapter II's agency Food and Nutrition Service. The cost under spicy-regs' rule (ontology/agencies.py _build_projection at d2b5f53, not measured here): an original takes every code its current successors carry, and FR 200 already carries FNS, so it would carry FNS and FNA and resolve to no code -- FR documents naming only FNS would lose their code unless spicy-regs lets a coded original keep its own. |
+| Owner decision / date |  |
+
+| Record | Kind | What it says |
+| --- | --- | --- |
+| [91 FR 37779 (2026-06-24), FR Doc 2026-12700, Special Supplemental Nutrition Program for Women, Infants, and Children (WIC): Revisions in the WIC Food Packages; Delay of Vitamin D in Yogurt Implementation Date and Technical Corrections](https://www.federalregister.gov/documents/2026/06/24/2026-12700/special-supplemental-nutrition-program-for-women-infants-and-children-wic-revisions-in-the-wic-food) | `frDocument` | Amendment 1, 'Under the authority of the Reorganization Plan No. 2 of 1953 (5 U.S.C. app.; 7 U.S.C. 2201 note) and the Department of Agriculture Reorganization Act of 1994 (Pub. L. 103-354)', revises the heading of 7 CFR chapter II to 'FOOD AND NUTRITION ADMINISTRATION, DEPARTMENT OF AGRICULTURE'; 'This rule is effective on June 24, 2026.' It continues FNS's rulemaking under the same docket and RIN as the 2024 rule FNS published (FNS-2022-0007, RIN 0584-AE82; 89 FR 28488, FR Doc 2024-07437), and calls that rule's author the Food and Nutrition Administration. |
+| [91 FR 35951 (2026-06-15), FR Doc 2026-11917, Agency Information Collection Activities: Proposed Collection: Comment Request-EmpowHR/Person Model Non-Employee Data Sheet-FNA-775](https://www.federalregister.gov/documents/2026/06/15/2026-11917/agency-information-collection-activities-proposed-collection-comment-request-empowhrperson-model) | `frDocument` | The Register's first document under FR 625 ('AGENCY: Food and Nutrition Administration (FNA), USDA'); its form keeps FNS's OMB number 0584-0686. The Register's last document under FR 200 is FR Doc 2026-10828 (91 FR 32372, 2026-06-01). |
+| [Federal Register agency roster record 625, Food and Nutrition Administration](https://www.federalregister.gov/agencies/food-and-nutrition-administration) | `publisherRoster` | Parent 12 (Agriculture Department), short name FNA, agency_url https://www.fns.usda.gov/about/reorganization, where USDA states that 'the Food and Nutrition Service and the Food, Nutrition, and Consumer Services mission area are now the Food and Nutrition Administration'. Its description takes over FR 200's ('administers the USDA food assistance programs'). |
+
+## Decision keys
+
+| Id | Answers | Content digest |
+| --- | --- | --- |
+| `event:fr200` | `accept` / `wrong-date` / `not-a-succession` | `sha256:3e163e87f9b9aeaf6c01f9dbf56faad4fa1867c782c5ec2a5d435e6c335c475e` |

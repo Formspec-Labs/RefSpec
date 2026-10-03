@@ -232,7 +232,12 @@ An agent is never the reviewer. Exactly:
   read (the FR roster's own description, a statute in hand, or no record yet);
   that batch reads every record before proposing anything. Renames between
   records already reached (Broadcasting Board of Governors → U.S. Agency for
-  Global Media) belong there too.
+  Global Media) belong there too. Opened 2026-10-03 with a 2026 rename between
+  two reached records, `event:fr200` (Food and Nutrition Service → Food and
+  Nutrition Administration), in
+  [its own sheet](agency-registry-succession-batch-adjudication.md) written by
+  `tools/assemble_agency_registry_succession_batch.py`; the held ones join it
+  once their records are read.
 - **Later batches:** the Federal Hierarchy as a first-class dimension, then
   lobbying filing names, then court-docket names. Designed for here, not built.
 - **Known limit (REF-072): events cannot stand alone.** A mapping release must
