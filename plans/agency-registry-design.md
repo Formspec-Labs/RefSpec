@@ -313,10 +313,11 @@ Atlas view's writer contract, and `--check` rebuilds it against the pin.
 
 | Member | Rows | sha256 |
 | --- | ---: | --- |
-| `view-manifest.json` (the pin) | | `c7dc9310f9c11cd346245d7cf882f9eaf69b70b25f59841ae6004dca4944866e` |
+| `view-manifest.json` (the pin) | | `99b8234ad15881e411ca4af2faa9e99bb9d91a22ba140e6ae792da4a8d4e41f9` |
 | `tables/agency-registry-bridges.parquet` | 13 | `2e33905b475c6a1adf27960ecf170a1b4c82df2baf20ac13df9307bb687dd898` |
 | `tables/agency-registry-events.parquet` (one row per event and result) | 14 | `72f35636f9b5c93d708a364352122fb724e872f619a518c5e49ebb19518322b7` |
 | `tables/agency-registry-non-emissions.parquet` | 4 | `da863e467f00f16a6b7a9ff1a3e1182fb8e7488f8b7d33f0d7f0c403a0663e24` |
+| `tables/agency-registry-current-successors.parquet` (derived, one row per original and current successor) | 14 | `b43fb57a24f7eb590964bc807a34b08a579a953170ea68b1b83c716f6e2ef060` |
 
 Its logical-content digest is
 `sha256:777c610051c9fdcbab8e9cdb7d382dce20c4565a484b241ed784247efefc46a4`. The
@@ -326,7 +327,15 @@ states `subject_parent`; that column is `schemaVersion` 1.1 and moved the
 view from the dev21 release's 1.0 `77b357cc…` (events `09e35a12…`, logical
 `9bc9eb03…`), which stays verifiable against the release; the bridges and
 non-emissions tables did not move. The lookup is `current_agency_successors()`,
-beside `reverse_agency_projection()`, over the view's event rows.
+beside `reverse_agency_projection()`, over the view's event rows. Since
+`schemaVersion` 1.2 (2026-10-03) the view also seals that lookup's answer as
+the current-successors table, derived from the events by
+`current_successor_rows()`, outside the logical-content digest and asserting
+nothing; the verifier walks the events again and refuses any other table. A
+consumer that cannot import RefSpec (spicy-regs' MCP image) reads it instead
+of porting the walk. The asserted tables and the logical digest did not move;
+the 1.1 view `c7dc9310…`, which spicy-regs vendors until it re-vendors, stays
+verifiable against the release.
 
 ## 9. Measured gaps (re-measured 2026-09-26)
 

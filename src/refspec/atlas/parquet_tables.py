@@ -32,7 +32,7 @@ from typing import TYPE_CHECKING, Any
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from refspec.atlas.agency_projection import AgencyProjection, AgencyRegistryView
+from refspec.atlas.agency_projection import AgencyProjection, AgencyRegistryView, current_successor_rows
 from refspec.atlas.compact_pack import CompactRecordRole, compact_record_fields
 from refspec.atlas.parquet_artifact import (
     arrow_schema_sha256,
@@ -315,13 +315,15 @@ def agency_projection_table_relative_path(role: str) -> str:
     return f"{TABLE_DIRECTORY}/{AGENCY_PROJECTION_TABLE_NAMES[role]}"
 
 
-#: REF-072's agency registry view: its own three tables, never rows in the
-#: REF-038 projection. The owner's decision rides on every row as one struct,
+#: REF-072's agency registry view: its own tables, never rows in the REF-038
+#: projection. The owner's decision rides on every asserted row as one struct,
 #: so a consumer reads who decided, when, how and on which content digest
-#: beside the claim itself.
+#: beside the claim itself. The current-successors table is derived from the
+#: events by ``current_successor_rows()`` and asserts nothing.
 AGENCY_REGISTRY_BRIDGE_ROLE = "agencyRegistryBridges"
 AGENCY_REGISTRY_EVENT_ROLE = "agencyRegistryEvents"
 AGENCY_REGISTRY_NON_EMISSION_ROLE = "agencyRegistryNonEmissions"
+AGENCY_REGISTRY_CURRENT_SUCCESSOR_ROLE = "agencyRegistryCurrentSuccessors"
 _AGENCY_REGISTRY_DECISION = pa.struct(
     [
         pa.field("answer", pa.string(), nullable=False),
@@ -347,7 +349,8 @@ _AGENCY_REGISTRY_CLOSEST_ALTERNATIVE = pa.struct(
         pa.field("why_not_proposed", pa.string(), nullable=False),
     ]
 )
-AGENCY_REGISTRY_TABLE_SCHEMAS: Mapping[str, pa.Schema] = {
+#: The 1.1 view's three asserted tables; 1.1 is the view spicy-regs vendors until it re-vendors 1.2.
+LEGACY_1_1_AGENCY_REGISTRY_TABLE_SCHEMAS: Mapping[str, pa.Schema] = {
     AGENCY_REGISTRY_BRIDGE_ROLE: pa.schema(
         [
             pa.field("candidate_id", pa.string(), nullable=False),
@@ -397,18 +400,26 @@ AGENCY_REGISTRY_TABLE_SCHEMAS: Mapping[str, pa.Schema] = {
         ]
     ),
 }
-# The 1.0 view (sealed by dev21, vendored by spicy-regs) predates original_parents;
-# it stays verifiable, so its tables keep their schema here.
+#: 1.2 adds the derived current-successors table: one row per (original, current successor).
+AGENCY_REGISTRY_TABLE_SCHEMAS: Mapping[str, pa.Schema] = {
+    **LEGACY_1_1_AGENCY_REGISTRY_TABLE_SCHEMAS,
+    AGENCY_REGISTRY_CURRENT_SUCCESSOR_ROLE: pa.schema(
+        [pa.field("original", pa.string(), nullable=False), pa.field("successor", pa.string(), nullable=False)]
+    ),
+}
+# The 1.0 view (sealed by dev21) predates original_parents; it stays verifiable,
+# so its tables keep their schema here.
 LEGACY_1_0_AGENCY_REGISTRY_TABLE_SCHEMAS: Mapping[str, pa.Schema] = {
-    **AGENCY_REGISTRY_TABLE_SCHEMAS,
-    AGENCY_REGISTRY_EVENT_ROLE: AGENCY_REGISTRY_TABLE_SCHEMAS[AGENCY_REGISTRY_EVENT_ROLE].remove(
-        AGENCY_REGISTRY_TABLE_SCHEMAS[AGENCY_REGISTRY_EVENT_ROLE].get_field_index("original_parents")
+    **LEGACY_1_1_AGENCY_REGISTRY_TABLE_SCHEMAS,
+    AGENCY_REGISTRY_EVENT_ROLE: LEGACY_1_1_AGENCY_REGISTRY_TABLE_SCHEMAS[AGENCY_REGISTRY_EVENT_ROLE].remove(
+        LEGACY_1_1_AGENCY_REGISTRY_TABLE_SCHEMAS[AGENCY_REGISTRY_EVENT_ROLE].get_field_index("original_parents")
     ),
 }
 AGENCY_REGISTRY_TABLE_NAMES: Mapping[str, str] = {
     AGENCY_REGISTRY_BRIDGE_ROLE: "agency-registry-bridges.parquet",
     AGENCY_REGISTRY_EVENT_ROLE: "agency-registry-events.parquet",
     AGENCY_REGISTRY_NON_EMISSION_ROLE: "agency-registry-non-emissions.parquet",
+    AGENCY_REGISTRY_CURRENT_SUCCESSOR_ROLE: "agency-registry-current-successors.parquet",
 }
 
 
@@ -659,12 +670,13 @@ def write_agency_projection_tables(
 
 
 def write_agency_registry_tables(output: Path, view: AgencyRegistryView) -> None:
-    """Write and round-trip-check the three REF-072 agency registry tables."""
+    """Write and round-trip-check the REF-072 agency registry tables, the derived current successors included."""
 
     rows_by_role = {
         AGENCY_REGISTRY_BRIDGE_ROLE: plain_json(view.bridges),
         AGENCY_REGISTRY_EVENT_ROLE: plain_json(view.events),
         AGENCY_REGISTRY_NON_EMISSION_ROLE: plain_json(view.non_emissions),
+        AGENCY_REGISTRY_CURRENT_SUCCESSOR_ROLE: list(current_successor_rows(view.events)),
     }
     directory = output / TABLE_DIRECTORY
     directory.mkdir(parents=True, exist_ok=True)
@@ -953,6 +965,7 @@ __all__ = [
     "AGENCY_PROJECTION_TABLE_SCHEMAS",
     "AGENCY_PROJECTION_UNRESOLVED_ROLE",
     "AGENCY_REGISTRY_BRIDGE_ROLE",
+    "AGENCY_REGISTRY_CURRENT_SUCCESSOR_ROLE",
     "AGENCY_REGISTRY_EVENT_ROLE",
     "AGENCY_REGISTRY_NON_EMISSION_ROLE",
     "AGENCY_REGISTRY_TABLE_NAMES",
@@ -967,6 +980,7 @@ __all__ = [
     "DERIVED_RELATION_TABLE_NAME",
     "DERIVED_RELATION_TABLE_SCHEMA",
     "LEGACY_1_0_AGENCY_REGISTRY_TABLE_SCHEMAS",
+    "LEGACY_1_1_AGENCY_REGISTRY_TABLE_SCHEMAS",
     "PARQUET_VERSION",
     "ROW_GROUP_SIZE",
     "TABLE_MEDIA_TYPE",

@@ -45,6 +45,7 @@ from refspec.atlas.agency_projection import (
     AGENCY_REGISTRY_NON_EMISSION_REASONS,
     agency_registry_view_digest,
     build_agency_registry_view,
+    current_successor_rows,
 )
 from refspec.atlas.compact_pack import CompactRecordRole
 from refspec.atlas.parquet_artifact import (
@@ -60,6 +61,7 @@ from refspec.atlas.parquet_tables import (
     AGENCY_PROJECTION_TABLE_SCHEMAS,
     AGENCY_PROJECTION_UNRESOLVED_ROLE,
     AGENCY_REGISTRY_BRIDGE_ROLE,
+    AGENCY_REGISTRY_CURRENT_SUCCESSOR_ROLE,
     AGENCY_REGISTRY_EVENT_ROLE,
     AGENCY_REGISTRY_NON_EMISSION_ROLE,
     AGENCY_REGISTRY_TABLE_SCHEMAS,
@@ -70,6 +72,7 @@ from refspec.atlas.parquet_tables import (
     DERIVED_RELATION_ROLE,
     DERIVED_RELATION_TABLE_SCHEMA,
     LEGACY_1_0_AGENCY_REGISTRY_TABLE_SCHEMAS,
+    LEGACY_1_1_AGENCY_REGISTRY_TABLE_SCHEMAS,
     PARQUET_VERSION,
     ROW_GROUP_SIZE,
     TABLE_MEDIA_TYPE,
@@ -1065,13 +1068,17 @@ def verify_atlas_parquet_view(
 
 AGENCY_REGISTRY_VIEW_RECORD_TYPE = "AgencyRegistryViewManifest"
 # 1.1 adds original_parents to the events table: each original's roster
-# parent, as the bridges table states subject_parent. 1.0, the view dev21
-# sealed and spicy-regs vendors, stays verifiable against the release with
-# that column set aside, the way the Atlas view keeps its 3.1 and 3.0.
-AGENCY_REGISTRY_VIEW_SCHEMA_VERSION = "1.1"
+# parent, as the bridges table states subject_parent. 1.2 adds the current
+# successors, derived from the events by current_successor_rows() and outside
+# the logical-content digest, so spicy-regs reads the walk instead of porting
+# it. 1.1 (the view spicy-regs vendors until it re-vendors) and 1.0 (dev21's)
+# stay verifiable against the release, the way the Atlas view keeps its 3.1
+# and 3.0.
+AGENCY_REGISTRY_VIEW_SCHEMA_VERSION = "1.2"
 LEGACY_AGENCY_REGISTRY_VIEW_SCHEMA_VERSION = "1.0"
 _AGENCY_REGISTRY_SCHEMAS_BY_VERSION: Mapping[str, Mapping[str, pa.Schema]] = {
     AGENCY_REGISTRY_VIEW_SCHEMA_VERSION: AGENCY_REGISTRY_TABLE_SCHEMAS,
+    "1.1": LEGACY_1_1_AGENCY_REGISTRY_TABLE_SCHEMAS,
     LEGACY_AGENCY_REGISTRY_VIEW_SCHEMA_VERSION: LEGACY_1_0_AGENCY_REGISTRY_TABLE_SCHEMAS,
 }
 AGENCY_REGISTRY_VIEW_ID_PREFIX = "urn:ref:agency-registry-view:"
@@ -1123,7 +1130,7 @@ def _agency_registry_members(
 def seal_agency_registry_view(output: Path, release: RegistryMappingRelease) -> dict[str, Any]:
     """Write the REF-072 agency registry view of ``release`` as its own closed, digest-pinned directory.
 
-    Three tables and a manifest, written with the Atlas view's one writer
+    Four tables (three asserted, the current successors derived) and a manifest, written with the Atlas view's one writer
     contract, re-verified from the bytes on disk against the release, then
     promoted. The manifest's own sha256 is the pin a consumer vendors the view by.
     """
@@ -1226,6 +1233,10 @@ def verify_agency_registry_view(
         raise AtlasParquetViewError(f"agency registry view non-emission reason is outside the closed vocabulary: {unknown_reasons}")
     if agency_registry_view_digest(bridges, events, non_emissions, coverage) != manifest["digest"]:
         raise AtlasParquetViewError("agency registry view logical-content digest differs")
+    if AGENCY_REGISTRY_CURRENT_SUCCESSOR_ROLE in rows and rows[AGENCY_REGISTRY_CURRENT_SUCCESSOR_ROLE] != list(
+        current_successor_rows(events)
+    ):
+        raise AtlasParquetViewError("agency registry view current successors are not its events' walk")
     try:
         expected = build_agency_registry_view(release)
     except ValueError as error:

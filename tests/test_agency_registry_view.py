@@ -17,6 +17,7 @@ from refspec.atlas import v3_registry_alignments_entity as entity
 from refspec.atlas.parquet_artifact import canonical_payload_sha256, file_sha256
 from refspec.atlas.parquet_tables import (
     AGENCY_REGISTRY_BRIDGE_ROLE,
+    AGENCY_REGISTRY_CURRENT_SUCCESSOR_ROLE,
     AGENCY_REGISTRY_EVENT_ROLE,
     AGENCY_REGISTRY_NON_EMISSION_ROLE,
     AGENCY_REGISTRY_TABLE_SCHEMAS,
@@ -108,16 +109,24 @@ def test_each_event_row_states_its_originals_roster_parents(
 
 
 LEGACY_1_0_VIEW = ROOT / "tests" / "fixtures" / "agency_registry_view_1_0"
-# The dev21 view spicy-regs vendors, byte for byte (design note section 8's earlier table).
+# The dev21 view, byte for byte (design note section 8's earlier table).
 LEGACY_1_0_VIEW_MANIFEST_SHA256 = "sha256:77b357cc06fe3e67bcacb0591833884087572727064f89643e10aa2a28ad6b87"
+LEGACY_1_1_VIEW = ROOT / "tests" / "fixtures" / "agency_registry_view_1_1"
+# The 1.1 view spicy-regs vendors until it re-vendors 1.2, byte for byte.
+LEGACY_1_1_VIEW_MANIFEST_SHA256 = "sha256:c7dc9310f9c11cd346245d7cf882f9eaf69b70b25f59841ae6004dca4944866e"
 
 
-def test_the_sealed_view_is_schema_1_1_and_the_dev21_1_0_view_still_verifies(
+def test_the_sealed_view_is_schema_1_2_and_the_1_1_and_1_0_views_still_verify(
     tmp_path: Path, release: RegistryMappingRelease
 ) -> None:
-    """Pin F6's version: new views are 1.1; the sealed 1.0 view is held to the same release without original_parents."""
+    """Pin RF1's version: new views are 1.2; 1.1 (no derived successors) and 1.0 (no original_parents) still verify."""
 
-    assert seal_agency_registry_view(tmp_path / "view", release)["schemaVersion"] == "1.1"
+    sealed = seal_agency_registry_view(tmp_path / "view", release)
+    assert sealed["schemaVersion"] == "1.2"
+    vendored = verify_agency_registry_view(
+        LEGACY_1_1_VIEW, expected_manifest_digest=LEGACY_1_1_VIEW_MANIFEST_SHA256, release=release
+    )
+    assert vendored["schemaVersion"] == "1.1" and vendored["digest"] == sealed["digest"]
     legacy = verify_agency_registry_view(
         LEGACY_1_0_VIEW, expected_manifest_digest=LEGACY_1_0_VIEW_MANIFEST_SHA256, release=release
     )
@@ -130,11 +139,14 @@ def test_the_sealed_view_is_schema_1_1_and_the_dev21_1_0_view_still_verifies(
         )
 
 
-@pytest.mark.parametrize(("version", "message"), (("1.0", "table schema differs"), ("0.9", "unsupported")))
+@pytest.mark.parametrize(
+    ("version", "message"),
+    (("1.1", "members or counts differ"), ("1.0", "table schema differs"), ("0.9", "unsupported")),
+)
 def test_a_view_stating_another_version_is_refused(
     tmp_path: Path, release: RegistryMappingRelease, version: str, message: str
 ) -> None:
-    """Pin that a 1.1 view re-sealed as 1.0 fails on its events schema, and an unknown version fails outright."""
+    """Pin that a 1.2 view relabelled 1.1 fails on its membership, as 1.0 on its events schema; an unknown version fails outright."""
 
     root = tmp_path / "view"
     seal_agency_registry_view(root, release)
@@ -185,6 +197,7 @@ def test_the_sealed_view_is_deterministic_and_pinned(tmp_path: Path, release, vi
         "tables/agency-registry-bridges.parquet": 13,
         "tables/agency-registry-events.parquet": 14,
         "tables/agency-registry-non-emissions.parquet": 4,
+        "tables/agency-registry-current-successors.parquet": 14,
     }
     assert first["digest"] == view.digest
 
@@ -244,13 +257,19 @@ def _resealed_rows(root: Path, mutate: Callable[[dict[str, list[dict]]], None]) 
         for role in AGENCY_REGISTRY_TABLE_SCHEMAS
     }
     mutate(rows)
+    # The derived table follows the edited events, so only the rule under test is left to refuse.
+    rows[AGENCY_REGISTRY_CURRENT_SUCCESSOR_ROLE] = list(
+        agency_projection.current_successor_rows(rows[AGENCY_REGISTRY_EVENT_ROLE])
+    )
     for role, schema in AGENCY_REGISTRY_TABLE_SCHEMAS.items():
         table = root / agency_registry_table_relative_path(role)
         table.unlink()
         pq.write_table(pa.Table.from_pylist(rows[role], schema=schema), table)
     manifest = json.loads((root / MANIFEST_FILE).read_text())
     manifest["members"], manifest["counts"] = parquet_view._agency_registry_members(root)
-    bridges, events, non_emissions = (rows[role] for role in AGENCY_REGISTRY_TABLE_SCHEMAS)
+    bridges, events, non_emissions = (
+        rows[role] for role in (AGENCY_REGISTRY_BRIDGE_ROLE, AGENCY_REGISTRY_EVENT_ROLE, AGENCY_REGISTRY_NON_EMISSION_ROLE)
+    )
     manifest["digest"] = agency_projection.agency_registry_view_digest(
         bridges, events, non_emissions, manifest["coverage"]
     )
@@ -505,3 +524,38 @@ def test_an_unknown_or_undefunct_organization_has_no_successors(view) -> None:
     assert successors.of("urn:ref:federal-register-agency:999999") == frozenset()
     assert successors.of(_fr(409)) == frozenset()
     assert set(successors.current) == {_fr(fr_id) for fr_id in (96, 150, 232, 259, 404, 510, 543, 559, 564)}
+
+
+def test_the_view_seals_its_events_current_successors_and_refuses_any_other(tmp_path: Path, release, view) -> None:
+    """Pin RF1: the derived table is current_agency_successors() of the sealed events, outside the logical digest.
+
+    A table rewritten and re-pinned in the manifest still fails, because the verifier walks the events again.
+    """
+
+    root = tmp_path / "view"
+    seal_agency_registry_view(root, release)
+    table = root / agency_registry_table_relative_path(AGENCY_REGISTRY_CURRENT_SUCCESSOR_ROLE)
+    rows = pq.read_table(table).to_pylist()
+    walked = agency_projection.current_agency_successors(view.events).current
+    assert {(row["original"], row["successor"]) for row in rows} == {
+        (original, successor) for original, successors in walked.items() for successor in successors
+    }
+    assert ("urn:ref:federal-register-agency:559", "urn:ref:federal-register-agency:45") in {
+        (row["original"], row["successor"]) for row in rows
+    }
+    rows[0]["successor"] = rows[1]["successor"]
+    table.unlink()
+    pq.write_table(
+        pa.Table.from_pylist(rows, schema=AGENCY_REGISTRY_TABLE_SCHEMAS[AGENCY_REGISTRY_CURRENT_SUCCESSOR_ROLE]), table
+    )
+    manifest = json.loads((root / MANIFEST_FILE).read_text())
+    for member in manifest["members"]:
+        if member["path"] == agency_registry_table_relative_path(AGENCY_REGISTRY_CURRENT_SUCCESSOR_ROLE):
+            member["sha256"] = file_sha256(table)
+            member["byteLength"] = table.stat().st_size
+    manifest.pop("canonicalPayloadDigest")
+    manifest["canonicalPayloadDigest"] = canonical_payload_sha256(manifest)
+    (root / MANIFEST_FILE).write_bytes(canonical_json_bytes(manifest))
+
+    with pytest.raises(AtlasParquetViewError, match="current successors are not its events' walk"):
+        verify_agency_registry_view(root, expected_manifest_digest=file_sha256(root / MANIFEST_FILE), release=release)

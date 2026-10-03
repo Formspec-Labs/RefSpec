@@ -6051,6 +6051,16 @@ the 1.0 view above stays verifiable against the release with that column set
 aside. The release's claims and evidence did not move, and neither did the
 Federal Register thesaurus pair `make contract-dev` prints; the entity module
 edit moved the agency distributions' manifest files as recorded above.
+Later (2026-10-03): the view seals the current successors as a fourth
+table, derived from its events by `current_successor_rows()` and never
+asserted, so spicy-regs can read the walk's answer by digest and delete its
+verbatim port of `current_agency_successors()` (its MCP image cannot import
+RefSpec). `schemaVersion` went to 1.2 and the manifest to
+`sha256:99b8234ad15881e411ca4af2faa9e99bb9d91a22ba140e6ae792da4a8d4e41f9`;
+the asserted tables, the logical-content digest `777c6100…` and the 1.1 view's
+verifiability did not move. The independent agency checker derives the table
+on its own, by a fixpoint over the plans' events rather than the producer's
+walk.
 
 **What keeps the view's rows at E4 owner review (2026-09-28).** Since then
 the view states the evidence tier, warrant and reviewer that the release's

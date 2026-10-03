@@ -136,7 +136,7 @@ jobs:
             --distribution $DISTRIBUTION_ROOT --distribution-manifest-sha256 $distribution_pin \
             --full-view $PARQUET_VIEW_ROOT --full-view-manifest-sha256 $full_view_pin \
             --compact-view $COMPACT_VIEW_ROOT --report-root $QUALIFICATION_ROOT \
-            --agency-view-manifest-sha256 sha256:c7dc9310f9c11cd346245d7cf882f9eaf69b70b25f59841ae6004dca4944866e \
+            --agency-view-manifest-sha256 sha256:99b8234ad15881e411ca4af2faa9e99bb9d91a22ba140e6ae792da4a8d4e41f9 \
             --agency-audit-evidence-manifest $ATLAS_AGENCY_EVIDENCE_MANIFEST \
             --agency-audit-evidence-sha256 $ATLAS_AGENCY_EVIDENCE_SHA256 \
             --agency-review-receipt research/atlas-refresh-2026-09-27/independent/agency/claim-receipt.json \

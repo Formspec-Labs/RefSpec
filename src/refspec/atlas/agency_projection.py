@@ -1150,6 +1150,22 @@ def current_agency_successors(events: Sequence[Mapping[str, Any]]) -> AgencySucc
                 settled[organization] = frozenset(current)
     return AgencySuccessors(current=_frozen_mapping(dict(sorted(settled.items()))))
 
+
+def current_successor_rows(events: Sequence[Mapping[str, Any]]) -> tuple[dict[str, str], ...]:
+    """``current_agency_successors()`` as rows, one per (original, current successor), sorted.
+
+    The registry view seals these as a table derived for consumers, never
+    asserted, so a reader that cannot import RefSpec reads the walk's answer
+    instead of porting the walk.
+    """
+
+    current = current_agency_successors(events).current
+    return tuple(
+        {"original": original, "successor": successor}
+        for original in sorted(current)
+        for successor in sorted(current[original])
+    )
+
 __all__ = [
     "ADMISSIBLE_ACRONYM_PAIRS",
     "AGENCY_REGISTRY_NON_EMISSION_REASONS",
@@ -1179,6 +1195,7 @@ __all__ = [
     "build_agency_projection",
     "build_agency_registry_view",
     "current_agency_successors",
+    "current_successor_rows",
     "extract_agency_identifier_claims",
     "parent_by_subject",
     "reverse_agency_projection",

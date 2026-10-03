@@ -202,7 +202,27 @@ def expected_from_plans(c, d):
         "bridges": sorted_rows(bridges),
         "events": sorted_rows(events),
         "non-emissions": sorted_rows(non),
+        "current-successors": current_successors(events),
     }, event_details
+
+
+def current_successors(events):
+    """Each event original read forward until no result is itself an original; a fixpoint, not the producer's walk."""
+    results = defaultdict(set)
+    for row in events:
+        for original in row["originals"]:
+            results[original].add(row["result"])
+    rows = []
+    for original in results:
+        frontier = set(results[original])
+        for _ in range(len(results) + 1):
+            if not frontier & results.keys():
+                break
+            frontier = {successor for result in frontier for successor in results.get(result, {result})}
+        else:
+            raise ValueError(f"agency change events form a cycle through {original}")
+        rows.extend({"original": original, "successor": successor} for successor in frontier)
+    return sorted_rows(rows)
 
 
 def check_raw_endpoints(repo, c, source_paths=None):
