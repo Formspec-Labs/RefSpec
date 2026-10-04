@@ -572,7 +572,7 @@ requires-dist = [
     { name = "referencing", specifier = ">=0.37,<1" },
     { name = "rulespec-artifacts", path = "vendor/rulespec_artifacts-1.1.2-py3-none-any.whl" },
     { name = "rulespec-conformance", path = "vendor/rulespec_conformance-0.2.0rc19-py3-none-any.whl" },
-    { name = "spicy-docs", extras = ["acquisition", "pdf-pypdf"], path = "vendor/spicy_docs-0.53.0-py3-none-any.whl" },
+    { name = "spicy-docs", extras = ["acquisition", "pdf-pypdf"], path = "vendor/spicy_docs-0.54.0-py3-none-any.whl" },
     { name = "typing-extensions", specifier = ">=4.12,<5" },
 ]
 
@@ -722,14 +722,14 @@ wheels = [
 
 [[package]]
 name = "spicy-docs"
-version = "0.53.0"
-source = { path = "vendor/spicy_docs-0.53.0-py3-none-any.whl" }
+version = "0.54.0"
+source = { path = "vendor/spicy_docs-0.54.0-py3-none-any.whl" }
 dependencies = [
     { name = "jsonschema" },
     { name = "rulespec-artifacts" },
 ]
 wheels = [
-    { filename = "spicy_docs-0.53.0-py3-none-any.whl", hash = "sha256:2ec43dcec80aa65d14db0c6fb9138bd1e6c17bcfc62b0065cbab2c5aa5bfce52" },
+    { filename = "spicy_docs-0.54.0-py3-none-any.whl", hash = "sha256:c17f7b36b6a6756e7475e6b50d21e172b1ab69ef21fd2255ed4a2c3539f27bae" },
 ]
 
 [package.optional-dependencies]
@@ -750,6 +750,7 @@ requires-dist = [
     { name = "boto3", marker = "extra == 'acquisition'" },
     { name = "congressionalrecord", marker = "extra == 'record-speeches'", specifier = "==2.3.0" },
     { name = "deltatrack", marker = "extra == 'bill-diff'", specifier = "==0.1.0" },
+    { name = "docling", extras = ["ocrmac", "rapidocr"], marker = "extra == 'pdf-docling'", specifier = "==2.131.0" },
     { name = "duckdb", marker = "extra == 'courtlistener-local'", specifier = ">=1.5.5,<2" },
     { name = "httpx", marker = "extra == 'acquisition'" },
     { name = "httpx", marker = "extra == 'pdf-gemini'", specifier = ">=0.28,<1" },
@@ -770,7 +771,7 @@ requires-dist = [
     { name = "rulespec-artifacts", specifier = "==1.1.2" },
     { name = "tqdm", marker = "extra == 'acquisition'" },
 ]
-provides-extras = ["acquisition", "bill-diff", "courtlistener-local", "html", "pdf", "pdf-apple", "pdf-gemini", "pdf-mlx", "pdf-pypdf", "pdf-rapidocr", "public-table", "reconstruct", "record-speeches", "yaml"]
+provides-extras = ["acquisition", "bill-diff", "courtlistener-local", "html", "pdf", "pdf-apple", "pdf-docling", "pdf-gemini", "pdf-mlx", "pdf-pypdf", "pdf-rapidocr", "public-table", "reconstruct", "record-speeches", "yaml"]
 
 [[package]]
 name = "tqdm"

@@ -215,3 +215,13 @@ current-successors table (manifest `0b39812d...`); see
 moves no digest. The bounded gates, the slow tier (446 passed, three workers)
 and its skip check pass on this tree; the full-Atlas tier did not run. Nothing
 is released or published.
+
+## SpicyDocs 0.54.0 adoption (dev25, 2026-10-04)
+
+dev25 moves to the released SpicyDocs 0.54.0 wheel (release commit
+`ae2c71e`), so DocSpec, Search and Engine can resolve one provider version
+again. The SpicyDocs modules RefSpec calls are byte-identical to 0.53.0's;
+the vendor README lists the eleven loaded modules that differ and why none
+changes a sealed artifact or binding version. Because the pin changed, the
+bounded gates and the slow tier run again on this tree; the release commit
+records them.

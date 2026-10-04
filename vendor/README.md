@@ -1,17 +1,18 @@
 # Vendored dependencies
 
-`spicy_docs-0.53.0-py3-none-any.whl` supplies shared source readers and
+`spicy_docs-0.54.0-py3-none-any.whl` supplies shared source readers and
 bounded U.S. Code acquisition with validated archive member delivery.
-SHA-256: `2ec43dcec80aa65d14db0c6fb9138bd1e6c17bcfc62b0065cbab2c5aa5bfce52`.
-Provider source: SpicyDocs `4bf3d04f0de7e43bf8ca6e87194c942bcd2ba96e`, with
-Rulespec Artifacts 1.1.2. The wheel is the retained 0.53.0 release artifact.
+SHA-256: `c17f7b36b6a6756e7475e6b50d21e172b1ab69ef21fd2255ed4a2c3539f27bae`.
+Provider source: SpicyDocs `ae2c71ee55388d4218a5cd8c14c695f7f174067a`, the
+0.54.0 release commit, with Rulespec Artifacts 1.1.2; two builds from a clean
+archive of that commit reproduce these bytes.
 RefSpec 0.1.0.dev10 retains snapshot acceptance, normalization and interpretation.
 Its title cache records original HTTP facts; its corpus and annual tools process
 validated members without reopening ZIPs. See [U.S. Code inputs](../docs/uscode-acquisition.md).
 
 Python 3.12, PyArrow 25.0.1 and DuckDB 1.5.5 or later remain unchanged. Existing
 sealed artifacts are unchanged; comparing a new writer to older Parquet bytes
-requires a row comparison. RefSpec 0.1.0.dev25 selects SpicyDocs 0.53.0
+requires a row comparison. RefSpec 0.1.0.dev25 selects SpicyDocs 0.54.0
 and Rulespec Artifacts 1.1.2. Sibling pins move on their own schedule, so read
 each repository's `pyproject.toml` rather than a list here; SpicySearch vendors
 RefSpec in optional groups only, and its runtime does not depend on RefSpec.
@@ -233,3 +234,17 @@ record the new implementation. Existing sealed data and binding versions stay
 unchanged. Qualification evidence is retained in
 `~/Work/corpora/claude-recovery-20260930/refspec-provider-comparison.json` and
 `refspec-provider.diff` beside it.
+
+**What 0.54.0 changes for RefSpec.** The SpicyDocs modules RefSpec calls are
+byte-identical to 0.53.0's: the U.S. Code readers, the CFR agency roster and
+subject index, the pypdf reader, PREMIS and Zyte. Importing every `spicy_docs`
+name RefSpec mentions in `src/`, `tools/`, `tests/` and `bindings/` (24
+modules) loads 61, and 11 of them differ. `sources.cfr.models` is the one
+RefSpec imports directly, for `CfrSourceError`, which is unchanged; the module
+adds the annual package id and its inverse. The rest load with their packages:
+the extraction package (Docling as the default recognition stack and the
+body-text derivation version), the annual CFR granule ids,
+`sources.govinfo.uslm` (a law's last Statutes page) and
+`sources.uscode.classification` (a row's page cell). Their source hashes move,
+so new capture receipts record the new implementation. Existing sealed data
+and binding versions stay unchanged.
