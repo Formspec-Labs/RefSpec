@@ -11,7 +11,7 @@ validated members without reopening ZIPs. See [U.S. Code inputs](../docs/uscode-
 
 Python 3.12, PyArrow 25.0.1 and DuckDB 1.5.5 or later remain unchanged. Existing
 sealed artifacts are unchanged; comparing a new writer to older Parquet bytes
-requires a row comparison. RefSpec 0.1.0.dev24 selects SpicyDocs 0.53.0
+requires a row comparison. RefSpec 0.1.0.dev25 selects SpicyDocs 0.53.0
 and Rulespec Artifacts 1.1.2. Sibling pins move on their own schedule, so read
 each repository's `pyproject.toml` rather than a list here; SpicySearch vendors
 RefSpec in optional groups only, and its runtime does not depend on RefSpec.

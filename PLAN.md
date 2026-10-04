@@ -198,3 +198,20 @@ gate and lint passed; see `refspec-package-gate.log` and `refspec-lint.log`
 in that evidence directory. The existing registry-audit expected failure is
 listed in `tests/allowed_skips.json`. Slow and full-Atlas qualification were
 not rerun. No binding, sealed artifact, publication or remote branch has moved.
+
+## FNS → FNA succession (dev25, 2026-10-04)
+
+`review/fna-succession-dev25` prepares RefSpec dev25 with the four commits of
+`chaos/2026-10-03-fns-fna-succession`, cherry-picked onto dev24 (`0d928093`),
+which was already their base: the trees are identical. The owner accepted
+`event:fr200` on 2026-10-03: FR 200 (Food and Nutrition Service) became FR 625
+(Food and Nutrition Administration) effective 2026-06-24, 91 FR 37779. The
+decision binds to the event's content digest `3e163e87...`. The
+`agency-registry-2026-09-26` release reads batch 1, then the succession batch:
+27 = 13 bridges + 10 events + 4 non-emissions, `sourceReleaseDigest`
+`dc639b30...`. The agency registry view is schema 1.2 with the derived
+current-successors table (manifest `0b39812d...`); see
+[the design, section 8](plans/agency-registry-design.md). The version bump
+moves no digest. The bounded gates, the slow tier (446 passed, three workers)
+and its skip check pass on this tree; the full-Atlas tier did not run. Nothing
+is released or published.
