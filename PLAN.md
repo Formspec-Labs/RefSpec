@@ -213,8 +213,9 @@ decision binds to the event's content digest `3e163e87...`. The
 current-successors table (manifest `0b39812d...`); see
 [the design, section 8](plans/agency-registry-design.md). The version bump
 moves no digest. The bounded gates, the slow tier (446 passed, three workers)
-and its skip check pass on this tree; the full-Atlas tier did not run. Nothing
-is released or published.
+and its skip check pass on this tree; the full-Atlas tier did not run. It
+ships in dev25, released on SpicyDocs 0.54.0 (below); nothing is uploaded to a
+package index.
 
 ## SpicyDocs 0.54.0 adoption (dev25, 2026-10-04)
 
@@ -223,5 +224,6 @@ dev25 moves to the released SpicyDocs 0.54.0 wheel (release commit
 again. The SpicyDocs modules RefSpec calls are byte-identical to 0.53.0's;
 the vendor README lists the eleven loaded modules that differ and why none
 changes a sealed artifact or binding version. Because the pin changed, the
-bounded gates and the slow tier run again on this tree; the release commit
-records them.
+bounded gates, the registry and contract checks, the slow tier and its skip
+check ran again on this tree and passed, moving no digest; the full-Atlas tier
+did not run. dev25 is released from this tree.
