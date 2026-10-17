@@ -1,4 +1,4 @@
-"""Compare two build trees byte for byte and name the first differences.
+"""Compare two selected Atlas generations byte for byte and name the first differences.
 
 The determinism claim this repository makes is not "the manifest digest is
 stable" -- it is that the same source bytes rebuild the same tree. A manifest
@@ -22,6 +22,8 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+
+from refspec.atlas.generation import select_atlas_generation
 
 REPORT_LIMIT = 20
 # Files a machine measures rather than the source determines (peak RSS, elapsed
@@ -79,10 +81,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("second", type=Path)
     arguments = parser.parse_args(argv)
 
-    for root in (arguments.first, arguments.second):
-        if not root.is_dir():
-            print(f"determinism gate: {root} is not a directory", flush=True)
-            return 1
+    try:
+        arguments.first = select_atlas_generation(arguments.first).root
+        arguments.second = select_atlas_generation(arguments.second).root
+    except ValueError as error:
+        print(f"determinism gate: {error}", flush=True)
+        return 1
 
     first = tree_digests(arguments.first)
     second = tree_digests(arguments.second)

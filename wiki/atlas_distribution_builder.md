@@ -9,8 +9,8 @@ distribution. Its implementation lives in
 builder validates normalized input rows, constructs evidence-bearing Resource
 Description Framework (RDF) records, streams canonical N-Quads through bounded
 disk spools, writes content-addressed packs and supporting receipts, optionally
-builds a typed Parquet view, and promotes the candidate only after its
-producer-side checks pass.
+builds a typed Parquet view, and selects the complete generation only after
+its producer-side checks pass.
 
 The builder does not establish publisher-capture completeness, independently
 prove capture-to-Atlas fidelity, sign a release, publish it, or replace the
@@ -362,8 +362,8 @@ sequenceDiagram
     opt Parquet view requested
         Writer->>View: seal adjacent view against candidate manifest
     end
-    Writer->>FS: rename validated candidate into place
-    Writer->>FS: promote sealed view and generation report
+    Writer->>FS: retain complete generation (distribution, view, report)
+    Writer->>FS: atomically replace selection symlink
     CLI-->>Caller: producer result and output path
 ```
 
@@ -507,7 +507,7 @@ and records whether the agency projection and derived table were emitted. The
 view remains a derived query representation; canonical authority stays in the
 asserted RDF.
 
-#### 7. Close the candidate and promote it
+#### 7. Close the candidate and select its generation
 
 The asserted graph inventory digest exists only after pack materialization.
 The writer stamps that digest into source accounting, recomputes the
@@ -522,17 +522,19 @@ documents. It then writes the manifest and checks:
 - stored file lengths and SHA-256 digests; and
 - exact candidate directory membership.
 
-The writer builds in a temporary sibling directory. It renames the candidate
-over the visible distribution only after these checks pass. The Parquet view
-and generation report are promoted as adjacent artifacts in later steps, so
-contributors must not describe the three paths as one filesystem transaction.
+The writer finishes the distribution, optional Parquet view and report inside
+one uniquely named generation, then atomically replaces a selection symlink.
+Consumers pin that selection once and use concrete sibling paths throughout
+an operation. Prior generations remain available; failed builds cannot expose
+partial artifact sets. See [generation selection](../docs/atlas-generation-selection.md)
+for the local layout, consumer API, failure guarantees and retention rules.
 
 ## Output structure
 
-A normal build produces this shape:
+Each selected generation contains this shape (the selector itself lives outside it):
 
 ```text
-<release-root>/
+<generation-root>/
 ├── distribution/
 │   ├── atlas-manifest.json
 │   ├── atlas-source-accounting.json
@@ -607,7 +609,7 @@ replace, the independent release verdict.
 | `load_mapping_releases(include_keys=None, source_releases=None)` | Load evidence-backed mapping releases, reconcile source-specific conflicts, pin endpoints to loaded releases, and validate mapping policy. |
 | `validate_prebuild_loaded_releases(releases, mapping_releases=(), deep=False)` | Validate caller-supplied loaded values and prepare plans, seeds, counts, and reports. `deep=True` also exercises streamed construction in temporary storage. |
 | `validate_prebuild(registry_claim_inputs=None, include_keys=None, deep=False)` | Load the requested topology and run prebuild validation without writing a distribution. |
-| `build_distribution(output, registry_claim_inputs=None, include_keys=None, parquet_view=True)` | Run the complete producer path and promote the candidate distribution. |
+| `build_distribution(output, registry_claim_inputs=None, include_keys=None, parquet_view=True)` | Run the producer path and atomically select a complete retained generation. |
 | `main()` | Command-line interface. Returns `0` after input inspection or a completed build and propagates failures. |
 
 Most underscore-prefixed helpers and classes are internal implementation
@@ -632,20 +634,23 @@ uv run python tools/generate_atlas_v3_full.py \
   --output output/atlas-3.1-federal-register-thesaurus-2025-04-01/distribution
 ```
 
-Then validate the serialized distribution with the portable binding:
+Pin the complete generation once, then validate its serialized distribution
+with the portable binding:
 
 ```sh
+selected=$(uv run --frozen python -m refspec.atlas.generation \
+  output/atlas-3.1-federal-register-thesaurus-2025-04-01/distribution)
 uv run --no-project \
   --with-requirements bindings/atlas/3.1/requirements.txt \
   python bindings/atlas/3.1/tools/validate.py \
-  --distribution output/atlas-3.1-federal-register-thesaurus-2025-04-01/distribution
+  --distribution "$selected/distribution"
 ```
 
 The CLI supports:
 
 | Option | Meaning |
 | --- | --- |
-| `--output PATH` | Distribution directory. The default points to a development output under `output/`. |
+| `--output PATH` | Atomic generation selection symlink; existing real directories are refused. The default points to a development output under `output/`. |
 | `--check-inputs` | Load and verify the requested inputs, print their inventory, and skip distribution writing. |
 | `--only-release RELEASE_KEY` | Bound the build to one construction unit. Repeat for additional units and required dependencies. |
 | `--registry-claim-input RELEASE_KEY BUNDLE_PATH MANIFEST_SHA256` | Inject a verified claim bundle into an existing loaded registry release. Repeat for additional releases. Claim-injected builds require a new output path. |
@@ -686,7 +691,7 @@ Every build is cold: it reparses pinned inputs, reconstructs all selected
 records, and rewrites every pack. No previous distribution supplies content or
 authority. Temporary directories hold sort chunks, construction spools, and
 the candidate; normal cleanup removes them after success or failure. The
-visible distribution remains unchanged until candidate promotion.
+previous selection remains unchanged until the new generation is selected.
 
 ## Performance and scaling
 
@@ -785,6 +790,7 @@ prove byte or verdict parity as appropriate.
 | Status and memory reporting | `test_status_reporter_rate_limits_progress_and_keeps_phase_boundaries`, `test_status_reporter_records_portable_peak_rss_receipts` |
 | Pack paths, partitions, dependencies, and receipts | `test_release_pack_paths_are_readable_safe_and_deterministic`, `test_same_release_cross_partition_reference_pins_target_pack`, `test_pack_write_receipt_matches_both_exact_byte_forms`, `test_a_large_mapping_release_buckets_its_pack` |
 | Bounded selection and loading | `test_bounded_release_keys_reach_the_loader_that_declares_them`, `test_bounded_build_loads_only_the_named_release` |
+| Generation selection and fault probes | `tests/test_atlas_generation_selection.py` |
 | Streamed constructor parity | `test_streamed_construction_matches_the_whole_graph_oracle`, `test_streamed_whole_graph_refusal_battery_has_no_missing_probe` |
 | Candidate immutability and binding pins | `test_candidate_binds_compiled_proof_before_releasing_graphs`, `test_candidate_rejects_asserted_mutation_after_compiled_validation`, `test_a_binding_edited_under_a_running_build_is_refused` |
 | Source accounting and distribution identity | `test_distribution_identity_is_the_digest_of_the_content_it_labels`, `test_distribution_identity_names_its_scope_and_cannot_be_relabelled` |

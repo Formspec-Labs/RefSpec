@@ -79,9 +79,13 @@ def _host_state() -> dict[str, str]:
 
 
 def _disk_bytes(root: Path | None) -> int | None:
+    """Peak-disk sample; a diagnostic, so a slow or failed `du` yields no sample rather than ending the phase."""
     if root is None or not root.exists():
         return None
-    return int(_command_output(["du", "-sk", str(root)]).split()[0]) * 1024
+    try:
+        return int(_command_output(["du", "-sk", str(root)]).split()[0]) * 1024
+    except (OSError, subprocess.SubprocessError, ValueError, IndexError):
+        return None
 
 
 def _swap_bytes(state: dict[str, str]) -> int | None:
@@ -215,7 +219,7 @@ def run_phase(
         else None,
         "peakRssBytes": 0,
         "peakFootprintBytes": 0,
-        "peakDiskBytes": 0,
+        "peakDiskBytes": None,  # None until a disk sample succeeds; 0 would read as measured.
         "hostBefore": _host_state(),
     }
     process = None
@@ -282,7 +286,8 @@ def run_phase(
                 if now - last_disk_sample >= 30:
                     sample["diskBytes"] = _disk_bytes(disk_root)
                     sample["host"] = _host_state()
-                    receipt["peakDiskBytes"] = max(receipt["peakDiskBytes"], sample["diskBytes"] or 0)
+                    if sample["diskBytes"] is not None:
+                        receipt["peakDiskBytes"] = max(receipt["peakDiskBytes"] or 0, sample["diskBytes"])
                     last_disk_sample = now
                 sample_log.write(json.dumps(sample, sort_keys=True) + "\n")
                 sample_log.flush()

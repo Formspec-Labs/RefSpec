@@ -55,45 +55,47 @@ def test_the_strict_parser_lint_refuses_a_defective_line(tmp_path: Path) -> None
         lint_rdf_strict._parse_strict(bad)
 
 
-def test_the_determinism_comparator_separates_identical_trees_from_changed_ones(
-    tmp_path: Path,
-) -> None:
-    """Pins exit 0 for identical trees and exit 1 for a changed uncovered file or an extra file."""
-    first = tmp_path / "first" / "distribution"
-    second = tmp_path / "second" / "distribution"
-    for root in (first, second):
-        (root / "packs").mkdir(parents=True)
-        (root / "atlas-manifest.json").write_text('{"a": 1}', encoding="utf-8")
-        (root / "packs" / "all.nq").write_text(GOOD_LINE, encoding="utf-8")
+def _selected_tree(root: Path) -> tuple[Path, Path]:
+    """Construct tiny current-layout fixtures; these are not conformant Atlas data."""
+    generation = root / ".distribution.generations" / ("0" * 32)
+    distribution = generation / "distribution"
+    distribution.mkdir(parents=True)
+    (distribution / "atlas-manifest.json").write_text('{"a": 1}')
+    (generation / "generation-report.json").write_text('{"a": 1}')
+    selection = root / "distribution"
+    selection.symlink_to(distribution.relative_to(root))
+    return selection, generation
 
-    assert compare_build_trees.main([str(first.parent), str(second.parent)]) == 0
 
+def test_the_determinism_comparator_separates_identical_trees_from_changed_ones(tmp_path: Path) -> None:
+    """Pin equality and refusal of a changed uncovered file or an extra file."""
+    first, a = _selected_tree(tmp_path / "first")
+    second, b = _selected_tree(tmp_path / "second")
+    for root in (a, b):
+        (root / "distribution" / "packs").mkdir()
+        (root / "distribution" / "packs" / "all.nq").write_text(GOOD_LINE)
+    assert compare_build_trees.main([str(first), str(second)]) == 0
     # One byte, in one file the manifest does not cover: whole trees are
     # compared for exactly this reason.
-    (second / "packs" / "all.nq").write_text(GOOD_LINE * 2, encoding="utf-8")
-    assert compare_build_trees.main([str(first.parent), str(second.parent)]) == 1
-
-    (second / "packs" / "extra.nq").write_text(GOOD_LINE, encoding="utf-8")
-    assert compare_build_trees.main([str(first.parent), str(second.parent)]) == 1
+    (b / "distribution" / "packs" / "all.nq").write_text(GOOD_LINE * 2)
+    assert compare_build_trees.main([str(first), str(second)]) == 1
+    (b / "distribution" / "packs" / "extra.nq").write_text(GOOD_LINE)
+    assert compare_build_trees.main([str(first), str(second)]) == 1
 
 
 def test_the_determinism_comparator_compares_only_the_presence_of_a_measured_file(tmp_path: Path) -> None:
-    """Different RSS measurements pass; a missing measurements file or a changed report still fails."""
-    first, second = tmp_path / "first", tmp_path / "second"
-    for root, rss in ((first, 1), (second, 2)):
-        root.mkdir()
-        (root / "generation-report.json").write_text('{"a": 1}', encoding="utf-8")
-        (root / "generation-measurements.json").write_text(f'{{"peakRssBytes": {rss}}}', encoding="utf-8")
+    """Different RSS values pass; missing measurements, changed report or shape fail."""
+    first, a = _selected_tree(tmp_path / "first")
+    second, b = _selected_tree(tmp_path / "second")
+    for root, rss in ((a, 1), (b, 2)):
+        (root / "generation-measurements.json").write_text(f'{{"peakRssBytes": {rss}}}')
     assert compare_build_trees.main([str(first), str(second)]) == 0
-
-    (second / "generation-report.json").write_text('{"a": 2}', encoding="utf-8")
+    (b / "generation-report.json").write_text('{"a": 2}')
     assert compare_build_trees.main([str(first), str(second)]) == 1
-
-    (second / "generation-report.json").write_text('{"a": 1}', encoding="utf-8")
-    (second / "generation-measurements.json").write_text('{"peakRssBytes": 3, "phases": []}', encoding="utf-8")
+    (b / "generation-report.json").write_text('{"a": 1}')
+    (b / "generation-measurements.json").write_text('{"peakRssBytes": 3, "phases": []}')
     assert compare_build_trees.main([str(first), str(second)]) == 1, "a changed measurement shape still fails"
-
-    (second / "generation-measurements.json").unlink()
+    (b / "generation-measurements.json").unlink()
     assert compare_build_trees.main([str(first), str(second)]) == 1
 
 

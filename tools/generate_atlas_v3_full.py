@@ -22,11 +22,13 @@ import heapq
 import importlib.util
 import io
 import json
+import os
 import re
 import resource as process_resource
 import sys
 import tempfile
 import time
+import uuid
 from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from contextlib import ExitStack
@@ -88,6 +90,7 @@ from refspec.atlas.derived_graph.mesh_tree_numbers import (
     mesh_tree_number_evidence_nodes,
     resolve_tree_number_edges_from_notations,
 )
+from refspec.atlas.generation import generation_store, require_selection_output, select_atlas_generation
 from refspec.atlas.parquet_tables import (
     TABLE_DIRECTORY,
     TABLE_NAMES,
@@ -9680,48 +9683,10 @@ def _write_streamed_candidate_distribution(
     return result, manifest
 
 
-def _generation_report_path(output: Path) -> Path:
-    return output.parent / "generation-report.json"
-
-
-# Machine measurements, not build output: the same source bytes rebuild the same
-# report, but not the same peak RSS or elapsed milliseconds. They live beside the
-# report so the determinism gate can compare everything else byte for byte
-# (tools/compare_build_trees.py names this one file as measured, REF-071).
+# Machine measurements (peak RSS, elapsed time) are not byte-reproducible, so they
+# stay separate from the release artifacts: tools/compare_build_trees.py
+# MEASURED_FILES names this file and compares it by JSON shape only (REF-071).
 GENERATION_MEASUREMENTS_FILE = "generation-measurements.json"
-
-
-def _generation_report_distribution_path(output: Path) -> str:
-    """Name the distribution relative to its adjacent generation report."""
-
-    if output == output.parent or not output.name:
-        raise ValueError(f"distribution output has no relative report path: {output}")
-    return output.name
-
-
-def _promote_validated_distribution(
-    candidate: Path,
-    output: Path,
-    *,
-    temporary_root: Path,
-) -> None:
-    """Replace the visible distribution only after its candidate validated."""
-
-    if output == output.parent:
-        raise ValueError(f"refusing to replace a filesystem root: {output}")
-    if output.is_symlink() or (output.exists() and not output.is_dir()):
-        raise FileExistsError(f"distribution path is not a real directory: {output}")
-    previous = temporary_root / "previous-distribution"
-    if output.exists():
-        output.rename(previous)
-    try:
-        candidate.rename(output)
-    except BaseException:
-        if previous.exists() and not output.exists():
-            previous.rename(output)
-        raise
-
-
 
 
 def _write_streamed_distribution(
@@ -9731,13 +9696,22 @@ def _write_streamed_distribution(
     releases: Sequence[ReleasePackPlan],
     construction_seeds: Sequence[ReleaseConstructionSeed],
     generation_report: Mapping[str, Any],
-    parquet_view: Path | None = None,
+    parquet_view: bool = False,
     agency_projection: AgencyProjection | None = None,
     agency_projection_missing_keys: Sequence[str] = (),
 ) -> dict[str, Any]:
-    """Validate and promote one distribution assembled from disk spools."""
+    """Finish sibling artifacts, retain them, then atomically select them once.
 
+    Selected artifact bytes are never edited or removed here. POSIX rename
+    provides process-failure coherence, not power-loss durability or freshness.
+    Concurrent writers own separate candidates; the last pointer swap wins.
+    """
+    output = require_selection_output(output)
     output.parent.mkdir(parents=True, exist_ok=True)
+    store = generation_store(output)
+    store.mkdir(exist_ok=True)
+    if store.is_symlink() or not store.is_dir():
+        raise ValueError(f"Atlas generation store is not a real directory: {store}")
     counts = streamed.compiled_validation.get("counts")
     if not isinstance(counts, Mapping):
         raise TypeError("compiled producer validation has no count receipt")
@@ -9745,14 +9719,14 @@ def _write_streamed_distribution(
     if not isinstance(created_at, str) or not created_at:
         raise TypeError("generation report has no recorded instant")
     relation_scope = _production_relation_scope_from_counts(counts)
-    report_distribution_path = _generation_report_distribution_path(output)
-    with tempfile.TemporaryDirectory(
-        prefix=f".{output.name}.candidate-",
-        dir=output.parent,
-    ) as raw_temporary_root:
+    generation_id = uuid.uuid4().hex
+    final = store / generation_id
+    with tempfile.TemporaryDirectory(prefix=".candidate-", dir=store) as raw_temporary_root:
         temporary_root = Path(raw_temporary_root)
-        candidate = temporary_root / "distribution"
-        staged_tables = None if parquet_view is None else temporary_root / "parquet-view"
+        generation = temporary_root / generation_id
+        generation.mkdir()
+        candidate = generation / "distribution"
+        staged_tables = temporary_root / "tables" if parquet_view else None
         result, manifest = _write_streamed_candidate_distribution(
             candidate,
             streamed,
@@ -9764,11 +9738,10 @@ def _write_streamed_distribution(
         )
         if staged_tables is not None:
             _STATUS.phase("seal-parquet-view")
-            sealed_view = temporary_root / "sealed-parquet-view"
             seal_atlas_parquet_view(
                 candidate,
                 staged_tables,
-                sealed_view,
+                generation / "parquet-view",
                 expected_manifest_digest=_sha256_file(candidate / "atlas-manifest.json"),
                 agency_projection=_agency_projection_manifest_metadata(
                     agency_projection,
@@ -9782,40 +9755,31 @@ def _write_streamed_distribution(
             "distribution": {
                 "id": distribution_id,
                 "manifestDigest": _sha256_file(candidate / "atlas-manifest.json"),
-                "path": report_distribution_path,
+                "path": "distribution",
             },
             "productionRelationScope": relation_scope,
             "validation": result,
         }
-        candidate_report = temporary_root / "generation-report.json"
-        candidate_report.write_bytes(ATLAS_VALIDATE.canonical_json_bytes(report))
-        if manifest["distributionId"] != _distribution_id(streamed.accounting):
+        (generation / "generation-report.json").write_bytes(ATLAS_VALIDATE.canonical_json_bytes(report))
+        if manifest["distributionId"] != distribution_id:
             raise ValueError("candidate manifest distribution identity differs")
-        report_path = _generation_report_path(output)
-        if report_path.exists() and not (report_path.is_file() or report_path.is_symlink()):
-            raise FileExistsError(f"generation report path is not replaceable: {report_path}")
-        _STATUS.phase("promote-validated-distribution")
-        _promote_validated_distribution(candidate, output, temporary_root=temporary_root)
-        if parquet_view is not None:
-            previous_view_root = temporary_root / "previous-parquet-view"
-            previous_view_root.mkdir()
-            _promote_validated_distribution(
-                sealed_view,
-                parquet_view,
-                temporary_root=previous_view_root,
-            )
-        try:
-            candidate_report.replace(report_path)
-        except BaseException:
-            failed_candidate = temporary_root / "validated-distribution"
-            output.rename(failed_candidate)
-            previous = temporary_root / "previous-distribution"
-            if previous.exists():
-                previous.rename(output)
-            raise
-        (output.parent / GENERATION_MEASUREMENTS_FILE).write_bytes(
+        _STATUS.phase("retain-complete-generation")
+        generation.rename(final)
+    # This link is owned by this writer alone; failure never removes a
+    # selected generation or any prior generation (including its seal).
+    pointer = output.parent / f".{output.name}.{generation_id}.selecting"
+    try:
+        pointer.symlink_to((final / "distribution").relative_to(output.parent), target_is_directory=True)
+        _STATUS.phase("select-complete-generation")
+        os.replace(pointer, output)
+    finally:
+        pointer.unlink(missing_ok=True)
+    try:
+        (final / GENERATION_MEASUREMENTS_FILE).write_bytes(
             ATLAS_VALIDATE.canonical_json_bytes({"memoryProfile": _STATUS.memory_profile()})
         )
+    except OSError as error:
+        print(f"Atlas generation selected at {final}; optional measurements failed: {error}", file=sys.stderr)
     return result
 
 
@@ -10262,17 +10226,6 @@ def _check_parquet_view_against_graph(view: Path, asserted: Graph) -> dict[str, 
     }
 
 
-def _parquet_view_path(output: Path) -> Path:
-    """Name the Parquet view beside its distribution, never inside it.
-
-    A distribution validates its own membership as a closed set, so a derived
-    view written into that directory would make the artifact fail its own
-    walk. The generation report already sits here for the same reason.
-    """
-
-    return output.parent / "parquet-view"
-
-
 def _producer_generation_report(
     releases: tuple[LoadedRelease, ...],
     mapping_releases: Sequence[RegistryMappingRelease],
@@ -10468,7 +10421,7 @@ def build_distribution(
     include_keys: frozenset[str] | None = None,
     parquet_view: bool = True,
 ) -> None:
-    """Build, validate, and atomically promote the Atlas 3 distribution.
+    """Build, validate, and atomically select a complete retained Atlas 3 generation.
 
     Every build is cold. ``include_keys`` bounds the build to a named set of
     construction units. Every later step is already release-scoped -- input
@@ -10477,10 +10430,12 @@ def build_distribution(
     bounding the load bounds the distribution, including the scope segment its
     identity carries.
 
-    ``parquet_view`` emits the typed Parquet view beside the distribution from
-    the same bounded release graphs that feed the canonical RDF spools.
+    ``parquet_view`` emits the typed Parquet view beside the distribution inside
+    the generation, from the same bounded release graphs that feed the canonical
+    RDF spools.
     """
 
+    output = require_selection_output(output)
     output.parent.mkdir(parents=True, exist_ok=True)
     claim_inputs = {} if registry_claim_inputs is None else registry_claim_inputs
     if claim_inputs and output.exists():
@@ -10531,7 +10486,7 @@ def build_distribution(
             releases=prebuild.pack_plans,
             construction_seeds=prebuild.construction_seeds,
             generation_report=prebuild.generation_report,
-            parquet_view=_parquet_view_path(output) if parquet_view else None,
+            parquet_view=parquet_view,
             agency_projection=agency_projection,
             agency_projection_missing_keys=agency_projection_missing_keys,
         )
@@ -10539,12 +10494,13 @@ def build_distribution(
 
 
 def main() -> int:
-    """Parse the CLI, then verify pinned inputs or build, validate, and promote the distribution."""
+    """Parse the CLI, then verify pinned inputs or build, validate, and select a complete retained generation."""
 
     global _STATUS
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT,
+                        help="atomic generation selector; refuses an existing real directory")
     parser.add_argument(
         "--check-inputs",
         action="store_true",
@@ -10613,7 +10569,7 @@ def main() -> int:
             _STATUS.phase("complete")
             return 0
         build_distribution(
-            args.output.resolve(),
+            args.output,
             registry_claim_inputs=registry_claim_inputs,
             include_keys=include_keys,
             parquet_view=not args.no_parquet_view,
@@ -10622,7 +10578,7 @@ def main() -> int:
         _STATUS.phase("failed", current=type(error).__name__)
         raise
     _STATUS.phase("complete")
-    print(args.output.resolve())
+    print(select_atlas_generation(args.output).distribution)
     return 0
 
 

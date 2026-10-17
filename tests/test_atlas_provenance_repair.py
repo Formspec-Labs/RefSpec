@@ -11,6 +11,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from refspec.atlas.generation import select_atlas_generation
 from tools import verify_atlas_source_fidelity as v
 
 
@@ -39,7 +40,7 @@ def test_requested_paths_match_old_oracle_for_cycles_direction_and_long_paths():
 @pytest.fixture(scope="module")
 def umthes():
     root = Path(__file__).parents[1]
-    distribution = root / "output/atlas-3.1-umthes-2026-09-27/distribution"
+    distribution = select_atlas_generation(root / "output/atlas-3.1-umthes-2026-09-27/distribution").distribution
     assert distribution.is_dir(), "required retained UMTHES distribution is unavailable"
     selected, scoped = v.select_scope(["umthes-gemet-endpoints-2026-08-15"])
     context = v.build_context(distribution, v.DEFAULT_SOURCE_ROOT, specs=selected, scoped_out_specs=scoped)

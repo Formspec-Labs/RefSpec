@@ -18,6 +18,7 @@ from refspec.atlas import explorer_cli
 from refspec.atlas.compact_pack import CompactRecordRole
 from refspec.atlas.duckdb_view import ATLAS_DUCKDB_TABLES, AtlasDuckDBView
 from refspec.atlas.explorer import open_atlas_explorer
+from refspec.atlas.generation import select_atlas_generation
 from refspec.atlas.parquet_search_view import _SCHEMAS as _COMPACT_SCHEMAS
 from refspec.atlas.parquet_search_view import MANIFEST_FILE, build_atlas_parquet_search_view
 from refspec.atlas.parquet_tables import (
@@ -35,7 +36,7 @@ ROOT = Path(__file__).resolve().parents[1]
 # proves the graceful "no agency projection" path end to end.
 # A real view without the agency projection: the Federal Register Thesaurus
 # release carries none (`make release-atlas-federal-register-thesaurus`).
-_FR_RELEASE_VIEW = ROOT / "output" / "atlas-3.1-federal-register-thesaurus-2025-04-01" / "parquet-view"
+_FR_RELEASE_SELECTION = ROOT / "output" / "atlas-3.1-federal-register-thesaurus-2025-04-01" / "distribution"
 
 
 def test_cli_serves_compact_search_view_directory(tmp_path: Path, monkeypatch) -> None:
@@ -469,10 +470,11 @@ def test_agencies_gracefully_degrades_against_a_real_view_without_the_projection
     """
 
     compact = tmp_path / "compact-view"
+    selected_view = select_atlas_generation(_FR_RELEASE_SELECTION).parquet_view
     build_atlas_parquet_search_view(
-        _FR_RELEASE_VIEW,
+        selected_view,
         compact,
-        expected_manifest_digest=sha256_digest((_FR_RELEASE_VIEW / FULL_VIEW_MANIFEST_FILE).read_bytes()),
+        expected_manifest_digest=sha256_digest((selected_view / FULL_VIEW_MANIFEST_FILE).read_bytes()),
     )
     manifest_digest = sha256_digest((compact / MANIFEST_FILE).read_bytes())
     view = open_atlas_explorer(compact, trusted_manifest_digest=manifest_digest)

@@ -26,6 +26,34 @@ def sampled_guard(monkeypatch):
     monkeypatch.setattr(guard, "_footprint", lambda *args: 1)
 
 
+def test_a_slow_or_failed_disk_sample_is_no_sample_not_a_failed_phase(monkeypatch, tmp_path):
+    def timeout(command):
+        raise subprocess.TimeoutExpired(command, 15)
+
+    monkeypatch.setattr(guard, "_command_output", timeout)
+    assert guard._disk_bytes(tmp_path) is None
+    monkeypatch.undo()
+    assert guard._disk_bytes(tmp_path / "absent") is None
+    assert isinstance(guard._disk_bytes(tmp_path), int)
+
+
+def test_peak_disk_is_unmeasured_until_a_sample_succeeds(sampled_guard, monkeypatch, tmp_path):
+    code = "import time; time.sleep(.2)"
+    assert _run(tmp_path, code, report=tmp_path / "none.json")["peakDiskBytes"] is None  # No disk root named.
+    run_command = guard._command_output
+
+    def du_fails(command):
+        if command[0] == "du":
+            raise OSError("du failed")
+        return run_command(command)
+
+    monkeypatch.setattr(guard, "_command_output", du_fails)
+    assert _run(tmp_path, code, report=tmp_path / "failed.json", disk_root=tmp_path)["peakDiskBytes"] is None
+    monkeypatch.setattr(guard, "_command_output", run_command)
+    monkeypatch.setattr(guard, "_disk_bytes", lambda root: 4096)
+    assert _run(tmp_path, code, report=tmp_path / "ok.json", disk_root=tmp_path)["peakDiskBytes"] == 4096
+
+
 def _run(tmp_path, code, **overrides):
     options = {
         "name": "test",

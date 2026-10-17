@@ -13,6 +13,14 @@ default path is the sibling
 The implementation is `src/refspec/seal.py`; the proof is `tests/test_seal.py`,
 which runs against the real Federal Register Thesaurus distribution.
 
+When consuming the full builder's mutable selection, resolve it once with
+`select_atlas_generation` and pass the returned concrete distribution and view
+paths to the seal APIs. `tools/seal_distribution.py --selection` does this for
+one CLI operation. The seal remains beside the selected distribution; see
+[generation selection](atlas-generation-selection.md). The seal CLI has one
+selection-based route. Its verification primitives receive the concrete paths
+returned by that selection.
+
 ## 1. What the signature attests
 
 The signed payload binds five things and nothing else:

@@ -588,18 +588,19 @@ Run from the repository root through the Makefile when possible:
 
 ```sh
 make audit-atlas-v3-source-fidelity \
-  ATLAS_V3_AUDIT_ROOT=output/atlas-3.1-federal-register-thesaurus-2025-04-01
+  ATLAS_V3_AUDIT_ROOT=output/atlas-3.1-federal-register-thesaurus-2025-04-01/distribution
 ```
 
-The target accepts either a directory that contains `atlas-manifest.json` or
-its parent with a `distribution/` child. It writes the configured receipt and
-uses the Atlas binding requirements.
+The target requires the builder generation selector and pins it once.
+Parent directories and direct distribution paths are unsupported target
+inputs. It writes the configured receipt and uses the Atlas binding requirements.
 
 Direct use exposes every option:
 
 ```sh
+selected=$(uv run --frozen python -m refspec.atlas.generation output/example/distribution)
 uv run python tools/verify_atlas_source_fidelity.py \
-  --distribution output/example/distribution \
+  --distribution "$selected/distribution" \
   --source-root output/registry-real-data-sources \
   --minimum-label-sample 200 \
   --only elsst-r6 \

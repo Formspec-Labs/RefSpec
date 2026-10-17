@@ -988,8 +988,11 @@ def _contract_dev_pair(root: Path, output: Path) -> tuple[str, str]:
         text=True,
     )
     assert built.returncode == 0, built.stderr[-4000:]
+    from refspec.atlas.generation import select_atlas_generation
+
+    selected = select_atlas_generation(output / "distribution")
     manifest, view = (
-        hashlib.sha256((output / member).read_bytes()).hexdigest()
+        hashlib.sha256((selected.root / member).read_bytes()).hexdigest()
         for member in ("distribution/atlas-manifest.json", "parquet-view/view-manifest.json")
     )
     return manifest, view

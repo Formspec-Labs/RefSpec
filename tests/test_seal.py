@@ -16,6 +16,7 @@ from typing import Any
 
 import pytest
 
+from refspec.atlas.generation import select_atlas_generation
 from refspec.atlas.parquet_artifact import file_sha256
 from refspec.atlas.parquet_view import MANIFEST_FILE as VIEW_MANIFEST_FILE
 from refspec.release_model import canonical_json_bytes
@@ -32,8 +33,6 @@ from refspec.seal import (
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 RELEASE_ROOT = REPOSITORY_ROOT / "output" / "atlas-3.1-federal-register-thesaurus-2025-04-01"
-DISTRIBUTION_ROOT = RELEASE_ROOT / "distribution"
-PARQUET_VIEW_ROOT = RELEASE_ROOT / "parquet-view"
 SIGNER_IDENTITY = "release@refspec.test"
 
 # The HEAD-conforming Federal Register Thesaurus distribution and its served
@@ -104,8 +103,9 @@ def distribution(tmp_path: Path) -> Path:
     """
 
     root = tmp_path / "distribution"
-    shutil.copytree(DISTRIBUTION_ROOT, root)
-    shutil.copytree(PARQUET_VIEW_ROOT, default_parquet_view_path(root))
+    selected = select_atlas_generation(RELEASE_ROOT / "distribution")
+    shutil.copytree(selected.distribution, root)
+    shutil.copytree(selected.parquet_view, default_parquet_view_path(root))
     return root
 
 
@@ -454,3 +454,30 @@ def test_create_seal_refuses_to_sign_a_distribution_with_an_added_file(
         create_seal(distribution, signing_key, SIGNER_IDENTITY)
 
     assert not default_seal_path(distribution).exists()
+
+
+def test_seal_cli_mints_and_verifies_selected_generation(
+    tmp_path, distribution, signing_key, allowed_signers, monkeypatch, capsys,
+):
+    import sys
+
+    from tools import seal_distribution
+    generation = tmp_path / ".selected.generations" / ("a" * 32)
+    generation.mkdir(parents=True)
+    view = default_parquet_view_path(distribution)
+    distribution.rename(generation / "distribution")
+    view.rename(generation / "parquet-view")
+    (generation / "generation-report.json").write_text("{}")
+    selection = tmp_path / "selected"
+    selection.symlink_to((generation / "distribution").relative_to(tmp_path))
+    monkeypatch.setattr(sys, "argv", ["seal", "mint", "--selection", str(selection),
+        "--private-key", str(signing_key), "--signer-identity", SIGNER_IDENTITY])
+    assert seal_distribution.main() == 0
+    minted = json.loads(capsys.readouterr().out)
+    assert minted["sealPath"] == str(generation / "distribution-seal.json")
+    monkeypatch.setattr(sys, "argv", ["seal", "verify", "--selection", str(selection),
+        "--allowed-signers", str(allowed_signers)])
+    assert seal_distribution.main() == 0
+    verified = json.loads(capsys.readouterr().out)
+    assert verified["distribution_id"] == minted["distributionId"]
+    assert verified["manifest_sha256"] == minted["manifestSha256"]

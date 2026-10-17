@@ -58,6 +58,7 @@ def _fixture(tmp_path):
         full_view_manifest_sha256=file_sha256(full / "view-manifest.json"),
         compact_view=tmp_path / "compact",
         report_root=tmp_path / "qualification",
+        disk_root=None,
         agency_view=agency,
         agency_view_manifest_sha256=file_sha256(agency / "view-manifest.json"),
         agency_audit_evidence_manifest=evidence,
@@ -130,6 +131,15 @@ def test_complete_sequence_copies_binding_and_uses_audit(tmp_path):
     assert str(args.report_root / "standalone-binding/tools/validate.py") in audit[1]
     assert all(options["env"]["REFSPEC_ATLAS_VALIDATION_MODE"] == "audit" for _, _, options in calls)
     assert "--only" not in calls[3][1]
+    # Peak disk is sampled over the report root unless the caller names a tree.
+    assert {options["disk_root"] for _, _, options in calls} == {args.report_root.resolve()}
+
+
+def test_an_explicit_disk_root_is_passed_to_every_phase_unchanged(tmp_path):
+    args, calls = _fixture(tmp_path), []
+    args.disk_root = tmp_path / "release"
+    assert qualification.qualify(args, phase_runner=_runner(args, calls))["status"] == "passed"
+    assert {options["disk_root"] for _, _, options in calls} == {args.disk_root.resolve()}
 
 
 def test_phases_share_one_total_budget_and_its_end_leaves_a_receipt(tmp_path, monkeypatch):

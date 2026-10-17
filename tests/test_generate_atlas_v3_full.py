@@ -3956,24 +3956,13 @@ def test_source_accounting_recounts_all_22_icpsr_remap_evidence_records() -> Non
     )
 
 
-def test_generation_report_uses_a_location_independent_distribution_path(
-    tmp_path: Path,
-) -> None:
-    """Pin that the generation report names the distribution by a relative path."""
-
-    first = tmp_path / "checkout-a" / "distribution"
-    second = tmp_path / "checkout-b" / "distribution"
-
-    assert generator._generation_report_distribution_path(first) == "distribution"
-    assert generator._generation_report_distribution_path(second) == "distribution"
-    assert not Path(generator._generation_report_distribution_path(first)).is_absolute()
-
-
+@pytest.mark.parametrize("parquet_view", [False, True])
 def test_streamed_generation_report_records_memory_profile_shape(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    parquet_view: bool,
 ) -> None:
-    """The final report exposes the diagnostic RSS receipt in a stable shape."""
+    """The selected real candidate keeps the report, optional view and diagnostics coherent."""
 
     monkeypatch.setattr(
         generator,
@@ -3988,6 +3977,7 @@ def test_streamed_generation_report_records_memory_profile_shape(
         prebuild=prebuild,
         spool_root=tmp_path / "stream-spool",
     )
+    projection, missing_projection_keys = generator._agency_projection_from_loaded_releases(releases, ())
     output = tmp_path / "built" / "distribution"
     generator._write_streamed_distribution(
         output,
@@ -3995,11 +3985,17 @@ def test_streamed_generation_report_records_memory_profile_shape(
         releases=prebuild.pack_plans,
         construction_seeds=prebuild.construction_seeds,
         generation_report=prebuild.generation_report,
+        parquet_view=parquet_view,
+        agency_projection=projection,
+        agency_projection_missing_keys=missing_projection_keys,
     )
 
-    report = json.loads((output.parent / "generation-report.json").read_bytes())
+    selected = generator.select_atlas_generation(output)
+    assert selected.parquet_view.exists() is parquet_view
+    report = json.loads(selected.report.read_bytes())
+    assert report["distribution"]["path"] == "distribution"
     assert "memoryProfile" not in report, "measurements stay out of the byte-compared report"
-    measurements = json.loads((output.parent / generator.GENERATION_MEASUREMENTS_FILE).read_bytes())
+    measurements = json.loads((selected.root / generator.GENERATION_MEASUREMENTS_FILE).read_bytes())
     profile = measurements["memoryProfile"]
     assert set(profile) == {
         "measurement",

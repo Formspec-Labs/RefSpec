@@ -5,10 +5,9 @@
 	determinism-atlas-federal-register-thesaurus benchmark-atlas-shacl-scale \
 	stage-atlas-mapping-topology
 
-# No default. The prior default (output/atlas-3.0-full-2026-08-07-ring-audit)
-# is retired: HEAD's binding refuses that distribution's constructorProfile
-# (see plans/validation-cost-reset-plan.md). Callers must name a distribution
-# that validates under HEAD.
+# Require an explicit builder generation selector for each audit: a default
+# silently audits whatever build is on disk (the retired 2026-08-07 ring-audit
+# tree did exactly that).
 ATLAS_V3_AUDIT_ROOT ?=
 ATLAS_V3_AUDIT_SOURCE_ROOT ?= output/registry-real-data-sources
 # Space-separated comparison names. Empty means the whole registry. A scoped run
@@ -18,7 +17,7 @@ ATLAS_V3_AUDIT_ONLY ?=
 # Beside the distribution, never inside it. A distribution validates its own
 # membership as a closed set, so a receipt written into that directory makes
 # the audited artifact fail its own walk -- which is exactly what happened.
-ATLAS_V3_AUDIT_RECEIPT ?= $(ATLAS_V3_AUDIT_ROOT)-source-fidelity-receipt.json
+ATLAS_V3_AUDIT_RECEIPT ?= $(ATLAS_V3_AUDIT_ROOT:/=)-source-fidelity-receipt.json
 
 generate:
 	python3 tools/generate_model.py
@@ -229,20 +228,8 @@ test-atlas-v3: atlas-v3-fixtures
 		python bindings/atlas/3.1/tools/validate.py
 
 audit-atlas-v3-source-fidelity:
-	@if [ -z "$(ATLAS_V3_AUDIT_ROOT)" ]; then \
-		echo "error: ATLAS_V3_AUDIT_ROOT is unset. The old default" >&2; \
-		echo "(output/atlas-3.0-full-2026-08-07-ring-audit) was retired:" >&2; \
-		echo "HEAD's binding refuses that distribution's constructorProfile" >&2; \
-		echo "(see plans/validation-cost-reset-plan.md). Name a distribution" >&2; \
-		echo "that validates under HEAD, for example:" >&2; \
-		echo "  make audit-atlas-v3-source-fidelity \\" >&2; \
-		echo "    ATLAS_V3_AUDIT_ROOT=output/atlas-3.1-federal-register-thesaurus-2025-04-01" >&2; \
-		exit 1; \
-	fi
-	@audit_distribution="$(ATLAS_V3_AUDIT_ROOT)"; \
-	if [ ! -f "$$audit_distribution/atlas-manifest.json" ]; then \
-		audit_distribution="$$audit_distribution/distribution"; \
-	fi; \
+	@test -n "$(ATLAS_V3_AUDIT_ROOT)" || { echo "ATLAS_V3_AUDIT_ROOT must name a builder generation selector" >&2; exit 2; }
+	@set -e; audit_distribution=$$(uv run --frozen python -m refspec.atlas.generation "$(ATLAS_V3_AUDIT_ROOT)" --artifact distribution); \
 	only_flags=""; \
 	for comparison in $(ATLAS_V3_AUDIT_ONLY); do \
 		only_flags="$$only_flags --only $$comparison"; \
@@ -283,6 +270,15 @@ ATLAS_FR_RELEASE_VIEW_SHA256 ?= e6c5d30b254edab7ab47e1076e72abc756b13bec2f824698
 # source-fidelity receipt.
 ATLAS_FR_RELEASE_RECEIPT ?= $(ATLAS_FR_RELEASE_ROOT)-verification-receipt.json
 
+# The builder retains every generation it selects, but these gate inputs
+# (the FR release here, UMTHES and agency below) are disposable and rebuilt cold
+# on every run. Each target first drops only the builder-owned selection of its
+# root -- selector symlink, generation store, stale temp links -- instead of
+# accumulating a generation per run. A real directory (a pre-selection release,
+# or any mistyped root) is left for the builder to refuse; nothing else under
+# the root is touched, and a root is never removed wholesale.
+clear_selection = if [ -L "$(1)/distribution" ]; then rm -rf "$(1)/.distribution.generations" "$(1)/distribution" "$(1)"/.distribution.*.selecting; fi
+
 # Bare `uv run`, i.e. the PROJECT environment -- deliberately, and it must stay
 # that way. The builder imports RefSpec package code, so it is a project tool,
 # not a binding consumer; `--with-requirements bindings/atlas/3.1/requirements.txt`
@@ -293,6 +289,7 @@ ATLAS_FR_RELEASE_RECEIPT ?= $(ATLAS_FR_RELEASE_ROOT)-verification-receipt.json
 # `--no-project --with-requirements` for the opposite reason: they must prove a
 # consumer can verify offline with no RefSpec package code at all.
 release-atlas-federal-register-thesaurus:
+	@$(call clear_selection,$(ATLAS_FR_RELEASE_ROOT))
 	uv run python tools/generate_atlas_v3_full.py \
 		--only-release "$(ATLAS_FR_RELEASE_KEY)" \
 		--output "$(ATLAS_FR_RELEASE_ROOT)/distribution"
@@ -331,11 +328,13 @@ ATLAS_AGENCY_RELEASES = agency-registry-2026-09-26 ecfr-cfr-titles ecfr-agencies
 AGENCY_REGISTRY_VIEW_ROOT ?= output/agency-registry-view
 
 build-atlas-umthes:
+	@$(call clear_selection,$(ATLAS_UMTHES_ROOT))
 	uv run python tools/generate_atlas_v3_full.py \
 		--only-release umthes-gemet-endpoints-2026-08-15 \
 		--output "$(ATLAS_UMTHES_ROOT)/distribution"
 
 build-atlas-agency:
+	@$(call clear_selection,$(ATLAS_AGENCY_ROOT))
 	uv run python tools/generate_atlas_v3_full.py \
 		$(foreach key,$(ATLAS_AGENCY_RELEASES),--only-release $(key)) \
 		--output "$(ATLAS_AGENCY_ROOT)/distribution"
@@ -370,7 +369,7 @@ determinism-atlas-federal-register-thesaurus:
 	$(MAKE) release-atlas-federal-register-thesaurus \
 		ATLAS_FR_RELEASE_ROOT="$(ATLAS_FR_DETERMINISM_ROOT)-b"
 	uv run python tools/compare_build_trees.py \
-		"$(ATLAS_FR_DETERMINISM_ROOT)-a" "$(ATLAS_FR_DETERMINISM_ROOT)-b"
+		"$(ATLAS_FR_DETERMINISM_ROOT)-a/distribution" "$(ATLAS_FR_DETERMINISM_ROOT)-b/distribution"
 
 # The staging gate to run BEFORE any full build. The Federal Register release is
 # one source unit whose key is already a valid pack-path token, so a build
@@ -403,9 +402,10 @@ stage-atlas-mapping-topology:
 		--only-release gao-cra-priority-of-regulation \
 		--only-release unified-agenda-gao-cra-priority-2026-08-15 \
 		--output "$(ATLAS_MAPPING_STAGE_ROOT)/distribution"
+	@set -e; selected=$$(uv run --frozen python -m refspec.atlas.generation "$(ATLAS_MAPPING_STAGE_ROOT)/distribution"); \
 	uv run --no-project --with-requirements bindings/atlas/3.1/requirements.txt \
 		python bindings/atlas/3.1/tools/validate.py \
-		--distribution "$(ATLAS_MAPPING_STAGE_ROOT)/distribution"
+		--distribution "$$selected/distribution"
 
 # The contract-iteration inner loop, ~45s. Edit the ontology, the shapes, a
 # schema or the conformance corpus, then run this one target: it re-derives the
@@ -431,18 +431,17 @@ contract-dev:
 	rm -rf "$(ATLAS_CONTRACT_DEV_ROOT)"
 	$(MAKE) release-atlas-federal-register-thesaurus \
 		ATLAS_FR_RELEASE_ROOT="$(ATLAS_CONTRACT_DEV_ROOT)"
+	@set -e; selected=$$(uv run --frozen python -m refspec.atlas.generation "$(ATLAS_CONTRACT_DEV_ROOT)/distribution"); \
 	uv run --no-project --with-requirements bindings/atlas/3.1/requirements.txt \
 		python bindings/atlas/3.1/tools/validate.py \
-		--smoke "$(ATLAS_CONTRACT_DEV_ROOT)/distribution" --quiet
-	@manifest_sha256=$$(shasum -a 256 \
-		"$(ATLAS_CONTRACT_DEV_ROOT)/distribution/atlas-manifest.json" | cut -d' ' -f1); \
-	view_sha256=$$(shasum -a 256 \
-		"$(ATLAS_CONTRACT_DEV_ROOT)/parquet-view/view-manifest.json" | cut -d' ' -f1); \
+		--smoke "$$selected/distribution" --quiet; \
+	manifest_sha256=$$(shasum -a 256 "$$selected/distribution/atlas-manifest.json" | cut -d' ' -f1); \
+	view_sha256=$$(shasum -a 256 "$$selected/parquet-view/view-manifest.json" | cut -d' ' -f1); \
 	uv run --with-requirements bindings/atlas/3.1/requirements.txt \
 		python tools/verify_federal_register_thesaurus_distribution.py \
-		--distribution "$(ATLAS_CONTRACT_DEV_ROOT)/distribution" \
+		--distribution "$$selected/distribution" \
 		--expected-manifest-sha256 "$$manifest_sha256" \
-		--parquet-view "$(ATLAS_CONTRACT_DEV_ROOT)/parquet-view" \
+		--parquet-view "$$selected/parquet-view" \
 		--expected-view-manifest-sha256 "$$view_sha256" \
 		--source-root "$(ATLAS_FR_RELEASE_SOURCE_ROOT)" \
 		--output "$(ATLAS_CONTRACT_DEV_ROOT)-verification-receipt.json" >/dev/null; \
@@ -459,22 +458,24 @@ contract-dev:
 # predicts its cost. Release tier by weight, not by principle -- the number that
 # matters is measured at release scale, and the runner sized for it is where it
 # belongs (release.yml's acceptance job runs it there).
-ATLAS_SHACL_BENCH_ROOT ?= $(ATLAS_FR_RELEASE_ROOT)
+ATLAS_SHACL_BENCH_ROOT ?= $(ATLAS_FR_RELEASE_ROOT)/distribution
 
 benchmark-atlas-shacl-scale:
+	@set -e; distribution=$$(uv run --frozen python -m refspec.atlas.generation "$(ATLAS_SHACL_BENCH_ROOT)" --artifact distribution); \
 	REFSPEC_ATLAS_VALIDATION_MODE=audit uv run python tools/benchmark_atlas_shacl_scale.py \
-		--distribution "$(ATLAS_SHACL_BENCH_ROOT)"
+		--distribution "$$distribution"
 
 # Reads both ends and compares them: the exact publisher PDF, whose occurrence
 # ledger is the only place the source-side count exists, and the published
 # bytes, counted from the authenticated Parquet tables rather than from the
 # producer's own receipt inside the artifact.
 verify-atlas-federal-register-thesaurus:
+	@set -e; selected=$$(uv run --frozen python -m refspec.atlas.generation "$(ATLAS_FR_RELEASE_ROOT)/distribution"); \
 	uv run --with-requirements bindings/atlas/3.1/requirements.txt \
 		python tools/verify_federal_register_thesaurus_distribution.py \
-		--distribution "$(ATLAS_FR_RELEASE_ROOT)/distribution" \
+		--distribution "$$selected/distribution" \
 		--expected-manifest-sha256 "$(ATLAS_FR_RELEASE_MANIFEST_SHA256)" \
-		--parquet-view "$(ATLAS_FR_RELEASE_ROOT)/parquet-view" \
+		--parquet-view "$$selected/parquet-view" \
 		--expected-view-manifest-sha256 "$(ATLAS_FR_RELEASE_VIEW_SHA256)" \
 		--source-root "$(ATLAS_FR_RELEASE_SOURCE_ROOT)" \
 		--output "$(ATLAS_FR_RELEASE_RECEIPT)"
@@ -487,27 +488,27 @@ verify-atlas-federal-register-thesaurus:
 # precisely so a consumer can tell "signed" from "signed AND proven".
 #
 #   make seal-distribution SEAL_ROOT=output/atlas-3.1-full-<date> SEAL_KEY=~/path/to/key
+#   make verify-distribution-seal SEAL_ROOT=output/atlas-3.1-full-<date>
 #
 # `verify-distribution-seal` needs no key and checks the signature, all three
 # bound digests, closed membership and every pinned byte against
 # docs/seal-allowed-signers.
-SEAL_ROOT ?= output/atlas-3.1-full-2026-08-13b
+SEAL_ROOT ?=
 SEAL_SIGNER ?= atlas-release@refspec
 SEAL_ALLOWED_SIGNERS ?= docs/seal-allowed-signers
 
 seal-distribution:
+	@test -n "$(SEAL_ROOT)" || { echo "SEAL_ROOT must name a release root whose distribution is a builder generation selector" >&2; exit 2; }
 	@test -n "$(SEAL_KEY)" || { echo "SEAL_KEY is required (the offline signing key); nothing was signed"; exit 2; }
 	uv run --no-sync python tools/seal_distribution.py mint \
-		--distribution "$(SEAL_ROOT)/distribution" \
-		--parquet-view "$(SEAL_ROOT)/parquet-view" \
+		--selection "$(SEAL_ROOT)/distribution" \
 		--private-key "$(SEAL_KEY)" \
 		--signer-identity "$(SEAL_SIGNER)"
 
 verify-distribution-seal:
+	@test -n "$(SEAL_ROOT)" || { echo "SEAL_ROOT must name a release root whose distribution is a builder generation selector" >&2; exit 2; }
 	uv run --no-sync python tools/seal_distribution.py verify \
-		--distribution "$(SEAL_ROOT)/distribution" \
-		--parquet-view "$(SEAL_ROOT)/parquet-view" \
-		--seal "$(SEAL_ROOT)/distribution-seal.json" \
+		--selection "$(SEAL_ROOT)/distribution" \
 		--allowed-signers "$(SEAL_ALLOWED_SIGNERS)"
 
 # Full artifact qualification consumes explicit trusted manifests. It does not

@@ -20,9 +20,8 @@ on:
         description: >-
           Suffix for this run's distribution root:
           output/atlas-3.1-full-<suffix> (e.g. "2026-08-11"). Must name a
-          directory that does not already exist with files in it --
-          tools/generate_atlas_v3_full.py refuses to write into one that
-          does.
+          selection whose existing value, if any, is a builder generation
+          pointer. Existing real distribution directories are preserved and refused.
         required: true
         type: string
   schedule:
@@ -65,8 +64,7 @@ jobs:
     runs-on: [self-hosted, atlas-release]
     timeout-minutes: 720
     env:
-      DISTRIBUTION_ROOT: output/atlas-3.1-full-${{ inputs.output_suffix }}/distribution
-      PARQUET_VIEW_ROOT: output/atlas-3.1-full-${{ inputs.output_suffix }}/parquet-view
+      DISTRIBUTION_SELECTION: output/atlas-3.1-full-${{ inputs.output_suffix }}/distribution
       COMPACT_VIEW_ROOT: output/atlas-3.1-full-${{ inputs.output_suffix }}/search-view
       QUALIFICATION_ROOT: output/atlas-3.1-full-${{ inputs.output_suffix }}/qualification
       # Linux runners must delegate a cgroup v2 parent to the runner account.
@@ -101,11 +99,17 @@ jobs:
         timeout-minutes: 185
         run: |
           uv run python tools/run_atlas_phase.py \
-            --name build --report "${DISTRIBUTION_ROOT%/distribution}/build-phase.json" \
+            --name build --report "${DISTRIBUTION_SELECTION%/distribution}/build-phase.json" \
             --rss-gib 18 --footprint-gib 18 --timeout-seconds 10800 \
             --cgroup-parent "$ATLAS_CGROUP_PARENT" \
-            --disk-root "${DISTRIBUTION_ROOT%/distribution}" -- \
-            uv run --frozen python tools/generate_atlas_v3_full.py --output "$DISTRIBUTION_ROOT"
+            --disk-root "${DISTRIBUTION_SELECTION%/distribution}" -- \
+            uv run --frozen python tools/generate_atlas_v3_full.py --output "$DISTRIBUTION_SELECTION"
+
+      - name: Pin one completed generation for every consumer
+        run: |
+          selected="$(uv run --frozen python -m refspec.atlas.generation "$DISTRIBUTION_SELECTION")"
+          echo "DISTRIBUTION_ROOT=$selected/distribution" >> "$GITHUB_ENV"
+          echo "PARQUET_VIEW_ROOT=$selected/parquet-view" >> "$GITHUB_ENV"
 
       # Fast feedback before hours of qualification: a bounded, kind-covering
       # sample (92 s on a 32M-quad build; it caught the 2026-08-11 warrant
@@ -136,6 +140,7 @@ jobs:
             --distribution $DISTRIBUTION_ROOT --distribution-manifest-sha256 $distribution_pin \
             --full-view $PARQUET_VIEW_ROOT --full-view-manifest-sha256 $full_view_pin \
             --compact-view $COMPACT_VIEW_ROOT --report-root $QUALIFICATION_ROOT \
+            --disk-root ${DISTRIBUTION_SELECTION%/distribution} \
             --agency-view-manifest-sha256 sha256:0b39812de31930f267dea2d7d51039d71b0a1852606387d5aba64aa75d25ec17 \
             --agency-audit-evidence-manifest $ATLAS_AGENCY_EVIDENCE_MANIFEST \
             --agency-audit-evidence-sha256 $ATLAS_AGENCY_EVIDENCE_SHA256 \
@@ -168,7 +173,7 @@ jobs:
       # printed by the step itself and run against the distribution this job
       # just built:
       #   REFSPEC_ATLAS_VALIDATION_MODE=audit uv run python \
-      #     tools/benchmark_atlas_shacl_scale.py --distribution <root> \
+      #     tools/benchmark_atlas_shacl_scale.py --distribution "$DISTRIBUTION_ROOT" \
       #     --write-baseline --note "..."
       # committed in the same change. From then on the step fails past 3x, and
       # a shapes change that is worth its new cost moves the baseline in the
@@ -216,7 +221,7 @@ jobs:
           printf '%s' "$ATLAS_SEAL_PRIVATE_KEY" > "$key_path"
           # Exact invocation this step mints once armed -- create_seal's
           # signature is `create_seal(root, private_key_path,
-          # signer_identity, *, seal_path=None)`; the default seal_path
+          # signer_identity, *, seal_path=None, parquet_view_path=None)`; the default seal_path
           # (beside the distribution root, never inside it) is correct here.
           # `create_seal` also walks the served Parquet view beside the
           # distribution and binds its manifest digest into the payload; the
@@ -255,6 +260,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: atlas-release-receipts-${{ inputs.output_suffix }}
+          # Selected receipts live under .distribution.generations; paths below stay explicit.
+          include-hidden-files: true
           path: |
             ${{ env.DISTRIBUTION_ROOT }}/atlas-manifest.json
             ${{ env.DISTRIBUTION_ROOT }}/atlas-acceptance.json
@@ -321,9 +328,10 @@ jobs:
         run: |
           set -euo pipefail
           suffix="reproducible-$(date -u +%Y%m%dT%H%M%SZ)"
-          echo "REBUILD_ROOT=output/atlas-3.1-full-$suffix/distribution" >> "$GITHUB_ENV"
           uv run python tools/generate_atlas_v3_full.py \
             --output "output/atlas-3.1-full-$suffix/distribution"
+          selected="$(uv run --frozen python -m refspec.atlas.generation "output/atlas-3.1-full-$suffix/distribution")"
+          echo "REBUILD_ROOT=$selected/distribution" >> "$GITHUB_ENV"
 
       # The one step whose concrete mechanics wait on the artifact-store
       # decision: this workflow does not yet know where a shipped

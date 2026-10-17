@@ -53,12 +53,6 @@ def _load_validator() -> ModuleType:
     return module
 
 
-def _distribution_root(named: Path) -> Path:
-    if (named / "atlas-manifest.json").is_file():
-        return named
-    return named / "distribution"
-
-
 def _scale_class(distribution_id: str) -> str:
     """The stable half of a distributionId: `3.1-full-development` and friends.
 
@@ -116,7 +110,7 @@ def main(argv: list[str] | None = None) -> int:
         "--distribution",
         required=True,
         type=Path,
-        help="distribution root, or the directory holding it",
+        help="concrete selected distribution directory",
     )
     parser.add_argument("--baseline", type=Path, default=DEFAULT_BASELINE)
     parser.add_argument(
@@ -127,9 +121,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--note", default="", help="what this measurement is of, for the record")
     arguments = parser.parse_args(argv)
 
-    distribution = _distribution_root(arguments.distribution)
-    if not (distribution / "atlas-manifest.json").is_file():
-        print(f"shapes scale benchmark: no distribution at {arguments.distribution}")
+    distribution = arguments.distribution
+    if distribution.is_symlink() or not (distribution / "atlas-manifest.json").is_file():
+        print(f"shapes scale benchmark: requires a concrete distribution directory: {distribution}")
         return 1
 
     measurement = measure(distribution)

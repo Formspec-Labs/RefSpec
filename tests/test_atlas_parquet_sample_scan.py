@@ -10,6 +10,7 @@ import pytest
 from rdflib import Dataset, URIRef
 from rdflib.exceptions import ParserError
 
+from refspec.atlas.generation import select_atlas_generation
 from tools import generate_atlas_v3_full as generator
 
 ATLAS_VALIDATE = generator.ATLAS_VALIDATE
@@ -142,10 +143,8 @@ def test_selector_matches_old_rows_and_refusals(tmp_path, mutation):
 
 @pytest.mark.reads_built_artifact
 def test_retained_umthes_rows_agree_and_read_each_pack_once(tmp_path, monkeypatch):
-    pack = Path(__file__).parents[1] / (
-        "output/atlas-3.1-umthes-2026-09-27/distribution/packs/sources/"
-        "umthes-gemet-endpoints-2026-08-15/all.nq.zst"
-    )
+    selected = select_atlas_generation(Path(__file__).parents[1] / "output/atlas-3.1-umthes-2026-09-27/distribution")
+    pack = selected.distribution / "packs/sources/umthes-gemet-endpoints-2026-08-15/all.nq.zst"
     assert pack.is_file(), "required retained UMTHES pack is unavailable"
     # Keep complete subject groups from the beginning of the retained pack.
     # Raw context shows resource type, scheme, label links and provenance;

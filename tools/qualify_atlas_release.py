@@ -167,6 +167,8 @@ def qualify(args, *, phase_runner=run_phase) -> dict[str, Any]:
     distribution, full = args.distribution.resolve(), args.full_view.resolve()
     compact = args.compact_view.resolve()
     agency_view = args.agency_view.resolve() if args.agency_view else report_root / "agency-view"
+    # Explicit, never inferred: `du` over an inferred common parent can be all of output/.
+    disk_root = args.disk_root.resolve() if args.disk_root else report_root
     for closed in (distribution, full, agency_view):
         if compact == closed or compact.is_relative_to(closed) or closed.is_relative_to(compact):
             raise ValueError("compact output must not overlap an input artifact")
@@ -212,7 +214,7 @@ def qualify(args, *, phase_runner=run_phase) -> dict[str, Any]:
             timeout_seconds=min(args.phase_timeout_seconds, remaining),
             cgroup_parent=args.cgroup_parent,
             swap_limit=int(args.swap_gib * GIB),
-            disk_root=distribution.parent,
+            disk_root=disk_root,
             env=env,
         )
         result["phases"].append(record)
@@ -427,6 +429,11 @@ def main(argv=None):
     )
     parser.add_argument("--cgroup-parent", type=Path)
     parser.add_argument("--swap-gib", type=float, default=0)
+    parser.add_argument(
+        "--disk-root",
+        type=Path,
+        help="tree whose size each phase samples as peak disk (default: the report root); name the release root",
+    )
     args = parser.parse_args(argv)
     signal.signal(signal.SIGTERM, _interrupted)
     signal.signal(signal.SIGINT, _interrupted)

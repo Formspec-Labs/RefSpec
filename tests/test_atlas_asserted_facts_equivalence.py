@@ -9,6 +9,8 @@ import pytest
 from rdflib import Graph, Literal, URIRef
 from rdflib.namespace import RDF
 
+from refspec.atlas.generation import select_atlas_generation
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "bindings/atlas/3.1/tools"))
 import validate as validator
@@ -69,7 +71,7 @@ def test_fact_reads_match_frozen_index_with_mutations(mutation):
 
 @pytest.mark.reads_built_artifact
 def test_fact_reads_match_frozen_index_on_real_bounded_packs():
-    root = ROOT / "output/atlas-3.1-umthes-2026-09-27/distribution"
+    root = select_atlas_generation(ROOT / "output/atlas-3.1-umthes-2026-09-27/distribution").distribution
     assert root.is_dir(), "required retained UMTHES distribution is unavailable"
     manifest = json.loads((root / "atlas-manifest.json").read_text())
     ids = validator._check_pack_manifest(manifest)

@@ -55,6 +55,11 @@ covered by the same seal. The
 contract; its validator deliberately imports nothing from this package, so a
 consumer can copy that one directory and verify a distribution offline.
 
+The full builder selects complete retained generations through one local
+pointer. Consumers pin it once before reading sibling artifacts; see
+[generation selection](docs/atlas-generation-selection.md). Existing real
+output directories remain intact and require a fresh selection path for a new build.
+
 ## Who owns what
 
 RefSpec owns vocabulary acquisition, release validation, crosswalk evidence,
@@ -119,7 +124,7 @@ publishers (leg 2) — leg 2 is the fidelity auditor's job, run on a schedule,
 not at read time:
 
 ```sh
-make audit-atlas-v3-source-fidelity ATLAS_V3_AUDIT_ROOT=<distribution>
+make audit-atlas-v3-source-fidelity ATLAS_V3_AUDIT_ROOT=<generation-selector>
 ```
 
 The auditor reads the publishers' pinned bytes with stock parsers, converts

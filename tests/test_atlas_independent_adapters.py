@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 import rdflib
 
+from refspec.atlas.generation import select_atlas_generation
 from tools import atlas_independent_agency as agency
 from tools import atlas_independent_pdf as pdf
 
@@ -260,7 +261,7 @@ def test_review_manifest_external_pins_and_source_mutation(tmp_path, plans):
 def test_real_agency_wrapper_checks_exact_dedicated_tables():
     base = EVIDENCE / "agency"
     view = ROOT / "output/agency-registry-view"
-    distribution = ROOT / "output/atlas-3.1-agency-2026-09-27/distribution"
+    distribution = select_atlas_generation(ROOT / "output/atlas-3.1-agency-2026-09-27/distribution").distribution
     assert (view / "view-manifest.json").is_file(), "Dedicated bounded agency view must be supplied for replay"
     result = agency.verify_agency_artifacts(
         source_root=ROOT,
@@ -306,7 +307,7 @@ def test_agency_view_semantic_mutation_with_valid_transport_pins(tmp_path):
     base = EVIDENCE / "agency"
     result = agency.verify_agency_artifacts(
         source_root=ROOT,
-        distribution=ROOT / "output/atlas-3.1-agency-2026-09-27/distribution",
+        distribution=select_atlas_generation(ROOT / "output/atlas-3.1-agency-2026-09-27/distribution").distribution,
         agency_view=view,
         agency_view_manifest_sha256="sha256:" + agency.sha(manifest_path),
         agency_audit_evidence_manifest=base / "audit-evidence-manifest.json",

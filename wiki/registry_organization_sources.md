@@ -85,11 +85,11 @@ flowchart LR
     DISTRIBUTION -. "asserted claims and source paths" .-> AUDIT
 ```
 
-Solid arrows show current construction through the promoted local Resource
+Solid arrows show current construction through the selected local Resource
 Description Framework (RDF) distribution and the Parquet view that the builder
-closes, re-verifies against the distribution manifest, and promotes before it
-returns. The standalone Atlas 3.1 validator reads the promoted RDF
-distribution, not the Parquet view. Dotted validation, signing, audit, and
+closes, re-verifies against the distribution manifest, and selects as one
+generation before it returns. The standalone Atlas 3.1 validator reads the
+selected RDF distribution, not the Parquet view. Dotted validation, signing, audit, and
 access arrows are separate workflow steps; the generator does not perform the
 independent file-consumer validation, source-fidelity audit, or offline signing
 ceremony. The small-sample package has no arrow to the Atlas roster adapter
@@ -643,8 +643,8 @@ sequenceDiagram
     A->>A: create resource IRIs, labels, notations, payloads, and relations
     A-->>L: declared RegistryRelease
     L-->>G: selected releases with unique keys
-    G->>D: assemble, check, close, and promote distribution
-    G-->>C: promoted RDF distribution and closed Parquet view
+    G->>D: assemble, check, close, and select generation
+    G-->>C: selected RDF distribution and Parquet view
     C->>V: run independent Atlas 3.1 validation on RDF distribution
     V->>D: read and validate exact RDF distribution bytes
     V-->>C: independent acceptance result
@@ -696,7 +696,7 @@ The agency projection consumes five agency-roster releases and reviewed
 identity evidence. Of this page's sources, it consumes the complete Federal
 Hierarchy and regulations.gov releases; it does not consume the FCC offices
 and bureaus roster or the small Federal Hierarchy package. Projection rows
-enter the closed Parquet view that is promoted alongside the local
+enter the closed Parquet view that is selected alongside the local
 distribution; later independent distribution validation and offline sealing
 gate consumer access. See [Atlas distribution projection and
 access](atlas_distribution_projection_and_access.md).
