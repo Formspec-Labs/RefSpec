@@ -4763,6 +4763,24 @@ def _assertion_basis(
             label="semantic ring",
         )
         basis["semanticRing"] = str(ring)
+    # Effective scope changes the claim; assertion/review timestamps do not.
+    # Read the bounds from RDF, never from the period IRI or a stored digest.
+    if facts.objects(assertion, RKAF.hasEffectivePeriod):
+        period = _iri(
+            facts.one(assertion, RKAF.hasEffectivePeriod, code="dataset.assertion"),
+            code="dataset.assertion",
+            label="effective period",
+        )
+        for bound_predicate, key in (
+            (RKAF.effectivePeriodStart, "effectivePeriodStart"),
+            (RKAF.effectivePeriodEnd, "effectivePeriodEnd"),
+        ):
+            if bound_predicate == RKAF.effectivePeriodStart or facts.objects(period, bound_predicate):
+                basis[key] = _literal_text(
+                    facts.one(period, bound_predicate, code="dataset.assertion"),
+                    code="dataset.assertion",
+                    label=key,
+                )
     return basis, (subject, predicate, obj)
 
 

@@ -515,13 +515,21 @@ has a content digest and the content-derived IRI
 the claim identity; an existing binding MUST NOT be rewritten.
 
 The stable identity of a same-ring assertion is SHA-256 over canonical REF JSON,
-including one terminal LF, with exactly these keys: `object`, `policy`,
+including one terminal LF, with these base keys: `object`, `policy`,
 `policyContentDigest`, `predicate`, `semanticRing`, `sourceRelease`, `subject`,
 `targetRelease`, and `type`. A cross-ring assertion replaces `semanticRing`
-with the two keys `sourceRing` and `targetRing`. The result is both
+with the two keys `sourceRing` and `targetRing`. A dated mapping adds
+`effectivePeriodStart` and, when present, `effectivePeriodEnd`, using the exact
+literal text on its `rkaf:EffectivePeriod`. An absent end adds no key.
+The result is both
 `atlas:assertionIdentityDigest` and the suffix of
 `urn:ref:atlas-assertion:<digest hex>`. It deliberately excludes evidence,
-timestamps, lifecycle status, and supersession. The separate
+assertion/review timestamps, lifecycle status, and supersession. Effective
+bounds are claim scope: changing them changes the claim identity. This corrects
+the earlier nine-key-only description and validator, which disagreed with the
+producer and the ring-temporal rationale in `ontology/atlas.ttl`. Undated
+identities stay unchanged; the period-omitting identity is not an alternative
+accepted form for a dated mapping. The separate
 `atlas:contentDigest` covers the assertion's complete outgoing RDF state.
 
 Publisher provenance and Atlas version adoption are separate facts. A mapping

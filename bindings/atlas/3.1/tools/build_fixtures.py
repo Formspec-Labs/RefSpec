@@ -358,6 +358,10 @@ def _add_assertion(
         basis["targetRing"] = str(target_ring)
     else:
         basis["semanticRing"] = str(ring)
+    if effective_period is not None:
+        basis["effectivePeriodStart"] = effective_period[0]
+        if effective_period[1] is not None:
+            basis["effectivePeriodEnd"] = effective_period[1]
     digest = atlas_validate.canonical_sha256(basis)
     assertion = URIRef("urn:ref:atlas-assertion:" + digest.removeprefix("sha256:"))
     graph.add((assertion, RDF.type, ATLAS.RelationAssertion))
