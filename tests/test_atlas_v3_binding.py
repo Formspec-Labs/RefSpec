@@ -546,12 +546,16 @@ def _policy_node_digest(graph: Graph, node: URIRef) -> str:
 
 
 
-def test_assertion_identity_independently_excludes_lifecycle_and_evidence() -> None:
-    """Pin that the assertion digest recomputes from its nine basis fields and excludes lifecycle/evidence fields."""
+@pytest.mark.parametrize("ring", (ATLAS.subject, ATLAS.entity, ATLAS.value, ATLAS.legalIdentity))
+def test_assertion_identity_independently_excludes_lifecycle_and_evidence(ring: URIRef) -> None:
+    """Recompute each ring's identity from RDF, including only effective-scope dates."""
 
     _dataset, graphs, _manifest = _load_distribution()
     asserted = graphs["asserted"]
-    assertion = next(asserted.subjects(RDF.type, ATLAS.MappingAssertion))
+    assertion = next(
+        row for row in asserted.subjects(RDF.type, ATLAS.MappingAssertion)
+        if asserted.value(row, ATLAS.semanticRing) == ring
+    )
     policy = asserted.value(assertion, ATLAS.governedByPolicy)
     basis = {
         "object": str(asserted.value(assertion, RDF.object)),
@@ -564,6 +568,12 @@ def test_assertion_identity_independently_excludes_lifecycle_and_evidence() -> N
         "targetRelease": str(asserted.value(assertion, ATLAS.targetRelease)),
         "type": str(ATLAS.MappingAssertion),
     }
+    period = asserted.value(assertion, RKAF.hasEffectivePeriod)
+    if period is not None:
+        basis["effectivePeriodStart"] = str(asserted.value(period, RKAF.effectivePeriodStart))
+        end = asserted.value(period, RKAF.effectivePeriodEnd)
+        if end is not None:
+            basis["effectivePeriodEnd"] = str(end)
     payload = (
         json.dumps(
             basis,
