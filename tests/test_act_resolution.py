@@ -738,7 +738,9 @@ def test_a_drifted_artifact_refuses_to_load() -> None:
 
     with tempfile.TemporaryDirectory() as scratch:
         copy = Path(scratch) / "artifact"
-        shutil.copytree(ACT_DIR, copy)
+        # copyfile, not copy2: pinned inputs are read-only hardlinks, and the
+        # mutation targets this private copy, never the pinned bytes.
+        shutil.copytree(ACT_DIR, copy, copy_function=shutil.copyfile)
         target = copy / "usc-popular-names.parquet"
         target.write_bytes(target.read_bytes() + b" ")
         with pytest.raises(ValueError, match="pinned act artifact drifted"):
