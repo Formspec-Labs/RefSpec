@@ -6312,3 +6312,24 @@ and `make generate`, which moved only that module and the index.
 - The owner attesting an event under publisherAssertion, the negative only
   the owner review's four fixed values refuse (a new case in
   `fixtures/corpus.json`): `1c14dc75…` / `e6c5d30b…`.
+
+### REF-074: Dated assertion validation follows the producer's effective-period identity
+
+**Owner decision:** the 2026-10-31 adjudication recorded in `ss-no7p` requires
+no sealed identity moves. Recorded here on 2026-11-04 before local landing.
+
+A dated assertion's identity includes the exact literal text of
+`rkaf:effectivePeriodStart` and, when present, `rkaf:effectivePeriodEnd` from
+its `rkaf:EffectivePeriod`. An absent end contributes no key. The producer
+already emits that basis; the independent binding validator and its README
+must agree with it. Undated assertions retain their existing identity basis.
+This correction changes neither existing sealed assertion IRIs nor the binding
+version, and it does not reissue a distribution.
+
+`tests/test_atlas_period_identity.py` retains the period-omitting basis as a
+copied test-only oracle. Its frozen divergence is the effective-period keys;
+the tests compare the producer's retained UA-GAO-CRA mappings with the
+independent validator and exercise changed bounds, absent ends, legacy hashes,
+undated controls and packed-distribution refusals. The complete maintained
+`make test` gate must pass on the final local candidate before landing.
+Served as-of query behavior remains the separate `ss-2zlv` obligation.

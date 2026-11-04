@@ -525,9 +525,7 @@ The result is both
 `atlas:assertionIdentityDigest` and the suffix of
 `urn:ref:atlas-assertion:<digest hex>`. It deliberately excludes evidence,
 assertion/review timestamps, lifecycle status, and supersession. Effective
-bounds are claim scope: changing them changes the claim identity. This corrects
-the earlier nine-key-only description and validator, which disagreed with the
-producer and the ring-temporal rationale in `ontology/atlas.ttl`. Undated
+bounds are claim scope: changing them changes the claim identity. Undated
 identities stay unchanged; the period-omitting identity is not an alternative
 accepted form for a dated mapping. The separate
 `atlas:contentDigest` covers the assertion's complete outgoing RDF state.
