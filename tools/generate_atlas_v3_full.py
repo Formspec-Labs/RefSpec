@@ -6394,6 +6394,8 @@ class _StreamingGraphSpool:
             )
             if receipt.content_quad_count != self.line_counts[key]:
                 raise ValueError(f"streamed pack line count differs for {relative}")
+            # Parity reads the sorted RDF and still needs the original key inventory.
+            spool_path.unlink()
             plan = None if owner is None else self.plans_by_token[owner]
             pack: dict[str, Any] = {
                 "content": {
@@ -6476,6 +6478,7 @@ class _StreamingGraphSpool:
                         previous = identity
                         value = json.loads(payload)
                         writer.add(role, value["record"])
+                source.unlink()
             writer.close()
         except BaseException:
             writer.__exit__()

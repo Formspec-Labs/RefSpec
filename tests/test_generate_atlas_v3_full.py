@@ -1862,6 +1862,14 @@ def test_streamed_construction_matches_the_whole_graph_oracle(
     streamed_root = tmp_path / "streamed"
     assert comparand_calls["idsByRole"] > 0
     assert comparand_calls["reachability"] > 0
+    spool = streamed.spool
+    for raw, sorted_paths in (
+        (spool.spool_paths, spool.sorted_rdf_paths),
+        (spool.compact_paths, spool.sorted_compact_paths),
+    ):
+        assert raw and raw.keys() == sorted_paths.keys()
+        assert not any(path.exists() for path in raw.values())
+        assert all(path.is_file() for path in sorted_paths.values())
 
     role = generator.CompactRecordRole.LABEL
     table_path = streamed_root / "parquet-view" / generator.TABLE_DIRECTORY / generator.TABLE_NAMES[role]
@@ -1894,6 +1902,80 @@ def test_streamed_construction_matches_the_whole_graph_oracle(
     finally:
         legacy_graphs.release()
     assert legacy_error.value.code == streamed_error.value.code
+
+
+@pytest.mark.parametrize("failure", ["_write_sorted_lines", "_materialize_nquads_pack", "line-count"])
+def test_streamed_pack_failure_keeps_raw_input(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: str,
+) -> None:
+    catalog = Graph()
+    catalog.add((URIRef("urn:test:subject"), URIRef("urn:test:predicate"), URIRef("urn:test:object")))
+    spool = generator._StreamingGraphSpool(tmp_path / "spool", (), resource_owner_tokens={}, catalog=catalog)
+    spool.append_catalog()
+    key = (None, None)
+    raw = spool.spool_paths[key]
+    original = raw.read_bytes()
+
+    if failure == "line-count":
+        spool.line_counts[key] += 1
+        expected = pytest.raises(ValueError, match="streamed pack line count differs")
+    else:
+        def fail(*_args, **_kwargs):
+            raise OSError("injected pack failure")
+
+        monkeypatch.setattr(generator, failure, fail)
+        expected = pytest.raises(OSError, match="injected pack failure")
+
+    with expected:
+        spool.materialize_packs(tmp_path / "distribution", incremental=generator.ColdPackMaterialization())
+    assert raw.read_bytes() == original
+
+
+@pytest.mark.parametrize("failure", ["sort", "write"])
+def test_streamed_compact_failure_keeps_current_raw_input(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: str,
+) -> None:
+    monkeypatch.setattr(generator, "_registry_asserted_graph", _compiled_descriptor_graph)
+    releases = (_compiled_source_release(tmp_path),)
+    streamed = generator._stream_construct_graphs(
+        list(releases), [], prebuild=_compiled_stream_prebuild(releases, ()), spool_root=tmp_path / "spool",
+    )
+    spool = streamed.spool
+    role = generator.CompactRecordRole.SOURCE_RECORD
+    raw = spool.compact_paths[role]
+    original = raw.read_bytes()
+    completed = spool.compact_paths[generator.CompactRecordRole.RESOURCE]
+    assert completed.is_file()
+    error = OSError("injected compact failure")
+
+    if failure == "sort":
+        sort = generator._write_sorted_lines
+
+        def fail_role_sort(path, lines):
+            if path == spool.sorted_compact_root / raw.name:
+                raise error
+            sort(path, lines)
+
+        monkeypatch.setattr(generator, "_write_sorted_lines", fail_role_sort)
+    else:
+        add = generator.AtlasParquetTableWriter.add
+        consumed_one = False
+
+        def fail_role_write(writer, observed_role, record):
+            nonlocal consumed_one
+            if observed_role == role:
+                if consumed_one:
+                    raise error
+                consumed_one = True
+            add(writer, observed_role, record)
+
+        monkeypatch.setattr(generator.AtlasParquetTableWriter, "add", fail_role_write)
+
+    with pytest.raises(OSError, match="injected compact failure") as caught:
+        spool.write_parquet(tmp_path / "parquet-view")
+    assert caught.value is error
+    assert raw.read_bytes() == original
+    assert not completed.exists()
 
 
 def _probe_reachability_divergence(
