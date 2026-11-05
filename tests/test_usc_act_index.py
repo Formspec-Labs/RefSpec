@@ -18,6 +18,7 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+import stat
 import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
@@ -613,6 +614,8 @@ def test_verify_passes_the_sealed_artifact_and_names_every_drift() -> None:
         assert verify_artifact(copy) == []
 
         target = copy / "usc-act-sections.parquet"
+        # copytree preserves the pinned file's read-only mode.
+        target.chmod(stat.S_IMODE(target.stat().st_mode) | stat.S_IWUSR)
         target.write_bytes(target.read_bytes() + b" ")
         problems = verify_artifact(copy)
         assert any("usc-act-sections.parquet drifted" in problem for problem in problems)
