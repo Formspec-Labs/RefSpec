@@ -139,8 +139,10 @@ case "${VERIFY_ACTIVE_DATA:-0}" in
 esac
 export READ_PREFIX
 
-xargs -P "$PARALLEL" -I{} bash -c 'check_one "$@"' _ {} <"$file_list" | tee "$tmp_report"
-check_status="${PIPESTATUS[0]}"
+# NUL-delimited arguments preserve literal paths and avoid BSD xargs's short
+# replacement-argument limit. Keep the same line list and verdict accounting.
+tr '\n' '\0' <"$file_list" | xargs -0 -P "$PARALLEL" -n 1 bash -c 'check_one "$@"' _ | tee "$tmp_report"
+check_status="${PIPESTATUS[1]}"
 
 problems="$(grep -c -E '^(MISSING|MISMATCH) ' "$tmp_report" || true)"
 errors="$(grep -c -E '^ERROR ' "$tmp_report" || true)"

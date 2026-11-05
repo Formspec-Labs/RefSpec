@@ -154,6 +154,50 @@ def test_verify_script_freezes_candidate_and_receipts(publication, server, tmp_p
     assert document["promoted"] is False
 
 
+@pytest.mark.parametrize("mode", ("clean", "tamper", "incomplete"))
+@pytest.mark.parametrize("root_name", ("plain", "space 'quote\" and \\backslash"))
+def test_verify_script_preserves_long_source_paths(publication, server, tmp_path, mode, root_name):
+    root, view_digest, digest, _ = publication
+    base, prefix, served, statuses = server
+    long_root = tmp_path / ("a" * 100) / ("b" * 100) / root_name
+    long_root.parent.mkdir(parents=True)
+    root.rename(long_root)
+    assert all(len(os.fsencode(path)) > 255 for path in long_root.iterdir())
+    if mode == "tamper":
+        served[prefix + "test.parquet"] = b"X" * len(served[prefix + "test.parquet"])
+    elif mode == "incomplete":
+        statuses[prefix + "test.parquet"] = 503
+    receipt = tmp_path / "receipt.json"
+    result = subprocess.run(
+        ["bash", str(BUILD / "verify-all.sh")],
+        env={
+            **os.environ,
+            "SRC_DIR": str(long_root),
+            "WORKER_BASE": base,
+            "INVENTORY_DIGEST": digest,
+            "SEARCH_VIEW_DIGEST": view_digest,
+            "CLOUDFLARE_ACCOUNT_ID": "test-account",
+            "WORKER_VERSION": "test-version",
+            "SOURCE_REVISION": "test-revision",
+            "PUBLICATION_RECEIPT": str(receipt),
+            "PUBLICATION_PYTHON": sys.executable,
+        },
+        capture_output=True,
+        text=True,
+        timeout=15,
+    )
+    assert result.returncode == {"clean": 0, "tamper": 1, "incomplete": 2}[mode], result.stdout + result.stderr
+    if mode == "incomplete":
+        assert "0 of 2 files were never reached and 1 could not be answered for" in result.stderr
+        assert "HTTP 503" in result.stdout
+        assert not receipt.exists()
+    else:
+        document = json.loads(receipt.read_bytes())
+        assert document["status"] == ("passed" if mode == "clean" else "failed")
+        assert document["inventoryDigest"] == digest
+        assert document["promoted"] is False
+
+
 def test_existing_shell_empty_and_outside_target_guards(tmp_path):
     root = tmp_path / "empty"
     root.mkdir()
