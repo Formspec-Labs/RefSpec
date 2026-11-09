@@ -15,6 +15,8 @@ decision is missing or stale.
 
 from __future__ import annotations
 
+import hashlib
+import html
 import json
 import re
 from collections import defaultdict
@@ -1264,8 +1266,21 @@ _AGENCY_REGISTRY_SUCCESSION_CANDIDATES_SHA256 = "sha256:92c7ef5e74b236498062034b
 _AGENCY_REGISTRY_SUCCESSION_CANDIDATES_BYTE_LENGTH = 9_527
 _AGENCY_REGISTRY_SUCCESSION_DECISIONS_SHA256 = "sha256:4ac49dcab3de07c31c9ba79a43f859d3ce44aa0455eeca8bf58d1480e1a9b060"
 _AGENCY_REGISTRY_SUCCESSION_DECISIONS_BYTE_LENGTH = 665
+# The alias batch (plans/agency-registry-alias-plan.md, REF-075): free-text strings the owner decided name
+# an organization. Its aliases ride in this release as decided items, beside the non-emissions; an alias
+# the owner has not yet decided is held, not refused, because one alias's meaning never depends on another's.
+AGENCY_REGISTRY_ALIAS_CANDIDATES_DIGEST = "sha256:6fb33c899a97628a8f38499b00c82d2af705e107da63eb1ed64a26afeb896fa8"
+AGENCY_REGISTRY_ALIAS_CANDIDATES_PATH = "plans/agency-registry-alias-batch-candidates.json"
+AGENCY_REGISTRY_ALIAS_DECISIONS_PATH = "plans/agency-registry-alias-batch-decisions.json"
+_AGENCY_REGISTRY_ALIAS_CANDIDATES_SHA256 = "sha256:ffa823f4a0d3314bae6f78a014f9801ca6b6ac198844f301cdb04ed348dc8312"
+_AGENCY_REGISTRY_ALIAS_CANDIDATES_BYTE_LENGTH = 128_102
+_AGENCY_REGISTRY_ALIAS_DECISIONS_SHA256 = "sha256:c599dc63fd7dd99971f4a7df4644b4fa5f209a7d4a84c35d93a221d9c5473fc7"
+_AGENCY_REGISTRY_ALIAS_DECISIONS_BYTE_LENGTH = 29_237
+# Where an alias's cited public records are retained, with the manifest that pins their bytes.
+AGENCY_ALIAS_RECORDS_DIR = "research/evidence/agency-alias-records-2026-11-08"
 # The adjudicable content; replay-derived counts sit outside it on purpose.
 CANDIDATES_DIGEST_COVERS = ("candidates", "events", "non_emissions", "no_fr_bridge")
+ALIAS_CANDIDATES_DIGEST_COVERS = ("aliases",)
 # The release's parity over every batch: batch 1's 13 + 9 + 4, and the succession batch's one event.
 EXPECTED_AGENCY_REGISTRY_BRIDGE_COUNT = 13
 EXPECTED_AGENCY_REGISTRY_EVENT_COUNT = 10
@@ -1403,11 +1418,31 @@ def decisions_from_json(data: Any, report: Mapping[str, Any], *, label: str) -> 
     return Decisions(current, stale)
 
 
+def record_text(data: bytes) -> str:
+    """A retained record's readable text: tags and scripts dropped, entities decoded, whitespace collapsed."""
+
+    text = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", data.decode("utf-8", errors="replace"), flags=re.DOTALL | re.IGNORECASE)
+    return " ".join(html.unescape(re.sub(r"<[^>]+>", " ", text)).split())
+
+
+def alias_record_is_read(record: Mapping[str, Any], root: Path = _REPOSITORY_ROOT) -> bool:
+    """Whether a cited record is retained and read: its bytes still hash as recorded and hold the passage read."""
+
+    path = root / AGENCY_ALIAS_RECORDS_DIR / str(record.get("file", ""))
+    if not record.get("file") or not record.get("passage") or path.is_symlink() or not path.is_file():
+        return False
+    data = path.read_bytes()
+    return (
+        "sha256:" + hashlib.sha256(data).hexdigest() == record.get("sha256")
+        and " ".join(str(record["passage"]).split()) in record_text(data)
+    )
+
+
 class AgencyRegistryOutcome(NamedTuple):
-    """What one owner-decided item became: a bridge, an event, or a recorded non-emission."""
+    """What one owner-decided item became: a bridge, an event, an alias, or a recorded non-emission."""
 
     item_id: str
-    outcome: Literal["bridge", "event", "nonEmission"]
+    outcome: Literal["bridge", "event", "alias", "nonEmission"]
     reason: str | None
     decision: Mapping[str, Any]
 
@@ -1447,6 +1482,18 @@ _AGENCY_REGISTRY_SUCCESSION_DECISIONS_PIN = _plan_pin(
     _AGENCY_REGISTRY_SUCCESSION_DECISIONS_BYTE_LENGTH,
     "successionOwnerDecisions",
 )
+_AGENCY_REGISTRY_ALIAS_CANDIDATES_PIN = _plan_pin(
+    AGENCY_REGISTRY_ALIAS_CANDIDATES_PATH,
+    _AGENCY_REGISTRY_ALIAS_CANDIDATES_SHA256,
+    _AGENCY_REGISTRY_ALIAS_CANDIDATES_BYTE_LENGTH,
+    "aliasOwnerCandidates",
+)
+_AGENCY_REGISTRY_ALIAS_DECISIONS_PIN = _plan_pin(
+    AGENCY_REGISTRY_ALIAS_DECISIONS_PATH,
+    _AGENCY_REGISTRY_ALIAS_DECISIONS_SHA256,
+    _AGENCY_REGISTRY_ALIAS_DECISIONS_BYTE_LENGTH,
+    "aliasOwnerDecisions",
+)
 
 
 class AgencyRegistryBatch(NamedTuple):
@@ -1457,10 +1504,16 @@ class AgencyRegistryBatch(NamedTuple):
     candidates_digest: str
     #: Bridges, events and recorded non-emissions.
     parity: tuple[int, int, int]
+    #: Adopted aliases (the alias batch only).
+    aliases: int = 0
+    #: The candidate keys the decided digest covers.
+    covers: tuple[str, ...] = CANDIDATES_DIGEST_COVERS
+    #: Whether an undecided item is held rather than refused (the alias batch only).
+    partial: bool = False
 
 
 def agency_registry_batches() -> tuple[AgencyRegistryBatch, ...]:
-    """Batch 1, then the succession batch, in release order; built at call time, so a test can re-pin one file."""
+    """Batch 1, the succession batch, then the alias batch, in release order; built at call time, so a test can re-pin one file."""
 
     return (
         AgencyRegistryBatch(
@@ -1471,6 +1524,15 @@ def agency_registry_batches() -> tuple[AgencyRegistryBatch, ...]:
             _AGENCY_REGISTRY_SUCCESSION_DECISIONS_PIN,
             AGENCY_REGISTRY_SUCCESSION_CANDIDATES_DIGEST,
             (0, 1, 0),
+        ),
+        AgencyRegistryBatch(
+            _AGENCY_REGISTRY_ALIAS_CANDIDATES_PIN,
+            _AGENCY_REGISTRY_ALIAS_DECISIONS_PIN,
+            AGENCY_REGISTRY_ALIAS_CANDIDATES_DIGEST,
+            (0, 0, 7),
+            aliases=55,
+            covers=ALIAS_CANDIDATES_DIGEST_COVERS,
+            partial=True,
         ),
     )
 
@@ -1492,16 +1554,20 @@ def agency_registry_outcomes(
     *,
     decided_digest: str = AGENCY_REGISTRY_CANDIDATES_DIGEST,
     label: str = AGENCY_REGISTRY_DECISIONS_PATH,
+    covers: Sequence[str] = CANDIDATES_DIGEST_COVERS,
+    partial: bool = False,
 ) -> tuple[AgencyRegistryOutcome, ...]:
     """Every owner-decided item of one batch and what it becomes, or a refusal; decides nothing itself.
 
     Refuses candidates whose recomputed digest is not ``decided_digest``, the one
     the owner decided on, any decision that is stale or missing, and any answer
     the release has no rule for. The parity is exact: every decidable item has
-    one outcome.
+    one outcome. A ``partial`` batch (the alias batch) holds an undecided item
+    instead, and an alias's answer means what the alias's own ``answer_effects``
+    say, inside its content digest.
     """
 
-    covered = {key: candidates[key] for key in CANDIDATES_DIGEST_COVERS}
+    covered = {key: candidates[key] for key in covers}
     observed = canonical_digest(covered)
     _require(
         observed == decided_digest == candidates.get("candidates_digest"),
@@ -1510,11 +1576,16 @@ def agency_registry_outcomes(
     decisions = decisions_from_json(decisions_document, candidates, label=label)
     _require(not decisions.stale, f"stale decisions refuse the release: {', '.join(sorted(decisions.stale))}")
     missing = sorted(set(decision_digests(candidates)) - set(decisions.current))
-    _require(not missing, f"undecided items refuse the release: {', '.join(missing)}")
+    _require(partial or not missing, f"undecided items refuse the release: {', '.join(missing)}")
+    alias_effects = {row["alias_id"]: row["answer_effects"] for row in candidates.get("aliases", ())}
     outcomes = []
     for item_id, decision in sorted(decisions.current.items()):
         answer = str(decision["answer"])
-        outcome, reason = _OPTION_OUTCOMES.get((item_id, answer), (_ANSWER_OUTCOMES.get(answer), None))
+        if item_id in alias_effects:
+            effect = alias_effects[item_id].get(answer, {})
+            outcome, reason = effect.get("outcome"), ("aliasRejectedByOwner" if effect.get("outcome") == "nonEmission" else None)
+        else:
+            outcome, reason = _OPTION_OUTCOMES.get((item_id, answer), (_ANSWER_OUTCOMES.get(answer), None))
         _require(outcome is not None, f"{item_id} answer {answer!r} has no rule in this release; change the release")
         outcomes.append(AgencyRegistryOutcome(item_id, outcome, reason, _frozen_mapping(dict(decision))))
     return tuple(outcomes)
@@ -1735,6 +1806,73 @@ def _non_emission(
     return _frozen_mapping(row)
 
 
+def _resource_by_iri(
+    resources: Mapping[str, Mapping[str, RegistryResource]], iri: str
+) -> tuple[str, RegistryResource]:
+    for release_key, by_iri in resources.items():
+        if iri in by_iri:
+            return release_key, by_iri[iri]
+    raise ValueError(f"{iri} is in no pinned agency roster")
+
+
+def _alias(
+    outcome: AgencyRegistryOutcome,
+    item: Mapping[str, Any],
+    owner_decision: Mapping[str, Any],
+    resources: Mapping[str, Mapping[str, RegistryResource]],
+) -> Mapping[str, Any]:
+    """One adopted alias: the string's key, what it names, the FR record it resolves to and how, and its records.
+
+    Every publisher name is re-derived from the pinned rosters and refused on
+    drift, and every cited record must still be retained and read
+    (``alias_record_is_read``): an unread citation refuses the release.
+    """
+
+    effect = item["answer_effects"][str(outcome.decision["answer"])]
+    unread = [record["citation"] for record in item["records"] if not record.get("read") or not alias_record_is_read(record)]
+    _require(not unread, f"{outcome.item_id} cites unread records, which refuse the release: {', '.join(unread)}")
+    row: dict[str, Any] = {
+        "candidateId": outcome.item_id,
+        "decision": "alias",
+        "nameKey": item["name_key"],
+        "basis": list(item["basis"]),
+        "reasoning": item["reasoning"],
+        "records": [dict(record) for record in item["records"]],
+        "ownerDecision": dict(owner_decision),
+    }
+    # Metadata carries no null: an alias with no FR record has no FR keys, one naming no held record no target keys.
+    if effect["fr_relation"] is not None:
+        row["frRelation"] = effect["fr_relation"]
+    for side, record in (("target", item["target"]), ("fr", item.get("fr_record"))):
+        if record is None:
+            continue
+        release_key, resource = _resource_by_iri(resources, record["resource_iri"])
+        _require(
+            (release_key, publisher_name(release_key, resource)[1]) == (record["release_key"], record["publisher_name"]),
+            f"{outcome.item_id} {side} name drifted from its pinned roster",
+        )
+        row[f"{side}Resource"] = record["resource_iri"]
+        row[f"{side}ReleaseKey"] = release_key
+        row[f"{side}PublisherName"] = record["publisher_name"]
+    _require(("frResource" in row) == ("frRelation" in row), f"{outcome.item_id} states an FR relation without an FR record")
+    return _frozen_mapping(row)
+
+
+def _alias_non_emission(outcome: AgencyRegistryOutcome, item: Mapping[str, Any], owner_decision: Mapping[str, Any]) -> Mapping[str, Any]:
+    """An alias the owner answered no: recorded with the string and the reason the sheet gave."""
+
+    return _frozen_mapping(
+        {
+            "candidateId": outcome.item_id,
+            "decision": "nonEmission",
+            "ownerDecision": dict(owner_decision),
+            "reason": "aliasRejectedByOwner",
+            "reasoning": item["why"],
+            "sourceValue": item["name_key"],
+        }
+    )
+
+
 def load_agency_registry_mapping_release(
     releases: Sequence[RegistryRelease],
     batches: Sequence[AgencyRegistryBatch] | None = None,
@@ -1767,8 +1905,11 @@ def load_agency_registry_mapping_release(
             _read_plan(batch.decisions),
             decided_digest=batch.candidates_digest,
             label=batch.decisions.logical_path,
+            covers=batch.covers,
+            partial=batch.partial,
         )
         items: dict[str, Mapping[str, Any]] = {
+            **{row["alias_id"]: row for row in candidates.get("aliases", ())},
             **{row["candidate_id"]: row for row in candidates["candidates"] if row["relation"] == "sameEntityAs"},
             **{row["candidate_id"]: row for row in candidates["non_emissions"]},
             **{row["value_id"]: row for row in candidates["no_fr_bridge"]},
@@ -1833,6 +1974,10 @@ def load_agency_registry_mapping_release(
                 )
                 events.append(change)
                 item_decisions.append(_frozen_mapping(metadata))
+            elif outcome.outcome == "alias":
+                item_decisions.append(_alias(outcome, item, owner_decision, resources))
+            elif "alias_id" in item:
+                item_decisions.append(_alias_non_emission(outcome, item, owner_decision))
             else:
                 item_decisions.append(_non_emission(outcome, item, owner_decision))
         added = item_decisions[before[2]:]
@@ -1841,8 +1986,11 @@ def load_agency_registry_mapping_release(
             len(events) - before[1],
             sum(row["decision"] == "nonEmission" for row in added),
         )
+        adopted_aliases = sum(row["decision"] == "alias" for row in added)
         _require(
-            parity == batch.parity and sum(parity) == len(added) == len(outcomes),
+            parity == batch.parity
+            and adopted_aliases == batch.aliases
+            and sum(parity) + adopted_aliases == len(added) == len(outcomes),
             f"agency registry parity of {batch.decisions.logical_path} differs: {parity} over {len(added)} decided items",
         )
 
@@ -1853,6 +2001,13 @@ def load_agency_registry_mapping_release(
         "event": len(events),
         "nonEmission": sum(row["decision"] == "nonEmission" for row in item_decisions),
     }
+    # Only a release that reads the alias batch states an alias count, so the 1.2 and older views'
+    # releases (batch 1, then the succession batch) rebuild digest for digest.
+    alias_count = (
+        {"aliasCount": sum(row["decision"] == "alias" for row in item_decisions)}
+        if any(batch.covers == ALIAS_CANDIDATES_DIGEST_COVERS for batch in batches)
+        else {}
+    )
     claims = {(mapping.subject, mapping.predicate, mapping.object) for mapping in mappings}
     # The five roster pins REF-038 reads, then each batch's two owner artifacts in place of its census adjudication.
     inputs = (
@@ -1912,13 +2067,18 @@ def load_agency_registry_mapping_release(
             ),
             "nonEmissionCount": counts["nonEmission"],
             "reviewedRosterReleaseKeys": list(agency_projection.AGENCY_ROSTER_RELEASE_KEYS),
+            **alias_count,
         },
     )
 
 
 __all__ = [
     "AGENCY_ABSTENTION_REASONS",
+    "AGENCY_ALIAS_RECORDS_DIR",
     "AGENCY_DECISION_BASES",
+    "AGENCY_REGISTRY_ALIAS_CANDIDATES_DIGEST",
+    "AGENCY_REGISTRY_ALIAS_CANDIDATES_PATH",
+    "AGENCY_REGISTRY_ALIAS_DECISIONS_PATH",
     "AGENCY_REGISTRY_CANDIDATES_DIGEST",
     "AGENCY_REGISTRY_CANDIDATES_PATH",
     "AGENCY_REGISTRY_DECISIONS_PATH",
@@ -1929,6 +2089,7 @@ __all__ = [
     "AGENCY_REGISTRY_SUCCESSION_CANDIDATES_DIGEST",
     "AGENCY_REGISTRY_SUCCESSION_CANDIDATES_PATH",
     "AGENCY_REGISTRY_SUCCESSION_DECISIONS_PATH",
+    "ALIAS_CANDIDATES_DIGEST_COVERS",
     "ATLAS_SAME_ENTITY_AS",
     "CANDIDATES_DIGEST_COVERS",
     "DATED_PUBLIC_RECORD_KINDS",
@@ -1958,6 +2119,7 @@ __all__ = [
     "ResidueAdoption",
     "agency_registry_batches",
     "agency_registry_outcomes",
+    "alias_record_is_read",
     "decision_answers",
     "decision_digests",
     "decisions_from_json",
@@ -1965,4 +2127,5 @@ __all__ = [
     "load_decisions",
     "load_regulations_gov_agency_identity_mapping_release",
     "publisher_name",
+    "record_text",
 ]

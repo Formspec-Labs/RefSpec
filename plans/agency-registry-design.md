@@ -354,6 +354,13 @@ release identity names each batch's decided candidates digest
 (`candidatesDigests`). The bridges and non-emissions tables did not move; the
 events table gained the FNA row and the current successors FR 200 → FR 625.
 
+**Schema 1.3 (2026-11-08, REF-075).** The alias batch is the release's third
+batch, and the view becomes the one agency pin: aliases join the asserted
+tables and the logical digest; every pinned FR agency and REF-038's two tables
+are derived and rebuilt by the verifier. The pin and the decisions behind it are
+in [the alias plan](agency-registry-alias-plan.md) section 8; 1.2 stays
+verifiable against the release without the alias batch.
+
 ## 9. Measured gaps (re-measured 2026-09-26)
 
 Two sources, each named with its output:

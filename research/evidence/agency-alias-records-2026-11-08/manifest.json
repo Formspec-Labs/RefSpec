@@ -1,0 +1,371 @@
+[
+  {
+    "file": "raw/fr-eo-14347-search.json",
+    "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpresidential_document_type%5D=executive_order&conditions%5Bexecutive_order_numbers%5D%5B%5D=14347&fields%5B%5D=document_number&fields%5B%5D=title&fields%5B%5D=signing_date&fields%5B%5D=citation&fields%5B%5D=executive_order_number&fields%5B%5D=raw_text_url&fields%5B%5D=html_url",
+    "final_url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpresidential_document_type%5D=executive_order&conditions%5Bexecutive_order_numbers%5D%5B%5D=14347&fields%5B%5D=document_number&fields%5B%5D=title&fields%5B%5D=signing_date&fields%5B%5D=citation&fields%5B%5D=executive_order_number&fields%5B%5D=raw_text_url&fields%5B%5D=html_url",
+    "http_status": 200,
+    "bytes": 509,
+    "sha256": "sha256:fad0bbc8fc69ce3142047c36bdee27ebdf08203ecbd1b747f9649024eec91521",
+    "fetched_at": "2026-11-09T01:46:59Z"
+  },
+  {
+    "file": "raw/fr-eo-14347.txt",
+    "url": "https://www.federalregister.gov/documents/full_text/text/2025/09/10/2025-17508.txt",
+    "final_url": "https://www.federalregister.gov/documents/full_text/text/2025/09/10/2025-17508.txt",
+    "http_status": 200,
+    "bytes": 6515,
+    "sha256": "sha256:ca7aff5304b746d247729772e83971311cbf362ca00d958307064cb413c030d6",
+    "fetched_at": "2026-11-09T01:47:00Z"
+  },
+  {
+    "file": "raw/plaw-108-271.htm",
+    "url": "https://www.govinfo.gov/content/pkg/PLAW-108publ271/html/PLAW-108publ271.htm",
+    "final_url": "https://www.govinfo.gov/content/pkg/PLAW-108publ271/html/PLAW-108publ271.htm",
+    "http_status": 200,
+    "bytes": 22108,
+    "sha256": "sha256:ca562a01a92b7efd2968558e948e9314e03adb7b3f67ae63ecca5b227f774a0e",
+    "fetched_at": "2026-11-09T01:46:58Z"
+  },
+  {
+    "file": "raw/usc-10-10501.htm",
+    "url": "https://www.govinfo.gov/link/uscode/10/10501?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleE-partI-chap1011-sec10501.htm",
+    "http_status": 200,
+    "bytes": 4045,
+    "sha256": "sha256:1d07a17cd36af26f19bc447249695d2e41cf24f425a06bb9afe0e1cf596b7038",
+    "fetched_at": "2026-11-09T01:46:43Z"
+  },
+  {
+    "file": "raw/usc-10-1073c.htm",
+    "url": "https://www.govinfo.gov/link/uscode/10/1073c?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partII-chap55-sec1073c.htm",
+    "http_status": 200,
+    "bytes": 49140,
+    "sha256": "sha256:e9010a166aa2c487fe05275c94c4197942f2521755d79c7ba412391c74614c0c",
+    "fetched_at": "2026-11-09T01:48:13Z"
+  },
+  {
+    "file": "raw/usc-10-111.htm",
+    "url": "https://www.govinfo.gov/link/uscode/10/111?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm",
+    "http_status": 200,
+    "bytes": 134933,
+    "sha256": "sha256:3a2e6c8384a316a5ab5ffa7dc5556a3389ffc86e2dff6bf7221e397074af3a1f",
+    "fetched_at": "2026-11-09T01:48:08Z"
+  },
+  {
+    "file": "raw/usc-10-131.htm",
+    "url": "https://www.govinfo.gov/link/uscode/10/131?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap4-sec131.htm",
+    "http_status": 200,
+    "bytes": 41327,
+    "sha256": "sha256:bbd90ba880afdeed54ca755df4229e443c6b85ef3df813a8373c6b11d14f107b",
+    "fetched_at": "2026-11-09T01:46:31Z"
+  },
+  {
+    "file": "raw/usc-10-151.htm",
+    "url": "https://www.govinfo.gov/link/uscode/10/151?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap5-sec151.htm",
+    "http_status": 200,
+    "bytes": 9409,
+    "sha256": "sha256:36dd6255963a387fe1cd90dec7158afd81f6d6c6e13f9fbe0da992b04079267b",
+    "fetched_at": "2026-11-09T01:46:32Z"
+  },
+  {
+    "file": "raw/usc-10-155.htm",
+    "url": "https://www.govinfo.gov/link/uscode/10/155?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap5-sec155.htm",
+    "http_status": 200,
+    "bytes": 17599,
+    "sha256": "sha256:79e741ac993d6a882b4a2ad51bb1edf1f5dc953b15d4824b18d03080c6760dbf",
+    "fetched_at": "2026-11-09T01:46:33Z"
+  },
+  {
+    "file": "raw/usc-10-161.htm",
+    "url": "https://www.govinfo.gov/link/uscode/10/161?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap6-sec161.htm",
+    "http_status": 200,
+    "bytes": 16016,
+    "sha256": "sha256:f0db66d6a1cdfd3dcb8fa32ded99ec658ebe9d6f43379b0fae28128fd171d3cc",
+    "fetched_at": "2026-11-09T01:46:34Z"
+  },
+  {
+    "file": "raw/usc-10-167.htm",
+    "url": "https://www.govinfo.gov/link/uscode/10/167?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap6-sec167.htm",
+    "http_status": 200,
+    "bytes": 40564,
+    "sha256": "sha256:5823d55c918cbe6276e74213e8e668847ad9a760f746eb33ab793f090f38ec9f",
+    "fetched_at": "2026-11-09T01:48:09Z"
+  },
+  {
+    "file": "raw/usc-10-167b.htm",
+    "url": "https://www.govinfo.gov/link/uscode/10/167b?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap6-sec167b.htm",
+    "http_status": 200,
+    "bytes": 61283,
+    "sha256": "sha256:2cea6896ccd48def5cdd20685be6fb6b426059581d78055be210e0225c4c4237",
+    "fetched_at": "2026-11-09T01:48:11Z"
+  },
+  {
+    "file": "raw/usc-10-205.htm",
+    "url": "https://www.govinfo.gov/link/uscode/10/205?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap8-subchapII-sec205.htm",
+    "http_status": 200,
+    "bytes": 2800,
+    "sha256": "sha256:d3ab953266ad3a99c1c7f1da6b1f914af934f9dd1e1bf594e1655c15b44e9e03",
+    "fetched_at": "2026-11-09T01:48:12Z"
+  },
+  {
+    "file": "raw/usc-10-4127.htm",
+    "url": "https://www.govinfo.gov/link/uscode/10/4127?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partV-subpartE-chap303-subchapIII-sec4127.htm",
+    "http_status": 200,
+    "bytes": 11411,
+    "sha256": "sha256:8648335337d0458eddb5d6b64298a2d3c59e8bb3d2f05d717c993873a749c8a8",
+    "fetched_at": "2026-11-09T01:48:15Z"
+  },
+  {
+    "file": "raw/usc-10-7062.htm",
+    "url": "https://www.govinfo.gov/link/uscode/10/7062?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleB-partI-chap707-sec7062.htm",
+    "http_status": 200,
+    "bytes": 7831,
+    "sha256": "sha256:e4d4aeb22c7c8eaa61080817ca763253113cd38e66b227c2fe0f4b25e14189a7",
+    "fetched_at": "2026-11-09T01:46:36Z"
+  },
+  {
+    "file": "raw/usc-10-8031.htm",
+    "url": "https://www.govinfo.gov/link/uscode/10/8031?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleC-partI-chap805-sec8031.htm",
+    "http_status": 200,
+    "bytes": 4472,
+    "sha256": "sha256:eb10a10e74922ecb4e83249cb972af75230d4eab23757e2521a9235b22079a4f",
+    "fetched_at": "2026-11-09T01:48:16Z"
+  },
+  {
+    "file": "raw/usc-10-8041.htm",
+    "url": "https://www.govinfo.gov/link/uscode/10/8041?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleC-partI-chap806-sec8041.htm",
+    "http_status": 200,
+    "bytes": 4757,
+    "sha256": "sha256:7c43f480f884dce1bd121acb946cc232cd1ebb3bd6d59a1ed632df49d10b02b4",
+    "fetched_at": "2026-11-09T01:48:17Z"
+  },
+  {
+    "file": "raw/usc-10-8062.htm",
+    "url": "https://www.govinfo.gov/link/uscode/10/8062?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleC-partI-chap807-sec8062.htm",
+    "http_status": 200,
+    "bytes": 15289,
+    "sha256": "sha256:d1758f6938d748bdad410da377794a7b480fb893d708ebe9a956c30ec9edd6fe",
+    "fetched_at": "2026-11-09T01:46:37Z"
+  },
+  {
+    "file": "raw/usc-10-8063.htm",
+    "url": "https://www.govinfo.gov/link/uscode/10/8063?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleC-partI-chap807-sec8063.htm",
+    "http_status": 200,
+    "bytes": 5888,
+    "sha256": "sha256:23cc162475489914d977c80e6ca224fda1fc069297082901ae3f6349042eac45",
+    "fetched_at": "2026-11-09T01:46:38Z"
+  },
+  {
+    "file": "raw/usc-10-9031.htm",
+    "url": "https://www.govinfo.gov/link/uscode/10/9031?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleD-partI-chap905-sec9031.htm",
+    "http_status": 200,
+    "bytes": 8970,
+    "sha256": "sha256:c401defdca171ddd8d964e0645776375fd11ec4fd899d324a45fd6fb0b74588f",
+    "fetched_at": "2026-11-09T01:48:18Z"
+  },
+  {
+    "file": "raw/usc-10-9062.htm",
+    "url": "https://www.govinfo.gov/link/uscode/10/9062?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleD-partI-chap907-sec9062.htm",
+    "http_status": 200,
+    "bytes": 42458,
+    "sha256": "sha256:a8c10d8d5126d8775a6d0bf4678af9b45ad9d835ec03cbada4d38bdfdc017ca1",
+    "fetched_at": "2026-11-09T01:46:39Z"
+  },
+  {
+    "file": "raw/usc-10-9081.htm",
+    "url": "https://www.govinfo.gov/link/uscode/10/9081?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleD-partI-chap908-sec9081.htm",
+    "http_status": 200,
+    "bytes": 40439,
+    "sha256": "sha256:eef44a545eda952a6b6b300be88af5a7b0b5c4e7e9fd37e9dbd3e532a483a605",
+    "fetched_at": "2026-11-09T01:46:41Z"
+  },
+  {
+    "file": "raw/usc-12-1.htm",
+    "url": "https://www.govinfo.gov/link/uscode/12/1?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap1-sec1.htm",
+    "http_status": 200,
+    "bytes": 8016,
+    "sha256": "sha256:c93b5ed4335d0e1cf90a7265d172db4e1de492377abd7e230b686d66bc1bc633",
+    "fetched_at": "2026-11-09T01:46:44Z"
+  },
+  {
+    "file": "raw/usc-12-241.htm",
+    "url": "https://www.govinfo.gov/link/uscode/12/241?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapII-sec241.htm",
+    "http_status": 200,
+    "bytes": 7404,
+    "sha256": "sha256:df34771a6351788bae5631267bd25c2d2c9642b31b3198ad219c732a10c6f334",
+    "fetched_at": "2026-11-09T01:46:45Z"
+  },
+  {
+    "file": "raw/usc-12-635.htm",
+    "url": "https://www.govinfo.gov/link/uscode/12/635?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap6A-subchapI-sec635.htm",
+    "http_status": 200,
+    "bytes": 195081,
+    "sha256": "sha256:9b312f4a5b00889e1cad3f3a7717782b0813790829f442371dec5b2ea68b50c8",
+    "fetched_at": "2026-11-09T01:46:47Z"
+  },
+  {
+    "file": "raw/usc-16-1609.htm",
+    "url": "https://www.govinfo.gov/link/uscode/16/1609?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title16/html/USCODE-2024-title16-chap36-subchapI-sec1609.htm",
+    "http_status": 200,
+    "bytes": 7085,
+    "sha256": "sha256:cf4d338889848c9461f06bfdfa46d274239d2a3f0425892fff8795513b14ac66",
+    "fetched_at": "2026-11-09T01:46:48Z"
+  },
+  {
+    "file": "raw/usc-18-4041.htm",
+    "url": "https://www.govinfo.gov/link/uscode/18/4041?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title18/html/USCODE-2024-title18-partIII-chap303-sec4041.htm",
+    "http_status": 200,
+    "bytes": 3881,
+    "sha256": "sha256:785b35155f4843bb0ee21fb300eae3f7567d7c82028f87141ceef0baa68f6dc0",
+    "fetched_at": "2026-11-09T01:48:20Z"
+  },
+  {
+    "file": "raw/usc-2-1381.htm",
+    "url": "https://www.govinfo.gov/link/uscode/2/1381?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title2/html/USCODE-2024-title2-chap24-subchapIII-sec1381.htm",
+    "http_status": 200,
+    "bytes": 28121,
+    "sha256": "sha256:f3963aacb5e101c0dfd6330bea73455263fbeb22d61011df032b8f27849bef71",
+    "fetched_at": "2026-11-09T01:48:04Z"
+  },
+  {
+    "file": "raw/usc-2-166.htm",
+    "url": "https://www.govinfo.gov/link/uscode/2/166?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title2/html/USCODE-2024-title2-chap5-sec166.htm",
+    "http_status": 200,
+    "bytes": 32346,
+    "sha256": "sha256:1459c3b5b9403ccbc689e3180c8523738a9456a54cdc0b807dcd1ca19f45a333",
+    "fetched_at": "2026-11-09T01:46:29Z"
+  },
+  {
+    "file": "raw/usc-2-1901.htm",
+    "url": "https://www.govinfo.gov/link/uscode/2/1901?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title2/html/USCODE-2024-title2-chap29-subchapI-partA-sec1901.htm",
+    "http_status": 200,
+    "bytes": 39475,
+    "sha256": "sha256:d51638f66cc11fd8d541f5daea6c07feb8b584b1f71848a29784c590da145288",
+    "fetched_at": "2026-11-09T01:48:06Z"
+  },
+  {
+    "file": "raw/usc-22-6431.htm",
+    "url": "https://www.govinfo.gov/link/uscode/22/6431?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title22/html/USCODE-2024-title22-chap73-subchapII-sec6431.htm",
+    "http_status": 200,
+    "bytes": 17813,
+    "sha256": "sha256:e402f3a82fb3c594671d88a597a62cfe31acec0cd240da7e3fa9817c294e470c",
+    "fetched_at": "2026-11-09T01:48:21Z"
+  },
+  {
+    "file": "raw/usc-38-2400.htm",
+    "url": "https://www.govinfo.gov/link/uscode/38/2400?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title38/html/USCODE-2024-title38-partII-chap24-sec2400.htm",
+    "http_status": 200,
+    "bytes": 34336,
+    "sha256": "sha256:91e3268bee8acbc36d031b851bad9f369cae80e57c38dd303cb82a418e975794",
+    "fetched_at": "2026-11-09T01:46:49Z"
+  },
+  {
+    "file": "raw/usc-38-7301.htm",
+    "url": "https://www.govinfo.gov/link/uscode/38/7301?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title38/html/USCODE-2024-title38-partV-chap73-subchapI-sec7301.htm",
+    "http_status": 200,
+    "bytes": 2918,
+    "sha256": "sha256:ccdd882bc107a142927ec2721e2cd69e7100b57f9c673d5a8c44ed4c121c04e0",
+    "fetched_at": "2026-11-09T01:46:50Z"
+  },
+  {
+    "file": "raw/usc-38-7701.htm",
+    "url": "https://www.govinfo.gov/link/uscode/38/7701?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title38/html/USCODE-2024-title38-partV-chap77-subchapI-sec7701.htm",
+    "http_status": 200,
+    "bytes": 2894,
+    "sha256": "sha256:0f97e8e670ec4403d7b1e53a7a925f0a8d64d0bd1c5e00f89406ad62226fd695",
+    "fetched_at": "2026-11-09T01:46:51Z"
+  },
+  {
+    "file": "raw/usc-42-1861.htm",
+    "url": "https://www.govinfo.gov/link/uscode/42/1861?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap16-sec1861.htm",
+    "http_status": 200,
+    "bytes": 35916,
+    "sha256": "sha256:d773ba654bc42ded146a84cac5a96ee4a0a0bf4ab5a667a3a4e41d7c7759d7ce",
+    "fetched_at": "2026-11-09T01:48:23Z"
+  },
+  {
+    "file": "raw/usc-42-1863.htm",
+    "url": "https://www.govinfo.gov/link/uscode/42/1863?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap16-sec1863.htm",
+    "http_status": 200,
+    "bytes": 23068,
+    "sha256": "sha256:978be0b60dd79cce48d4247c0dd57967fc0af631ebb4349cf7ed5eff2e391107",
+    "fetched_at": "2026-11-09T01:46:53Z"
+  },
+  {
+    "file": "raw/usc-42-281.htm",
+    "url": "https://www.govinfo.gov/link/uscode/42/281?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap6A-subchapIII-partA-sec281.htm",
+    "http_status": 200,
+    "bytes": 34626,
+    "sha256": "sha256:9690f8b28178b5bc4ccf6b215839ff6ea65a5685802c6d0a507593930bc56278",
+    "fetched_at": "2026-11-09T01:48:22Z"
+  },
+  {
+    "file": "raw/usc-42-285f.htm",
+    "url": "https://www.govinfo.gov/link/uscode/42/285f?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap6A-subchapIII-partC-subpart6-sec285f.htm",
+    "http_status": 200,
+    "bytes": 2728,
+    "sha256": "sha256:919904be5c741f6bccd5edc883b53468d01542187700cbb44a99c5069409b94d",
+    "fetched_at": "2026-11-09T01:46:54Z"
+  },
+  {
+    "file": "raw/usc-44-3503.htm",
+    "url": "https://www.govinfo.gov/link/uscode/44/3503?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title44/html/USCODE-2024-title44-chap35-subchapI-sec3503.htm",
+    "http_status": 200,
+    "bytes": 7090,
+    "sha256": "sha256:dbea83ca83c5f4c3607210bf0e8fa206df7fc92a38f4d011c93b19df7a2069c5",
+    "fetched_at": "2026-11-09T01:46:55Z"
+  },
+  {
+    "file": "raw/usc-50-3056.htm",
+    "url": "https://www.govinfo.gov/link/uscode/50/3056?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title50/html/USCODE-2024-title50-chap44-subchapI-sec3056.htm",
+    "http_status": 200,
+    "bytes": 13724,
+    "sha256": "sha256:2479bdf202a3c845563b1d7d7e14c58a1772aa2269e6131c460e392931955689",
+    "fetched_at": "2026-11-09T01:46:56Z"
+  },
+  {
+    "file": "raw/usc-6-652.htm",
+    "url": "https://www.govinfo.gov/link/uscode/6/652?link-type=html",
+    "final_url": "https://www.govinfo.gov/content/pkg/USCODE-2024-title6/html/USCODE-2024-title6-chap1-subchapXVIII-partA-sec652.htm",
+    "http_status": 200,
+    "bytes": 63429,
+    "sha256": "sha256:7805546da7b8bac4091a88a962c8e56b6138eade6203db25a54e44493f595283",
+    "fetched_at": "2026-11-09T01:48:07Z"
+  }
+]

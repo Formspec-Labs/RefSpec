@@ -41,8 +41,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
-import unicodedata
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -51,7 +49,8 @@ from typing import Any, Literal
 
 from refspec.atlas import agency_projection
 from refspec.atlas import v3_registry_alignments_entity as entity_alignments
-from refspec.atlas.v3_source_data import RegistryRelease
+from refspec.atlas.agency_projection import name_key, word_order_key
+from refspec.atlas.v3_source_data import RegistryRelease, canonical_digest
 
 try:
     from tools import analyze_agency_roster_identifiers as census
@@ -65,7 +64,8 @@ REPORT_JSON = Path("plans/agency-registry-alias-batch-candidates.json")
 ADJUDICATION_MARKDOWN = Path("plans/agency-registry-alias-batch-adjudication.md")
 DECISIONS_JSON = Path("plans/agency-registry-alias-batch-decisions.json")
 DEMAND_JSON = Path("research/evidence/agency-alias-demand-2026-11-08/federal-misses.json")
-CANDIDATES_DIGEST_COVERS = ("aliases",)
+RECORDS_DIR = Path("research/evidence/agency-alias-records-2026-11-08")
+CANDIDATES_DIGEST_COVERS = entity_alignments.ALIAS_CANDIDATES_DIGEST_COVERS
 
 FR = agency_projection.FR_RELEASE_KEY
 REGS = agency_projection.REGULATIONS_GOV_RELEASE_KEY
@@ -83,12 +83,6 @@ ROSTER_LABELS = {
     agency_projection.ECFR_RELEASE_KEY: "eCFR",
     REGS: "regulations.gov",
 }
-# The organization words FR names put last ("Land Management Bureau"); frNameWordOrder moves one to the front.
-ORGANIZATION_WORDS = (
-    "administration", "agency", "board", "bureau", "center", "commission", "corps", "council", "department",
-    "institute", "office", "service",
-)
-_WORD_ORDER = re.compile(rf"^(?P<head>.+) (?P<word>{'|'.join(ORGANIZATION_WORDS)})$")
 
 FrRelation = Literal["same", "partOf"]
 ExclusionReason = Literal[
@@ -97,42 +91,24 @@ ExclusionReason = Literal[
 ]
 
 
-def name_key(text: str) -> str:
-    """The match key every alias is published under: case-folded words, qualifiers and "the" dropped.
-
-    NFKC and case-folded; "&" read as "and"; parentheticals dropped; every run
-    of other characters one space; then the words "the", "u s", "us", "united
-    states" and "of america" dropped wherever they stand. Two strings name the
-    same alias exactly when their keys are equal, so a consumer applies this
-    function to its own strings and looks the key up. It is congressional-tech's
-    em-fedagency normalizer with one repair: runs collapse before the qualifier
-    words are dropped, so "U. S. Fish and Wildlife Service" loses its "u s".
-    """
-
-    folded = unicodedata.normalize("NFKC", text).casefold().replace("&", " and ")
-    folded = " ".join(re.sub(r"[^a-z0-9]+", " ", re.sub(r"\([^)]*\)", " ", folded)).split())
-    return " ".join(re.sub(r"\b(the|u s|us|united states|of america)\b", " ", folded).split())
-
-
-def word_order_key(name: str) -> str | None:
-    """An FR name's key with its trailing organization word moved to the front, or None if it ends otherwise."""
-
-    match = _WORD_ORDER.fullmatch(name_key(name))
-    return None if match is None else f"{match['word']} of {match['head']}"
+SourceStatus = Literal["confirmed", "contradicted", "unconfirmed"]
 
 
 @dataclass(frozen=True, slots=True)
 class Record:
-    """One public record behind a judgment row; ``read`` is False until its bytes are retained and read."""
+    """One retained public record behind a judgment row, and the passage read in it.
+
+    ``file`` is a path in ``RECORDS_DIR``'s manifest; the URL and digest come
+    from the manifest. The record counts as read only when the retained bytes
+    still hash to the manifest's digest and ``passage`` occurs in their text
+    (tags dropped, entities decoded, whitespace collapsed), so the reading is
+    bound to the bytes, not to this file's say-so.
+    """
 
     kind: Literal["statute", "publicLaw", "executiveOrder"]
     citation: str
-    url: str | None
-    note: str
-    read: bool = False
-
-    def to_dict(self) -> dict[str, Any]:
-        return {"kind": self.kind, "citation": self.citation, "url": self.url, "note": self.note, "read": self.read}
+    file: str
+    passage: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -143,6 +119,9 @@ class Judgment:
     the organization itself (``same``) or the FR record it is part of
     (``partOf``); None where no FR record is either. ``options``, when given,
     replaces yes/no with numbered answers; ``recommended`` is one of the answers.
+    ``source_status`` is what reading the records found: ``confirmed`` rows
+    follow the owner's 2026-11-08 instruction (adopt the recommendation), the
+    others go back to the owner with ``source_finding``.
     """
 
     key: str
@@ -155,15 +134,12 @@ class Judgment:
     why: str
     records: tuple[Record, ...] = ()
     options: tuple[str, ...] = ()
+    source_status: SourceStatus = "confirmed"
+    source_finding: str | None = None
 
 
-def _usc(title: int, section: str, note: str) -> Record:
-    return Record(
-        "statute",
-        f"{title} U.S.C. {section}",
-        f"https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title{title}-section{section}&num=0&edition=prelim",
-        note,
-    )
+def _usc(title: int, section: str, passage: str) -> Record:
+    return Record("statute", f"{title} U.S.C. {section}", f"raw/usc-{title}-{section}.htm", passage)
 
 
 _FH, _OPM = "urn:ref:federal-hierarchy-org:", "urn:ref:opm-ehri-agency-subelement:"
@@ -182,119 +158,149 @@ _SERVICE_WHY = (
 _PART_WHY = "The unit has no FR record; a part-of row gives the FR id of the organization it sits in, and claims no identity."
 _TYPO_WHY = "No publisher spells it so; a misspelling is the consumer's fuzzy matcher's job, not a reviewed alias."
 _COMMAND_WHY = (
-    "A combatant command is a Department of Defense component (10 U.S.C. 161) with no FR record; part-of DOD "
-    "is the only FR resolution, and it claims no identity."
+    "The unified and specified combatant commands are part of the Department of Defense (10 U.S.C. 111(b)(9)) and "
+    "have no FR record; part-of DOD is the only FR resolution, and it claims no identity."
 )
+_DOD_COMMANDS = _usc(10, "111", "(9) The unified and specified combatant commands.")
+_UNNAMED = "No record read names this command; 10 U.S.C. 111(b)(9) puts combatant commands in the Department, but nothing read says this is one."
 
 
-def _command(key: str, target: str | None = None, *, note: str) -> Judgment:
-    return Judgment(key, target, 103, "partOf", "unitWithinFrAgency", note, "yes", _COMMAND_WHY,
-                    (_usc(10, "161", "Combatant commands are established by the President through the Secretary of Defense."),))
+def _command(key: str, target: str | None = None, *, note: str, named: Record | None = None, finding: str | None = None) -> Judgment:
+    return Judgment(
+        key, target, 103, "partOf", "unitWithinFrAgency", note, "yes", _COMMAND_WHY,
+        (_DOD_COMMANDS, *((named,) if named else ())),
+        source_status="confirmed" if finding is None else "unconfirmed", source_finding=finding,
+    )
 
 
 def _misspelling(key: str, fr: int, name: str) -> Judgment:
     return Judgment(key, None, fr, "same", "misspelling", f"A misspelling of {name}.", "no", _TYPO_WHY)
 
 
-# Hand-entered rows. Statute citations are the agent's reading of where each organization is
-# established; none has been retained or read yet (``read=False``), and the release step refuses
-# an adopted row until its records are read (plans/agency-registry-alias-plan.md section 4).
+# Hand-entered rows. Each record is retained under RECORDS_DIR (scripts/fetch.py, govinfo and the Federal
+# Register, 2026-11-08) and its passage was read there; rows citing none rest on the held roster records they name.
 JUDGMENT: tuple[Judgment, ...] = (
     Judgment("veterans health administration", _OPM + "VATA", 520, "partOf", "unitWithinFrAgency",
              "VHA is an administration of the Department of Veterans Affairs; OPM holds it as VATA, the FR does not.",
-             "yes", _PART_WHY, (_usc(38, "7301", "Establishes the Veterans Health Administration in the Department."),)),
+             "yes", _PART_WHY, (_usc(38, "7301", "There is in the Department of Veterans Affairs a Veterans Health Administration."),)),
     Judgment("veterans benefits administration", _OPM + "VALA", 520, "partOf", "unitWithinFrAgency",
              "VBA is an administration of the Department of Veterans Affairs; OPM holds it as VALA.",
-             "yes", _PART_WHY, (_usc(38, "7701", "Establishes the Veterans Benefits Administration in the Department."),)),
+             "yes", _PART_WHY, (_usc(38, "7701", "There is in the Department of Veterans Affairs a Veterans Benefits Administration."),)),
     Judgment("national cemetery administration", _OPM + "VAPA", 520, "partOf", "unitWithinFrAgency",
              "NCA is an administration of the Department of Veterans Affairs; OPM holds it as VAPA.",
-             "yes", _PART_WHY, (_usc(38, "2400", "Establishes the National Cemetery Administration in the Department."),)),
+             "yes", _PART_WHY, (_usc(38, "2400", "There shall be within the Department a National Cemetery Administration"),)),
     Judgment("army", None, 32, "partOf", "militaryServiceOfDepartment",
              "The Army is the service the Department of the Army (FR 32, 'Army Department') organizes; OPM's AR is the "
              "department, not the service.",
-             "2", _SERVICE_WHY, (_usc(10, "7062", "Composition of the Army."),), _SERVICE_OPTIONS),
+             "2", _SERVICE_WHY, (_usc(10, "7062", "the Army, within the Department of the Army, includes land combat and service forces"),),
+             _SERVICE_OPTIONS),
     Judgment("navy", None, 378, "partOf", "militaryServiceOfDepartment",
              "The Navy is a service of the Department of the Navy (FR 378, 'Navy Department'), which also holds the Marine Corps.",
-             "2", _SERVICE_WHY, (_usc(10, "8062", "Composition of the Navy."),), _SERVICE_OPTIONS),
+             "2", _SERVICE_WHY, (_usc(10, "8062", "The Navy, within the Department of the Navy, includes, in general, naval combat and service forces"),),
+             _SERVICE_OPTIONS),
     Judgment("air force", None, 13, "partOf", "militaryServiceOfDepartment",
              "The Air Force is a service of the Department of the Air Force (FR 13), which also holds the Space Force.",
-             "2", _SERVICE_WHY, (_usc(10, "9062", "Composition of the Air Force."),), _SERVICE_OPTIONS),
+             "2", _SERVICE_WHY, (_usc(10, "9062", "There is a United States Air Force within the Department of the Air Force."),),
+             _SERVICE_OPTIONS),
     Judgment("marine corps", _OPM + "NV27", 378, "partOf", "militaryServiceOfDepartment",
              "The Marine Corps is a service within the Department of the Navy (FR 378); OPM holds it as NV27.",
-             "yes", _PART_WHY, (_usc(10, "8063", "The Marine Corps, within the Department of the Navy."),)),
+             "yes", _PART_WHY, (_usc(10, "8063", "The Marine Corps, within the Department of the Navy, shall be so organized"),)),
     Judgment("usmc", _OPM + "NV27", 378, "partOf", "militaryServiceOfDepartment",
-             "USMC, the Marine Corps' own acronym; the same row as 'marine corps'.",
-             "yes", _PART_WHY, (_usc(10, "8063", "The Marine Corps, within the Department of the Navy."),)),
+             "USMC, the Marine Corps' acronym; the same row as 'marine corps'.",
+             "yes", _PART_WHY, (_usc(10, "8063", "The Marine Corps, within the Department of the Navy, shall be so organized"),),
+             source_status="unconfirmed",
+             source_finding="No record read, and no held roster, states the acronym 'USMC'; 10 U.S.C. 8063 confirms only the full name."),
     Judgment("space force", _OPM + "AF4G", 13, "partOf", "militaryServiceOfDepartment",
              "The Space Force is a service within the Department of the Air Force (FR 13); OPM holds it as AF4G.",
-             "yes", _PART_WHY, (_usc(10, "9081", "Establishes the Space Force within the Department of the Air Force."),)),
+             "yes", _PART_WHY, (_usc(10, "9081", "There is established a United States Space Force as an armed force within the Department of the Air Force."),)),
     Judgment("office of secretary of defense", _OPM + "DD01", 103, "partOf", "unitWithinFrAgency",
              "OSD is the Secretary's principal staff element in the Department of Defense (FR 103); OPM holds it as DD01.",
-             "yes", _PART_WHY, (_usc(10, "131", "Office of the Secretary of Defense."),)),
+             "yes", _PART_WHY, (_usc(10, "131", "There is in the Department of Defense an Office of the Secretary of Defense."),)),
     Judgment("joint chiefs of staff", _OPM + "DD02", 103, "partOf", "unitWithinFrAgency",
              "The Joint Chiefs of Staff sit in the Department of Defense; OPM holds their organization as DD02.",
-             "yes", _PART_WHY, (_usc(10, "151", "Joint Chiefs of Staff: composition; functions."),)),
+             "yes", _PART_WHY, (_usc(10, "151", "There are in the Department of Defense the Joint Chiefs of Staff, headed by the Chairman of the Joint Chiefs of Staff."),)),
     Judgment("joint staff", None, 103, "partOf", "unitWithinFrAgency",
              "The Joint Staff serves the Chairman of the Joint Chiefs of Staff in the Department of Defense; no held roster holds it alone.",
-             "yes", _PART_WHY, (_usc(10, "155", "Joint Staff."),)),
+             "yes", _PART_WHY, (_usc(10, "155", "There is a Joint Staff under the Chairman of the Joint Chiefs of Staff."),
+                                _usc(10, "111", "(2) The Joint Chiefs of Staff. (3) The Joint Staff."))),
     Judgment("national reconnaissance office", _FH + "500019037", 103, "partOf", "unitWithinFrAgency",
-             "NRO is a Department of Defense agency; the Federal Hierarchy holds it as 500019037 ('NATIONAL RECONNAISSANCE OFFICE (NRO)').",
+             "NRO is a Department of Defense agency; the Federal Hierarchy holds it as 500019037 ('NATIONAL RECONNAISSANCE OFFICE (NRO)') under DEPT OF DEFENSE.",
              "yes", _PART_WHY),
     Judgment("missile defense agency", _FH + "300000429", 103, "partOf", "unitWithinFrAgency",
-             "MDA is a Department of Defense agency; the Federal Hierarchy holds it as 300000429.", "yes", _PART_WHY),
+             "MDA is a Department of Defense agency; the Federal Hierarchy holds it as 300000429 under DEPT OF DEFENSE.", "yes", _PART_WHY),
     Judgment("defense health agency", _FH + "300000422", 103, "partOf", "unitWithinFrAgency",
-             "DHA is a Department of Defense agency; the Federal Hierarchy holds it as 300000422.", "yes", _PART_WHY),
+             "DHA is a Department of Defense agency; the Federal Hierarchy holds it as 300000422 under DEPT OF DEFENSE.", "yes", _PART_WHY),
     Judgment("defense innovation unit", None, 103, "partOf", "unitWithinFrAgency",
-             "DIU is a Department of Defense organization no held roster holds.", "yes", _PART_WHY),
+             "DIU is a Department of Defense organization no held roster holds.", "yes", _PART_WHY,
+             (_usc(10, "4127", "There is established in the Department of Defense a Defense Innovation Unit"),)),
     Judgment("national guard bureau", None, 103, "partOf", "unitWithinFrAgency",
              "The National Guard Bureau is a joint activity of the Department of Defense; OPM holds only its chief's office (ARGB).",
-             "yes", _PART_WHY, (_usc(10, "10501", "National Guard Bureau."),)),
-    _command("cyber command", _FH + "300000421", note="U.S. Cyber Command; the Federal Hierarchy holds it as 300000421."),
-    _command("special operations command", _FH + "300000430", note="U.S. Special Operations Command; the Federal Hierarchy holds it as 300000430."),
-    _command("transportation command", _OPM + "DD76", note="U.S. Transportation Command; OPM holds it as DD76."),
-    _command("strategic command", note="U.S. Strategic Command; no held roster holds the command itself."),
-    _command("africa command", note="U.S. Africa Command; OPM's AF1R is an Air Force code, so not taken as the command."),
-    _command("space command", note="U.S. Space Command; no held roster holds the command itself."),
-    _command("central command", note="U.S. Central Command; no held roster holds the command itself."),
-    _command("european command", note="U.S. European Command; no held roster holds the command itself."),
-    _command("forces korea", note="U.S. Forces Korea, a subordinate unified command; no held roster holds it."),
+             "yes", _PART_WHY, (_usc(10, "10501", "There is in the Department of Defense the National Guard Bureau, which is a joint activity of the Department of Defense."),)),
+    _command("cyber command", _FH + "300000421", note="U.S. Cyber Command; the Federal Hierarchy holds it as 300000421 under DEPT OF DEFENSE.",
+             named=_usc(10, "167b", "I assign to U.S. Cyber Command: (1) all the general responsibilities of a Unified Combatant Command")),
+    _command("special operations command", _FH + "300000430", note="U.S. Special Operations Command; the Federal Hierarchy holds it as 300000430 under DEPT OF DEFENSE.",
+             named=_usc(10, "167", "shall establish under section 161 of this title a unified combatant command for special operations forces")),
+    _command("space command", note="U.S. Space Command; no held roster holds the command itself.",
+             named=_usc(10, "161", "I assign to United States Space Command: (1) all the general responsibilities of a Unified Combatant Command")),
+    _command("strategic command", note="U.S. Strategic Command; no held roster holds the command itself.",
+             named=_usc(10, "161", "the space-related responsibilities previously assigned to the Commander, United States Strategic Command")),
+    _command("central command", note="U.S. Central Command; no held roster holds the command itself.",
+             named=_usc(10, "161", "whether the boundary between the United States Central and European Commands could create command conflicts")),
+    _command("european command", note="U.S. European Command; no held roster holds the command itself.",
+             named=_usc(10, "161", "whether the boundary between the United States Central and European Commands could create command conflicts")),
+    _command("transportation command", _OPM + "DD76", note="U.S. Transportation Command; OPM holds it as DD76.",
+             finding=_UNNAMED + " OPM's code DD76 sits under the DD (Department of Defense) prefix, but the held release states no parent."),
+    _command("africa command", note="U.S. Africa Command; OPM's AF1R is an Air Force code, so not taken as the command.", finding=_UNNAMED),
+    _command("forces korea", note="U.S. Forces Korea, a subordinate unified command; no held roster holds it.",
+             finding=_UNNAMED + " It is a subordinate unified command, which 111(b)(9) does not list by that name."),
     Judgment("office of chief of naval operations", None, 378, "partOf", "unitWithinFrAgency",
              "The Office of the Chief of Naval Operations is the Navy's headquarters staff in the Department of the Navy.",
-             "yes", _PART_WHY),
+             "yes", _PART_WHY, (_usc(10, "8031", "There is in the executive part of the Department of the Navy an Office of the Chief of Naval Operations."),)),
     Judgment("headquarters marine corps", None, 378, "partOf", "unitWithinFrAgency",
-             "Headquarters, Marine Corps sits in the Department of the Navy.", "yes", _PART_WHY),
+             "Headquarters, Marine Corps sits in the Department of the Navy.", "yes", _PART_WHY,
+             (_usc(10, "8041", "There is in the executive part of the Department of the Navy a Headquarters, Marine Corps."),)),
     Judgment("headquarters air force", None, 13, "partOf", "unitWithinFrAgency",
-             "Headquarters Air Force (the Secretariat and Air Staff) sits in the Department of the Air Force.", "yes", _PART_WHY),
+             "Headquarters Air Force (the Secretariat and Air Staff) sits in the Department of the Air Force.", "yes", _PART_WHY,
+             (_usc(10, "9031", "There is in the executive part of the Department of the Air Force an Air Staff."),),
+             source_status="unconfirmed",
+             source_finding="10 U.S.C. 9031 establishes the Air Staff; no record read uses the name 'Headquarters Air Force'."),
     Judgment("air force space command", None, 13, "partOf", "unitWithinFrAgency",
              "Air Force Space Command, an Air Force major command until the Space Force took it in 2019-2020.",
-             "yes", "Part-of the Department of the Air Force is true for the command's whole life, before and after the Space Force."),
+             "yes", "Part-of the Department of the Air Force is true for the command's whole life, before and after the Space Force.",
+             source_status="unconfirmed",
+             source_finding="No record was found or read for Air Force Space Command; major commands are not established by statute."),
     Judgment("congressional research service", None, 277, "partOf", "unitWithinFrAgency",
              "CRS is a department of the Library of Congress (FR 277); no held roster holds it.",
-             "yes", _PART_WHY, (_usc(2, "166", "Congressional Research Service, in the Library of Congress."),)),
+             "yes", _PART_WHY, (_usc(2, "166", "is hereby continued as a separate department in the Library of Congress and is redesignated the"),)),
     Judgment("national counterterrorism center", None, 354, "partOf", "unitWithinFrAgency",
              "NCTC is a center of the Office of the Director of National Intelligence (FR 354). FR 334, the National "
              "Counterintelligence Center, carries the short name 'NCTC': an acronym collision, so the acronym is never an alias here.",
-             "yes", _PART_WHY, (_usc(50, "3056", "National Counterterrorism Center, in the Office of the Director of National Intelligence."),)),
+             "yes", _PART_WHY, (_usc(50, "3056", "There is within the Office of the Director of National Intelligence a National Counterterrorism Center."),)),
     Judgment("national science board", None, 366, "partOf", "unitWithinFrAgency",
              "The National Science Board is the governing board of the National Science Foundation (FR 366).",
-             "yes", _PART_WHY, (_usc(42, "1863", "National Science Board."),)),
+             "yes", _PART_WHY, (_usc(42, "1861", "The Foundation shall consist of a National Science Board"),)),
     Judgment("national institute of allergy and infectious diseases", None, 353, "partOf", "unitWithinFrAgency",
              "NIAID is an institute of the National Institutes of Health (FR 353).",
-             "yes", _PART_WHY, (_usc(42, "285f", "National Institute of Allergy and Infectious Diseases."),)),
+             "yes", _PART_WHY, (_usc(42, "281", "The following agencies of the National Institutes of Health are national research institutes or national centers:"),
+                                _usc(42, "281", "(6) The National Institute of Allergy and Infectious Diseases."))),
     Judgment("national forest system", None, 209, "partOf", "unitWithinFrAgency",
              "The National Forest System is the lands the Forest Service (FR 209) administers; as a witness's organization it "
              "names the Forest Service's National Forest System deputy area.",
-             "yes", _PART_WHY, (_usc(16, "1609", "The National Forest System."),)),
+             "yes", _PART_WHY, (_usc(16, "1609", "the National Forest System consists of units of federally owned forest, range, and related lands"),),
+             source_status="contradicted",
+             source_finding="16 U.S.C. 1609 defines the National Forest System as lands, not an organization, and does not name the "
+             "Forest Service; the deputy area the row assumes is in no record read."),
     Judgment("bureau of near eastern affairs", None, 476, "partOf", "unitWithinFrAgency",
-             "A regional bureau of the Department of State (FR 476).", "yes", _PART_WHY),
+             "A regional bureau of the Department of State (FR 476).", "yes", _PART_WHY,
+             source_status="unconfirmed", source_finding="No statute establishes State's regional bureaus; no record was found or read."),
     Judgment("office of information and regulatory affairs", None, 280, "partOf", "unitWithinFrAgency",
              "OIRA is an office within the Office of Management and Budget (FR 280); regulations.gov lists it as its own "
              "agency code, but no reviewed REF-038 row maps that code to an FR record.",
-             "yes", _PART_WHY, (_usc(44, "3503", "Office of Information and Regulatory Affairs, in the Office of Management and Budget."),)),
+             "yes", _PART_WHY, (_usc(44, "3503", "There is established in the Office of Management and Budget an office to be known as the Office of Information and Regulatory Affairs."),)),
     Judgment("cybersecurity and infrastructure security agency", _FH + "500044551", 227, "partOf", "unitWithinFrAgency",
              "CISA is a Department of Homeland Security agency. REF-038 already maps regulations.gov 'CISA' to Federal "
              "Hierarchy 500044551, and batch 1 recorded that the held FR roster has no CISA record (noCounterpartInHeldFRRoster).",
-             "yes", _PART_WHY),
+             "yes", _PART_WHY, (_usc(6, "652", "The National Protection and Programs Directorate of the Department shall, on and after November 16, 2018, be known as the"),)),
     Judgment("national security agency", None, 367, "same", "publisherNameVariant",
              "FR 367 is 'National Security Agency/Central Security Service'; the Federal Hierarchy names the same agency "
              "'NATIONAL SECURITY AGENCY (NSA)' (300000420).",
@@ -306,15 +312,16 @@ JUDGMENT: tuple[Judgment, ...] = (
              "FR 80 is 'Comptroller of the Currency'; the statute names the agency the Office of the Comptroller of the "
              "Currency, as the Federal Hierarchy and OPM do.",
              "yes", "The FR names the office by its head; the statutory name is the same agency.",
-             (_usc(12, "1", "Office of the Comptroller of the Currency."),)),
+             (_usc(12, "1", "There is established in the Department of the Treasury a bureau to be known as the"),)),
     Judgment("export import bank of", None, 151, "same", "publisherNameVariant",
              "'Export-Import Bank of the United States' is the statutory name of FR 151 ('Export-Import Bank').",
              "yes", "The statutory name of the FR record's organization. Batch 1's EIB/USEIB non-emission concerns an eCFR bridge, not this.",
-             (_usc(12, "635", "Export-Import Bank of the United States."),)),
+             (_usc(12, "635", "There is created a corporation with the name Export-Import Bank of the United States, which shall be an agency of the United States of America."),)),
     Judgment("federal bureau of prisons", None, 437, "same", "publisherNameVariant",
              "FR 437 is 'Prisons Bureau'; the bureau calls itself the Federal Bureau of Prisons, and the Federal Hierarchy "
              "names it 'FEDERAL PRISON SYSTEM / BUREAU OF PRISONS'.",
-             "yes", "The bureau's own name for the FR record's organization."),
+             "yes", "A qualifier variant of the statutory name of the FR record's organization.",
+             (_usc(18, "4041", "The Bureau of Prisons shall be in charge of a director appointed by and serving directly under the Attorney General."),)),
     Judgment("usda office of inspector general", None, 244, "same", "publisherNameVariant",
              "FR 244 is 'Inspector General Office, Agriculture Department'; this is its name in natural order with the "
              "parent's acronym.",
@@ -334,31 +341,36 @@ JUDGMENT: tuple[Judgment, ...] = (
     Judgment("board of governors of federal reserve system", None, 188, "partOf", "unitWithinFrAgency",
              "FR 188 is 'Federal Reserve System'; eCFR holds the Board of Governors and the System as two records.",
              "2", "Option 2 gives the same FR id without claiming the Board is the whole System, which eCFR keeps apart.",
-             (_usc(12, "241", "Board of Governors of the Federal Reserve System."),),
+             (_usc(12, "241", "The Board of Governors of the Federal Reserve System (hereinafter referred to as the"),),
              ("Yes, as the same organization as FR 188.", "Yes, as part of FR 188 (the System's governing board).", "No alias.")),
     Judgment("general accounting office", None, 213, "same", "statutoryRename",
              "The Government Accountability Office's name before 2004-07-07. OPM's pinned roster states it: LG00, 'WHOSE "
              "NAME, PRIOR TO JULY 7, 2004, HAD BEEN THE GENERAL ACCOUNTING OFFICE'. The FR holds one record, FR 213, so "
              "there is no succession to state (the rename rule: a stale name no roster holds as its own record is identity evidence).",
              "yes", "One organization renamed by statute; the old name appears in 214 unmatched appearances.",
-             (Record("publicLaw", "Pub. L. 108-271, sec. 8(a), 118 Stat. 811 (2004-07-07), GAO Human Capital Reform Act of 2004",
-                     "https://www.congress.gov/108/plaws/publ271/PLAW-108publ271.pdf",
-                     "Renames the General Accounting Office the Government Accountability Office."),)),
+             (Record("publicLaw", "Pub. L. 108-271, sec. 8(a), 118 Stat. 814 (2004-07-07), GAO Human Capital Reform Act of 2004",
+                     "raw/plaw-108-271.htm", "The General Accounting Office is hereby redesignated the Government Accountability Office."),)),
     Judgment("department of war", None, 103, "same", "secondaryTitle",
-             "The secondary title the President authorized for the Department of Defense (FR 103) in September 2025.",
-             "yes", "An official title of the same department; adopt once the order is read.",
-             (Record("executiveOrder", "Executive Order 14347 (2025-09-05), Restoring the United States Department of War", None,
-                     "Authorizes 'Department of War' as a secondary title of the Department of Defense."),)),
+             "The secondary title Executive Order 14347 authorizes for the Department of Defense (FR 103), in official "
+             "correspondence, public communications, ceremonial contexts and non-statutory documents.",
+             "yes", "An official secondary title of the same department.",
+             (Record("executiveOrder", "Executive Order 14347 of September 5, 2025, 90 FR 43893, Restoring the United States Department of War",
+                     "raw/fr-eo-14347.txt",
+                     "The Department of Defense and the Office of the Secretary of Defense may be referred to as the Department of War"),)),
     Judgment("capitol police", _FH + "500193110", None, None, "noFrRecord",
-             "The United States Capitol Police, a legislative-branch agency; the Federal Hierarchy holds it (500193110), the FR does not.",
-             "yes", "Names the Federal Hierarchy record; an FR-keyed consumer gets no FR id, which is the truth."),
+             "The United States Capitol Police, a legislative-branch agency; the Federal Hierarchy holds it (500193110) under "
+             "THE LEGISLATIVE BRANCH, the FR does not.",
+             "yes", "Names the Federal Hierarchy record; an FR-keyed consumer gets no FR id, which is the truth.",
+             (_usc(2, "1901", "There shall be a Capitol police."),)),
     Judgment("office of congressional workplace rights", _OPM + "ZG00", None, None, "noFrRecord",
              "A legislative-branch office (the Office of Compliance until 2018); OPM holds it as ZG00, the FR does not.",
-             "yes", "Names the OPM record; no FR id."),
+             "yes", "Names the OPM record; no FR id.",
+             (_usc(2, "1381", "There is established, as an independent office within the legislative branch of the Federal Government, the Office of Congressional Workplace Rights."),)),
     Judgment("commission on international religious freedom", _OPM + "ZP00", None, None, "noFrRecord",
              "USCIRF; OPM holds it as ZP00. The Federal Hierarchy holds two records of the same name (300000724, 300000894), "
              "so neither is taken.",
-             "yes", "Names the one OPM record; no FR id."),
+             "yes", "Names the one OPM record; no FR id.",
+             (_usc(22, "6431", "There is established the United States Commission on International Religious Freedom."),)),
     _misspelling("federal bureau of investigations", 160, "the Federal Bureau of Investigation (FR 160)"),
     _misspelling("veterans benefit administration", 520, "the Veterans Benefits Administration"),
     _misspelling("federal energy regulatory commision", 167, "the Federal Energy Regulatory Commission (FR 167)"),
@@ -432,12 +444,51 @@ class _Index:
         return names
 
 
+def _content(row: Mapping[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in row.items() if key != "content_digest"}
+
+
 def _alias_id(key: str) -> str:
     return "alias:" + key.replace(" ", "-")
 
 
-def _content(row: Mapping[str, Any]) -> dict[str, Any]:
-    return {key: value for key, value in row.items() if key not in {"content_digest", "demand"}}
+def _records(root: Path, item: Judgment) -> list[dict[str, Any]]:
+    """Each cited record with its retained URL and digest; refused unless its passage is in its retained bytes."""
+
+    manifest = {entry["file"]: entry for entry in json.loads((root / RECORDS_DIR / "manifest.json").read_text())}
+    rows = []
+    for record in item.records:
+        entry = manifest.get(record.file)
+        batch1._require(entry is not None, f"{item.key!r} cites {record.file}, which the records manifest does not hold")
+        row = {
+            "kind": record.kind,
+            "citation": record.citation,
+            "file": record.file,
+            "url": entry["final_url"],
+            "sha256": entry["sha256"],
+            "passage": " ".join(record.passage.split()),
+        }
+        row["read"] = entity_alignments.alias_record_is_read(row, root)
+        batch1._require(row["read"], f"{item.key!r}: the passage cited from {record.file} is not in its retained bytes")
+        rows.append(row)
+    return rows
+
+
+def _answer_effects(fr_relation: str | None, options: Sequence[str], option_relations: Sequence[str | None]) -> dict[str, Any]:
+    """What each answer the sheet offers does in the release; sealed in the item's content digest."""
+
+    if not options:
+        return {"yes": {"outcome": "alias", "fr_relation": fr_relation}, "no": {"outcome": "nonEmission"}}
+    return {
+        str(n): ({"outcome": "nonEmission"} if relation == "none" else {"outcome": "alias", "fr_relation": relation})
+        for n, relation in enumerate(option_relations, start=1)
+    }
+
+
+# The FR relation each numbered option gives; "none" is "No alias".
+_OPTION_RELATIONS = {
+    _SERVICE_OPTIONS: ("same", "partOf", "none"),
+}
 
 
 def assemble(root: Path, releases: Sequence[RegistryRelease] | None = None) -> dict[str, Any]:
@@ -456,6 +507,7 @@ def assemble(root: Path, releases: Sequence[RegistryRelease] | None = None) -> d
     batch1._require(not set(judged) & set(EXCLUDED), "a key is both judged and excluded")
 
     aliases: list[dict[str, Any]] = []
+    counts_by_id: dict[str, Any] = {}
     resolvable: list[dict[str, Any]] = []
     excluded: list[dict[str, Any]] = []
     for key, row in demand.items():
@@ -469,19 +521,24 @@ def assemble(root: Path, releases: Sequence[RegistryRelease] | None = None) -> d
         if len(targets) == 1:
             batch1._require(key not in judged and key not in EXCLUDED, f"{key!r} is mechanical; drop its hand entry")
             (target,) = targets
+            record = index.record(target)
             alias = {
                 "alias_id": _alias_id(key),
                 "name_key": key,
                 "status": batch1.CANDIDATE_STATUS,
                 "class": "mechanical",
                 "basis": sorted(bases),
-                "target": index.record(target),
-                "fr": index.record(target)["id"],
+                "target": record,
+                "fr": record["id"],
+                "fr_record": record,
                 "fr_relation": "same",
                 "reasoning": "Derived from the pinned rosters by the stated rule; no hand input.",
                 "records": [],
                 "recommended": "yes",
                 "why": "The FR record's own short name or name, or a reviewed identity's publisher name.",
+                "source_status": "confirmed",
+                "source_finding": None,
+                "answer_effects": _answer_effects("same", (), ()),
             }
         elif key in judged:
             item = judged[key]
@@ -489,8 +546,10 @@ def assemble(root: Path, releases: Sequence[RegistryRelease] | None = None) -> d
                             tuple(str(n) for n in range(1, len(item.options) + 1))), f"{key!r} recommends an answer it does not offer")
             batch1._require(item.target is None or item.target in index.resources, f"{key!r} targets no held roster record")
             batch1._require((item.fr is None) == (item.fr_relation is None), f"{key!r} states an FR id without a relation")
+            batch1._require((item.source_status == "confirmed") == (item.source_finding is None), f"{key!r} source finding and status disagree")
             fr_iri = None if item.fr is None else IRI_PREFIXES[FR] + str(item.fr)
             batch1._require(fr_iri is None or fr_iri in index.resources, f"{key!r} names no held FR record")
+            option_relations = _OPTION_RELATIONS.get(item.options, ("same", "partOf", "none")) if item.options else ()
             alias = {
                 "alias_id": _alias_id(key),
                 "name_key": key,
@@ -502,9 +561,12 @@ def assemble(root: Path, releases: Sequence[RegistryRelease] | None = None) -> d
                 "fr_record": None if fr_iri is None else index.record(fr_iri),
                 "fr_relation": item.fr_relation,
                 "reasoning": item.reasoning,
-                "records": [record.to_dict() for record in item.records],
+                "records": _records(root, item),
                 "recommended": item.recommended,
                 "why": item.why,
+                "source_status": item.source_status,
+                "source_finding": item.source_finding,
+                "answer_effects": _answer_effects(item.fr_relation, item.options, option_relations),
             }
             if len(targets) > 1:
                 alias["mechanical_collision"] = sorted(targets)
@@ -516,9 +578,9 @@ def assemble(root: Path, releases: Sequence[RegistryRelease] | None = None) -> d
             continue
         else:
             raise ValueError(f"demand key {key!r} is unaccounted: make it mechanical, judge it, or exclude it")
-        alias["demand"] = counts
         alias["content_digest"] = batch1._digest(_content(alias))
         aliases.append(alias)
+        counts_by_id[alias["alias_id"]] = counts
 
     report: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -528,9 +590,13 @@ def assemble(root: Path, releases: Sequence[RegistryRelease] | None = None) -> d
             "roster_releases": {release.key: release.source_release_digest for release in releases},
             "demand": {"path": str(DEMAND_JSON), "sha256": batch1._file_digest(root / DEMAND_JSON),
                        **{key: demand_doc[key] for key in ("inputs", "thresholds", "federal")}},
+            "records_manifest": {"path": str(RECORDS_DIR / "manifest.json"), "sha256": batch1._file_digest(root / RECORDS_DIR / "manifest.json")},
         },
-        "name_key": {"function": "tools/assemble_agency_registry_alias_batch.py name_key", "doc": " ".join(name_key.__doc__.split())},
+        "name_key": {"function": "refspec.atlas.agency_projection.name_key", "version": agency_projection.NAME_KEY_VERSION,
+                     "doc": " ".join(name_key.__doc__.split())},
         "aliases": aliases,
+        # Measured demand, outside the decided content: a re-measurement stales nothing.
+        "demand": counts_by_id,
         "already_resolvable": resolvable,
         "excluded": excluded,
         # The decision contract reads these; an alias batch proposes no bridge, event or non-emission.
@@ -540,7 +606,7 @@ def assemble(root: Path, releases: Sequence[RegistryRelease] | None = None) -> d
         "no_fr_bridge": [],
         "candidates_digest_covers": list(CANDIDATES_DIGEST_COVERS),
     }
-    report["candidates_digest"] = batch1._digest({"aliases": [_content(alias) for alias in aliases]})
+    report["candidates_digest"] = canonical_digest({key: report[key] for key in CANDIDATES_DIGEST_COVERS})
     report["digest"] = batch1._digest(report)
     return report
 
@@ -573,8 +639,10 @@ def render_adjudication_sheet(report: Mapping[str, Any], decisions: entity_align
     """The owner's sheet, generated from the JSON and the decisions file; it adjudicates nothing."""
 
     answers = entity_alignments.decision_answers(report)
-    mechanical = [alias for alias in report["aliases"] if alias["class"] == "mechanical"]
-    judgment = [alias for alias in report["aliases"] if alias["class"] == "judgment"]
+    rows = [{**alias, "demand": report["demand"][alias["alias_id"]]} for alias in report["aliases"]]
+    mechanical = [alias for alias in rows if alias["class"] == "mechanical"]
+    judgment = [alias for alias in rows if alias["class"] == "judgment"]
+    returned = [alias for alias in judgment if alias["source_status"] != "confirmed"]
     federal = report["inputs"]["demand"]["federal"]
     undecided = len(set(answers) - set(decisions.current))
 
@@ -642,18 +710,32 @@ def render_adjudication_sheet(report: Mapping[str, Any], decisions: entity_align
         f"## Judgment ({len(judgment)})",
         "",
         (
-            "Records marked unread are cited, not yet retained; the release step refuses an adopted row until its "
-            "records are read (plan section 4)."
+            "Every cited record is retained under `research/evidence/agency-alias-records-2026-11-08/` (fetched "
+            "2026-11-08 from govinfo and the Federal Register) and read: the tool refuses a row whose quoted passage "
+            "is not in the retained bytes, and the release refuses an adopted alias whose record no longer is. A row "
+            "whose source check is not `confirmed` went back to the owner on 2026-11-08 instead of being adopted."
         ),
         "",
     ]
+    if returned:
+        lines.extend(
+            [
+                f"### Returned to the owner ({len(returned)}): the records read do not confirm the recommendation",
+                "",
+                *batch1._table(
+                    ("Id", "Source check", "Finding", "Decision"),
+                    [(f"`{a['alias_id']}`", a["source_status"], a["source_finding"], decided(a["alias_id"])) for a in returned],
+                ),
+                "",
+            ]
+        )
     for alias in judgment:
         options = alias.get("owner_question", {}).get("options")
         answer_text = (
             " / ".join(f"`{n}` {text}" for n, text in enumerate(options, start=1)) if options else "`yes` / `no`"
         )
         records = "; ".join(
-            f"[{r['citation']}]({r['url']})" if r["url"] else r["citation"] for r in alias["records"]
+            f"[{r['citation']}]({r['url']}): \"{r['passage']}\"" + ("" if r["read"] else " (unread)") for r in alias["records"]
         ) or "the held roster records named"
         lines.extend(
             [
@@ -667,7 +749,8 @@ def render_adjudication_sheet(report: Mapping[str, Any], decisions: entity_align
                         ("FR-keyed consumers get", _fr(alias)),
                         ("Basis", f"`{alias['basis'][0]}`"),
                         ("Reasoning", alias["reasoning"]),
-                        ("Records", records + ("" if all(r["read"] for r in alias["records"]) else " (unread)")),
+                        ("Records read", records),
+                        ("Source check", alias["source_status"] + ("" if alias["source_finding"] is None else f" — {alias['source_finding']}")),
                         ("Answers", answer_text),
                         ("Recommended", f"**{alias['recommended']}** — {alias['why']}"),
                         ("Owner decision / date", decided(alias["alias_id"])),
@@ -703,7 +786,7 @@ def render_adjudication_sheet(report: Mapping[str, Any], decisions: entity_align
             *batch1._table(
                 ("Id", "Answers", "Recommended", "Content digest"),
                 [(f"`{a['alias_id']}`", " / ".join(f"`{x}`" for x in answers[a["alias_id"]]), f"`{a['recommended']}`", f"`{a['content_digest']}`")
-                 for a in report["aliases"]],
+                 for a in rows],
             ),
             "",
         ]

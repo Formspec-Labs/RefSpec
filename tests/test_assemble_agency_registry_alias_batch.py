@@ -8,6 +8,7 @@ from typing import Any
 
 import pytest
 
+from refspec.atlas import agency_projection
 from refspec.atlas import v3_registry_alignments_entity as entity_alignments
 from tools import analyze_agency_roster_identifiers as census
 from tools import assemble_agency_registry_alias_batch as aliases
@@ -29,17 +30,56 @@ def test_committed_artifacts_follow_from_the_rosters_evidence_and_decisions(rele
     assert aliases.write_or_check(ROOT, write=False, releases=releases) == []
 
 
-def test_every_demand_key_is_accounted_for_once_and_nothing_is_decided(report: dict[str, Any]) -> None:
+def test_every_demand_key_is_accounted_for_once_and_only_confirmed_aliases_are_decided(report: dict[str, Any]) -> None:
+    """Pin the owner's 2026-11-08 instruction: the 12 mechanical rows approved per item, confirmed judgment rows take their recommendation, the 8 unconfirmed stay undecided."""
+
     keys = [row["name_key"] for row in report["aliases"]]
     keys += [row["key"] for row in (*report["already_resolvable"], *report["excluded"])]
     assert len(keys) == len(set(keys)) == 130
     assert all(row["status"] == "candidate-pending-owner-adjudication" for row in report["aliases"])
     decisions = entity_alignments.load_decisions(ROOT / aliases.DECISIONS_JSON, report)
-    assert not decisions.current and not decisions.stale
+    assert not decisions.stale
+    confirmed = {row["alias_id"]: row for row in report["aliases"] if row["source_status"] == "confirmed"}
+    assert set(decisions.current) == set(confirmed) and len(confirmed) == 62  # 12 mechanical approved per item, 50 judgment
+    assert all(decisions.current[key]["answer"] == row["recommended"] for key, row in confirmed.items())
+    assert all(row["read"] for alias in report["aliases"] for row in alias["records"])
     assert set(entity_alignments.decision_answers(report)) == {row["alias_id"] for row in report["aliases"]}
 
 
+def test_a_record_is_read_only_while_its_bytes_hold_the_passage(report: dict[str, Any], tmp_path: Path) -> None:
+    """Pin alias_record_is_read: a changed passage, a changed digest, or a missing file is unread."""
+
+    (record,) = next(row for row in report["aliases"] if row["alias_id"] == "alias:general-accounting-office")["records"]
+    assert entity_alignments.alias_record_is_read(record, ROOT)
+    assert not entity_alignments.alias_record_is_read({**record, "passage": "The General Accounting Office is hereby abolished."}, ROOT)
+    assert not entity_alignments.alias_record_is_read({**record, "sha256": "sha256:" + "0" * 64}, ROOT)
+    assert not entity_alignments.alias_record_is_read(record, tmp_path)
+
+
+def test_an_unread_citation_refuses_the_release(monkeypatch: pytest.MonkeyPatch, releases: tuple[Any, ...]) -> None:
+    """Pin D5: the release re-reads every adopted alias's records and refuses one that is no longer read."""
+
+    monkeypatch.setattr(entity_alignments, "alias_record_is_read", lambda record, root=ROOT: False)
+    with pytest.raises(ValueError, match="cites unread records, which refuse the release"):
+        entity_alignments.load_agency_registry_mapping_release(releases)
+
+
+def test_undecided_aliases_are_held_and_a_rejected_alias_is_a_non_emission(releases: tuple[Any, ...]) -> None:
+    """Pin the alias batch's partial rule: undecided aliases are not emitted and do not refuse the release."""
+
+    release = entity_alignments.load_agency_registry_mapping_release(releases)
+    decided = {row.get("candidateId") or row.get("eventId"): row for row in release.metadata["decisions"]}
+    assert decided["alias:bureau-of-land-management"]["frResource"] == "urn:ref:federal-register-agency:275"
+    assert "alias:national-forest-system" not in decided  # contradicted by its record, returned to the owner
+    army = decided["alias:army"]
+    assert (army["decision"], army["frResource"], army["frRelation"]) == ("alias", "urn:ref:federal-register-agency:32", "partOf")
+    assert decided["alias:labor"]["reason"] == "aliasRejectedByOwner"
+    police = decided["alias:capitol-police"]
+    assert "frResource" not in police and police["targetResource"] == "urn:ref:federal-hierarchy-org:500193110"
+
+
 def test_name_key_drops_qualifiers_after_collapsing_punctuation() -> None:
+    assert aliases.name_key is agency_projection.name_key
     assert aliases.name_key("U. S. Fish & Wildlife Service") == "fish and wildlife service"
     assert aliases.name_key("The Office of the Director of National Intelligence (ODNI)") == "office of director of national intelligence"
     assert aliases.word_order_key("Land Management Bureau") == "bureau of land management"
@@ -76,6 +116,7 @@ def test_a_decision_binds_to_its_alias_and_stales_when_it_changes(report: dict[s
         "decisions": {"alias:army": {"answer": "2", "decided_on": "2026-11-09", "content_digest": row["content_digest"], "channel": "questionTool"}},
     }
     assert set(entity_alignments.decisions_from_json(document, report, label="test").current) == {"alias:army"}
+    assert set(entity_alignments.load_decisions(ROOT / aliases.DECISIONS_JSON, report).current) >= {"alias:army"}
     document["decisions"]["alias:army"]["answer"] = "yes"
     with pytest.raises(ValueError, match="not one of"):
         entity_alignments.decisions_from_json(document, report, label="test")

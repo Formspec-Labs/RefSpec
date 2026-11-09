@@ -43,7 +43,13 @@ import pyarrow.parquet as pq
 
 from refspec.atlas.agency_projection import (
     AGENCY_REGISTRY_NON_EMISSION_REASONS,
+    FR_RELEASE_KEY,
+    NAME_KEY_VERSION,
+    AgencyProjection,
+    agency_organization_rows,
+    agency_registry_coverage,
     agency_registry_view_digest,
+    build_agency_projection,
     build_agency_registry_view,
     current_successor_rows,
 )
@@ -60,10 +66,12 @@ from refspec.atlas.parquet_tables import (
     AGENCY_PROJECTION_ROLE,
     AGENCY_PROJECTION_TABLE_SCHEMAS,
     AGENCY_PROJECTION_UNRESOLVED_ROLE,
+    AGENCY_REGISTRY_ALIAS_ROLE,
     AGENCY_REGISTRY_BRIDGE_ROLE,
     AGENCY_REGISTRY_CURRENT_SUCCESSOR_ROLE,
     AGENCY_REGISTRY_EVENT_ROLE,
     AGENCY_REGISTRY_NON_EMISSION_ROLE,
+    AGENCY_REGISTRY_ORGANIZATION_ROLE,
     AGENCY_REGISTRY_TABLE_SCHEMAS,
     COMPRESSION,
     COMPRESSION_LEVEL,
@@ -73,6 +81,7 @@ from refspec.atlas.parquet_tables import (
     DERIVED_RELATION_TABLE_SCHEMA,
     LEGACY_1_0_AGENCY_REGISTRY_TABLE_SCHEMAS,
     LEGACY_1_1_AGENCY_REGISTRY_TABLE_SCHEMAS,
+    LEGACY_1_2_AGENCY_REGISTRY_TABLE_SCHEMAS,
     PARQUET_VERSION,
     ROW_GROUP_SIZE,
     TABLE_MEDIA_TYPE,
@@ -88,7 +97,7 @@ from refspec.atlas.parquet_tables import (
     unpreserved_record_fields,
     write_agency_registry_tables,
 )
-from refspec.atlas.v3_source_data import RegistryMappingRelease
+from refspec.atlas.v3_source_data import RegistryMappingRelease, RegistryRelease
 from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
     sha256_digest,
@@ -1073,11 +1082,19 @@ AGENCY_REGISTRY_VIEW_RECORD_TYPE = "AgencyRegistryViewManifest"
 # the logical-content digest, so spicy-regs reads the walk instead of porting
 # it. 1.1 (the view spicy-regs vendors until it re-vendors) and 1.0 (dev21's)
 # stay verifiable against the release, the way the Atlas view keeps its 3.1
-# and 3.0.
-AGENCY_REGISTRY_VIEW_SCHEMA_VERSION = "1.2"
+# and 3.0. 1.3 (REF-075) is the one pin for SpicyRegs and congressional-tech:
+# the adopted aliases join the asserted tables and the logical digest; every
+# pinned Federal Register agency and REF-038's two tables are derived, checked
+# row for row against what the pinned rosters rebuild; and the manifest's
+# release identity names the REF-038 projection digest, the FR roster release
+# and the name-key version consumers match aliases with. 1.2, the view
+# spicy-regs vendors now, stays verifiable against the release without the
+# alias batch.
+AGENCY_REGISTRY_VIEW_SCHEMA_VERSION = "1.3"
 LEGACY_AGENCY_REGISTRY_VIEW_SCHEMA_VERSION = "1.0"
 _AGENCY_REGISTRY_SCHEMAS_BY_VERSION: Mapping[str, Mapping[str, pa.Schema]] = {
     AGENCY_REGISTRY_VIEW_SCHEMA_VERSION: AGENCY_REGISTRY_TABLE_SCHEMAS,
+    "1.2": LEGACY_1_2_AGENCY_REGISTRY_TABLE_SCHEMAS,
     "1.1": LEGACY_1_1_AGENCY_REGISTRY_TABLE_SCHEMAS,
     LEGACY_AGENCY_REGISTRY_VIEW_SCHEMA_VERSION: LEGACY_1_0_AGENCY_REGISTRY_TABLE_SCHEMAS,
 }
@@ -1127,20 +1144,48 @@ def _agency_registry_members(
     return members, counts
 
 
-def seal_agency_registry_view(output: Path, release: RegistryMappingRelease) -> dict[str, Any]:
-    """Write the REF-072 agency registry view of ``release`` as its own closed, digest-pinned directory.
+def _derived_inputs(rosters: Sequence[RegistryRelease]) -> tuple[RegistryRelease, AgencyProjection]:
+    """The pinned FR roster and the REF-038 projection the 1.3 view's derived tables are rebuilt from."""
 
-    Four tables (three asserted, the current successors derived) and a manifest, written with the Atlas view's one writer
-    contract, re-verified from the bytes on disk against the release, then
-    promoted. The manifest's own sha256 is the pin a consumer vendors the view by.
+    from refspec.atlas import v3_registry_alignments_entity as entity  # the release module imports this one's siblings
+
+    by_key = {release.key: release for release in rosters}
+    if FR_RELEASE_KEY not in by_key:
+        raise AtlasParquetViewError("a 1.3 agency registry view needs the pinned agency rosters")
+    projection = build_agency_projection(rosters, entity.load_regulations_gov_agency_identity_mapping_release(rosters))
+    return by_key[FR_RELEASE_KEY], projection
+
+
+def _view_identity(release_identity: Mapping[str, Any], fr_roster: RegistryRelease, projection: AgencyProjection) -> dict[str, Any]:
+    return {
+        **release_identity,
+        "agencyProjectionDigest": projection.digest,
+        "frRosterReleaseDigest": fr_roster.source_release_digest,
+        "nameKeyVersion": NAME_KEY_VERSION,
+    }
+
+
+def seal_agency_registry_view(
+    output: Path, release: RegistryMappingRelease, rosters: Sequence[RegistryRelease]
+) -> dict[str, Any]:
+    """Write the 1.3 agency registry view of ``release`` as its own closed, digest-pinned directory.
+
+    Eight tables -- four asserted (bridges, events, non-emissions, aliases), the
+    current successors and organizations derived, and REF-038's projection and
+    abstentions -- and a manifest, written with the Atlas view's one writer
+    contract, re-verified from the bytes on disk against the release and the
+    rosters, then promoted. The manifest's own sha256 is the pin a consumer
+    vendors the view by.
     """
 
     if output.is_symlink() or output.exists():
         raise AtlasParquetViewError(f"refusing to replace existing output: {output}")
     view = build_agency_registry_view(release)
+    fr_roster, projection = _derived_inputs(rosters)
+    organizations = agency_organization_rows(fr_roster, projection, view.events)
     output.parent.mkdir(parents=True, exist_ok=True)
     staged = Path(tempfile.mkdtemp(prefix=f".{output.name}.", dir=output.parent))
-    write_agency_registry_tables(staged, view)
+    write_agency_registry_tables(staged, view, organizations, projection)
     members, counts = _agency_registry_members(staged)
     construction = {
         "compression": COMPRESSION,
@@ -1151,7 +1196,7 @@ def seal_agency_registry_view(output: Path, release: RegistryMappingRelease) -> 
         "pyarrowVersion": importlib.metadata.version("pyarrow"),
         "rowGroupSize": ROW_GROUP_SIZE,
     }
-    identity = dict(view.release)
+    identity = _view_identity(view.release, fr_roster, projection)
     manifest: dict[str, Any] = {
         "construction": construction,
         "counts": counts,
@@ -1168,7 +1213,9 @@ def seal_agency_registry_view(output: Path, release: RegistryMappingRelease) -> 
     }
     manifest["canonicalPayloadDigest"] = canonical_payload_sha256(manifest)
     (staged / MANIFEST_FILE).write_bytes(canonical_json_bytes(manifest))
-    verify_agency_registry_view(staged, expected_manifest_digest=file_sha256(staged / MANIFEST_FILE), release=release)
+    verify_agency_registry_view(
+        staged, expected_manifest_digest=file_sha256(staged / MANIFEST_FILE), release=release, rosters=rosters
+    )
     os.rename(staged, output)
     return manifest
 
@@ -1178,8 +1225,12 @@ def verify_agency_registry_view(
     *,
     expected_manifest_digest: str,
     release: RegistryMappingRelease,
+    rosters: Sequence[RegistryRelease] | None = None,
 ) -> dict[str, Any]:
     """Verify a closed agency registry view against its external manifest pin and its release, down to its rows.
+
+    A 1.3 view also needs ``rosters``: its organizations and REF-038 tables
+    must equal, row for row, what the pinned rosters rebuild.
 
     Members, schemas, row counts and bytes are checked against the manifest,
     and the rows themselves are read back: their coverage and logical-content
@@ -1218,20 +1269,14 @@ def verify_agency_registry_view(
     bridges = rows[AGENCY_REGISTRY_BRIDGE_ROLE]
     events = rows[AGENCY_REGISTRY_EVENT_ROLE]
     non_emissions = rows[AGENCY_REGISTRY_NON_EMISSION_ROLE]
-    event_ids = {row["event_id"] for row in events}
-    coverage = {
-        "bridgeCount": len(bridges),
-        "decidedItemCount": len(bridges) + len(event_ids) + len(non_emissions),
-        "eventCount": len(event_ids),
-        "eventResultRowCount": len(events),
-        "nonEmissionCount": len(non_emissions),
-    }
+    aliases = rows.get(AGENCY_REGISTRY_ALIAS_ROLE)
+    coverage = agency_registry_coverage(bridges, events, non_emissions, aliases)
     if coverage != manifest["coverage"]:
         raise AtlasParquetViewError("agency registry view coverage differs from its rows")
     unknown_reasons = sorted({row["reason"] for row in non_emissions} - AGENCY_REGISTRY_NON_EMISSION_REASONS)
     if unknown_reasons:
         raise AtlasParquetViewError(f"agency registry view non-emission reason is outside the closed vocabulary: {unknown_reasons}")
-    if agency_registry_view_digest(bridges, events, non_emissions, coverage) != manifest["digest"]:
+    if agency_registry_view_digest(bridges, events, non_emissions, coverage, aliases) != manifest["digest"]:
         raise AtlasParquetViewError("agency registry view logical-content digest differs")
     if AGENCY_REGISTRY_CURRENT_SUCCESSOR_ROLE in rows and rows[AGENCY_REGISTRY_CURRENT_SUCCESSOR_ROLE] != list(
         current_successor_rows(events)
@@ -1243,7 +1288,20 @@ def verify_agency_registry_view(
         raise AtlasParquetViewError(f"agency registry view's release does not project: {error}") from error
     expected_digest = expected.digest
     expected_release = dict(expected.release)
-    if schemas is not AGENCY_REGISTRY_TABLE_SCHEMAS:
+    if schemas is AGENCY_REGISTRY_TABLE_SCHEMAS:
+        if rosters is None:
+            raise AtlasParquetViewError("a 1.3 agency registry view is verified against the pinned rosters too")
+        fr_roster, projection = _derived_inputs(rosters)
+        derived = {
+            AGENCY_REGISTRY_ORGANIZATION_ROLE: list(agency_organization_rows(fr_roster, projection, expected.events)),
+            AGENCY_PROJECTION_ROLE: [row.to_dict() for row in projection.rows],
+            AGENCY_PROJECTION_UNRESOLVED_ROLE: [row.to_dict() for row in projection.unresolved],
+        }
+        for role, expected_rows in derived.items():
+            if rows[role] != expected_rows:
+                raise AtlasParquetViewError(f"agency registry view {role} rows are not what the pinned rosters rebuild")
+        expected_release = _view_identity(expected_release, fr_roster, projection)
+    elif schemas is not LEGACY_1_2_AGENCY_REGISTRY_TABLE_SCHEMAS:
         # 1.1 and 1.0 predate the batches and name the one batch they were sealed from: verify them against batch 1.
         digests = dict(expected_release.pop("candidatesDigests"))
         if len(digests) != 1:

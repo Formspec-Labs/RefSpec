@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+import functools
 import json
 from collections.abc import Callable
 from pathlib import Path
@@ -16,10 +17,13 @@ from refspec.atlas import agency_projection, parquet_view
 from refspec.atlas import v3_registry_alignments_entity as entity
 from refspec.atlas.parquet_artifact import canonical_payload_sha256, file_sha256
 from refspec.atlas.parquet_tables import (
+    AGENCY_PROJECTION_ROLE,
+    AGENCY_REGISTRY_ALIAS_ROLE,
     AGENCY_REGISTRY_BRIDGE_ROLE,
     AGENCY_REGISTRY_CURRENT_SUCCESSOR_ROLE,
     AGENCY_REGISTRY_EVENT_ROLE,
     AGENCY_REGISTRY_NON_EMISSION_ROLE,
+    AGENCY_REGISTRY_ORGANIZATION_ROLE,
     AGENCY_REGISTRY_TABLE_SCHEMAS,
     agency_registry_table_relative_path,
 )
@@ -37,13 +41,28 @@ from tools import build_agency_registry_view as view_tool
 ROOT = Path(__file__).resolve().parents[1]
 
 
+@functools.cache
+def _rosters() -> tuple[RegistryRelease, ...]:
+    return census.load_five_agency_rosters(ROOT)
+
+
+def _seal(output: Path, release: RegistryMappingRelease) -> dict:
+    return seal_agency_registry_view(output, release, _rosters())
+
+
+def _verify(directory: Path, *, expected_manifest_digest: str, release: RegistryMappingRelease) -> dict:
+    return verify_agency_registry_view(
+        directory, expected_manifest_digest=expected_manifest_digest, release=release, rosters=_rosters()
+    )
+
+
 def _fr(fr_id: int) -> str:
     return f"urn:ref:federal-register-agency:{fr_id}"
 
 
 @pytest.fixture(scope="module")
 def rosters() -> tuple[RegistryRelease, ...]:
-    return census.load_five_agency_rosters(ROOT)
+    return _rosters()
 
 
 @pytest.fixture(scope="module")
@@ -67,11 +86,12 @@ def test_the_view_rows_are_exactly_the_release(view: agency_projection.AgencyReg
     """Pin 13 bridges, one row per (event, result) -- 15 for 10 events -- and 4 non-emissions."""
 
     assert dict(view.coverage) == {
+        "aliasCount": 55,
         "bridgeCount": 13,
-        "decidedItemCount": 27,
+        "decidedItemCount": 89,
         "eventCount": 10,
         "eventResultRowCount": 15,
-        "nonEmissionCount": 4,
+        "nonEmissionCount": 11,
     }
     splits = {row["result"]: row for row in view.events if row["event_id"] == "event:fr232"}
     assert set(splits) == {_fr(499), _fr(501), _fr(503)}
@@ -84,6 +104,7 @@ def test_the_view_rows_are_exactly_the_release(view: agency_projection.AgencyReg
     assert dict(view.release["candidatesDigests"]) == {
         entity.AGENCY_REGISTRY_CANDIDATES_PATH: entity.AGENCY_REGISTRY_CANDIDATES_DIGEST,
         entity.AGENCY_REGISTRY_SUCCESSION_CANDIDATES_PATH: entity.AGENCY_REGISTRY_SUCCESSION_CANDIDATES_DIGEST,
+        entity.AGENCY_REGISTRY_ALIAS_CANDIDATES_PATH: entity.AGENCY_REGISTRY_ALIAS_CANDIDATES_DIGEST,
     }
     (fna,) = (row for row in view.events if row["event_id"] == "event:fr200")
     assert (fna["result"], fna["effective_date"], fna["decision"]["decided_on"]) == (_fr(625), "2026-06-24", "2026-10-03")
@@ -138,26 +159,26 @@ def test_the_sealed_view_is_schema_1_2_and_the_1_1_and_1_0_views_still_verify(
     They verify against batch 1 alone, the release they were sealed from, and never against both batches.
     """
 
-    sealed = seal_agency_registry_view(tmp_path / "view", release)
-    assert sealed["schemaVersion"] == "1.2"
+    sealed = _seal(tmp_path / "view", release)
+    assert sealed["schemaVersion"] == "1.3"
     assert batch_1_release.source_release_digest == (
         "sha256:69001a4381ddf35cdba6d44fa52f579d7dfa07627c4c74da3dde2b0d8a39f8f0"
     ) != release.source_release_digest
-    vendored = verify_agency_registry_view(
+    vendored = _verify(
         LEGACY_1_1_VIEW, expected_manifest_digest=LEGACY_1_1_VIEW_MANIFEST_SHA256, release=batch_1_release
     )
     assert vendored["schemaVersion"] == "1.1"
     assert vendored["digest"] == agency_projection.build_agency_registry_view(batch_1_release).digest != sealed["digest"]
-    legacy = verify_agency_registry_view(
+    legacy = _verify(
         LEGACY_1_0_VIEW, expected_manifest_digest=LEGACY_1_0_VIEW_MANIFEST_SHA256, release=batch_1_release
     )
     assert legacy["schemaVersion"] == parquet_view.LEGACY_AGENCY_REGISTRY_VIEW_SCHEMA_VERSION == "1.0"
     with pytest.raises(AtlasParquetViewError, match="names one batch"):
-        verify_agency_registry_view(
+        _verify(
             LEGACY_1_1_VIEW, expected_manifest_digest=LEGACY_1_1_VIEW_MANIFEST_SHA256, release=release
         )
     with pytest.raises(AtlasParquetViewError, match="differs from what its release states"):
-        verify_agency_registry_view(
+        _verify(
             LEGACY_1_0_VIEW,
             expected_manifest_digest=LEGACY_1_0_VIEW_MANIFEST_SHA256,
             release=_with_evidence(batch_1_release, SHORT_EVIDENCE["warrant"]),
@@ -174,7 +195,7 @@ def test_a_view_stating_another_version_is_refused(
     """Pin that a 1.2 view relabelled 1.1 fails on its membership, as 1.0 on its events schema; an unknown version fails outright."""
 
     root = tmp_path / "view"
-    seal_agency_registry_view(root, release)
+    _seal(root, release)
     manifest = json.loads((root / MANIFEST_FILE).read_text())
     manifest["schemaVersion"] = version
     manifest.pop("canonicalPayloadDigest")
@@ -182,7 +203,7 @@ def test_a_view_stating_another_version_is_refused(
     (root / MANIFEST_FILE).write_bytes(canonical_json_bytes(manifest))
 
     with pytest.raises(AtlasParquetViewError, match=message):
-        verify_agency_registry_view(root, expected_manifest_digest=file_sha256(root / MANIFEST_FILE), release=release)
+        _verify(root, expected_manifest_digest=file_sha256(root / MANIFEST_FILE), release=release)
 
 
 def test_an_event_decision_without_its_originals_parents_is_refused(
@@ -197,9 +218,9 @@ def test_an_event_decision_without_its_originals_parents_is_refused(
     with pytest.raises(ValueError, match="states no originals' parents"):
         agency_projection.build_agency_registry_view(bare)
     root = tmp_path / "view"
-    seal_agency_registry_view(root, release)
+    _seal(root, release)
     with pytest.raises(AtlasParquetViewError, match="release does not project: .*states no originals' parents"):
-        verify_agency_registry_view(root, expected_manifest_digest=file_sha256(root / MANIFEST_FILE), release=bare)
+        _verify(root, expected_manifest_digest=file_sha256(root / MANIFEST_FILE), release=bare)
 
 
 def test_the_view_builder_reads_the_registry_release_only(rosters: tuple[RegistryRelease, ...]) -> None:
@@ -214,15 +235,19 @@ def test_the_view_builder_reads_the_registry_release_only(rosters: tuple[Registr
 def test_the_sealed_view_is_deterministic_and_pinned(tmp_path: Path, release, view) -> None:
     """Pin the manifest digest the design note names, reproduced twice from the same release."""
 
-    first = seal_agency_registry_view(tmp_path / "a", release)
-    second = seal_agency_registry_view(tmp_path / "b", release)
+    first = _seal(tmp_path / "a", release)
+    second = _seal(tmp_path / "b", release)
     assert first == second
     assert file_sha256(tmp_path / "a" / MANIFEST_FILE) == view_tool.VIEW_MANIFEST_SHA256
     assert {member["path"]: member["rowCount"] for member in first["members"]} == {
         "tables/agency-registry-bridges.parquet": 13,
         "tables/agency-registry-events.parquet": 15,
-        "tables/agency-registry-non-emissions.parquet": 4,
+        "tables/agency-registry-non-emissions.parquet": 11,
         "tables/agency-registry-current-successors.parquet": 15,
+        "tables/agency-registry-aliases.parquet": 55,
+        "tables/agency-registry-organizations.parquet": 472,
+        "tables/agency-projection.parquet": 321,
+        "tables/agency-projection-unresolved.parquet": 10,
     }
     assert first["digest"] == view.digest
 
@@ -231,7 +256,7 @@ def test_a_resealed_row_edit_is_refused(tmp_path: Path, release) -> None:
     """Pin that a table rewritten and re-pinned in the manifest still fails on the rows' logical digest."""
 
     root = tmp_path / "view"
-    seal_agency_registry_view(root, release)
+    _seal(root, release)
     table = root / agency_registry_table_relative_path(AGENCY_REGISTRY_EVENT_ROLE)
     rows = pq.read_table(table).to_pylist()
     rows[0]["effective_date"] = "1900-01-01"
@@ -247,7 +272,7 @@ def test_a_resealed_row_edit_is_refused(tmp_path: Path, release) -> None:
     (root / MANIFEST_FILE).write_bytes(canonical_json_bytes(manifest))
 
     with pytest.raises(AtlasParquetViewError, match="logical-content digest differs"):
-        verify_agency_registry_view(root, expected_manifest_digest=file_sha256(root / MANIFEST_FILE), release=release)
+        _verify(root, expected_manifest_digest=file_sha256(root / MANIFEST_FILE), release=release)
 
 
 def test_the_verify_command_checks_a_view_on_disk_against_the_release_it_rebuilds(
@@ -256,7 +281,7 @@ def test_the_verify_command_checks_a_view_on_disk_against_the_release_it_rebuild
     """Pin --verify, qualification's agency-view phase: the release's own view passes, a resealed edit is refused."""
 
     root = tmp_path / "view"
-    seal_agency_registry_view(root, release)
+    _seal(root, release)
     pin = file_sha256(root / MANIFEST_FILE)
     assert view_tool.main(["--verify", str(root), "--expected-manifest-sha256", pin]) == 0
 
@@ -296,7 +321,7 @@ def _resealed_rows(root: Path, mutate: Callable[[dict[str, list[dict]]], None]) 
         rows[role] for role in (AGENCY_REGISTRY_BRIDGE_ROLE, AGENCY_REGISTRY_EVENT_ROLE, AGENCY_REGISTRY_NON_EMISSION_ROLE)
     )
     manifest["digest"] = agency_projection.agency_registry_view_digest(
-        bridges, events, non_emissions, manifest["coverage"]
+        bridges, events, non_emissions, manifest["coverage"], rows.get(AGENCY_REGISTRY_ALIAS_ROLE)
     )
     manifest.pop("canonicalPayloadDigest")
     manifest["canonicalPayloadDigest"] = canonical_payload_sha256(manifest)
@@ -325,14 +350,14 @@ def test_a_resealed_row_that_is_not_its_release_is_refused(
     """Pin that the verifier compares the rows with the release, with every digest re-sealed so nothing else refuses."""
 
     root = tmp_path / "view"
-    seal_agency_registry_view(root, release)
+    _seal(root, release)
 
     def edit(rows: dict[str, list[dict]]) -> None:
         rows[role][0][field] = {**rows[role][0][field], **value} if isinstance(value, dict) else value
 
     pin = _resealed_rows(root, edit)
     with pytest.raises(AtlasParquetViewError, match="differs from what its release states"):
-        verify_agency_registry_view(root, expected_manifest_digest=pin, release=release)
+        _verify(root, expected_manifest_digest=pin, release=release)
 
 
 def _with_evidence(
@@ -378,10 +403,10 @@ def test_the_verifier_refuses_a_view_whose_release_states_less(
     """Pin F3: the view sealed from the owner's E4 release is refused as the view of a release whose evidence differs."""
 
     root = tmp_path / "view"
-    seal_agency_registry_view(root, release)
+    _seal(root, release)
 
     with pytest.raises(AtlasParquetViewError, match="differs from what its release states"):
-        verify_agency_registry_view(
+        _verify(
             root,
             expected_manifest_digest=file_sha256(root / MANIFEST_FILE),
             release=_with_evidence(release, SHORT_EVIDENCE[field]),
@@ -448,13 +473,13 @@ def test_the_release_comparison_agrees_with_the_e4_rule_it_replaced_except_where
             for role in AGENCY_REGISTRY_TABLE_SCHEMAS
         }
         try:
-            verify_agency_registry_view(root, expected_manifest_digest=pin, release=against)
+            _verify(root, expected_manifest_digest=pin, release=against)
         except AtlasParquetViewError:
             return label, _e4_row_rule_oracle(rows), False
         return label, _e4_row_rule_oracle(rows), True
 
     def sealed(name: str, of: RegistryMappingRelease) -> tuple[Path, str]:
-        seal_agency_registry_view(tmp_path / name, of)
+        _seal(tmp_path / name, of)
         return tmp_path / name, file_sha256(tmp_path / name / MANIFEST_FILE)
 
     battery = [verdicts("real", *sealed("real", release), release)]
@@ -486,14 +511,14 @@ def test_a_resealed_non_emission_reason_outside_the_vocabulary_is_refused(tmp_pa
     """Pin the verifier's closed non-emission reasons, with every digest re-sealed so nothing else refuses."""
 
     root = tmp_path / "view"
-    seal_agency_registry_view(root, release)
+    _seal(root, release)
 
     def edit(rows: dict[str, list[dict]]) -> None:
         rows[AGENCY_REGISTRY_NON_EMISSION_ROLE][0]["reason"] = "notReviewedYet"
 
     pin = _resealed_rows(root, edit)
     with pytest.raises(AtlasParquetViewError, match="outside the closed vocabulary"):
-        verify_agency_registry_view(root, expected_manifest_digest=pin, release=release)
+        _verify(root, expected_manifest_digest=pin, release=release)
 
 
 def test_the_view_refuses_rows_that_are_not_exactly_the_release(release: RegistryMappingRelease) -> None:
@@ -559,7 +584,7 @@ def test_the_view_seals_its_events_current_successors_and_refuses_any_other(tmp_
     """
 
     root = tmp_path / "view"
-    seal_agency_registry_view(root, release)
+    _seal(root, release)
     table = root / agency_registry_table_relative_path(AGENCY_REGISTRY_CURRENT_SUCCESSOR_ROLE)
     rows = pq.read_table(table).to_pylist()
     walked = agency_projection.current_agency_successors(view.events).current
@@ -582,4 +607,81 @@ def test_the_view_seals_its_events_current_successors_and_refuses_any_other(tmp_
     (root / MANIFEST_FILE).write_bytes(canonical_json_bytes(manifest))
 
     with pytest.raises(AtlasParquetViewError, match="current successors are not its events' walk"):
+        _verify(root, expected_manifest_digest=file_sha256(root / MANIFEST_FILE), release=release)
+
+
+LEGACY_1_2_VIEW = ROOT / "tests" / "fixtures" / "agency_registry_view_1_2"
+# The 1.2 view spicy-regs vendors until it re-vendors 1.3, byte for byte (RefSpec f1c23b91).
+LEGACY_1_2_VIEW_MANIFEST_SHA256 = "sha256:0b39812de31930f267dea2d7d51039d71b0a1852606387d5aba64aa75d25ec17"
+
+
+def test_the_1_2_view_still_verifies_against_the_release_without_the_alias_batch(release: RegistryMappingRelease) -> None:
+    """Pin REF-075's compatibility: the vendored 1.2 view verifies against batch 1 and the succession batch, not against three."""
+
+    before_aliases = entity.load_agency_registry_mapping_release(_rosters(), entity.agency_registry_batches()[:2])
+    vendored = verify_agency_registry_view(
+        LEGACY_1_2_VIEW, expected_manifest_digest=LEGACY_1_2_VIEW_MANIFEST_SHA256, release=before_aliases
+    )
+    assert vendored["schemaVersion"] == "1.2"
+    assert "aliasCount" not in before_aliases.metadata
+    with pytest.raises(AtlasParquetViewError, match="differs from what its release states"):
+        verify_agency_registry_view(LEGACY_1_2_VIEW, expected_manifest_digest=LEGACY_1_2_VIEW_MANIFEST_SHA256, release=release)
+
+
+def test_the_1_3_view_carries_every_fr_agency_and_ref_038_as_the_rosters_rebuild_them(tmp_path: Path, release) -> None:
+    """Pin the derived tables: 472 FR agencies, REF-038's 321 + 10 rows, and the identity naming what they came from."""
+
+    root = tmp_path / "view"
+    manifest = _seal(root, release)
+    # The REF-038 projection digest the Atlas parquet-view (and spicy-regs' vendored copy) names.
+    assert manifest["release"]["agencyProjectionDigest"] == (
+        "sha256:0dd32dd5320a0d1553f10818a7a31e95e2c3b9b6567df224dd359a8038e14db4"
+    )
+    assert manifest["release"]["nameKeyVersion"] == agency_projection.NAME_KEY_VERSION
+    organizations = {
+        row["fr_id"]: row
+        for row in pq.read_table(root / agency_registry_table_relative_path(AGENCY_REGISTRY_ORGANIZATION_ROLE)).to_pylist()
+    }
+    assert len(organizations) == 472
+    assert organizations[200]["current_successors"] == [_fr(625)]
+    assert (organizations[275]["name"], organizations[275]["short_name"], organizations[275]["parent"]) == (
+        "Land Management Bureau", "BLM", _fr(253),
+    )
+    assert "VA" in organizations[520]["regulations_gov_codes"]
+    with pytest.raises(AtlasParquetViewError, match="verified against the pinned rosters too"):
         verify_agency_registry_view(root, expected_manifest_digest=file_sha256(root / MANIFEST_FILE), release=release)
+
+
+@pytest.mark.parametrize(
+    ("role", "field", "value"),
+    (
+        (AGENCY_REGISTRY_ORGANIZATION_ROLE, "short_name", "XYZ"),
+        (AGENCY_PROJECTION_ROLE, "basis", "exactPublisherNameEquality"),
+    ),
+)
+def test_a_resealed_derived_row_is_refused(tmp_path: Path, release, role: str, field: str, value: str) -> None:
+    """Pin that the organizations and REF-038 rows are checked against the rosters, with every digest re-sealed."""
+
+    root = tmp_path / "view"
+    _seal(root, release)
+
+    def edit(rows: dict[str, list[dict]]) -> None:
+        rows[role][0][field] = value
+
+    pin = _resealed_rows(root, edit)
+    with pytest.raises(AtlasParquetViewError, match="not what the pinned rosters rebuild"):
+        _verify(root, expected_manifest_digest=pin, release=release)
+
+
+def test_a_resealed_alias_row_that_is_not_its_release_is_refused(tmp_path: Path, release) -> None:
+    """Pin that the alias table joins the logical digest and the release comparison."""
+
+    root = tmp_path / "view"
+    _seal(root, release)
+
+    def edit(rows: dict[str, list[dict]]) -> None:
+        rows[AGENCY_REGISTRY_ALIAS_ROLE][0]["fr_relation"] = "same" if rows[AGENCY_REGISTRY_ALIAS_ROLE][0]["fr_relation"] != "same" else "partOf"
+
+    pin = _resealed_rows(root, edit)
+    with pytest.raises(AtlasParquetViewError, match="differs from what its release states"):
+        _verify(root, expected_manifest_digest=pin, release=release)

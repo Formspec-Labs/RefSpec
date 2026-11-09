@@ -6333,3 +6333,63 @@ independent validator and exercise changed bounds, absent ends, legacy hashes,
 undated controls and packed-distribution refusals. The complete maintained
 `make test` gate must pass on the final local candidate before landing.
 Served as-of query behavior remains the separate `ss-2zlv` obligation.
+
+### REF-075: The agency registry view 1.3 is the one agency pin, and free-text aliases are owner-decided release items
+
+- **Date:** 2026-11-08
+- **Status:** Accepted and built; amends REF-072. The owner decided the
+  shape through the question tool on 2026-11-08
+  (`plans/agency-registry-alias-plan.md` section 5): D1, D2, D3 and D6 as
+  recommended, D4 "decide each alias", and D5 "read citations, then adopt".
+
+**The contract moved because the consumers changed.** SpicyRegs pinned two
+artifacts (REF-038's projection from the Atlas parquet-view build, and the 1.2
+registry view), and congressional-tech needs the whole Federal Register list
+plus the strings witnesses write. View 1.3 is one pin for both:
+
+- **Aliases** are asserted: an `agencyRegistryAliases` table, in the
+  logical-content digest, one row per alias the owner adopted. Each names its
+  match key (`agency_projection.name_key`, version
+  `nameKeyVersion` in the manifest), the organization it names where a held
+  roster has it, and the FR record an FR-keyed consumer resolves it to,
+  `same` or `partOf` (D3: part-of claims no identity).
+- **Organizations** (all 472 pinned FR agencies with names, short name,
+  parent, REF-038 codes and current successors) and **REF-038's projection
+  and abstentions** are derived and assert nothing: the verifier rebuilds them
+  from the pinned rosters and refuses any other row. The REF-038 tables keep
+  the Atlas view's schemas; their rows equal SpicyRegs' vendored copy row for
+  row (321 and 10, schemas equal; bytes differ only by writer, as the
+  2026-09-26 pyarrow note in SpicyRegs' README records), and the manifest
+  names their digest, `0dd32dd5…`, the one the Atlas view states.
+
+**Aliases ride in the release as decided items (D2),** beside the
+non-emissions, not as RDF statements: an owner label on a roster resource
+would break source-faithful labels, and a resource per string would mint what
+the spine never mints. The alias batch is the release's third batch, read by
+digest like the others, with two deliberate differences. An undecided alias
+is held rather than refusing the release, because one alias's meaning never
+depends on another's (bridges can: reverse lookups). And an alias's answer
+means what its own `answer_effects` say, inside its content digest, so a
+numbered option cannot be misread by a table in code. An alias answered no is
+a non-emission, reason `aliasRejectedByOwner`.
+
+**An unread citation refuses the release (D5).** Each judgment alias's public
+records are retained under `research/evidence/agency-alias-records-2026-11-08/`
+(govinfo and the Federal Register, fixed anonymous User-Agent), and each cites
+the passage read. `alias_record_is_read()` holds a record read only while its
+bytes hash as the manifest states and contain the passage; the batch tool
+refuses a row whose passage is absent, and the release re-reads every adopted
+alias's records. Negative cases: a changed passage, a changed digest, a
+missing file, and a release whose records read as unread.
+
+**As decided on 2026-11-08:** the owner approved each of the 12 mechanical
+aliases individually (D4: no rule-wide derivation for the other agencies);
+50 of 58 judgment aliases took their recommendation as the records confirm it
+(43 adopted, 4 of them through the part-of option; 7 rejected); 8 went back
+to the owner because their records do not confirm them (one contradicted: 16
+U.S.C. 1609 defines the National Forest System as lands). The release carries
+55 aliases and 11 non-emissions; the view pin is `sha256:f7ff1260…`. The 1.2 view stays verifiable against the
+release without the alias batch (`tests/fixtures/agency_registry_view_1_2`).
+`.github/workflows/release.yml` still pins the 1.2 view, and the independent
+agency check (`tools/atlas_independent_agency.py`) knows no aliases yet; both
+move before a release pins 1.3.

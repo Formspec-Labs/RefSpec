@@ -2,13 +2,12 @@
 
 # Agency registry: one pinnable agency list with free-text aliases
 
-> **Status:** Proposed, awaiting owner decisions D1-D6 (section 5) and the
-> alias batch's per-item answers
-> ([adjudication sheet](agency-registry-alias-batch-adjudication.md)). Nothing
-> here is built beyond the candidate tooling; nothing is an assertion. Extends
-> [the registry design](agency-registry-design.md) (section 7, "later batches")
-> and REF-072. Owner direction of 2026-11-08: aliases live upstream in RefSpec,
-> and SpicyRegs and congressional-tech both pin RefSpec directly.
+> **Status:** Decided 2026-11-08 and built (REF-075). The owner chose D1, D2,
+> D3 and D6 as recommended, D4 "decide each alias" (no rule-wide derivation),
+> and D5 "read citations, then adopt". Section 8 is what was built; sections
+> 1-7 are the proposal as the owner read it. Per-item answers live in
+> [the decisions file](agency-registry-alias-batch-decisions.json), rendered in
+> [the adjudication sheet](agency-registry-alias-batch-adjudication.md).
 
 ## 1. Bottom line
 
@@ -204,3 +203,41 @@ this work).
   and the succession batch's check (pass).
 - `uv run --frozen pytest tests/test_assemble_agency_registry_alias_batch.py tests/test_assemble_agency_registry_succession_batch.py`
   and `ruff check` on the changed files.
+
+## 8. As built (2026-11-08)
+
+- **Records read.** 41 retained files under
+  `research/evidence/agency-alias-records-2026-11-08/` (38 U.S. Code sections
+  from govinfo's 2024 edition, Pub. L. 108-271, and Executive Order 14347 with
+  its Federal Register search answer), fetched by its `scripts/fetch.py` with a
+  fixed anonymous User-Agent; 36 are cited. The other five were read and set
+  aside: 42 U.S.C. 285f and 1863 (superseded by 281 and 1861, which state the
+  parent), 10 U.S.C. 1073c (does not place DHA), 10 U.S.C. 205 (repealed), and
+  the EO search answer (it located the order). Every judgment row quotes the passage it rests on, and
+  the tool and the release refuse a passage that is not in the retained bytes.
+  The first-pass citations pointed at uscode.house.gov, which answered 404 to
+  the probe; govinfo serves the same sections. Where a first-pass citation did not
+  itself state the parent, a section that does was added: 42 U.S.C. 281 (NIAID
+  in NIH), 42 U.S.C. 1861 (the Board in NSF), 10 U.S.C. 111(b) (the Joint Staff
+  and the combatant commands in DOD), and 10 U.S.C. 167/167b; rows that cited
+  nothing gained 10 U.S.C. 4127, 8031, 8041, 6 U.S.C. 652, 18 U.S.C. 4041,
+  2 U.S.C. 1381 and 1901, and 22 U.S.C. 6431.
+- **Decided.** The owner approved all 12 mechanical aliases one by one (D4).
+  50 of 58 judgment aliases took the owner's recommendation as the records
+  confirm it: 43 adopted, 7 answered no.
+- **Returned to the owner (8).** National Forest System is contradicted (16
+  U.S.C. 1609 defines it as lands, not an organization). Seven are
+  unconfirmed: Africa Command, Transportation Command and U.S. Forces Korea
+  (no record read names them as combatant commands), Headquarters Air Force
+  (the statute names the Air Staff), Air Force Space Command and the Bureau of
+  Near Eastern Affairs (no statute), and "USMC" (no record states the acronym).
+- **View 1.3.** `tools/build_agency_registry_view.py` pins manifest
+  `sha256:f7ff1260…`: 13 bridges, 15 event rows, 11 non-emissions (4 + 7
+  rejected aliases), 15 current successors, 55 aliases, 472 organizations, and
+  REF-038's 321 + 10 rows. The REF-038 rows equal SpicyRegs' vendored copy row
+  for row, schemas equal; the bytes differ only by pyarrow version (SpicyRegs'
+  README records the same two rebuild digests). The pin moves again when the
+  owner answers the 8 returned aliases.
+- **Not yet moved.** `.github/workflows/release.yml` pins the 1.2 view, and
+  `tools/atlas_independent_agency.py` checks bridges, events, non-emissions and
+  successors only; both need alias support before a release pins 1.3.

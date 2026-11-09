@@ -21,6 +21,8 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import json
+import re
+import unicodedata
 from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -46,12 +48,48 @@ AGENCY_REGISTRY_RELEASE_KEY = "agency-registry-2026-09-26"
 # of its view refuse a reason nobody defined. The owner's own words ride beside
 # each code as its reasoning.
 AgencyRegistryNonEmissionReason = Literal[
+    "aliasRejectedByOwner",
     "heldForStatutoryRenameBasis",
     "noCounterpartInHeldFRRoster",
     "sameOrganizationReverseLookupCostRejected",
     "withdrawn",
 ]
 AGENCY_REGISTRY_NON_EMISSION_REASONS = frozenset(get_args(AgencyRegistryNonEmissionReason))
+
+# The match key every agency alias is published under (D6 of plans/agency-registry-alias-plan.md); a
+# consumer keys its own strings with ``name_key`` and looks the key up. A change moves the contract.
+NAME_KEY_VERSION = "1"
+# The organization words FR names put last ("Land Management Bureau"); word_order_key moves one to the front.
+ORGANIZATION_WORDS = (
+    "administration", "agency", "board", "bureau", "center", "commission", "corps", "council", "department",
+    "institute", "office", "service",
+)
+_WORD_ORDER = re.compile(rf"^(?P<head>.+) (?P<word>{'|'.join(ORGANIZATION_WORDS)})$")
+
+
+def name_key(text: str) -> str:
+    """The match key every alias is published under: case-folded words, qualifiers and "the" dropped.
+
+    NFKC and case-folded; "&" read as "and"; parentheticals dropped; every run
+    of other characters one space; then the words "the", "u s", "us", "united
+    states" and "of america" dropped wherever they stand. Two strings name the
+    same alias exactly when their keys are equal, so a consumer applies this
+    function to its own strings and looks the key up. It is congressional-tech's
+    em-fedagency normalizer with one repair: runs collapse before the qualifier
+    words are dropped, so "U. S. Fish and Wildlife Service" loses its "u s".
+    """
+
+    folded = unicodedata.normalize("NFKC", text).casefold().replace("&", " and ")
+    folded = " ".join(re.sub(r"[^a-z0-9]+", " ", re.sub(r"\([^)]*\)", " ", folded)).split())
+    return " ".join(re.sub(r"\b(the|u s|us|united states|of america)\b", " ", folded).split())
+
+
+def word_order_key(name: str) -> str | None:
+    """An FR name's key with its trailing organization word moved to the front, or None if it ends otherwise."""
+
+    match = _WORD_ORDER.fullmatch(name_key(name))
+    return None if match is None else f"{match['word']} of {match['head']}"
+
 
 FR_RELEASE_KEY = "federal-register-agencies-roster-2026-08-15"
 FH_RELEASE_KEY = "federal-hierarchy-orgs-complete-2026-08-15"
@@ -875,11 +913,15 @@ class AgencyRegistryView:
     events: tuple[Mapping[str, Any], ...]
     non_emissions: tuple[Mapping[str, Any], ...]
     coverage: Mapping[str, int]
-    release: Mapping[str, str]
+    release: Mapping[str, Any]
     digest: str
+    #: Adopted aliases (schema 1.3); None for a release that reads no alias batch.
+    aliases: tuple[Mapping[str, Any], ...] | None = None
 
     def __post_init__(self) -> None:
-        if self.digest != agency_registry_view_digest(self.bridges, self.events, self.non_emissions, self.coverage):
+        if self.digest != agency_registry_view_digest(
+            self.bridges, self.events, self.non_emissions, self.coverage, self.aliases
+        ):
             raise ValueError("agency registry view digest is not content-derived")
 
 
@@ -888,19 +930,18 @@ def agency_registry_view_digest(
     events: Sequence[Mapping[str, Any]],
     non_emissions: Sequence[Mapping[str, Any]],
     coverage: Mapping[str, int],
+    aliases: Sequence[Mapping[str, Any]] | None = None,
 ) -> str:
-    """The logical-content digest of the view, the same whether computed from the release or the tables."""
+    """The logical-content digest of the view, the same whether computed from the release or the tables.
 
-    return _digest(
-        plain_json(
-            {
-                "bridges": bridges,
-                "coverage": coverage,
-                "events": events,
-                "nonEmissions": non_emissions,
-            }
-        )
-    )
+    Aliases join the digest only where the release reads the alias batch, so
+    1.2 and older views keep the digest they were sealed with.
+    """
+
+    content: dict[str, Any] = {"bridges": bridges, "coverage": coverage, "events": events, "nonEmissions": non_emissions}
+    if aliases is not None:
+        content["aliases"] = aliases
+    return _digest(plain_json(content))
 
 
 def _owner_decision_row(decision: Mapping[str, Any], reviewer: str) -> dict[str, Any]:
@@ -978,6 +1019,7 @@ def build_agency_registry_view(release: RegistryMappingRelease) -> AgencyRegistr
     bridges: list[dict[str, Any]] = []
     events: list[dict[str, Any]] = []
     non_emissions: list[dict[str, Any]] = []
+    aliases: list[dict[str, Any]] = []
     for decision in release.metadata["decisions"]:
         if decision["decision"] == "adopted":
             triple = (str(decision["sourceResource"]), str(decision["predicateIri"]), str(decision["objectResource"]))
@@ -1034,6 +1076,26 @@ def build_agency_registry_view(release: RegistryMappingRelease) -> AgencyRegistr
                         "decision": _owner_decision_row(decision["ownerDecision"], reviewer),
                     }
                 )
+        elif decision["decision"] == "alias":
+            aliases.append(
+                {
+                    "alias_id": str(decision["candidateId"]),
+                    "name_key": str(decision["nameKey"]),
+                    "target": decision.get("targetResource"),
+                    "target_release_key": decision.get("targetReleaseKey"),
+                    "target_publisher_name": decision.get("targetPublisherName"),
+                    "fr_resource": decision.get("frResource"),
+                    "fr_publisher_name": decision.get("frPublisherName"),
+                    "fr_relation": decision.get("frRelation"),
+                    "basis": [str(basis) for basis in decision["basis"]],
+                    "reasoning": str(decision["reasoning"]),
+                    "records": [
+                        {key: str(record[key]) for key in ("citation", "kind", "file", "url", "sha256", "passage")}
+                        for record in decision["records"]
+                    ],
+                    "decision": _owner_decision_row(decision["ownerDecision"], release_reviewer),
+                }
+            )
         elif decision["decision"] == "nonEmission":
             closest = decision.get("closestAlternative")
             non_emissions.append(
@@ -1058,6 +1120,10 @@ def build_agency_registry_view(release: RegistryMappingRelease) -> AgencyRegistr
     bridges.sort(key=lambda row: row["candidate_id"])
     events.sort(key=lambda row: (row["event_id"], row["result"]))
     non_emissions.sort(key=lambda row: row["item_id"])
+    aliases.sort(key=lambda row: row["alias_id"])
+    reads_aliases = "aliasCount" in release.metadata
+    if not reads_aliases and aliases:
+        raise ValueError("agency registry release emits aliases but states no alias count")
     claims = {(mapping.subject, mapping.predicate, mapping.object) for mapping in release.mappings}
     if {(row["subject"], row["relation"], row["object"]) for row in bridges} != claims or len(bridges) != len(claims):
         raise ValueError("agency registry bridge rows are not exactly the release's mappings")
@@ -1066,13 +1132,7 @@ def build_agency_registry_view(release: RegistryMappingRelease) -> AgencyRegistr
     }
     if {(original, row["result"]) for row in events for original in row["originals"]} != event_links:
         raise ValueError("agency registry event rows are not exactly the release's change events")
-    coverage = {
-        "bridgeCount": len(bridges),
-        "decidedItemCount": len(bridges) + len({row["event_id"] for row in events}) + len(non_emissions),
-        "eventCount": len({row["event_id"] for row in events}),
-        "eventResultRowCount": len(events),
-        "nonEmissionCount": len(non_emissions),
-    }
+    coverage = agency_registry_coverage(bridges, events, non_emissions, aliases if reads_aliases else None)
     if coverage["decidedItemCount"] != release.metadata["decidedItemCount"]:
         raise ValueError("agency registry view does not account for every decided item")
     return AgencyRegistryView(
@@ -1088,8 +1148,73 @@ def build_agency_registry_view(release: RegistryMappingRelease) -> AgencyRegistr
                 "sourceReleaseDigest": release.source_release_digest,
             }
         ),
-        digest=agency_registry_view_digest(bridges, events, non_emissions, coverage),
+        digest=agency_registry_view_digest(bridges, events, non_emissions, coverage, aliases if reads_aliases else None),
+        aliases=tuple(_frozen_mapping(row) for row in aliases) if reads_aliases else None,
     )
+
+
+def agency_registry_coverage(
+    bridges: Sequence[Mapping[str, Any]],
+    events: Sequence[Mapping[str, Any]],
+    non_emissions: Sequence[Mapping[str, Any]],
+    aliases: Sequence[Mapping[str, Any]] | None,
+) -> dict[str, int]:
+    """The view's counts, the same from the release or the tables; an alias count only where aliases are read."""
+
+    event_ids = {row["event_id"] for row in events}
+    coverage = {
+        "bridgeCount": len(bridges),
+        "decidedItemCount": len(bridges) + len(event_ids) + len(non_emissions) + len(aliases or ()),
+        "eventCount": len(event_ids),
+        "eventResultRowCount": len(events),
+        "nonEmissionCount": len(non_emissions),
+    }
+    if aliases is not None:
+        coverage["aliasCount"] = len(aliases)
+    return coverage
+
+
+def agency_organization_rows(
+    fr_roster: RegistryRelease,
+    projection: AgencyProjection,
+    events: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, Any], ...]:
+    """Every pinned Federal Register agency as one row: names, parent, REF-038 codes and current successors.
+
+    Derived for consumers and asserting nothing: the names and parent are the
+    publisher's (the pinned roster release), the codes are the REF-038 rows
+    selecting the record, and the successors are ``current_successor_rows()``.
+    """
+
+    if fr_roster.key != FR_RELEASE_KEY:
+        raise ValueError("agency organization rows read the pinned Federal Register roster")
+    parents = parent_by_subject(fr_roster)
+    codes: dict[str, list[str]] = defaultdict(list)
+    for row in projection.rows:
+        codes[row.org].append(row.source_value)
+    successors: dict[str, list[str]] = defaultdict(list)
+    for row in current_successor_rows(events):
+        successors[row["original"]].append(row["successor"])
+    rows = []
+    for resource in fr_roster.resources:
+        payload = resource.native_payload
+        short = payload.get("short_name")
+        rows.append(
+            {
+                "resource_iri": resource.iri,
+                "fr_id": int(payload["id"]),
+                "slug": str(payload["slug"]),
+                "name": str(payload["name"]),
+                "short_name": None if short is None else str(short),
+                "parent": parents.get(resource.iri),
+                "regulations_gov_codes": sorted(codes.get(resource.iri, ())),
+                "current_successors": sorted(successors.get(resource.iri, ())),
+            }
+        )
+    rows.sort(key=lambda row: row["fr_id"])
+    if len(rows) != EXPECTED_AGENCY_ROSTER_COUNTS["federal-register-agencies"]:
+        raise ValueError(f"agency organization rows count {len(rows)} drifted from the pinned roster")
+    return tuple(rows)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1179,7 +1304,9 @@ __all__ = [
     "FR_RELEASE_KEY",
     "IDENTIFIER_KIND_ORDER",
     "IDENTIFIER_KIND_TO_ROSTER",
+    "NAME_KEY_VERSION",
     "OPM_RELEASE_KEY",
+    "ORGANIZATION_WORDS",
     "REGULATIONS_GOV_RELEASE_KEY",
     "AgencyProjection",
     "AgencyProjectionCoverage",
@@ -1191,12 +1318,16 @@ __all__ = [
     "AgencyRegistryView",
     "AgencyReverseProjection",
     "AgencySuccessors",
+    "agency_organization_rows",
+    "agency_registry_coverage",
     "agency_registry_view_digest",
     "build_agency_projection",
     "build_agency_registry_view",
     "current_agency_successors",
     "current_successor_rows",
     "extract_agency_identifier_claims",
+    "name_key",
     "parent_by_subject",
     "reverse_agency_projection",
+    "word_order_key",
 ]

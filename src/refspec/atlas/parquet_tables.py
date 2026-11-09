@@ -401,11 +401,58 @@ LEGACY_1_1_AGENCY_REGISTRY_TABLE_SCHEMAS: Mapping[str, pa.Schema] = {
     ),
 }
 #: 1.2 adds the derived current-successors table: one row per (original, current successor).
-AGENCY_REGISTRY_TABLE_SCHEMAS: Mapping[str, pa.Schema] = {
+LEGACY_1_2_AGENCY_REGISTRY_TABLE_SCHEMAS: Mapping[str, pa.Schema] = {
     **LEGACY_1_1_AGENCY_REGISTRY_TABLE_SCHEMAS,
     AGENCY_REGISTRY_CURRENT_SUCCESSOR_ROLE: pa.schema(
         [pa.field("original", pa.string(), nullable=False), pa.field("successor", pa.string(), nullable=False)]
     ),
+}
+AGENCY_REGISTRY_ALIAS_ROLE = "agencyRegistryAliases"
+AGENCY_REGISTRY_ORGANIZATION_ROLE = "agencyRegistryOrganizations"
+_AGENCY_REGISTRY_ALIAS_RECORD = pa.struct(
+    [
+        pa.field("citation", pa.string(), nullable=False),
+        pa.field("kind", pa.string(), nullable=False),
+        pa.field("file", pa.string(), nullable=False),
+        pa.field("url", pa.string(), nullable=False),
+        pa.field("sha256", pa.string(), nullable=False),
+        pa.field("passage", pa.string(), nullable=False),
+    ]
+)
+#: 1.3 (REF-075) is the one pin both consumers read: the adopted aliases (asserted, owner-decided), every
+#: pinned Federal Register agency (derived from the roster, REF-038 and the events; asserts nothing), and
+#: REF-038's projection and abstentions with exactly the Atlas view's schemas, so a consumer pins one manifest.
+AGENCY_REGISTRY_TABLE_SCHEMAS: Mapping[str, pa.Schema] = {
+    **LEGACY_1_2_AGENCY_REGISTRY_TABLE_SCHEMAS,
+    AGENCY_REGISTRY_ALIAS_ROLE: pa.schema(
+        [
+            pa.field("alias_id", pa.string(), nullable=False),
+            pa.field("name_key", pa.string(), nullable=False),
+            pa.field("target", pa.string()),
+            pa.field("target_release_key", pa.string()),
+            pa.field("target_publisher_name", pa.string()),
+            pa.field("fr_resource", pa.string()),
+            pa.field("fr_publisher_name", pa.string()),
+            pa.field("fr_relation", pa.string()),
+            pa.field("basis", pa.list_(pa.string()), nullable=False),
+            pa.field("reasoning", pa.string(), nullable=False),
+            pa.field("records", pa.list_(_AGENCY_REGISTRY_ALIAS_RECORD), nullable=False),
+            pa.field("decision", _AGENCY_REGISTRY_DECISION, nullable=False),
+        ]
+    ),
+    AGENCY_REGISTRY_ORGANIZATION_ROLE: pa.schema(
+        [
+            pa.field("resource_iri", pa.string(), nullable=False),
+            pa.field("fr_id", pa.int64(), nullable=False),
+            pa.field("slug", pa.string(), nullable=False),
+            pa.field("name", pa.string(), nullable=False),
+            pa.field("short_name", pa.string()),
+            pa.field("parent", pa.string()),
+            pa.field("regulations_gov_codes", pa.list_(pa.string()), nullable=False),
+            pa.field("current_successors", pa.list_(pa.string()), nullable=False),
+        ]
+    ),
+    **AGENCY_PROJECTION_TABLE_SCHEMAS,
 }
 # The 1.0 view (sealed by dev21) predates original_parents; it stays verifiable,
 # so its tables keep their schema here.
@@ -420,6 +467,9 @@ AGENCY_REGISTRY_TABLE_NAMES: Mapping[str, str] = {
     AGENCY_REGISTRY_EVENT_ROLE: "agency-registry-events.parquet",
     AGENCY_REGISTRY_NON_EMISSION_ROLE: "agency-registry-non-emissions.parquet",
     AGENCY_REGISTRY_CURRENT_SUCCESSOR_ROLE: "agency-registry-current-successors.parquet",
+    AGENCY_REGISTRY_ALIAS_ROLE: "agency-registry-aliases.parquet",
+    AGENCY_REGISTRY_ORGANIZATION_ROLE: "agency-registry-organizations.parquet",
+    **AGENCY_PROJECTION_TABLE_NAMES,
 }
 
 
@@ -669,14 +719,25 @@ def write_agency_projection_tables(
         )
 
 
-def write_agency_registry_tables(output: Path, view: AgencyRegistryView) -> None:
-    """Write and round-trip-check the REF-072 agency registry tables, the derived current successors included."""
+def write_agency_registry_tables(
+    output: Path,
+    view: AgencyRegistryView,
+    organizations: Sequence[Mapping[str, Any]],
+    projection: AgencyProjection,
+) -> None:
+    """Write and round-trip-check the 1.3 agency registry tables: asserted, derived, and REF-038's two."""
 
+    if view.aliases is None:
+        raise AtlasParquetTableError("a 1.3 agency registry view is sealed from a release that reads the alias batch")
     rows_by_role = {
         AGENCY_REGISTRY_BRIDGE_ROLE: plain_json(view.bridges),
         AGENCY_REGISTRY_EVENT_ROLE: plain_json(view.events),
         AGENCY_REGISTRY_NON_EMISSION_ROLE: plain_json(view.non_emissions),
         AGENCY_REGISTRY_CURRENT_SUCCESSOR_ROLE: list(current_successor_rows(view.events)),
+        AGENCY_REGISTRY_ALIAS_ROLE: plain_json(view.aliases),
+        AGENCY_REGISTRY_ORGANIZATION_ROLE: [dict(row) for row in organizations],
+        AGENCY_PROJECTION_ROLE: [row.to_dict() for row in projection.rows],
+        AGENCY_PROJECTION_UNRESOLVED_ROLE: [row.to_dict() for row in projection.unresolved],
     }
     directory = output / TABLE_DIRECTORY
     directory.mkdir(parents=True, exist_ok=True)
@@ -964,10 +1025,12 @@ __all__ = [
     "AGENCY_PROJECTION_TABLE_NAMES",
     "AGENCY_PROJECTION_TABLE_SCHEMAS",
     "AGENCY_PROJECTION_UNRESOLVED_ROLE",
+    "AGENCY_REGISTRY_ALIAS_ROLE",
     "AGENCY_REGISTRY_BRIDGE_ROLE",
     "AGENCY_REGISTRY_CURRENT_SUCCESSOR_ROLE",
     "AGENCY_REGISTRY_EVENT_ROLE",
     "AGENCY_REGISTRY_NON_EMISSION_ROLE",
+    "AGENCY_REGISTRY_ORGANIZATION_ROLE",
     "AGENCY_REGISTRY_TABLE_NAMES",
     "AGENCY_REGISTRY_TABLE_SCHEMAS",
     "COMPRESSION",
@@ -981,6 +1044,7 @@ __all__ = [
     "DERIVED_RELATION_TABLE_SCHEMA",
     "LEGACY_1_0_AGENCY_REGISTRY_TABLE_SCHEMAS",
     "LEGACY_1_1_AGENCY_REGISTRY_TABLE_SCHEMAS",
+    "LEGACY_1_2_AGENCY_REGISTRY_TABLE_SCHEMAS",
     "PARQUET_VERSION",
     "ROW_GROUP_SIZE",
     "TABLE_MEDIA_TYPE",
