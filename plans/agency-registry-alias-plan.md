@@ -259,6 +259,7 @@ this work).
   for row, schemas equal; the bytes differ only by pyarrow version (SpicyRegs'
   README records the same two rebuild digests). Every alias in the batch is
   decided.
-- **Not yet moved.** `.github/workflows/release.yml` pins the 1.2 view, and
-  `tools/atlas_independent_agency.py` checks bridges, events, non-emissions and
-  successors only; both need alias support before a release pins 1.3.
+- **Release pins.** `.github/workflows/release.yml` pins the 1.3 view and a
+  review receipt and evidence manifest extended to the alias batch;
+  `tools/atlas_independent_agency.py` derives and compares all eight tables
+  independently and reads every cited record.

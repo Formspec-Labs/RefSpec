@@ -27,9 +27,10 @@ PDF_PATHS = {
 
 # The external pins the release job passes (.github/workflows/release.yml), so a
 # changed manifest or receipt fails here too instead of being re-hashed into agreement.
-AGENCY_EVIDENCE_SHA256 = "sha256:fde4401ea78b2e0e5c1c758b90d32def2d81d40693098a5f3ca904e33344ef3b"
-AGENCY_REVIEW_SHA256 = "sha256:4b6a8e01b2d589ad1a2fcad17406070da15c9d31c725f127450efc70ae2ba9ed"
-AGENCY_VIEW_SHA256 = "sha256:0b39812de31930f267dea2d7d51039d71b0a1852606387d5aba64aa75d25ec17"
+AGENCY_EVIDENCE_SHA256 = "sha256:ea238cddc9f5089124d66f4ef1a16d55a05c2ed94099bf3a1dff6687093af996"
+AGENCY_REVIEW_SHA256 = "sha256:201b489c479ce7f5339079195310cb45fb6b0bd362ce7f7ac4d76de083c2576d"
+AGENCY_VIEW_SHA256 = "sha256:7a806ea060c0c7a0ee37a991f443edc1a1f9ba74a1f5e1007db1e4e28cb23b7d"
+OPM_WORKBOOK = ROOT / agency.OPM_WORKBOOK
 
 
 def oracle(name):
@@ -102,6 +103,12 @@ def plans():
     )
 
 
+@pytest.fixture
+def alias_plans():
+    cp, dp, *_ = agency.BATCHES[-1]
+    return json.loads((ROOT / cp).read_text()), json.loads((ROOT / dp).read_text())
+
+
 def test_agency_digest_and_expected_rows_frozen_oracles(plans):
     c, d = plans
     assert agency.decision_failures(c, d) == []
@@ -110,8 +117,10 @@ def test_agency_digest_and_expected_rows_frozen_oracles(plans):
     assert old.aggregate(c) == agency.OWNER_AGGREGATE
     expected, details = agency.expected_from_plans(c, d)
     frozen_expected, frozen_details = oracle("agency_artifacts").expected_from_plans(c, d)
-    # The one deliberate divergence from the frozen oracle: the view now states
-    # each event original's roster parent (F6). Everything else still agrees.
+    # The deliberate divergences from the frozen oracle: the view now states
+    # each event original's roster parent (F6), and an aliases table batch 1
+    # leaves empty (REF-075). Everything else still agrees.
+    assert expected.pop("aliases") == []
     assert details == frozen_details
     assert {key for row in expected["events"] for key in row} - {
         key for row in frozen_expected["events"] for key in row
@@ -234,22 +243,41 @@ def test_missing_agency_evidence_is_unevaluated():
     not (ROOT / "output/atlas-refresh-2026-09-27-evidence/agency-primary-sources").is_dir(),
     reason="Retained primary source originals absent",
 )
-def test_review_manifest_external_pins_and_source_mutation(tmp_path, plans):
+def test_review_manifest_external_pins_and_source_mutation(tmp_path, plans, alias_plans):
     base = EVIDENCE / "agency"
     c, d = plans
     mp = base / "audit-evidence-manifest.json"
     rp = base / "claim-receipt.json"
-    assert agency.authenticate_agency_evidence(ROOT, mp, AGENCY_EVIDENCE_SHA256, rp, AGENCY_REVIEW_SHA256, c, d) == []
+
+    def authenticate(manifest=mp, manifest_pin=AGENCY_EVIDENCE_SHA256, receipt=rp, receipt_pin=AGENCY_REVIEW_SHA256):
+        return agency.authenticate_agency_evidence(
+            ROOT, manifest, manifest_pin, receipt, receipt_pin, c, d, alias_batch=alias_plans
+        )
+
+    assert authenticate() == []
     with pytest.raises(ValueError, match="external digest mismatch"):
-        agency.authenticate_agency_evidence(ROOT, mp, "sha256:wrong", rp, AGENCY_REVIEW_SHA256, c, d)
+        authenticate(manifest_pin="sha256:wrong")
+    with pytest.raises(ValueError, match="no alias batch"):
+        agency.authenticate_agency_evidence(ROOT, mp, AGENCY_EVIDENCE_SHA256, rp, AGENCY_REVIEW_SHA256, c, d)
     manifest = json.loads(mp.read_text())
     member = manifest["members"][0]
     member["sha256"] = "sha256:" + "0" * 64
     changed = tmp_path / "manifest.json"
     changed.write_text(json.dumps(manifest))
-    assert agency.authenticate_agency_evidence(
-        ROOT, changed, "sha256:" + agency.sha(changed), rp, AGENCY_REVIEW_SHA256, c, d
-    )
+    assert authenticate(manifest=changed, manifest_pin="sha256:" + agency.sha(changed))
+    # The alias review binds each alias's records: a reworded passage, a dropped alias, or a
+    # re-pointed FR record in the receipt fails, even under a fresh external pin.
+    for mutate, path in [
+        (lambda r: r["aliasReview"]["aliases"][0]["claims"][0]["evidence"][0].update(passage="changed"), "/records"),
+        (lambda r: r["aliasReview"]["aliases"].pop(), "review/alias-population"),
+        (lambda r: r["aliasReview"]["aliases"][0].update(fr="urn:ref:federal-register-agency:1"), "/fr"),
+    ]:
+        receipt = json.loads(rp.read_text())
+        mutate(receipt)
+        changed_receipt = tmp_path / "receipt.json"
+        changed_receipt.write_text(json.dumps(receipt))
+        failures = authenticate(receipt=changed_receipt, receipt_pin="sha256:" + agency.sha(changed_receipt))
+        assert any(path in f["path"] for f in failures), (path, failures)
 
 
 @pytest.mark.slow
@@ -274,7 +302,52 @@ def test_real_agency_wrapper_checks_exact_dedicated_tables():
         agency_review_receipt_sha256=AGENCY_REVIEW_SHA256,
     )
     assert result["status"] == "passed", result["failures"]
-    assert result["comparedRows"] == {"bridges": 13, "events": 15, "non-emissions": 4, "current-successors": 15}
+    assert result["comparedRows"] == {
+        "bridges": 13,
+        "events": 15,
+        "non-emissions": 11,
+        "aliases": 63,
+        "current-successors": 15,
+        "projection": 321,
+        "projection-unresolved": 10,
+        "organizations": 472,
+    }
+    assert len(result["aliasRecordsRead"]) == 62 and all(r["match"] for r in result["aliasRecordsRead"])
+
+
+def _remove(rows, key, value):
+    """Drop the one row whose ``key`` is ``value``: a missing row, not a changed one."""
+    (index,) = [i for i, row in enumerate(rows) if row[key] == value]
+    rows.pop(index)
+
+
+# One planted error per view table, each a value an honest producer bug could write.
+PLANTED_VIEW_ERRORS = {
+    "events": ("agency-registry-events", lambda rows: rows[0].update(effective_date="1900-01-01")),
+    # An alias resolved to the wrong FR record: the Army to the Navy's department.
+    "aliases": (
+        "agency-registry-aliases",
+        lambda rows: next(r for r in rows if r["alias_id"] == "alias:army").update(
+            fr_resource="urn:ref:federal-register-agency:378"
+        ),
+    ),
+    # A rejected alias silently dropped instead of recorded.
+    "non-emissions": ("agency-registry-non-emissions", lambda rows: _remove(rows, "item_id", "alias:education")),
+    # A missing organization (FR 520, Veterans Affairs Department).
+    "organizations": ("agency-registry-organizations", lambda rows: _remove(rows, "fr_id", 520)),
+    # A REF-038 code projected onto the wrong organization.
+    "projection": (
+        "agency-projection",
+        lambda rows: next(r for r in rows if r["source_value"] == "ABMC").update(
+            org="urn:ref:federal-register-agency:21"
+        ),
+    ),
+    # An abstention whose reason was rewritten.
+    "projection-unresolved": (
+        "agency-projection-unresolved",
+        lambda rows: rows[0].update(reason="genuineCollisionNamesCannotBreak"),
+    ),
+}
 
 
 @pytest.mark.slow
@@ -283,7 +356,9 @@ def test_real_agency_wrapper_checks_exact_dedicated_tables():
     not (ROOT / "output/agency-registry-view/view-manifest.json").is_file(),
     reason="Retained dedicated agency view absent",
 )
-def test_agency_view_semantic_mutation_with_valid_transport_pins(tmp_path):
+@pytest.mark.parametrize("table", sorted(PLANTED_VIEW_ERRORS))
+def test_agency_view_semantic_mutation_with_valid_transport_pins(tmp_path, table):
+    """A planted wrong value, re-sealed so every transport pin agrees, still fails on its own table."""
     import hashlib
     import shutil
 
@@ -294,11 +369,12 @@ def test_agency_view_semantic_mutation_with_valid_transport_pins(tmp_path):
     assert original.is_dir(), "Dedicated bounded agency view must be supplied for replay"
     view = tmp_path / "view"
     shutil.copytree(original, view)
-    path = view / "tables/agency-registry-events.parquet"
-    table = pq.read_table(path)
-    rows = table.to_pylist()
-    rows[0]["effective_date"] = "1900-01-01"
-    pq.write_table(pa.Table.from_pylist(rows, schema=table.schema), path)
+    name, plant = PLANTED_VIEW_ERRORS[table]
+    path = view / f"tables/{name}.parquet"
+    parquet = pq.read_table(path)
+    rows = parquet.to_pylist()
+    plant(rows)
+    pq.write_table(pa.Table.from_pylist(rows, schema=parquet.schema), path)
     manifest_path = view / "view-manifest.json"
     manifest = json.loads(manifest_path.read_text())
     member = next(m for m in manifest["members"] if m["path"] == str(path.relative_to(view)))
@@ -316,11 +392,8 @@ def test_agency_view_semantic_mutation_with_valid_transport_pins(tmp_path):
         agency_review_receipt_sha256=AGENCY_REVIEW_SHA256,
     )
     assert result["status"] == "failed"
-    assert any(
-        f["path"].startswith("agency-view/events/") and f["path"].endswith("/effective_date")
-        for f in result["failures"]
-    )
-    assert all(not f["path"].startswith("view/member-") for f in result["failures"])
+    assert result["failures"], table
+    assert all(f["path"].startswith(f"agency-view/{table}/") for f in result["failures"]), result["failures"]
 
 
 def test_agency_reads_resolved_authenticated_capture_paths(tmp_path, plans):
@@ -339,23 +412,91 @@ def test_agency_reads_resolved_authenticated_capture_paths(tmp_path, plans):
     assert agency.check_raw_endpoints(ROOT, c, sources)[0]
 
 
-def test_the_succession_batch_joins_batch_1_in_the_expected_rows():
-    """Pin the merge: both batches' events, FNS -> FNA among the current successors, one reviewer, no item twice."""
+def test_every_batch_joins_in_the_expected_rows():
+    """Pin the merge: all three batches' rows, FNS -> FNA among the current successors, one reviewer, no item twice."""
 
     batches = [
-        (json.loads((ROOT / cp).read_text()), json.loads((ROOT / dp).read_text())) for cp, dp, _ in agency.BATCHES
+        (json.loads((ROOT / cp).read_text()), json.loads((ROOT / dp).read_text())) for cp, dp, *_ in agency.BATCHES
     ]
-    for (c, d), (_, _, aggregate) in zip(batches, agency.BATCHES, strict=True):
-        assert agency.decision_failures(c, d, aggregate) == []
+    for (c, d), (_, _, aggregate, covers) in zip(batches, agency.BATCHES, strict=True):
+        assert agency.decision_failures(c, d, aggregate, covers) == []
     expected, details = agency.expected_from_batches(batches)
     assert {key: len(rows) for key, rows in expected.items()} == {
-        "bridges": 13, "events": 15, "non-emissions": 4, "current-successors": 15
+        "bridges": 13,
+        "events": 15,
+        "non-emissions": 11,
+        "aliases": 63,
+        "current-successors": 15,
     }
     fna = "urn:ref:federal-register-agency:"
     assert {"original": fna + "200", "successor": fna + "625"} in expected["current-successors"]
     assert details["event:fr200"]["effectiveDate"] == "2026-06-24"
     plan, decisions = agency.merged_plans(batches)
-    assert len(plan["events"]) == 10 and len(decisions["decisions"]) == 27
+    assert len(plan["events"]) == 10 and len(decisions["decisions"]) == 97
     with pytest.raises(ValueError, match="decided in two"):
         agency.merged_plans([*batches, batches[1]])
 
+
+def test_alias_answers_follow_their_own_effects(alias_plans):
+    """Adopted aliases become alias rows with the decided relation; a "no" a non-emission; an unruled answer refuses."""
+    c, d = alias_plans
+    expected, _ = agency.expected_from_plans(c, d)
+    army = next(r for r in expected["aliases"] if r["alias_id"] == "alias:army")
+    assert (d["decisions"]["alias:army"]["answer"], army["fr_relation"]) == ("2", "partOf")
+    assert {r["item_id"] for r in expected["non-emissions"]} == {
+        a for a, x in d["decisions"].items() if x["answer"] == "no"
+    }
+    changed = copy.deepcopy(d)
+    changed["decisions"]["alias:army"]["answer"] = "9"
+    with pytest.raises(ValueError, match="no effect"):
+        agency.expected_from_plans(c, changed)
+    # An undecided alias is held: no row, and the decision population still checks.
+    held = copy.deepcopy(d)
+    del held["decisions"]["alias:army"]
+    assert "alias:army" not in {r["alias_id"] for r in agency.expected_from_plans(c, held)[0]["aliases"]}
+    assert agency.decision_failures(c, held, agency.ALIAS_OWNER_AGGREGATE, agency.ALIAS_COVERED) == []
+    stale = copy.deepcopy(d)
+    stale["decisions"]["alias:army"]["content_digest"] = "sha256:wrong"
+    assert agency.decision_failures(c, stale, agency.ALIAS_OWNER_AGGREGATE, agency.ALIAS_COVERED)
+
+
+def test_alias_records_are_read_and_a_changed_record_is_caught(tmp_path, alias_plans):
+    """Every cited record re-hashes and holds its passage; changed bytes or a reworded passage fail."""
+    c, d = alias_plans
+    errors, reads = agency.check_alias_records(ROOT, (c, d))
+    assert errors == [] and len(reads) == 62
+    record = c["aliases"][0]["records"][0]
+    logical = f"{agency.ALIAS_RECORDS_DIR}/{record['file']}"
+    tampered = tmp_path / Path(record["file"]).name
+    tampered.write_bytes((ROOT / logical).read_bytes() + b"<!-- one byte more -->")
+    errors, _ = agency.check_alias_records(ROOT, (c, d), {logical: tampered})
+    assert any(e["path"].endswith("/sha256") for e in errors)
+    reworded = copy.deepcopy(c)
+    reworded["aliases"][0]["records"][0]["passage"] += " and the Coast Guard"
+    errors, _ = agency.check_alias_records(ROOT, (reworded, d))
+    assert [e["path"].rsplit("/", 1)[1] for e in errors] == ["passageFound"]
+
+
+@pytest.mark.pinned_input(not OPM_WORKBOOK.is_file(), reason="Pinned OPM EHRI workbook absent")
+def test_alias_rosters_and_projection_from_raw_captures(alias_plans):
+    """Alias names re-read from the raw rosters, FR ancestry, mechanical rules, and REF-038 from its adjudication."""
+    c, d = alias_plans
+    rosters = agency.read_rosters(ROOT)
+    releases = c["inputs"]["roster_releases"]
+    projection, unresolved = agency.expected_projection(ROOT, rosters, releases)
+    assert (len(projection), len(unresolved)) == (321, 10)
+    opm = agency.read_opm_names(ROOT)
+    assert agency.check_alias_rosters((c, d), rosters, opm, projection) == []
+    for alias_id, side, field, value, path in [
+        ("alias:veterans-health-administration", "target", "publisher_name", "VETERANS HEALTH", "/target/raw-roster"),
+        ("alias:bureau-of-land-management", "fr_record", "id", 253, "/mechanical/"),
+    ]:
+        changed = copy.deepcopy(c)
+        alias = next(a for a in changed["aliases"] if a["alias_id"] == alias_id)
+        alias[side][field] = value
+        failures = agency.check_alias_rosters((changed, d), rosters, opm, projection)
+        assert any(path in f["path"] for f in failures), (alias_id, failures)
+    organizations = agency.expected_organizations(rosters, projection, [])
+    assert len(organizations) == 472
+    abmc = next(r for r in organizations if r["fr_id"] == 20)
+    assert abmc["regulations_gov_codes"] == ["ABMC"]

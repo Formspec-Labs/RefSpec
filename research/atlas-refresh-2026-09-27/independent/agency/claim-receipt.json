@@ -1086,5 +1086,2081 @@
         }
       ]
     }
-  ]
+  ],
+  "aliasReview": {
+    "reviewedAtUtc": "2026-11-09T03:22:53.456331+00:00",
+    "reviewer": "independent agency check, tools/atlas_independent_agency.py (no producer code), with specimens read in context",
+    "scope": "The owner-decided aliases of plans/agency-registry-alias-batch-candidates.json: each cited record's retained bytes re-hashed against the records manifest and its quoted passage found in them; five specimens read with their surrounding text. The owner's decisions are recorded, not re-made; not legal advice.",
+    "counts": {
+      "aliasesDecided": 70,
+      "adopted": 63,
+      "rejected": 7,
+      "citedRecords": 62,
+      "retainedFilesCited": 41
+    },
+    "specimensReadInContext": [
+      {
+        "aliasId": "alias:veterans-health-administration",
+        "reading": "38 U.S.C. 7301(a) in its section: 'There is in the Department of Veterans Affairs a Veterans Health Administration', followed by the Under Secretary for Health as its head; supports part of FR 520."
+      },
+      {
+        "aliasId": "alias:usmc",
+        "reading": "91 FR 60950: 'AGENCY: Department of the Navy, Department of Defense (DoD)' heads the notice in which 'the United States Marine Corps (USMC) announces' the collection; with 10 U.S.C. 8063(a) ('The Marine Corps, within the Department of the Navy'), supports part of FR 378."
+      },
+      {
+        "aliasId": "alias:air-force-space-command",
+        "reading": "10 U.S.C. 9081 note quotes Pub. L. 116-92 sec. 952(a), 'The Air Force Space Command is hereby redesignated as the United States Space Force (USSF)'; 9081(a) establishes the Space Force 'within the Department of the Air Force'; supports part of FR 13."
+      },
+      {
+        "aliasId": "alias:bureau-of-near-eastern-affairs",
+        "reading": "88 FR 14438 is signed 'Office of Assistance Coordination, Bureau of Near Eastern Affairs, Department of State'; supports part of FR 476."
+      },
+      {
+        "aliasId": "alias:national-forest-system",
+        "reading": "The Forest Service organization page lists 'National Forest System' first among 'Agency headquarters has the following program units'; the same sentence calls it the public lands it manages, so the page, not 16 U.S.C. 1609, carries the unit reading; supports part of FR 209."
+      }
+    ],
+    "aliases": [
+      {
+        "aliasId": "alias:africa-command",
+        "nameKey": "africa command",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:fb7822fd127e70b8e9c55bf5a6918b1bfca19585a4c04d85329c02cd39a65bdb",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Find agency pages, then adopt. Read: 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 82 FR 1192 (2017-01-05), FR Doc 2016-31686, DoD Freedom of Information Act (FOIA) Program (32 CFR part 286): \"United States Africa Command, United States Central Command, United States European Command, United States Northern Command, United States Pacific Command, United States Special Operations Command, United States Strategic Command, and United States Transportation Command.\"; 82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR 286.2: \"the Combatant Commands, the Office of the Inspector General of the Department of Defense, the Defense Agencies, the DoD Field Activities, and all other organizational entities within the DoD\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 111",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm",
+                "sourceSha256": "3a2e6c8384a316a5ab5ffa7dc5556a3389ffc86e2dff6bf7221e397074af3a1f",
+                "retainedPath": "raw/usc-10-111.htm",
+                "passage": "(9) The unified and specified combatant commands."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "82 FR 1192 (2017-01-05), FR Doc 2016-31686, DoD Freedom of Information Act (FOIA) Program (32 CFR part 286)",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2017/01/05/2016-31686.txt",
+                "sourceSha256": "6bc7707ed2a8cbce822b4158f87ccf972773898782fb86f9576766869f3b7112",
+                "retainedPath": "raw/fr-2016-31686.txt",
+                "passage": "United States Africa Command, United States Central Command, United States European Command, United States Northern Command, United States Pacific Command, United States Special Operations Command, United States Strategic Command, and United States Transportation Command."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR 286.2",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2017/01/05/2016-31686.txt",
+                "sourceSha256": "6bc7707ed2a8cbce822b4158f87ccf972773898782fb86f9576766869f3b7112",
+                "retainedPath": "raw/fr-2016-31686.txt",
+                "passage": "the Combatant Commands, the Office of the Inspector General of the Department of Defense, the Defense Agencies, the DoD Field Activities, and all other organizational entities within the DoD"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:air-force",
+        "nameKey": "air force",
+        "ownerDecision": {
+          "answer": "2",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:7a2af7cb470b8f49ac962d45bb3a21d66f028b5d6f07791705dc8ee85298d3b5",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 10 U.S.C. 9062: \"There is a United States Air Force within the Department of the Air Force.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:13",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 9062",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleD-partI-chap907-sec9062.htm",
+                "sourceSha256": "a8c10d8d5126d8775a6d0bf4678af9b45ad9d835ec03cbada4d38bdfdc017ca1",
+                "retainedPath": "raw/usc-10-9062.htm",
+                "passage": "There is a United States Air Force within the Department of the Air Force."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:air-force-space-command",
+        "nameKey": "air force space command",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:e55287aeaccffd4e63c4ee9dd77241dfee86f90da4db8b945fe6d6b8d75b0b33",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Find agency pages, then adopt. Read: 10 U.S.C. 9081: \"The Air Force Space Command is hereby redesignated as the United States Space Force (USSF).\"; 10 U.S.C. 9081: \"There is established a United States Space Force as an armed force within the Department of the Air Force.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:13",
+        "target": "urn:ref:opm-ehri-agency-subelement:AF4G",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 9081",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleD-partI-chap908-sec9081.htm",
+                "sourceSha256": "eef44a545eda952a6b6b300be88af5a7b0b5c4e7e9fd37e9dbd3e532a483a605",
+                "retainedPath": "raw/usc-10-9081.htm",
+                "passage": "The Air Force Space Command is hereby redesignated as the United States Space Force (USSF)."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 9081",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleD-partI-chap908-sec9081.htm",
+                "sourceSha256": "eef44a545eda952a6b6b300be88af5a7b0b5c4e7e9fd37e9dbd3e532a483a605",
+                "retainedPath": "raw/usc-10-9081.htm",
+                "passage": "There is established a United States Space Force as an armed force within the Department of the Air Force."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:army",
+        "nameKey": "army",
+        "ownerDecision": {
+          "answer": "2",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:64f7eeb627c894bd960aa0b21647b7de52bf7ee714fbc045744c41cad08f86cd",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 10 U.S.C. 7062: \"the Army, within the Department of the Army, includes land combat and service forces\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:32",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 7062",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleB-partI-chap707-sec7062.htm",
+                "sourceSha256": "e4d4aeb22c7c8eaa61080817ca763253113cd38e66b227c2fe0f4b25e14189a7",
+                "retainedPath": "raw/usc-10-7062.htm",
+                "passage": "the Army, within the Department of the Army, includes land combat and service forces"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:army-corps-of-engineers",
+        "nameKey": "army corps of engineers",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:090d38a95fdf6375b97b2687468555e55c437b9b032fa1b4edbf4edf30cd058a",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: the held roster records it names."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:142",
+        "target": null,
+        "claims": []
+      },
+      {
+        "aliasId": "alias:board-of-governors-of-federal-reserve-system",
+        "nameKey": "board of governors of federal reserve system",
+        "ownerDecision": {
+          "answer": "2",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:eb62bdf8c833d3b42b86d9bab73fec202beeb55371d6e9f26753f6d12931f9d8",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 12 U.S.C. 241: \"The Board of Governors of the Federal Reserve System (hereinafter referred to as the\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:188",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 241",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapII-sec241.htm",
+                "sourceSha256": "df34771a6351788bae5631267bd25c2d2c9642b31b3198ad219c732a10c6f334",
+                "retainedPath": "raw/usc-12-241.htm",
+                "passage": "The Board of Governors of the Federal Reserve System (hereinafter referred to as the"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:bureau-of-indian-affairs",
+        "nameKey": "bureau of indian affairs",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:0ebb185ea084f9386aaaac1fc3064daeaa2f98fd5b00474780110404ace14a3f",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08, per-item approval: bureau of indian affairs -> FR 234."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:234",
+        "target": "urn:ref:federal-register-agency:234",
+        "claims": []
+      },
+      {
+        "aliasId": "alias:bureau-of-land-management",
+        "nameKey": "bureau of land management",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:173563bd52d49d7bffcef4ec8411242f0ba93b5e6322bd65e11f576bb34fd368",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08, per-item approval: bureau of land management -> FR 275."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:275",
+        "target": "urn:ref:federal-register-agency:275",
+        "claims": []
+      },
+      {
+        "aliasId": "alias:bureau-of-near-eastern-affairs",
+        "nameKey": "bureau of near eastern affairs",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:6db9e09c76942c780936d75c6356bedf7682312a4f266dc1db1dc88baed207bc",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Find agency pages, then adopt. Read: 88 FR 14438 (2023-03-08), FR Doc 2023-04723, Department of State, Certification Pursuant to Section 7041(a)(1): \"Office Director, Office of Assistance Coordination, Bureau of Near Eastern Affairs, Department of State.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:476",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "88 FR 14438 (2023-03-08), FR Doc 2023-04723, Department of State, Certification Pursuant to Section 7041(a)(1)",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2023/03/08/2023-04723.txt",
+                "sourceSha256": "17df7e22ed0f8b49e51a4f109b8deb27405c386315d7ea5a1a0e4eb1c9be2d29",
+                "retainedPath": "raw/fr-2023-04723.txt",
+                "passage": "Office Director, Office of Assistance Coordination, Bureau of Near Eastern Affairs, Department of State."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:bureau-of-ocean-energy-management",
+        "nameKey": "bureau of ocean energy management",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:877db7bea0c9c873fb798810338f3a4fd52dc039a445eeb2a99bad21bc50fc74",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08, per-item approval: bureau of ocean energy management -> FR 575."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:575",
+        "target": "urn:ref:federal-register-agency:575",
+        "claims": []
+      },
+      {
+        "aliasId": "alias:bureau-of-reclamation",
+        "nameKey": "bureau of reclamation",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:519aaac9259a4fe4beaf43cbded4210600e7ccf3672bb9644cdfd0c0d21c7c11",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08, per-item approval: bureau of reclamation -> FR 446."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:446",
+        "target": "urn:ref:federal-register-agency:446",
+        "claims": []
+      },
+      {
+        "aliasId": "alias:bureau-of-safety-and-environmental-enforcement",
+        "nameKey": "bureau of safety and environmental enforcement",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:954a9f7f73b240e7f7d0b6a941b0ae6fab90275cff0b59ed609c147604b4f824",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08, per-item approval: bureau of safety and environmental enforcement -> FR 576."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:576",
+        "target": "urn:ref:federal-register-agency:576",
+        "claims": []
+      },
+      {
+        "aliasId": "alias:capitol-police",
+        "nameKey": "capitol police",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:9eacb6b821af684cf6e05b9467ac93ea750cead4bdd5022dbe7299bb9cc616a2",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 2 U.S.C. 1901: \"There shall be a Capitol police.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": null,
+        "fr": null,
+        "target": "urn:ref:federal-hierarchy-org:500193110",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "2 U.S.C. 1901",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title2/html/USCODE-2024-title2-chap29-subchapI-partA-sec1901.htm",
+                "sourceSha256": "d51638f66cc11fd8d541f5daea6c07feb8b584b1f71848a29784c590da145288",
+                "retainedPath": "raw/usc-2-1901.htm",
+                "passage": "There shall be a Capitol police."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:central-command",
+        "nameKey": "central command",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:cdd2078332d9b748d69f454c85ed045cf03f136ec1e751b653602494d817d6bb",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 10 U.S.C. 161: \"whether the boundary between the United States Central and European Commands could create command conflicts\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 111",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm",
+                "sourceSha256": "3a2e6c8384a316a5ab5ffa7dc5556a3389ffc86e2dff6bf7221e397074af3a1f",
+                "retainedPath": "raw/usc-10-111.htm",
+                "passage": "(9) The unified and specified combatant commands."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 161",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap6-sec161.htm",
+                "sourceSha256": "f0db66d6a1cdfd3dcb8fa32ded99ec658ebe9d6f43379b0fae28128fd171d3cc",
+                "retainedPath": "raw/usc-10-161.htm",
+                "passage": "whether the boundary between the United States Central and European Commands could create command conflicts"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:commission-on-international-religious-freedom",
+        "nameKey": "commission on international religious freedom",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:4414961ba931cca30cda38a44def86fd0302c28aa8b4efe03e9ec889b237782a",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 22 U.S.C. 6431: \"There is established the United States Commission on International Religious Freedom.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": null,
+        "fr": null,
+        "target": "urn:ref:opm-ehri-agency-subelement:ZP00",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "22 U.S.C. 6431",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title22/html/USCODE-2024-title22-chap73-subchapII-sec6431.htm",
+                "sourceSha256": "e402f3a82fb3c594671d88a597a62cfe31acec0cd240da7e3fa9817c294e470c",
+                "retainedPath": "raw/usc-22-6431.htm",
+                "passage": "There is established the United States Commission on International Religious Freedom."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:congressional-research-service",
+        "nameKey": "congressional research service",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:66d7bdbade1b0b0789bb7791c503d18ea2fb32b7c33a0680399079c851ee9034",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 2 U.S.C. 166: \"is hereby continued as a separate department in the Library of Congress and is redesignated the\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:277",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "2 U.S.C. 166",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title2/html/USCODE-2024-title2-chap5-sec166.htm",
+                "sourceSha256": "1459c3b5b9403ccbc689e3180c8523738a9456a54cdc0b807dcd1ca19f45a333",
+                "retainedPath": "raw/usc-2-166.htm",
+                "passage": "is hereby continued as a separate department in the Library of Congress and is redesignated the"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:copyright-office",
+        "nameKey": "copyright office",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:b6176b42a312c0b47ee04a84de8d33bd0feb1c66eb481dbefc84b465df53a257",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08, per-item approval: copyright office -> FR 87."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:87",
+        "target": "urn:ref:federal-register-agency:87",
+        "claims": []
+      },
+      {
+        "aliasId": "alias:cyber-command",
+        "nameKey": "cyber command",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:7bd7c1d62e32137c36e8e79c9de4190688fc3ef0c7107e840e7a33b840da7aca",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 10 U.S.C. 167b: \"I assign to U.S. Cyber Command: (1) all the general responsibilities of a Unified Combatant Command\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": "urn:ref:federal-hierarchy-org:300000421",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 111",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm",
+                "sourceSha256": "3a2e6c8384a316a5ab5ffa7dc5556a3389ffc86e2dff6bf7221e397074af3a1f",
+                "retainedPath": "raw/usc-10-111.htm",
+                "passage": "(9) The unified and specified combatant commands."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 167b",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap6-sec167b.htm",
+                "sourceSha256": "2cea6896ccd48def5cdd20685be6fb6b426059581d78055be210e0225c4c4237",
+                "retainedPath": "raw/usc-10-167b.htm",
+                "passage": "I assign to U.S. Cyber Command: (1) all the general responsibilities of a Unified Combatant Command"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:cybersecurity-and-infrastructure-security-agency",
+        "nameKey": "cybersecurity and infrastructure security agency",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:d4456dab7cac54d79beed4689a7b33ca401ee493c5417f06bd700493703afadd",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 6 U.S.C. 652: \"The National Protection and Programs Directorate of the Department shall, on and after November 16, 2018, be known as the\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:227",
+        "target": "urn:ref:federal-hierarchy-org:500044551",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "6 U.S.C. 652",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title6/html/USCODE-2024-title6-chap1-subchapXVIII-partA-sec652.htm",
+                "sourceSha256": "7805546da7b8bac4091a88a962c8e56b6138eade6203db25a54e44493f595283",
+                "retainedPath": "raw/usc-6-652.htm",
+                "passage": "The National Protection and Programs Directorate of the Department shall, on and after November 16, 2018, be known as the"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:defense-health-agency",
+        "nameKey": "defense health agency",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:38201b20556eb55a6488fb0a832fe71922059b39ca67e00c10f18b5b1f879f4e",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: the held roster records it names."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": "urn:ref:federal-hierarchy-org:300000422",
+        "claims": []
+      },
+      {
+        "aliasId": "alias:defense-innovation-unit",
+        "nameKey": "defense innovation unit",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:cf8623f92fca07e72b1f9c9d5f669b15475c7ba9939551a44da10301f5e31e28",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 10 U.S.C. 4127: \"There is established in the Department of Defense a Defense Innovation Unit\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 4127",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partV-subpartE-chap303-subchapIII-sec4127.htm",
+                "sourceSha256": "8648335337d0458eddb5d6b64298a2d3c59e8bb3d2f05d717c993873a749c8a8",
+                "retainedPath": "raw/usc-10-4127.htm",
+                "passage": "There is established in the Department of Defense a Defense Innovation Unit"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:department-of-war",
+        "nameKey": "department of war",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:cd294ba7c7226ecceac699c44a3d8a5856ee62a6800c33d2a3ac4a2723eba576",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: Executive Order 14347 of September 5, 2025, 90 FR 43893, Restoring the United States Department of War: \"The Department of Defense and the Office of the Secretary of Defense may be referred to as the Department of War\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "Executive Order 14347 of September 5, 2025, 90 FR 43893, Restoring the United States Department of War",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/09/10/2025-17508.txt",
+                "sourceSha256": "ca7aff5304b746d247729772e83971311cbf362ca00d958307064cb413c030d6",
+                "retainedPath": "raw/fr-eo-14347.txt",
+                "passage": "The Department of Defense and the Office of the Secretary of Defense may be referred to as the Department of War"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:education",
+        "nameKey": "education",
+        "ownerDecision": {
+          "answer": "no",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:be91de0fcef3a7b5cb97e4baaa23613c0ed8fcdd69ffaa24de956d74385bb7ae",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: the held roster records it names."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "nonEmission",
+        "frRelation": null,
+        "fr": "urn:ref:federal-register-agency:126",
+        "target": null,
+        "claims": []
+      },
+      {
+        "aliasId": "alias:energy",
+        "nameKey": "energy",
+        "ownerDecision": {
+          "answer": "no",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:40373e8c4498e0883cd0ab9ad08aab747ae399c9931e81aa5abdf46f2723ee4f",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: the held roster records it names."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "nonEmission",
+        "frRelation": null,
+        "fr": "urn:ref:federal-register-agency:136",
+        "target": null,
+        "claims": []
+      },
+      {
+        "aliasId": "alias:european-command",
+        "nameKey": "european command",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:df9cc8508d3ef050b1df77ec195052cdc03761805ceb04104d9270d19e06dba1",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 10 U.S.C. 161: \"whether the boundary between the United States Central and European Commands could create command conflicts\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 111",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm",
+                "sourceSha256": "3a2e6c8384a316a5ab5ffa7dc5556a3389ffc86e2dff6bf7221e397074af3a1f",
+                "retainedPath": "raw/usc-10-111.htm",
+                "passage": "(9) The unified and specified combatant commands."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 161",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap6-sec161.htm",
+                "sourceSha256": "f0db66d6a1cdfd3dcb8fa32ded99ec658ebe9d6f43379b0fae28128fd171d3cc",
+                "retainedPath": "raw/usc-10-161.htm",
+                "passage": "whether the boundary between the United States Central and European Commands could create command conflicts"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:export-import-bank-of",
+        "nameKey": "export import bank of",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:1979a7517c918ef7ca8ad5d4374f40565b227323df79cb1dd8fb8849f74e780a",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 12 U.S.C. 635: \"There is created a corporation with the name Export-Import Bank of the United States, which shall be an agency of the United States of America.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:151",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 635",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap6A-subchapI-sec635.htm",
+                "sourceSha256": "9b312f4a5b00889e1cad3f3a7717782b0813790829f442371dec5b2ea68b50c8",
+                "retainedPath": "raw/usc-12-635.htm",
+                "passage": "There is created a corporation with the name Export-Import Bank of the United States, which shall be an agency of the United States of America."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:federal-bureau-of-investigations",
+        "nameKey": "federal bureau of investigations",
+        "ownerDecision": {
+          "answer": "no",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:8bda774338306c27e1f738b2532daa1ebea62777a1f19f122e05aa85fbf7f28b",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: the held roster records it names."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "nonEmission",
+        "frRelation": null,
+        "fr": "urn:ref:federal-register-agency:160",
+        "target": null,
+        "claims": []
+      },
+      {
+        "aliasId": "alias:federal-bureau-of-prisons",
+        "nameKey": "federal bureau of prisons",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:3ca143ecd639d843dda6451b99a395fe951cda9bc932744ca854527ed51fa8dc",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 18 U.S.C. 4041: \"The Bureau of Prisons shall be in charge of a director appointed by and serving directly under the Attorney General.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:437",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "18 U.S.C. 4041",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title18/html/USCODE-2024-title18-partIII-chap303-sec4041.htm",
+                "sourceSha256": "785b35155f4843bb0ee21fb300eae3f7567d7c82028f87141ceef0baa68f6dc0",
+                "retainedPath": "raw/usc-18-4041.htm",
+                "passage": "The Bureau of Prisons shall be in charge of a director appointed by and serving directly under the Attorney General."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:federal-energy-regulatory-commision",
+        "nameKey": "federal energy regulatory commision",
+        "ownerDecision": {
+          "answer": "no",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:3d81378005443008d0f077beb4d7632312eb1426f9595ca8fcb8e52cc9d6894b",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: the held roster records it names."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "nonEmission",
+        "frRelation": null,
+        "fr": "urn:ref:federal-register-agency:167",
+        "target": null,
+        "claims": []
+      },
+      {
+        "aliasId": "alias:forces-korea",
+        "nameKey": "forces korea",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:cf9094c16a6946868b92dcf320580fbcc030cf95ea04cd36500f6fae8b5ca72c",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Find agency pages, then adopt. Read: H.A.S.C. No. 113-14 (2013), Hearing on National Defense Authorization Act for Fiscal Year 2014, U.S. Pacific Command answers for the record (CHRG-113hhrg79955): \"A total of 686 positions support subordinate unified commands; US Forces Korea (468), US Alaskan Command (66), US Forces Japan (152).\"; 82 FR 1192 (2017-01-05), FR Doc 2016-31686, DoD Freedom of Information Act (FOIA) Program (32 CFR part 286): \"United States Africa Command, United States Central Command, United States European Command, United States Northern Command, United States Pacific Command, United States Special Operations Command, United States Strategic Command, and United States Transportation Command.\"; 10 U.S.C. 111: \"(11) All offices, agencies, activities, and commands under the control or supervision of any element named in paragraphs (1) through (10).\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "H.A.S.C. No. 113-14 (2013), Hearing on National Defense Authorization Act for Fiscal Year 2014, U.S. Pacific Command answers for the record (CHRG-113hhrg79955)",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/CHRG-113hhrg79955/html/CHRG-113hhrg79955.htm",
+                "sourceSha256": "f4cb14f89fa012e9dfb8522320da626ef1e2523c781cf0deee1cbe148eb4e2ad",
+                "retainedPath": "raw/chrg-113hhrg79955.htm",
+                "passage": "A total of 686 positions support subordinate unified commands; US Forces Korea (468), US Alaskan Command (66), US Forces Japan (152)."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "82 FR 1192 (2017-01-05), FR Doc 2016-31686, DoD Freedom of Information Act (FOIA) Program (32 CFR part 286)",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2017/01/05/2016-31686.txt",
+                "sourceSha256": "6bc7707ed2a8cbce822b4158f87ccf972773898782fb86f9576766869f3b7112",
+                "retainedPath": "raw/fr-2016-31686.txt",
+                "passage": "United States Africa Command, United States Central Command, United States European Command, United States Northern Command, United States Pacific Command, United States Special Operations Command, United States Strategic Command, and United States Transportation Command."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 111",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm",
+                "sourceSha256": "3a2e6c8384a316a5ab5ffa7dc5556a3389ffc86e2dff6bf7221e397074af3a1f",
+                "retainedPath": "raw/usc-10-111.htm",
+                "passage": "(11) All offices, agencies, activities, and commands under the control or supervision of any element named in paragraphs (1) through (10)."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:general-accounting-office",
+        "nameKey": "general accounting office",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:6bf24dcfee3236e4710ddcc0196fe345216c15cedfea482942acbfff2ced5bad",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: Pub. L. 108-271, sec. 8(a), 118 Stat. 814 (2004-07-07), GAO Human Capital Reform Act of 2004: \"The General Accounting Office is hereby redesignated the Government Accountability Office.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:213",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "Pub. L. 108-271, sec. 8(a), 118 Stat. 814 (2004-07-07), GAO Human Capital Reform Act of 2004",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/PLAW-108publ271/html/PLAW-108publ271.htm",
+                "sourceSha256": "ca562a01a92b7efd2968558e948e9314e03adb7b3f67ae63ecca5b227f774a0e",
+                "retainedPath": "raw/plaw-108-271.htm",
+                "passage": "The General Accounting Office is hereby redesignated the Government Accountability Office."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:headquarters-air-force",
+        "nameKey": "headquarters air force",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:f72ec1cc02c646c9594ad73e04875e453c8cdc3da02822d2bdc259b9c005a173",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Find agency pages, then adopt. Read: 10 U.S.C. 9031: \"There is in the executive part of the Department of the Air Force an Air Staff.\"; 74 FR 6591 (2009-02-10), FR Doc E9-2782, Department of the Air Force, Privacy Act of 1974; System of Records: \"Deputy Chief of Staff for Personnel, Headquarters United States Air Force, 1040 Air Force Pentagon\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:13",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 9031",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleD-partI-chap905-sec9031.htm",
+                "sourceSha256": "c401defdca171ddd8d964e0645776375fd11ec4fd899d324a45fd6fb0b74588f",
+                "retainedPath": "raw/usc-10-9031.htm",
+                "passage": "There is in the executive part of the Department of the Air Force an Air Staff."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "74 FR 6591 (2009-02-10), FR Doc E9-2782, Department of the Air Force, Privacy Act of 1974; System of Records",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2009/02/10/E9-2782.txt",
+                "sourceSha256": "17d31fbe111fae32b8aa9da05275b6fb7bb54813855c4ce0a76b2cb035cdb708",
+                "retainedPath": "raw/fr-E9-2782.txt",
+                "passage": "Deputy Chief of Staff for Personnel, Headquarters United States Air Force, 1040 Air Force Pentagon"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:headquarters-marine-corps",
+        "nameKey": "headquarters marine corps",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:da4c74600e5b81fd4d9eb44a4d60f4f3eeee9fba2be80f205b6cfab12cb4006d",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 10 U.S.C. 8041: \"There is in the executive part of the Department of the Navy a Headquarters, Marine Corps.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:378",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 8041",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleC-partI-chap806-sec8041.htm",
+                "sourceSha256": "7c43f480f884dce1bd121acb946cc232cd1ebb3bd6d59a1ed632df49d10b02b4",
+                "retainedPath": "raw/usc-10-8041.htm",
+                "passage": "There is in the executive part of the Department of the Navy a Headquarters, Marine Corps."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:health-and-human-services",
+        "nameKey": "health and human services",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:761accb2eb34dcee6df34b9352e0f631949eef8965fa1e2a8d2011f5637f7be7",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: the held roster records it names."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:221",
+        "target": null,
+        "claims": []
+      },
+      {
+        "aliasId": "alias:joint-chiefs-of-staff",
+        "nameKey": "joint chiefs of staff",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:8489389062f9653245100000d2381e3bceee601342900f767e4d08dda98bedcc",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 10 U.S.C. 151: \"There are in the Department of Defense the Joint Chiefs of Staff, headed by the Chairman of the Joint Chiefs of Staff.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": "urn:ref:opm-ehri-agency-subelement:DD02",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 151",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap5-sec151.htm",
+                "sourceSha256": "36dd6255963a387fe1cd90dec7158afd81f6d6c6e13f9fbe0da992b04079267b",
+                "retainedPath": "raw/usc-10-151.htm",
+                "passage": "There are in the Department of Defense the Joint Chiefs of Staff, headed by the Chairman of the Joint Chiefs of Staff."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:joint-staff",
+        "nameKey": "joint staff",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:5da1125e41ad3adbca0eee15d1a5b880ee7b9f1bc5c2a65e419ab84eb7c07376",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 10 U.S.C. 155: \"There is a Joint Staff under the Chairman of the Joint Chiefs of Staff.\"; 10 U.S.C. 111: \"(2) The Joint Chiefs of Staff. (3) The Joint Staff.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 155",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap5-sec155.htm",
+                "sourceSha256": "79e741ac993d6a882b4a2ad51bb1edf1f5dc953b15d4824b18d03080c6760dbf",
+                "retainedPath": "raw/usc-10-155.htm",
+                "passage": "There is a Joint Staff under the Chairman of the Joint Chiefs of Staff."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 111",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm",
+                "sourceSha256": "3a2e6c8384a316a5ab5ffa7dc5556a3389ffc86e2dff6bf7221e397074af3a1f",
+                "retainedPath": "raw/usc-10-111.htm",
+                "passage": "(2) The Joint Chiefs of Staff. (3) The Joint Staff."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:labor",
+        "nameKey": "labor",
+        "ownerDecision": {
+          "answer": "no",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:0d48c10db5fc6949b3e35776f5859ad8eeab220c444519d30aa939ea0f86baed",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: the held roster records it names."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "nonEmission",
+        "frRelation": null,
+        "fr": "urn:ref:federal-register-agency:271",
+        "target": null,
+        "claims": []
+      },
+      {
+        "aliasId": "alias:marine-corps",
+        "nameKey": "marine corps",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:b4ed13ab90c75689839b30f57fbd219c80123d35e506340536dd275ea465e343",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 10 U.S.C. 8063: \"The Marine Corps, within the Department of the Navy, shall be so organized\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:378",
+        "target": "urn:ref:opm-ehri-agency-subelement:NV27",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 8063",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleC-partI-chap807-sec8063.htm",
+                "sourceSha256": "23cc162475489914d977c80e6ca224fda1fc069297082901ae3f6349042eac45",
+                "retainedPath": "raw/usc-10-8063.htm",
+                "passage": "The Marine Corps, within the Department of the Navy, shall be so organized"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:missile-defense-agency",
+        "nameKey": "missile defense agency",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:a5b24092303ec8aa01c9f262814efaf918a346dd8f8bd9f138c1909e2819e151",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: the held roster records it names."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": "urn:ref:federal-hierarchy-org:300000429",
+        "claims": []
+      },
+      {
+        "aliasId": "alias:national-cemetery-administration",
+        "nameKey": "national cemetery administration",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:bec7df0e22794121888e476a9a592b70b774a2fb8826e427dd60415bb7e29d21",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 38 U.S.C. 2400: \"There shall be within the Department a National Cemetery Administration\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:520",
+        "target": "urn:ref:opm-ehri-agency-subelement:VAPA",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "38 U.S.C. 2400",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title38/html/USCODE-2024-title38-partII-chap24-sec2400.htm",
+                "sourceSha256": "91e3268bee8acbc36d031b851bad9f369cae80e57c38dd303cb82a418e975794",
+                "retainedPath": "raw/usc-38-2400.htm",
+                "passage": "There shall be within the Department a National Cemetery Administration"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:national-counterterrorism-center",
+        "nameKey": "national counterterrorism center",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:8c50660b679e1f7b3663f203e3ba1efa460bbb4f15857419a29fa0a24351af8d",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 50 U.S.C. 3056: \"There is within the Office of the Director of National Intelligence a National Counterterrorism Center.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:354",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "50 U.S.C. 3056",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title50/html/USCODE-2024-title50-chap44-subchapI-sec3056.htm",
+                "sourceSha256": "2479bdf202a3c845563b1d7d7e14c58a1772aa2269e6131c460e392931955689",
+                "retainedPath": "raw/usc-50-3056.htm",
+                "passage": "There is within the Office of the Director of National Intelligence a National Counterterrorism Center."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:national-forest-system",
+        "nameKey": "national forest system",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:b7de260037331636132c60abe8d523153121071c9100b813f4083ac73e4d40c6",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Find agency pages, then adopt. Read: USDA Forest Service, About the Agency: Organization (fs.usda.gov, read 2026-11-08): \"Agency headquarters has the following program units: National Forest System: We manage public lands, known collectively as the National Forest System\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:209",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "USDA Forest Service, About the Agency: Organization (fs.usda.gov, read 2026-11-08)",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.fs.usda.gov/about-agency/organization",
+                "sourceSha256": "9daa54a196b67dd21a9309d915a0043a1d282a426cdc51e90970ae7a831c819f",
+                "retainedPath": "raw/fs-about-agency-organization.html",
+                "passage": "Agency headquarters has the following program units: National Forest System: We manage public lands, known collectively as the National Forest System"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:national-guard-bureau",
+        "nameKey": "national guard bureau",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:d2965653755ece80303057c4ebbbd984ead82f058fb0afd9d1a34c81dff5e308",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 10 U.S.C. 10501: \"There is in the Department of Defense the National Guard Bureau, which is a joint activity of the Department of Defense.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 10501",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleE-partI-chap1011-sec10501.htm",
+                "sourceSha256": "1d07a17cd36af26f19bc447249695d2e41cf24f425a06bb9afe0e1cf596b7038",
+                "retainedPath": "raw/usc-10-10501.htm",
+                "passage": "There is in the Department of Defense the National Guard Bureau, which is a joint activity of the Department of Defense."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:national-institute-of-allergy-and-infectious-diseases",
+        "nameKey": "national institute of allergy and infectious diseases",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:aad036525eea5bcb20d1bf7f58276042c46c8c2659651055de42eddb1a4e258a",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 42 U.S.C. 281: \"The following agencies of the National Institutes of Health are national research institutes or national centers:\"; 42 U.S.C. 281: \"(6) The National Institute of Allergy and Infectious Diseases.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:353",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "42 U.S.C. 281",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap6A-subchapIII-partA-sec281.htm",
+                "sourceSha256": "9690f8b28178b5bc4ccf6b215839ff6ea65a5685802c6d0a507593930bc56278",
+                "retainedPath": "raw/usc-42-281.htm",
+                "passage": "The following agencies of the National Institutes of Health are national research institutes or national centers:"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "42 U.S.C. 281",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap6A-subchapIII-partA-sec281.htm",
+                "sourceSha256": "9690f8b28178b5bc4ccf6b215839ff6ea65a5685802c6d0a507593930bc56278",
+                "retainedPath": "raw/usc-42-281.htm",
+                "passage": "(6) The National Institute of Allergy and Infectious Diseases."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:national-institute-of-health",
+        "nameKey": "national institute of health",
+        "ownerDecision": {
+          "answer": "no",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:04ec974eeac69b5478536f3ea5306eb1cf0efb6027327e231cde56b19b574e53",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: the held roster records it names."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "nonEmission",
+        "frRelation": null,
+        "fr": "urn:ref:federal-register-agency:353",
+        "target": null,
+        "claims": []
+      },
+      {
+        "aliasId": "alias:national-reconnaissance-office",
+        "nameKey": "national reconnaissance office",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:4fea1d86654fffb69212057d30df210ac38be85e707112840edcf7a5f6ac2857",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: the held roster records it names."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": "urn:ref:federal-hierarchy-org:500019037",
+        "claims": []
+      },
+      {
+        "aliasId": "alias:national-science-board",
+        "nameKey": "national science board",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:db657df1a1f1435c6148a9b53d510f46361440782d138a134a138754389d5cbb",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 42 U.S.C. 1861: \"The Foundation shall consist of a National Science Board\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:366",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "42 U.S.C. 1861",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap16-sec1861.htm",
+                "sourceSha256": "d773ba654bc42ded146a84cac5a96ee4a0a0bf4ab5a667a3a4e41d7c7759d7ce",
+                "retainedPath": "raw/usc-42-1861.htm",
+                "passage": "The Foundation shall consist of a National Science Board"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:national-security-agency",
+        "nameKey": "national security agency",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:ae4644409ac474952e14f3e6e0ad4c0bd3b84be6f0cb9ae0f7bd720ea7a0fdd9",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: the held roster records it names."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:367",
+        "target": null,
+        "claims": []
+      },
+      {
+        "aliasId": "alias:navy",
+        "nameKey": "navy",
+        "ownerDecision": {
+          "answer": "2",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:47868d4825d0595a2c7ab13ff505868191e8629b61deb106143a11f8eda48f98",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 10 U.S.C. 8062: \"The Navy, within the Department of the Navy, includes, in general, naval combat and service forces\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:378",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 8062",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleC-partI-chap807-sec8062.htm",
+                "sourceSha256": "d1758f6938d748bdad410da377794a7b480fb893d708ebe9a956c30ec9edd6fe",
+                "retainedPath": "raw/usc-10-8062.htm",
+                "passage": "The Navy, within the Department of the Navy, includes, in general, naval combat and service forces"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:office-of-chief-of-naval-operations",
+        "nameKey": "office of chief of naval operations",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:342a1642bf6b348cbdfdf9d68731abc449312fcb9585760f05784b701be2ad71",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 10 U.S.C. 8031: \"There is in the executive part of the Department of the Navy an Office of the Chief of Naval Operations.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:378",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 8031",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleC-partI-chap805-sec8031.htm",
+                "sourceSha256": "eb10a10e74922ecb4e83249cb972af75230d4eab23757e2521a9235b22079a4f",
+                "retainedPath": "raw/usc-10-8031.htm",
+                "passage": "There is in the executive part of the Department of the Navy an Office of the Chief of Naval Operations."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:office-of-comptroller-of-currency",
+        "nameKey": "office of comptroller of currency",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:fcca0e3691aff777ce824dede5740d38f348c45dd5ba7e71e56ea47d46897fea",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 12 U.S.C. 1: \"There is established in the Department of the Treasury a bureau to be known as the\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:80",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 1",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap1-sec1.htm",
+                "sourceSha256": "c93b5ed4335d0e1cf90a7265d172db4e1de492377abd7e230b686d66bc1bc633",
+                "retainedPath": "raw/usc-12-1.htm",
+                "passage": "There is established in the Department of the Treasury a bureau to be known as the"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:office-of-congressional-workplace-rights",
+        "nameKey": "office of congressional workplace rights",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:cfb5d0f1711eb2d2d8ebada0b50275ee8e4b42f4ea6154a1e29ffcc8d6316773",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 2 U.S.C. 1381: \"There is established, as an independent office within the legislative branch of the Federal Government, the Office of Congressional Workplace Rights.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": null,
+        "fr": null,
+        "target": "urn:ref:opm-ehri-agency-subelement:ZG00",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "2 U.S.C. 1381",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title2/html/USCODE-2024-title2-chap24-subchapIII-sec1381.htm",
+                "sourceSha256": "f3963aacb5e101c0dfd6330bea73455263fbeb22d61011df032b8f27849bef71",
+                "retainedPath": "raw/usc-2-1381.htm",
+                "passage": "There is established, as an independent office within the legislative branch of the Federal Government, the Office of Congressional Workplace Rights."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:office-of-director-of-national-intelligence",
+        "nameKey": "office of director of national intelligence",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:2c91425e7901787db37ef3659c1af03dde5dbcde1de91f5053334a8de2f01baf",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08, per-item approval: office of director of national intelligence -> FR 354."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:354",
+        "target": "urn:ref:federal-register-agency:354",
+        "claims": []
+      },
+      {
+        "aliasId": "alias:office-of-information-and-regulatory-affairs",
+        "nameKey": "office of information and regulatory affairs",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:a4f01d79d496fd769aba2be1bf70126b4ccafa44e83c668289a1b2d409d792c3",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 44 U.S.C. 3503: \"There is established in the Office of Management and Budget an office to be known as the Office of Information and Regulatory Affairs.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:280",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "44 U.S.C. 3503",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title44/html/USCODE-2024-title44-chap35-subchapI-sec3503.htm",
+                "sourceSha256": "dbea83ca83c5f4c3607210bf0e8fa206df7fc92a38f4d011c93b19df7a2069c5",
+                "retainedPath": "raw/usc-44-3503.htm",
+                "passage": "There is established in the Office of Management and Budget an office to be known as the Office of Information and Regulatory Affairs."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:office-of-management-and-budget",
+        "nameKey": "office of management and budget",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:3d3f05f78242d66a59cdd0fbf80cee5e32fc2ac4e66e04c40d2db3bd22af28e0",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08, per-item approval: office of management and budget -> FR 280."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:280",
+        "target": "urn:ref:federal-register-agency:280",
+        "claims": []
+      },
+      {
+        "aliasId": "alias:office-of-personnel-management",
+        "nameKey": "office of personnel management",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:9d939b41e4f954762d2f1a02fb0a4d909796d316d65268027babf6badadb6295",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08, per-item approval: office of personnel management -> FR 406."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:406",
+        "target": "urn:ref:federal-register-agency:406",
+        "claims": []
+      },
+      {
+        "aliasId": "alias:office-of-science-and-technology-policy",
+        "nameKey": "office of science and technology policy",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:6d8f4ee2f0cc61dee693cc5e6133b7f77fd819d1514179611bf1877ef6d07dcc",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08, per-item approval: office of science and technology policy -> FR 464."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:464",
+        "target": "urn:ref:federal-register-agency:464",
+        "claims": []
+      },
+      {
+        "aliasId": "alias:office-of-secretary-of-defense",
+        "nameKey": "office of secretary of defense",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:1df660b2e52cfeff835fe6592f247e93aaaab5e54f9f3a43963b27f466e6cd8a",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 10 U.S.C. 131: \"There is in the Department of Defense an Office of the Secretary of Defense.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": "urn:ref:opm-ehri-agency-subelement:DD01",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 131",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap4-sec131.htm",
+                "sourceSha256": "bbd90ba880afdeed54ca755df4229e443c6b85ef3df813a8373c6b11d14f107b",
+                "retainedPath": "raw/usc-10-131.htm",
+                "passage": "There is in the Department of Defense an Office of the Secretary of Defense."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:office-of-special-counsel",
+        "nameKey": "office of special counsel",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:080fbc252605ef8638d76b30f4777e8f9b8203605a6fc06816fbf4a6bb452742",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08, per-item approval: office of special counsel -> FR 473."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:473",
+        "target": "urn:ref:federal-register-agency:473",
+        "claims": []
+      },
+      {
+        "aliasId": "alias:office-of-surface-mining-reclamation-and-enforcement",
+        "nameKey": "office of surface mining reclamation and enforcement",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:eb71e90da1467bc49683ea0b45d20241de3ee9c6bc76727609c9d691e0155b3e",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08, per-item approval: office of surface mining reclamation and enforcement -> FR 480."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:480",
+        "target": "urn:ref:federal-register-agency:480",
+        "claims": []
+      },
+      {
+        "aliasId": "alias:space-command",
+        "nameKey": "space command",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:18764e117ae36713aa8ff0f1823a66f474dab87183d1e3029f85cfedc06b7d27",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 10 U.S.C. 161: \"I assign to United States Space Command: (1) all the general responsibilities of a Unified Combatant Command\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 111",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm",
+                "sourceSha256": "3a2e6c8384a316a5ab5ffa7dc5556a3389ffc86e2dff6bf7221e397074af3a1f",
+                "retainedPath": "raw/usc-10-111.htm",
+                "passage": "(9) The unified and specified combatant commands."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 161",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap6-sec161.htm",
+                "sourceSha256": "f0db66d6a1cdfd3dcb8fa32ded99ec658ebe9d6f43379b0fae28128fd171d3cc",
+                "retainedPath": "raw/usc-10-161.htm",
+                "passage": "I assign to United States Space Command: (1) all the general responsibilities of a Unified Combatant Command"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:space-force",
+        "nameKey": "space force",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:e700bbc1e83d0ad198efb05e04c222fce8d32f479739bdfccd206af01043ba93",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 10 U.S.C. 9081: \"There is established a United States Space Force as an armed force within the Department of the Air Force.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:13",
+        "target": "urn:ref:opm-ehri-agency-subelement:AF4G",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 9081",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleD-partI-chap908-sec9081.htm",
+                "sourceSha256": "eef44a545eda952a6b6b300be88af5a7b0b5c4e7e9fd37e9dbd3e532a483a605",
+                "retainedPath": "raw/usc-10-9081.htm",
+                "passage": "There is established a United States Space Force as an armed force within the Department of the Air Force."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:special-operations-command",
+        "nameKey": "special operations command",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:5a8cb0c7a7ef3f457e98bbb34d2402771db8816cbfec80f75bffa5f567e96f13",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 10 U.S.C. 167: \"shall establish under section 161 of this title a unified combatant command for special operations forces\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": "urn:ref:federal-hierarchy-org:300000430",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 111",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm",
+                "sourceSha256": "3a2e6c8384a316a5ab5ffa7dc5556a3389ffc86e2dff6bf7221e397074af3a1f",
+                "retainedPath": "raw/usc-10-111.htm",
+                "passage": "(9) The unified and specified combatant commands."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 167",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap6-sec167.htm",
+                "sourceSha256": "5823d55c918cbe6276e74213e8e668847ad9a760f746eb33ab793f090f38ec9f",
+                "retainedPath": "raw/usc-10-167.htm",
+                "passage": "shall establish under section 161 of this title a unified combatant command for special operations forces"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:strategic-command",
+        "nameKey": "strategic command",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:a7b06447c50313dc7b7d2f74ae66597f4e35df6ee5bc5471c12ca9be3a08a918",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 10 U.S.C. 161: \"the space-related responsibilities previously assigned to the Commander, United States Strategic Command\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 111",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm",
+                "sourceSha256": "3a2e6c8384a316a5ab5ffa7dc5556a3389ffc86e2dff6bf7221e397074af3a1f",
+                "retainedPath": "raw/usc-10-111.htm",
+                "passage": "(9) The unified and specified combatant commands."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 161",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap6-sec161.htm",
+                "sourceSha256": "f0db66d6a1cdfd3dcb8fa32ded99ec658ebe9d6f43379b0fae28128fd171d3cc",
+                "retainedPath": "raw/usc-10-161.htm",
+                "passage": "the space-related responsibilities previously assigned to the Commander, United States Strategic Command"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:transportation-command",
+        "nameKey": "transportation command",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:3f6d9bfbe9ef0790da9c52e019994579cf75a72b609092ae10d4b5a439f71a17",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Find agency pages, then adopt. Read: 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 82 FR 1192 (2017-01-05), FR Doc 2016-31686, DoD Freedom of Information Act (FOIA) Program (32 CFR part 286): \"United States Africa Command, United States Central Command, United States European Command, United States Northern Command, United States Pacific Command, United States Special Operations Command, United States Strategic Command, and United States Transportation Command.\"; 82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR 286.2: \"the Combatant Commands, the Office of the Inspector General of the Department of Defense, the Defense Agencies, the DoD Field Activities, and all other organizational entities within the DoD\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": "urn:ref:opm-ehri-agency-subelement:DD76",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 111",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm",
+                "sourceSha256": "3a2e6c8384a316a5ab5ffa7dc5556a3389ffc86e2dff6bf7221e397074af3a1f",
+                "retainedPath": "raw/usc-10-111.htm",
+                "passage": "(9) The unified and specified combatant commands."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "82 FR 1192 (2017-01-05), FR Doc 2016-31686, DoD Freedom of Information Act (FOIA) Program (32 CFR part 286)",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2017/01/05/2016-31686.txt",
+                "sourceSha256": "6bc7707ed2a8cbce822b4158f87ccf972773898782fb86f9576766869f3b7112",
+                "retainedPath": "raw/fr-2016-31686.txt",
+                "passage": "United States Africa Command, United States Central Command, United States European Command, United States Northern Command, United States Pacific Command, United States Special Operations Command, United States Strategic Command, and United States Transportation Command."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR 286.2",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2017/01/05/2016-31686.txt",
+                "sourceSha256": "6bc7707ed2a8cbce822b4158f87ccf972773898782fb86f9576766869f3b7112",
+                "retainedPath": "raw/fr-2016-31686.txt",
+                "passage": "the Combatant Commands, the Office of the Inspector General of the Department of Defense, the Defense Agencies, the DoD Field Activities, and all other organizational entities within the DoD"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:usda-office-of-inspector-general",
+        "nameKey": "usda office of inspector general",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:fc77b056c7a4cbc84ea5439d169409bf104c2ea39855d6c554498900bb81e187",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: the held roster records it names."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:244",
+        "target": null,
+        "claims": []
+      },
+      {
+        "aliasId": "alias:usmc",
+        "nameKey": "usmc",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:17aaf63f62615cf3313a6c0796afc19802eb1cbb673e5a43dc6093580a64c7e6",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Find agency pages, then adopt. Read: 10 U.S.C. 8063: \"The Marine Corps, within the Department of the Navy, shall be so organized\"; 91 FR 60950 (2026-09-25), FR Doc 2026-19609, Department of the Navy, Proposed Collection: \"AGENCY: Department of the Navy, Department of Defense (DoD).\"; 91 FR 60950 (2026-09-25), FR Doc 2026-19609, Department of the Navy, Proposed Collection: \"the United States Marine Corps (USMC) announces a proposed public information collection\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:378",
+        "target": "urn:ref:opm-ehri-agency-subelement:NV27",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 8063",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleC-partI-chap807-sec8063.htm",
+                "sourceSha256": "23cc162475489914d977c80e6ca224fda1fc069297082901ae3f6349042eac45",
+                "retainedPath": "raw/usc-10-8063.htm",
+                "passage": "The Marine Corps, within the Department of the Navy, shall be so organized"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "91 FR 60950 (2026-09-25), FR Doc 2026-19609, Department of the Navy, Proposed Collection",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2026/09/25/2026-19609.txt",
+                "sourceSha256": "bf11f15a117ecf62e9e13eda8eba7bd96f87a672b9d0bd448e515bb53b5bbb4d",
+                "retainedPath": "raw/fr-2026-19609.txt",
+                "passage": "AGENCY: Department of the Navy, Department of Defense (DoD)."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "91 FR 60950 (2026-09-25), FR Doc 2026-19609, Department of the Navy, Proposed Collection",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2026/09/25/2026-19609.txt",
+                "sourceSha256": "bf11f15a117ecf62e9e13eda8eba7bd96f87a672b9d0bd448e515bb53b5bbb4d",
+                "retainedPath": "raw/fr-2026-19609.txt",
+                "passage": "the United States Marine Corps (USMC) announces a proposed public information collection"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:veterans-benefit-administration",
+        "nameKey": "veterans benefit administration",
+        "ownerDecision": {
+          "answer": "no",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:9914066faa24a1c7ac377730a7f08916202d7d252e5dc0ade4d850bbf46b6adf",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: the held roster records it names."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "nonEmission",
+        "frRelation": null,
+        "fr": "urn:ref:federal-register-agency:520",
+        "target": null,
+        "claims": []
+      },
+      {
+        "aliasId": "alias:veterans-benefits-administration",
+        "nameKey": "veterans benefits administration",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:a51f51e6c8e31579f0b068b2e7b7fca28ce94ad547380a4f617bb738600eb781",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 38 U.S.C. 7701: \"There is in the Department of Veterans Affairs a Veterans Benefits Administration.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:520",
+        "target": "urn:ref:opm-ehri-agency-subelement:VALA",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "38 U.S.C. 7701",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title38/html/USCODE-2024-title38-partV-chap77-subchapI-sec7701.htm",
+                "sourceSha256": "0f97e8e670ec4403d7b1e53a7a925f0a8d64d0bd1c5e00f89406ad62226fd695",
+                "retainedPath": "raw/usc-38-7701.htm",
+                "passage": "There is in the Department of Veterans Affairs a Veterans Benefits Administration."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:veterans-health-administration",
+        "nameKey": "veterans health administration",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-08",
+          "content_digest": "sha256:71e177ee80e0617007badb9154b24cb7501aaf179519daaac17ec8e0e97c2349",
+          "channel": "questionTool",
+          "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 38 U.S.C. 7301: \"There is in the Department of Veterans Affairs a Veterans Health Administration.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:520",
+        "target": "urn:ref:opm-ehri-agency-subelement:VATA",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "38 U.S.C. 7301",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title38/html/USCODE-2024-title38-partV-chap73-subchapI-sec7301.htm",
+                "sourceSha256": "ccdd882bc107a142927ec2721e2cd69e7100b57f9c673d5a8c44ed4c121c04e0",
+                "retainedPath": "raw/usc-38-7301.htm",
+                "passage": "There is in the Department of Veterans Affairs a Veterans Health Administration."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
 }

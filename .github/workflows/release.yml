@@ -70,9 +70,10 @@ jobs:
       # Linux runners must delegate a cgroup v2 parent to the runner account.
       ATLAS_CGROUP_PARENT: ${{ vars.ATLAS_CGROUP_PARENT }}
       # The agency review's 20 primary sources are pinned inputs, placed by
-      # the setup step below and authenticated again against this manifest.
+      # the setup step below; the 41 records the alias batch cites are retained
+      # in the repository. All are authenticated again against this manifest.
       ATLAS_AGENCY_EVIDENCE_MANIFEST: research/atlas-refresh-2026-09-27/independent/agency/audit-evidence-manifest.json
-      ATLAS_AGENCY_EVIDENCE_SHA256: sha256:fde4401ea78b2e0e5c1c758b90d32def2d81d40693098a5f3ca904e33344ef3b
+      ATLAS_AGENCY_EVIDENCE_SHA256: sha256:ea238cddc9f5089124d66f4ef1a16d55a05c2ed94099bf3a1dff6687093af996
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -141,11 +142,11 @@ jobs:
             --full-view $PARQUET_VIEW_ROOT --full-view-manifest-sha256 $full_view_pin \
             --compact-view $COMPACT_VIEW_ROOT --report-root $QUALIFICATION_ROOT \
             --disk-root ${DISTRIBUTION_SELECTION%/distribution} \
-            --agency-view-manifest-sha256 sha256:0b39812de31930f267dea2d7d51039d71b0a1852606387d5aba64aa75d25ec17 \
+            --agency-view-manifest-sha256 sha256:7a806ea060c0c7a0ee37a991f443edc1a1f9ba74a1f5e1007db1e4e28cb23b7d \
             --agency-audit-evidence-manifest $ATLAS_AGENCY_EVIDENCE_MANIFEST \
             --agency-audit-evidence-sha256 $ATLAS_AGENCY_EVIDENCE_SHA256 \
             --agency-review-receipt research/atlas-refresh-2026-09-27/independent/agency/claim-receipt.json \
-            --agency-review-receipt-sha256 sha256:4b6a8e01b2d589ad1a2fcad17406070da15c9d31c725f127450efc70ae2ba9ed \
+            --agency-review-receipt-sha256 sha256:201b489c479ce7f5339079195310cb45fb6b0bd362ce7f7ac4d76de083c2576d \
             --memory-gib 30 --phase-timeout-seconds 7200 --total-timeout-seconds 20700 \
             --cgroup-parent $ATLAS_CGROUP_PARENT"
           uv run --no-sync pytest tests/test_atlas_v3_validator_regressions.py -q -m release_tier

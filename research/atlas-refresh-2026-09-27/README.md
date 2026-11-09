@@ -149,8 +149,8 @@ files of the lane's evidence tree were not carried over.
 | `omitted-vocabularies/receipts/class-bbox.html`, `docket-bbox.html`, `ua-glossary.txt` | `tests/test_atlas_independent_adapters.py::test_pdf_frozen_oracle_and_explicit_reading_divergence` (fast): Poppler coordinate captures for the old and new page algorithms |
 | `omitted-vocabularies/receipts/artifact-observed.json` | `test_pdf_real_exact_artifact_population_and_fields` (slow): the emitted rows the positioned-PDF reader must reproduce |
 | `provenance/relation-specimen.json` | `tests/test_atlas_provenance_repair.py::test_resealed_artifact_tamper_passes_binding_but_fails_publisher` (fast) |
-| `agency/audit-evidence-manifest.json` | the release job's qualification (pinned `sha256:fde4401e...`) and the agency slow tests; it names the 20 primary sources, which are pinned inputs |
-| `agency/claim-receipt.json` | the release job's qualification (pinned `sha256:4b6a8e01...`) and the agency slow tests |
+| `agency/audit-evidence-manifest.json` | the release job's qualification (pinned `sha256:ea238cdd...`) and the agency slow tests; it names the 20 primary sources, which are pinned inputs, and, since 2026-11-08, the alias batch's files, the 41 records its aliases cite (retained under `research/evidence/agency-alias-records-2026-11-08/`) and REF-038's adjudication file |
+| `agency/claim-receipt.json` | the release job's qualification (pinned `sha256:201b489c...`) and the agency slow tests; its `aliasReview` section (2026-11-08) binds each of the 70 decided aliases to the records it cites |
 
 ## Known costs and follow-ups
 

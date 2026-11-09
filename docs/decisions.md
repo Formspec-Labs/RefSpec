@@ -6400,6 +6400,10 @@ hosts answered 403 to the probe, a bot challenge left unbypassed. All 70 are
 decided: 63 adopted (4 through the part-of option), 7 rejected; the view pin is
 `sha256:7a806ea0…`. The 1.2 view stays verifiable against the
 release without the alias batch (`tests/fixtures/agency_registry_view_1_2`).
-`.github/workflows/release.yml` still pins the 1.2 view, and the independent
-agency check (`tools/atlas_independent_agency.py`) knows no aliases yet; both
-move before a release pins 1.3.
+`.github/workflows/release.yml` pins the 1.3 view and a review receipt and
+evidence manifest that also cover the alias batch. The independent agency check
+(`tools/atlas_independent_agency.py`) derives all eight tables without producer
+code -- aliases and non-emissions from each alias's `answer_effects`, the
+organizations from the FR capture, REF-038's projection from the roster captures
+and its adjudication file -- re-hashes every cited record and finds its passage,
+and refuses a planted wrong value in each table.
