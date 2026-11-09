@@ -1317,6 +1317,7 @@ def decision_digests(report: Mapping[str, Any]) -> dict[str, str]:
     entries += [*report["non_emissions"], *report["events"]]
     digests = {entry.get("candidate_id") or entry["event_id"]: entry["content_digest"] for entry in entries}
     digests.update({row["value_id"]: row["content_digest"] for row in report["no_fr_bridge"]})
+    digests.update({row["alias_id"]: row["content_digest"] for row in report.get("aliases", ())})
     return digests
 
 
@@ -1335,6 +1336,11 @@ def decision_answers(report: Mapping[str, Any]) -> dict[str, tuple[str, ...]]:
         answers[row["candidate_id"]] = ("confirm", "overrule")
     for row in report["no_fr_bridge"]:
         answers[row["value_id"]] = ("confirm", "overrule")
+    for row in report.get("aliases", ()):
+        question = row.get("owner_question")
+        answers[row["alias_id"]] = (
+            ("yes", "no") if question is None else tuple(str(n) for n in range(1, len(question["options"]) + 1))
+        )
     for event in report["events"]:
         question = event.get("owner_question")
         if question is not None:

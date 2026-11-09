@@ -2,7 +2,10 @@
 
 # Agency registry design — one join-through for every Spicy source
 
-> **Status:** Proposed, awaiting owner review. Batch 1's candidates sit beside
+> **Status:** Accepted and executed for batch 1 and the succession batch: the
+> owner decided both (2026-09-26, 2026-10-03) and they ship as
+> `agency-registry-2026-09-26` (REF-072, section 8). Free-text aliases are
+> proposed in [the alias plan](agency-registry-alias-plan.md). Batch 1's candidates sit beside
 > this note as
 > [agency-registry-batch-1-candidates.md](agency-registry-batch-1-candidates.md)
 > and its JSON, and the owner decides from the generated
@@ -10,7 +13,7 @@
 > written by `tools/assemble_agency_registry_batch_1.py` and verified by its
 > `--check`, and the owner's answers live in
 > [agency-registry-batch-1-decisions.json](agency-registry-batch-1-decisions.json)
-> (empty until the owner decides). Nothing in them is an assertion. Extends REF-038 (decision
+> (26 decisions). Candidates are never assertions; only the release is. Extends REF-038 (decision
 > ledger), whose projection and `reverse_agency_projection()` in
 > `src/refspec/atlas/agency_projection.py` remain the authority until an
 > adjudicated registry release replaces them.

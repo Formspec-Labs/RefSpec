@@ -1,0 +1,1631 @@
+{
+ "inputs": {
+  "appearances": {
+   "name": "appearances.parquet",
+   "sha256": "sha256:57fffa60d2e1d1449d99441fa607d0d201d648f4b6067e24dea5c50b681c087b"
+  },
+  "roster": {
+   "path": "tests/fixtures/federal_register_native_controls/fr-agencies-2026-08-15.json",
+   "sha256": "sha256:70dd0e8fa373a22d5c9577ac1f70ea736542f0e564f816c3caf28014bd05a92b",
+   "agencies": 472
+  },
+  "script_sha256": "sha256:82938ae1b532009c21a584fa14797d536e4140658e9ecf232f545110ba3cd567"
+ },
+ "thresholds": {
+  "min_federal_appearances": 3,
+  "min_all_appearances": 25
+ },
+ "federal": {
+  "appearances": 3662,
+  "matched": 2193,
+  "null_organization": 327,
+  "distinct_strings": 1024,
+  "distinct_matched": 446,
+  "unmatched_segment_keys": 573,
+  "unmatched_segment_appearances": 1257
+ },
+ "demand": [
+  {
+   "key": "veterans health administration",
+   "federal_appearances": 51,
+   "all_appearances": 238,
+   "spellings": [
+    [
+     "Veterans Health Administration",
+     49
+    ],
+    [
+     "(VISN 17) Veterans Health Administration",
+     1
+    ],
+    [
+     "Veterans Health Administration (VHA)",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "army",
+   "federal_appearances": 43,
+   "all_appearances": 348,
+   "spellings": [
+    [
+     "U.S. Army",
+     23
+    ],
+    [
+     "United States Army",
+     20
+    ]
+   ]
+  },
+  {
+   "key": "navy",
+   "federal_appearances": 43,
+   "all_appearances": 293,
+   "spellings": [
+    [
+     "United States Navy",
+     25
+    ],
+    [
+     "U.S. Navy",
+     18
+    ]
+   ]
+  },
+  {
+   "key": "veterans benefits administration",
+   "federal_appearances": 34,
+   "all_appearances": 165,
+   "spellings": [
+    [
+     "Veterans Benefits Administration",
+     34
+    ]
+   ]
+  },
+  {
+   "key": "air force",
+   "federal_appearances": 32,
+   "all_appearances": 298,
+   "spellings": [
+    [
+     "United States Air Force",
+     18
+    ],
+    [
+     "U.S. Air Force",
+     14
+    ]
+   ]
+  },
+  {
+   "key": "marine corps",
+   "federal_appearances": 32,
+   "all_appearances": 253,
+   "spellings": [
+    [
+     "United States Marine Corps",
+     19
+    ],
+    [
+     "U.S. Marine Corps",
+     11
+    ],
+    [
+     "Marine Corps",
+     1
+    ],
+    [
+     "U.S Marine Corps",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "congressional research service",
+   "federal_appearances": 27,
+   "all_appearances": 233,
+   "spellings": [
+    [
+     "Congressional Research Service",
+     27
+    ]
+   ]
+  },
+  {
+   "key": "office of secretary of defense",
+   "federal_appearances": 22,
+   "all_appearances": 107,
+   "spellings": [
+    [
+     "Office of the Secretary of Defense",
+     22
+    ]
+   ]
+  },
+  {
+   "key": "bureau of land management",
+   "federal_appearances": 20,
+   "all_appearances": 50,
+   "spellings": [
+    [
+     "Bureau of Land Management",
+     18
+    ],
+    [
+     "U.S. Bureau of Land Management",
+     1
+    ],
+    [
+     "United States Bureau of Land Management",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "office of inspector general",
+   "federal_appearances": 17,
+   "all_appearances": 94,
+   "spellings": [
+    [
+     "Office of Inspector General",
+     9
+    ],
+    [
+     "Office of the Inspector General",
+     8
+    ]
+   ]
+  },
+  {
+   "key": "bureau of reclamation",
+   "federal_appearances": 15,
+   "all_appearances": 49,
+   "spellings": [
+    [
+     "U.S. Bureau of Reclamation",
+     11
+    ],
+    [
+     "Bureau of Reclamation",
+     4
+    ]
+   ]
+  },
+  {
+   "key": "national security agency",
+   "federal_appearances": 15,
+   "all_appearances": 47,
+   "spellings": [
+    [
+     "National Security Agency",
+     15
+    ]
+   ]
+  },
+  {
+   "key": "office of director of national intelligence",
+   "federal_appearances": 13,
+   "all_appearances": 93,
+   "spellings": [
+    [
+     "Office of the Director of National Intelligence",
+     13
+    ]
+   ]
+  },
+  {
+   "key": "army corps of engineers",
+   "federal_appearances": 12,
+   "all_appearances": 159,
+   "spellings": [
+    [
+     "U.S. Army Corps of Engineers",
+     11
+    ],
+    [
+     "Army Corps of Engineers",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "office of management and budget",
+   "federal_appearances": 11,
+   "all_appearances": 252,
+   "spellings": [
+    [
+     "Office of Management and Budget",
+     8
+    ],
+    [
+     "U.S. Office of Management and Budget",
+     2
+    ],
+    [
+     "The Office of Management and Budget",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "veterans health administration department of veterans affairs",
+   "federal_appearances": 11,
+   "all_appearances": 20,
+   "spellings": [
+    [
+     "Veterans Health Administration U.S. Department of Veterans Affairs",
+     8
+    ],
+    [
+     "Veterans Health Administration Department of Veterans Affairs",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "bureau of ocean energy management",
+   "federal_appearances": 10,
+   "all_appearances": 19,
+   "spellings": [
+    [
+     "Bureau of Ocean Energy Management",
+     10
+    ]
+   ]
+  },
+  {
+   "key": "board of governors of federal reserve system",
+   "federal_appearances": 9,
+   "all_appearances": 300,
+   "spellings": [
+    [
+     "Board of Governors of the Federal Reserve System",
+     9
+    ]
+   ]
+  },
+  {
+   "key": "space force",
+   "federal_appearances": 9,
+   "all_appearances": 41,
+   "spellings": [
+    [
+     "United States Space Force",
+     7
+    ],
+    [
+     "Space Force",
+     1
+    ],
+    [
+     "U.S. Space Force",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "bureau of safety and environmental enforcement",
+   "federal_appearances": 9,
+   "all_appearances": 11,
+   "spellings": [
+    [
+     "Bureau of Safety and Environmental Enforcement",
+     9
+    ]
+   ]
+  },
+  {
+   "key": "senate",
+   "federal_appearances": 8,
+   "all_appearances": 60,
+   "spellings": [
+    [
+     "United States Senate",
+     4
+    ],
+    [
+     "U.S. Senate",
+     2
+    ],
+    [
+     "US Senate",
+     2
+    ]
+   ]
+  },
+  {
+   "key": "national reconnaissance office",
+   "federal_appearances": 7,
+   "all_appearances": 27,
+   "spellings": [
+    [
+     "National Reconnaissance Office",
+     7
+    ]
+   ]
+  },
+  {
+   "key": "veterans benefits administration department of veterans affairs",
+   "federal_appearances": 7,
+   "all_appearances": 10,
+   "spellings": [
+    [
+     "Veterans Benefits Administration U.S. Department of Veterans Affairs",
+     5
+    ],
+    [
+     "Veterans Benefits Administration Department of Veterans Affairs",
+     2
+    ]
+   ]
+  },
+  {
+   "key": "veterans benefit administration",
+   "federal_appearances": 7,
+   "all_appearances": 8,
+   "spellings": [
+    [
+     "Veterans Benefit Administration",
+     7
+    ]
+   ]
+  },
+  {
+   "key": "export import bank of",
+   "federal_appearances": 6,
+   "all_appearances": 51,
+   "spellings": [
+    [
+     "Export-Import Bank of the United States",
+     6
+    ]
+   ]
+  },
+  {
+   "key": "capitol police",
+   "federal_appearances": 6,
+   "all_appearances": 49,
+   "spellings": [
+    [
+     "United States Capitol Police",
+     5
+    ],
+    [
+     "U.S. Capitol Police",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "strategic command",
+   "federal_appearances": 6,
+   "all_appearances": 39,
+   "spellings": [
+    [
+     "U.S. Strategic Command",
+     4
+    ],
+    [
+     "United States Strategic Command",
+     2
+    ]
+   ]
+  },
+  {
+   "key": "joint staff",
+   "federal_appearances": 6,
+   "all_appearances": 33,
+   "spellings": [
+    [
+     "The Joint Staff",
+     4
+    ],
+    [
+     "Joint Staff",
+     2
+    ]
+   ]
+  },
+  {
+   "key": "office of special counsel",
+   "federal_appearances": 6,
+   "all_appearances": 31,
+   "spellings": [
+    [
+     "Office of Special Counsel",
+     3
+    ],
+    [
+     "U.S. Office of Special Counsel",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "missile defense agency",
+   "federal_appearances": 6,
+   "all_appearances": 29,
+   "spellings": [
+    [
+     "Missile Defense Agency",
+     6
+    ]
+   ]
+  },
+  {
+   "key": "cyber command",
+   "federal_appearances": 6,
+   "all_appearances": 20,
+   "spellings": [
+    [
+     "Cyber Command",
+     2
+    ],
+    [
+     "U.S. Cyber Command",
+     2
+    ],
+    [
+     "United States Cyber Command",
+     2
+    ]
+   ]
+  },
+  {
+   "key": "fish and wildlife service",
+   "federal_appearances": 6,
+   "all_appearances": 6,
+   "spellings": [
+    [
+     "U. S. Fish and Wildlife Service",
+     6
+    ]
+   ]
+  },
+  {
+   "key": "chamber of commerce",
+   "federal_appearances": 5,
+   "all_appearances": 220,
+   "spellings": [
+    [
+     "U.S. Chamber of Commerce",
+     5
+    ]
+   ]
+  },
+  {
+   "key": "navajo nation",
+   "federal_appearances": 5,
+   "all_appearances": 90,
+   "spellings": [
+    [
+     "Navajo Nation",
+     5
+    ]
+   ]
+  },
+  {
+   "key": "special operations command",
+   "federal_appearances": 5,
+   "all_appearances": 44,
+   "spellings": [
+    [
+     "U.S. Special Operations Command",
+     3
+    ],
+    [
+     "United States Special Operations Command",
+     2
+    ]
+   ]
+  },
+  {
+   "key": "africa command",
+   "federal_appearances": 5,
+   "all_appearances": 26,
+   "spellings": [
+    [
+     "United States Africa Command",
+     3
+    ],
+    [
+     "U.S. Africa Command",
+     2
+    ]
+   ]
+  },
+  {
+   "key": "federal bureau of investigations",
+   "federal_appearances": 5,
+   "all_appearances": 17,
+   "spellings": [
+    [
+     "Federal Bureau of Investigations",
+     5
+    ]
+   ]
+  },
+  {
+   "key": "national cemetery administration",
+   "federal_appearances": 5,
+   "all_appearances": 15,
+   "spellings": [
+    [
+     "National Cemetery Administration",
+     5
+    ]
+   ]
+  },
+  {
+   "key": "northern command and north american aerospace defense command",
+   "federal_appearances": 5,
+   "all_appearances": 13,
+   "spellings": [
+    [
+     "U.S. Northern Command and North American Aerospace Defense Command",
+     3
+    ],
+    [
+     "U.S. Northern Command & North American Aerospace Defense Command (NORAD)",
+     1
+    ],
+    [
+     "United States Northern Command and North American Aerospace Defense Command",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "office of general counsel",
+   "federal_appearances": 5,
+   "all_appearances": 12,
+   "spellings": [
+    [
+     "Office of General Counsel",
+     4
+    ],
+    [
+     "Office of the General Counsel",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "office of comptroller of currency",
+   "federal_appearances": 4,
+   "all_appearances": 141,
+   "spellings": [
+    [
+     "Office of the Comptroller of the Currency",
+     3
+    ],
+    [
+     "Office of the Comptroller of Currency",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "defense health agency",
+   "federal_appearances": 4,
+   "all_appearances": 16,
+   "spellings": [
+    [
+     "Defense Health Agency",
+     4
+    ]
+   ]
+  },
+  {
+   "key": "space command",
+   "federal_appearances": 4,
+   "all_appearances": 15,
+   "spellings": [
+    [
+     "U.S. Space Command",
+     4
+    ]
+   ]
+  },
+  {
+   "key": "bureau of indian affairs",
+   "federal_appearances": 4,
+   "all_appearances": 14,
+   "spellings": [
+    [
+     "Bureau of Indian Affairs",
+     4
+    ]
+   ]
+  },
+  {
+   "key": "usda office of inspector general",
+   "federal_appearances": 4,
+   "all_appearances": 11,
+   "spellings": [
+    [
+     "USDA Office of Inspector General",
+     4
+    ]
+   ]
+  },
+  {
+   "key": "national forest system",
+   "federal_appearances": 4,
+   "all_appearances": 9,
+   "spellings": [
+    [
+     "National Forest System",
+     4
+    ]
+   ]
+  },
+  {
+   "key": "supreme court of",
+   "federal_appearances": 4,
+   "all_appearances": 9,
+   "spellings": [
+    [
+     "Supreme Court of the United States",
+     4
+    ]
+   ]
+  },
+  {
+   "key": "committee on ethics",
+   "federal_appearances": 4,
+   "all_appearances": 6,
+   "spellings": [
+    [
+     "Committee on Ethics",
+     4
+    ]
+   ]
+  },
+  {
+   "key": "national institute of health",
+   "federal_appearances": 4,
+   "all_appearances": 6,
+   "spellings": [
+    [
+     "National Institute of Health",
+     3
+    ],
+    [
+     "U.S. National Institute of Health",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "director",
+   "federal_appearances": 3,
+   "all_appearances": 556,
+   "spellings": [
+    [
+     "Director",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "disabled american veterans",
+   "federal_appearances": 3,
+   "all_appearances": 329,
+   "spellings": [
+    [
+     "Disabled American Veterans",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "veterans of foreign wars",
+   "federal_appearances": 3,
+   "all_appearances": 162,
+   "spellings": [
+    [
+     "Veterans of Foreign Wars",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "office of personnel management",
+   "federal_appearances": 3,
+   "all_appearances": 138,
+   "spellings": [
+    [
+     "U.S. Office of Personnel Management",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "american federation of government employees",
+   "federal_appearances": 3,
+   "all_appearances": 123,
+   "spellings": [
+    [
+     "American Federation of Government Employees",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "national congress of american indians",
+   "federal_appearances": 3,
+   "all_appearances": 110,
+   "spellings": [
+    [
+     "National Congress of American Indians",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "joint chiefs of staff",
+   "federal_appearances": 3,
+   "all_appearances": 56,
+   "spellings": [
+    [
+     "Joint Chiefs of Staff",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "national indian health board",
+   "federal_appearances": 3,
+   "all_appearances": 56,
+   "spellings": [
+    [
+     "National Indian Health Board",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "confederated tribes of colville reservation",
+   "federal_appearances": 3,
+   "all_appearances": 44,
+   "spellings": [
+    [
+     "Confederated Tribes of the Colville Reservation",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "cherokee nation",
+   "federal_appearances": 3,
+   "all_appearances": 28,
+   "spellings": [
+    [
+     "Cherokee Nation",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "central command",
+   "federal_appearances": 3,
+   "all_appearances": 26,
+   "spellings": [
+    [
+     "U.S. Central Command",
+     2
+    ],
+    [
+     "United States Central Command",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "european command",
+   "federal_appearances": 3,
+   "all_appearances": 25,
+   "spellings": [
+    [
+     "U.S. European Command",
+     2
+    ],
+    [
+     "United States European Command",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "cybersecurity and infrastructure security agency",
+   "federal_appearances": 3,
+   "all_appearances": 22,
+   "spellings": [
+    [
+     "Cybersecurity and Infrastructure Security Agency",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "air force space command",
+   "federal_appearances": 3,
+   "all_appearances": 19,
+   "spellings": [
+    [
+     "Air Force Space Command",
+     2
+    ],
+    [
+     "U.S. Air Force Space Command",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "national institute of allergy and infectious diseases",
+   "federal_appearances": 3,
+   "all_appearances": 19,
+   "spellings": [
+    [
+     "National Institute of Allergy and Infectious Diseases",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "installations and environment",
+   "federal_appearances": 3,
+   "all_appearances": 17,
+   "spellings": [
+    [
+     "Installations and Environment",
+     2
+    ],
+    [
+     "Installations & Environment",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "office of congressional workplace rights",
+   "federal_appearances": 3,
+   "all_appearances": 14,
+   "spellings": [
+    [
+     "Office of Congressional Workplace Rights",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "joint committee on taxation",
+   "federal_appearances": 3,
+   "all_appearances": 13,
+   "spellings": [
+    [
+     "Joint Committee on Taxation",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "eastern band of cherokee indians",
+   "federal_appearances": 3,
+   "all_appearances": 12,
+   "spellings": [
+    [
+     "Eastern Band of Cherokee Indians",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "forces korea",
+   "federal_appearances": 3,
+   "all_appearances": 11,
+   "spellings": [
+    [
+     "U.S. Forces Korea",
+     2
+    ],
+    [
+     "United States Forces Korea",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "labor",
+   "federal_appearances": 3,
+   "all_appearances": 11,
+   "spellings": [
+    [
+     "Labor",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "office of chief of naval operations",
+   "federal_appearances": 3,
+   "all_appearances": 11,
+   "spellings": [
+    [
+     "Office of the Chief of Naval Operations",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "headquarters air force",
+   "federal_appearances": 3,
+   "all_appearances": 10,
+   "spellings": [
+    [
+     "Headquarters U.S. Air Force",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "headquarters marine corps",
+   "federal_appearances": 3,
+   "all_appearances": 10,
+   "spellings": [
+    [
+     "Headquarters U.S. Marine Corps",
+     2
+    ],
+    [
+     "Headquarters Marine Corps",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "united nations command",
+   "federal_appearances": 3,
+   "all_appearances": 10,
+   "spellings": [
+    [
+     "United Nations Command",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "health and human services",
+   "federal_appearances": 3,
+   "all_appearances": 9,
+   "spellings": [
+    [
+     "Health and Human Services",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "energy and environment",
+   "federal_appearances": 3,
+   "all_appearances": 8,
+   "spellings": [
+    [
+     "Energy and Environment",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "office of surface mining reclamation and enforcement",
+   "federal_appearances": 3,
+   "all_appearances": 8,
+   "spellings": [
+    [
+     "Office of Surface Mining Reclamation and Enforcement",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "quapaw nation",
+   "federal_appearances": 3,
+   "all_appearances": 7,
+   "spellings": [
+    [
+     "Quapaw Nation",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "bureau of near eastern affairs",
+   "federal_appearances": 3,
+   "all_appearances": 6,
+   "spellings": [
+    [
+     "Bureau of Near Eastern Affairs",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "department of war",
+   "federal_appearances": 3,
+   "all_appearances": 6,
+   "spellings": [
+    [
+     "U.S. Department of War",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "miami tribe of oklahoma",
+   "federal_appearances": 3,
+   "all_appearances": 6,
+   "spellings": [
+    [
+     "Miami Tribe of Oklahoma",
+     2
+    ],
+    [
+     "The Miami Tribe of Oklahoma",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "and public service",
+   "federal_appearances": 3,
+   "all_appearances": 5,
+   "spellings": [
+    [
+     "and Public Service",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "national",
+   "federal_appearances": 3,
+   "all_appearances": 5,
+   "spellings": [
+    [
+     "National",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "national commission on military",
+   "federal_appearances": 3,
+   "all_appearances": 5,
+   "spellings": [
+    [
+     "National Commission on Military",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "department of veterans",
+   "federal_appearances": 3,
+   "all_appearances": 4,
+   "spellings": [
+    [
+     "U.S. Department of Veterans",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "defense innovation unit",
+   "federal_appearances": 3,
+   "all_appearances": 3,
+   "spellings": [
+    [
+     "Defense Innovation Unit",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "federal energy regulatory commision",
+   "federal_appearances": 3,
+   "all_appearances": 3,
+   "spellings": [
+    [
+     "Federal Energy Regulatory Commision",
+     3
+    ]
+   ]
+  },
+  {
+   "key": "afl cio",
+   "federal_appearances": 2,
+   "all_appearances": 226,
+   "spellings": [
+    [
+     "AFL-CIO",
+     2
+    ]
+   ]
+  },
+  {
+   "key": "general accounting office",
+   "federal_appearances": 2,
+   "all_appearances": 214,
+   "spellings": [
+    [
+     "General Accounting Office (GAO)",
+     2
+    ]
+   ]
+  },
+  {
+   "key": "national counterterrorism center",
+   "federal_appearances": 2,
+   "all_appearances": 45,
+   "spellings": [
+    [
+     "National Counterterrorism Center",
+     2
+    ]
+   ]
+  },
+  {
+   "key": "energy",
+   "federal_appearances": 2,
+   "all_appearances": 43,
+   "spellings": [
+    [
+     "Energy",
+     2
+    ]
+   ]
+  },
+  {
+   "key": "headquarters",
+   "federal_appearances": 2,
+   "all_appearances": 42,
+   "spellings": [
+    [
+     "Headquarters",
+     2
+    ]
+   ]
+  },
+  {
+   "key": "office of science and technology policy",
+   "federal_appearances": 2,
+   "all_appearances": 35,
+   "spellings": [
+    [
+     "Office of Science and Technology Policy",
+     2
+    ]
+   ]
+  },
+  {
+   "key": "usda forest service",
+   "federal_appearances": 2,
+   "all_appearances": 34,
+   "spellings": [
+    [
+     "USDA Forest Service",
+     2
+    ]
+   ]
+  },
+  {
+   "key": "commission on international religious freedom",
+   "federal_appearances": 2,
+   "all_appearances": 33,
+   "spellings": [
+    [
+     "U.S. Commission on International Religious Freedom",
+     2
+    ]
+   ]
+  },
+  {
+   "key": "engineering",
+   "federal_appearances": 2,
+   "all_appearances": 32,
+   "spellings": [
+    [
+     "Engineering",
+     2
+    ]
+   ]
+  },
+  {
+   "key": "office of information and regulatory affairs",
+   "federal_appearances": 2,
+   "all_appearances": 29,
+   "spellings": [
+    [
+     "Office of Information and Regulatory Affairs",
+     2
+    ]
+   ]
+  },
+  {
+   "key": "copyright office",
+   "federal_appearances": 2,
+   "all_appearances": 27,
+   "spellings": [
+    [
+     "U.S. Copyright Office",
+     1
+    ],
+    [
+     "United States Copyright Office",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "national council of urban indian health",
+   "federal_appearances": 2,
+   "all_appearances": 26,
+   "spellings": [
+    [
+     "National Council of Urban Indian Health",
+     2
+    ]
+   ]
+  },
+  {
+   "key": "federal bureau of prisons",
+   "federal_appearances": 2,
+   "all_appearances": 25,
+   "spellings": [
+    [
+     "Federal Bureau of Prisons",
+     2
+    ]
+   ]
+  },
+  {
+   "key": "transportation command",
+   "federal_appearances": 2,
+   "all_appearances": 25,
+   "spellings": [
+    [
+     "U.S. Transportation Command (TRANSCOM)",
+     1
+    ],
+    [
+     "U.S. Transportation Command (USTRANSCOM)",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "new york",
+   "federal_appearances": 1,
+   "all_appearances": 823,
+   "spellings": [
+    [
+     "New York",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "heritage foundation",
+   "federal_appearances": 1,
+   "all_appearances": 453,
+   "spellings": [
+    [
+     "The Heritage Foundation",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "florida",
+   "federal_appearances": 1,
+   "all_appearances": 174,
+   "spellings": [
+    [
+     "Florida",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "foundation for defense of democracies",
+   "federal_appearances": 1,
+   "all_appearances": 167,
+   "spellings": [
+    [
+     "Foundation for Defense of Democracies",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "council on foreign relations",
+   "federal_appearances": 1,
+   "all_appearances": 133,
+   "spellings": [
+    [
+     "Council on Foreign Relations",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "chair",
+   "federal_appearances": 1,
+   "all_appearances": 108,
+   "spellings": [
+    [
+     "Chair",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "new jersey",
+   "federal_appearances": 1,
+   "all_appearances": 102,
+   "spellings": [
+    [
+     "New Jersey",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "az",
+   "federal_appearances": 1,
+   "all_appearances": 86,
+   "spellings": [
+    [
+     "AZ",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "american civil liberties union",
+   "federal_appearances": 1,
+   "all_appearances": 77,
+   "spellings": [
+    [
+     "American Civil Liberties Union",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "wounded warrior project",
+   "federal_appearances": 1,
+   "all_appearances": 77,
+   "spellings": [
+    [
+     "Wounded Warrior Project",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "education",
+   "federal_appearances": 1,
+   "all_appearances": 71,
+   "spellings": [
+    [
+     "Education",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "partner",
+   "federal_appearances": 1,
+   "all_appearances": 61,
+   "spellings": [
+    [
+     "Partner",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "district of columbia",
+   "federal_appearances": 1,
+   "all_appearances": 60,
+   "spellings": [
+    [
+     "The District of Columbia",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "commander",
+   "federal_appearances": 1,
+   "all_appearances": 50,
+   "spellings": [
+    [
+     "Commander",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "information technology and innovation foundation",
+   "federal_appearances": 1,
+   "all_appearances": 50,
+   "spellings": [
+    [
+     "Information Technology and Innovation Foundation",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "usmc",
+   "federal_appearances": 1,
+   "all_appearances": 43,
+   "spellings": [
+    [
+     "USMC",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "environment",
+   "federal_appearances": 1,
+   "all_appearances": 36,
+   "spellings": [
+    [
+     "Environment",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "national guard bureau",
+   "federal_appearances": 1,
+   "all_appearances": 36,
+   "spellings": [
+    [
+     "National Guard Bureau",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "tucson",
+   "federal_appearances": 1,
+   "all_appearances": 36,
+   "spellings": [
+    [
+     "Tucson",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "airlines for america",
+   "federal_appearances": 1,
+   "all_appearances": 34,
+   "spellings": [
+    [
+     "Airlines for America",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "idaho national laboratory",
+   "federal_appearances": 1,
+   "all_appearances": 34,
+   "spellings": [
+    [
+     "Idaho National Laboratory",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "national center for missing and exploited children",
+   "federal_appearances": 1,
+   "all_appearances": 34,
+   "spellings": [
+    [
+     "National Center for Missing and Exploited Children",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "german marshall fund of",
+   "federal_appearances": 1,
+   "all_appearances": 32,
+   "spellings": [
+    [
+     "The German Marshall Fund of the United States",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "state of florida",
+   "federal_appearances": 1,
+   "all_appearances": 27,
+   "spellings": [
+    [
+     "State of Florida",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "ms",
+   "federal_appearances": 1,
+   "all_appearances": 26,
+   "spellings": [
+    [
+     "MS",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "national science board",
+   "federal_appearances": 1,
+   "all_appearances": 26,
+   "spellings": [
+    [
+     "National Science Board",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "oak ridge national laboratory",
+   "federal_appearances": 1,
+   "all_appearances": 26,
+   "spellings": [
+    [
+     "Oak Ridge National Laboratory",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "southern ute indian tribe",
+   "federal_appearances": 1,
+   "all_appearances": 26,
+   "spellings": [
+    [
+     "Southern Ute Indian Tribe",
+     1
+    ]
+   ]
+  },
+  {
+   "key": "pacific northwest national laboratory",
+   "federal_appearances": 1,
+   "all_appearances": 25,
+   "spellings": [
+    [
+     "Pacific Northwest National Laboratory",
+     1
+    ]
+   ]
+  }
+ ]
+}
