@@ -26,6 +26,15 @@ USC = [
 SOURCES = [
     *((f"usc-{t}-{s}.htm", f"https://www.govinfo.gov/link/uscode/{t}/{s}?link-type=html") for t, s in USC),
     ("plaw-108-271.htm", "https://www.govinfo.gov/content/pkg/PLAW-108publ271/html/PLAW-108publ271.htm"),
+    # Second pass (owner, 2026-11-08: find agency pages). defense.gov, af.mil, spaceforce.mil, marines.mil,
+    # africom.mil, usfk.mil and state.gov answered 403 (a bot challenge, not bypassed); these hosts serve the
+    # agencies' own records instead.
+    ("fr-2016-31686.txt", "https://www.federalregister.gov/documents/full_text/text/2017/01/05/2016-31686.txt"),
+    ("fr-2023-04723.txt", "https://www.federalregister.gov/documents/full_text/text/2023/03/08/2023-04723.txt"),
+    ("fr-E9-2782.txt", "https://www.federalregister.gov/documents/full_text/text/2009/02/10/E9-2782.txt"),
+    ("fr-2026-19609.txt", "https://www.federalregister.gov/documents/full_text/text/2026/09/25/2026-19609.txt"),
+    ("chrg-113hhrg79955.htm", "https://www.govinfo.gov/content/pkg/CHRG-113hhrg79955/html/CHRG-113hhrg79955.htm"),
+    ("fs-about-agency-organization.html", "https://www.fs.usda.gov/about-agency/organization"),
     ("fr-eo-14347-search.json",
      "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpresidential_document_type%5D=executive_order"
      "&conditions%5Bexecutive_order_numbers%5D%5B%5D=14347&fields%5B%5D=document_number&fields%5B%5D=title"

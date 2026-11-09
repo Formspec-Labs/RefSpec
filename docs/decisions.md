@@ -6384,11 +6384,21 @@ missing file, and a release whose records read as unread.
 
 **As decided on 2026-11-08:** the owner approved each of the 12 mechanical
 aliases individually (D4: no rule-wide derivation for the other agencies);
-50 of 58 judgment aliases took their recommendation as the records confirm it
-(43 adopted, 4 of them through the part-of option; 7 rejected); 8 went back
-to the owner because their records do not confirm them (one contradicted: 16
-U.S.C. 1609 defines the National Forest System as lands). The release carries
-55 aliases and 11 non-emissions; the view pin is `sha256:f7ff1260…`. The 1.2 view stays verifiable against the
+50 of 58 judgment aliases took their recommendation as the statutes confirm
+it; the other 8, which no statute read confirmed (16 U.S.C. 1609 even makes
+the National Forest System lands, not an organization), the owner sent back
+for agency records ("find agency pages, then adopt"), and a read record
+confirmed each: DoD's FOIA rule (82 FR 1192) for the Africa and Transportation
+commands, USPACOM's answer for the House Armed Services record for U.S. Forces
+Korea, Air Force and Navy Federal Register notices for Headquarters (United
+States) Air Force and "USMC", a State notice for the Bureau of Near Eastern
+Affairs, the Forest Service's organization page for the National Forest System
+program unit, and Pub. L. 116-92 sec. 952(a) for Air Force Space Command, which
+it redesignated the Space Force (the alias names the Space Force, part of the
+Department of the Air Force). defense.gov and the other .mil and state.gov
+hosts answered 403 to the probe, a bot challenge left unbypassed. All 70 are
+decided: 63 adopted (4 through the part-of option), 7 rejected; the view pin is
+`sha256:7a806ea0…`. The 1.2 view stays verifiable against the
 release without the alias batch (`tests/fixtures/agency_registry_view_1_2`).
 `.github/workflows/release.yml` still pins the 1.2 view, and the independent
 agency check (`tools/atlas_independent_agency.py`) knows no aliases yet; both

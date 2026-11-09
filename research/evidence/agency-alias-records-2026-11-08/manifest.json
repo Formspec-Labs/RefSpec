@@ -1,5 +1,50 @@
 [
   {
+    "file": "raw/chrg-113hhrg79955.htm",
+    "url": "https://www.govinfo.gov/content/pkg/CHRG-113hhrg79955/html/CHRG-113hhrg79955.htm",
+    "final_url": "https://www.govinfo.gov/content/pkg/CHRG-113hhrg79955/html/CHRG-113hhrg79955.htm",
+    "http_status": 200,
+    "bytes": 196342,
+    "sha256": "sha256:f4cb14f89fa012e9dfb8522320da626ef1e2523c781cf0deee1cbe148eb4e2ad",
+    "fetched_at": "2026-11-09T03:03:16Z"
+  },
+  {
+    "file": "raw/fr-2016-31686.txt",
+    "url": "https://www.federalregister.gov/documents/full_text/text/2017/01/05/2016-31686.txt",
+    "final_url": "https://www.federalregister.gov/documents/full_text/text/2017/01/05/2016-31686.txt",
+    "http_status": 200,
+    "bytes": 100828,
+    "sha256": "sha256:6bc7707ed2a8cbce822b4158f87ccf972773898782fb86f9576766869f3b7112",
+    "fetched_at": "2026-11-09T03:03:12Z"
+  },
+  {
+    "file": "raw/fr-2023-04723.txt",
+    "url": "https://www.federalregister.gov/documents/full_text/text/2023/03/08/2023-04723.txt",
+    "final_url": "https://www.federalregister.gov/documents/full_text/text/2023/03/08/2023-04723.txt",
+    "http_status": 200,
+    "bytes": 2128,
+    "sha256": "sha256:17df7e22ed0f8b49e51a4f109b8deb27405c386315d7ea5a1a0e4eb1c9be2d29",
+    "fetched_at": "2026-11-09T03:03:13Z"
+  },
+  {
+    "file": "raw/fr-2026-19609.txt",
+    "url": "https://www.federalregister.gov/documents/full_text/text/2026/09/25/2026-19609.txt",
+    "final_url": "https://www.federalregister.gov/documents/full_text/text/2026/09/25/2026-19609.txt",
+    "http_status": 200,
+    "bytes": 4280,
+    "sha256": "sha256:bf11f15a117ecf62e9e13eda8eba7bd96f87a672b9d0bd448e515bb53b5bbb4d",
+    "fetched_at": "2026-11-09T03:03:15Z"
+  },
+  {
+    "file": "raw/fr-E9-2782.txt",
+    "url": "https://www.federalregister.gov/documents/full_text/text/2009/02/10/E9-2782.txt",
+    "final_url": "https://www.federalregister.gov/documents/full_text/text/2009/02/10/E9-2782.txt",
+    "http_status": 200,
+    "bytes": 25137,
+    "sha256": "sha256:17d31fbe111fae32b8aa9da05275b6fb7bb54813855c4ce0a76b2cb035cdb708",
+    "fetched_at": "2026-11-09T03:03:14Z"
+  },
+  {
     "file": "raw/fr-eo-14347-search.json",
     "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpresidential_document_type%5D=executive_order&conditions%5Bexecutive_order_numbers%5D%5B%5D=14347&fields%5B%5D=document_number&fields%5B%5D=title&fields%5B%5D=signing_date&fields%5B%5D=citation&fields%5B%5D=executive_order_number&fields%5B%5D=raw_text_url&fields%5B%5D=html_url",
     "final_url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpresidential_document_type%5D=executive_order&conditions%5Bexecutive_order_numbers%5D%5B%5D=14347&fields%5B%5D=document_number&fields%5B%5D=title&fields%5B%5D=signing_date&fields%5B%5D=citation&fields%5B%5D=executive_order_number&fields%5B%5D=raw_text_url&fields%5B%5D=html_url",
@@ -16,6 +61,15 @@
     "bytes": 6515,
     "sha256": "sha256:ca7aff5304b746d247729772e83971311cbf362ca00d958307064cb413c030d6",
     "fetched_at": "2026-11-09T01:47:00Z"
+  },
+  {
+    "file": "raw/fs-about-agency-organization.html",
+    "url": "https://www.fs.usda.gov/about-agency/organization",
+    "final_url": "https://www.fs.usda.gov/about-agency/organization",
+    "http_status": 200,
+    "bytes": 65488,
+    "sha256": "sha256:9daa54a196b67dd21a9309d915a0043a1d282a426cdc51e90970ae7a831c819f",
+    "fetched_at": "2026-11-09T03:03:18Z"
   },
   {
     "file": "raw/plaw-108-271.htm",

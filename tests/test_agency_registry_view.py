@@ -86,9 +86,9 @@ def test_the_view_rows_are_exactly_the_release(view: agency_projection.AgencyReg
     """Pin 13 bridges, one row per (event, result) -- 15 for 10 events -- and 4 non-emissions."""
 
     assert dict(view.coverage) == {
-        "aliasCount": 55,
+        "aliasCount": 63,
         "bridgeCount": 13,
-        "decidedItemCount": 89,
+        "decidedItemCount": 97,
         "eventCount": 10,
         "eventResultRowCount": 15,
         "nonEmissionCount": 11,
@@ -244,7 +244,7 @@ def test_the_sealed_view_is_deterministic_and_pinned(tmp_path: Path, release, vi
         "tables/agency-registry-events.parquet": 15,
         "tables/agency-registry-non-emissions.parquet": 11,
         "tables/agency-registry-current-successors.parquet": 15,
-        "tables/agency-registry-aliases.parquet": 55,
+        "tables/agency-registry-aliases.parquet": 63,
         "tables/agency-registry-organizations.parquet": 472,
         "tables/agency-projection.parquet": 321,
         "tables/agency-projection-unresolved.parquet": 10,

@@ -1269,13 +1269,13 @@ _AGENCY_REGISTRY_SUCCESSION_DECISIONS_BYTE_LENGTH = 665
 # The alias batch (plans/agency-registry-alias-plan.md, REF-075): free-text strings the owner decided name
 # an organization. Its aliases ride in this release as decided items, beside the non-emissions; an alias
 # the owner has not yet decided is held, not refused, because one alias's meaning never depends on another's.
-AGENCY_REGISTRY_ALIAS_CANDIDATES_DIGEST = "sha256:6fb33c899a97628a8f38499b00c82d2af705e107da63eb1ed64a26afeb896fa8"
+AGENCY_REGISTRY_ALIAS_CANDIDATES_DIGEST = "sha256:f27a8b66b414ed8c75153340997623b589c5fe1820d75e60ec73953d361c0b82"
 AGENCY_REGISTRY_ALIAS_CANDIDATES_PATH = "plans/agency-registry-alias-batch-candidates.json"
 AGENCY_REGISTRY_ALIAS_DECISIONS_PATH = "plans/agency-registry-alias-batch-decisions.json"
-_AGENCY_REGISTRY_ALIAS_CANDIDATES_SHA256 = "sha256:ffa823f4a0d3314bae6f78a014f9801ca6b6ac198844f301cdb04ed348dc8312"
-_AGENCY_REGISTRY_ALIAS_CANDIDATES_BYTE_LENGTH = 128_102
-_AGENCY_REGISTRY_ALIAS_DECISIONS_SHA256 = "sha256:c599dc63fd7dd99971f4a7df4644b4fa5f209a7d4a84c35d93a221d9c5473fc7"
-_AGENCY_REGISTRY_ALIAS_DECISIONS_BYTE_LENGTH = 29_237
+_AGENCY_REGISTRY_ALIAS_CANDIDATES_SHA256 = "sha256:a29add9b4ef3047658099fdc983b556183b9c7af6540516bdae72d97b0f8cb3c"
+_AGENCY_REGISTRY_ALIAS_CANDIDATES_BYTE_LENGTH = 134_315
+_AGENCY_REGISTRY_ALIAS_DECISIONS_SHA256 = "sha256:c74edd516f4a0f8b89d6b809455f0dbf5741c42f9a1a1bc2f28b4c4ad2507e0d"
+_AGENCY_REGISTRY_ALIAS_DECISIONS_BYTE_LENGTH = 35_499
 # Where an alias's cited public records are retained, with the manifest that pins their bytes.
 AGENCY_ALIAS_RECORDS_DIR = "research/evidence/agency-alias-records-2026-11-08"
 # The adjudicable content; replay-derived counts sit outside it on purpose.
@@ -1530,7 +1530,7 @@ def agency_registry_batches() -> tuple[AgencyRegistryBatch, ...]:
             _AGENCY_REGISTRY_ALIAS_DECISIONS_PIN,
             AGENCY_REGISTRY_ALIAS_CANDIDATES_DIGEST,
             (0, 0, 7),
-            aliases=55,
+            aliases=63,
             covers=ALIAS_CANDIDATES_DIGEST_COVERS,
             partial=True,
         ),

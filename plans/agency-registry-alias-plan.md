@@ -206,14 +206,16 @@ this work).
 
 ## 8. As built (2026-11-08)
 
-- **Records read.** 41 retained files under
+- **Records read.** 47 retained files under
   `research/evidence/agency-alias-records-2026-11-08/` (38 U.S. Code sections
   from govinfo's 2024 edition, Pub. L. 108-271, and Executive Order 14347 with
   its Federal Register search answer), fetched by its `scripts/fetch.py` with a
-  fixed anonymous User-Agent; 36 are cited. The other five were read and set
-  aside: 42 U.S.C. 285f and 1863 (superseded by 281 and 1861, which state the
-  parent), 10 U.S.C. 1073c (does not place DHA), 10 U.S.C. 205 (repealed), and
-  the EO search answer (it located the order). Every judgment row quotes the passage it rests on, and
+  fixed anonymous User-Agent; 41 are cited (six of them, Federal Register
+  notices, a hearing record and a Forest Service page, from the second
+  reading). The other six were read and set aside: 42 U.S.C. 285f and 1863
+  (superseded by 281 and 1861, which state the parent), 10 U.S.C. 1073c (does
+  not place DHA), 10 U.S.C. 205 (repealed), 16 U.S.C. 1609 (makes the National
+  Forest System lands), and the EO search answer (it located the order). Every judgment row quotes the passage it rests on, and
   the tool and the release refuse a passage that is not in the retained bytes.
   The first-pass citations pointed at uscode.house.gov, which answered 404 to
   the probe; govinfo serves the same sections. Where a first-pass citation did not
@@ -222,22 +224,41 @@ this work).
   and the combatant commands in DOD), and 10 U.S.C. 167/167b; rows that cited
   nothing gained 10 U.S.C. 4127, 8031, 8041, 6 U.S.C. 652, 18 U.S.C. 4041,
   2 U.S.C. 1381 and 1901, and 22 U.S.C. 6431.
-- **Decided.** The owner approved all 12 mechanical aliases one by one (D4).
-  50 of 58 judgment aliases took the owner's recommendation as the records
-  confirm it: 43 adopted, 7 answered no.
-- **Returned to the owner (8).** National Forest System is contradicted (16
-  U.S.C. 1609 defines it as lands, not an organization). Seven are
-  unconfirmed: Africa Command, Transportation Command and U.S. Forces Korea
-  (no record read names them as combatant commands), Headquarters Air Force
-  (the statute names the Air Staff), Air Force Space Command and the Bureau of
-  Near Eastern Affairs (no statute), and "USMC" (no record states the acronym).
+- **Decided, all 70.** The owner approved all 12 mechanical aliases one by
+  one (D4). 50 of 58 judgment aliases took the owner's recommendation as the
+  statutes confirm it: 43 adopted, 7 answered no. The other 8 took it after a
+  second reading of the agencies' own records (below): 63 adopted in all.
+- **Returned, then confirmed (8).** No statute confirmed these (16 U.S.C. 1609
+  even defines the National Forest System as lands). The owner chose "find
+  agency pages, then adopt"; defense.gov, af.mil, spaceforce.mil,
+  marines.mil, africom.mil, usfk.mil and state.gov answered 403 (a bot
+  challenge, not bypassed), so the agencies' own records came from the
+  Federal Register, govinfo and fs.usda.gov:
+  - Africa and Transportation Command: DoD's FOIA rule, 82 FR 1192 (32 CFR
+    286), lists both among the DoD Components, beside the other combatant
+    commands.
+  - U.S. Forces Korea: USPACOM's answer for the record to the House Armed
+    Services Committee (CHRG-113hhrg79955) counts it among USPACOM's
+    subordinate unified commands; with the FOIA rule and 10 U.S.C. 111(b)(11),
+    part of DOD.
+  - Headquarters Air Force: an Air Force Privacy Act notice, 74 FR 6591, names
+    "Headquarters United States Air Force", which keys to the same alias.
+  - Air Force Space Command: Pub. L. 116-92 sec. 952(a) (10 U.S.C. 9081 note)
+    redesignated it the Space Force, within the Department of the Air Force.
+    The alias names the Space Force (OPM AF4G), part of FR 13.
+  - Bureau of Near Eastern Affairs: a State notice, 88 FR 14438, signed from
+    the bureau, "Department of State".
+  - "USMC": a Navy notice, 91 FR 60950, "AGENCY: Department of the Navy" and
+    "the United States Marine Corps (USMC) announces".
+  - National Forest System: the Forest Service's organization page lists it as
+    a headquarters program unit; the alias cites the page, not 16 U.S.C. 1609.
 - **View 1.3.** `tools/build_agency_registry_view.py` pins manifest
-  `sha256:f7ff1260…`: 13 bridges, 15 event rows, 11 non-emissions (4 + 7
-  rejected aliases), 15 current successors, 55 aliases, 472 organizations, and
+  `sha256:7a806ea0…`: 13 bridges, 15 event rows, 11 non-emissions (4 + 7
+  rejected aliases), 15 current successors, 63 aliases, 472 organizations, and
   REF-038's 321 + 10 rows. The REF-038 rows equal SpicyRegs' vendored copy row
   for row, schemas equal; the bytes differ only by pyarrow version (SpicyRegs'
-  README records the same two rebuild digests). The pin moves again when the
-  owner answers the 8 returned aliases.
+  README records the same two rebuild digests). Every alias in the batch is
+  decided.
 - **Not yet moved.** `.github/workflows/release.yml` pins the 1.2 view, and
   `tools/atlas_independent_agency.py` checks bridges, events, non-emissions and
   successors only; both need alias support before a release pins 1.3.

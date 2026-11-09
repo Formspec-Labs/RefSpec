@@ -105,7 +105,7 @@ class Record:
     bound to the bytes, not to this file's say-so.
     """
 
-    kind: Literal["statute", "publicLaw", "executiveOrder"]
+    kind: Literal["statute", "publicLaw", "executiveOrder", "frDocument", "congressionalHearing", "agencyPage"]
     citation: str
     file: str
     passage: str
@@ -162,15 +162,25 @@ _COMMAND_WHY = (
     "have no FR record; part-of DOD is the only FR resolution, and it claims no identity."
 )
 _DOD_COMMANDS = _usc(10, "111", "(9) The unified and specified combatant commands.")
-_UNNAMED = "No record read names this command; 10 U.S.C. 111(b)(9) puts combatant commands in the Department, but nothing read says this is one."
 
 
-def _command(key: str, target: str | None = None, *, note: str, named: Record | None = None, finding: str | None = None) -> Judgment:
-    return Judgment(
-        key, target, 103, "partOf", "unitWithinFrAgency", note, "yes", _COMMAND_WHY,
-        (_DOD_COMMANDS, *((named,) if named else ())),
-        source_status="confirmed" if finding is None else "unconfirmed", source_finding=finding,
-    )
+def _command(key: str, target: str | None = None, *, note: str, named: Record) -> Judgment:
+    return Judgment(key, target, 103, "partOf", "unitWithinFrAgency", note, "yes", _COMMAND_WHY, (_DOD_COMMANDS, named))
+
+
+# Second pass (owner, 2026-11-08: "Find agency pages, then adopt"): the agencies' own records where a statute is silent.
+_DOD_FOIA_RULE = Record(
+    "frDocument", "82 FR 1192 (2017-01-05), FR Doc 2016-31686, DoD Freedom of Information Act (FOIA) Program (32 CFR part 286)",
+    "raw/fr-2016-31686.txt",
+    "United States Africa Command, United States Central Command, United States European Command, United States Northern "
+    "Command, United States Pacific Command, United States Special Operations Command, United States Strategic Command, and "
+    "United States Transportation Command.",
+)
+_DOD_FOIA_COMPONENTS = Record(
+    "frDocument", "82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR 286.2", "raw/fr-2016-31686.txt",
+    "the Combatant Commands, the Office of the Inspector General of the Department of Defense, the Defense Agencies, the DoD "
+    "Field Activities, and all other organizational entities within the DoD",
+)
 
 
 def _misspelling(key: str, fr: int, name: str) -> Judgment:
@@ -207,9 +217,12 @@ JUDGMENT: tuple[Judgment, ...] = (
              "yes", _PART_WHY, (_usc(10, "8063", "The Marine Corps, within the Department of the Navy, shall be so organized"),)),
     Judgment("usmc", _OPM + "NV27", 378, "partOf", "militaryServiceOfDepartment",
              "USMC, the Marine Corps' acronym; the same row as 'marine corps'.",
-             "yes", _PART_WHY, (_usc(10, "8063", "The Marine Corps, within the Department of the Navy, shall be so organized"),),
-             source_status="unconfirmed",
-             source_finding="No record read, and no held roster, states the acronym 'USMC'; 10 U.S.C. 8063 confirms only the full name."),
+             "yes", _PART_WHY,
+             (_usc(10, "8063", "The Marine Corps, within the Department of the Navy, shall be so organized"),
+              Record("frDocument", "91 FR 60950 (2026-09-25), FR Doc 2026-19609, Department of the Navy, Proposed Collection",
+                     "raw/fr-2026-19609.txt", "AGENCY: Department of the Navy, Department of Defense (DoD)."),
+              Record("frDocument", "91 FR 60950 (2026-09-25), FR Doc 2026-19609, Department of the Navy, Proposed Collection",
+                     "raw/fr-2026-19609.txt", "the United States Marine Corps (USMC) announces a proposed public information collection"))),
     Judgment("space force", _OPM + "AF4G", 13, "partOf", "militaryServiceOfDepartment",
              "The Space Force is a service within the Department of the Air Force (FR 13); OPM holds it as AF4G.",
              "yes", _PART_WHY, (_usc(10, "9081", "There is established a United States Space Force as an armed force within the Department of the Air Force."),)),
@@ -248,11 +261,30 @@ JUDGMENT: tuple[Judgment, ...] = (
              named=_usc(10, "161", "whether the boundary between the United States Central and European Commands could create command conflicts")),
     _command("european command", note="U.S. European Command; no held roster holds the command itself.",
              named=_usc(10, "161", "whether the boundary between the United States Central and European Commands could create command conflicts")),
-    _command("transportation command", _OPM + "DD76", note="U.S. Transportation Command; OPM holds it as DD76.",
-             finding=_UNNAMED + " OPM's code DD76 sits under the DD (Department of Defense) prefix, but the held release states no parent."),
-    _command("africa command", note="U.S. Africa Command; OPM's AF1R is an Air Force code, so not taken as the command.", finding=_UNNAMED),
-    _command("forces korea", note="U.S. Forces Korea, a subordinate unified command; no held roster holds it.",
-             finding=_UNNAMED + " It is a subordinate unified command, which 111(b)(9) does not list by that name."),
+    Judgment("transportation command", _OPM + "DD76", 103, "partOf", "unitWithinFrAgency",
+             "U.S. Transportation Command; OPM holds it as DD76. DoD's FOIA rule names it among the DoD Components its "
+             "OSD/Joint Staff center serves, beside the other combatant commands.",
+             "yes", _COMMAND_WHY, (_DOD_COMMANDS, _DOD_FOIA_RULE, _DOD_FOIA_COMPONENTS)),
+    Judgment("africa command", None, 103, "partOf", "unitWithinFrAgency",
+             "U.S. Africa Command; OPM's AF1R is an Air Force code, so not taken as the command. DoD's FOIA rule names it "
+             "among the DoD Components, beside the other combatant commands.",
+             "yes", _COMMAND_WHY, (_DOD_COMMANDS, _DOD_FOIA_RULE, _DOD_FOIA_COMPONENTS)),
+    Judgment("forces korea", None, 103, "partOf", "unitWithinFrAgency",
+             "U.S. Forces Korea, a subordinate unified command of U.S. Pacific (now Indo-Pacific) Command: USPACOM's own "
+             "answer for the record to the House Armed Services Committee counts its positions among USPACOM's "
+             "subordinate unified commands. USPACOM is a DoD Component (DoD's FOIA rule), and 10 U.S.C. 111(b)(11) puts "
+             "every command under a combatant command's control in the Department.",
+             "yes", "Part-of DOD through USPACOM; no record read makes it an organization of its own with an FR record.",
+             (
+                 Record("congressionalHearing",
+                        "H.A.S.C. No. 113-14 (2013), Hearing on National Defense Authorization Act for Fiscal Year 2014, "
+                        "U.S. Pacific Command answers for the record (CHRG-113hhrg79955)",
+                        "raw/chrg-113hhrg79955.htm",
+                        "A total of 686 positions support subordinate unified commands; US Forces Korea (468), US Alaskan "
+                        "Command (66), US Forces Japan (152)."),
+                 _DOD_FOIA_RULE,
+                 _usc(10, "111", "(11) All offices, agencies, activities, and commands under the control or supervision of any element named in paragraphs (1) through (10)."),
+             )),
     Judgment("office of chief of naval operations", None, 378, "partOf", "unitWithinFrAgency",
              "The Office of the Chief of Naval Operations is the Navy's headquarters staff in the Department of the Navy.",
              "yes", _PART_WHY, (_usc(10, "8031", "There is in the executive part of the Department of the Navy an Office of the Chief of Naval Operations."),)),
@@ -261,14 +293,21 @@ JUDGMENT: tuple[Judgment, ...] = (
              (_usc(10, "8041", "There is in the executive part of the Department of the Navy a Headquarters, Marine Corps."),)),
     Judgment("headquarters air force", None, 13, "partOf", "unitWithinFrAgency",
              "Headquarters Air Force (the Secretariat and Air Staff) sits in the Department of the Air Force.", "yes", _PART_WHY,
-             (_usc(10, "9031", "There is in the executive part of the Department of the Air Force an Air Staff."),),
-             source_status="unconfirmed",
-             source_finding="10 U.S.C. 9031 establishes the Air Staff; no record read uses the name 'Headquarters Air Force'."),
-    Judgment("air force space command", None, 13, "partOf", "unitWithinFrAgency",
-             "Air Force Space Command, an Air Force major command until the Space Force took it in 2019-2020.",
-             "yes", "Part-of the Department of the Air Force is true for the command's whole life, before and after the Space Force.",
-             source_status="unconfirmed",
-             source_finding="No record was found or read for Air Force Space Command; major commands are not established by statute."),
+             (_usc(10, "9031", "There is in the executive part of the Department of the Air Force an Air Staff."),
+              Record("frDocument",
+                     "74 FR 6591 (2009-02-10), FR Doc E9-2782, Department of the Air Force, Privacy Act of 1974; System of Records",
+                     "raw/fr-E9-2782.txt",
+                     "Deputy Chief of Staff for Personnel, Headquarters United States Air Force, 1040 Air Force Pentagon")),
+             ),
+    Judgment("air force space command", _OPM + "AF4G", 13, "partOf", "statutoryRename",
+             "The Space Force's name before 2019-12-20: Pub. L. 116-92 sec. 952(a) redesignated Air Force Space Command "
+             "the United States Space Force, which 10 U.S.C. 9081 places within the Department of the Air Force (FR 13). "
+             "A witness's 'Air Force Space Command' therefore names the organization OPM now holds as AF4G (the Space "
+             "Force), part of the Department of the Air Force. Before 2019 the command was an Air Force major command; "
+             "no record read states that, and the row does not rest on it.",
+             "yes", "One organization renamed by statute, part of the same department under either name.",
+             (_usc(10, "9081", "The Air Force Space Command is hereby redesignated as the United States Space Force (USSF)."),
+              _usc(10, "9081", "There is established a United States Space Force as an armed force within the Department of the Air Force."))),
     Judgment("congressional research service", None, 277, "partOf", "unitWithinFrAgency",
              "CRS is a department of the Library of Congress (FR 277); no held roster holds it.",
              "yes", _PART_WHY, (_usc(2, "166", "is hereby continued as a separate department in the Library of Congress and is redesignated the"),)),
@@ -286,13 +325,18 @@ JUDGMENT: tuple[Judgment, ...] = (
     Judgment("national forest system", None, 209, "partOf", "unitWithinFrAgency",
              "The National Forest System is the lands the Forest Service (FR 209) administers; as a witness's organization it "
              "names the Forest Service's National Forest System deputy area.",
-             "yes", _PART_WHY, (_usc(16, "1609", "the National Forest System consists of units of federally owned forest, range, and related lands"),),
-             source_status="contradicted",
-             source_finding="16 U.S.C. 1609 defines the National Forest System as lands, not an organization, and does not name the "
-             "Forest Service; the deputy area the row assumes is in no record read."),
+             "yes", _PART_WHY,
+             (Record("agencyPage", "USDA Forest Service, About the Agency: Organization (fs.usda.gov, read 2026-11-08)",
+                     "raw/fs-about-agency-organization.html",
+                     "Agency headquarters has the following program units: National Forest System: We manage public lands, "
+                     "known collectively as the National Forest System"),)),
     Judgment("bureau of near eastern affairs", None, 476, "partOf", "unitWithinFrAgency",
-             "A regional bureau of the Department of State (FR 476).", "yes", _PART_WHY,
-             source_status="unconfirmed", source_finding="No statute establishes State's regional bureaus; no record was found or read."),
+             "A regional bureau of the Department of State (FR 476); State signs Federal Register documents from it.",
+             "yes", _PART_WHY,
+             (Record("frDocument",
+                     "88 FR 14438 (2023-03-08), FR Doc 2023-04723, Department of State, Certification Pursuant to Section 7041(a)(1)",
+                     "raw/fr-2023-04723.txt",
+                     "Office Director, Office of Assistance Coordination, Bureau of Near Eastern Affairs, Department of State."),)),
     Judgment("office of information and regulatory affairs", None, 280, "partOf", "unitWithinFrAgency",
              "OIRA is an office within the Office of Management and Budget (FR 280); regulations.gov lists it as its own "
              "agency code, but no reviewed REF-038 row maps that code to an FR record.",

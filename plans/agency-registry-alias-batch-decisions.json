@@ -2,12 +2,26 @@
   "schema_version": "refspec-agency-registry-batch-1-decisions/2",
   "reviewer_iri": "urn:ref:reviewer:refspec-owner",
   "decisions": {
+    "alias:africa-command": {
+      "answer": "yes",
+      "decided_on": "2026-11-08",
+      "content_digest": "sha256:fb7822fd127e70b8e9c55bf5a6918b1bfca19585a4c04d85329c02cd39a65bdb",
+      "channel": "questionTool",
+      "note": "owner, questions tool 2026-11-08: Find agency pages, then adopt. Read: 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 82 FR 1192 (2017-01-05), FR Doc 2016-31686, DoD Freedom of Information Act (FOIA) Program (32 CFR part 286): \"United States Africa Command, United States Central Command, United States European Command, United States Northern Command, United States Pacific Command, United States Special Operations Command, United States Strategic Command, and United States Transportation Command.\"; 82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR 286.2: \"the Combatant Commands, the Office of the Inspector General of the Department of Defense, the Defense Agencies, the DoD Field Activities, and all other organizational entities within the DoD\"."
+    },
     "alias:air-force": {
       "answer": "2",
       "decided_on": "2026-11-08",
       "content_digest": "sha256:7a2af7cb470b8f49ac962d45bb3a21d66f028b5d6f07791705dc8ee85298d3b5",
       "channel": "questionTool",
       "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 10 U.S.C. 9062: \"There is a United States Air Force within the Department of the Air Force.\"."
+    },
+    "alias:air-force-space-command": {
+      "answer": "yes",
+      "decided_on": "2026-11-08",
+      "content_digest": "sha256:e55287aeaccffd4e63c4ee9dd77241dfee86f90da4db8b945fe6d6b8d75b0b33",
+      "channel": "questionTool",
+      "note": "owner, questions tool 2026-11-08: Find agency pages, then adopt. Read: 10 U.S.C. 9081: \"The Air Force Space Command is hereby redesignated as the United States Space Force (USSF).\"; 10 U.S.C. 9081: \"There is established a United States Space Force as an armed force within the Department of the Air Force.\"."
     },
     "alias:army": {
       "answer": "2",
@@ -43,6 +57,13 @@
       "content_digest": "sha256:173563bd52d49d7bffcef4ec8411242f0ba93b5e6322bd65e11f576bb34fd368",
       "channel": "questionTool",
       "note": "owner, questions tool 2026-11-08, per-item approval: bureau of land management -> FR 275."
+    },
+    "alias:bureau-of-near-eastern-affairs": {
+      "answer": "yes",
+      "decided_on": "2026-11-08",
+      "content_digest": "sha256:6db9e09c76942c780936d75c6356bedf7682312a4f266dc1db1dc88baed207bc",
+      "channel": "questionTool",
+      "note": "owner, questions tool 2026-11-08: Find agency pages, then adopt. Read: 88 FR 14438 (2023-03-08), FR Doc 2023-04723, Department of State, Certification Pursuant to Section 7041(a)(1): \"Office Director, Office of Assistance Coordination, Bureau of Near Eastern Affairs, Department of State.\"."
     },
     "alias:bureau-of-ocean-energy-management": {
       "answer": "yes",
@@ -184,12 +205,26 @@
       "channel": "questionTool",
       "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: the held roster records it names."
     },
+    "alias:forces-korea": {
+      "answer": "yes",
+      "decided_on": "2026-11-08",
+      "content_digest": "sha256:cf9094c16a6946868b92dcf320580fbcc030cf95ea04cd36500f6fae8b5ca72c",
+      "channel": "questionTool",
+      "note": "owner, questions tool 2026-11-08: Find agency pages, then adopt. Read: H.A.S.C. No. 113-14 (2013), Hearing on National Defense Authorization Act for Fiscal Year 2014, U.S. Pacific Command answers for the record (CHRG-113hhrg79955): \"A total of 686 positions support subordinate unified commands; US Forces Korea (468), US Alaskan Command (66), US Forces Japan (152).\"; 82 FR 1192 (2017-01-05), FR Doc 2016-31686, DoD Freedom of Information Act (FOIA) Program (32 CFR part 286): \"United States Africa Command, United States Central Command, United States European Command, United States Northern Command, United States Pacific Command, United States Special Operations Command, United States Strategic Command, and United States Transportation Command.\"; 10 U.S.C. 111: \"(11) All offices, agencies, activities, and commands under the control or supervision of any element named in paragraphs (1) through (10).\"."
+    },
     "alias:general-accounting-office": {
       "answer": "yes",
       "decided_on": "2026-11-08",
       "content_digest": "sha256:6bf24dcfee3236e4710ddcc0196fe345216c15cedfea482942acbfff2ced5bad",
       "channel": "questionTool",
       "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: Pub. L. 108-271, sec. 8(a), 118 Stat. 814 (2004-07-07), GAO Human Capital Reform Act of 2004: \"The General Accounting Office is hereby redesignated the Government Accountability Office.\"."
+    },
+    "alias:headquarters-air-force": {
+      "answer": "yes",
+      "decided_on": "2026-11-08",
+      "content_digest": "sha256:f72ec1cc02c646c9594ad73e04875e453c8cdc3da02822d2bdc259b9c005a173",
+      "channel": "questionTool",
+      "note": "owner, questions tool 2026-11-08: Find agency pages, then adopt. Read: 10 U.S.C. 9031: \"There is in the executive part of the Department of the Air Force an Air Staff.\"; 74 FR 6591 (2009-02-10), FR Doc E9-2782, Department of the Air Force, Privacy Act of 1974; System of Records: \"Deputy Chief of Staff for Personnel, Headquarters United States Air Force, 1040 Air Force Pentagon\"."
     },
     "alias:headquarters-marine-corps": {
       "answer": "yes",
@@ -253,6 +288,13 @@
       "content_digest": "sha256:8c50660b679e1f7b3663f203e3ba1efa460bbb4f15857419a29fa0a24351af8d",
       "channel": "questionTool",
       "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 50 U.S.C. 3056: \"There is within the Office of the Director of National Intelligence a National Counterterrorism Center.\"."
+    },
+    "alias:national-forest-system": {
+      "answer": "yes",
+      "decided_on": "2026-11-08",
+      "content_digest": "sha256:b7de260037331636132c60abe8d523153121071c9100b813f4083ac73e4d40c6",
+      "channel": "questionTool",
+      "note": "owner, questions tool 2026-11-08: Find agency pages, then adopt. Read: USDA Forest Service, About the Agency: Organization (fs.usda.gov, read 2026-11-08): \"Agency headquarters has the following program units: National Forest System: We manage public lands, known collectively as the National Forest System\"."
     },
     "alias:national-guard-bureau": {
       "answer": "yes",
@@ -408,12 +450,26 @@
       "channel": "questionTool",
       "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 10 U.S.C. 161: \"the space-related responsibilities previously assigned to the Commander, United States Strategic Command\"."
     },
+    "alias:transportation-command": {
+      "answer": "yes",
+      "decided_on": "2026-11-08",
+      "content_digest": "sha256:3f6d9bfbe9ef0790da9c52e019994579cf75a72b609092ae10d4b5a439f71a17",
+      "channel": "questionTool",
+      "note": "owner, questions tool 2026-11-08: Find agency pages, then adopt. Read: 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 82 FR 1192 (2017-01-05), FR Doc 2016-31686, DoD Freedom of Information Act (FOIA) Program (32 CFR part 286): \"United States Africa Command, United States Central Command, United States European Command, United States Northern Command, United States Pacific Command, United States Special Operations Command, United States Strategic Command, and United States Transportation Command.\"; 82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR 286.2: \"the Combatant Commands, the Office of the Inspector General of the Department of Defense, the Defense Agencies, the DoD Field Activities, and all other organizational entities within the DoD\"."
+    },
     "alias:usda-office-of-inspector-general": {
       "answer": "yes",
       "decided_on": "2026-11-08",
       "content_digest": "sha256:fc77b056c7a4cbc84ea5439d169409bf104c2ea39855d6c554498900bb81e187",
       "channel": "questionTool",
       "note": "owner, questions tool 2026-11-08: Read citations, then adopt (Recommended). The recommendation stands as the source confirms it; read: the held roster records it names."
+    },
+    "alias:usmc": {
+      "answer": "yes",
+      "decided_on": "2026-11-08",
+      "content_digest": "sha256:17aaf63f62615cf3313a6c0796afc19802eb1cbb673e5a43dc6093580a64c7e6",
+      "channel": "questionTool",
+      "note": "owner, questions tool 2026-11-08: Find agency pages, then adopt. Read: 10 U.S.C. 8063: \"The Marine Corps, within the Department of the Navy, shall be so organized\"; 91 FR 60950 (2026-09-25), FR Doc 2026-19609, Department of the Navy, Proposed Collection: \"AGENCY: Department of the Navy, Department of Defense (DoD).\"; 91 FR 60950 (2026-09-25), FR Doc 2026-19609, Department of the Navy, Proposed Collection: \"the United States Marine Corps (USMC) announces a proposed public information collection\"."
     },
     "alias:veterans-benefit-administration": {
       "answer": "no",

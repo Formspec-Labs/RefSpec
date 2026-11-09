@@ -1,0 +1,495 @@
+<html>
+<head>
+<title>Federal Register, Volume 74 Issue 26 (Tuesday, February 10, 2009)</title>
+</head>
+<body><pre>
+[Federal Register Volume 74, Number 26 (Tuesday, February 10, 2009)]
+[Notices]
+[Pages 6591-6594]
+From the Federal Register Online via the Government Publishing Office [<a href="http://www.gpo.gov">www.gpo.gov</a>]
+[FR Doc No: E9-2782]
+
+
+
+[[Page 6591]]
+
+-----------------------------------------------------------------------
+
+DEPARTMENT OF DEFENSE
+
+Department of the Air Force
+
+[Docket ID USAF-2009-0014]
+
+
+Privacy Act of 1974; System of Records
+
+AGENCY: Department of Air Force.
+
+ACTION: Notice to amend a system of records.
+
+-----------------------------------------------------------------------
+
+SUMMARY: The Department of Air Force proposes to amend a system of 
+records to its inventory of record systems subject to the Privacy Act 
+of 1974 (5 U.S.C. 552a), as amended.
+
+DATES: The changes will be effective on March 12, 2009 unless comments 
+are received that would result in a contrary determination.
+
+ADDRESSES: Send comments to the Air Force Privacy Act Officer, Office 
+of Warfighting Integration and Chief Information Officer, SAF/XCPPI, 
+1800 Air Force Pentagon, Washington, DC 20330-1800.
+
+FOR FURTHER INFORMATION CONTACT: Mr. Kenneth Brodie at (703) 696-7557.
+
+SUPPLEMENTARY INFORMATION: The Department of the Air Force systems of 
+records notices subject to the Privacy Act of 1974, (5 U.S.C. 552a), as 
+amended, have been published in the Federal Register and are available 
+from the address above.
+    The specific changes to the record system being amended are set 
+forth below followed by the notice, as amended, published in its 
+entirety. The proposed amendments are not within the purview of 
+subsection (r) of the Privacy Act of 1974, (5 U.S.C. 552a), as amended, 
+which requires the submission of a new or altered system report.
+
+    Dated: February 4, 2009.
+Morgan E. Frazier,
+Alternate OSD Federal Register Liaison Officer, Department of Defense.
+F036 AF PC A
+
+System Name:
+    Effectiveness/Performance Reporting Systems (June 11, 1997, 62 FR 
+31793).
+
+Changes:
+* * * * *
+
+System Name:
+    Delete entry and replace with ``Effectiveness/Performance Reporting 
+Records.''
+
+System Location:
+    Delete entry and replace with ``Headquarters, Air Force Personnel 
+Center, 550 C Street West, Randolph Air Force Base, TX 78150-4709.
+    Headquarters, Air Reserve Personnel Center, 6760 E. Irvington Place 
+(6600), Denver, CO 80280-6600.
+    Headquarters of major commands and field operating agencies; 
+military personnel flights; each State Adjutant General Office and Air 
+Force Reserve and Air National Guard units. Official mailing addresses 
+are published as an appendix to the Air Force's compilation of record 
+systems notices.''
+
+Categories of individuals covered by system:
+    Delete entry and replace with ``Military Personnel Only.
+    Officers: Applies to Regular Active Duty Air Force/Air National 
+Guard/Air Force Reserve personnel serving in grades Warrant Officer (W-
+1) through Colonel (0-6).
+    Enlisted: Applies to active duty personnel in the grades Airman 
+Basic (E-1) through Chief Master Sergeant (E-9), and to Air National 
+Guard and Air Force Reserve personnel in the grades Staff Sergeant (E-
+5) through Chief Master Sergeant (E-9).''
+
+Categories of records in the system:
+    Delete entry and replace with ``Officer Performance Report; 
+Education/Training Report; Enlisted Performance Report; Promotion 
+Recommendation Forms; Letter of Evaluations; Performance Feedback 
+Worksheets and Retention Recommendation Forms. Description of data 
+contained therein: Name, Social Security Number, address; active and 
+permanent grades; specialty data; organization location and Personnel 
+Accounting Symbol; period of report; number of days of supervision; 
+performance evaluation scales; assessment of potential and comments 
+regarding ratings.''
+
+Authority for maintenance of the system:
+    Delete entry and replace with ``10 U.S.C. 8013, Secretary of the 
+Air Force: Powers and duties; delegation by; as implemented by Air 
+Force Instruction 36-2406, Officer and Enlisted Evaluation Systems, and 
+E.O. 9397 (SSN).''
+* * * * *
+
+Storage:
+    Delete entry and replace with ``Paper records and electronic 
+storage media.''
+* * * * *
+
+Retention and Disposal:
+    Delete entry and replace with ``Copies of effectiveness/performance 
+reports are retained until separation or retirement. At separation or 
+retirement, data subject is presented with field and command record 
+copies of his or her reports. The Headquarters, Air Force (HAF) copy is 
+a permanent record that is forwarded to the National Military Personnel 
+Records Center, (NPRC/NRPMF), 9700 Page Boulevard, St. Louis, MO 63132-
+2001 (if separated/retired on or prior to 30 September 2004) or HQ Air 
+Force Personnel Center, Master Personnel Records Branch, (HQ AFPC/
+DPSSR), 550 C Street West, Randolph AFB, TX 78150-6001 (if separated/
+retired on or after 1 October 2004). In the event the member has a 
+Reserve commitment, the HAF copy is sent to Headquarters Air Reserve 
+Personnel Center, 6760 E. Irvington Place (6600), Denver, CO 80280-
+6600.
+    The following exceptions apply:
+    Officers Field Record: Remove and give to individual when promoted 
+to Colonel, when separated or retired, or destroy when voided by action 
+of the Officer Personnel Records Review Board. When voided by action of 
+the Air Force Board for Correction of Military Records, forward all 
+copies of report to Headquarters United States Air Force (HQ USAF) when 
+directed.
+    Command Record: The command custodian will destroy the reports when 
+voided by action of Officer Personnel Records Review Board. When voided 
+by action of the Air Force Board for Correction of Military Records, 
+forward all copies of report to HQ USAF when directed.
+    HAF Record: Remove reports voided by action of the Officer 
+Personnel Records Review Board from the selection folder and file in 
+the board recorder's office until destruction. Remove reports voided by 
+action of the Air Force Board for Correction of Military Records from 
+selection folder and submit to Board's Secretariat with duplicate and 
+triplicate copies for custody and disposition.
+    Promotions Recommendation Forms: Temporary documents maintained 
+only at HQ Air Force level and are destroyed after their purpose has 
+been served. A copy is forwarded to HQ Air Force Personnel Center, 
+Master Personnel Records Branch (HQ AFPC/DPSSR) to file into the 
+Automated Records Management System for historic and appeal purposes 
+only.
+
+Active Duty Enlisted:
+    Grades E-3 through E-6: On separation or retirement, Enlisted 
+Performance Reports (EPRs) are forwarded to the National Personnel 
+Records Center (NPRC/NRPMF), St. Louis, MO 63132 (if separated/retired 
+on or prior to 30 September 2004) or HQ Air Force Personnel Center, 
+Master Personnel Records Branch (HQ AFPC/DPSSR), (if separated/retired 
+on or after
+
+[[Page 6592]]
+
+1 October 2004) unless data subject holds a reserve obligation, in 
+which case they are forwarded to Air Reserve Personnel Center.
+    Grades E-7 through E-9: On separation or retirement, original 
+copies, those retained in Senior Non-Commissioned Officer (NCO) 
+selection folders and those in field record closing before 1 January 
+1967, are forwarded to the National Personnel Records Center (NPRC/
+NRPMF), (if separated/retired on or prior to 30 September 2004) or HQ 
+Air Force Personnel Center, Master Personnel Records Branch (HQ AFPC/
+DPSSR), (if separated/retired on or after 1 October 2004), or to Air 
+Reserve Personnel Center if data subject holds a reserve obligation. 
+Duplicate copies closing 1 January 1967 or later (field record) are 
+returned to the member at separation or retirement.
+    Non-Active Duty Reserve Enlisted: Air Force Reserve Forces Non-
+Commissioned Officers Performance Report; upon separation, retirement 
+or assignment to a non-participating reserve status, are forwarded to 
+Air Reserve Personnel Center for file in the master personnel record 
+and disposed of as a part of that record. Records are destroyed by 
+tearing into pieces, shredding, pulping, macerating or burning.''
+* * * * *
+
+System manager and address:
+    Delete entry and replace with ``Deputy Chief of Staff for 
+Personnel, Headquarters United States Air Force, 1040 Air Force 
+Pentagon, Washington, DC 20330-1040.
+    Chief, Headquarters Air Force Personnel Center, (HQ AFPC/DPSID), 
+Career Development Branch, 550 C Street West, Randolph Air Force Base 
+TX, 78150-4709.
+    Chief of Air Force Reserve, (USAFR/RE), Headquarters United States 
+Air Force, 1150 Air Force Pentagon, Washington, DC 20330-1150.
+    Director, Air National Guard, (NGB/CF), 2500 Army Pentagon, 
+Washington, DC 20310-2500.''
+
+Notification Procedure:
+    Delete entry and replace with ``Individuals seeking to determine 
+whether information about themselves is contained in this system should 
+address written inquiries to Deputy Chief of Staff/Personnel, 
+Headquarters United States Air Force, (USAF/A1), 1040 Air Force 
+Pentagon, Washington, DC 20330-1040; Headquarters Air Force Personnel 
+Center, (HQ AFPC/DPSID), 550 C Street W, Randolph Air Force Base, TX 
+78150-4709; Chief of Air Force Reserve, Headquarters United States Air 
+Force, Washington, DC 20330-1000; The Director, Air National Guard, 
+Washington, DC 20310-2500; National Military Personnel Records Center, 
+(NPRC/NRPMF), 9700 Page Boulevard, St. Louis, MO 63132-5100, or 
+directly to agency officials at the respective system location. 
+Official mailing addresses are published as an appendix to the Air 
+Force's compilation of record systems notices.
+    Written request should contain full name, Social Security Number 
+(SSN) and complete mailing address with notarized signature as below.
+    An unsworn declaration under penalty of perjury in accordance with 
+section 1746 of 28 U.S.C. (Reference (n)) or notarized signatures are 
+acceptable as a means of proving the identity of the individual.
+    If an unsworn declaration is executed within the United States, its 
+territories, possessions, or commonwealths, it shall read ``I declare 
+(or certify, verify, or state) under penalty of perjury that the 
+foregoing is true and correct. Executed on (date). (Signature).''
+    If an unsworn declaration is executed outside the United States, it 
+shall read ``I declare (or certify, verify, or state) under penalty of 
+perjury under the laws of the United States of America that the 
+foregoing is true and correct. Executed on (date). (Signature).''
+
+Record access procedures:
+    Delete entry and replace with ``Individuals seeking to access 
+records about themselves contained in this system should address 
+written inquiries to Deputy Chief of Staff/Personnel, Headquarters 
+United States Air Force, (USAF/A1), 1040 Air Force Pentagon, 
+Washington, DC 20330-1040; Headquarters Air Force Personnel Center, (HQ 
+AFPC/DPSID), 550 C Street W, Randolph Air Force Base, TX 78150-4709; 
+Chief of Air Force Reserve, Headquarters United States Air Force, 
+Washington, DC 20330-1000; The Director, Air National Guard, 
+Washington, DC 20310-2500; National Military Personnel Records Center, 
+(NPRC/NRPMF), 9700 Page Boulevard, St. Louis, MO 63132-2001, or 
+directly to agency officials at the respective system location. 
+Official mailing addresses are published as an appendix to the Air 
+Force's compilation of record systems notices.
+    Written request should contain full name, Social Security Number 
+(SSN) and complete mailing address with notarized signature as below.
+    An unsworn declaration under penalty of perjury in accordance with 
+section 1746 of 28 U.S.C. (Reference (n)) or notarized signatures are 
+acceptable as a means of proving the identity of the individual.
+    If an unsworn declaration is executed within the United States, its 
+territories, possessions, or commonwealths, it shall read ``I declare 
+(or certify, verify, or state) under penalty of perjury that the 
+foregoing is true and correct. Executed on (date). (Signature).''
+    If an unsworn declaration is executed outside the United States, it 
+shall read ``I declare (or certify, verify, or state) under penalty of 
+perjury under the laws of the United States of America that the 
+foregoing is true and correct. Executed on (date). (Signature).''
+
+Contesting record procedures:
+    Delete entry and replace with ``The Air Force rules for accessing 
+records and for contesting contents and appealing initial agency 
+determinations are published in Air Force Instruction 33-332, Privacy 
+Act Program, 32 CFR part 806b; or may be obtained from the system 
+manager.''
+
+Record Source Categories:
+    Delete entry and replace with: ``Performance evaluations that are 
+maintained on Air Force Active Duty, Reserve, and Air National Guard 
+personnel in the grades of airman basic E-1 through general O-10.''
+* * * * *
+F036 AF PC A
+
+System name:
+    Effectiveness/Performance Reporting Records.
+
+System location:
+    Headquarters, Air Force Personnel Center, 550 C Street West, 
+Randolph Air Force Base, TX 78150-4709.
+    Headquarters, Air Reserve Personnel Center, 6760 E. Irvington Place 
+(6600), Denver, CO 80280-6600.
+    Headquarters of major commands and field operating agencies; 
+military personnel flights; each State Adjutant General Office and Air 
+Force Reserve and Air National Guard units. Official mailing addresses 
+are published as an appendix to the Air Force's compilation of record 
+systems notices.
+
+Categories of individuals covered by the system:
+    Military Personnel Only.
+    Officers: Applies to Regular Active Duty Air Force/Air National 
+Guard/Air Force Reserve personnel serving in grades Warrant Officer (W-
+1) through Colonel (0-6).
+    Enlisted: Applies to active duty personnel in the grades Airman 
+Basic (E-1) through Chief Master Sergeant (E-9) and to Air National 
+Guard and Air
+
+[[Page 6593]]
+
+Force Reserve personnel in the grades Staff Sergeant (E-5) through 
+Chief Master Sergeant (E-9).
+
+Categories of records in the system:
+    Officer Performance Report; Education/Training Report; Enlisted 
+Performance Report; Promotion Recommendation Forms; Letter of 
+Evaluations; Performance Feedback Worksheets and Retention 
+Recommendation Forms. Description of data contained therein: Name, 
+Social Security Number (SSN), address; active and permanent grades; 
+specialty data; organization location and Personnel Accounting Symbol; 
+period of report; number of days of supervision; performance evaluation 
+scales; assessment of potential and comments regarding ratings.
+
+Authority for maintenance of the system:
+    10 U.S.C. 8013, Secretary of the Air Force: Powers and duties; 
+delegation by; as implemented by Air Force Instruction 36-2406, Officer 
+and Enlisted Evaluation Systems and E.O. 9397 (SSN).
+
+Purpose(s):
+    Used to document effectiveness/duty performance history; promotion 
+selection; school selection; assignment selection; reduction-in-force; 
+control roster; reenlistment; separation; research and statistical 
+analyses and other appropriate personnel actions.
+
+Routine uses of records maintained in the system, including categories 
+of users and the purposes of such uses:
+    In addition to those disclosures generally permitted under 5 U.S.C. 
+552a(b) of the Privacy Act, these records or information contained 
+therein may specifically be disclosed outside the DoD as a routine use 
+pursuant to 5 U.S.C. 552a(b)(3) as follows:
+    Non-exempt records from this system may be disclosed to other 
+federal agencies in anticipation of an individual's assignment or upon 
+actual assignment to that agency, to the extent that the information is 
+relevant and necessary to the agency's decision on the matter.
+    The `Blanket Routine Uses' published at the beginning of the Air 
+Force's compilation of systems of records notices apply to this system.
+
+Policies and practices for storing, retrieving, accessing, retaining, 
+and disposing of records in the system:
+Storage:
+    Paper records and electronic storage media.
+
+Retrievability:
+    Retrieved by name or Social Security Number (SSN).
+
+Safeguards:
+    Records are accessed by custodian of the record system and by 
+person(s) who are properly screened and cleared for need-to-know. 
+Records are stored in locked cabinets or rooms.
+
+Retention and disposal:
+    Copies of effectiveness/performance reports are retained until 
+separation or retirement. At separation or retirement, data subject is 
+presented with field and command record copies of his or her reports. 
+The Headquarters, Air Force (HAF) copy is a permanent record that is 
+forwarded to the National Military Personnel Records Center, (NPRC/
+NRPMF), 9700 Page Boulevard, St. Louis, MO 63132-2001 (if separated/
+retired on or prior to 30 September 2004) or HQ Air Force Personnel 
+Center, Master Personnel Records Branch, (HQ AFPC/DPSSR), 550 C Street 
+West, Randolph AFB, TX 78150-6001 (if separated/retired on or after 1 
+October 2004). In the event the member has a Reserve commitment, the 
+HAF copy is sent to Headquarters Air Reserve Personnel Center, 6760 E. 
+Irvington Place (6600), Denver, CO 80280-6600.
+
+The following exceptions apply:
+    Officers Field Record: Remove and give to individual when promoted 
+to Colonel, when separated or retired, or destroy when voided by action 
+of the Officer Personnel Records Review Board. When voided by action of 
+the Air Force Board for Correction of Military Records, forward all 
+copies of report to Headquarters United States Air Force (HQ USAF) when 
+directed.
+    Command Record: The command custodian will destroy the reports when 
+voided by action of Officer Personnel Records Review Board. When voided 
+by action of the Air Force Board for Correction of Military Records, 
+forward all copies of report to HQ USAF when directed.
+    HAF Record: Remove reports voided by action of the Officer 
+Personnel Records Review Board from the selection folder and file in 
+the board recorder's office until destruction. Remove reports voided by 
+action of the Air Force Board for Correction of Military Records from 
+selection folder and submit to Board's Secretariat with duplicate and 
+triplicate copies for custody and disposition.
+    Promotions Recommendation Forms: Temporary documents maintained 
+only at HQ Air Force level and are destroyed after their purpose has 
+been served. A copy is forwarded to HQ Air Force Personnel Center, 
+Master Personnel Records Branch (HQ AFPC/DPSSR) to file into the 
+Automated Records Management System for historic and appeal purposes 
+only.
+
+Active Duty Enlisted:
+    Grades E-3 through E-6: On separation or retirement, Enlisted 
+Performance Reports (EPRs) are forwarded to the National Personnel 
+Records Center (NPRC/NRPMF), St. Louis, MO 63132 (if separated/retired 
+on or prior to 30 September 2004) or HQ Air Force Personnel Center, 
+Master Personnel Records Branch (HQ AFPC/DPSSR), (if separated/retired 
+on or after 1 October 2004) unless data subject holds a reserve 
+obligation, in which case they are forwarded to Air Reserve Personnel 
+Center.
+    Grades E-7 through E-9: On separation or retirement, original 
+copies, those retained in Senior Non-Commissioned Officer (NCO) 
+selection folders and those in field record closing before 1 January 
+1967, are forwarded to the National Personnel Records Center (NPRC/
+NRPMF), (if separated/retired on or prior to 30 September 2004) or HQ 
+Air Force Personnel Center, Master Personnel Records Branch (HQ AFPC/
+DPSSR), (if separated/retired on or after 1 October 2004), or to Air 
+Reserve Personnel Center if data subject holds a reserve obligation. 
+Duplicate copies closing 1 January 1967 or later (field record) are 
+returned to the member at separation or retirement.
+    Non-Active Duty Reserve Enlisted: Air Force Reserve Forces Non-
+Commissioned Officers Performance Report; upon separation, retirement 
+or assignment to a non-participating reserve status, are forwarded to 
+Air Reserve Personnel Center for file in the master personnel record 
+and disposed of as a part of that record. Records are destroyed by 
+tearing into pieces, shredding, pulping, macerating or burning.
+
+System manager(s) and address:
+    Deputy Chief of Staff for Personnel, Headquarters United States Air 
+Force, 1040 Air Force Pentagon, Washington, DC 20330-1040.
+
+Notification procedure:
+    Individuals seeking to determine whether information about 
+themselves is contained in this system should address written inquiries 
+to Deputy Chief of Staff/Personnel, Headquarters United States Air 
+Force, (USAF/A1), 1040 Air Force Pentagon, Washington, DC 20330-1040; 
+Headquarters Air Force Personnel Center, (HQ AFPC/DPSID),
+
+[[Page 6594]]
+
+550 C Street W, Randolph Air Force Base, TX 78150-4709; Chief of Air 
+Force Reserve, Headquarters United States Air Force, Washington, DC 
+20330-1000; The Director, Air National Guard, Washington, DC 20310-
+2500; National Military Personnel Records Center, (NPRC/NRPMF), 9700 
+Page Boulevard, St. Louis, MO 63132-5100, or directly to agency 
+officials at the respective system location. Official mailing addresses 
+are published as an appendix to the Air Force's compilation of record 
+systems notices.
+    Written request should contain full name, Social Security Number 
+(SSN) and complete mailing address with notarized signature as below.
+    An unsworn declaration under penalty of perjury in accordance with 
+section 1746 of 28 U.S.C. (Reference (n)) or notarized signatures are 
+acceptable as a means of proving the identity of the individual.
+    If an unsworn declaration is executed within the United States, its 
+territories, possessions, or commonwealths, it shall read ``I declare 
+(or certify, verify, or state) under penalty of perjury that the 
+foregoing is true and correct. Executed on (date). (Signature).''
+    If an unsworn declaration is executed outside the United States, it 
+shall read ``I declare (or certify, verify, or state) under penalty of 
+perjury under the laws of the United States of America that the 
+foregoing is true and correct. Executed on (date). (Signature).''
+
+Record access procedures:
+    Individuals seeking to access records about themselves contained in 
+this system should address written inquiries to Deputy Chief of Staff/
+Personnel, Headquarters United States Air Force, (USAF/A1), 1040 Air 
+Force Pentagon, Washington, DC 20330-1040; Headquarters Air Force 
+Personnel Center, (HQ AFPC/DPSID), 550 C Street W, Randolph Air Force 
+Base, TX 78150-4709; Chief of Air Force Reserve, Headquarters United 
+States Air Force, Washington, DC 20330-1000; The Director, Air National 
+Guard, Washington, DC 20310-2500; National Military Personnel Records 
+Center, (NPRC/NRPMF), 9700 Page Boulevard, St. Louis, MO 63132-2001, or 
+directly to agency officials at the respective system location. 
+Official mailing addresses are published as an appendix to the Air 
+Force's compilation of record systems notices.
+    Written request should contain full name, Social Security Number 
+(SSN) and complete mailing address with notarized signature as below.
+    An unsworn declaration under penalty of perjury in accordance with 
+section 1746 of 28 U.S.C. (Reference (n)) or notarized signatures are 
+acceptable as a means of proving the identity of the individual.
+    If an unsworn declaration is executed within the United States, its 
+territories, possessions, or commonwealths, it shall read ``I declare 
+(or certify, verify, or state) under penalty of perjury that the 
+foregoing is true and correct. Executed on (date). (Signature).''
+    If an unsworn declaration is executed outside the United States, it 
+shall read ``I declare (or certify, verify, or state) under penalty of 
+perjury under the laws of the United States of America that the 
+foregoing is true and correct. Executed on (date). (Signature).''
+
+Contesting record procedures:
+    The Air Force rules for accessing records and for contesting 
+contents and appealing initial agency determinations are published in 
+Air Force Instruction 33-332, Privacy Act Program, 32 CFR part 806b; or 
+may be obtained from the system manager.
+
+Record source categories:
+    Performance evaluations that are maintained on Air Force Active 
+Duty, Reserve, and Air National Guard personnel in the grades of airman 
+basic E-1 through general O-10.
+
+Exemptions claimed for the system:
+    Brigadier General Selectee Effectiveness Reports and Colonel and 
+Lieutenant Colonel Promotion recommendations with close out dates on or 
+before January 31, 1991, may be exempt under the provisions of 5 U.S.C. 
+552a(k)(7) from subsections of 5 U.S.C. 552a(c)(3); (d); (e)(4)(H); and 
+(f), as applicable, but only to the extent that disclosure would reveal 
+the identity of a confidential source. For additional information 
+contact the system manager.
+    An exemption rule has been promulgated in accordance with the 
+requirements of 5 U.S.C. 553(b)(1), (2), and (3), (c) and (e) and 
+published in the 32 CFR part 806b.
+
+1[FR Doc. E9-2782 Filed 2-9-09; 8:45 am]
+BILLING CODE 5001-06-P
+
+
+</pre></body>
+</html>

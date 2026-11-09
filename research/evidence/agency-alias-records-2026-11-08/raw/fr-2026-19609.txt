@@ -1,0 +1,99 @@
+<html>
+<head>
+<title>Federal Register, Volume 91 Issue 185 (Friday, September 25, 2026)</title>
+</head>
+<body><pre>
+[Federal Register Volume 91, Number 185 (Friday, September 25, 2026)]
+[Notices]
+[Page 60950]
+From the Federal Register Online via the Government Publishing Office [<a href="http://www.gpo.gov">www.gpo.gov</a>]
+[FR Doc No: 2026-19609]
+
+
+-----------------------------------------------------------------------
+
+DEPARTMENT OF DEFENSE
+
+Department of the Navy
+
+[Docket ID: USN-2026-HQ-0397]
+
+
+Proposed Collection; Comment Request
+
+AGENCY: Department of the Navy, Department of Defense (DoD).
+
+ACTION: 60-Day information collection notice.
+
+-----------------------------------------------------------------------
+
+SUMMARY: In compliance with the Paperwork Reduction Act of 1995, the 
+United States Marine Corps (USMC) announces a proposed public 
+information collection and seeks public comment on the provisions 
+thereof. Comments are invited on: whether the proposed collection of 
+information is necessary for the proper performance of the functions of 
+the agency, including whether the information shall have practical 
+utility; the accuracy of the agency's estimate of the burden of the 
+proposed information collection; ways to enhance the quality, utility, 
+and clarity of the information to be collected; and ways to minimize 
+the burden of the information collection on respondents, including 
+through the use of automated collection techniques or other forms of 
+information technology.
+
+DATES: Consideration will be given to all comments received by November 
+24, 2026.
+
+ADDRESSES: You may submit comments, identified by docket number and 
+title, by any of the following methods:
+    Federal eRulemaking Portal: <a href="http://www.regulations.gov">http://www.regulations.gov</a>. Follow the 
+instructions for submitting comments.
+    Mail: Department of Defense, Office of the Director of 
+Administration and Management, Oversight and Compliance Directorate, 
+Regulatory Division, 4800 Mark Center Drive, Mailbox #24, Suite 05F16, 
+Alexandria, VA 22350-1700.
+    Instructions: All submissions received must include the agency 
+name, docket number and title for this Federal Register document. The 
+general policy for comments and other submissions from members of the 
+public is to make these submissions available for public viewing on the 
+internet at <a href="http://www.regulations.gov">http://www.regulations.gov</a> as they are received without 
+change, including any personal identifiers or contact information.
+
+FOR FURTHER INFORMATION CONTACT: To request more information on this 
+proposed information collection or to obtain a copy of the proposal and 
+associated collection instruments, please write to Marine Corps 
+Marathon, PO Box 188, Quantico, VA 22134, ATTN: Lieutenant Colonel 
+Kenneth A. Tarr, or call 703-432-8132.
+
+SUPPLEMENTARY INFORMATION: 
+    Title; Associated Form; and OMB Number: Marine Corps Marathon 
+Organization (MCMO) Participant Registrations; OMB Control Number 0712-
+0005.
+    Needs and Uses: The Marine Corps Marathon Organization (MCMO) is 
+tasked with the management of the Marine Corps Marathon (MCM) races on 
+behalf of the Marine Corps. The MCM Race Application collection is 
+necessary to register individuals for MCM races, identify participants 
+for timing and results purposes, determine award categories, and to 
+ensure appropriate contact information is on file if emergency 
+treatment is required. The collection serves a secondary purpose to 
+foster marketing relationships for the Marine Corps and provide 
+participation data for future event planning and promotion.
+    Affected Public: Individuals or households.
+    Annual Burden Hours: 8,967.
+    Number of Respondents: 61,300.
+    Responses per Respondent: 1.
+    Annual Responses: 61,300.
+    Average Burden per Response: 2 minutes (Volunteer Registration); 5 
+minutes (MCM Kids Race, MCM 17.75K, Quantico 12K, and Turkey Trot 
+registrations); 10 minutes (MCM Weekend and Historic Half Weekend 
+registrations)
+    Frequency: On Occasion.
+
+    Dated: September 22, 2026.
+Stephanie J. Bost,
+Alternate OSD Federal Register Liaison Officer, Department of Defense.
+[FR Doc. 2026-19609 Filed 9-24-26; 8:45 am]
+BILLING CODE 3810-FF-P
+
+
+</pre></body>
+</html>

@@ -12,4 +12,8 @@ records each URL, final URL, status, size, sha256 and time.
 record read only while its file hashes as recorded and contains the quoted
 passage; the release refuses an adopted alias otherwise (REF-075).
 uscode.house.gov answered 404 to this probe for every section, so govinfo is
-the host of record.
+the host of record. A second reading the same day (the owner's "find agency
+pages, then adopt") added four Federal Register documents, a House Armed
+Services hearing record from govinfo and the Forest Service's organization
+page; defense.gov, af.mil, spaceforce.mil, marines.mil, africom.mil, usfk.mil
+and state.gov answered 403 (a bot challenge, not bypassed).

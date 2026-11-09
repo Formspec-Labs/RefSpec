@@ -4,7 +4,7 @@
 
 Generated from [agency-registry-alias-batch-candidates.json](agency-registry-alias-batch-candidates.json) and [agency-registry-alias-batch-decisions.json](agency-registry-alias-batch-decisions.json) by `tools/assemble_agency_registry_alias_batch.py`; its default run fails if this sheet disagrees with either. **Do not edit this sheet.** You (reviewer `urn:ref:reviewer:refspec-owner`) answer through the question tool or by editing the decisions file, exactly as for batch 1: each decision is keyed by the alias id and records the answer, the date, the channel and the item's `content_digest` (the Decision keys table). Every row is `candidate-pending-owner-adjudication`. The plan this batch serves is [agency-registry-alias-plan.md](agency-registry-alias-plan.md).
 
-Decisions recorded: 62 current, 0 stale, 8 of 70 undecided. Candidates digest `sha256:6fb33c899a97628a8f38499b00c82d2af705e107da63eb1ed64a26afeb896fa8`; demand evidence `research/evidence/agency-alias-demand-2026-11-08/federal-misses.json` (`sha256:48d323915e517163e05166167eebce089043a3b4e65f13ea65b218f0a5eb2676`).
+Decisions recorded: 70 current, 0 stale, 0 of 70 undecided. Candidates digest `sha256:f27a8b66b414ed8c75153340997623b589c5fe1820d75e60ec73953d361c0b82`; demand evidence `research/evidence/agency-alias-demand-2026-11-08/federal-misses.json` (`sha256:48d323915e517163e05166167eebce089043a3b4e65f13ea65b218f0a5eb2676`).
 
 **Demand.** congressional-tech's 3,662 federal-typed witness appearances: 2,193 already match a pinned FR name or short name, 327 name no organization, and the rest split into 573 distinct unmatched keys. 130 keys pass the thresholds (3 federal appearances, or 25 of any witness type), and each is below exactly once: 12 mechanical, 58 judgment, 1 already resolvable, 59 excluded. Counts read federal / all.
 
@@ -32,19 +32,6 @@ Each follows from the pinned rosters by a stated rule and needs no hand input: `
 ## Judgment (58)
 
 Every cited record is retained under `research/evidence/agency-alias-records-2026-11-08/` (fetched 2026-11-08 from govinfo and the Federal Register) and read: the tool refuses a row whose quoted passage is not in the retained bytes, and the release refuses an adopted alias whose record no longer is. A row whose source check is not `confirmed` went back to the owner on 2026-11-08 instead of being adopted.
-
-### Returned to the owner (8): the records read do not confirm the recommendation
-
-| Id | Source check | Finding | Decision |
-| --- | --- | --- | --- |
-| `alias:africa-command` | unconfirmed | No record read names this command; 10 U.S.C. 111(b)(9) puts combatant commands in the Department, but nothing read says this is one. | undecided |
-| `alias:national-forest-system` | contradicted | 16 U.S.C. 1609 defines the National Forest System as lands, not an organization, and does not name the Forest Service; the deputy area the row assumes is in no record read. | undecided |
-| `alias:air-force-space-command` | unconfirmed | No record was found or read for Air Force Space Command; major commands are not established by statute. | undecided |
-| `alias:forces-korea` | unconfirmed | No record read names this command; 10 U.S.C. 111(b)(9) puts combatant commands in the Department, but nothing read says this is one. It is a subordinate unified command, which 111(b)(9) does not list by that name. | undecided |
-| `alias:headquarters-air-force` | unconfirmed | 10 U.S.C. 9031 establishes the Air Staff; no record read uses the name 'Headquarters Air Force'. | undecided |
-| `alias:bureau-of-near-eastern-affairs` | unconfirmed | No statute establishes State's regional bureaus; no record was found or read. | undecided |
-| `alias:transportation-command` | unconfirmed | No record read names this command; 10 U.S.C. 111(b)(9) puts combatant commands in the Department, but nothing read says this is one. OPM's code DD76 sits under the DD (Department of Defense) prefix, but the held release states no parent. | undecided |
-| `alias:usmc` | unconfirmed | No record read, and no held roster, states the acronym 'USMC'; 10 U.S.C. 8063 confirms only the full name. | undecided |
 
 ### `alias:veterans-health-administration` — Veterans Health Administration (49); (VISN 17) Veterans Health Administration (1); Veterans Health Administration (VHA) (1)
 
@@ -369,12 +356,12 @@ Every cited record is retained under `research/evidence/agency-alias-records-202
 | Names | none held |
 | FR-keyed consumers get | FR 103 Defense Department (part of) |
 | Basis | `unitWithinFrAgency` |
-| Reasoning | U.S. Africa Command; OPM's AF1R is an Air Force code, so not taken as the command. |
-| Records read | [10 U.S.C. 111](https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm): "(9) The unified and specified combatant commands." |
-| Source check | unconfirmed — No record read names this command; 10 U.S.C. 111(b)(9) puts combatant commands in the Department, but nothing read says this is one. |
+| Reasoning | U.S. Africa Command; OPM's AF1R is an Air Force code, so not taken as the command. DoD's FOIA rule names it among the DoD Components, beside the other combatant commands. |
+| Records read | [10 U.S.C. 111](https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm): "(9) The unified and specified combatant commands."; [82 FR 1192 (2017-01-05), FR Doc 2016-31686, DoD Freedom of Information Act (FOIA) Program (32 CFR part 286)](https://www.federalregister.gov/documents/full_text/text/2017/01/05/2016-31686.txt): "United States Africa Command, United States Central Command, United States European Command, United States Northern Command, United States Pacific Command, United States Special Operations Command, United States Strategic Command, and United States Transportation Command."; [82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR 286.2](https://www.federalregister.gov/documents/full_text/text/2017/01/05/2016-31686.txt): "the Combatant Commands, the Office of the Inspector General of the Department of Defense, the Defense Agencies, the DoD Field Activities, and all other organizational entities within the DoD" |
+| Source check | confirmed |
 | Answers | `yes` / `no` |
 | Recommended | **yes** — The unified and specified combatant commands are part of the Department of Defense (10 U.S.C. 111(b)(9)) and have no FR record; part-of DOD is the only FR resolution, and it claims no identity. |
-| Owner decision / date | undecided |
+| Owner decision / date | **yes** (2026-11-08, questionTool) |
 
 ### `alias:federal-bureau-of-investigations` — Federal Bureau of Investigations (5)
 
@@ -475,11 +462,11 @@ Every cited record is retained under `research/evidence/agency-alias-records-202
 | FR-keyed consumers get | FR 209 Forest Service (part of) |
 | Basis | `unitWithinFrAgency` |
 | Reasoning | The National Forest System is the lands the Forest Service (FR 209) administers; as a witness's organization it names the Forest Service's National Forest System deputy area. |
-| Records read | [16 U.S.C. 1609](https://www.govinfo.gov/content/pkg/USCODE-2024-title16/html/USCODE-2024-title16-chap36-subchapI-sec1609.htm): "the National Forest System consists of units of federally owned forest, range, and related lands" |
-| Source check | contradicted — 16 U.S.C. 1609 defines the National Forest System as lands, not an organization, and does not name the Forest Service; the deputy area the row assumes is in no record read. |
+| Records read | [USDA Forest Service, About the Agency: Organization (fs.usda.gov, read 2026-11-08)](https://www.fs.usda.gov/about-agency/organization): "Agency headquarters has the following program units: National Forest System: We manage public lands, known collectively as the National Forest System" |
+| Source check | confirmed |
 | Answers | `yes` / `no` |
 | Recommended | **yes** — The unit has no FR record; a part-of row gives the FR id of the organization it sits in, and claims no identity. |
-| Owner decision / date | undecided |
+| Owner decision / date | **yes** (2026-11-08, questionTool) |
 
 ### `alias:national-institute-of-health` — National Institute of Health (3); U.S. National Institute of Health (1)
 
@@ -561,15 +548,15 @@ Every cited record is retained under `research/evidence/agency-alias-records-202
 | Field | Value |
 | --- | --- |
 | Demand (federal / all) | 3 / 19 |
-| Names | none held |
+| Names | OPM `AF4G` UNITED STATES SPACE FORCE |
 | FR-keyed consumers get | FR 13 Air Force Department (part of) |
-| Basis | `unitWithinFrAgency` |
-| Reasoning | Air Force Space Command, an Air Force major command until the Space Force took it in 2019-2020. |
-| Records read | the held roster records named |
-| Source check | unconfirmed — No record was found or read for Air Force Space Command; major commands are not established by statute. |
+| Basis | `statutoryRename` |
+| Reasoning | The Space Force's name before 2019-12-20: Pub. L. 116-92 sec. 952(a) redesignated Air Force Space Command the United States Space Force, which 10 U.S.C. 9081 places within the Department of the Air Force (FR 13). A witness's 'Air Force Space Command' therefore names the organization OPM now holds as AF4G (the Space Force), part of the Department of the Air Force. Before 2019 the command was an Air Force major command; no record read states that, and the row does not rest on it. |
+| Records read | [10 U.S.C. 9081](https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleD-partI-chap908-sec9081.htm): "The Air Force Space Command is hereby redesignated as the United States Space Force (USSF)."; [10 U.S.C. 9081](https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleD-partI-chap908-sec9081.htm): "There is established a United States Space Force as an armed force within the Department of the Air Force." |
+| Source check | confirmed |
 | Answers | `yes` / `no` |
-| Recommended | **yes** — Part-of the Department of the Air Force is true for the command's whole life, before and after the Space Force. |
-| Owner decision / date | undecided |
+| Recommended | **yes** — One organization renamed by statute, part of the same department under either name. |
+| Owner decision / date | **yes** (2026-11-08, questionTool) |
 
 ### `alias:national-institute-of-allergy-and-infectious-diseases` — National Institute of Allergy and Infectious Diseases (3)
 
@@ -609,12 +596,12 @@ Every cited record is retained under `research/evidence/agency-alias-records-202
 | Names | none held |
 | FR-keyed consumers get | FR 103 Defense Department (part of) |
 | Basis | `unitWithinFrAgency` |
-| Reasoning | U.S. Forces Korea, a subordinate unified command; no held roster holds it. |
-| Records read | [10 U.S.C. 111](https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm): "(9) The unified and specified combatant commands." |
-| Source check | unconfirmed — No record read names this command; 10 U.S.C. 111(b)(9) puts combatant commands in the Department, but nothing read says this is one. It is a subordinate unified command, which 111(b)(9) does not list by that name. |
+| Reasoning | U.S. Forces Korea, a subordinate unified command of U.S. Pacific (now Indo-Pacific) Command: USPACOM's own answer for the record to the House Armed Services Committee counts its positions among USPACOM's subordinate unified commands. USPACOM is a DoD Component (DoD's FOIA rule), and 10 U.S.C. 111(b)(11) puts every command under a combatant command's control in the Department. |
+| Records read | [H.A.S.C. No. 113-14 (2013), Hearing on National Defense Authorization Act for Fiscal Year 2014, U.S. Pacific Command answers for the record (CHRG-113hhrg79955)](https://www.govinfo.gov/content/pkg/CHRG-113hhrg79955/html/CHRG-113hhrg79955.htm): "A total of 686 positions support subordinate unified commands; US Forces Korea (468), US Alaskan Command (66), US Forces Japan (152)."; [82 FR 1192 (2017-01-05), FR Doc 2016-31686, DoD Freedom of Information Act (FOIA) Program (32 CFR part 286)](https://www.federalregister.gov/documents/full_text/text/2017/01/05/2016-31686.txt): "United States Africa Command, United States Central Command, United States European Command, United States Northern Command, United States Pacific Command, United States Special Operations Command, United States Strategic Command, and United States Transportation Command."; [10 U.S.C. 111](https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm): "(11) All offices, agencies, activities, and commands under the control or supervision of any element named in paragraphs (1) through (10)." |
+| Source check | confirmed |
 | Answers | `yes` / `no` |
-| Recommended | **yes** — The unified and specified combatant commands are part of the Department of Defense (10 U.S.C. 111(b)(9)) and have no FR record; part-of DOD is the only FR resolution, and it claims no identity. |
-| Owner decision / date | undecided |
+| Recommended | **yes** — Part-of DOD through USPACOM; no record read makes it an organization of its own with an FR record. |
+| Owner decision / date | **yes** (2026-11-08, questionTool) |
 
 ### `alias:labor` — Labor (3)
 
@@ -655,11 +642,11 @@ Every cited record is retained under `research/evidence/agency-alias-records-202
 | FR-keyed consumers get | FR 13 Air Force Department (part of) |
 | Basis | `unitWithinFrAgency` |
 | Reasoning | Headquarters Air Force (the Secretariat and Air Staff) sits in the Department of the Air Force. |
-| Records read | [10 U.S.C. 9031](https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleD-partI-chap905-sec9031.htm): "There is in the executive part of the Department of the Air Force an Air Staff." |
-| Source check | unconfirmed — 10 U.S.C. 9031 establishes the Air Staff; no record read uses the name 'Headquarters Air Force'. |
+| Records read | [10 U.S.C. 9031](https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleD-partI-chap905-sec9031.htm): "There is in the executive part of the Department of the Air Force an Air Staff."; [74 FR 6591 (2009-02-10), FR Doc E9-2782, Department of the Air Force, Privacy Act of 1974; System of Records](https://www.federalregister.gov/documents/full_text/text/2009/02/10/E9-2782.txt): "Deputy Chief of Staff for Personnel, Headquarters United States Air Force, 1040 Air Force Pentagon" |
+| Source check | confirmed |
 | Answers | `yes` / `no` |
 | Recommended | **yes** — The unit has no FR record; a part-of row gives the FR id of the organization it sits in, and claims no identity. |
-| Owner decision / date | undecided |
+| Owner decision / date | **yes** (2026-11-08, questionTool) |
 
 ### `alias:headquarters-marine-corps` — Headquarters U.S. Marine Corps (2); Headquarters Marine Corps (1)
 
@@ -699,12 +686,12 @@ Every cited record is retained under `research/evidence/agency-alias-records-202
 | Names | none held |
 | FR-keyed consumers get | FR 476 State Department (part of) |
 | Basis | `unitWithinFrAgency` |
-| Reasoning | A regional bureau of the Department of State (FR 476). |
-| Records read | the held roster records named |
-| Source check | unconfirmed — No statute establishes State's regional bureaus; no record was found or read. |
+| Reasoning | A regional bureau of the Department of State (FR 476); State signs Federal Register documents from it. |
+| Records read | [88 FR 14438 (2023-03-08), FR Doc 2023-04723, Department of State, Certification Pursuant to Section 7041(a)(1)](https://www.federalregister.gov/documents/full_text/text/2023/03/08/2023-04723.txt): "Office Director, Office of Assistance Coordination, Bureau of Near Eastern Affairs, Department of State." |
+| Source check | confirmed |
 | Answers | `yes` / `no` |
 | Recommended | **yes** — The unit has no FR record; a part-of row gives the FR id of the organization it sits in, and claims no identity. |
-| Owner decision / date | undecided |
+| Owner decision / date | **yes** (2026-11-08, questionTool) |
 
 ### `alias:department-of-war` — U.S. Department of War (3)
 
@@ -849,12 +836,12 @@ Every cited record is retained under `research/evidence/agency-alias-records-202
 | Names | OPM `DD76` U.S. TRANSPORTATION COMMAND.  NOTE: ORGANIZATION DOES NOT MAKE HR SUBMISSIONS TO OPM. CODE MAY BE USED FOR OTHER DOCUMENTATION PURPOSES. |
 | FR-keyed consumers get | FR 103 Defense Department (part of) |
 | Basis | `unitWithinFrAgency` |
-| Reasoning | U.S. Transportation Command; OPM holds it as DD76. |
-| Records read | [10 U.S.C. 111](https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm): "(9) The unified and specified combatant commands." |
-| Source check | unconfirmed — No record read names this command; 10 U.S.C. 111(b)(9) puts combatant commands in the Department, but nothing read says this is one. OPM's code DD76 sits under the DD (Department of Defense) prefix, but the held release states no parent. |
+| Reasoning | U.S. Transportation Command; OPM holds it as DD76. DoD's FOIA rule names it among the DoD Components its OSD/Joint Staff center serves, beside the other combatant commands. |
+| Records read | [10 U.S.C. 111](https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm): "(9) The unified and specified combatant commands."; [82 FR 1192 (2017-01-05), FR Doc 2016-31686, DoD Freedom of Information Act (FOIA) Program (32 CFR part 286)](https://www.federalregister.gov/documents/full_text/text/2017/01/05/2016-31686.txt): "United States Africa Command, United States Central Command, United States European Command, United States Northern Command, United States Pacific Command, United States Special Operations Command, United States Strategic Command, and United States Transportation Command."; [82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR 286.2](https://www.federalregister.gov/documents/full_text/text/2017/01/05/2016-31686.txt): "the Combatant Commands, the Office of the Inspector General of the Department of Defense, the Defense Agencies, the DoD Field Activities, and all other organizational entities within the DoD" |
+| Source check | confirmed |
 | Answers | `yes` / `no` |
 | Recommended | **yes** — The unified and specified combatant commands are part of the Department of Defense (10 U.S.C. 111(b)(9)) and have no FR record; part-of DOD is the only FR resolution, and it claims no identity. |
-| Owner decision / date | undecided |
+| Owner decision / date | **yes** (2026-11-08, questionTool) |
 
 ### `alias:education` — Education (1)
 
@@ -880,11 +867,11 @@ Every cited record is retained under `research/evidence/agency-alias-records-202
 | FR-keyed consumers get | FR 378 Navy Department (part of) |
 | Basis | `militaryServiceOfDepartment` |
 | Reasoning | USMC, the Marine Corps' acronym; the same row as 'marine corps'. |
-| Records read | [10 U.S.C. 8063](https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleC-partI-chap807-sec8063.htm): "The Marine Corps, within the Department of the Navy, shall be so organized" |
-| Source check | unconfirmed — No record read, and no held roster, states the acronym 'USMC'; 10 U.S.C. 8063 confirms only the full name. |
+| Records read | [10 U.S.C. 8063](https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleC-partI-chap807-sec8063.htm): "The Marine Corps, within the Department of the Navy, shall be so organized"; [91 FR 60950 (2026-09-25), FR Doc 2026-19609, Department of the Navy, Proposed Collection](https://www.federalregister.gov/documents/full_text/text/2026/09/25/2026-19609.txt): "AGENCY: Department of the Navy, Department of Defense (DoD)."; [91 FR 60950 (2026-09-25), FR Doc 2026-19609, Department of the Navy, Proposed Collection](https://www.federalregister.gov/documents/full_text/text/2026/09/25/2026-19609.txt): "the United States Marine Corps (USMC) announces a proposed public information collection" |
+| Source check | confirmed |
 | Answers | `yes` / `no` |
 | Recommended | **yes** — The unit has no FR record; a part-of row gives the FR id of the organization it sits in, and claims no identity. |
-| Owner decision / date | undecided |
+| Owner decision / date | **yes** (2026-11-08, questionTool) |
 
 ### `alias:national-guard-bureau` — National Guard Bureau (1)
 
@@ -1022,7 +1009,7 @@ Listed so nothing is dropped silently; say so to move any into a later batch.
 | `alias:missile-defense-agency` | `yes` / `no` | `yes` | `sha256:a5b24092303ec8aa01c9f262814efaf918a346dd8f8bd9f138c1909e2819e151` |
 | `alias:cyber-command` | `yes` / `no` | `yes` | `sha256:7bd7c1d62e32137c36e8e79c9de4190688fc3ef0c7107e840e7a33b840da7aca` |
 | `alias:special-operations-command` | `yes` / `no` | `yes` | `sha256:5a8cb0c7a7ef3f457e98bbb34d2402771db8816cbfec80f75bffa5f567e96f13` |
-| `alias:africa-command` | `yes` / `no` | `yes` | `sha256:0dd3ea439548f744ed71fc4e981488124784bc9fc7397fa22ace47c50bc2f4f9` |
+| `alias:africa-command` | `yes` / `no` | `yes` | `sha256:fb7822fd127e70b8e9c55bf5a6918b1bfca19585a4c04d85329c02cd39a65bdb` |
 | `alias:federal-bureau-of-investigations` | `yes` / `no` | `no` | `sha256:8bda774338306c27e1f738b2532daa1ebea62777a1f19f122e05aa85fbf7f28b` |
 | `alias:national-cemetery-administration` | `yes` / `no` | `yes` | `sha256:bec7df0e22794121888e476a9a592b70b774a2fb8826e427dd60415bb7e29d21` |
 | `alias:office-of-comptroller-of-currency` | `yes` / `no` | `yes` | `sha256:fcca0e3691aff777ce824dede5740d38f348c45dd5ba7e71e56ea47d46897fea` |
@@ -1030,24 +1017,24 @@ Listed so nothing is dropped silently; say so to move any into a later batch.
 | `alias:space-command` | `yes` / `no` | `yes` | `sha256:18764e117ae36713aa8ff0f1823a66f474dab87183d1e3029f85cfedc06b7d27` |
 | `alias:bureau-of-indian-affairs` | `yes` / `no` | `yes` | `sha256:0ebb185ea084f9386aaaac1fc3064daeaa2f98fd5b00474780110404ace14a3f` |
 | `alias:usda-office-of-inspector-general` | `yes` / `no` | `yes` | `sha256:fc77b056c7a4cbc84ea5439d169409bf104c2ea39855d6c554498900bb81e187` |
-| `alias:national-forest-system` | `yes` / `no` | `yes` | `sha256:3df876fd58b12c30a7250f02613f9377e9c25dbadda43b9590afec5d40bfe036` |
+| `alias:national-forest-system` | `yes` / `no` | `yes` | `sha256:b7de260037331636132c60abe8d523153121071c9100b813f4083ac73e4d40c6` |
 | `alias:national-institute-of-health` | `yes` / `no` | `no` | `sha256:04ec974eeac69b5478536f3ea5306eb1cf0efb6027327e231cde56b19b574e53` |
 | `alias:office-of-personnel-management` | `yes` / `no` | `yes` | `sha256:9d939b41e4f954762d2f1a02fb0a4d909796d316d65268027babf6badadb6295` |
 | `alias:joint-chiefs-of-staff` | `yes` / `no` | `yes` | `sha256:8489389062f9653245100000d2381e3bceee601342900f767e4d08dda98bedcc` |
 | `alias:central-command` | `yes` / `no` | `yes` | `sha256:cdd2078332d9b748d69f454c85ed045cf03f136ec1e751b653602494d817d6bb` |
 | `alias:european-command` | `yes` / `no` | `yes` | `sha256:df9cc8508d3ef050b1df77ec195052cdc03761805ceb04104d9270d19e06dba1` |
 | `alias:cybersecurity-and-infrastructure-security-agency` | `yes` / `no` | `yes` | `sha256:d4456dab7cac54d79beed4689a7b33ca401ee493c5417f06bd700493703afadd` |
-| `alias:air-force-space-command` | `yes` / `no` | `yes` | `sha256:52afa6360430010ee09efc94a44b5e1817e2934cc071b104df2c27362e2617d0` |
+| `alias:air-force-space-command` | `yes` / `no` | `yes` | `sha256:e55287aeaccffd4e63c4ee9dd77241dfee86f90da4db8b945fe6d6b8d75b0b33` |
 | `alias:national-institute-of-allergy-and-infectious-diseases` | `yes` / `no` | `yes` | `sha256:aad036525eea5bcb20d1bf7f58276042c46c8c2659651055de42eddb1a4e258a` |
 | `alias:office-of-congressional-workplace-rights` | `yes` / `no` | `yes` | `sha256:cfb5d0f1711eb2d2d8ebada0b50275ee8e4b42f4ea6154a1e29ffcc8d6316773` |
-| `alias:forces-korea` | `yes` / `no` | `yes` | `sha256:b05d7a5d6a2ea697e47ff1b91a59b1526ee62a2341988a2d0a6ba194251d5fa7` |
+| `alias:forces-korea` | `yes` / `no` | `yes` | `sha256:cf9094c16a6946868b92dcf320580fbcc030cf95ea04cd36500f6fae8b5ca72c` |
 | `alias:labor` | `yes` / `no` | `no` | `sha256:0d48c10db5fc6949b3e35776f5859ad8eeab220c444519d30aa939ea0f86baed` |
 | `alias:office-of-chief-of-naval-operations` | `yes` / `no` | `yes` | `sha256:342a1642bf6b348cbdfdf9d68731abc449312fcb9585760f05784b701be2ad71` |
-| `alias:headquarters-air-force` | `yes` / `no` | `yes` | `sha256:24eac58a27dbae2c0e464e3e8d2daef449a300980160bac60c533129b68feab3` |
+| `alias:headquarters-air-force` | `yes` / `no` | `yes` | `sha256:f72ec1cc02c646c9594ad73e04875e453c8cdc3da02822d2bdc259b9c005a173` |
 | `alias:headquarters-marine-corps` | `yes` / `no` | `yes` | `sha256:da4c74600e5b81fd4d9eb44a4d60f4f3eeee9fba2be80f205b6cfab12cb4006d` |
 | `alias:health-and-human-services` | `yes` / `no` | `yes` | `sha256:761accb2eb34dcee6df34b9352e0f631949eef8965fa1e2a8d2011f5637f7be7` |
 | `alias:office-of-surface-mining-reclamation-and-enforcement` | `yes` / `no` | `yes` | `sha256:eb71e90da1467bc49683ea0b45d20241de3ee9c6bc76727609c9d691e0155b3e` |
-| `alias:bureau-of-near-eastern-affairs` | `yes` / `no` | `yes` | `sha256:107823dd9953f4d10651ab8916a3f9bf6d14eaf931116f9b1f553816ea1b5dee` |
+| `alias:bureau-of-near-eastern-affairs` | `yes` / `no` | `yes` | `sha256:6db9e09c76942c780936d75c6356bedf7682312a4f266dc1db1dc88baed207bc` |
 | `alias:department-of-war` | `yes` / `no` | `yes` | `sha256:cd294ba7c7226ecceac699c44a3d8a5856ee62a6800c33d2a3ac4a2723eba576` |
 | `alias:defense-innovation-unit` | `yes` / `no` | `yes` | `sha256:cf8623f92fca07e72b1f9c9d5f669b15475c7ba9939551a44da10301f5e31e28` |
 | `alias:federal-energy-regulatory-commision` | `yes` / `no` | `no` | `sha256:3d81378005443008d0f077beb4d7632312eb1426f9595ca8fcb8e52cc9d6894b` |
@@ -1059,8 +1046,8 @@ Listed so nothing is dropped silently; say so to move any into a later batch.
 | `alias:office-of-information-and-regulatory-affairs` | `yes` / `no` | `yes` | `sha256:a4f01d79d496fd769aba2be1bf70126b4ccafa44e83c668289a1b2d409d792c3` |
 | `alias:copyright-office` | `yes` / `no` | `yes` | `sha256:b6176b42a312c0b47ee04a84de8d33bd0feb1c66eb481dbefc84b465df53a257` |
 | `alias:federal-bureau-of-prisons` | `yes` / `no` | `yes` | `sha256:3ca143ecd639d843dda6451b99a395fe951cda9bc932744ca854527ed51fa8dc` |
-| `alias:transportation-command` | `yes` / `no` | `yes` | `sha256:ee7126e888f7e92b69cda04bcad280c8aa9fcc14f65326ddac83152b979abb15` |
+| `alias:transportation-command` | `yes` / `no` | `yes` | `sha256:3f6d9bfbe9ef0790da9c52e019994579cf75a72b609092ae10d4b5a439f71a17` |
 | `alias:education` | `yes` / `no` | `no` | `sha256:be91de0fcef3a7b5cb97e4baaa23613c0ed8fcdd69ffaa24de956d74385bb7ae` |
-| `alias:usmc` | `yes` / `no` | `yes` | `sha256:a4c4235b90e2fd445c5c677b184e4cefcee882f55b174a9c96e4e21bc7f197f0` |
+| `alias:usmc` | `yes` / `no` | `yes` | `sha256:17aaf63f62615cf3313a6c0796afc19802eb1cbb673e5a43dc6093580a64c7e6` |
 | `alias:national-guard-bureau` | `yes` / `no` | `yes` | `sha256:d2965653755ece80303057c4ebbbd984ead82f058fb0afd9d1a34c81dff5e308` |
 | `alias:national-science-board` | `yes` / `no` | `yes` | `sha256:db657df1a1f1435c6148a9b53d510f46361440782d138a134a138754389d5cbb` |

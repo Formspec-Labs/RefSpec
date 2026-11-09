@@ -99,9 +99,9 @@ def _decided(release: RegistryMappingRelease) -> dict[str, dict]:
 
 
 def test_the_release_emits_exactly_the_owners_decisions_with_parity(release: RegistryMappingRelease) -> None:
-    """Pin 89 decided items = 13 bridges + 10 events + 11 non-emissions + 55 aliases, each item once, over three batches.
+    """Pin 97 decided items = 13 bridges + 10 events + 11 non-emissions + 63 aliases, each item once, over three batches.
 
-    Seven of the non-emissions are aliases the owner answered no; the alias batch's undecided aliases are held.
+    Seven of the non-emissions are aliases the owner answered no; an undecided alias would be held.
     """
 
     decided = _decided(release)
@@ -113,8 +113,8 @@ def test_the_release_emits_exactly_the_owners_decisions_with_parity(release: Reg
     non_emissions = {key: row["reason"] for key, row in decided.items() if row["decision"] == "nonEmission"}
     assert {key: reason for key, reason in non_emissions.items() if not key.startswith("alias:")} == NON_EMISSIONS
     assert {key for key, reason in non_emissions.items() if reason == "aliasRejectedByOwner"} == ALIAS_REJECTIONS
-    assert sum(row["decision"] == "alias" for row in decided.values()) == release.metadata["aliasCount"] == 55
-    assert len(decided) == release.metadata["decidedItemCount"] == 89 == 13 + 10 + 11 + 55
+    assert sum(row["decision"] == "alias" for row in decided.values()) == release.metadata["aliasCount"] == 63
+    assert len(decided) == release.metadata["decidedItemCount"] == 97 == 13 + 10 + 11 + 63
     assert (release.metadata["bridgeCount"], release.metadata["eventCount"], release.metadata["nonEmissionCount"]) == (
         13,
         10,

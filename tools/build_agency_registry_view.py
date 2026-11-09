@@ -30,7 +30,7 @@ except ImportError:  # Direct execution places tools/ on sys.path.
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = ROOT / "output" / "agency-registry-view"
 # The sealed view the design note names (plans/agency-registry-design.md section 8).
-VIEW_MANIFEST_SHA256 = "sha256:f7ff12608fa0d82fb4e4c9d8009a913737df02004e96f973bb0cf2e95159b772"
+VIEW_MANIFEST_SHA256 = "sha256:7a806ea060c0c7a0ee37a991f443edc1a1f9ba74a1f5e1007db1e4e28cb23b7d"
 
 
 def build_release(rosters: tuple[RegistryRelease, ...] | None = None) -> RegistryMappingRelease:
