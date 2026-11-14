@@ -13,6 +13,7 @@
     "refspec.registry.cfr_authority_notes",
     "refspec.registry.citation_grammar",
     "refspec.registry.claim_release_exports",
+    "refspec.registry.congress_legislative_glossary",
     "refspec.registry.ecfr",
     "refspec.registry.entity_registry_release",
     "refspec.registry.eo_roster",
@@ -48,8 +49,8 @@
     "refspec.registry.uslm",
     "refspec.registry.xml_text"
   ],
-  "indexDigest": "sha256:fd8ba4a4dd197f5ac4ecf27af9748bf08adb793ed7206a2eab90b29e3752170f",
-  "indexId": "urn:ref:atlas-index:fd8ba4a4dd197f5ac4ecf27af9748bf08adb793ed7206a2eab90b29e3752170f",
+  "indexDigest": "sha256:ff84ca72cac05aa10b857e3b46a577bc3b154678b7a6adf3cf1e25f7ff281227",
+  "indexId": "urn:ref:atlas-index:ff84ca72cac05aa10b857e3b46a577bc3b154678b7a6adf3cf1e25f7ff281227",
   "nonAuthorizing": true,
   "recordedAt": "2026-09-26T00:00:00Z",
   "resourceCatalogDigest": "sha256:7764cdd375eb30519179d6c029433c77d7b65fc08b111d458c8bd9212c592987",
@@ -3660,7 +3661,7 @@
   ],
   "summary": {
     "exactReleaseCount": 6,
-    "implementationModuleCount": 44,
+    "implementationModuleCount": 45,
     "participationCounts": {
       "bridge": 34,
       "core": 1,

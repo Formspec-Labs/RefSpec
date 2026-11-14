@@ -110,10 +110,11 @@ def test_checked_registry_coverage_is_exact_and_compact() -> None:
         # modules) is recorded beside the index pin.
         # 45 -> 44 and 105 -> 104: infrastructure.zyte_transport is deleted
         # for SpicyDocs' `spicy_docs.sources.zyte` (B14); it published nothing.
-        "implementationModuleCount": 44,
+        # The pinned Congress.gov glossary is an offline reference, without an Atlas resource placement.
+        "implementationModuleCount": 45,
         "indexedResourceCount": 99,
         "indexedWithoutExactReleaseCount": 94,
-        "registryModuleCount": 104,
+        "registryModuleCount": 105,
         "releaseReadyIndexedResourceCount": 5,
         # REF-033 ring corrections move three catalog kinds: the LDA general
         # issue codes and the NASA technology taxonomy are code lists (the

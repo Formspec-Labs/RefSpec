@@ -231,7 +231,24 @@ def _acquisition_wave_test_inputs() -> dict[str, tuple[dict[str, Any], ...]]:
     return rows
 
 
+def _congress_glossary_test_inputs() -> dict[str, tuple[dict[str, Any], ...]]:
+    from refspec.registry.congress_legislative_glossary import GLOSSARY_2026_11_14
+
+    pin = GLOSSARY_2026_11_14
+    return {"congress_legislative_glossary.py": ({
+        "name": "congressLegislativeGlossary20261114",
+        "localPath": "output/registry-real-data-sources/congress-legislative-glossary-20261114.html",
+        "publisherUrl": pin.source_url,
+        "sha256": pin.expected_sha256,
+        "byteLength": pin.expected_byte_length,
+        "acquisition": "zyteRawHttp",
+        "provenance": "publisherPageResponse",
+        "scope": "Complete captured Congress.gov glossary; page anchors locate entries without asserting stable concept identity.",
+    },)}
+
+
 TEST_INPUTS: dict[str, tuple[dict[str, Any], ...]] = {
+    **_congress_glossary_test_inputs(),
     **_acquisition_wave_test_inputs(),
     **_cfr_authority_note_test_inputs(),
     **_usc_disposition_table_test_inputs(),

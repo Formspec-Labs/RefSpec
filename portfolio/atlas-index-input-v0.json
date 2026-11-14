@@ -10,6 +10,7 @@
     "refspec.registry.agency_crosswalk",
     "refspec.registry.cfr_authority_notes",
     "refspec.registry.citation_grammar",
+    "refspec.registry.congress_legislative_glossary",
     "refspec.registry.claim_release_exports",
     "refspec.registry.ecfr",
     "refspec.registry.entity_registry_release",

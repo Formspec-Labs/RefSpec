@@ -32,6 +32,7 @@ DEFAULT_SOURCE_MANIFEST = (
     REPOSITORY_ROOT / "research" / "evidence" / "registry-real-data-audit-2026-08-03" / "sources.json"
 )
 TEST_INPUT_ENVIRONMENT = {
+    "congressLegislativeGlossary20261114": "REFSPEC_CONGRESS_LEGISLATIVE_GLOSSARY_PATH",
     "courtlistenerJurisdictions": "REFSPEC_COURTLISTENER_JURISDICTIONS_PATH",
     "crsProductsPage20260803": "REFSPEC_CRS_PRODUCTS_PATH",
     "crsLegislativeSubjects20260730": "REFSPEC_CRS_LEGISLATIVE_SUBJECTS_PATH",

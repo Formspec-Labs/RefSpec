@@ -142,7 +142,8 @@ def test_checked_atlas_index_is_exact_and_exhaustive() -> None:
         # text reader. None publishes an atlas resource.
         # 45 -> 44: infrastructure.zyte_transport is deleted; the Zyte
         # adapters use SpicyDocs' `spicy_docs.sources.zyte` (B14).
-        "implementationModuleCount": 44,
+        # The pinned Congress.gov glossary is an offline reference, without an Atlas resource placement.
+        "implementationModuleCount": 45,
         # REF-033: nasa-technology-taxonomy left the subject ring for the
         # value ring, taking its bridge claim with it (bridge 10 -> 9).
         # REF-035 through REF-037 add the mapping and acquisition bridges.

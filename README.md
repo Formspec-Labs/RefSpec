@@ -80,6 +80,7 @@ never source trees or live databases
 | Seal | `src/refspec/seal.py` + [design](docs/seal-design.md) |
 | Source-fidelity auditor | `tools/verify_atlas_source_fidelity.py` |
 | Publisher adapters | `src/refspec/registry/` |
+| Pinned legislative glossary reference | [`docs/congress-legislative-glossary.md`](docs/congress-legislative-glossary.md) |
 | Decision ledger (why) | [`docs/decisions.md`](docs/decisions.md) |
 | Active plan (what's next) | [`plans/validation-cost-reset-plan.md`](plans/validation-cost-reset-plan.md) |
 | US/EU landscape context | [`ATLAS_US_EU_COMPARISON.md`](ATLAS_US_EU_COMPARISON.md) |
