@@ -391,6 +391,8 @@ __all__ = [
     "ORACLE_ANNUAL_YEARS",
     "ORACLE_RELEASE_POINT",
     "ORACLE_WINDOW",
+    "PROPOSED_SECTION_VERDICT",
+    "SECTION_VERDICTS",
     "UNKNOWN_REASONS",
     "USC_SECTION_ORACLE_ARTIFACT",
     "VERDICTS",
@@ -402,6 +404,7 @@ __all__ = [
     "SectionVerdict",
     "SubsectionVerdict",
     "UscSectionOracle",
+    "is_proposed_usc_section",
     "normalize_section",
 ]
 
@@ -438,6 +441,14 @@ ORACLE_WINDOW = (1994, 2026)
 APPENDIX_TITLES_PUBLISHED = frozenset({5, 10, 11, 18, 26, 28, 38, 40, 46, 50})
 
 VERDICTS = ("exists", "absent", "unknown")
+
+#: Contextual verdict returned only when ``allow_proposed_sections=True`` and
+#: surrounding legislative drafting prose explicitly proposes adding a new,
+#: not-yet-enacted section to a valid 1..54 U.S.C. title. Kept separate from
+#: :data:`VERDICTS` so strict enacted-Code consumers keep their closed 3-value
+#: contract unchanged by default.
+PROPOSED_SECTION_VERDICT = "proposed_new_section"
+SECTION_VERDICTS = (*VERDICTS, PROPOSED_SECTION_VERDICT)
 
 #: Why the oracle cannot speak. Each is a coverage hole the oracle report
 #: states, not a property of the section: a consumer counts these and must
@@ -655,6 +666,131 @@ def _section_key(section: str) -> tuple[int, str] | None:
     return (int(match.group(1)), match.group(2)) if match else None
 
 
+_BILL_QUOTE_AND_DASH_MAP = str.maketrans(
+    {
+        "\u2018": "'",
+        "\u2019": "'",
+        "\u201b": "'",
+        "\u2032": "'",
+        "\u201c": '"',
+        "\u201d": '"',
+        "\u201f": '"',
+        "\u2033": '"',
+        "\u00a0": " ",
+        **dict.fromkeys("‐‑‒–—―−\x96\x97", "-"),
+    }
+)
+_BILL_MARGIN_LINE_RE = re.compile(
+    r"(?<=,\s)(?:[1-9]|1\d|2[0-6])\s+(?=United\s+States\s+Code\b)"
+    r"|(?<=\bof\s)(?:[1-9]|1\d|2[0-6])\s+(?=title\s+[1-9]\d?\b)"
+    r"|(?m:^[ \t]*(?:[1-9]|1\d|2[0-6])[ \t]+(?=[A-Za-z\"'(§-]))"
+)
+_AMEND_ACTION_TAIL = (
+    r"(?:by\s+|to\s+)?"
+    r"(?:"
+    r"add(?:ing)?\s+at\s+the\s+end(?:\s+of\s+(?:chapter|subchapter|part|subtitle)\s+[0-9A-Za-z-]+)?(?:\s+thereof)?"
+    r"|insert(?:ing)?\s+(?:after|before)\s+(?:the\s+item\s+relating\s+to\s+)?"
+    r"(?:§+\s*|sec(?:tion)?\.?\s*)[0-9A-Za-z-]+(?:\([0-9A-Za-z]+\))*"
+    r"|add(?:ing)?\s+(?:a\s+)?new\s+sections?(?=\s+[1-9§])"
+    r")"
+)
+_AMEND_TITLE_FIRST_RE = re.compile(
+    r"\b(?:(?:table\s+of\s+sections\s+(?:for|of)\s+)?"
+    r"(?:(?:chapter|subchapter|part|subtitle)\s+[0-9A-Za-z-]+\s+of\s+)*"
+    r"title\s+(?P<t1>[1-9]\d?)\s*(?:,\s*United\s+States\s+Code\s*,?)?\s+is\s+amended\b"
+    r"|(?:to\s+)?amend(?:s|ing)?\s+(?:(?:chapter|subchapter|part|subtitle)\s+[0-9A-Za-z-]+\s+of\s+)*"
+    r"title\s+(?P<t2>[1-9]\d?)\b(?:\s*,\s*United\s+States\s+Code\s*,?)?)"
+    rf"[^.;]{{0,180}}?\b(?P<action>{_AMEND_ACTION_TAIL})(?P<tail>.{{0,500}})",
+    re.IGNORECASE,
+)
+_AMEND_ACTION_FIRST_RE = re.compile(
+    r"\b(?:"
+    r"adding\s+at\s+the\s+end\s+of\s+(?:(?:chapter|subchapter|part|subtitle)\s+[0-9A-Za-z-]+\s+of\s+)*"
+    r"title\s+(?P<t1>[1-9]\d?)\b(?:\s*,\s*United\s+States\s+Code\s*,?)?"
+    r"|inserting\s+(?:after|before)\s+(?:the\s+item\s+relating\s+to\s+)?"
+    r"(?:§+\s*|sec(?:tion)?\.?\s*)[0-9A-Za-z-]+(?:\([0-9A-Za-z]+\))*\s+of\s+"
+    r"(?:(?:chapter|subchapter|part|subtitle)\s+[0-9A-Za-z-]+\s+of\s+)*"
+    r"title\s+(?P<t2>[1-9]\d?)\b(?:\s*,\s*United\s+States\s+Code\s*,?)?"
+    r")(?P<tail>.{0,500})",
+    re.IGNORECASE,
+)
+_PROPOSED_SEC_IN_TAIL_RE = re.compile(
+    r"(?:"
+    r"§+\s*(?P<s1>[1-9]\d*[A-Za-z0-9-]*)"
+    r"|[\"']\s*(?:sec(?:tion)?\.?\s*)?(?P<s2>[1-9]\d*[A-Za-z0-9-]*)\."
+    r"|\bnew\s+sections?\s*(?::\s*)?[\"']?\s*(?:§+\s*|sec(?:tion)?\.?\s*)?(?P<s3>[1-9]\d*[A-Za-z0-9-]*)"
+    r"|\bfollowing(?:\s+new)?\s+(?:sections?|items?)\s*:\s*[\"']?\s*(?:§+\s*|sec(?:tion)?\.?\s*)?(?P<s4>[1-9]\d*[A-Za-z0-9-]*)"
+    r")",
+    re.IGNORECASE,
+)
+_AS_ADDED_CROSSREF_RE = re.compile(
+    r"\b(?:"
+    r"(?:proposed|new)\s+section\s+(?P<s1>[1-9]\d*[A-Za-z0-9-]*)(?:\([0-9A-Za-z]+\))*\s+of\s+title\s+(?P<t1>[1-9]\d?)\b"
+    r"|section\s+(?P<s2>[1-9]\d*[A-Za-z0-9-]*)(?:\([0-9A-Za-z]+\))*\s+of\s+title\s+(?P<t2>[1-9]\d?)"
+    r"(?:\s*,\s*United\s+States\s+Code\s*,?)?\s*\(?\s*as\s+added\s+by\b"
+    r"|(?P<t3>[1-9]\d?)\s+U\.?\s*S\.?\s*C\.?\s*(?:§+\s*)?(?P<s3>[1-9]\d*[A-Za-z0-9-]*)(?:\([0-9A-Za-z]+\))*"
+    r"\s*\(?\s*as\s+added\s+by\b"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def is_proposed_usc_section(title: int, section: str, surrounding_text: str | None) -> bool:
+    """Whether ``surrounding_text`` contains amendatory bill prose proposing ``(title, section)``.
+
+    Requires ``title`` to be a valid 1..54 U.S.C. title (excluding never-enacted
+    title 53) and requires explicit positive-law amendatory syntax naming both
+    ``title`` and ``section`` as the added/inserted provision (never matching the
+    existing anchor section in ``inserting after section X``).
+    """
+
+    if not surrounding_text or not usc_title_is_possible(title):
+        return False
+    target = re.sub(r"\([^)]*\)", "", normalize_section(section)).strip(".")
+    if not target or not re.fullmatch(r"[1-9]\d*[a-z]*(?:-[0-9a-z]+)*", target):
+        return False
+
+    cleaned = str(surrounding_text).replace("\r\n", "\n").replace("\r", "\n").translate(_BILL_QUOTE_AND_DASH_MAP)
+    cleaned = cleaned.replace("``", '"').replace("''", '"')
+    cleaned = _BILL_MARGIN_LINE_RE.sub("", cleaned)
+    flat = re.sub(r"\s+", " ", cleaned)
+
+    def _clean_candidate(raw_sec: str | None) -> str:
+        return re.sub(r"\([^)]*\)", "", normalize_section(raw_sec or "")).strip(".")
+
+    for pattern in (_AMEND_TITLE_FIRST_RE, _AMEND_ACTION_FIRST_RE):
+        for match in pattern.finditer(flat):
+            matched_title = int(match.group("t1") or match.group("t2"))
+            if matched_title != title:
+                continue
+            action_and_tail = (match.groupdict().get("action") or "") + " " + match.group("tail")
+            # Strip any "inserting after/before section ANCHOR" prefix so the anchor itself cannot match.
+            after_anchor = re.sub(
+                r"^(?:by\s+|to\s+)?insert(?:ing)?\s+(?:after|before)\s+(?:the\s+item\s+relating\s+to\s+)?"
+                r"(?:§+\s*|sec(?:tion)?\.?\s*)[0-9A-Za-z-]+(?:\([0-9A-Za-z]+\))*",
+                "",
+                action_and_tail.strip(),
+                count=1,
+                flags=re.IGNORECASE,
+            )
+            for sec_match in _PROPOSED_SEC_IN_TAIL_RE.finditer(after_anchor):
+                cand = _clean_candidate(
+                    sec_match.group("s1") or sec_match.group("s2") or sec_match.group("s3") or sec_match.group("s4")
+                )
+                if cand == target:
+                    return True
+
+    for match in _AS_ADDED_CROSSREF_RE.finditer(flat):
+        matched_title = int(match.group("t1") or match.group("t2") or match.group("t3"))
+        if matched_title != title:
+            continue
+        cand = _clean_candidate(match.group("s1") or match.group("s2") or match.group("s3"))
+        if cand == target:
+            return True
+
+    return False
+
+
 @dataclass(frozen=True)
 class SectionVerdict:
     """What the oracle can say about one ``(title, section)`` at one edition."""
@@ -691,7 +827,7 @@ class SectionVerdict:
     disposition: Disposition | None = None
 
     def __post_init__(self) -> None:
-        if self.verdict not in VERDICTS:
+        if self.verdict not in SECTION_VERDICTS:
             raise ValueError(f"undeclared verdict: {self.verdict!r}")
         if (self.verdict == "unknown") != (self.reason is not None):
             raise ValueError("an unknown verdict names its coverage gap, and no other verdict names one")
@@ -711,6 +847,10 @@ class SectionVerdict:
     @property
     def exists(self) -> bool:
         return self.verdict == "exists"
+
+    @property
+    def is_proposed_new_section(self) -> bool:
+        return self.verdict == PROPOSED_SECTION_VERDICT
 
 
 @dataclass(frozen=True)
@@ -1282,13 +1422,22 @@ class UscSectionOracle:
         edition_year: int | None = None,
         *,
         appendix: bool = False,
+        surrounding_text: str | None = None,
+        allow_proposed_sections: bool = False,
     ) -> SectionVerdict:
-        """exists / absent / unknown, with the coverage gap named when unknown.
+        """exists / absent / unknown (or proposed_new_section when opted in).
 
         ``edition_year`` is the year the citation was filed (the Agenda's
         ``publication_id`` head). It fills
         :attr:`SectionVerdict.attested_at_edition` and refuses out-of-window
         questions; it never turns an ``exists`` into an ``absent``.
+
+        By default (``allow_proposed_sections=False``), strictly enacted-Code
+        semantics apply and only :data:`VERDICTS` (``exists``, ``absent``,
+        ``unknown``) can be returned. When ``allow_proposed_sections=True`` and
+        ``surrounding_text`` contains positive-law amendatory bill prose
+        proposing a not-yet-enacted section under a valid 1..54 U.S.C. title,
+        returns :data:`PROPOSED_SECTION_VERDICT` (``"proposed_new_section"``).
 
         Where the answer is ``unknown`` for :data:`DISPOSITION_REASON` and this
         oracle carries the recodification tables,
@@ -1314,7 +1463,12 @@ class UscSectionOracle:
         if in_release_range:
             evidence.append("release-point-range")
 
-        def verdict_of(name: str, reason: str | None = None) -> SectionVerdict:
+        def verdict_of(
+            name: str,
+            reason: str | None = None,
+            *,
+            extra_evidence: tuple[str, ...] = (),
+        ) -> SectionVerdict:
             at_edition: bool | None = None
             if edition_year is not None and window_start <= edition_year <= window_end:
                 at_edition = (
@@ -1329,7 +1483,7 @@ class UscSectionOracle:
                 edition_year=edition_year,
                 verdict=name,
                 reason=reason,
-                evidence=tuple(evidence),
+                evidence=(*evidence, *extra_evidence),
                 status=tuple(self.release_point_sections.get((title, section), ())) if not appendix else (),
                 attested_years=years,
                 attested_at_edition=at_edition,
@@ -1349,6 +1503,13 @@ class UscSectionOracle:
             return verdict_of("unknown", "edition_outside_oracle_window")
         if evidence:
             return verdict_of("exists")
+        if (
+            allow_proposed_sections
+            and not appendix
+            and usc_title_is_possible(title)
+            and is_proposed_usc_section(title, section, surrounding_text)
+        ):
+            return verdict_of(PROPOSED_SECTION_VERDICT, extra_evidence=("amendatory-bill-context",))
         if appendix and title not in APPENDIX_TITLES_PUBLISHED:
             return verdict_of(
                 "unknown", "title_49_appendix_not_published" if title == 49 else "appendix_title_not_published"
@@ -1356,6 +1517,27 @@ class UscSectionOracle:
         if self.c9_title_49_pre_1996(title, section):
             return verdict_of("unknown", "title_49_appendix_not_published")
         return verdict_of("absent")
+
+    def check_section_with_context(
+        self,
+        title: int,
+        section: str,
+        *,
+        surrounding_text: str | None = None,
+        allow_proposed_sections: bool = True,
+        edition_year: int | None = None,
+        appendix: bool = False,
+    ) -> SectionVerdict:
+        """Evaluate ``(title, section)`` with optional surrounding bill/prose context."""
+
+        return self.section_verdict(
+            title,
+            section,
+            edition_year,
+            appendix=appendix,
+            surrounding_text=surrounding_text,
+            allow_proposed_sections=allow_proposed_sections,
+        )
 
     def subsection_verdict(self, title: int, section: str, sub: str) -> SubsectionVerdict:
         """Whether a section carries a lettered subsection — or whether we can know.

@@ -37,15 +37,20 @@ from refspec.registry.usc_section_oracle import (
     MISS_CLASSES,
     ORACLE_ANNUAL_YEARS,
     ORACLE_WINDOW,
+    PROPOSED_SECTION_VERDICT,
+    SECTION_VERDICTS,
     UNKNOWN_REASONS,
     USC_SECTION_ORACLE_ARTIFACT,
+    VERDICTS,
     ActSectionClaim,
     Candidate,
     Correction,
+    SectionVerdict,
     UscSectionOracle,
     _read_pinned_parquet,
     _section_key,
     _SpanIndex,
+    is_proposed_usc_section,
     normalize_section,
 )
 
@@ -2994,3 +2999,127 @@ def test_span_index_matches_brute_force_on_adversarial_interval_sets() -> None:
         for key in universe:
             assert index.contains(key) == brute_contains(spans, key), (spans, key)
             assert sorted(index.payloads_containing(key)) == brute_payloads(spans, key), (spans, key)
+
+
+# --------------------------------------------------------------------------- #
+# Draft-bill proposed section support (PR-U2)
+
+
+def test_is_proposed_usc_section_recognizes_positive_law_amendatory_prose_and_refuses_traps() -> None:
+    """Amendatory addition/insertion formulas match only the proposed section under a valid 1..54 title."""
+
+    assert VERDICTS == ("exists", "absent", "unknown")
+    assert PROPOSED_SECTION_VERDICT == "proposed_new_section"
+    assert SECTION_VERDICTS == ("exists", "absent", "unknown", "proposed_new_section")
+
+    gpo_bill = (
+        "1  SEC. 2. DOMESTIC SOURCING.\n"
+        "2  Chapter 83 of title 41,\n"
+        "3  United States Code, is amended by adding at the end the following new section:\n"
+        "4  ‘‘§ 8302A. Domestic critical supply chains’’.\n"
+    )
+    assert is_proposed_usc_section(41, "8302A", gpo_bill) is True
+    assert is_proposed_usc_section(41, "8302a(b)", gpo_bill) is True
+    assert is_proposed_usc_section(42, "8302A", gpo_bill) is False
+
+    # Unquoted and inserting-after-section forms; anchor section must NOT match as proposed.
+    inserting = (
+        "Subchapter II of chapter 5 of title 5, United States Code, is amended "
+        "by inserting after section 99998 the following new section: § 99999. Transparency."
+    )
+    assert is_proposed_usc_section(5, "99999", inserting) is True
+    assert is_proposed_usc_section(5, "99998", inserting) is False
+
+    assert is_proposed_usc_section(
+        38, "1789a", "To amend title 38, United States Code, by adding at the end § 1789A."
+    ) is True
+    assert is_proposed_usc_section(
+        23, "104a", "by inserting after section 104 of title 23, United States Code, a new section 104A"
+    ) is True
+    assert is_proposed_usc_section(
+        49, "5340a", "adding at the end of chapter 53 of title 49, United States Code, the following new section: '§ 5340A.'"
+    ) is True
+    assert is_proposed_usc_section(
+        41, "8302a", "under section 8302A of title 41, United States Code, as added by subsection (a)"
+    ) is True
+    assert is_proposed_usc_section(
+        41, "8302a", "pursuant to 41 U.S.C. 8302A (as added by section 2 of this Act)"
+    ) is True
+
+    # Invalid/reserved U.S.C. titles (0, 53, 55) and non-amendatory prose never match.
+    for bad_title in (0, 53, 55, 99):
+        assert is_proposed_usc_section(
+            bad_title, "101a", f"Title {bad_title}, United States Code, is amended by adding at the end § 101A."
+        ) is False
+    assert is_proposed_usc_section(41, "8302a", "Pursuant to 41 U.S.C. 8302A, the witness testified today.") is False
+    assert is_proposed_usc_section(41, "8302a", "We urge Congress to amend title 41. See 41 U.S.C. 8302A.") is False
+    assert is_proposed_usc_section(41, "8302a", None) is False
+    assert is_proposed_usc_section(41, "8302a", "") is False
+
+    # SectionVerdict coherence invariants hold on proposed_new_section.
+    valid = SectionVerdict(
+        title=41,
+        section="8302a",
+        appendix=False,
+        edition_year=None,
+        verdict="proposed_new_section",
+        reason=None,
+        evidence=("amendatory-bill-context",),
+        status=(),
+        attested_years=(),
+        attested_at_edition=None,
+    )
+    assert valid.is_proposed_new_section is True
+    assert valid.exists is False
+    with pytest.raises(ValueError, match="only an absence carries the window caveat"):
+        SectionVerdict(**{**valid.__dict__, "caveats": ABSENT_CAVEATS})
+    with pytest.raises(ValueError, match="names its coverage gap"):
+        SectionVerdict(**{**valid.__dict__, "reason": "appendix_title_not_published"})
+
+
+@pytest.mark.slow
+def test_allow_proposed_sections_preserves_strict_default_and_distinguishes_proposed_sections() -> None:
+    """Default ``section_verdict`` stays 100% strict; ``allow_proposed_sections=True`` distinguishes proposed sections."""
+
+    known = oracle()
+    bill_prose = (
+        "Chapter 83 of title 41, United States Code, is amended "
+        "by inserting after section 8302 the following new section: '§ 8302A. Supply chain resilience'."
+    )
+
+    # Default (allow_proposed_sections=False) keeps strict enacted-Code absence even with surrounding bill prose.
+    strict = known.section_verdict(41, "8302A", surrounding_text=bill_prose)
+    assert strict.verdict == "absent"
+    assert strict.is_proposed_new_section is False
+    assert strict.caveats == ABSENT_CAVEATS
+
+    # Opting in turns the not-yet-enacted section into proposed_new_section while keeping enacted 8302 as exists.
+    opted_in = known.section_verdict(41, "8302A", surrounding_text=bill_prose, allow_proposed_sections=True)
+    assert opted_in.verdict == "proposed_new_section"
+    assert opted_in.is_proposed_new_section is True
+    assert opted_in.exists is False
+    assert opted_in.reason is None
+    assert opted_in.caveats == ()
+    assert opted_in.evidence == ("amendatory-bill-context",)
+
+    via_helper = known.check_section_with_context(41, "8302A", surrounding_text=bill_prose)
+    assert via_helper == opted_in
+    assert known.check_section_with_context(
+        41, "8302A", surrounding_text=bill_prose, allow_proposed_sections=False
+    ) == strict
+
+    enacted_anchor = known.check_section_with_context(41, "8302", surrounding_text=bill_prose)
+    assert enacted_anchor.verdict == "exists"
+    assert enacted_anchor.exists is True
+    assert enacted_anchor.is_proposed_new_section is False
+
+    # Witness/letter typos and impossible titles remain absent even when allow_proposed_sections=True.
+    witness_typo = known.check_section_with_context(
+        41, "8302A", surrounding_text="The witness cited 41 U.S.C. 8302A in error."
+    )
+    assert witness_typo.verdict == "absent"
+    impossible_title = known.check_section_with_context(
+        53, "101", surrounding_text="Title 53, United States Code, is amended by adding at the end § 101."
+    )
+    assert impossible_title.verdict == "absent"
+

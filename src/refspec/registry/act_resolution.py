@@ -74,13 +74,18 @@ from functools import cached_property
 from pathlib import Path
 from typing import NamedTuple
 
-from refspec.registry.citation_grammar import ActRelativeCitation, normalize_popular_name
+from refspec.registry.citation_grammar import (
+    ActRelativeCitation,
+    act_name_with_trailing_year,
+    normalize_popular_name,
+)
 
 __all__ = [
     "ALIAS_PRECEDENCE_RULE",
     "ALIAS_YEAR_RULE",
     "ANSWERING_SOURCES",
     "DIVISION_RULE",
+    "GENERIC_ACT_STEM_STOPLIST",
     "SOURCE_COMPOSITION_RULE",
     "SOURCE_CREDIT_STATUSES",
     "UNRESOLVED_REASONS",
@@ -93,8 +98,10 @@ __all__ = [
     "SourceCreditAnswer",
     "SourceCreditIndex",
     "SourceCreditTarget",
+    "StatutoryShortTitleMatch",
     "act_name_absence_reason",
     "canonical_usc_iri",
+    "find_statutory_short_titles",
     "resolve_act_name",
     "resolve_act_relative_citation",
     "stated_name_chain",
@@ -552,6 +559,18 @@ class ActIndex:
         if start is None:
             return None
         return (start, min((page for _, page in starts if page > start), default=_PAGE_RANGE_OPEN_END))
+
+    def find_statutory_short_titles(
+        self, text: str, *, deduplicate: bool = True
+    ) -> tuple[StatutoryShortTitleMatch, ...]:
+        """Extract enacted statutory short titles from unstructured prose via maximal-NP scanning."""
+
+        return find_statutory_short_titles(text, self, deduplicate=deduplicate)
+
+    def scan_text(self, text: str, *, deduplicate: bool = True) -> tuple[StatutoryShortTitleMatch, ...]:
+        """Alias for :meth:`find_statutory_short_titles` over unstructured prose."""
+
+        return find_statutory_short_titles(text, self, deduplicate=deduplicate)
 
     @classmethod
     def from_artifact(cls, artifact_dir: Path) -> ActIndex:
@@ -1024,3 +1043,354 @@ def resolve_act_relative_citation(
         statutes_at_large_volume=answer.statutes_at_large_volume,
         statutes_at_large_page=answer.statutes_at_large_page,
     )
+
+
+# --------------------------------------------------------------------------- #
+# Maximal-NP statutory short-title scanning over unstructured prose
+# --------------------------------------------------------------------------- #
+
+#: Generic demonstratives and articles that appear before ``Act`` in legislative
+#: and regulatory prose ("This Act", "Such Act", "That Act", "The Act") and
+#: never identify a statutory short title on their own, even on a synthetic index.
+GENERIC_ACT_STEM_STOPLIST: frozenset[str] = frozenset(
+    {
+        "a",
+        "an",
+        "any",
+        "each",
+        "other",
+        "present",
+        "prior",
+        "said",
+        "same",
+        "such",
+        "that",
+        "the",
+        "this",
+    }
+)
+
+_PROSE_CHAR_MAP = str.maketrans(
+    {
+        "‘": "'",
+        "’": "'",
+        "“": '"',
+        "”": '"',
+        "\u00a0": " ",
+        **dict.fromkeys("‐‑‒–—―−\x96\x97", "-"),
+    }
+)
+_PROSE_PARAGRAPH_BREAK_RE = re.compile(r"\r?\n[ \t]*\r?\n")
+_PROSE_ACT_CONNECTORS = frozenset({"of", "for", "and", "the", "to", "on", "in", "with", "&", "by", "against", "from"})
+_PROSE_ACT_STOP_TOKENS = frozenset(
+    {
+        "ACT",
+        "ACTS",
+        "USC",
+        "USCA",
+        "USCS",
+        "CFR",
+        "STAT",
+        "FR",
+        "PL",
+        "EO",
+        "APP",
+        "SEC",
+        "SECS",
+        "SECTION",
+        "SECTIONS",
+        "PUB",
+        "L",
+        "AMEND",
+        "AMENDS",
+        "AMENDED",
+        "AMENDING",
+        "UNDER",
+        "PURSUANT",
+        "ENACTED",
+        "TITLED",
+        "ENTITLED",
+    }
+)
+_PROSE_ALLOWED_DOTTED_WORD_RE = re.compile(
+    r"(?:(?:[A-Z]\.){1,6}(?:-[A-Za-z0-9']+)?|\d+\.\d+|"
+    r"(?:Co|Dr|Inc|Jr|Mr|Mrs|Ms|Mt|No|Ry|Sgt|Sr|St|Ste|Coop|Rehab|Mgmt|Prev|Dept|Admin|Dev|Envt|Fed|Govt|Intl|Natl|Supp|Tech|Vet)\.)"
+)
+_PROSE_CAP_TOKEN_RE = re.compile(
+    r"(?:\([A-Z0-9.\-&]{2,12}\)|(?:[A-Z]\.){1,6}(?:-[\w']+)?|\d+\.\d+|\d+\([a-z0-9]{1,3}\)|[A-Z0-9][\w'\-&]*\.?)"
+)
+_PROSE_BACK_TOKEN_RE = re.compile(
+    r"(?P<tok>\([A-Z0-9.\-&]{2,12}\)|(?:[A-Z]\.){2,6}(?:-[\w']+)?|\d+\.\d+|\d+\([a-z0-9]{1,3}\)|[\w'\-&]+\.?)(?P<comma>\s*,)?$"
+)
+_PROSE_DESIGNATOR_RE = re.compile(r"^(?:[A-Z]|X{0,3}(?:IX|IV|V?I{0,3})|\d{1,3})$")
+_PROSE_STRUCTURAL_CONTAINERS = frozenset({"title", "division", "subtitle", "part", "chapter", "subchapter"})
+_PROSE_AMENDMENTS_TAIL_RE = re.compile(r"\s+Amendments?\b")
+_PROSE_OF_YEAR_TAIL_RE = re.compile(r"\s*(?:,\s*)?of\s+(?P<year>(?:1[789]|20)\d{2})\b")
+_PROSE_COMMA_YEAR_TAIL_RE = re.compile(r"\s*,\s*(?P<year>(?:1[789]|20)\d{2})\b")
+
+
+@dataclass(frozen=True, slots=True)
+class StatutoryShortTitleMatch:
+    """One enacted statutory short title resolved from unstructured prose."""
+
+    surface: str
+    act_key: str
+    table3_key: str | None
+    start: int
+    end: int
+
+    @property
+    def resolved_act_key(self) -> str:
+        """Alias preserving compatibility with callers reading ``resolved_act_key``."""
+
+        return self.act_key
+
+
+def _resolve_prose_act_candidate(
+    norm: str,
+    span_start: int,
+    act_end: int,
+    index: ActIndex,
+    *,
+    leading_the_start: int | None = None,
+) -> tuple[int, int, str] | None:
+    """Resolve one candidate NP start through forward ``Amendments`` and year tails, longest span first."""
+
+    base_end = act_end
+    amend_match = _PROSE_AMENDMENTS_TAIL_RE.match(norm, base_end)
+    if amend_match is not None and not _PROSE_PARAGRAPH_BREAK_RE.search(norm, base_end, amend_match.end()):
+        base_end = amend_match.end()
+
+    def _try_surface(c_start: int, c_end: int, probe_text: str) -> tuple[int, int, str] | None:
+        resolved = resolve_act_name(probe_text, index)
+        if resolved is None:
+            reordered = act_name_with_trailing_year(normalize_popular_name(probe_text))
+            if reordered is not None:
+                resolved = resolve_act_name(reordered, index)
+        if resolved is not None:
+            return c_start, c_end, resolved
+        if leading_the_start is not None and c_start == span_start:
+            with_the = re.sub(r"\s+", " ", norm[leading_the_start:c_end]).strip()
+            resolved_the = resolve_act_name(with_the, index)
+            if resolved_the is not None:
+                return leading_the_start, c_end, resolved_the
+        return None
+
+    stem_surface = re.sub(r"\s+", " ", norm[span_start:base_end]).strip()
+    of_year = _PROSE_OF_YEAR_TAIL_RE.match(norm, base_end)
+    if of_year is not None and not _PROSE_PARAGRAPH_BREAK_RE.search(norm, base_end, of_year.end()):
+        yr = of_year.group("year")
+        yr_end = of_year.end()
+        # Try "of YYYY" first, then ", YYYY" for pre-modern statutes titled with a comma year.
+        for candidate_str in (f"{stem_surface} of {yr}", f"{stem_surface}, {yr}"):
+            hit = _try_surface(span_start, yr_end, candidate_str)
+            if hit is not None:
+                return hit
+        # An explicit "of YYYY" belongs to the stated title; never drop it to match a different year's act.
+        return None
+
+    comma_year = _PROSE_COMMA_YEAR_TAIL_RE.match(norm, base_end)
+    if comma_year is not None and not _PROSE_PARAGRAPH_BREAK_RE.search(norm, base_end, comma_year.end()):
+        yr = comma_year.group("year")
+        yr_end = comma_year.end()
+        for candidate_str in (f"{stem_surface}, {yr}", f"{stem_surface} of {yr}"):
+            hit = _try_surface(span_start, yr_end, candidate_str)
+            if hit is not None:
+                return hit
+        # Unlike "of YYYY", ", YYYY" in prose may open the next clause ("Under the Clean Air Act, 2023 emissions..."),
+        # so fall through to the pre-comma span when neither year-qualified spelling is indexed.
+
+    return _try_surface(span_start, base_end, stem_surface)
+
+
+def _trim_and_resolve_token_slice(
+    raw_slice: list[tuple[str, str, int, bool]],
+    norm: str,
+    act_start: int,
+    act_end: int,
+    index: ActIndex,
+) -> tuple[int, int, str] | None:
+    """Trim leading connectors/designators on one uninterrupted NP slice and resolve it without inner sub-slicing."""
+
+    toks = list(raw_slice)
+    leading_the_start: int | None = None
+    while toks and toks[-1][1].lower() in _PROSE_ACT_CONNECTORS:
+        leading_the_start = toks[-1][2] if toks[-1][1].lower() == "the" else None
+        toks.pop()
+    if not toks:
+        return None
+
+    def _attempt(active: list[tuple[str, str, int, bool]], the_start: int | None) -> tuple[int, int, str] | None:
+        if not active or not any(raw_w[:1].isupper() for raw_w, _, _, _ in active):
+            return None
+        c_start = active[-1][2]
+        stem_raw = re.sub(r"\s+", " ", norm[c_start:act_start]).strip()
+        stem_norm = _LEADING_ARTICLE.sub("", normalize_popular_name(stem_raw)).strip()
+        if not stem_norm or stem_norm in GENERIC_ACT_STEM_STOPLIST:
+            return None
+        return _resolve_prose_act_candidate(norm, c_start, act_end, index, leading_the_start=the_start)
+
+    # First try the full maximal slice (preserving e.g. "Title I of the Elementary and Secondary Education Act of 1965").
+    direct = _attempt(toks, leading_the_start)
+    if direct is not None:
+        return direct
+
+    # Only strip a leading structural container ("Title IV of the ...", "Division F of the ...", or "IV of the ...")
+    # when explicitly followed by "of", so "ICC Termination Act" and "Quiet Title Act" are never truncated.
+    trimmed = list(toks)
+    changed = False
+    while True:
+        if (
+            len(trimmed) >= 3
+            and trimmed[-1][1].lower() in _PROSE_STRUCTURAL_CONTAINERS
+            and _PROSE_DESIGNATOR_RE.fullmatch(trimmed[-2][1])
+            and trimmed[-2][1] != ""
+            and trimmed[-3][1].lower() == "of"
+        ):
+            trimmed.pop()
+            trimmed.pop()
+            changed = True
+        elif (
+            len(trimmed) >= 2
+            and _PROSE_DESIGNATOR_RE.fullmatch(trimmed[-1][1])
+            and trimmed[-1][1] != ""
+            and trimmed[-2][1].lower() == "of"
+        ):
+            trimmed.pop()
+            changed = True
+        else:
+            break
+        sub_the: int | None = None
+        while trimmed and trimmed[-1][1].lower() in _PROSE_ACT_CONNECTORS:
+            sub_the = trimmed[-1][2] if trimmed[-1][1].lower() == "the" else None
+            trimmed.pop()
+    if changed and trimmed:
+        return _attempt(trimmed, sub_the)
+    return None
+
+
+def find_statutory_short_titles(
+    text: str,
+    index: ActIndex,
+    *,
+    deduplicate: bool = True,
+) -> tuple[StatutoryShortTitleMatch, ...]:
+    """Deterministically extract enacted statutory short titles from unstructured prose.
+
+    Scans backward from every case-sensitive ``Act`` token over maximal uninterrupted
+    capitalized noun phrases (and forward over ``Amendments`` and ``of YYYY`` / ``, YYYY``
+    tails), enforcing two precision invariants:
+
+    1. **Generic-stem stoplisting** (:data:`GENERIC_ACT_STEM_STOPLIST`): anaphoric and
+       determiner phrases (``This Act``, ``Such Act``, ``That Act``, ``The Act``, ``An Act``,
+       ``Said Act``) are refused outright before consulting ``index``.
+    2. **Maximal-NP longest-span resolution**: an uninterrupted capitalized noun phrase is
+       queried whole and never sub-sliced into shorter inner suffixes, so an unenacted bill
+       title such as ``Kelsey Smith Act`` never false-positives onto ``Smith Act``. Where a
+       non-conjunction clause comma precedes the title (``According to Congress, Clean Air
+       Act rules apply``), the cross-comma span (``Build America, Buy America Act``) is
+       tested first and the post-comma uninterrupted NP is tested only if the longer span
+       is absent.
+    """
+
+    if not text:
+        return ()
+    norm = str(text).translate(_PROSE_CHAR_MAP)
+    raw_hits: list[StatutoryShortTitleMatch] = []
+    prev_act_tail_end = 0
+
+    for match in re.finditer(r"\bAct\b", norm):
+        act_start, act_end = match.start(), match.end()
+        window_start = max(prev_act_tail_end, act_start - 450)
+        # Advance prev_act_tail_end past this "Act" and any immediate Amendments / year tail so a
+        # subsequent "Act" in the same sentence never walks backward into an earlier Act's year tail.
+        tail_cursor = act_end
+        am_tail = _PROSE_AMENDMENTS_TAIL_RE.match(norm, tail_cursor)
+        if am_tail is not None and not _PROSE_PARAGRAPH_BREAK_RE.search(norm, tail_cursor, am_tail.end()):
+            tail_cursor = am_tail.end()
+        yr_tail = _PROSE_OF_YEAR_TAIL_RE.match(norm, tail_cursor) or _PROSE_COMMA_YEAR_TAIL_RE.match(norm, tail_cursor)
+        if yr_tail is not None and not _PROSE_PARAGRAPH_BREAK_RE.search(norm, tail_cursor, yr_tail.end()):
+            tail_cursor = yr_tail.end()
+        prev_act_tail_end = tail_cursor
+
+        pos = act_start
+        # Each entry is (raw_word, bare_word_no_dot, char_start_in_text, had_trailing_comma).
+        tokens: list[tuple[str, str, int, bool]] = []
+
+        while pos > window_start:
+            ws_end = pos
+            while pos > window_start and norm[pos - 1].isspace():
+                pos -= 1
+            if _PROSE_PARAGRAPH_BREAK_RE.search(norm, pos, ws_end):
+                break
+            back = _PROSE_BACK_TOKEN_RE.search(norm, window_start, pos)
+            if back is None:
+                break
+            has_comma = bool(back.group("comma"))
+            if has_comma and not tokens:
+                # Never cross a comma immediately preceding the word "Act".
+                break
+            raw_word = back.group("tok")
+            if raw_word.endswith(".") and not _PROSE_ALLOWED_DOTTED_WORD_RE.fullmatch(raw_word):
+                break
+            bare_word = raw_word.rstrip(".")
+            if bare_word.upper() in _PROSE_ACT_STOP_TOKENS:
+                break
+            if _PROSE_CAP_TOKEN_RE.fullmatch(raw_word) or bare_word.lower() in _PROSE_ACT_CONNECTORS:
+                tok_start = back.start("tok")
+                tokens.append((raw_word, bare_word, tok_start, has_comma))
+                pos = tok_start
+                continue
+            break
+
+        if not tokens:
+            continue
+
+        # Longest span first across all collected tokens; fall back to post-comma uninterrupted
+        # slices only at non-conjunction clause commas ("According to Congress, Clean Air Act"),
+        # never inside coordinated serial titles ("Prevention, Detection, and Smith Act").
+        candidate_slices: list[list[tuple[str, str, int, bool]]] = [tokens]
+        for idx_tok in range(len(tokens) - 1, 0, -1):
+            if tokens[idx_tok][3]:
+                right_neighbor_bare = tokens[idx_tok - 1][1].lower()
+                if right_neighbor_bare not in {"and", "&", "or"}:
+                    candidate_slices.append(tokens[:idx_tok])
+
+        for cand_slice in candidate_slices:
+            resolved_hit = _trim_and_resolve_token_slice(cand_slice, norm, act_start, act_end, index)
+            if resolved_hit is not None:
+                hit_start, hit_end, resolved_key = resolved_hit
+                surface = re.sub(r"\s+", " ", text[hit_start:hit_end]).strip()
+                raw_hits.append(
+                    StatutoryShortTitleMatch(
+                        surface=surface,
+                        act_key=resolved_key,
+                        table3_key=index.table3_key_by_name.get(resolved_key),
+                        start=hit_start,
+                        end=hit_end,
+                    )
+                )
+                break
+
+    if not raw_hits:
+        return ()
+
+    # Arbitrate overlapping matches longest-span first, preserving source order.
+    by_length = sorted(raw_hits, key=lambda item: (-(item.end - item.start), item.start))
+    kept: list[StatutoryShortTitleMatch] = []
+    for candidate in by_length:
+        if any(not (candidate.end <= existing.start or candidate.start >= existing.end) for existing in kept):
+            continue
+        kept.append(candidate)
+    kept.sort(key=lambda item: (item.start, item.end))
+
+    if not deduplicate:
+        return tuple(kept)
+    seen_keys: set[str] = set()
+    unique: list[StatutoryShortTitleMatch] = []
+    for item in kept:
+        if item.act_key not in seen_keys:
+            seen_keys.add(item.act_key)
+            unique.append(item)
+    return tuple(unique)
+

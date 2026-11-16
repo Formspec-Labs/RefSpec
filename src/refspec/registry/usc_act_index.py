@@ -38,9 +38,34 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, BinaryIO
 
-from refspec.registry.act_resolution import UNRESOLVED_REASONS
+from refspec.registry.act_resolution import (
+    GENERIC_ACT_STEM_STOPLIST as GENERIC_ACT_STEM_STOPLIST,
+)
+from refspec.registry.act_resolution import (
+    UNRESOLVED_REASONS,
+)
+from refspec.registry.act_resolution import (
+    ActIndex as ActIndex,
+)
+from refspec.registry.act_resolution import (
+    StatutoryShortTitleMatch as StatutoryShortTitleMatch,
+)
+from refspec.registry.act_resolution import (
+    find_statutory_short_titles as find_statutory_short_titles,
+)
 from refspec.registry.infrastructure.artifact_serialization import file_sha256, scan_for_secrets, scan_text_for_secrets
 from refspec.storage import canonical_json
+
+
+def scan_text(
+    text: str,
+    index: ActIndex,
+    *,
+    deduplicate: bool = True,
+) -> tuple[StatutoryShortTitleMatch, ...]:
+    """Scan unstructured prose for enacted statutory short titles using ``index``."""
+
+    return find_statutory_short_titles(text, index, deduplicate=deduplicate)
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 

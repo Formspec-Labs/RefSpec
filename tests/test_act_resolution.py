@@ -1540,3 +1540,21 @@ def test_an_index_that_states_no_cited_names_still_answers() -> None:
     aliased = ActIndex(alias_by_name={"a": "b"})
     assert act_name_absence_reason("a", aliased) == "act_alias_target_not_listed"
     assert act_name_absence_reason("b", ActIndex(cited_names=frozenset({"b"}))) == "act_listed_without_classification"
+
+
+def test_act_index_scan_text_extracts_enacted_short_titles_from_prose() -> None:
+    """``ActIndex.scan_text`` / ``find_statutory_short_titles`` resolves maximal NPs and ignores generic stems."""
+
+    prose = (
+        "This Act amends ERISA. Under Such Act and That Act, the Employee Retirement Income Security Act "
+        "and the Taxpayer Certainty and Disaster Tax Relief Act of 2020 govern, while the "
+        "Unenacted Demo Act does not."
+    )
+    hits = FIXTURE_INDEX.scan_text(prose)
+    assert [h.act_key for h in hits] == [
+        "employee retirement income security act of 1974",
+        "taxpayer certainty and disaster tax relief act of 2020",
+    ]
+    assert [h.table3_key for h in hits] == ["93-406", "116-260"]
+    assert FIXTURE_INDEX.find_statutory_short_titles(prose) == hits
+
