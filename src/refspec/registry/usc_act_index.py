@@ -855,7 +855,32 @@ def main(argv: list[str] | None = None) -> int:
         help="sealed artifact whose Table III rows this build's reproduction is measured against",
     )
     parser.add_argument("--verify", action="store_true", help="verify the artifact against its receipt")
+    parser.add_argument(
+        "--scan-text",
+        type=str,
+        default=None,
+        help="scan unstructured prose against the sealed act index and emit resolved statutory short titles as JSON",
+    )
     args = parser.parse_args(argv)
+
+    if args.scan_text is not None:
+        index = ActIndex.from_artifact(args.output)
+        hits = scan_text(args.scan_text, index)
+        print(
+            canonical_json(
+                [
+                    {
+                        "act_key": hit.act_key,
+                        "end": hit.end,
+                        "start": hit.start,
+                        "surface": hit.surface,
+                        "table3_key": hit.table3_key,
+                    }
+                    for hit in hits
+                ]
+            )
+        )
+        return 0
 
     if args.verify:
         problems = verify_artifact(args.output, zip_path=args.bulk_source)

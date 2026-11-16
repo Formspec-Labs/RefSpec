@@ -6407,3 +6407,46 @@ code -- aliases and non-emissions from each alias's `answer_effects`, the
 organizations from the FR capture, REF-038's projection from the roster captures
 and its adjudication file -- re-hashes every cited record and finds its passage,
 and refuses a planted wrong value in each table.
+
+### REF-076: Prose short-title scanning belongs to the act index, lexical bill-drafting context stays out of the section oracle, and the EO roster states no constant ceiling
+
+- **Date:** 2026-11-16
+- **Status:** Accepted. Governs the three prose-facing registry helpers backported
+  from the DocMeta V6 validation pass (`act_resolution.find_statutory_short_titles` /
+  `usc_act_index.scan_text`, `citation_grammar.is_proposed_usc_section`, and
+  `eo_roster.EoRosterOracle.validate_candidate`). No sealed artifact digest or
+  binding version moves.
+
+1. **Maximal-NP statutory short-title scanning (`act_resolution`, `usc_act_index`).**
+   `find_statutory_short_titles` (exposed on `ActIndex` and via
+   `python -m refspec.registry.usc_act_index --scan-text`) tokenizes each
+   pre-`Act` window in a single forward `O(W)` pass (`W <= 450`) and arbitrates
+   overlapping candidates longest-span first in `O(M log M)` via `bisect`. Two
+   invariants prevent false positives on unstructured legislative and hearing
+   prose: `GENERIC_ACT_STEM_STOPLIST` refuses anaphoric determiners (`This Act`,
+   `Such Act`, `That Act`, `The Act`) before consulting the index, and an
+   uninterrupted noun phrase (including middle initials `L.`, acronyms `SEC`,
+   honorifics `Sen.`/`Rev.`, parentheticals `(Kids)`, inner nicknames `"Kelsey"`,
+   and compound multi-`Act` titles such as `Violence Against Women Act
+   Reauthorization Act of 2022`) is queried whole and never sub-sliced into
+   inner suffixes when unindexed. `StatutoryShortTitleMatch.surface` preserves
+   exact `text[start:end]` slice identity.
+2. **Lexical proposed-section classification stays in `citation_grammar` (REF-062).**
+   `UscSectionOracle` remains strictly a three-valued enacted-Code existence
+   oracle (`VERDICTS = ("exists", "absent", "unknown")`). Distinguishing a
+   not-yet-enacted section proposed by positive-law amendatory bill prose
+   (`Chapter 83 of title 41, United States Code, is amended by adding at the end
+   the following new section: '§ 8302A. ...'`) is a lexical property of the
+   citing text, so `is_proposed_usc_section(title, section, surrounding_text)`
+   lives in `refspec.registry.citation_grammar` (`STRING_GRAMMAR_MODULES`),
+   requires explicit `United States Code` / `U.S.C.` title context, preserves
+   line-initial U.S.C. titles `1..26` during GPO margin stripping, and anchors
+   extraction to the added heading opening rather than body cross-references.
+3. **EO candidate validation derives its upper bound from the loaded roster (REF-057).**
+   `eo_roster` carries neither a duplicate prose citation scanner nor a
+   module-level `FR_API_DENSE_MAX + K` constant ceiling. `EoRosterOracle.validate_candidate`
+   and `is_valid_eo_candidate` enforce uniform XML/file-path, `_` slug, `E0`
+   zero-homoglyph, leading-zero, and 6+ digit concatenation guards across string,
+   integer, `span`, and `span=None` inputs, while deriving any roster ceiling
+   strictly from `oracle.max_eo` and keeping dense-window `absent` vs sparse/post-capture
+   `unknown` verdicts unchanged.

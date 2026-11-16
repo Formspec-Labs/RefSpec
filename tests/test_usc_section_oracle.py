@@ -25,7 +25,8 @@ from pathlib import Path
 
 import pytest
 
-from refspec.registry import citation_grammar
+from refspec.registry import citation_grammar, usc_section_oracle
+from refspec.registry.citation_grammar import is_proposed_usc_section
 from refspec.registry.usc_section_oracle import (
     _DASHES,
     _ORACLE_PINS,
@@ -37,8 +38,6 @@ from refspec.registry.usc_section_oracle import (
     MISS_CLASSES,
     ORACLE_ANNUAL_YEARS,
     ORACLE_WINDOW,
-    PROPOSED_SECTION_VERDICT,
-    SECTION_VERDICTS,
     UNKNOWN_REASONS,
     USC_SECTION_ORACLE_ARTIFACT,
     VERDICTS,
@@ -50,7 +49,6 @@ from refspec.registry.usc_section_oracle import (
     _read_pinned_parquet,
     _section_key,
     _SpanIndex,
-    is_proposed_usc_section,
     normalize_section,
 )
 
@@ -3002,15 +3000,34 @@ def test_span_index_matches_brute_force_on_adversarial_interval_sets() -> None:
 
 
 # --------------------------------------------------------------------------- #
-# Draft-bill proposed section support (PR-U2)
+# Lexical proposed U.S.C. section classifier & REF-062 boundary fence (PR-U2)
+
+
+def test_usc_section_oracle_remains_strict_three_valued_enacted_oracle() -> None:
+    """``UscSectionOracle`` keeps its sealed 3-valued ``VERDICTS`` and carries zero lexical bill-drafting state."""
+
+    assert VERDICTS == ("exists", "absent", "unknown")
+    assert {"PROPOSED_SECTION_VERDICT", "SECTION_VERDICTS", "is_proposed_usc_section"} & set(
+        vars(usc_section_oracle)
+    ) == set()
+    assert not hasattr(UscSectionOracle, "check_section_with_context")
+    with pytest.raises(ValueError, match="undeclared verdict"):
+        SectionVerdict(
+            title=41,
+            section="8302a",
+            appendix=False,
+            edition_year=None,
+            verdict="proposed_new_section",
+            reason=None,
+            evidence=(),
+            status=(),
+            attested_years=(),
+            attested_at_edition=None,
+        )
 
 
 def test_is_proposed_usc_section_recognizes_positive_law_amendatory_prose_and_refuses_traps() -> None:
-    """Amendatory addition/insertion formulas match only the proposed section under a valid 1..54 title."""
-
-    assert VERDICTS == ("exists", "absent", "unknown")
-    assert PROPOSED_SECTION_VERDICT == "proposed_new_section"
-    assert SECTION_VERDICTS == ("exists", "absent", "unknown", "proposed_new_section")
+    """``citation_grammar.is_proposed_usc_section`` enforces explicit U.S.C. context, line-initial titles, and heading bounds."""
 
     gpo_bill = (
         "1  SEC. 2. DOMESTIC SOURCING.\n"
@@ -3022,13 +3039,62 @@ def test_is_proposed_usc_section_recognizes_positive_law_amendatory_prose_and_re
     assert is_proposed_usc_section(41, "8302a(b)", gpo_bill) is True
     assert is_proposed_usc_section(42, "8302A", gpo_bill) is False
 
-    # Unquoted and inserting-after-section forms; anchor section must NOT match as proposed.
+    # Line-initial U.S.C. titles 1..26 are never stripped as GPO margin line numbers (F3.1).
+    for title_num, sec_num, line_initial in (
+        (23, "104A", "23 U.S.C. 104A (as added by section 2 of this Act)"),
+        (5, "552c", "5 U.S.C. § 552c (as added by subsection (a))"),
+        (18, "1030A", "18 U.S. Code § 1030A (as added by section 4)"),
+        (1, "112a", "1 U.S.C. 112a (as added by section 1)"),
+        (26, "45Z", "26 U.S.C. 45Z (as added by section 13704)"),
+    ):
+        assert is_proposed_usc_section(title_num, sec_num, line_initial) is True, line_initial
+
+    # Non-U.S.C. Act titles, CFR titles, and state-code titles without explicit U.S.C. context refuse (F3.2).
+    for non_usc_prose in (
+        "To amend title 4 of the Higher Education Act of 1965 by adding at the end § 499A.",
+        "Section 3 amends title 40 of the Code of Federal Regulations by adding at the end § 999.",
+        "Title 18 is amended by adding at the end § 9999.",
+        "under proposed section 499A of title 4 of the Higher Education Act of 1965",
+    ):
+        assert is_proposed_usc_section(4, "499a", non_usc_prose) is False, non_usc_prose
+        assert is_proposed_usc_section(40, "999", non_usc_prose) is False, non_usc_prose
+        assert is_proposed_usc_section(18, "9999", non_usc_prose) is False, non_usc_prose
+
+    # Body cross-reference § typos inside a 500-char proposed section body do NOT match (F3.3).
+    body_with_crossref = (
+        "Title 41, United States Code, is amended by adding at the end the following new section: "
+        "‘‘§ 8302A. Buy American. (a) Consistent with § 8399 and 5 U.S.C. § 99999, agencies shall act.’’"
+    )
+    assert is_proposed_usc_section(41, "8302A", body_with_crossref) is True
+    assert is_proposed_usc_section(41, "8399", body_with_crossref) is False
+    assert is_proposed_usc_section(41, "99999", body_with_crossref) is False
+    assert is_proposed_usc_section(5, "99999", body_with_crossref) is False
+
+    # Inserting-after-section anchor exclusion, table-of-sections quoted item, plural additions, and cross-references.
     inserting = (
         "Subchapter II of chapter 5 of title 5, United States Code, is amended "
         "by inserting after section 99998 the following new section: § 99999. Transparency."
     )
     assert is_proposed_usc_section(5, "99999", inserting) is True
     assert is_proposed_usc_section(5, "99998", inserting) is False
+
+    toc_item = (
+        "The table of sections for chapter 83 of title 41, United States Code, is amended "
+        "by adding at the end the following new item: '8302A. Domestic critical supply chains.'"
+    )
+    assert is_proposed_usc_section(41, "8302A", toc_item) is True
+
+    plural_quoted = (
+        "Chapter 1 of title 23, United States Code, is amended by adding at the end the following new sections: "
+        "'§ 104A. Resilience.' '§ 104B. Corridors. Consistent with § 9999, grants apply.'"
+    )
+    assert is_proposed_usc_section(23, "104A", plural_quoted) is True
+    assert is_proposed_usc_section(23, "104B", plural_quoted) is True
+    assert is_proposed_usc_section(23, "9999", plural_quoted) is False
+
+    plural_inline = "To amend title 23, United States Code, to add at the end new sections 104A and 104B."
+    assert is_proposed_usc_section(23, "104A", plural_inline) is True
+    assert is_proposed_usc_section(23, "104B", plural_inline) is True
 
     assert is_proposed_usc_section(
         38, "1789a", "To amend title 38, United States Code, by adding at the end § 1789A."
@@ -3037,49 +3103,33 @@ def test_is_proposed_usc_section_recognizes_positive_law_amendatory_prose_and_re
         23, "104a", "by inserting after section 104 of title 23, United States Code, a new section 104A"
     ) is True
     assert is_proposed_usc_section(
-        49, "5340a", "adding at the end of chapter 53 of title 49, United States Code, the following new section: '§ 5340A.'"
+        49,
+        "5340a",
+        "adding at the end of chapter 53 of title 49, United States Code, the following new section: '§ 5340A.'",
     ) is True
     assert is_proposed_usc_section(
         41, "8302a", "under section 8302A of title 41, United States Code, as added by subsection (a)"
     ) is True
     assert is_proposed_usc_section(
-        41, "8302a", "pursuant to 41 U.S.C. 8302A (as added by section 2 of this Act)"
+        41, "8302a", "pursuant to proposed section 8302A of title 41, United States Code"
     ) is True
 
-    # Invalid/reserved U.S.C. titles (0, 53, 55) and non-amendatory prose never match.
+    # Invalid/reserved U.S.C. titles (0, 53, 55, bool) and non-amendatory prose never match.
     for bad_title in (0, 53, 55, 99):
         assert is_proposed_usc_section(
             bad_title, "101a", f"Title {bad_title}, United States Code, is amended by adding at the end § 101A."
         ) is False
+    assert is_proposed_usc_section(True, "101a", "Title 1, United States Code, is amended by adding at the end § 101A.") is False
     assert is_proposed_usc_section(41, "8302a", "Pursuant to 41 U.S.C. 8302A, the witness testified today.") is False
     assert is_proposed_usc_section(41, "8302a", "We urge Congress to amend title 41. See 41 U.S.C. 8302A.") is False
     assert is_proposed_usc_section(41, "8302a", None) is False
     assert is_proposed_usc_section(41, "8302a", "") is False
-
-    # SectionVerdict coherence invariants hold on proposed_new_section.
-    valid = SectionVerdict(
-        title=41,
-        section="8302a",
-        appendix=False,
-        edition_year=None,
-        verdict="proposed_new_section",
-        reason=None,
-        evidence=("amendatory-bill-context",),
-        status=(),
-        attested_years=(),
-        attested_at_edition=None,
-    )
-    assert valid.is_proposed_new_section is True
-    assert valid.exists is False
-    with pytest.raises(ValueError, match="only an absence carries the window caveat"):
-        SectionVerdict(**{**valid.__dict__, "caveats": ABSENT_CAVEATS})
-    with pytest.raises(ValueError, match="names its coverage gap"):
-        SectionVerdict(**{**valid.__dict__, "reason": "appendix_title_not_published"})
+    assert is_proposed_usc_section(41, "", gpo_bill) is False
 
 
 @pytest.mark.slow
-def test_allow_proposed_sections_preserves_strict_default_and_distinguishes_proposed_sections() -> None:
-    """Default ``section_verdict`` stays 100% strict; ``allow_proposed_sections=True`` distinguishes proposed sections."""
+def test_enacted_oracle_and_lexical_proposed_classifier_compose_without_mutating_verdicts() -> None:
+    """Callers compose ``oracle.section_verdict`` and ``citation_grammar.is_proposed_usc_section`` cleanly."""
 
     known = oracle()
     bill_prose = (
@@ -3087,39 +3137,11 @@ def test_allow_proposed_sections_preserves_strict_default_and_distinguishes_prop
         "by inserting after section 8302 the following new section: '§ 8302A. Supply chain resilience'."
     )
 
-    # Default (allow_proposed_sections=False) keeps strict enacted-Code absence even with surrounding bill prose.
-    strict = known.section_verdict(41, "8302A", surrounding_text=bill_prose)
-    assert strict.verdict == "absent"
-    assert strict.is_proposed_new_section is False
-    assert strict.caveats == ABSENT_CAVEATS
-
-    # Opting in turns the not-yet-enacted section into proposed_new_section while keeping enacted 8302 as exists.
-    opted_in = known.section_verdict(41, "8302A", surrounding_text=bill_prose, allow_proposed_sections=True)
-    assert opted_in.verdict == "proposed_new_section"
-    assert opted_in.is_proposed_new_section is True
-    assert opted_in.exists is False
-    assert opted_in.reason is None
-    assert opted_in.caveats == ()
-    assert opted_in.evidence == ("amendatory-bill-context",)
-
-    via_helper = known.check_section_with_context(41, "8302A", surrounding_text=bill_prose)
-    assert via_helper == opted_in
-    assert known.check_section_with_context(
-        41, "8302A", surrounding_text=bill_prose, allow_proposed_sections=False
-    ) == strict
-
-    enacted_anchor = known.check_section_with_context(41, "8302", surrounding_text=bill_prose)
-    assert enacted_anchor.verdict == "exists"
-    assert enacted_anchor.exists is True
-    assert enacted_anchor.is_proposed_new_section is False
-
-    # Witness/letter typos and impossible titles remain absent even when allow_proposed_sections=True.
-    witness_typo = known.check_section_with_context(
-        41, "8302A", surrounding_text="The witness cited 41 U.S.C. 8302A in error."
-    )
-    assert witness_typo.verdict == "absent"
-    impossible_title = known.check_section_with_context(
-        53, "101", surrounding_text="Title 53, United States Code, is amended by adding at the end § 101."
-    )
-    assert impossible_title.verdict == "absent"
+    # Enacted anchor is 'exists'; un-enacted proposed section is strictly 'absent' in the oracle and True lexically.
+    assert known.section_verdict(41, "8302").verdict == "exists"
+    proposed_verdict = known.section_verdict(41, "8302A")
+    assert proposed_verdict.verdict == "absent"
+    assert proposed_verdict.caveats == ABSENT_CAVEATS
+    assert is_proposed_usc_section(41, "8302A", bill_prose) is True
+    assert is_proposed_usc_section(41, "8302", bill_prose) is False
 

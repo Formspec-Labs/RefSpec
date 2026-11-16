@@ -128,7 +128,7 @@ import hashlib
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
-from functools import cached_property
+from functools import cached_property, lru_cache
 from pathlib import Path
 from types import MappingProxyType
 
@@ -137,8 +137,6 @@ from refspec.registry import hand_validated_interpretations
 __all__ = [
     "ABSENT_CAPABLE",
     "CANDIDATE_REJECTION_REASONS",
-    "DEFAULT_MAX_PLAUSIBLE_EO",
-    "EO_PLAUSIBLE_HEADROOM",
     "EO_ROSTER_ARTIFACT",
     "FR_API_DENSE_MAX",
     "FR_API_WINDOW",
@@ -152,10 +150,8 @@ __all__ = [
     "WINDOWS",
     "EoCandidateCheck",
     "EoCapturePin",
-    "EoProseCitation",
     "EoRosterOracle",
     "EoVerdict",
-    "find_executive_order_citations",
     "is_valid_eo_candidate",
     "window_for",
 ]
@@ -224,19 +220,13 @@ VERDICTS = ("exists", "absent", "unknown")
 #: does not attain it -- see the module docstring's "Measured absence".
 FR_API_DENSE_MAX = 14_420
 
-#: Headroom above the roster's highest attested number for prose candidate
-#: validation (`1 <= N <= max_eo + 200`), admitting newly signed orders not yet
-#: in the pinned capture while rejecting 6-7+ digit OCR/slug concatenations
-#: (`E.O. 1165492`) and out-of-series numbers (`20450`).
-EO_PLAUSIBLE_HEADROOM = 200
-DEFAULT_MAX_PLAUSIBLE_EO = FR_API_DENSE_MAX + EO_PLAUSIBLE_HEADROOM
-
 CANDIDATE_REJECTION_REASONS = (
     "xml_or_file_path",
     "zero_homoglyph_or_malformed_label",
     "leading_zero",
     "non_positive_number",
-    "exceeds_plausible_ceiling",
+    "implausible_digit_length",
+    "above_roster_max",
     "absent_in_dense_window",
 )
 
@@ -506,38 +496,20 @@ class EoRosterOracle:
 
         return max(self._rows)
 
-    @property
-    def max_plausible_number(self) -> int:
-        """Default prose-validation ceiling (``max_eo + 200``)."""
-
-        return self.max_eo + EO_PLAUSIBLE_HEADROOM
-
-    def is_plausible_number(self, eo_number: int, *, headroom: int = EO_PLAUSIBLE_HEADROOM) -> bool:
-        """Whether ``eo_number`` sits within ``1 <= N <= max_eo + headroom``."""
-
-        if isinstance(eo_number, bool):
-            raise TypeError("eo_number must be an integer, not bool")
-        if headroom < 0:
-            raise ValueError(f"headroom must be non-negative, got {headroom}")
-        number = int(eo_number)
-        return 1 <= number <= self.max_eo + headroom
-
     def validate_candidate(
         self,
         candidate: int | str,
         *,
         surrounding_text: str | None = None,
         span: tuple[int, int] | None = None,
-        headroom: int = EO_PLAUSIBLE_HEADROOM,
     ) -> EoCandidateCheck:
-        """Validate a prose or numeric Executive Order candidate against ceiling, path guards, and roster."""
+        """Validate a prose or numeric Executive Order candidate against path guards and this roster."""
 
         return _validate_eo_candidate(
             candidate,
             oracle=self,
             surrounding_text=surrounding_text,
             span=span,
-            headroom=headroom,
         )
 
     def is_valid_candidate(
@@ -546,7 +518,6 @@ class EoRosterOracle:
         *,
         surrounding_text: str | None = None,
         span: tuple[int, int] | None = None,
-        headroom: int = EO_PLAUSIBLE_HEADROOM,
     ) -> bool:
         """Boolean convenience wrapper around :meth:`validate_candidate`."""
 
@@ -554,19 +525,7 @@ class EoRosterOracle:
             candidate,
             surrounding_text=surrounding_text,
             span=span,
-            headroom=headroom,
         ).is_valid
-
-    def scan_text(
-        self,
-        text: str,
-        *,
-        headroom: int = EO_PLAUSIBLE_HEADROOM,
-        deduplicate: bool = True,
-    ) -> tuple[EoProseCitation, ...]:
-        """Extract valid Executive Order citations from unstructured prose."""
-
-        return find_executive_order_citations(text, oracle=self, headroom=headroom, deduplicate=deduplicate)
 
     @staticmethod
     def flag_for(eo_number: int) -> hand_validated_interpretations.Interpretation | None:
@@ -605,50 +564,31 @@ class EoRosterOracle:
 
 
 # --------------------------------------------------------------------------- #
-# Prose candidate validation & XML/file-path false-positive guards
+# Candidate validation & XML/file-path/homoglyph false-positive guards
 # --------------------------------------------------------------------------- #
 
 _EO_DASH_MAP = str.maketrans(dict.fromkeys("‐‑‒–—―−\x96\x97", "-"))
-_EO_PARAGRAPH_BREAK_RE = re.compile(r"\r?\n[ \t]*\r?\n")
-
+_EO_TOKEN_DELIMITERS = frozenset(",;()[]{}<>\"'")
+_EO_DIGIT_RUN_RE = re.compile(r"\d+")
+_EO_DOTTED_FILE_SUFFIX_RE = re.compile(r"\d\.[A-Za-z0-9]")
+_EO_ZERO_HOMOGLYPH_INLINE_RE = re.compile(r"(?<![A-Za-z0-9])E0\s*\d")
+_EO_ZERO_HOMOGLYPH_LABEL_RE = re.compile(r"(?<![A-Za-z0-9])E0\.?$")
+_EO_PRECEDING_LABEL_TAIL_RE = re.compile(r"(?:(?i:orders?|ord\.?)|EOs?\.?|E\.O\.?s?|E0\.?)$")
+_EO_CLEAN_PRECEDING_LABEL_RE = re.compile(
+    r"(?:(?i:Executive\s+Orders?|Exec\.?\s*(?:Orders?|Ord\.?))|EOs?\.?|E\.\s*O\.?s?)\s*(?i:Nos?\.?\s*)?$"
+)
 _EO_CANDIDATE_LABEL_RE = re.compile(
     r"^(?:"
     r"(?i:Executive\s+Orders?|Exec\.?\s*(?:Orders?|Ord\.?))"
     r"|(?:EOs?\.?|E\.\s*O\.?s?)"
     r")\s*(?i:Nos?\.?\s*)?(?P<num>-?\d+)\.?$"
 )
-_EO_PATH_SUFFIX_RE = re.compile(r"\.[A-Za-z0-9]{1,8}(?:\.[A-Za-z0-9]{1,8})*$")
-
-_EO_PROSE_SPELLED_RE = re.compile(
-    r"(?<![0-9A-Za-z_\\/:])(?P<lbl>Executive\s+Orders?|Exec\.?\s*(?:Orders?|Ord\.?))\s*(?P<no>Nos?\.?\s*)?"
-    r"(?P<num>[1-9]\d*)(?![0-9A-Za-z_\\/])(?!\.[0-9A-Za-z])",
-    re.IGNORECASE,
-)
-_EO_PROSE_ABBR_RE = re.compile(
-    r"(?<![0-9A-Za-z_\\/:])(?P<lbl>EOs?\.?|E\.\s*O\.?s?)\s*(?P<no>(?i:Nos?\.?)\s*)?"
-    r"(?P<num>[1-9]\d*)(?![0-9A-Za-z_\\/])(?!\.[0-9A-Za-z])"
-)
-_EO_PROSE_TAIL_PLURAL_RE = re.compile(
-    r"\s*(?:,\s*(?:and\s+)?|\s+and\s+)"
-    r"(?P<num>[1-9]\d*)(?![0-9A-Za-z_\\/])(?!\.[0-9A-Za-z])"
-    r"(?!\s*(?i:FR\b|Fed\.?\s*Reg|C\.?\s*F\.?\s*R|U\.?\s*S\.?\s*C|Stat\b))"
-)
-_EO_PROSE_TAIL_SINGULAR_RE = re.compile(
-    r"\s*(?:,\s*(?:and\s+)?|\s+and\s+)"
-    r"(?P<num>[1-9]\d{3,})(?![0-9A-Za-z_\\/])(?!\.[0-9A-Za-z])"
-    r"(?!\s*(?i:FR\b|Fed\.?\s*Reg|C\.?\s*F\.?\s*R|U\.?\s*S\.?\s*C|Stat\b))"
-)
-
-
-def _eo_match_is_plural(match: re.Match[str]) -> bool:
-    lbl = (match.group("lbl") or "").rstrip(".").lower()
-    no_lbl = (match.group("no") or "").strip().rstrip(".").lower()
-    return lbl.endswith("s") or no_lbl.endswith("s")
+_MAX_EO_DIGITS_STRUCTURAL = 99_999
 
 
 @dataclass(frozen=True, slots=True)
 class EoCandidateCheck:
-    """Result of validating an Executive Order candidate against ceiling, path guards, and roster."""
+    """Result of validating an Executive Order candidate against path guards and roster bounds."""
 
     eo_number: int | None
     is_valid: bool
@@ -664,83 +604,97 @@ class EoCandidateCheck:
             raise ValueError("a valid EO candidate must carry a positive integer eo_number")
 
 
-@dataclass(frozen=True, slots=True)
-class EoProseCitation:
-    """One validated Executive Order citation extracted from unstructured prose."""
+def _expand_enclosing_token(norm: str, start: int, end: int) -> tuple[int, int]:
+    tok_s = start
+    while tok_s > 0 and not norm[tok_s - 1].isspace() and norm[tok_s - 1] not in _EO_TOKEN_DELIMITERS:
+        tok_s -= 1
+    tok_e = end
+    while tok_e < len(norm) and not norm[tok_e].isspace() and norm[tok_e] not in _EO_TOKEN_DELIMITERS:
+        tok_e += 1
+    return tok_s, tok_e
 
-    eo_number: int
-    surface: str
-    start: int
-    end: int
-    verdict: EoVerdict | None = None
+
+def _preceding_horizontal_token(norm: str, pos: int) -> tuple[str, int]:
+    idx = pos
+    while idx > 0 and norm[idx - 1] in " \t":
+        idx -= 1
+    if idx == 0 or norm[idx - 1].isspace() or norm[idx - 1] in _EO_TOKEN_DELIMITERS:
+        return "", idx
+    end = idx
+    while idx > 0 and not norm[idx - 1].isspace() and norm[idx - 1] not in _EO_TOKEN_DELIMITERS:
+        idx -= 1
+    return norm[idx:end], idx
 
 
-def _span_has_path_or_homoglyph_trap(text: str, start: int, end: int) -> str | None:
-    """Inspect characters surrounding ``text[start:end]`` for path separators, extensions, or ``E0`` homoglyphs."""
+def _inspect_span_in_context(norm: str, start: int, end: int, eo_number: int) -> str | None:
+    """Uniformly inspect ``norm[start:end]`` and its enclosing token for path, homoglyph, and leading-zero traps."""
 
-    if start < 0 or end > len(text) or start >= end:
-        return None
-    segment = text[start:end]
-    if "\\" in segment or "/" in segment:
+    tok_s, tok_e = _expand_enclosing_token(norm, start, end)
+    enclosing_stripped = norm[tok_s:tok_e].rstrip(".")
+    if any(ch in enclosing_stripped for ch in "\\/_:") or _EO_DOTTED_FILE_SUFFIX_RE.search(enclosing_stripped):
         return "xml_or_file_path"
-    if start > 0 and text[start - 1] in "\\/:_":
-        return "xml_or_file_path"
-    if end < len(text):
-        nxt = text[end]
-        if nxt in "\\/_":
-            return "xml_or_file_path"
-        if nxt == "." and end + 1 < len(text) and text[end + 1].isalnum():
-            return "xml_or_file_path"
-    if re.search(r"(?<![A-Za-z])E0\s*\d", segment):
+    if _EO_ZERO_HOMOGLYPH_INLINE_RE.search(enclosing_stripped):
         return "zero_homoglyph_or_malformed_label"
-    prefix = text[max(0, start - 6) : start]
-    if re.search(r"[\\/:]\s*$", prefix):
-        return "xml_or_file_path"
-    if re.search(r"(?<![A-Za-z])E0\s*$", prefix):
+
+    prev_tok, prev_s = _preceding_horizontal_token(norm, tok_s)
+    if prev_tok.rstrip(".").lower() in {"no", "nos"}:
+        prev_tok, prev_s = _preceding_horizontal_token(norm, prev_s)
+    if prev_tok and _EO_PRECEDING_LABEL_TAIL_RE.search(prev_tok):
+        if any(ch in prev_tok for ch in "\\/_") or ":" in prev_tok.rstrip(":"):
+            return "xml_or_file_path"
+        if _EO_ZERO_HOMOGLYPH_LABEL_RE.search(prev_tok):
+            return "zero_homoglyph_or_malformed_label"
+    elif prev_tok and _EO_ZERO_HOMOGLYPH_LABEL_RE.search(prev_tok):
         return "zero_homoglyph_or_malformed_label"
+
+    for digit_match in _EO_DIGIT_RUN_RE.finditer(enclosing_stripped):
+        digits = digit_match.group(0)
+        if int(digits) == eo_number and digits.startswith("0"):
+            return "leading_zero"
     return None
 
 
-def _context_rejection_for_number(eo_number: int, surrounding_text: str, span: tuple[int, int] | None) -> str | None:
-    """Check ``surrounding_text`` for XML/file-path or ``E0`` homoglyph traps around ``eo_number``."""
-
+@lru_cache(maxsize=8)
+def _index_eo_context(surrounding_text: str) -> tuple[str, tuple[tuple[int, int, int], ...]]:
     norm = surrounding_text.translate(_EO_DASH_MAP)
+    runs = tuple((int(m.group(0)), m.start(), m.end()) for m in _EO_DIGIT_RUN_RE.finditer(norm))
+    return norm, runs
+
+
+def _context_rejection_for_number(
+    eo_number: int,
+    surrounding_text: str,
+    span: tuple[int, int] | None,
+) -> str | None:
+    """Check ``surrounding_text`` for XML/file-path, leading-zero, or ``E0`` homoglyph traps around ``eo_number``."""
+
+    norm, runs = _index_eo_context(surrounding_text)
     if span is not None:
-        return _span_has_path_or_homoglyph_trap(norm, span[0], span[1])
+        if (
+            not isinstance(span, tuple)
+            or len(span) != 2
+            or any(isinstance(x, bool) or not isinstance(x, int) for x in span)
+        ):
+            raise TypeError("span must be a (start, end) tuple of ints")
+        start, end = span
+        if start < 0 or end > len(norm) or start >= end:
+            raise ValueError(f"span {span!r} is out of bounds for surrounding_text of length {len(norm)}")
+        return _inspect_span_in_context(norm, start, end, eo_number)
 
-    # If the surrounding prose carries a genuine EO citation for this number, accept the context.
-    for match in (*_EO_PROSE_SPELLED_RE.finditer(norm), *_EO_PROSE_ABBR_RE.finditer(norm)):
-        if int(match.group("num")) == eo_number:
-            return None
-        tail_re = _EO_PROSE_TAIL_PLURAL_RE if _eo_match_is_plural(match) else _EO_PROSE_TAIL_SINGULAR_RE
-        pos = match.end()
-        while (tail := tail_re.match(norm, pos)) is not None:
-            if _EO_PARAGRAPH_BREAK_RE.search(norm, pos, tail.end()):
-                break
-            if int(tail.group("num")) == eo_number:
-                return None
-            pos = tail.end()
-
-    # Otherwise check whether the number appears inside a path/XML token, leading-zero run, or E0 homoglyph.
     reasons_seen: list[str] = []
-    for num_match in re.finditer(rf"(?<!\d)0*{eo_number}(?!\d)", norm):
-        ns, ne = num_match.start(), num_match.end()
-        token_s = ns
-        while token_s > 0 and not norm[token_s - 1].isspace() and norm[token_s - 1] not in ",;()[]\"'":
-            token_s -= 1
-        token_e = ne
-        while token_e < len(norm) and not norm[token_e].isspace() and norm[token_e] not in ",;()[]\"'":
-            token_e += 1
-        enclosing = norm[token_s:token_e].rstrip(".")
-        if "\\" in enclosing or "/" in enclosing or ":" in enclosing or _EO_PATH_SUFFIX_RE.search(enclosing[ne - token_s :]):
-            reasons_seen.append("xml_or_file_path")
+    saw_clean_labeled = False
+    for run_val, ns, ne in runs:
+        if run_val != eo_number:
             continue
-        before = norm[max(0, ns - 8) : ns]
-        if re.search(r"(?<![A-Za-z])E0\s*$", before):
-            reasons_seen.append("zero_homoglyph_or_malformed_label")
+        trap = _inspect_span_in_context(norm, ns, ne, eo_number)
+        if trap is not None:
+            reasons_seen.append(trap)
             continue
-        if num_match.group(0).startswith("0"):
-            reasons_seen.append("leading_zero")
+        before = norm[max(0, ns - 36) : ns]
+        if _EO_CLEAN_PRECEDING_LABEL_RE.search(before):
+            saw_clean_labeled = True
+    if saw_clean_labeled:
+        return None
     return reasons_seen[0] if reasons_seen else None
 
 
@@ -750,44 +704,35 @@ def _validate_eo_candidate(
     oracle: EoRosterOracle | None = None,
     surrounding_text: str | None = None,
     span: tuple[int, int] | None = None,
-    headroom: int = EO_PLAUSIBLE_HEADROOM,
 ) -> EoCandidateCheck:
-    if isinstance(candidate, bool):
-        raise TypeError("candidate must be an int or str, not bool")
-    if headroom < 0:
-        raise ValueError(f"headroom must be non-negative, got {headroom}")
+    if isinstance(candidate, bool) or not isinstance(candidate, (int, str)):
+        raise TypeError(f"candidate must be an int or str, got {type(candidate).__name__}")
+    if span is not None and surrounding_text is None:
+        raise ValueError("span requires surrounding_text")
 
     if isinstance(candidate, str):
         cleaned = candidate.translate(_EO_DASH_MAP).strip()
         if not cleaned:
             return EoCandidateCheck(None, False, None, "zero_homoglyph_or_malformed_label")
-        if "\\" in cleaned or "/" in cleaned or ":" in cleaned:
-            return EoCandidateCheck(None, False, None, "xml_or_file_path")
-        # Dotted suffix after digits (e.g. "EO12866.xml", "E043025.003.xml", "E.O. 12866.003") is a file/slug token;
-        # a single trailing sentence period ("E.O. 12866.") has nothing after the dot and is allowed.
-        if re.search(r"\d\.[A-Za-z0-9]", cleaned) or "_" in cleaned:
+        if any(ch in cleaned for ch in "\\/_:") or _EO_DOTTED_FILE_SUFFIX_RE.search(cleaned):
             return EoCandidateCheck(None, False, None, "xml_or_file_path")
 
         bare_int = re.fullmatch(r"(-?\d+)\.?", cleaned)
         if bare_int is not None:
             digits = bare_int.group(1)
-            if digits.startswith("-") or int(digits) <= 0:
-                return EoCandidateCheck(int(digits), False, None, "non_positive_number")
-            if digits.startswith("0"):
-                return EoCandidateCheck(int(digits), False, None, "leading_zero")
-            eo_num = int(digits)
         else:
             labeled = _EO_CANDIDATE_LABEL_RE.fullmatch(cleaned)
             if labeled is None:
                 return EoCandidateCheck(None, False, None, "zero_homoglyph_or_malformed_label")
             digits = labeled.group("num")
-            if digits.startswith("-") or int(digits) <= 0:
-                return EoCandidateCheck(int(digits), False, None, "non_positive_number")
-            if digits.startswith("0"):
-                return EoCandidateCheck(int(digits), False, None, "leading_zero")
-            eo_num = int(digits)
+
+        eo_num = int(digits)
+        if digits.startswith("-") or eo_num <= 0:
+            return EoCandidateCheck(eo_num, False, None, "non_positive_number")
+        if digits.startswith("0"):
+            return EoCandidateCheck(eo_num, False, None, "leading_zero")
     else:
-        eo_num = int(candidate)
+        eo_num = candidate
         if eo_num <= 0:
             return EoCandidateCheck(eo_num, False, None, "non_positive_number")
 
@@ -797,9 +742,10 @@ def _validate_eo_candidate(
             return EoCandidateCheck(eo_num, False, None, ctx_rejection)
 
     verdict = oracle.verdict(eo_num) if oracle is not None else None
-    ceiling = (oracle.max_eo if oracle is not None else FR_API_DENSE_MAX) + headroom
-    if eo_num > ceiling and (verdict is None or verdict.verdict != "exists"):
-        return EoCandidateCheck(eo_num, False, verdict, "exceeds_plausible_ceiling")
+    if eo_num > _MAX_EO_DIGITS_STRUCTURAL:
+        return EoCandidateCheck(eo_num, False, verdict, "implausible_digit_length")
+    if oracle is not None and eo_num > oracle.max_eo and (verdict is None or verdict.verdict != "exists"):
+        return EoCandidateCheck(eo_num, False, verdict, "above_roster_max")
     if verdict is not None and verdict.verdict == "absent":
         return EoCandidateCheck(eo_num, False, verdict, "absent_in_dense_window")
     return EoCandidateCheck(eo_num, True, verdict, None)
@@ -811,64 +757,13 @@ def is_valid_eo_candidate(
     oracle: EoRosterOracle | None = None,
     surrounding_text: str | None = None,
     span: tuple[int, int] | None = None,
-    headroom: int = EO_PLAUSIBLE_HEADROOM,
 ) -> bool:
-    """Whether ``candidate`` passes ceiling, XML/file-path, and optional ``oracle`` checks."""
+    """Whether ``candidate`` passes XML/file-path/homoglyph guards and optional ``oracle`` checks."""
 
     return _validate_eo_candidate(
         candidate,
         oracle=oracle,
         surrounding_text=surrounding_text,
         span=span,
-        headroom=headroom,
     ).is_valid
-
-
-def find_executive_order_citations(
-    text: str,
-    *,
-    oracle: EoRosterOracle | None = None,
-    headroom: int = EO_PLAUSIBLE_HEADROOM,
-    deduplicate: bool = True,
-) -> tuple[EoProseCitation, ...]:
-    """Extract valid Executive Order citations from unstructured prose with ceiling and path guards."""
-
-    if not text:
-        return ()
-    if headroom < 0:
-        raise ValueError(f"headroom must be non-negative, got {headroom}")
-    norm = str(text).translate(_EO_DASH_MAP)
-    ceiling = (oracle.max_eo if oracle is not None else FR_API_DENSE_MAX) + headroom
-
-    raw_hits: list[EoProseCitation] = []
-    for pattern in (_EO_PROSE_SPELLED_RE, _EO_PROSE_ABBR_RE):
-        for match in pattern.finditer(norm):
-            candidates: list[tuple[int, int, int]] = [(int(match.group("num")), match.start(), match.end())]
-            tail_re = _EO_PROSE_TAIL_PLURAL_RE if _eo_match_is_plural(match) else _EO_PROSE_TAIL_SINGULAR_RE
-            pos = match.end()
-            while (tail := tail_re.match(norm, pos)) is not None:
-                if _EO_PARAGRAPH_BREAK_RE.search(norm, pos, tail.end()):
-                    break
-                candidates.append((int(tail.group("num")), tail.start("num"), tail.end()))
-                pos = tail.end()
-            for eo_num, s_off, e_off in candidates:
-                if _span_has_path_or_homoglyph_trap(norm, s_off, e_off) is not None:
-                    continue
-                verdict = oracle.verdict(eo_num) if oracle is not None else None
-                if eo_num < 1 or (eo_num > ceiling and (verdict is None or verdict.verdict != "exists")):
-                    continue
-                if verdict is not None and verdict.verdict == "absent":
-                    continue
-                raw_hits.append(EoProseCitation(eo_num, text[s_off:e_off], s_off, e_off, verdict))
-
-    raw_hits.sort(key=lambda item: (item.start, item.end))
-    if not deduplicate:
-        return tuple(raw_hits)
-    seen: set[int] = set()
-    unique: list[EoProseCitation] = []
-    for hit in raw_hits:
-        if hit.eo_number not in seen:
-            seen.add(hit.eo_number)
-            unique.append(hit)
-    return tuple(unique)
 

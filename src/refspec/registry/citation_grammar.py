@@ -76,6 +76,7 @@ import re
 from bisect import bisect_left, bisect_right
 from collections.abc import Callable, Container, Iterable, Mapping
 from dataclasses import dataclass, replace
+from functools import lru_cache
 from itertools import accumulate
 from string import ascii_lowercase
 from typing import Any
@@ -121,6 +122,7 @@ __all__ = [
     "find_eo_compilation_locators",
     "find_local_clause_occurrences",
     "find_usc_citations",
+    "is_proposed_usc_section",
     "names_citation_structure",
     "normalize_popular_name",
     "parse_agenda_timetable_citation",
@@ -4798,3 +4800,192 @@ def parse_agenda_timetable_citation(text: str, *, rin: str | None = None) -> Tim
             return TimetableFrCitation(scheme="page-is-the-rin-suffix", volume=int(slot.group("volume")))
 
     return TimetableFrCitation(scheme="unread")
+
+
+# --------------------------------------------------------------------------- #
+# Lexical positive-law U.S.C. amendatory bill-context classifier (REF-062)
+# --------------------------------------------------------------------------- #
+
+_BILL_QUOTE_AND_DASH_MAP = str.maketrans(
+    {
+        "\u2018": "'",
+        "\u2019": "'",
+        "\u201b": "'",
+        "\u2032": "'",
+        "\u201c": '"',
+        "\u201d": '"',
+        "\u201f": '"',
+        "\u2033": '"',
+        "\u00a0": " ",
+        **dict.fromkeys("‐‑‒–—―−\x96\x97", "-"),
+    }
+)
+_BILL_MARGIN_LINE_RE = re.compile(
+    r"(?<=,\s)(?:[1-9]|1\d|2[0-6])\s+(?=United\s+States\s+Code\b)"
+    r"|(?<=\bof\s)(?:[1-9]|1\d|2[0-6])\s+(?=title\s+[1-9]\d?\b)"
+    r"|(?m:^[ \t]*(?:[1-9]|1\d|2[0-6])[ \t]+(?!(?i:U\.?\s*S\.?\s*(?:Code\b|C\.?)))(?=[A-Za-z\"'(§-]))"
+)
+_USC_TITLE_QUALIFIER = r"(?:\s*,\s*United\s+States\s+Code\s*,?|\s+of\s+the\s+United\s+States\s+Code\b)"
+_AMEND_SUBDIVISION_PREFIX = r"(?:(?:chapter|subchapter|part|subtitle)\s+[0-9A-Za-z-]+\s+of\s+)*"
+_AMEND_ACTION_TAIL = (
+    r"(?:by\s+|to\s+)?"
+    r"(?:"
+    r"add(?:ing)?\s+at\s+the\s+end(?:\s+of\s+(?:chapter|subchapter|part|subtitle)\s+[0-9A-Za-z-]+)?(?:\s+thereof)?"
+    r"|insert(?:ing)?\s+(?:after|before)\s+(?:the\s+item\s+relating\s+to\s+)?"
+    r"(?:§+\s*|sec(?:tion)?\.?\s*)[0-9A-Za-z-]+(?:\([0-9A-Za-z]+\))*"
+    r"|add(?:ing)?\s+(?:a\s+)?new\s+sections?(?=\s+[1-9§])"
+    r")"
+)
+_AMEND_TITLE_FIRST_RE = re.compile(
+    rf"\b(?:(?:table\s+of\s+sections\s+(?:for|of)\s+)?{_AMEND_SUBDIVISION_PREFIX}"
+    rf"title\s+(?P<t1>[1-9]\d?){_USC_TITLE_QUALIFIER}\s+is\s+amended\b"
+    rf"|(?:to\s+)?amend(?:s|ing)?\s+{_AMEND_SUBDIVISION_PREFIX}"
+    rf"title\s+(?P<t2>[1-9]\d?){_USC_TITLE_QUALIFIER})"
+    rf"[^.;]{{0,180}}?\b(?P<action>{_AMEND_ACTION_TAIL})(?P<tail>.{{0,600}})",
+    re.IGNORECASE,
+)
+_AMEND_ACTION_FIRST_RE = re.compile(
+    rf"\b(?:"
+    rf"adding\s+at\s+the\s+end\s+of\s+{_AMEND_SUBDIVISION_PREFIX}"
+    rf"title\s+(?P<t1>[1-9]\d?){_USC_TITLE_QUALIFIER}"
+    rf"|inserting\s+(?:after|before)\s+(?:the\s+item\s+relating\s+to\s+)?"
+    rf"(?:§+\s*|sec(?:tion)?\.?\s*)[0-9A-Za-z-]+(?:\([0-9A-Za-z]+\))*\s+of\s+"
+    rf"{_AMEND_SUBDIVISION_PREFIX}title\s+(?P<t2>[1-9]\d?){_USC_TITLE_QUALIFIER}"
+    rf")(?P<tail>.{{0,600}})",
+    re.IGNORECASE,
+)
+_STRIP_INSERT_ANCHOR_RE = re.compile(
+    r"^(?:by\s+|to\s+)?insert(?:ing)?\s+(?:after|before)\s+(?:the\s+item\s+relating\s+to\s+)?"
+    r"(?:§+\s*|sec(?:tion)?\.?\s*)[0-9A-Za-z-]+(?:\([0-9A-Za-z]+\))*",
+    re.IGNORECASE,
+)
+_STRIP_ADD_AT_END_RE = re.compile(
+    r"^(?:by\s+|to\s+)?add(?:ing)?\s+at\s+the\s+end"
+    r"(?:\s+of\s+(?:chapter|subchapter|part|subtitle)\s+[0-9A-Za-z-]+)?(?:\s+thereof)?",
+    re.IGNORECASE,
+)
+_STRIP_ADD_NEW_SEC_ACTION_RE = re.compile(
+    r"^(?:by\s+|to\s+)?add(?:ing)?(?=\s+(?:a\s+)?new\s+sections?\b)",
+    re.IGNORECASE,
+)
+_PROPOSED_OPENING_RE = re.compile(
+    r"^\s*(?:,\s*)?(?:"
+    r"(?:(?:the\s+)?following(?:\s+new)?\s+(?P<plural_f>sections?|items?)\s*:\s*"
+    r"|to\s+read\s+as\s+follows\s*:\s*"
+    r"|(?:the\s+)?following\s*:\s*)"
+    r"[\"']?\s*(?:§+\s*|sec(?:tion)?\.?\s*)?(?P<s_colon>[1-9]\d*[A-Za-z0-9-]*)"
+    r"|(?:a\s+|the\s+)?new\s+(?P<plural_n>sections?)\s*(?::\s*)?[\"']?\s*(?:§+\s*|sec(?:tion)?\.?\s*)?"
+    r"(?P<s_new>[1-9]\d*[A-Za-z0-9-]*)"
+    r"|(?:§+\s*|sec(?:tion)?s?\.?\s+)(?P<s_inline>[1-9]\d*[A-Za-z0-9-]*)"
+    r"|[\"']\s*(?:§+\s*|sec(?:tion)?\.?\s*)?(?P<s_quote>[1-9]\d*[A-Za-z0-9-]*)\."
+    r")",
+    re.IGNORECASE,
+)
+_PROPOSED_COORD_CONT_RE = re.compile(
+    r"\s*(?:,\s*(?:and\s+)?|\s+and\s+)(?:§+\s*|sec(?:tion)?\.?\s*)?(?P<sec>[1-9]\d*[A-Za-z0-9-]*)",
+    re.IGNORECASE,
+)
+_PROPOSED_PLURAL_QUOTED_HEADING_RE = re.compile(
+    r"[\"']\s*(?:§+\s*|sec(?:tion)?\.?\s*)(?P<sec>[1-9]\d*[A-Za-z0-9-]*)\.",
+    re.IGNORECASE,
+)
+_AS_ADDED_CROSSREF_RE = re.compile(
+    rf"\b(?:"
+    rf"(?:proposed|new)\s+section\s+(?P<s1>[1-9]\d*[A-Za-z0-9-]*)(?:\([0-9A-Za-z]+\))*\s+of\s+"
+    rf"{_AMEND_SUBDIVISION_PREFIX}title\s+(?P<t1>[1-9]\d?){_USC_TITLE_QUALIFIER}"
+    rf"|section\s+(?P<s2>[1-9]\d*[A-Za-z0-9-]*)(?:\([0-9A-Za-z]+\))*\s+of\s+"
+    rf"{_AMEND_SUBDIVISION_PREFIX}title\s+(?P<t2>[1-9]\d?){_USC_TITLE_QUALIFIER}\s*\(?\s*as\s+added\s+by\b"
+    rf"|(?P<t3>[1-9]\d?)\s+U\.?\s*S\.?\s*(?:Code\b|C\.?)\s*(?:§+\s*)?"
+    rf"(?P<s3>[1-9]\d*[A-Za-z0-9-]*)(?:\([0-9A-Za-z]+\))*\s*\(?\s*as\s+added\s+by\b"
+    rf")",
+    re.IGNORECASE,
+)
+_PROPOSED_USC_SEC_SHAPE_RE = re.compile(r"^[1-9]\d*[a-z]*(?:-[0-9a-z]+)*$")
+
+
+def _clean_proposed_section_token(value: object) -> str:
+    norm = _normalize_dashes(str(value or "")).strip().lower()
+    return re.sub(r"\([^)]*\)", "", norm).strip(".")
+
+
+@lru_cache(maxsize=8)
+def _extract_proposed_usc_pairs(surrounding_text: str) -> frozenset[tuple[int, str]]:
+    cleaned = surrounding_text.replace("\r\n", "\n").replace("\r", "\n").translate(_BILL_QUOTE_AND_DASH_MAP)
+    cleaned = cleaned.replace("``", '"').replace("''", '"')
+    cleaned = _BILL_MARGIN_LINE_RE.sub("", cleaned)
+    flat = re.sub(r"\s+", " ", cleaned)
+
+    pairs: set[tuple[int, str]] = set()
+    for pattern in (_AMEND_TITLE_FIRST_RE, _AMEND_ACTION_FIRST_RE):
+        for match in pattern.finditer(flat):
+            matched_title = int(match.group("t1") or match.group("t2"))
+            if not usc_title_is_possible(matched_title):
+                continue
+            action_text = (match.groupdict().get("action") or "").strip()
+            after_anchor = f"{action_text} {match.group('tail')}".strip() if action_text else match.group("tail").strip()
+            if action_text:
+                after_anchor = _STRIP_INSERT_ANCHOR_RE.sub("", after_anchor, count=1)
+                after_anchor = _STRIP_ADD_AT_END_RE.sub("", after_anchor, count=1)
+                after_anchor = _STRIP_ADD_NEW_SEC_ACTION_RE.sub("", after_anchor, count=1)
+
+            opening = _PROPOSED_OPENING_RE.match(after_anchor)
+            if opening is None:
+                continue
+            first_raw = (
+                opening.group("s_colon")
+                or opening.group("s_new")
+                or opening.group("s_inline")
+                or opening.group("s_quote")
+            )
+            first_sec = _clean_proposed_section_token(first_raw)
+            if first_sec and _PROPOSED_USC_SEC_SHAPE_RE.fullmatch(first_sec):
+                pairs.add((matched_title, first_sec))
+
+            plural_word = (opening.group("plural_f") or opening.group("plural_n") or "").lower()
+            is_plural = plural_word.endswith("s") or after_anchor.lstrip().startswith("§§")
+            if is_plural:
+                pos = opening.end()
+                while (cont := _PROPOSED_COORD_CONT_RE.match(after_anchor, pos)) is not None:
+                    c_sec = _clean_proposed_section_token(cont.group("sec"))
+                    if c_sec and _PROPOSED_USC_SEC_SHAPE_RE.fullmatch(c_sec):
+                        pairs.add((matched_title, c_sec))
+                    pos = cont.end()
+                if (opening.group("plural_f") or "").lower().endswith("s"):
+                    for q_match in _PROPOSED_PLURAL_QUOTED_HEADING_RE.finditer(after_anchor, opening.end()):
+                        q_sec = _clean_proposed_section_token(q_match.group("sec"))
+                        if q_sec and _PROPOSED_USC_SEC_SHAPE_RE.fullmatch(q_sec):
+                            pairs.add((matched_title, q_sec))
+
+    for match in _AS_ADDED_CROSSREF_RE.finditer(flat):
+        matched_title = int(match.group("t1") or match.group("t2") or match.group("t3"))
+        if not usc_title_is_possible(matched_title):
+            continue
+        cand = _clean_proposed_section_token(match.group("s1") or match.group("s2") or match.group("s3"))
+        if cand and _PROPOSED_USC_SEC_SHAPE_RE.fullmatch(cand):
+            pairs.add((matched_title, cand))
+
+    return frozenset(pairs)
+
+
+def is_proposed_usc_section(title: int, section: str, surrounding_text: str | None) -> bool:
+    """Whether ``surrounding_text`` contains positive-law bill prose proposing ``(title, section)``.
+
+    Pure lexical classifier kept in :mod:`refspec.registry.citation_grammar` so
+    :class:`~refspec.registry.usc_section_oracle.UscSectionOracle` remains strictly
+    a three-valued enacted-Code existence oracle (**REF-062**). Requires:
+
+    1. ``title`` is a valid 1..54 U.S.C. title (excluding never-enacted title 53);
+    2. explicit ``United States Code`` or ``U.S.C.`` context on the amended title
+       (rejecting amendments to non-U.S.C. Acts, the CFR, or state codes); and
+    3. ``section`` appears at the added/inserted section heading opening (never
+       matching the anchor in ``inserting after section X`` or body cross-references).
+    """
+
+    if isinstance(title, bool) or not isinstance(title, int) or not usc_title_is_possible(title):
+        return False
+    if not surrounding_text:
+        return False
+    target = _clean_proposed_section_token(section)
+    if not target or not _PROPOSED_USC_SEC_SHAPE_RE.fullmatch(target):
+        return False
+    return (title, target) in _extract_proposed_usc_pairs(str(surrounding_text))
