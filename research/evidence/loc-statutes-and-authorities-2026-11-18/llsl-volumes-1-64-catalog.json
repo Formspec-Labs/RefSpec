@@ -1,0 +1,2529 @@
+{
+  "schema_version": "refspec-loc-llsl-catalog/1",
+  "collection_url": "https://www.loc.gov/collections/united-states-statutes-at-large/?fo=json&c=25",
+  "source_collection_pages": [
+    {
+      "page": 1,
+      "url": "https://www.loc.gov/collections/united-states-statutes-at-large/?fo=json&c=25",
+      "retrieved_at": "2026-11-18T22:57:24Z",
+      "bytes": 391484,
+      "sha256": "sha256:cee6570525a240b95c5392908a8dde904dec9da7fcc7c0824f8793d24d9a4011",
+      "result_count": 25
+    },
+    {
+      "page": 2,
+      "url": "https://www.loc.gov/collections/united-states-statutes-at-large/?c=25&fo=json&sp=2",
+      "retrieved_at": "2026-11-18T22:58:31Z",
+      "bytes": 365588,
+      "sha256": "sha256:feb9c4a59e193aad6fffde1466d1cfddf89fc1b93c9eae2db3cc51823c4aa7fa",
+      "result_count": 25
+    },
+    {
+      "page": 3,
+      "url": "https://www.loc.gov/collections/united-states-statutes-at-large/?c=25&fo=json&sp=3",
+      "retrieved_at": "2026-11-18T22:58:40Z",
+      "bytes": 248831,
+      "sha256": "sha256:87828782fd5a061cf34eef6a5a91af690edf9dce6a8eabeaefa73df3db67fb84",
+      "result_count": 25
+    },
+    {
+      "page": 4,
+      "url": "https://www.loc.gov/collections/united-states-statutes-at-large/?c=25&fo=json&sp=4",
+      "retrieved_at": "2026-11-18T22:58:45Z",
+      "bytes": 65331,
+      "sha256": "sha256:97ce62b329cd5cada67c9cf115b9ad42c9cb01c9245fc0dc8ded99111511e3f7",
+      "result_count": 7
+    }
+  ],
+  "summary": {
+    "total_collection_records": 82,
+    "volume_item_count": 64,
+    "non_volume_item_count": 18,
+    "total_llsl_pdfs": 97,
+    "single_pdf_volume_count": 52,
+    "single_pdf_volumes": [
+      6,
+      7,
+      8,
+      13,
+      14,
+      15,
+      16,
+      17,
+      19,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63,
+      64
+    ],
+    "multi_pdf_volume_count": 12,
+    "multi_pdf_volumes": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      9,
+      10,
+      11,
+      12,
+      18,
+      20,
+      44
+    ],
+    "total_llsalvol_objects": 69,
+    "llsalvol_multi_object_volumes": [
+      18,
+      44
+    ],
+    "item_json_503_timeout_volumes": [
+      18
+    ]
+  },
+  "volumes": [
+    {
+      "volume": 1,
+      "shelf_id": "llsl-v1",
+      "item_url": "https://www.loc.gov/item/llsl-v1/",
+      "title": "U.S. Statutes at Large, Volume 1 (1789-1799), 1st through 5th Congress.",
+      "date": "1789-01-01",
+      "pdf_count": 5,
+      "pdf_granularity": "multi_congress_or_part_pdfs",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_001/",
+          "segments": 879,
+          "caption": "U.S. Statutes at Large, Volume 1 (1789-1799), 1st through 5th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "1st Congress (1789/1791)",
+          "filename": "llsl-c1.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c1/llsl-c1.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c1/llsl-c1.pdf",
+          "congress": 1,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1789,
+          "year_end": 1791
+        },
+        {
+          "caption": "2nd Congress (1791/1793)",
+          "filename": "llsl-c2.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c2/llsl-c2.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c2/llsl-c2.pdf",
+          "congress": 2,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1791,
+          "year_end": 1793
+        },
+        {
+          "caption": "3rd Congress (1794/1795)",
+          "filename": "llsl-c3.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c3/llsl-c3.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c3/llsl-c3.pdf",
+          "congress": 3,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1794,
+          "year_end": 1795
+        },
+        {
+          "caption": "4th Congress (1796/1797)",
+          "filename": "llsl-c4.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c4/llsl-c4.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c4/llsl-c4.pdf",
+          "congress": 4,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1796,
+          "year_end": 1797
+        },
+        {
+          "caption": "5th Congress (1798/1799)",
+          "filename": "llsl-c5.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c5/llsl-c5.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c5/llsl-c5.pdf",
+          "congress": 5,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1798,
+          "year_end": 1799
+        }
+      ]
+    },
+    {
+      "volume": 2,
+      "shelf_id": "llsl-v2",
+      "item_url": "https://www.loc.gov/item/llsl-v2/",
+      "title": "U.S. Statutes at Large, Volume 2 (1799-1813), 6th through 12th Congress.",
+      "date": "1799-01-01",
+      "pdf_count": 7,
+      "pdf_granularity": "multi_congress_or_part_pdfs",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_002/",
+          "segments": 870,
+          "caption": "U.S. Statutes at Large, Volume 2 (1799-1813), 6th through 12th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "6th Congress (1799/1801)",
+          "filename": "llsl-c6.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c6/llsl-c6.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c6/llsl-c6.pdf",
+          "congress": 6,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1799,
+          "year_end": 1801
+        },
+        {
+          "caption": "7th Congress (1802/1803)",
+          "filename": "llsl-c7.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c7/llsl-c7.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c7/llsl-c7.pdf",
+          "congress": 7,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1802,
+          "year_end": 1803
+        },
+        {
+          "caption": "8th Congress (1803/1805)",
+          "filename": "llsl-c8.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c8/llsl-c8.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c8/llsl-c8.pdf",
+          "congress": 8,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1803,
+          "year_end": 1805
+        },
+        {
+          "caption": "9th Congress (1805/1807)",
+          "filename": "llsl-c9.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c9/llsl-c9.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c9/llsl-c9.pdf",
+          "congress": 9,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1805,
+          "year_end": 1807
+        },
+        {
+          "caption": "10th Congress (1807/1809)",
+          "filename": "llsl-c10.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c10/llsl-c10.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c10/llsl-c10.pdf",
+          "congress": 10,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1807,
+          "year_end": 1809
+        },
+        {
+          "caption": "11th Congress (1809/1811)",
+          "filename": "llsl-c11.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c11/llsl-c11.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c11/llsl-c11.pdf",
+          "congress": 11,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1809,
+          "year_end": 1811
+        },
+        {
+          "caption": "12th Congress (1811/1813)",
+          "filename": "llsl-c12.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c12/llsl-c12.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c12/llsl-c12.pdf",
+          "congress": 12,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1811,
+          "year_end": 1813
+        }
+      ]
+    },
+    {
+      "volume": 3,
+      "shelf_id": "llsl-v3",
+      "item_url": "https://www.loc.gov/item/llsl-v3/",
+      "title": "U.S. Statutes at Large, Volume 3 (1813-1815), 13th through 18th Congress.",
+      "date": "1813-01-01",
+      "pdf_count": 5,
+      "pdf_granularity": "multi_congress_or_part_pdfs",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_003/",
+          "segments": 840,
+          "caption": "U.S. Statutes at Large, Volume 3 (1813-1815), 13th through 18th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "13th Congress (1813/1815)",
+          "filename": "llsl-c13.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c13/llsl-c13.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c13/llsl-c13.pdf",
+          "congress": 13,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1813,
+          "year_end": 1815
+        },
+        {
+          "caption": "14th Congress (1815/1817)",
+          "filename": "llsl-c14.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c14/llsl-c14.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c14/llsl-c14.pdf",
+          "congress": 14,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1815,
+          "year_end": 1817
+        },
+        {
+          "caption": "15th Congress (1817/1819)",
+          "filename": "llsl-c15.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c15/llsl-c15.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c15/llsl-c15.pdf",
+          "congress": 15,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1817,
+          "year_end": 1819
+        },
+        {
+          "caption": "16th Congress (1819/1821)",
+          "filename": "llsl-c16.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c16/llsl-c16.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c16/llsl-c16.pdf",
+          "congress": 16,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1819,
+          "year_end": 1821
+        },
+        {
+          "caption": "17th Congress (1821/1823)",
+          "filename": "llsl-c17.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c17/llsl-c17.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c17/llsl-c17.pdf",
+          "congress": 17,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1821,
+          "year_end": 1823
+        }
+      ]
+    },
+    {
+      "volume": 4,
+      "shelf_id": "llsl-v4",
+      "item_url": "https://www.loc.gov/item/llsl-v4/",
+      "title": "U.S. Statutes at Large, Volume 4 (1824-1835), 19th through 23rd Congress.",
+      "date": "1826-01-01",
+      "pdf_count": 6,
+      "pdf_granularity": "multi_congress_or_part_pdfs",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_004/",
+          "segments": 866,
+          "caption": "U.S. Statutes at Large, Volume 4 (1824-1835), 19th through 23rd Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "18th Congress (1824/1825)",
+          "filename": "llsl-c18.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c18/llsl-c18.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c18/llsl-c18.pdf",
+          "congress": 18,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1824,
+          "year_end": 1825
+        },
+        {
+          "caption": "19th Congress (1826/1827)",
+          "filename": "llsl-c19.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c19/llsl-c19.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c19/llsl-c19.pdf",
+          "congress": 19,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1826,
+          "year_end": 1827
+        },
+        {
+          "caption": "20th Congress (1828/1829)",
+          "filename": "llsl-c20.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c20/llsl-c20.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c20/llsl-c20.pdf",
+          "congress": 20,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1828,
+          "year_end": 1829
+        },
+        {
+          "caption": "21st Congress (1829/1831)",
+          "filename": "llsl-c21.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c21/llsl-c21.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c21/llsl-c21.pdf",
+          "congress": 21,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1829,
+          "year_end": 1831
+        },
+        {
+          "caption": "22nd Congress (1832/1833)",
+          "filename": "llsl-c22.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c22/llsl-c22.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c22/llsl-c22.pdf",
+          "congress": 22,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1832,
+          "year_end": 1833
+        },
+        {
+          "caption": "23rd Congress (1834/1835)",
+          "filename": "llsl-c23.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c23/llsl-c23.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c23/llsl-c23.pdf",
+          "congress": 23,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1834,
+          "year_end": 1835
+        }
+      ]
+    },
+    {
+      "volume": 5,
+      "shelf_id": "llsl-v5",
+      "item_url": "https://www.loc.gov/item/llsl-v5/",
+      "title": "U.S. Statutes at Large, Volume 5 (1836-1845), 24th through 28th Congress.",
+      "date": "1836-01-01",
+      "pdf_count": 5,
+      "pdf_granularity": "multi_congress_or_part_pdfs",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_005/",
+          "segments": 842,
+          "caption": "U.S. Statutes at Large, Volume 5 (1836-1845), 24th through 28th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "24th Congress (1836/1837)",
+          "filename": "llsl-c24.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c24/llsl-c24.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c24/llsl-c24.pdf",
+          "congress": 24,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1836,
+          "year_end": 1837
+        },
+        {
+          "caption": "25th Congress (1837/1839)",
+          "filename": "llsl-c25.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c25/llsl-c25.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c25/llsl-c25.pdf",
+          "congress": 25,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1837,
+          "year_end": 1839
+        },
+        {
+          "caption": "26th Congress (1840/1841)",
+          "filename": "llsl-c26.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c26/llsl-c26.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c26/llsl-c26.pdf",
+          "congress": 26,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1840,
+          "year_end": 1841
+        },
+        {
+          "caption": "27th Congress (1841/1843)",
+          "filename": "llsl-c27.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c27/llsl-c27.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c27/llsl-c27.pdf",
+          "congress": 27,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1841,
+          "year_end": 1843
+        },
+        {
+          "caption": "28th Congress (1844/1845)",
+          "filename": "llsl-c28.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c28/llsl-c28.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c28/llsl-c28.pdf",
+          "congress": 28,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1844,
+          "year_end": 1845
+        }
+      ]
+    },
+    {
+      "volume": 6,
+      "shelf_id": "llsl-v6",
+      "item_url": "https://www.loc.gov/item/llsl-v6/",
+      "title": "U.S. Statutes at Large, Volume 6. Private Laws and Resolutions (1789-1845).",
+      "date": "1789-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_006/",
+          "segments": 1113,
+          "caption": "U.S. Statutes at Large, Volume 6. Private Laws and Resolutions (1789-1845)."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "Private Laws and Resolutions (1789/1845)",
+          "filename": "llsl-vol-6-private.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-vol-6-private/llsl-vol-6-private.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-vol-6-private/llsl-vol-6-private.pdf",
+          "congress": null,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1789,
+          "year_end": 1845
+        }
+      ]
+    },
+    {
+      "volume": 7,
+      "shelf_id": "llsl-v7",
+      "item_url": "https://www.loc.gov/item/llsl-v7/",
+      "title": "U.S. Statutes at Large, Volume 7. Treaties Between the United States and the Indian Tribes (1789-1845).",
+      "date": "1789-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_007/",
+          "segments": 616,
+          "caption": "U.S. Statutes at Large, Volume 7. Treaties Between the United States and the Indian Tribes (1789-1845)."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "Treaties Between the United States and the Indian Tribes (1789/1845)",
+          "filename": "llsl-vol-7-indian-treaties.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-vol-7-indian-treaties/llsl-vol-7-indian-treaties.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-vol-7-indian-treaties/llsl-vol-7-indian-treaties.pdf",
+          "congress": null,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1789,
+          "year_end": 1845
+        }
+      ]
+    },
+    {
+      "volume": 8,
+      "shelf_id": "llsl-v8",
+      "item_url": "https://www.loc.gov/item/llsl-v8/",
+      "title": "U.S. Statutes at Large, Volume 8. Treaties Between the United States and Foreign Nations (1789-1845).",
+      "date": "1789-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_008/",
+          "segments": 840,
+          "caption": "U.S. Statutes at Large, Volume 8. Treaties Between the United States and Foreign Nations (1789-1845)."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "Treaties Between the United States and Foreign Nations (1789/1845)",
+          "filename": "llsl-vol-8-foreign-treaties.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-vol-8-foreign-treaties/llsl-vol-8-foreign-treaties.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-vol-8-foreign-treaties/llsl-vol-8-foreign-treaties.pdf",
+          "congress": null,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1789,
+          "year_end": 1845
+        }
+      ]
+    },
+    {
+      "volume": 9,
+      "shelf_id": "llsl-v9",
+      "item_url": "https://www.loc.gov/item/llsl-v9/",
+      "title": "U.S. Statutes at Large, Volume 9 (1845-1847), 29th through 31st Congress.",
+      "date": "1845-01-01",
+      "pdf_count": 3,
+      "pdf_granularity": "multi_congress_or_part_pdfs",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_009/",
+          "segments": 1120,
+          "caption": "U.S. Statutes at Large, Volume 9 (1845-1847), 29th through 31st Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "29th Congress (1845/1847)",
+          "filename": "llsl-c29.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c29/llsl-c29.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c29/llsl-c29.pdf",
+          "congress": 29,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1845,
+          "year_end": 1847
+        },
+        {
+          "caption": "30th Congress (1848/1849)",
+          "filename": "llsl-c30.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c30/llsl-c30.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c30/llsl-c30.pdf",
+          "congress": 30,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1848,
+          "year_end": 1849
+        },
+        {
+          "caption": "31st Congress (1850/1851)",
+          "filename": "llsl-c31.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c31/llsl-c31.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c31/llsl-c31.pdf",
+          "congress": 31,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1850,
+          "year_end": 1851
+        }
+      ]
+    },
+    {
+      "volume": 10,
+      "shelf_id": "llsl-v10",
+      "item_url": "https://www.loc.gov/item/llsl-v10/",
+      "title": "U.S. Statutes at Large, Volume 10 (1851-1853), 32nd and 33rd Congress.",
+      "date": "1851-01-01",
+      "pdf_count": 2,
+      "pdf_granularity": "multi_congress_or_part_pdfs",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_010/",
+          "segments": 1290,
+          "caption": "U.S. Statutes at Large, Volume 10 (1851-1853), 32nd and 33rd Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "32nd Congress (1851/1853)",
+          "filename": "llsl-c32.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c32/llsl-c32.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c32/llsl-c32.pdf",
+          "congress": 32,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1851,
+          "year_end": 1853
+        },
+        {
+          "caption": "33rd Congress (1854/1855)",
+          "filename": "llsl-c33.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c33/llsl-c33.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c33/llsl-c33.pdf",
+          "congress": 33,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1854,
+          "year_end": 1855
+        }
+      ]
+    },
+    {
+      "volume": 11,
+      "shelf_id": "llsl-v11",
+      "item_url": "https://www.loc.gov/item/llsl-v11/",
+      "title": "U.S. Statutes at Large, Volume 11 (1856-1857), 34th and 35th Congress.",
+      "date": "1856-01-01",
+      "pdf_count": 2,
+      "pdf_granularity": "multi_congress_or_part_pdfs",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_011/",
+          "segments": 926,
+          "caption": "U.S. Statutes at Large, Volume 11 (1856-1857), 34th and 35th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "34th Congress (1856/1857",
+          "filename": "llsl-c34.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c34/llsl-c34.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c34/llsl-c34.pdf",
+          "congress": 34,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1855,
+          "year_end": 1857
+        },
+        {
+          "caption": "35th Congress (1857/1859)",
+          "filename": "llsl-c35.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c35/llsl-c35.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c35/llsl-c35.pdf",
+          "congress": 35,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1857,
+          "year_end": 1859
+        }
+      ]
+    },
+    {
+      "volume": 12,
+      "shelf_id": "llsl-v12",
+      "item_url": "https://www.loc.gov/item/llsl-v12/",
+      "title": "U.S. Statutes at Large, Volume 12 (1860-1861), 36th and 37th Congress.",
+      "date": "1860-01-01",
+      "pdf_count": 2,
+      "pdf_granularity": "multi_congress_or_part_pdfs",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_012/",
+          "segments": 1498,
+          "caption": "U.S. Statutes at Large, Volume 12 (1860-1861), 36th and 37th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "36th Congress (1860/1861)",
+          "filename": "llsl-c36.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c36/llsl-c36.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c36/llsl-c36.pdf",
+          "congress": 36,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1860,
+          "year_end": 1861
+        },
+        {
+          "caption": "37th Congress (1861/1863)",
+          "filename": "llsl-c37.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c37/llsl-c37.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c37/llsl-c37.pdf",
+          "congress": 37,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1861,
+          "year_end": 1863
+        }
+      ]
+    },
+    {
+      "volume": 13,
+      "shelf_id": "llsl-v13",
+      "item_url": "https://www.loc.gov/item/llsl-v13/",
+      "title": "U.S. Statutes at Large, Volume 13 (1864-1865), 38th Congress.",
+      "date": "1864-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_013/",
+          "segments": 896,
+          "caption": "U.S. Statutes at Large, Volume 13 (1864-1865), 38th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "38th Congress (1864/1865)",
+          "filename": "llsl-c38.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c38/llsl-c38.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c38/llsl-c38.pdf",
+          "congress": 38,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1864,
+          "year_end": 1865
+        }
+      ]
+    },
+    {
+      "volume": 14,
+      "shelf_id": "llsl-v14",
+      "item_url": "https://www.loc.gov/item/llsl-v14/",
+      "title": "U.S. Statutes at Large, Volume 14 (1865-1867), 39th Congress.",
+      "date": "1865-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_014/",
+          "segments": 1002,
+          "caption": "U.S. Statutes at Large, Volume 14 (1865-1867), 39th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "39th Congress (1865/1867)",
+          "filename": "llsl-c39.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c39/llsl-c39.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c39/llsl-c39.pdf",
+          "congress": 39,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1865,
+          "year_end": 1867
+        }
+      ]
+    },
+    {
+      "volume": 15,
+      "shelf_id": "llsl-v15",
+      "item_url": "https://www.loc.gov/item/llsl-v15/",
+      "title": "U.S. Statutes at Large, Volume 15 (1867-1869), 40th Congress.",
+      "date": "1867-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_015/",
+          "segments": 862,
+          "caption": "U.S. Statutes at Large, Volume 15 (1867-1869), 40th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "40th Congress (1867/1869)",
+          "filename": "llsl-c40.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c40/llsl-c40.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c40/llsl-c40.pdf",
+          "congress": 40,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1867,
+          "year_end": 1869
+        }
+      ]
+    },
+    {
+      "volume": 16,
+      "shelf_id": "llsl-v16",
+      "item_url": "https://www.loc.gov/item/llsl-v16/",
+      "title": "U.S. Statutes at Large, Volume 16 (1869-1871), 41st Congress.",
+      "date": "1869-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_016/",
+          "segments": 1350,
+          "caption": "U.S. Statutes at Large, Volume 16 (1869-1871), 41st Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "41st Congress (1869/1871)",
+          "filename": "llsl-c41.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c41/llsl-c41.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c41/llsl-c41.pdf",
+          "congress": 41,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1869,
+          "year_end": 1871
+        }
+      ]
+    },
+    {
+      "volume": 17,
+      "shelf_id": "llsl-v17",
+      "item_url": "https://www.loc.gov/item/llsl-v17/",
+      "title": "U.S. Statutes at Large, Volume 17 (1871-1873), 42nd Congress.",
+      "date": "1871-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_017/",
+          "segments": 1174,
+          "caption": "U.S. Statutes at Large, Volume 17 (1871-1873), 42nd Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "42nd Congress (1871/1873)",
+          "filename": "llsl-c42.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c42/llsl-c42.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c42/llsl-c42.pdf",
+          "congress": 42,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1871,
+          "year_end": 1873
+        }
+      ]
+    },
+    {
+      "volume": 18,
+      "shelf_id": "llsl-v18",
+      "item_url": "https://www.loc.gov/item/llsl-v18/",
+      "title": "U.S. Statutes at Large, Volume 18 (1873-1875): 43rd Congress; Revised Statues in Force, Relating to D.C., and Post Roads; Public Treaties in Force",
+      "date": "1873-01-01",
+      "pdf_count": 4,
+      "pdf_granularity": "multi_congress_or_part_pdfs",
+      "llsalvol_count": 5,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_018a/",
+          "segments": 1467,
+          "caption": "U.S. Statutes at Large, Volume 18 (1873-1875): 43rd Congress; Revised Statutes in Force"
+        },
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_018b/",
+          "segments": 207,
+          "caption": "District of Columbia"
+        },
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_018c/",
+          "segments": 350,
+          "caption": "Post Roads"
+        },
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_018d/",
+          "segments": 910,
+          "caption": "Public Treaties"
+        },
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_018e/",
+          "segments": 1061,
+          "caption": "Recent Treaties, Postal Conventions, Executive Proclamations | Index"
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "43rd Congress (1873/1875)",
+          "filename": "llsl-c43.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c43/llsl-c43.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c43/llsl-c43.pdf",
+          "congress": 43,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1873,
+          "year_end": 1875
+        },
+        {
+          "caption": "Revised Statutes in Force December 1, 1873",
+          "filename": "llsl-c43-revised-statutes.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c43-revised-statutes/llsl-c43-revised-statutes.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c43-revised-statutes/llsl-c43-revised-statutes.pdf",
+          "congress": 43,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": "revised-statutes",
+          "year_start": 1873,
+          "year_end": 1875
+        },
+        {
+          "caption": "Revised Statutes Relating to the District of Columbia and Post Roads in Force December 1, 1873",
+          "filename": "llsl-c43-dc.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c43-dc/llsl-c43-dc.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c43-dc/llsl-c43-dc.pdf",
+          "congress": 43,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": "dc",
+          "year_start": 1873,
+          "year_end": 1875
+        },
+        {
+          "caption": "Revised Statutes Relating to Post Roads",
+          "filename": "llsl-c43-post-roads.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c43-post-roads/llsl-c43-post-roads.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c43-post-roads/llsl-c43-post-roads.pdf",
+          "congress": 43,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": "post-roads",
+          "year_start": 1873,
+          "year_end": 1875
+        }
+      ]
+    },
+    {
+      "volume": 19,
+      "shelf_id": "llsl-v19",
+      "item_url": "https://www.loc.gov/item/llsl-v19/",
+      "title": "U.S. Statutes at Large, Volume 19 (1876-1877), 44th Congress.",
+      "date": "1876-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_019/",
+          "segments": 819,
+          "caption": "U.S. Statutes at Large, Volume 19 (1876-1877), 44th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "44th Congress (1876/1877)",
+          "filename": "llsl-c44.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c44/llsl-c44.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c44/llsl-c44.pdf",
+          "congress": 44,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1876,
+          "year_end": 1877
+        }
+      ]
+    },
+    {
+      "volume": 20,
+      "shelf_id": "llsl-v20",
+      "item_url": "https://www.loc.gov/item/llsl-v20/",
+      "title": "U.S. Statutes at Large, Volume 20 (1877-1879), 45th Congress.",
+      "date": "1877-01-01",
+      "pdf_count": 2,
+      "pdf_granularity": "multi_congress_or_part_pdfs",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_020/",
+          "segments": 980,
+          "caption": "U.S. Statutes at Large, Volume 20 (1877-1879), 45th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "45th Congress (1877/1879)",
+          "filename": "llsl-c45.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c45/llsl-c45.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c45/llsl-c45.pdf",
+          "congress": 45,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1877,
+          "year_end": 1879
+        },
+        {
+          "caption": "Supplement to the Revised Statutes (1874/1891)",
+          "filename": "llsl-c45-revised-statutes-supplement.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c45-revised-statutes-supplement/llsl-c45-revised-statutes-supplement.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c45-revised-statutes-supplement/llsl-c45-revised-statutes-supplement.pdf",
+          "congress": 45,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": "revised-statutes-supplement",
+          "year_start": 1874,
+          "year_end": 1891
+        }
+      ]
+    },
+    {
+      "volume": 21,
+      "shelf_id": "llsl-v21",
+      "item_url": "https://www.loc.gov/item/llsl-v21/",
+      "title": "U.S. Statutes at Large, Volume 21 (1879-1881), 46th Congress.",
+      "date": "1879-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_021/",
+          "segments": 936,
+          "caption": "U.S. Statutes at Large, Volume 21 (1879-1881), 46th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "46th Congress (1879/1881)",
+          "filename": "llsl-c46.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c46/llsl-c46.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c46/llsl-c46.pdf",
+          "congress": 46,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1879,
+          "year_end": 1881
+        }
+      ]
+    },
+    {
+      "volume": 22,
+      "shelf_id": "llsl-v22",
+      "item_url": "https://www.loc.gov/item/llsl-v22/",
+      "title": "U.S. Statutes at Large, Volume 22 (1881-1883), 47th Congress.",
+      "date": "1881-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_022/",
+          "segments": 1289,
+          "caption": "U.S. Statutes at Large, Volume 22 (1881-1883), 47th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "47th Congress (1881/1883)",
+          "filename": "llsl-c47.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c47/llsl-c47.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c47/llsl-c47.pdf",
+          "congress": 47,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1881,
+          "year_end": 1883
+        }
+      ]
+    },
+    {
+      "volume": 23,
+      "shelf_id": "llsl-v23",
+      "item_url": "https://www.loc.gov/item/llsl-v23/",
+      "title": "U.S. Statutes at Large, Volume 23 (1884-1885), 48th Congress.",
+      "date": "1884-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_023/",
+          "segments": 969,
+          "caption": "U.S. Statutes at Large, Volume 23 (1884-1885), 48th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "48th Congress (1884/1885)",
+          "filename": "llsl-c48.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c48/llsl-c48.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c48/llsl-c48.pdf",
+          "congress": 48,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1884,
+          "year_end": 1885
+        }
+      ]
+    },
+    {
+      "volume": 24,
+      "shelf_id": "llsl-v24",
+      "item_url": "https://www.loc.gov/item/llsl-v24/",
+      "title": "U.S. Statutes at Large, Volume 24 (1886-1887), 49th Congress.",
+      "date": "1886-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_024/",
+          "segments": 1217,
+          "caption": "U.S. Statutes at Large, Volume 24 (1886-1887), 49th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "49th Congress (1886/1887)",
+          "filename": "llsl-c49.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c49/llsl-c49.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c49/llsl-c49.pdf",
+          "congress": 49,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1886,
+          "year_end": 1887
+        }
+      ]
+    },
+    {
+      "volume": 25,
+      "shelf_id": "llsl-v25",
+      "item_url": "https://www.loc.gov/item/llsl-v25/",
+      "title": "U.S. Statutes at Large, Volume 25 (1888-1889), 50th Congress.",
+      "date": "1888-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_025/",
+          "segments": 1676,
+          "caption": "U.S. Statutes at Large, Volume 25 (1888-1889), 50th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "50th Congress (1888/1889)",
+          "filename": "llsl-c50.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c50/llsl-c50.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c50/llsl-c50.pdf",
+          "congress": 50,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1888,
+          "year_end": 1889
+        }
+      ]
+    },
+    {
+      "volume": 26,
+      "shelf_id": "llsl-v26",
+      "item_url": "https://www.loc.gov/item/llsl-v26/",
+      "title": "U.S. Statutes at Large, Volume 26 (1890-1891), 51st Congress.",
+      "date": "1890-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_026/",
+          "segments": 1812,
+          "caption": "U.S. Statutes at Large, Volume 26 (1890-1891), 51st Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "51st Congress (1890/1891)",
+          "filename": "llsl-c51.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c51/llsl-c51.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c51/llsl-c51.pdf",
+          "congress": 51,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1890,
+          "year_end": 1891
+        }
+      ]
+    },
+    {
+      "volume": 27,
+      "shelf_id": "llsl-v27",
+      "item_url": "https://www.loc.gov/item/llsl-v27/",
+      "title": "U.S. Statutes at Large, Volume 27 (1892-1893), 52nd Congress.",
+      "date": "1892-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_027/",
+          "segments": 1198,
+          "caption": "U.S. Statutes at Large, Volume 27 (1892-1893), 52nd Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "52nd Congress (1892/1893)",
+          "filename": "llsl-c52.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c52/llsl-c52.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c52/llsl-c52.pdf",
+          "congress": 52,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1892,
+          "year_end": 1893
+        }
+      ]
+    },
+    {
+      "volume": 28,
+      "shelf_id": "llsl-v28",
+      "item_url": "https://www.loc.gov/item/llsl-v28/",
+      "title": "U.S. Statutes at Large, Volume 28 (1893-1895), 53rd Congress.",
+      "date": "1893-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_028/",
+          "segments": 1471,
+          "caption": "U.S. Statutes at Large, Volume 28 (1893-1895), 53rd Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "53rd Congress (1893/1895)",
+          "filename": "llsl-c53.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c53/llsl-c53.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c53/llsl-c53.pdf",
+          "congress": 53,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1893,
+          "year_end": 1895
+        }
+      ]
+    },
+    {
+      "volume": 29,
+      "shelf_id": "llsl-v29",
+      "item_url": "https://www.loc.gov/item/llsl-v29/",
+      "title": "U.S. Statutes at Large, Volume 29 (1896-1897), 54th Congress.",
+      "date": "1896-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_029/",
+          "segments": 1057,
+          "caption": "U.S. Statutes at Large, Volume 29 (1896-1897), 54th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "54th Congress (1896/1897)",
+          "filename": "llsl-c54.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c54/llsl-c54.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c54/llsl-c54.pdf",
+          "congress": 54,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1896,
+          "year_end": 1897
+        }
+      ]
+    },
+    {
+      "volume": 30,
+      "shelf_id": "llsl-v30",
+      "item_url": "https://www.loc.gov/item/llsl-v30/",
+      "title": "U.S. Statutes at Large, Volume 30 (1897-1899), 55th Congress.",
+      "date": "1897-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_030/",
+          "segments": 2056,
+          "caption": "U.S. Statutes at Large, Volume 30 (1897-1899), 55th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "55th Congress (1897/1899)",
+          "filename": "llsl-c55.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c55/llsl-c55.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c55/llsl-c55.pdf",
+          "congress": 55,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1897,
+          "year_end": 1899
+        }
+      ]
+    },
+    {
+      "volume": 31,
+      "shelf_id": "llsl-v31",
+      "item_url": "https://www.loc.gov/item/llsl-v31/",
+      "title": "U.S. Statutes at Large, Volume 31 (1900-1901), 56th Congress.",
+      "date": "1900-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_031/",
+          "segments": 2207,
+          "caption": "U.S. Statutes at Large, Volume 31 (1900-1901), 56th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "56th Congress (1900/1901)",
+          "filename": "llsl-c56.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c56/llsl-c56.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c56/llsl-c56.pdf",
+          "congress": 56,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1900,
+          "year_end": 1901
+        }
+      ]
+    },
+    {
+      "volume": 32,
+      "shelf_id": "llsl-v32",
+      "item_url": "https://www.loc.gov/item/llsl-v32/",
+      "title": "U.S. Statutes at Large, Volume 32 (1902-1903), 57th Congress.",
+      "date": "1902-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_032/",
+          "segments": 2470,
+          "caption": "U.S. Statutes at Large, Volume 32 (1902-1903), 57th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "57th Congress (1902/1903)",
+          "filename": "llsl-c57.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c57/llsl-c57.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c57/llsl-c57.pdf",
+          "congress": 57,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1902,
+          "year_end": 1903
+        }
+      ]
+    },
+    {
+      "volume": 33,
+      "shelf_id": "llsl-v33",
+      "item_url": "https://www.loc.gov/item/llsl-v33/",
+      "title": "U.S. Statutes at Large, Volume 33 (1903-1904), 58th Congress.",
+      "date": "1903-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_033/",
+          "segments": 2878,
+          "caption": "U.S. Statutes at Large, Volume 33 (1903-1904), 58th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "58th Congress (1903/1904)",
+          "filename": "llsl-c58.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c58/llsl-c58.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c58/llsl-c58.pdf",
+          "congress": 58,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1903,
+          "year_end": 1904
+        }
+      ]
+    },
+    {
+      "volume": 34,
+      "shelf_id": "llsl-v34",
+      "item_url": "https://www.loc.gov/item/llsl-v34/",
+      "title": "U.S. Statutes at Large, Volume 34 (1905-1907), 59th Congress.",
+      "date": "1905-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_034/",
+          "segments": 4231,
+          "caption": "U.S. Statutes at Large, Volume 34 (1905-1907), 59th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "59th Congress (1905/1907)",
+          "filename": "llsl-c59.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c59/llsl-c59.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c59/llsl-c59.pdf",
+          "congress": 59,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1905,
+          "year_end": 1907
+        }
+      ]
+    },
+    {
+      "volume": 35,
+      "shelf_id": "llsl-v35",
+      "item_url": "https://www.loc.gov/item/llsl-v35/",
+      "title": "U.S. Statutes at Large, Volume 35 (1908-1909), 60th Congress.",
+      "date": "1908-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_035/",
+          "segments": 2937,
+          "caption": "U.S. Statutes at Large, Volume 35 (1908-1909), 60th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "60th Congress (1908/1909)",
+          "filename": "llsl-c60.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c60/llsl-c60.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c60/llsl-c60.pdf",
+          "congress": 60,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1908,
+          "year_end": 1909
+        }
+      ]
+    },
+    {
+      "volume": 36,
+      "shelf_id": "llsl-v36",
+      "item_url": "https://www.loc.gov/item/llsl-v36/",
+      "title": "U.S. Statutes at Large, Volume 36 (1909-1911), 61st Congress.",
+      "date": "1909-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_036/",
+          "segments": 3710,
+          "caption": "U.S. Statutes at Large, Volume 36 (1909-1911), 61st Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "61st Congress (1909/1911)",
+          "filename": "llsl-c61.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c61/llsl-c61.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c61/llsl-c61.pdf",
+          "congress": 61,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1909,
+          "year_end": 1911
+        }
+      ]
+    },
+    {
+      "volume": 37,
+      "shelf_id": "llsl-v37",
+      "item_url": "https://www.loc.gov/item/llsl-v37/",
+      "title": "U.S. Statutes at Large, Volume 37 (1911-1913), 62nd Congress.",
+      "date": "1911-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_037/",
+          "segments": 2450,
+          "caption": "U.S. Statutes at Large, Volume 37 (1911-1913), 62nd Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "62nd Congress (1911/1913)",
+          "filename": "llsl-c62.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c62/llsl-c62.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c62/llsl-c62.pdf",
+          "congress": 62,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1911,
+          "year_end": 1913
+        }
+      ]
+    },
+    {
+      "volume": 38,
+      "shelf_id": "llsl-v38",
+      "item_url": "https://www.loc.gov/item/llsl-v38/",
+      "title": "U.S. Statutes at Large, Volume 38 (1913-1915), 63rd Congress.",
+      "date": "1913-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_038/",
+          "segments": 2784,
+          "caption": "U.S. Statutes at Large, Volume 38 (1913-1915), 63rd Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "63rd Congress (1913/1915)",
+          "filename": "llsl-c63.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c63/llsl-c63.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c63/llsl-c63.pdf",
+          "congress": 63,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1913,
+          "year_end": 1915
+        }
+      ]
+    },
+    {
+      "volume": 39,
+      "shelf_id": "llsl-v39",
+      "item_url": "https://www.loc.gov/item/llsl-v39/",
+      "title": "U.S. Statutes at Large, Volume 39 (1915-1916), 64th Congress.",
+      "date": "1915-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_039/",
+          "segments": 2471,
+          "caption": "U.S. Statutes at Large, Volume 39 (1915-1916), 64th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "64th Congress (1915/1916)",
+          "filename": "llsl-c64.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c64/llsl-c64.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c64/llsl-c64.pdf",
+          "congress": 64,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1915,
+          "year_end": 1916
+        }
+      ]
+    },
+    {
+      "volume": 40,
+      "shelf_id": "llsl-v40",
+      "item_url": "https://www.loc.gov/item/llsl-v40/",
+      "title": "U.S. Statutes at Large, Volume 40 (1917-1919), 65th Congress.",
+      "date": "1917-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_040/",
+          "segments": 2686,
+          "caption": "U.S. Statutes at Large, Volume 40 (1917-1919), 65th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "65th Congress (1917/1919)",
+          "filename": "llsl-c65.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c65/llsl-c65.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c65/llsl-c65.pdf",
+          "congress": 65,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1917,
+          "year_end": 1919
+        }
+      ]
+    },
+    {
+      "volume": 41,
+      "shelf_id": "llsl-v41",
+      "item_url": "https://www.loc.gov/item/llsl-v41/",
+      "title": "U.S. Statutes at Large, Volume 41 (1919-1921), 66th Congress.",
+      "date": "1919-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_041/",
+          "segments": 2456,
+          "caption": "U.S. Statutes at Large, Volume 41 (1919-1921), 66th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "66th Congress (1919/1921)",
+          "filename": "llsl-c66.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c66/llsl-c66.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c66/llsl-c66.pdf",
+          "congress": 66,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1919,
+          "year_end": 1921
+        }
+      ]
+    },
+    {
+      "volume": 42,
+      "shelf_id": "llsl-v42",
+      "item_url": "https://www.loc.gov/item/llsl-v42/",
+      "title": "U.S. Statutes at Large, Volume 42 (1921-1923), 67th Congress.",
+      "date": "1921-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_042/",
+          "segments": 3056,
+          "caption": "U.S. Statutes at Large, Volume 42 (1921-1923), 67th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "67th Congress (1921/1923)",
+          "filename": "llsl-c67.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c67/llsl-c67.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c67/llsl-c67.pdf",
+          "congress": 67,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1921,
+          "year_end": 1923
+        }
+      ]
+    },
+    {
+      "volume": 43,
+      "shelf_id": "llsl-v43",
+      "item_url": "https://www.loc.gov/item/llsl-v43/",
+      "title": "U.S. Statutes at Large, Volume 43 (1923-1925), 68th Congress.",
+      "date": "1923-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_043/",
+          "segments": 2666,
+          "caption": "U.S. Statutes at Large, Volume 43 (1923-1925), 68th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "68th Congress (1923/1925)",
+          "filename": "llsl-c68.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c68/llsl-c68.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c68/llsl-c68.pdf",
+          "congress": 68,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1923,
+          "year_end": 1925
+        }
+      ]
+    },
+    {
+      "volume": 44,
+      "shelf_id": "llsl-v44",
+      "item_url": "https://www.loc.gov/item/llsl-v44/",
+      "title": "U.S. Statutes at Large, Volume 44 (1925-1927), 69th Congress.",
+      "date": "1925-01-01",
+      "pdf_count": 2,
+      "pdf_granularity": "multi_congress_or_part_pdfs",
+      "llsalvol_count": 2,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_044/",
+          "segments": 3409,
+          "caption": "U.S. Statutes at Large, Volume 44 (1925-1927), 69th Congress."
+        },
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_044a/",
+          "segments": 2401,
+          "caption": "The Code of the Laws of the United States of America of a General and Permanent Character in Force December 7, 1925 and Appendix with Laws to December 6, 1926. Consolidated, Codified, Set Forth, and P"
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "69th Congress (1925/1927)",
+          "filename": "llsl-c69.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c69/llsl-c69.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c69/llsl-c69.pdf",
+          "congress": 69,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1925,
+          "year_end": 1927
+        },
+        {
+          "caption": "Code of Laws in Force December 7, 1925",
+          "filename": "llsl-c69-us-code.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c69-us-code/llsl-c69-us-code.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c69-us-code/llsl-c69-us-code.pdf",
+          "congress": 69,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": "us-code",
+          "year_start": 1925,
+          "year_end": 1927
+        }
+      ]
+    },
+    {
+      "volume": 45,
+      "shelf_id": "llsl-v45",
+      "item_url": "https://www.loc.gov/item/llsl-v45/",
+      "title": "U.S. Statutes at Large, Volume 45 (1927-1929), 70th Congress.",
+      "date": "1927-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_045/",
+          "segments": 3845,
+          "caption": "U.S. Statutes at Large, Volume 45 (1927-1929), 70th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "70th Congress (1927/1929)",
+          "filename": "llsl-c70.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c70/llsl-c70.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c70/llsl-c70.pdf",
+          "congress": 70,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1927,
+          "year_end": 1929
+        }
+      ]
+    },
+    {
+      "volume": 46,
+      "shelf_id": "llsl-v46",
+      "item_url": "https://www.loc.gov/item/llsl-v46/",
+      "title": "U.S. Statutes at Large, Volume 46 (1929-1931), 71st Congress.",
+      "date": "1929-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_046/",
+          "segments": 3410,
+          "caption": "U.S. Statutes at Large, Volume 46 (1929-1931), 71st Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "71st Congress (1929/1931)",
+          "filename": "llsl-c71.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c71/llsl-c71.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c71/llsl-c71.pdf",
+          "congress": 71,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1929,
+          "year_end": 1931
+        }
+      ]
+    },
+    {
+      "volume": 47,
+      "shelf_id": "llsl-v47",
+      "item_url": "https://www.loc.gov/item/llsl-v47/",
+      "title": "U.S. Statutes at Large, Volume 47 (1931-1933), 72nd Congress.",
+      "date": "1931-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_047/",
+          "segments": 2923,
+          "caption": "U.S. Statutes at Large, Volume 47 (1931-1933), 72nd Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "72nd Congress (1931/1933)",
+          "filename": "llsl-c72.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c72/llsl-c72.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c72/llsl-c72.pdf",
+          "congress": 72,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1931,
+          "year_end": 1933
+        }
+      ]
+    },
+    {
+      "volume": 48,
+      "shelf_id": "llsl-v48",
+      "item_url": "https://www.loc.gov/item/llsl-v48/",
+      "title": "U.S. Statutes at Large, Volume 48 (1933-1934), 73rd Congress.",
+      "date": "1933-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_048/",
+          "segments": 2074,
+          "caption": "U.S. Statutes at Large, Volume 48 (1933-1934), 73rd Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "73rd Congress (1933/1934)",
+          "filename": "llsl-c73.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c73/llsl-c73.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c73/llsl-c73.pdf",
+          "congress": 73,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1933,
+          "year_end": 1934
+        }
+      ]
+    },
+    {
+      "volume": 49,
+      "shelf_id": "llsl-v49",
+      "item_url": "https://www.loc.gov/item/llsl-v49/",
+      "title": "U.S. Statutes at Large, Volume 49 (1935-1936), 74th Congress.",
+      "date": "1935-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_049/",
+          "segments": 4293,
+          "caption": "U.S. Statutes at Large, Volume 49 (1935-1936), 74th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "74th Congress (1935/1936)",
+          "filename": "llsl-c74.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c74/llsl-c74.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c74/llsl-c74.pdf",
+          "congress": 74,
+          "session_start": null,
+          "session_end": null,
+          "part_tag": null,
+          "year_start": 1935,
+          "year_end": 1936
+        }
+      ]
+    },
+    {
+      "volume": 50,
+      "shelf_id": "llsl-v50",
+      "item_url": "https://www.loc.gov/item/llsl-v50/",
+      "title": "U.S. Statutes at Large, Volume 50, 75th Congress, Session 1 (1937).",
+      "date": "1937-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_050/",
+          "segments": 2029,
+          "caption": "U.S. Statutes at Large, Volume 50, Session 1 (1937), 75th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "75th Congress, Session 1 (1937)",
+          "filename": "llsl-c75s1.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c75s1/llsl-c75s1.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c75s1/llsl-c75s1.pdf",
+          "congress": 75,
+          "session_start": 1,
+          "session_end": 1,
+          "part_tag": null,
+          "year_start": 1937,
+          "year_end": 1937
+        }
+      ]
+    },
+    {
+      "volume": 51,
+      "shelf_id": "llsl-v51",
+      "item_url": "https://www.loc.gov/item/llsl-v51/",
+      "title": "U.S. Statutes at Large, Volume 51, Session 2 (1937), 75th Congress.",
+      "date": "1937-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_051/",
+          "segments": 413,
+          "caption": "U.S. Statutes at Large, Volume 51, Session 2 (1937), 75th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "75th Congress, Session 2 (1937)",
+          "filename": "llsl-c75s2.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c75s2/llsl-c75s2.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c75s2/llsl-c75s2.pdf",
+          "congress": 75,
+          "session_start": 2,
+          "session_end": 2,
+          "part_tag": null,
+          "year_start": 1937,
+          "year_end": 1937
+        }
+      ]
+    },
+    {
+      "volume": 52,
+      "shelf_id": "llsl-v52",
+      "item_url": "https://www.loc.gov/item/llsl-v52/",
+      "title": "U.S. Statutes at Large, Volume 52, 75th Congress, Session 3 (1938).",
+      "date": "1938-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_052/",
+          "segments": 1724,
+          "caption": "U.S. Statutes at Large, Volume 52, Session 3 (1938), 75th Congress."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "75th Congress, Session 3 (1938)",
+          "filename": "llsl-c75s3.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c75s3/llsl-c75s3.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c75s3/llsl-c75s3.pdf",
+          "congress": 75,
+          "session_start": 3,
+          "session_end": 3,
+          "part_tag": null,
+          "year_start": 1938,
+          "year_end": 1938
+        }
+      ]
+    },
+    {
+      "volume": 53,
+      "shelf_id": "llsl-v53",
+      "item_url": "https://www.loc.gov/item/llsl-v53/",
+      "title": "U.S. Statutes at Large, Volume 53, 76th Congress, Session 1 (1939).",
+      "date": "1939-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_053/",
+          "segments": 2975,
+          "caption": "U.S. Statutes at Large, Volume 53, Session 1 (1939), 76th Congress, Session 1."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "76th Congress, Session 1 (1939)",
+          "filename": "llsl-c76s1.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c76s1/llsl-c76s1.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c76s1/llsl-c76s1.pdf",
+          "congress": 76,
+          "session_start": 1,
+          "session_end": 1,
+          "part_tag": null,
+          "year_start": 1939,
+          "year_end": 1939
+        }
+      ]
+    },
+    {
+      "volume": 54,
+      "shelf_id": "llsl-v54",
+      "item_url": "https://www.loc.gov/item/llsl-v54/",
+      "title": "U.S. Statutes at Large, Volume 54 (1939-1941), 76th Congress, Sessions 2 and 3.",
+      "date": "1939-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_054/",
+          "segments": 2984,
+          "caption": "U.S. Statutes at Large, Volume 54 (1939-1941), 76th Congress, Sessions 2 and 3."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "76th Congress, Sessions 2 and 3 (1939/1941)",
+          "filename": "llsl-c76s2-s3.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c76s2-s3/llsl-c76s2-s3.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c76s2-s3/llsl-c76s2-s3.pdf",
+          "congress": 76,
+          "session_start": 2,
+          "session_end": 3,
+          "part_tag": null,
+          "year_start": 1939,
+          "year_end": 1941
+        }
+      ]
+    },
+    {
+      "volume": 55,
+      "shelf_id": "llsl-v55",
+      "item_url": "https://www.loc.gov/item/llsl-v55/",
+      "title": "U.S. Statutes at Large, Volume 55 (1941-1942), 77th Congress, Session 1.",
+      "date": "1941-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_055/",
+          "segments": 1874,
+          "caption": "U.S. Statutes at Large, Volume 55 (1941-1942), 77th Congress, Session 1."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "77th Congress, Session 1 (1941/1942)",
+          "filename": "llsl-c77s1.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c77s1/llsl-c77s1.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c77s1/llsl-c77s1.pdf",
+          "congress": 77,
+          "session_start": 1,
+          "session_end": 1,
+          "part_tag": null,
+          "year_start": 1941,
+          "year_end": 1942
+        }
+      ]
+    },
+    {
+      "volume": 56,
+      "shelf_id": "llsl-v56",
+      "item_url": "https://www.loc.gov/item/llsl-v56/",
+      "title": "U.S. Statutes at Large, Volume 56 (1942), 77th Congress, Session 2.",
+      "date": "1942-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_056/",
+          "segments": 2147,
+          "caption": "U.S. Statutes at Large, Volume 56 (1942), 77th Congress, Session 2."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "77th Congress, Session 2 (1942)",
+          "filename": "llsl-c77s2.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c77s2/llsl-c77s2.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c77s2/llsl-c77s2.pdf",
+          "congress": 77,
+          "session_start": 2,
+          "session_end": 2,
+          "part_tag": null,
+          "year_start": 1942,
+          "year_end": 1942
+        }
+      ]
+    },
+    {
+      "volume": 57,
+      "shelf_id": "llsl-v57",
+      "item_url": "https://www.loc.gov/item/llsl-v57/",
+      "title": "U.S. Statutes at Large, Volume 57 (1943), 78th Congress, Session 1.",
+      "date": "1943-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_057/",
+          "segments": 1556,
+          "caption": "U.S. Statutes at Large, Volume 57 (1943), 78th Congress, Session 1."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "78th Congress, Session 1 (1943)",
+          "filename": "llsl-c78s1.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c78s1/llsl-c78s1.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c78s1/llsl-c78s1.pdf",
+          "congress": 78,
+          "session_start": 1,
+          "session_end": 1,
+          "part_tag": null,
+          "year_start": 1943,
+          "year_end": 1943
+        }
+      ]
+    },
+    {
+      "volume": 58,
+      "shelf_id": "llsl-v58",
+      "item_url": "https://www.loc.gov/item/llsl-v58/",
+      "title": "U.S. Statutes at Large, Volume 58 (1944), 78th Congress, Session 2.",
+      "date": "1944-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_058/",
+          "segments": 1783,
+          "caption": "U.S. Statutes at Large, Volume 58 (1944), 78th Congress, Session 2."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "78th Congress, Session 2 (1944)",
+          "filename": "llsl-c78s2.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c78s2/llsl-c78s2.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c78s2/llsl-c78s2.pdf",
+          "congress": 78,
+          "session_start": 2,
+          "session_end": 2,
+          "part_tag": null,
+          "year_start": 1944,
+          "year_end": 1944
+        }
+      ]
+    },
+    {
+      "volume": 59,
+      "shelf_id": "llsl-v59",
+      "item_url": "https://www.loc.gov/item/llsl-v59/",
+      "title": "U.S. Statutes at Large, Volume 59 (1945-1946), 79th Congress, Session 1.",
+      "date": "1945-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_059/",
+          "segments": 2057,
+          "caption": "U.S. Statutes at Large, Volume 59 (1945-1946), 79th Congress, Session 1."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "79th Congress, Session 1 (1945/1946)",
+          "filename": "llsl-c79s1.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c79s1/llsl-c79s1.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c79s1/llsl-c79s1.pdf",
+          "congress": 79,
+          "session_start": 1,
+          "session_end": 1,
+          "part_tag": null,
+          "year_start": 1945,
+          "year_end": 1946
+        }
+      ]
+    },
+    {
+      "volume": 60,
+      "shelf_id": "llsl-v60",
+      "item_url": "https://www.loc.gov/item/llsl-v60/",
+      "title": "U.S. Statutes at Large, Volume 60 (1946), 79th Congress, Session 2.",
+      "date": "1946-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_060/",
+          "segments": 2204,
+          "caption": "U.S. Statutes at Large, Volume 60 (1946), 79th Congress, Session 2."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "79th Congress, Session 2 (1946)",
+          "filename": "llsl-c79s2.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c79s2/llsl-c79s2.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c79s2/llsl-c79s2.pdf",
+          "congress": 79,
+          "session_start": 2,
+          "session_end": 2,
+          "part_tag": null,
+          "year_start": 1946,
+          "year_end": 1946
+        }
+      ]
+    },
+    {
+      "volume": 61,
+      "shelf_id": "llsl-v61",
+      "item_url": "https://www.loc.gov/item/llsl-v61/",
+      "title": "U.S. Statutes at Large, Volume 61 (1947), 80th Congress, Session 1.",
+      "date": "1947-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_061/",
+          "segments": 6530,
+          "caption": "U.S. Statutes at Large, Volume 61 (1947), 80th Congress, Session 1."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "80th Congress, Session 1 (1947)",
+          "filename": "llsl-c80s1.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c80s1/llsl-c80s1.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c80s1/llsl-c80s1.pdf",
+          "congress": 80,
+          "session_start": 1,
+          "session_end": 1,
+          "part_tag": null,
+          "year_start": 1947,
+          "year_end": 1947
+        }
+      ]
+    },
+    {
+      "volume": 62,
+      "shelf_id": "llsl-v62",
+      "item_url": "https://www.loc.gov/item/llsl-v62/",
+      "title": "U.S. Statutes at Large, Volume 62 (1948), 80th Congress, Session 2.",
+      "date": "1948-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_062/",
+          "segments": 4371,
+          "caption": "U.S. Statutes at Large, Volume 62 (1948), 80th Congress, Session 2."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "80th Congress, Session 2 (1948)",
+          "filename": "llsl-c80s2.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c80s2/llsl-c80s2.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c80s2/llsl-c80s2.pdf",
+          "congress": 80,
+          "session_start": 2,
+          "session_end": 2,
+          "part_tag": null,
+          "year_start": 1948,
+          "year_end": 1948
+        }
+      ]
+    },
+    {
+      "volume": 63,
+      "shelf_id": "llsl-v63",
+      "item_url": "https://www.loc.gov/item/llsl-v63/",
+      "title": "U.S. Statutes at Large, Volume 63 (1949), 81st Congress, Session 1.",
+      "date": "1949-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_063/",
+          "segments": 3149,
+          "caption": "U.S. Statutes at Large, Volume 63 (1949), 81st Congress, Session 1."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "81st Congress, Session 1 (1949)",
+          "filename": "llsl-c81s1.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c81s1/llsl-c81s1.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c81s1/llsl-c81s1.pdf",
+          "congress": 81,
+          "session_start": 1,
+          "session_end": 1,
+          "part_tag": null,
+          "year_start": 1949,
+          "year_end": 1949
+        }
+      ]
+    },
+    {
+      "volume": 64,
+      "shelf_id": "llsl-v64",
+      "item_url": "https://www.loc.gov/item/llsl-v64/",
+      "title": "U.S. Statutes at Large, Volume 64 (1950-1951), 81st Congress, Session 2.",
+      "date": "1950-01-01",
+      "pdf_count": 1,
+      "pdf_granularity": "single_volume_pdf",
+      "llsalvol_count": 1,
+      "llsalvol_resources": [
+        {
+          "url": "https://www.loc.gov/resource/llsalvol.llsal_064/",
+          "segments": 3187,
+          "caption": "U.S. Statutes at Large, Volume 64 (1950-1951), 81st Congress, Session 2."
+        }
+      ],
+      "pdf_resources": [
+        {
+          "caption": "81st Congress, Session 2 (1950/1951)",
+          "filename": "llsl-c81s2.pdf",
+          "published_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl//llsl-c81s2/llsl-c81s2.pdf",
+          "normalized_pdf_url": "https://tile.loc.gov/storage-services/service/ll/llsl/llsl-c81s2/llsl-c81s2.pdf",
+          "congress": 81,
+          "session_start": 2,
+          "session_end": 2,
+          "part_tag": null,
+          "year_start": 1950,
+          "year_end": 1951
+        }
+      ]
+    }
+  ]
+}

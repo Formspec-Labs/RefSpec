@@ -1,0 +1,2316 @@
+{
+  "schema_version": "refspec-loc-lcnaf-agency-alignment/1",
+  "pinned_lc_external_links_baseline": {
+    "filename": "lcsh-externallinks-2026-08-15.nt.zip",
+    "sha256": "sha256:7d279d69c6920b41a579634a84a1b31ff73af764345fe51df3f7c480efeba9d1",
+    "lcsh_assertions_currently_read": 802592,
+    "lcnaf_assertions_present_in_same_zip": 2018402,
+    "lcnaf_to_fast_assertions": 1418942,
+    "lcnaf_to_wikidata_assertions": 425540,
+    "lcnaf_to_united_states_labeled_targets": 13454,
+    "oclc_fast_topical_corporate_assertions": 0
+  },
+  "summary": {
+    "evaluated_entity_count": 54,
+    "crosswalk_agency_count": 47,
+    "historical_predecessor_count": 7,
+    "four_rung_exact_match_count": 54,
+    "rung1_united_states_prefixed_top1_exact_count": 52,
+    "bare_natural_name_top1_exact_count": 13,
+    "bare_natural_name_zero_hit_count": 14,
+    "bare_natural_name_false_friend_top1_count": 27,
+    "fr_inverted_name_probe_exact_count": 0,
+    "bare_acronym_probe_top3_exact_count": 0,
+    "present_in_pinned_externallinks_zip_count": 54,
+    "with_wikidata_link_count": 50,
+    "with_fast_link_count": 53
+  },
+  "negative_and_sensitivity_probes": [
+    {
+      "probe_id": "probe_inv_energy",
+      "description": "FR inverted: 'Energy Department'",
+      "query": "Energy Department",
+      "url": "https://id.loc.gov/authorities/names/suggest2/?q=Energy+Department&rdftype=CorporateName",
+      "sha256": "sha256:17e57c70f268b52b5c38e570392af0f2b082cbca0a0bf09806bb3951dbdbca36",
+      "bytes": 187,
+      "hit_count": 0,
+      "top3_hits": []
+    },
+    {
+      "probe_id": "probe_inv_omb",
+      "description": "FR inverted: 'Management and Budget Office'",
+      "query": "Management and Budget Office",
+      "url": "https://id.loc.gov/authorities/names/suggest2/?q=Management+and+Budget+Office&rdftype=CorporateName",
+      "sha256": "sha256:92ced8501bbd158f18e5d78afabee99aca94e3aab2ddefafe274f3fb184e2a62",
+      "bytes": 198,
+      "hit_count": 0,
+      "top3_hits": []
+    },
+    {
+      "probe_id": "probe_inv_bis",
+      "description": "FR inverted: 'Industry and Security Bureau'",
+      "query": "Industry and Security Bureau",
+      "url": "https://id.loc.gov/authorities/names/suggest2/?q=Industry+and+Security+Bureau&rdftype=CorporateName",
+      "sha256": "sha256:b283064333b9454b620387415ea37f402b66e9e1d7a83bf7ff1bc78f839f5608",
+      "bytes": 198,
+      "hit_count": 0,
+      "top3_hits": []
+    },
+    {
+      "probe_id": "probe_acr_epa",
+      "description": "Bare acronym: 'EPA'",
+      "query": "EPA",
+      "url": "https://id.loc.gov/authorities/names/suggest2/?q=EPA&rdftype=CorporateName",
+      "sha256": "sha256:dac2c2997aa43fb52252f245e69fb5bcaaf1508dacc5298a3eee07fefbaf0590",
+      "bytes": 15978,
+      "hit_count": 93,
+      "top3_hits": [
+        {
+          "aLabel": "Eglise protestante africaine (Cameroon)",
+          "uri": "http://id.loc.gov/authorities/names/n2012004205"
+        },
+        {
+          "aLabel": "Ejército Popular de Alfabetizadores (Nicaragua)",
+          "uri": "http://id.loc.gov/authorities/names/n85239998"
+        },
+        {
+          "aLabel": "Employing Printers Association (Georgia)",
+          "uri": "http://id.loc.gov/authorities/names/no2011113373"
+        }
+      ]
+    },
+    {
+      "probe_id": "probe_acr_dot",
+      "description": "Bare acronym: 'DOT'",
+      "query": "DOT",
+      "url": "https://id.loc.gov/authorities/names/suggest2/?q=DOT&rdftype=CorporateName",
+      "sha256": "sha256:e6e64d54f0a5b57c1e01adcef0a9adf544641a377e261941fc0c2d2ac8e1cff5",
+      "bytes": 13319,
+      "hit_count": 99,
+      "top3_hits": [
+        {
+          "aLabel": "Confederação Nacional da Indústria. Divisão de Documentação Técnica",
+          "uri": "http://id.loc.gov/authorities/names/n79086943"
+        },
+        {
+          "aLabel": "Deep Offshore Technology (Firm)",
+          "uri": "http://id.loc.gov/authorities/names/n84111472"
+        },
+        {
+          "aLabel": "Democrats of Texas",
+          "uri": "http://id.loc.gov/authorities/names/n93016385"
+        }
+      ]
+    },
+    {
+      "probe_id": "probe_acr_fs",
+      "description": "Bare acronym: 'FS'",
+      "query": "FS",
+      "url": "https://id.loc.gov/authorities/names/suggest2/?q=FS&rdftype=CorporateName",
+      "sha256": "sha256:4f291ff74747ea19049319852e2f98c065e82dcd7bb2105ca3bad335dfc57247",
+      "bytes": 14857,
+      "hit_count": 89,
+      "top3_hits": [
+        {
+          "aLabel": "Fachverband für Strahlenschutz",
+          "uri": "http://id.loc.gov/authorities/names/n85285376"
+        },
+        {
+          "aLabel": "Fagoppositionens sammenslutning (Denmark)",
+          "uri": "http://id.loc.gov/authorities/names/n80118240"
+        },
+        {
+          "aLabel": "RV \"Akademik Boris Petrov\" (Ship)",
+          "uri": "http://id.loc.gov/authorities/names/n99044062"
+        }
+      ]
+    },
+    {
+      "probe_id": "probe_acr_eab",
+      "description": "Bare acronym: 'EAB'",
+      "query": "EAB",
+      "url": "https://id.loc.gov/authorities/names/suggest2/?q=EAB&rdftype=CorporateName",
+      "sha256": "sha256:1022f529f1d20fd56acd82a248d9c6526f2f8d07dd98b598ac9f6680b150d214",
+      "bytes": 15635,
+      "hit_count": 21,
+      "top3_hits": [
+        {
+          "aLabel": "Advisory Board Company. Education Advisory Board",
+          "uri": "http://id.loc.gov/authorities/names/no2010043612"
+        },
+        {
+          "aLabel": "Center for International Research (U.S.). Eurasia Branch",
+          "uri": "http://id.loc.gov/authorities/names/n95014645"
+        },
+        {
+          "aLabel": "Eesti Akadeemiline Raamatukogu",
+          "uri": "http://id.loc.gov/authorities/names/no98095300"
+        }
+      ]
+    },
+    {
+      "probe_id": "probe_acr_prc",
+      "description": "Bare historical name: 'Postal Rate Commission'",
+      "query": "Postal Rate Commission",
+      "url": "https://id.loc.gov/authorities/names/suggest2/?q=Postal+Rate+Commission&rdftype=CorporateName",
+      "sha256": "sha256:ca62bfcf66c5bd956c9d5807eb81c98f56be4f2be5734eb4d8bfc22d806724b8",
+      "bytes": 192,
+      "hit_count": 0,
+      "top3_hits": []
+    }
+  ],
+  "agencies": [
+    {
+      "key_id": "USDA",
+      "category": "cabinet_department",
+      "crosswalk_code": "USDA",
+      "crosswalk_tier": "confident",
+      "natural_name": "Department of Agriculture",
+      "fr_or_alt_name": "Agriculture Department",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n79008243",
+      "authority_iri": "http://id.loc.gov/authorities/names/n79008243",
+      "authoritative_label": "United States. Department of Agriculture",
+      "marc_key": "1101 $aUnited States.$bDepartment of Agriculture",
+      "madsrdf_sha256": "sha256:0f2f87baedcbb815380d9184d80f59bab7c2629f709241e9685dc7c78c743426",
+      "madsrdf_bytes": 47634,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Department of Agriculture",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 6,
+      "bare_name_top1_label": "Northern Ireland. Department of Agriculture and Rural Development",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q501542"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/1852329",
+        "http://id.worldcat.org/fast/529578"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/134395541"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000121621859"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 426,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "DOC",
+      "category": "cabinet_department",
+      "crosswalk_code": "DOC",
+      "crosswalk_tier": "unmapped",
+      "natural_name": "Department of Commerce",
+      "fr_or_alt_name": "Commerce Department",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n79071034",
+      "authority_iri": "http://id.loc.gov/authorities/names/n79071034",
+      "authoritative_label": "United States. Department of Commerce",
+      "marc_key": "1101 $aUnited States.$bDepartment of Commerce",
+      "madsrdf_sha256": "sha256:f04085b1854956dce34bb827cdcb02c60b1646e04b1873b85459fa6d65ee028e",
+      "madsrdf_bytes": 34279,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Department of Commerce",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 0,
+      "bare_name_top1_label": null,
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q503577"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/1852419",
+        "http://id.worldcat.org/fast/534265"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/134854859"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000121885248"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 212,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "DOD",
+      "category": "cabinet_department",
+      "crosswalk_code": "DOD",
+      "crosswalk_tier": "confident",
+      "natural_name": "Department of Defense",
+      "fr_or_alt_name": "Defense Department",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n79021946",
+      "authority_iri": "http://id.loc.gov/authorities/names/n79021946",
+      "authoritative_label": "United States. Department of Defense",
+      "marc_key": "4102 $aМинистерство обороны США",
+      "madsrdf_sha256": "sha256:ce531d4473d993456aa3d8adeaac45e346d7b61a22c06e89fc7bce065aebc61b",
+      "madsrdf_bytes": 49662,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Department of Defense",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 17,
+      "bare_name_top1_label": "Alternate Joint Communications Center (U.S.)",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q11209"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/1852447",
+        "http://id.worldcat.org/fast/530399"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/128989241"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000123251935"
+      ],
+      "earlier_lccns": [
+        "n87836258"
+      ],
+      "later_lccns": [],
+      "related_authority_count": 347,
+      "succession_encoding_mode": "explicit_earlier_or_later_established_form"
+    },
+    {
+      "key_id": "ED",
+      "category": "cabinet_department",
+      "crosswalk_code": "ED",
+      "crosswalk_tier": "confident",
+      "natural_name": "Department of Education",
+      "fr_or_alt_name": "Education Department",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n78009820",
+      "authority_iri": "http://id.loc.gov/authorities/names/n78009820",
+      "authoritative_label": "United States. Department of Education",
+      "marc_key": "1101 $aUnited States.$bDepartment of Education",
+      "madsrdf_sha256": "sha256:7ba3ee96abab1d1f12e31f7114bbbd21969e96994a5d4541df8dc00e466f2718",
+      "madsrdf_bytes": 31259,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Department of Education",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 1,
+      "bare_name_top1_label": "Boston Public Schools. Department of Educational Investigation and Measurement",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q861556"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/1852485",
+        "http://id.worldcat.org/fast/524521"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/157083478"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000121929933"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 179,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "DOE",
+      "category": "cabinet_department",
+      "crosswalk_code": "DOE",
+      "crosswalk_tier": "confident",
+      "natural_name": "Department of Energy",
+      "fr_or_alt_name": "Energy Department",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n78034868",
+      "authority_iri": "http://id.loc.gov/authorities/names/n78034868",
+      "authoritative_label": "United States. Department of Energy",
+      "marc_key": "1101 $aUnited States.$bDepartment of Energy",
+      "madsrdf_sha256": "sha256:0872c21fe85ce9d0b724ac5db1a00a5babd249dba74b837d9c3be9ba155126eb",
+      "madsrdf_bytes": 37521,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Department of Energy",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 3,
+      "bare_name_top1_label": "R⁴D Program",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q217810"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/1852518",
+        "http://id.worldcat.org/fast/525930"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/131327464"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000412615133"
+      ],
+      "earlier_lccns": [
+        "n78034864",
+        "n78034871"
+      ],
+      "later_lccns": [],
+      "related_authority_count": 382,
+      "succession_encoding_mode": "explicit_earlier_or_later_established_form"
+    },
+    {
+      "key_id": "HHS",
+      "category": "cabinet_department",
+      "crosswalk_code": "HHS",
+      "crosswalk_tier": "confident",
+      "natural_name": "Department of Health and Human Services",
+      "fr_or_alt_name": "Health and Human Services Department",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n80102594",
+      "authority_iri": "http://id.loc.gov/authorities/names/n80102594",
+      "authoritative_label": "United States. Department of Health and Human Services",
+      "marc_key": "1101 $aUnited States.$bDepartment of Health and Human Services",
+      "madsrdf_sha256": "sha256:fd358a4e8ebb44b4d249aad0912223784327dd9dd8278fc68639071840527947",
+      "madsrdf_bytes": 43385,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Department of Health and Human Services",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 2,
+      "bare_name_top1_label": "Department of Health & Human Services Program Support Center (U.S.)",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q942326"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/1852700",
+        "http://id.worldcat.org/fast/547838"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/145337417"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000121776076"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 156,
+      "succession_encoding_mode": "flattened_into_untyped_related_authority"
+    },
+    {
+      "key_id": "DHS",
+      "category": "cabinet_department",
+      "crosswalk_code": "DHS",
+      "crosswalk_tier": "confident",
+      "natural_name": "Department of Homeland Security",
+      "fr_or_alt_name": "Homeland Security Department",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "no2002051730",
+      "authority_iri": "http://id.loc.gov/authorities/names/no2002051730",
+      "authoritative_label": "United States. Department of Homeland Security",
+      "marc_key": "1101 $aUnited States.$bDepartment of Homeland Security",
+      "madsrdf_sha256": "sha256:9990d8a49ece3f0ef2aa305609aae89d5ad594e05e42e6870f13b50104d56c29",
+      "madsrdf_bytes": 15633,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Department of Homeland Security",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 0,
+      "bare_name_top1_label": null,
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q11231"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/1802760",
+        "http://id.worldcat.org/fast/772683"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/121741457"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000122148194"
+      ],
+      "earlier_lccns": [
+        "no2002000670"
+      ],
+      "later_lccns": [],
+      "related_authority_count": 56,
+      "succession_encoding_mode": "explicit_earlier_or_later_established_form"
+    },
+    {
+      "key_id": "HUD",
+      "category": "cabinet_department",
+      "crosswalk_code": "HUD",
+      "crosswalk_tier": "confident",
+      "natural_name": "Department of Housing and Urban Development",
+      "fr_or_alt_name": "Housing and Urban Development Department",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n79049260",
+      "authority_iri": "http://id.loc.gov/authorities/names/n79049260",
+      "authoritative_label": "United States. Department of Housing and Urban Development",
+      "marc_key": "1101 $aUnited States.$bDepartment of Housing and Urban Development",
+      "madsrdf_sha256": "sha256:043a6bae94c00954ecdd7c3d07c7948ded226f349d98ee84e984ee12394653b6",
+      "madsrdf_bytes": 29931,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Department of Housing and Urban Development",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 0,
+      "bare_name_top1_label": null,
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q811595"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/1852754",
+        "http://id.worldcat.org/fast/532316"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/147124344"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000110888697"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 174,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "DOI",
+      "category": "cabinet_department",
+      "crosswalk_code": "DOI",
+      "crosswalk_tier": "confident",
+      "natural_name": "Department of the Interior",
+      "fr_or_alt_name": "Interior Department",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n80126051",
+      "authority_iri": "http://id.loc.gov/authorities/names/n80126051",
+      "authoritative_label": "United States. Department of the Interior",
+      "marc_key": "1101 $aUnited States.$bDepartment of the Interior",
+      "madsrdf_sha256": "sha256:f5e703c23788accfb362bb5fd8444af0d2cf199c336401a74ac2e2133f754172",
+      "madsrdf_bytes": 37055,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Department of the Interior",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 2,
+      "bare_name_top1_label": "United States. Department of the Interior. Unified Interior Region 1, North Atlantic and Appalachian Region",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q608427"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/1853028",
+        "http://id.worldcat.org/fast/549680"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/140720803"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000120975276"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 323,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "DOJ",
+      "category": "cabinet_department",
+      "crosswalk_code": "DOJ",
+      "crosswalk_tier": "probable",
+      "natural_name": "Department of Justice",
+      "fr_or_alt_name": "Justice Department",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n79038419",
+      "authority_iri": "http://id.loc.gov/authorities/names/n79038419",
+      "authoritative_label": "United States. Department of Justice",
+      "marc_key": "1101 $aUnited States.$bDepartment of Justice",
+      "madsrdf_sha256": "sha256:280d89da9d78db66a4da270b55bcd1cf6bec2f6e38b9e81ecf8cba2f4fed3a9f",
+      "madsrdf_bytes": 26481,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Department of Justice",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 3,
+      "bare_name_top1_label": "Department of Justice and Department of Defense Joint Technology Program (U.S.)",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q1553390"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/1852803",
+        "http://id.worldcat.org/fast/531530"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/165043556"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/000000012197809X"
+      ],
+      "earlier_lccns": [
+        "n79038418"
+      ],
+      "later_lccns": [],
+      "related_authority_count": 131,
+      "succession_encoding_mode": "explicit_earlier_or_later_established_form"
+    },
+    {
+      "key_id": "DOL",
+      "category": "cabinet_department",
+      "crosswalk_code": "DOL",
+      "crosswalk_tier": "confident",
+      "natural_name": "Department of Labor",
+      "fr_or_alt_name": "Labor Department",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n79029796",
+      "authority_iri": "http://id.loc.gov/authorities/names/n79029796",
+      "authoritative_label": "United States. Department of Labor",
+      "marc_key": "1101 $aUnited States.$bDepartment of Labor",
+      "madsrdf_sha256": "sha256:8236f11a60c46bc57d440c475c079c412ab2cdb15274f2bcde7afe422eaf648b",
+      "madsrdf_bytes": 26161,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Department of Labor",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 0,
+      "bare_name_top1_label": null,
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q628807"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/1852863",
+        "http://id.worldcat.org/fast/530854"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/312793494"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000122956159"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 122,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "DOS",
+      "category": "cabinet_department",
+      "crosswalk_code": "DOS",
+      "crosswalk_tier": "confident",
+      "natural_name": "Department of State",
+      "fr_or_alt_name": "State Department",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n80126198",
+      "authority_iri": "http://id.loc.gov/authorities/names/n80126198",
+      "authoritative_label": "United States. Department of State",
+      "marc_key": "4101 $a美国.$b国务院",
+      "madsrdf_sha256": "sha256:4ad7a149e41b59a6d38a7368a6dbf59720cd35f9217d2e408663beaa65875fef",
+      "madsrdf_bytes": 48790,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Department of State",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 3,
+      "bare_name_top1_label": "Gambia. Department of State for Works, Construction, & Infrastructure Development",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q789915"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/1802976",
+        "http://id.worldcat.org/fast/549760"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/125408196"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000121517840"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 272,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "DOT",
+      "category": "cabinet_department",
+      "crosswalk_code": "DOT",
+      "crosswalk_tier": "confident",
+      "natural_name": "Department of Transportation",
+      "fr_or_alt_name": "Transportation Department",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n79058419",
+      "authority_iri": "http://id.loc.gov/authorities/names/n79058419",
+      "authoritative_label": "United States. Department of Transportation",
+      "marc_key": "1101 $aUnited States.$bDepartment of Transportation",
+      "madsrdf_sha256": "sha256:a4f827dfb478f74cef72d8108f2b82807b971861ce6c9c6babfb7d20d6cba854",
+      "madsrdf_bytes": 21619,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Department of Transportation",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 1,
+      "bare_name_top1_label": "University Transportation Centers Program (U.S.)",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q852211"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/1853127",
+        "http://id.worldcat.org/fast/533101"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/135454651"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000123153139"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 122,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "TREAS",
+      "category": "cabinet_department",
+      "crosswalk_code": "TREAS",
+      "crosswalk_tier": "confident",
+      "natural_name": "Department of the Treasury",
+      "fr_or_alt_name": "Treasury Department",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n78096864",
+      "authority_iri": "http://id.loc.gov/authorities/names/n78096864",
+      "authoritative_label": "United States. Department of the Treasury",
+      "marc_key": "1101 $aUnited States.$bDepartment of the Treasury",
+      "madsrdf_sha256": "sha256:c7464a2a29abea326a76cbb1bef7c2624295e074232505aa53cb9c4433b0a745",
+      "madsrdf_bytes": 24754,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Department of the Treasury",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 0,
+      "bare_name_top1_label": null,
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q648666"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/1853090",
+        "http://id.worldcat.org/fast/528974"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/123076976"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000122847884"
+      ],
+      "earlier_lccns": [
+        "n88144111"
+      ],
+      "later_lccns": [],
+      "related_authority_count": 161,
+      "succession_encoding_mode": "explicit_earlier_or_later_established_form"
+    },
+    {
+      "key_id": "VA",
+      "category": "cabinet_department",
+      "crosswalk_code": "VA",
+      "crosswalk_tier": "confident",
+      "natural_name": "Department of Veterans Affairs",
+      "fr_or_alt_name": "Veterans Affairs Department",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n87945386",
+      "authority_iri": "http://id.loc.gov/authorities/names/n87945386",
+      "authoritative_label": "United States. Department of Veterans Affairs",
+      "marc_key": "1101 $aUnited States.$bDepartment of Veterans Affairs",
+      "madsrdf_sha256": "sha256:7415f8eee8220ef43c7a691bd7e0be9e84e959ca2c2113e29be0c4441c3901b7",
+      "madsrdf_bytes": 26976,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Department of Veterans Affairs",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 16,
+      "bare_name_top1_label": "Colonel Ola Lee Mize Department of Veterans Affairs Clinic (Guntersville, Ala.)",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q592576"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/1802763",
+        "http://id.worldcat.org/fast/637348"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/133040166"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000110899396"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 176,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "EPA",
+      "category": "independent_agency",
+      "crosswalk_code": "EPA",
+      "crosswalk_tier": "confident",
+      "natural_name": "Environmental Protection Agency",
+      "fr_or_alt_name": "Environmental Protection Agency",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n79079597",
+      "authority_iri": "http://id.loc.gov/authorities/names/n79079597",
+      "authoritative_label": "United States. Environmental Protection Agency",
+      "marc_key": "1101 $aUnited States.$bEnvironmental Protection Agency",
+      "madsrdf_sha256": "sha256:2e2aec17e361abe975d2b0da8898d5b9b4d526805b0d42399ca429bd0865c2ff",
+      "madsrdf_bytes": 26671,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Environmental Protection Agency",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 4,
+      "bare_name_top1_label": "Liberia. Environmental Protection Agency",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q460173"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/534882"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/140707837"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000121462763"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 40,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "FCC",
+      "category": "independent_agency",
+      "crosswalk_code": "FCC",
+      "crosswalk_tier": "confident",
+      "natural_name": "Federal Communications Commission",
+      "fr_or_alt_name": "Federal Communications Commission",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n80051251",
+      "authority_iri": "http://id.loc.gov/authorities/names/n80051251",
+      "authoritative_label": "United States. Federal Communications Commission",
+      "marc_key": "1101 $aUnited States.$bFederal Communications Commission",
+      "madsrdf_sha256": "sha256:3acaf01a0812c06748b476e0076cbc6af0073313c2146eee7635000a3ded7bef",
+      "madsrdf_bytes": 8481,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Federal Communications Commission",
+      "bare_name_top1_exact": true,
+      "bare_name_hits_count": 1,
+      "bare_name_top1_label": "United States. Federal Communications Commission",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q128831"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/543957"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/28147965635684080226"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000123538346"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 4,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "FDIC",
+      "category": "independent_agency",
+      "crosswalk_code": "FDIC",
+      "crosswalk_tier": "confident",
+      "natural_name": "Federal Deposit Insurance Corporation",
+      "fr_or_alt_name": "Federal Deposit Insurance Corporation",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n81013186",
+      "authority_iri": "http://id.loc.gov/authorities/names/n81013186",
+      "authoritative_label": "Federal Deposit Insurance Corporation",
+      "marc_key": "1102 $aFederal Deposit Insurance Corporation",
+      "madsrdf_sha256": "sha256:0ba6eb428e9bb9fa14976b50ab8986c9ccd5f73e4726b14bf2894e891139b482",
+      "madsrdf_bytes": 10167,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "Federal Deposit Insurance Corporation",
+      "bare_name_top1_exact": true,
+      "bare_name_hits_count": 52,
+      "bare_name_top1_label": "Federal Deposit Insurance Corporation",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q1345065"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/553796"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/159135220"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000121949854"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 2,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "FERC",
+      "category": "independent_agency",
+      "crosswalk_code": "FERC",
+      "crosswalk_tier": "confident",
+      "natural_name": "Federal Energy Regulatory Commission",
+      "fr_or_alt_name": "Federal Energy Regulatory Commission",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n78045614",
+      "authority_iri": "http://id.loc.gov/authorities/names/n78045614",
+      "authoritative_label": "United States. Federal Energy Regulatory Commission",
+      "marc_key": "1101 $aUnited States.$bFederal Energy Regulatory Commission",
+      "madsrdf_sha256": "sha256:f59b081ac86de183b43593bcc5614235d9f8000b9df20e219a6219002aba9877",
+      "madsrdf_bytes": 11899,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Federal Energy Regulatory Commission",
+      "bare_name_top1_exact": true,
+      "bare_name_hits_count": 1,
+      "bare_name_top1_label": "United States. Federal Energy Regulatory Commission",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q3067862"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/526360"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/139250168"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000404053230"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 4,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "FRS",
+      "category": "independent_agency",
+      "crosswalk_code": "FRS",
+      "crosswalk_tier": "confident",
+      "natural_name": "Board of Governors of the Federal Reserve System",
+      "fr_or_alt_name": "Federal Reserve System",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n78091283",
+      "authority_iri": "http://id.loc.gov/authorities/names/n78091283",
+      "authoritative_label": "Board of Governors of the Federal Reserve System (U.S.)",
+      "marc_key": "1102 $aBoard of Governors of the Federal Reserve System (U.S.)",
+      "madsrdf_sha256": "sha256:bd477f2d298772406638d78f89beec54a75b007ee382a48cabd4ba6a192712c6",
+      "madsrdf_bytes": 17826,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "Board of Governors of the Federal Reserve System (U.S.)",
+      "bare_name_top1_exact": true,
+      "bare_name_hits_count": 74,
+      "bare_name_top1_label": "Board of Governors of the Federal Reserve System (U.S.)",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q5440396"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/528659"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/152072915"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000404787576"
+      ],
+      "earlier_lccns": [
+        "n84146831"
+      ],
+      "later_lccns": [],
+      "related_authority_count": 6,
+      "succession_encoding_mode": "explicit_earlier_or_later_established_form"
+    },
+    {
+      "key_id": "FTC",
+      "category": "independent_agency",
+      "crosswalk_code": "FTC",
+      "crosswalk_tier": "confident",
+      "natural_name": "Federal Trade Commission",
+      "fr_or_alt_name": "Federal Trade Commission",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n79066322",
+      "authority_iri": "http://id.loc.gov/authorities/names/n79066322",
+      "authoritative_label": "United States. Federal Trade Commission",
+      "marc_key": "1101 $aUnited States.$bFederal Trade Commission",
+      "madsrdf_sha256": "sha256:030e4ca1d84f589a934b52bef5f34b86659ac9be083db2f97acd09713d101fa3",
+      "madsrdf_bytes": 12774,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Federal Trade Commission",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 2,
+      "bare_name_top1_label": "United States. Federal Trade Commission. Library",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q786713"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/533978"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/131945357"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000123420831"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 2,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "NARA",
+      "category": "independent_agency",
+      "crosswalk_code": "NARA",
+      "crosswalk_tier": "confident",
+      "natural_name": "National Archives and Records Administration",
+      "fr_or_alt_name": "National Archives and Records Administration",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n84176101",
+      "authority_iri": "http://id.loc.gov/authorities/names/n84176101",
+      "authoritative_label": "United States. National Archives and Records Administration",
+      "marc_key": "1101 $aUnited States.$bNational Archives and Records Administration",
+      "madsrdf_sha256": "sha256:b060d22c2dfe3f54d9d0c91dab8a12f12834303266037c08bb4e45721f276f9e",
+      "madsrdf_bytes": 15425,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. National Archives and Records Administration",
+      "bare_name_top1_exact": true,
+      "bare_name_hits_count": 1,
+      "bare_name_top1_label": "United States. National Archives and Records Administration",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q518155"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/596913"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/132254586"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000121603036"
+      ],
+      "earlier_lccns": [
+        "n79091762"
+      ],
+      "later_lccns": [],
+      "related_authority_count": 7,
+      "succession_encoding_mode": "explicit_earlier_or_later_established_form"
+    },
+    {
+      "key_id": "NASA",
+      "category": "independent_agency",
+      "crosswalk_code": "NASA",
+      "crosswalk_tier": "confident",
+      "natural_name": "National Aeronautics and Space Administration",
+      "fr_or_alt_name": "National Aeronautics and Space Administration",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n78087581",
+      "authority_iri": "http://id.loc.gov/authorities/names/n78087581",
+      "authoritative_label": "United States. National Aeronautics and Space Administration",
+      "marc_key": "1101 $aUnited States.$bNational Aeronautics and Space Administration",
+      "madsrdf_sha256": "sha256:ccd891575b170aefadfac708ffd5eeb196bda5ce5d5f05b66efdd7d8437c8a88",
+      "madsrdf_bytes": 21413,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. National Aeronautics and Space Administration",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 4,
+      "bare_name_top1_label": "National Aeronautics and Space Administration Aerospace Museum",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q23548"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/528469"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/146202023"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000449071619"
+      ],
+      "earlier_lccns": [
+        "n79060141"
+      ],
+      "later_lccns": [],
+      "related_authority_count": 52,
+      "succession_encoding_mode": "explicit_earlier_or_later_established_form"
+    },
+    {
+      "key_id": "NRC",
+      "category": "independent_agency",
+      "crosswalk_code": "NRC",
+      "crosswalk_tier": "confident",
+      "natural_name": "Nuclear Regulatory Commission",
+      "fr_or_alt_name": "Nuclear Regulatory Commission",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n78034875",
+      "authority_iri": "http://id.loc.gov/authorities/names/n78034875",
+      "authoritative_label": "U.S. Nuclear Regulatory Commission",
+      "marc_key": "1102 $aU.S. Nuclear Regulatory Commission",
+      "madsrdf_sha256": "sha256:2dbe29f6e12d4c4701c0606824025cf2d2c3ece7cd1c96ab34f78e61c871b741",
+      "madsrdf_bytes": 14791,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "U.S. Nuclear Regulatory Commission",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 3,
+      "bare_name_top1_label": "NRC/FEMA Steering Committee",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q1320326"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/525934"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/144731202"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000122713026"
+      ],
+      "earlier_lccns": [
+        "n78034861"
+      ],
+      "later_lccns": [],
+      "related_authority_count": 8,
+      "succession_encoding_mode": "explicit_earlier_or_later_established_form"
+    },
+    {
+      "key_id": "SEC",
+      "category": "independent_agency",
+      "crosswalk_code": "SEC",
+      "crosswalk_tier": "confident",
+      "natural_name": "Securities and Exchange Commission",
+      "fr_or_alt_name": "Securities and Exchange Commission",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n78088948",
+      "authority_iri": "http://id.loc.gov/authorities/names/n78088948",
+      "authoritative_label": "United States. Securities and Exchange Commission",
+      "marc_key": "1101 $aUnited States.$bSecurities and Exchange Commission",
+      "madsrdf_sha256": "sha256:6f9c5bd85105a82a5d6d9f386ef6b706ad6f9159a25555594a0d5f0062d2bbe3",
+      "madsrdf_bytes": 12457,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Securities and Exchange Commission",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 10,
+      "bare_name_top1_label": "Bangladesh. Securities and Exchange Commission",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q953944"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/528527"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/134827744"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000122384963"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 3,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "SSA",
+      "category": "independent_agency",
+      "crosswalk_code": "SSA",
+      "crosswalk_tier": "confident",
+      "natural_name": "Social Security Administration",
+      "fr_or_alt_name": "Social Security Administration",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n80126011",
+      "authority_iri": "http://id.loc.gov/authorities/names/n80126011",
+      "authoritative_label": "United States. Social Security Administration",
+      "marc_key": "1101 $aUnited States.$bSocial Security Administration",
+      "madsrdf_sha256": "sha256:cba7a2d04904f9054781fb850a84a845f07c23891b923be5403551f4209b1154",
+      "madsrdf_bytes": 17319,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Social Security Administration",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 2,
+      "bare_name_top1_label": "Columbia University. Oral History Research Office. Social Security Project",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q2824618"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/549664"
+      ],
+      "viaf_iris": [
+        "http://www.viaf.org/viaf/125491886",
+        "http://viaf.org/viaf/125491886"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/000000012348005X"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 17,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "STB",
+      "category": "independent_agency",
+      "crosswalk_code": "STB",
+      "crosswalk_tier": "confident",
+      "natural_name": "Surface Transportation Board",
+      "fr_or_alt_name": "Surface Transportation Board",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "no96011022",
+      "authority_iri": "http://id.loc.gov/authorities/names/no96011022",
+      "authoritative_label": "United States. Surface Transportation Board",
+      "marc_key": "1101 $aUnited States.$bSurface Transportation Board",
+      "madsrdf_sha256": "sha256:3c62011c61bd3532cfe4b47889682b6963db9ab5f9dd759b0b53c6a4c6893990",
+      "madsrdf_bytes": 9204,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Surface Transportation Board",
+      "bare_name_top1_exact": true,
+      "bare_name_hits_count": 1,
+      "bare_name_top1_label": "United States. Surface Transportation Board",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q2368496"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/714665"
+      ],
+      "viaf_iris": [],
+      "isni_iris": [
+        "https://isni.org/isni/0000000106948722"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 5,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "NSF",
+      "category": "independent_agency",
+      "crosswalk_code": "NSF",
+      "crosswalk_tier": "probable",
+      "natural_name": "National Science Foundation",
+      "fr_or_alt_name": "National Science Foundation",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n79005681",
+      "authority_iri": "http://id.loc.gov/authorities/names/n79005681",
+      "authoritative_label": "National Science Foundation (U.S.)",
+      "marc_key": "1102 $aNational Science Foundation (U.S.)",
+      "madsrdf_sha256": "sha256:05caf74af3e11304aab1ce4dc7aac438db29f8042dee84747f6c9f76c27f7bb4",
+      "madsrdf_bytes": 10606,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "National Science Foundation (U.S.)",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 100,
+      "bare_name_top1_label": "National Science Foundation Advisory Committee for Cyberinfrastructure",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q304878"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/529404"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/157365449"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000119587073"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 22,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "FAA",
+      "category": "subagency_direct",
+      "crosswalk_code": "FAA",
+      "crosswalk_tier": "confident",
+      "natural_name": "Federal Aviation Administration",
+      "fr_or_alt_name": "Federal Aviation Administration",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n79034443",
+      "authority_iri": "http://id.loc.gov/authorities/names/n79034443",
+      "authoritative_label": "United States. Federal Aviation Administration",
+      "marc_key": "1101 $aUnited States.$bFederal Aviation Administration",
+      "madsrdf_sha256": "sha256:0f013371308b4df2a28f8613d07f08835abcb2bf48a736f5a916656c38b20415",
+      "madsrdf_bytes": 13208,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Federal Aviation Administration",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 14,
+      "bare_name_top1_label": "Federal Aviation Administration Academy (U.S.)",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q335357"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/531205"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/136855410"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/000000040384994X"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 25,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "FDA",
+      "category": "subagency_direct",
+      "crosswalk_code": "FDA",
+      "crosswalk_tier": "confident",
+      "natural_name": "Food and Drug Administration",
+      "fr_or_alt_name": "Food and Drug Administration",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n80126147",
+      "authority_iri": "http://id.loc.gov/authorities/names/n80126147",
+      "authoritative_label": "United States. Food and Drug Administration",
+      "marc_key": "1101 $aUnited States.$bFood and Drug Administration",
+      "madsrdf_sha256": "sha256:c60236f4c8168cc531444c140aff68d13fec6845ab44626f348f183984ba83ae",
+      "madsrdf_bytes": 32265,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Food and Drug Administration",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 2,
+      "bare_name_top1_label": "Pesticide Program (U.S.)",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q204711"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/549734"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/151271988"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000122433366"
+      ],
+      "earlier_lccns": [
+        "n85209352"
+      ],
+      "later_lccns": [],
+      "related_authority_count": 18,
+      "succession_encoding_mode": "explicit_earlier_or_later_established_form"
+    },
+    {
+      "key_id": "CMS",
+      "category": "subagency_direct",
+      "crosswalk_code": "CMS",
+      "crosswalk_tier": "confident",
+      "natural_name": "Centers for Medicare & Medicaid Services",
+      "fr_or_alt_name": "Centers for Medicare & Medicaid Services",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung2_bare_direct_entry_with_us_qualifier",
+      "lccn": "no2001093385",
+      "authority_iri": "http://id.loc.gov/authorities/names/no2001093385",
+      "authoritative_label": "Centers for Medicare & Medicaid Services (U.S.)",
+      "marc_key": "1102 $aCenters for Medicare & Medicaid Services (U.S.)",
+      "madsrdf_sha256": "sha256:29ab91f2337b8c12e4c444ad214cd2c98dbb89cea5893ffaf0a0b54994723e9e",
+      "madsrdf_bytes": 12649,
+      "us_prefixed_top1_exact": false,
+      "us_prefixed_top1_label": "Medicare Recovery Audit Contractor Program (U.S.)",
+      "bare_name_top1_exact": true,
+      "bare_name_hits_count": 18,
+      "bare_name_top1_label": "Centers for Medicare & Medicaid Services (U.S.)",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q5060058"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/767996"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/167833234"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000123005144"
+      ],
+      "earlier_lccns": [
+        "n77009797"
+      ],
+      "later_lccns": [],
+      "related_authority_count": 5,
+      "succession_encoding_mode": "explicit_earlier_or_later_established_form"
+    },
+    {
+      "key_id": "OSHA",
+      "category": "subagency_direct",
+      "crosswalk_code": "OSHA",
+      "crosswalk_tier": "confident",
+      "natural_name": "Occupational Safety and Health Administration",
+      "fr_or_alt_name": "Occupational Safety and Health Administration",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n80020661",
+      "authority_iri": "http://id.loc.gov/authorities/names/n80020661",
+      "authoritative_label": "United States. Occupational Safety and Health Administration",
+      "marc_key": "1101 $aUnited States.$bOccupational Safety and Health Administration",
+      "madsrdf_sha256": "sha256:a148984283f51a987fb0c76169241393ae0aae9375937cc1547a9be39350d4e7",
+      "madsrdf_bytes": 15247,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Occupational Safety and Health Administration",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 0,
+      "bare_name_top1_label": null,
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q746186"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/541589"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/158270500"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/000000012097824X"
+      ],
+      "earlier_lccns": [
+        "n80020667"
+      ],
+      "later_lccns": [],
+      "related_authority_count": 3,
+      "succession_encoding_mode": "explicit_earlier_or_later_established_form"
+    },
+    {
+      "key_id": "IRS",
+      "category": "subagency_direct",
+      "crosswalk_code": "IRS",
+      "crosswalk_tier": "confident",
+      "natural_name": "Internal Revenue Service",
+      "fr_or_alt_name": "Internal Revenue Service",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n79063888",
+      "authority_iri": "http://id.loc.gov/authorities/names/n79063888",
+      "authoritative_label": "United States. Internal Revenue Service",
+      "marc_key": "1101 $aUnited States.$bInternal Revenue Service",
+      "madsrdf_sha256": "sha256:975bc369c57cea06cc4d57701e79082aab9842f34e123768240bb4c3ef27810a",
+      "madsrdf_bytes": 12769,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Internal Revenue Service",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 2,
+      "bare_name_top1_label": "Internal Revenue Service/New York University Continuing Professional Education Program",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q973587"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/533618"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/123679859"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000121504193"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 8,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "USCG",
+      "category": "subagency_direct",
+      "crosswalk_code": "USCG",
+      "crosswalk_tier": "confident",
+      "natural_name": "Coast Guard",
+      "fr_or_alt_name": "Coast Guard",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n80125851",
+      "authority_iri": "http://id.loc.gov/authorities/names/n80125851",
+      "authoritative_label": "United States. Coast Guard",
+      "marc_key": "1101 $aUnited States.$bCoast Guard",
+      "madsrdf_sha256": "sha256:0d304311bd6e88b7f658c8d0a9891377c482cc36d2a9f231bed563d37fda4aa1",
+      "madsrdf_bytes": 22251,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Coast Guard",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 16,
+      "bare_name_top1_label": "Coast Guard Auxiliary Association",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q11224"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/549578"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/154411282"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000123644587"
+      ],
+      "earlier_lccns": [
+        "n80125854"
+      ],
+      "later_lccns": [],
+      "related_authority_count": 22,
+      "succession_encoding_mode": "explicit_earlier_or_later_established_form"
+    },
+    {
+      "key_id": "CFPB",
+      "category": "subagency_direct",
+      "crosswalk_code": "CFPB",
+      "crosswalk_tier": "confident",
+      "natural_name": "Consumer Financial Protection Bureau",
+      "fr_or_alt_name": "Consumer Financial Protection Bureau",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "nb2015015976",
+      "authority_iri": "http://id.loc.gov/authorities/names/nb2015015976",
+      "authoritative_label": "United States. Consumer Financial Protection Bureau",
+      "marc_key": "1101 $aUnited States.$bConsumer Financial Protection Bureau",
+      "madsrdf_sha256": "sha256:741d62ee31f4918ba1c4d9a3b2aa530fb41a028d041a7adf2582bc993b8ac988",
+      "madsrdf_bytes": 17129,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Consumer Financial Protection Bureau",
+      "bare_name_top1_exact": true,
+      "bare_name_hits_count": 1,
+      "bare_name_top1_label": "United States. Consumer Financial Protection Bureau",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q1091543"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/1912011"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/317284735"
+      ],
+      "isni_iris": [],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 7,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "BIS",
+      "category": "subagency_direct",
+      "crosswalk_code": "BIS",
+      "crosswalk_tier": "probable",
+      "natural_name": "Bureau of Industry and Security",
+      "fr_or_alt_name": "Industry and Security Bureau",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "no2002058066",
+      "authority_iri": "http://id.loc.gov/authorities/names/no2002058066",
+      "authoritative_label": "United States. Bureau of Industry and Security",
+      "marc_key": "1101 $aUnited States.$bBureau of Industry and Security",
+      "madsrdf_sha256": "sha256:58c5eca85ee5258e6520fe7936b99e754b61917bde01e7a7e51e1d6af00e5d4f",
+      "madsrdf_bytes": 10783,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Bureau of Industry and Security",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 0,
+      "bare_name_top1_label": null,
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q455289"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/773197"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/156274171"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000106949370"
+      ],
+      "earlier_lccns": [
+        "n88133814"
+      ],
+      "later_lccns": [],
+      "related_authority_count": 1,
+      "succession_encoding_mode": "explicit_earlier_or_later_established_form"
+    },
+    {
+      "key_id": "OMB",
+      "category": "subagency_direct",
+      "crosswalk_code": "OMB",
+      "crosswalk_tier": "confident",
+      "natural_name": "Office of Management and Budget",
+      "fr_or_alt_name": "Management and Budget Office",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n80126133",
+      "authority_iri": "http://id.loc.gov/authorities/names/n80126133",
+      "authoritative_label": "United States. Office of Management and Budget",
+      "marc_key": "1101 $aUnited States.$bOffice of Management and Budget",
+      "madsrdf_sha256": "sha256:0b0d76b4b132d0524fcab1bd583e663488cdb5c05d8a35a109c602c86207f48f",
+      "madsrdf_bytes": 10596,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Office of Management and Budget",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 3,
+      "bare_name_top1_label": "Alaska. Office of Management and Budget",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q284392"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/549720"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/141236281"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000114820657"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 6,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "CDC",
+      "category": "crosswalk_parent_collapsed",
+      "crosswalk_code": "CDC",
+      "crosswalk_tier": "confident",
+      "natural_name": "Centers for Disease Control and Prevention",
+      "fr_or_alt_name": "Health and Human Services Department",
+      "crosswalk_parent_collapsed": true,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "no93011529",
+      "authority_iri": "http://id.loc.gov/authorities/names/no93011529",
+      "authoritative_label": "Centers for Disease Control and Prevention (U.S.)",
+      "marc_key": "1102 $aCenters for Disease Control and Prevention (U.S.)",
+      "madsrdf_sha256": "sha256:9470cab858f576abbfca7aef29a61b143f224a601104f2a53aa38641cfa0f17c",
+      "madsrdf_bytes": 17431,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "Centers for Disease Control and Prevention (U.S.)",
+      "bare_name_top1_exact": true,
+      "bare_name_hits_count": 100,
+      "bare_name_top1_label": "Centers for Disease Control and Prevention (U.S.)",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q583725"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/686437"
+      ],
+      "viaf_iris": [],
+      "isni_iris": [
+        "https://isni.org/isni/0000000122915402"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 11,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "CISA",
+      "category": "crosswalk_parent_collapsed",
+      "crosswalk_code": "CISA",
+      "crosswalk_tier": "confident",
+      "natural_name": "Cybersecurity and Infrastructure Security Agency",
+      "fr_or_alt_name": "Homeland Security Department",
+      "crosswalk_parent_collapsed": true,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "no2020061910",
+      "authority_iri": "http://id.loc.gov/authorities/names/no2020061910",
+      "authoritative_label": "United States. Cybersecurity & Infrastructure Security Agency",
+      "marc_key": "1101 $aUnited States.$bCybersecurity & Infrastructure Security Agency",
+      "madsrdf_sha256": "sha256:f2763c35898b0c37a2d4bc457a8a9556b4f3579aa0a2222d33786ea1c5c56f8a",
+      "madsrdf_bytes": 10531,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Cybersecurity & Infrastructure Security Agency",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 0,
+      "bare_name_top1_label": null,
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q5205058"
+      ],
+      "fast_iris": [],
+      "viaf_iris": [
+        "http://viaf.org/viaf/146986538"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000495394558"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 1,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "USCBP",
+      "category": "crosswalk_parent_collapsed",
+      "crosswalk_code": "USCBP",
+      "crosswalk_tier": "confident",
+      "natural_name": "U.S. Customs and Border Protection",
+      "fr_or_alt_name": "Homeland Security Department",
+      "crosswalk_parent_collapsed": true,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "no2004040772",
+      "authority_iri": "http://id.loc.gov/authorities/names/no2004040772",
+      "authoritative_label": "U.S. Customs and Border Protection",
+      "marc_key": "1102 $aU.S. Customs and Border Protection",
+      "madsrdf_sha256": "sha256:d0f7c1562adc90edf2779b5dbdd244dbe8c1426663b550924e61e78a0ae7ec83",
+      "madsrdf_bytes": 15296,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "U.S. Customs and Border Protection",
+      "bare_name_top1_exact": true,
+      "bare_name_hits_count": 23,
+      "bare_name_top1_label": "U.S. Customs and Border Protection",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q368804"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/1429649",
+        "http://id.worldcat.org/fast/788277"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/124686829"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000086173818"
+      ],
+      "earlier_lccns": [
+        "no2003052379"
+      ],
+      "later_lccns": [],
+      "related_authority_count": 6,
+      "succession_encoding_mode": "explicit_earlier_or_later_established_form"
+    },
+    {
+      "key_id": "BOEM",
+      "category": "crosswalk_parent_collapsed",
+      "crosswalk_code": "BOEM",
+      "crosswalk_tier": "confident",
+      "natural_name": "Bureau of Ocean Energy Management",
+      "fr_or_alt_name": "Interior Department",
+      "crosswalk_parent_collapsed": true,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "no2011188069",
+      "authority_iri": "http://id.loc.gov/authorities/names/no2011188069",
+      "authoritative_label": "United States. Bureau of Ocean Energy Management",
+      "marc_key": "1101 $aUnited States.$bBureau of Ocean Energy Management",
+      "madsrdf_sha256": "sha256:19b61198f9250e27f21381aacb999ce47360a6cc1439bad7a71abccf0d8c470c",
+      "madsrdf_bytes": 11259,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Bureau of Ocean Energy Management",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 2,
+      "bare_name_top1_label": "BOEM Alaska Environmental Studies Program",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/1936708"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/220532330"
+      ],
+      "isni_iris": [],
+      "earlier_lccns": [
+        "no2010108932"
+      ],
+      "later_lccns": [],
+      "related_authority_count": 7,
+      "succession_encoding_mode": "explicit_earlier_or_later_established_form"
+    },
+    {
+      "key_id": "MMS",
+      "category": "crosswalk_defunct_in_table",
+      "crosswalk_code": "MMS",
+      "crosswalk_tier": "confident",
+      "natural_name": "Minerals Management Service",
+      "fr_or_alt_name": "Interior Department",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": true,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n82104764",
+      "authority_iri": "http://id.loc.gov/authorities/names/n82104764",
+      "authoritative_label": "United States. Minerals Management Service",
+      "marc_key": "1101 $aUnited States.$bMinerals Management Service",
+      "madsrdf_sha256": "sha256:8380caf586043fefbfff5d9d332283d434d2071ccf36fcca3ea2d5d3a6da34bf",
+      "madsrdf_bytes": 14103,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Minerals Management Service",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 1,
+      "bare_name_top1_label": "United States. Minerals Management Service. Technology Assessment and Research Program",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/571158"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/126692977"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000110101516"
+      ],
+      "earlier_lccns": [
+        "n85166927"
+      ],
+      "later_lccns": [
+        "no2010108932"
+      ],
+      "related_authority_count": 6,
+      "succession_encoding_mode": "explicit_earlier_or_later_established_form"
+    },
+    {
+      "key_id": "OTS",
+      "category": "crosswalk_defunct_in_table",
+      "crosswalk_code": "OTS",
+      "crosswalk_tier": "confident",
+      "natural_name": "Office of Thrift Supervision",
+      "fr_or_alt_name": "Treasury Department",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": true,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "no89013654",
+      "authority_iri": "http://id.loc.gov/authorities/names/no89013654",
+      "authoritative_label": "United States. Office of Thrift Supervision",
+      "marc_key": "1101 $aUnited States.$bOffice of Thrift Supervision",
+      "madsrdf_sha256": "sha256:78c52888cbb61d646cc99397218ee07ac87f530f927ed059e5e5f7901563be08",
+      "madsrdf_bytes": 9570,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Office of Thrift Supervision",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 0,
+      "bare_name_top1_label": null,
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q3881025"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/653036"
+      ],
+      "viaf_iris": [],
+      "isni_iris": [
+        "https://isni.org/isni/0000000106971818"
+      ],
+      "earlier_lccns": [
+        "n80126212"
+      ],
+      "later_lccns": [],
+      "related_authority_count": 2,
+      "succession_encoding_mode": "explicit_earlier_or_later_established_form"
+    },
+    {
+      "key_id": "GAO",
+      "category": "crosswalk_legislative_renamed",
+      "crosswalk_code": "GAO",
+      "crosswalk_tier": "unmapped",
+      "natural_name": "Government Accountability Office",
+      "fr_or_alt_name": "General Accounting Office",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "no2004066329",
+      "authority_iri": "http://id.loc.gov/authorities/names/no2004066329",
+      "authoritative_label": "United States. Government Accountability Office",
+      "marc_key": "4102 $aوان المساءلة لحكومة الولايات المتّحدة",
+      "madsrdf_sha256": "sha256:a09b1d36967d26adbcc9a8c405c12544b9e7e653559a58ffd653442a3274481c",
+      "madsrdf_bytes": 10991,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Government Accountability Office",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 0,
+      "bare_name_top1_label": null,
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q749118"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/789900"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/124152672"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000123081841"
+      ],
+      "earlier_lccns": [
+        "n80126064"
+      ],
+      "later_lccns": [],
+      "related_authority_count": 1,
+      "succession_encoding_mode": "explicit_earlier_or_later_established_form"
+    },
+    {
+      "key_id": "GPO",
+      "category": "crosswalk_legislative_renamed",
+      "crosswalk_code": "GPO",
+      "crosswalk_tier": "unmapped",
+      "natural_name": "Government Publishing Office",
+      "fr_or_alt_name": "Government Printing Office",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "no2015002503",
+      "authority_iri": "http://id.loc.gov/authorities/names/no2015002503",
+      "authoritative_label": "United States. Government Publishing Office",
+      "marc_key": "1101 $aUnited States.$bGovernment Publishing Office",
+      "madsrdf_sha256": "sha256:23b2fc148d29c9b9d36a0c34672b5e71ac5ecb37f8f643a1037a4017f6f9f179",
+      "madsrdf_bytes": 12282,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Government Publishing Office",
+      "bare_name_top1_exact": true,
+      "bare_name_hits_count": 1,
+      "bare_name_top1_label": "United States. Government Publishing Office",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q2928358"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/1936725"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/313299003"
+      ],
+      "isni_iris": [],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 5,
+      "succession_encoding_mode": "flattened_into_untyped_related_authority"
+    },
+    {
+      "key_id": "FMCS",
+      "category": "crosswalk_ambiguous_tier",
+      "crosswalk_code": "FMCS",
+      "crosswalk_tier": "ambiguous",
+      "natural_name": "Federal Mediation and Conciliation Service",
+      "fr_or_alt_name": "Federal Mediation and Conciliation Service",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n80004006",
+      "authority_iri": "http://id.loc.gov/authorities/names/n80004006",
+      "authoritative_label": "United States. Federal Mediation and Conciliation Service",
+      "marc_key": "1101 $aUnited States.$bFederal Mediation and Conciliation Service",
+      "madsrdf_sha256": "sha256:adc2c0e8825444c98a0726cc6460463f68c6663f6bf4bb752aaeaa4b33231478",
+      "madsrdf_bytes": 10029,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Federal Mediation and Conciliation Service",
+      "bare_name_top1_exact": true,
+      "bare_name_hits_count": 1,
+      "bare_name_top1_label": "United States. Federal Mediation and Conciliation Service",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q5440288"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/540243"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/124327613"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000085937089"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 0,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "EOIR",
+      "category": "crosswalk_ambiguous_tier",
+      "crosswalk_code": "EOIR",
+      "crosswalk_tier": "ambiguous",
+      "natural_name": "Executive Office for Immigration Review",
+      "fr_or_alt_name": "Executive Office for Immigration Review",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung3_parent_department_subordinate",
+      "lccn": "n89643262",
+      "authority_iri": "http://id.loc.gov/authorities/names/n89643262",
+      "authoritative_label": "United States. Department of Justice. Executive Office for Immigration Review",
+      "marc_key": "1101 $aUnited States.$bDepartment of Justice.$bExecutive Office for Immigration Review",
+      "madsrdf_sha256": "sha256:484cc2ef542376d2714b79a354283dbe6e31b2f7094e8472e5fc42cffae25afb",
+      "madsrdf_bytes": 8708,
+      "us_prefixed_top1_exact": false,
+      "us_prefixed_top1_label": null,
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 0,
+      "bare_name_top1_label": null,
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q5419844"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/1852827",
+        "http://id.worldcat.org/fast/650406"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/157231114"
+      ],
+      "isni_iris": [],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 4,
+      "succession_encoding_mode": "no_corporate_rename_link"
+    },
+    {
+      "key_id": "HIST_HEW",
+      "category": "historical_predecessor",
+      "crosswalk_code": null,
+      "crosswalk_tier": "historical",
+      "natural_name": "Department of Health, Education, and Welfare",
+      "fr_or_alt_name": "Health, Education, and Welfare Department",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n79006771",
+      "authority_iri": "http://id.loc.gov/authorities/names/n79006771",
+      "authoritative_label": "United States. Department of Health, Education, and Welfare",
+      "marc_key": "4102 $aמשרד הבריאות, חינוך וסעד בממשלת ארה״ב",
+      "madsrdf_sha256": "sha256:5e3ea820c5afbdbedfe5307edf43aa064233d9488e58df248358aa8e46415623",
+      "madsrdf_bytes": 27780,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Department of Health, Education, and Welfare",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 0,
+      "bare_name_top1_label": null,
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q1519761"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/1852722",
+        "http://id.worldcat.org/fast/529473"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/142439892"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000110904933"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 122,
+      "succession_encoding_mode": "flattened_into_untyped_related_authority"
+    },
+    {
+      "key_id": "HIST_WAR",
+      "category": "historical_predecessor",
+      "crosswalk_code": null,
+      "crosswalk_tier": "historical",
+      "natural_name": "War Department",
+      "fr_or_alt_name": "Department of War",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n79084108",
+      "authority_iri": "http://id.loc.gov/authorities/names/n79084108",
+      "authoritative_label": "United States. War Department",
+      "marc_key": "1101 $aUnited States.$bWar Department",
+      "madsrdf_sha256": "sha256:f103250c5a481a08728013dfe3d7d77985fa7c078a738ded7d5fa62c1e6667d8",
+      "madsrdf_bytes": 20378,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. War Department",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 1,
+      "bare_name_top1_label": "War Department Beneficial Association",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q1143596"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/1853257",
+        "http://id.worldcat.org/fast/535167"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/312738563"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000121886929"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 115,
+      "succession_encoding_mode": "flattened_into_untyped_related_authority"
+    },
+    {
+      "key_id": "HIST_ICC",
+      "category": "historical_predecessor",
+      "crosswalk_code": null,
+      "crosswalk_tier": "historical",
+      "natural_name": "Interstate Commerce Commission",
+      "fr_or_alt_name": "Interstate Commerce Commission",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n80126245",
+      "authority_iri": "http://id.loc.gov/authorities/names/n80126245",
+      "authoritative_label": "United States. Interstate Commerce Commission",
+      "marc_key": "1101 $aUnited States.$bInterstate Commerce Commission",
+      "madsrdf_sha256": "sha256:f305a256c04c98a8ca562d241d920d1d0c06a88846bb74415b16c7ad54741fab",
+      "madsrdf_bytes": 12623,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Interstate Commerce Commission",
+      "bare_name_top1_exact": true,
+      "bare_name_hits_count": 1,
+      "bare_name_top1_label": "United States. Interstate Commerce Commission",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q1647715"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/549789"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/125433678"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000106573860"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 6,
+      "succession_encoding_mode": "unlinked_in_rdf_prose_only"
+    },
+    {
+      "key_id": "HIST_AEC",
+      "category": "historical_predecessor",
+      "crosswalk_code": null,
+      "crosswalk_tier": "historical",
+      "natural_name": "Atomic Energy Commission",
+      "fr_or_alt_name": "U.S. Atomic Energy Commission",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n78034861",
+      "authority_iri": "http://id.loc.gov/authorities/names/n78034861",
+      "authoritative_label": "U.S. Atomic Energy Commission",
+      "marc_key": "4102 $aلجنة الطاقة الذرية الأمريكية",
+      "madsrdf_sha256": "sha256:2091e6c0273bd1a873e9ec7c53095451f463ec3387f6dafaabf9c0eab92178a5",
+      "madsrdf_bytes": 20368,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "U.S. Atomic Energy Commission",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 5,
+      "bare_name_top1_label": "Hungary. Országos Atomenergia Bizottság",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q939090"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/525928"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/138898115"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000123239952"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [
+        "n78034875",
+        "n78034864"
+      ],
+      "related_authority_count": 18,
+      "succession_encoding_mode": "explicit_earlier_or_later_established_form"
+    },
+    {
+      "key_id": "HIST_HCFA",
+      "category": "historical_predecessor",
+      "crosswalk_code": null,
+      "crosswalk_tier": "historical",
+      "natural_name": "Health Care Financing Administration",
+      "fr_or_alt_name": "Health Care Finance Administration",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n77009797",
+      "authority_iri": "http://id.loc.gov/authorities/names/n77009797",
+      "authoritative_label": "United States. Health Care Financing Administration",
+      "marc_key": "1101 $aUnited States.$bHealth Care Financing Administration",
+      "madsrdf_sha256": "sha256:ecfb7892b5cb57de9901c1df27d8a7328baf3faf7cf416b8354db3cb6361c61e",
+      "madsrdf_bytes": 18204,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Health Care Financing Administration",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 0,
+      "bare_name_top1_label": null,
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/523174"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/133665704"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000110899716"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [
+        "no2001093385"
+      ],
+      "related_authority_count": 4,
+      "succession_encoding_mode": "explicit_earlier_or_later_established_form"
+    },
+    {
+      "key_id": "HIST_INS",
+      "category": "historical_predecessor",
+      "crosswalk_code": null,
+      "crosswalk_tier": "historical",
+      "natural_name": "Immigration and Naturalization Service",
+      "fr_or_alt_name": "Immigration and Naturalization Service",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n79053784",
+      "authority_iri": "http://id.loc.gov/authorities/names/n79053784",
+      "authoritative_label": "United States. Immigration and Naturalization Service",
+      "marc_key": "1101 $aUnited States.$bImmigration and Naturalization Service",
+      "madsrdf_sha256": "sha256:232c571b079fe8a2abec7d1612f8e019d9b318bffe61dc515ca23e8ecccc3912",
+      "madsrdf_bytes": 21242,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Immigration and Naturalization Service",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 0,
+      "bare_name_top1_label": null,
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [
+        "http://www.wikidata.org/entity/Q194984"
+      ],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/532653"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/138894868"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000107245375"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [
+        "no2003104838",
+        "no2003052379",
+        "no2003065384"
+      ],
+      "related_authority_count": 8,
+      "succession_encoding_mode": "explicit_earlier_or_later_established_form"
+    },
+    {
+      "key_id": "HIST_CAB",
+      "category": "historical_predecessor",
+      "crosswalk_code": null,
+      "crosswalk_tier": "historical",
+      "natural_name": "Civil Aeronautics Board",
+      "fr_or_alt_name": "Civil Aeronautics Board",
+      "crosswalk_parent_collapsed": false,
+      "crosswalk_defunct_code": false,
+      "resolution_rung": "rung1_united_states_prefixed_suggest2",
+      "lccn": "n79046186",
+      "authority_iri": "http://id.loc.gov/authorities/names/n79046186",
+      "authoritative_label": "United States. Civil Aeronautics Board",
+      "marc_key": "1101 $aUnited States.$bCivil Aeronautics Board",
+      "madsrdf_sha256": "sha256:e9c57b871f74e5dba4c4fca1e6674ed1092d2ec395efdb2692c2e23b6ded72ac",
+      "madsrdf_bytes": 10406,
+      "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_label": "United States. Civil Aeronautics Board",
+      "bare_name_top1_exact": false,
+      "bare_name_hits_count": 3,
+      "bare_name_top1_label": "United States. Civil Aeronautics Board. Advisory Committee on Procedural Reform",
+      "in_pinned_lc_externallinks_zip": true,
+      "wikidata_iris": [],
+      "fast_iris": [
+        "http://id.worldcat.org/fast/532083"
+      ],
+      "viaf_iris": [
+        "http://viaf.org/viaf/145401679"
+      ],
+      "isni_iris": [
+        "https://isni.org/isni/0000000121777087"
+      ],
+      "earlier_lccns": [],
+      "later_lccns": [],
+      "related_authority_count": 3,
+      "succession_encoding_mode": "unlinked_in_rdf_prose_only"
+    }
+  ]
+}
