@@ -31,9 +31,10 @@ Each pinned recodification names its own sealed artifact directory under
 * ``research/evidence/usc-disposition-tables-2026-08-23`` — Title 49 (Pub. L.
   103-272, 1994), 3,102 rows over 1,852 printed entries and 909 former sections;
 * ``research/evidence/usc-disposition-tables-2026-11-18`` — Title 31 (Pub. L.
-  97-258, 1982; 1,561 rows over 965 printed entries and 1,156 former sections)
-  and Title 46 / Title 46 Appendix (Pub. L. 98-89 through Pub. L. 109-304,
-  1983–2006; 2,178 rows over 1,344 printed entries and 1,296 former sections).
+  97-258, 1982, as supplemented by Pub. L. 97-452, 1983; 1,563 rows over 965
+  printed entries and 1,158 former sections) and Title 46 / Title 46 Appendix
+  (Pub. L. 98-89 through Pub. L. 109-304, 1983–2006; 2,169 rows over 1,344
+  printed entries and 1,299 former sections).
 
 Every row is one **(former section token x successor)** carrying the printed
 former field and the printed value verbatim beside the parsed address, because
@@ -91,11 +92,16 @@ already carries the warning that expanding a span is a claim about every
 section between its endpoints. Here the claim is only ever about sections the
 1994 volume itself prints, so the enumeration cannot invent one.
 
-**Repealed is not the same as pointed elsewhere.** ``Rep.`` and ``Elim.`` name
-no successor and mean the provision is gone; ``(See § 2 of Pub. L. 97-449.)``
-names no successor either, but means *another act* made the transfer.
-``1655(a)(4)`` is the specimen. Publishing that as ``repealed-no-successor``
-would state something the table denies, so it has its own verdict.
+**Repealed, eliminated, and pointed elsewhere are three different facts.**
+``Rep.`` means the provision was legally repealed (``repealed-no-successor``).
+``Elim.`` is an editorial omission from the title — the underlying statutory
+provision may remain in force or codified elsewhere (for example, former
+``46 App. § 111`` prints ``Elim.`` while its substance remains at
+``19 U.S.C. § 288``) — so it gets its own verdict (``eliminated-no-successor``)
+and is never published as a repeal. ``(See § 2 of Pub. L. 97-449.)`` names no
+successor either, but means *another act* made the transfer (``1655(a)(4)`` is
+the specimen), so it — and any span mixing non-successor statuses such as
+``Rep.`` beside ``Elim.`` — answers ``stated-without-successor``.
 
 **An absence from the table is only as wide as the table.** The Title 49 table
 lists the former sections that *existed to be restated in 1994*; a section
@@ -191,6 +197,12 @@ class Recodification:
     source_bytes: int
     #: Sealed artifact directory containing :attr:`table`, relative to repo root.
     artifact: str = USC_DISPOSITION_TABLES_ARTIFACT
+    #: Date the printed source volume was fetched (ISO ``YYYY-MM-DD``).
+    source_fetched: str = "2026-08-23"
+    #: RefSpec-owned relative path where the raw source PDF lives (or is
+    #: materialized by ``verify_registry_audit.py``). When ``None``, defaults to
+    #: ``<artifact>/<basename(source_url)>``.
+    source_local_path: str | None = None
 
 
 RECODIFICATIONS = (
@@ -198,19 +210,24 @@ RECODIFICATIONS = (
         name="title-31-1982",
         former_title=31,
         table="usc-1994-title31-disposition.parquet",
-        digest="sha256:9b8fcb6e6d10a5a06e36ce88a5d7887c5746ff13f083cf1a1e7aab53c2cd780d",
-        enacted_by="Pub. L. 97-258, § 1, Sept. 13, 1982, 96 Stat. 877",
-        deeming_provision="Pub. L. 97-258, § 4(b)",
+        digest="sha256:febacca0f59193fc4524ce780d29ba5440d8ee47f8041f133fda161d0c765cd5",
+        enacted_by=(
+            "Pub. L. 97-258, § 1, Sept. 13, 1982, 96 Stat. 877; "
+            "Pub. L. 97-452, § 1, Jan. 12, 1983, 96 Stat. 2467"
+        ),
+        deeming_provision="Pub. L. 97-258, § 4(b); Pub. L. 97-452, § 3(b)",
         source_url="https://www.govinfo.gov/content/pkg/USCODE-1994-title31/pdf/USCODE-1994-title31.pdf",
         source_digest="sha256:3b319dc182915b409d01c26d5fe46326e0416f5e725aa556738d17ba60340f0a",
         source_bytes=2_088_477,
         artifact=_USC_DISPOSITION_TABLES_2026_11_18,
+        source_fetched="2026-11-18",
+        source_local_path="output/registry-real-data-sources/USCODE-1994-title31.pdf",
     ),
     Recodification(
         name="title-46-2006",
         former_title=46,
         table="usc-2006-title46-disposition.parquet",
-        digest="sha256:8d8421bdbb971a0e474626d9176e7d25fac255805855b829fc6ff38cc760066e",
+        digest="sha256:2b6a315482a8b8ba142360ea3303e55e6e8e07d632ebe4c3a1a24d38a9efca84",
         enacted_by=(
             "Pub. L. 98-89, Aug. 26, 1983, 97 Stat. 500; "
             "Pub. L. 99-509, Oct. 21, 1986, 100 Stat. 1913; "
@@ -223,6 +240,8 @@ RECODIFICATIONS = (
         source_digest="sha256:6bda1578ab30e947d3f7e746bacd53048a197ef80c946f0f7300276c97a5887d",
         source_bytes=2_449_872,
         artifact=_USC_DISPOSITION_TABLES_2026_11_18,
+        source_fetched="2026-11-18",
+        source_local_path="output/registry-real-data-sources/USCODE-2006-title46.pdf",
     ),
     Recodification(
         name="title-49-1994",
@@ -235,6 +254,7 @@ RECODIFICATIONS = (
         source_digest="sha256:66f004679e27e0d16356e14b79cb3b4f7ebf63d91307435fa8f53c95bcc2848d",
         source_bytes=5_165_242,
         artifact=USC_DISPOSITION_TABLES_ARTIFACT,
+        source_fetched="2026-08-23",
     ),
 )
 
@@ -243,22 +263,27 @@ RECODIFICATIONS = (
 #: than a silence. Each is a printed disposition table in the front matter of
 #: the enacting edition, reachable the same way Titles 31, 46, and 49 were.
 RECODIFICATIONS_NOT_PINNED: Mapping[int, str] = {
-    10: "Pub. L. 103-337 (1994), ch. 1201 — reserve component renumbering; the review's § H row 8 (593 → 12203)",
-    34: "Pub. L. 115-31 (2017) — Crime Control and Law Enforcement",
+    10: "Pub. L. 103-337 (1994), subtitle E (incl. ch. 1205) — reserve component renumbering; the review's § H row 8 (593 → 12203)",
+    34: "OLRC editorial reclassification (Sept. 1, 2017) — Crime Control and Law Enforcement (reclassified from former provisions of Titles 18, 28, and 42)",
     41: "Pub. L. 111-350 (2011) — Public Contracts; the review's § E row 10 neighbours",
     51: "Pub. L. 111-314 (2010) — National and Commercial Space Programs",
     54: "Pub. L. 113-287 (2014) — National Park Service and Related Programs",
 }
 
-#: What a verdict can be. The first four answer the question; the last says the
+#: What a verdict can be. The first five answer the question; the last says the
 #: question was not asked of anything.
 VERDICTS = (
     #: At least one row names a successor. ALL of them are returned.
     "exists-as-recodified",
-    #: Every matching row is ``Rep.`` or ``Elim.`` — the provision is gone.
+    #: Every matching row is ``Rep.`` — the provision was legally repealed.
     "repealed-no-successor",
-    #: Every matching row names no successor, and at least one points at
-    #: another instrument instead (``(See § 2 of Pub. L. 97-449.)``).
+    #: Every matching row is ``Elim.`` — editorial omission from the title
+    #: (e.g. transferred or still codified elsewhere, such as 46 App. § 111
+    #: remaining at 19 U.S.C. § 288), not a legal repeal.
+    "eliminated-no-successor",
+    #: Every matching row names no successor, and the rows point at another
+    #: instrument (``(See § 2 of Pub. L. 97-449.)``) or mix non-successor
+    #: statuses (such as a span mixing ``Rep.`` and ``Elim.``).
     "stated-without-successor",
     #: The pinned table for that title lists no such former section.
     "not-in-table",
@@ -271,8 +296,6 @@ STATUSES = ("restated", "restated-as-note", "repealed", "eliminated", "see-refer
 #: The statuses that name a successor, and so make a verdict of
 #: ``exists-as-recodified``.
 _WITH_SUCCESSOR = frozenset({"restated", "restated-as-note"})
-#: The statuses that say the provision is gone rather than moved.
-_GONE = frozenset({"repealed", "eliminated"})
 
 #: What a ``not-in-table`` verdict does NOT exclude, attached to every one of
 #: them. The table lists the former sections that existed to be restated when
@@ -695,8 +718,10 @@ def _verdict_over(matched: tuple[DispositionRow, ...]) -> str:
 
     if any(row.successor is not None for row in matched):
         return "exists-as-recodified"
-    if all(row.status in _GONE for row in matched):
+    if all(row.status == "repealed" for row in matched):
         return "repealed-no-successor"
+    if all(row.status == "eliminated" for row in matched):
+        return "eliminated-no-successor"
     return "stated-without-successor"
 
 

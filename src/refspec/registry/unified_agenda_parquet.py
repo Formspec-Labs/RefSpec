@@ -108,8 +108,8 @@ from refspec.registry.usc_disposition_tables import (
 
 # The third closed vocabulary called VERDICTS, aliased for the same reason the
 # second one is: the recodification tables answer exists-as-recodified /
-# repealed-no-successor / stated-without-successor / not-in-table /
-# no-table-for-title, which is neither of the other two.
+# repealed-no-successor / eliminated-no-successor / stated-without-successor /
+# not-in-table / no-table-for-title, which is neither of the other two.
 from refspec.registry.usc_disposition_tables import VERDICTS as DISPOSITION_VERDICTS
 from refspec.registry.usc_section_oracle import (
     CANDIDATE_ONLY_RULES,
@@ -514,9 +514,10 @@ LEGAL_AUTHORITIES_SCHEMA = pa.schema(
         #: reason.** They answer a different question: whether the oracle can
         #: see the section (it cannot -- no OLRC archive year publishes a
         #: Title 49 Appendix) against what Pub. L. 103-272 § 6(b) deems a
-        #: citation to it to mean. Five values, the table's own
+        #: citation to it to mean. Six values, the table's own
         #: (usc_disposition_tables.VERDICTS): exists-as-recodified,
-        #: repealed-no-successor, stated-without-successor, not-in-table,
+        #: repealed-no-successor, eliminated-no-successor,
+        #: stated-without-successor, not-in-table,
         #: no-table-for-title. "not-in-table" is an ANSWER -- the pinned table
         #: was read and lists no such former section -- and only as wide as
         #: the table: a section repealed before 1994 was never in it.

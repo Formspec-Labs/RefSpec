@@ -72,44 +72,44 @@ ARTIFACT_PINS = {
 #: independent cross-checks, and the 27-section Title 49a hold-out audit).
 ARTIFACT_2026_11_18_PINS = {
     "usc-1994-title31-disposition.parquet": (
-        "sha256:9b8fcb6e6d10a5a06e36ce88a5d7887c5746ff13f083cf1a1e7aab53c2cd780d",
-        21_194,
+        "sha256:febacca0f59193fc4524ce780d29ba5440d8ee47f8041f133fda161d0c765cd5",
+        21_251,
     ),
     "usc-1994-title31-disposition.txt": (
         "sha256:e79941a9cb0480a629bda8dc492b02ce8724f329f1b89a13b18b834cc1c1db15",
         25_848,
     ),
     "usc-2006-title46-disposition.parquet": (
-        "sha256:8d8421bdbb971a0e474626d9176e7d25fac255805855b829fc6ff38cc760066e",
-        29_334,
+        "sha256:2b6a315482a8b8ba142360ea3303e55e6e8e07d632ebe4c3a1a24d38a9efca84",
+        29_320,
     ),
     "usc-2006-title46-disposition.txt": (
         "sha256:4b6c152c1b72b253fd18466eeb32598d560e659708ec557579c54714794e9539",
         36_881,
     ),
     "crosscheck-report.json": (
-        "sha256:a2eb4de6f03b8367b71b14ff6a16f7013c383024f8ba10586869293ed398c511",
-        8_050,
+        "sha256:201dce646ca8dd4a9ad1c70a096061742300e2fb3b7ff47687c369cdaa18f2eb",
+        6_669,
     ),
     "title49a-holdout-audit.json": (
-        "sha256:e0531bf6e5a983354ccf91f2ade1400386cb20fa7f567a1cb4cbd5d78b2f6b38",
-        40_283,
+        "sha256:970757491eb0117d7adbc2afd9c4184117fece29ccf6cd3facd2611b364dc912",
+        41_898,
     ),
     "title49a-holdout-audit.md": (
-        "sha256:7d0016f88d777d93f9e834520b4394207b31d0ed35c4dee7bde252f22886215a",
-        20_713,
+        "sha256:9af961814c5c7e1da1e231d97d70d30f02eb4aa55ef28d08b84f9f7e58fc67d4",
+        22_379,
     ),
     "scripts/extract_disposition_tables.py": (
-        "sha256:717dd034ba0ca76d58a3afc3b6916885720036310362a403decf54da26f6ca53",
-        29_695,
+        "sha256:3f1585b511158267b4f40a5caf3e0698a84b5e4091c04a81833b89aa2023fb08",
+        34_081,
     ),
     "scripts/crosscheck_disposition_tables.py": (
-        "sha256:e7f46daaed17aaa9db4565e6e2436cfce8a24c6dbc4a6282e6e364a04a7dfa51",
-        15_316,
+        "sha256:7152ef90d2b3ba69c902a430481ac9a28a03f8fc2b65e9c833beda50f2a36ff0",
+        22_639,
     ),
     "scripts/build_title49a_holdout_audit.py": (
-        "sha256:d612f532a68041c1f6240c2c96144626a7cffa3a4dbb4652e9cc6f1b4c45b4b2",
-        38_757,
+        "sha256:3b2444039c2e4671a44c349f2aacb183e072525a55fcd17b3f4b91e7678cb66c",
+        41_706,
     ),
 }
 
@@ -172,7 +172,8 @@ def test_the_module_pins_the_table_the_readme_pins() -> None:
     assert t31.digest == ARTIFACT_2026_11_18_PINS[t31.table][0]
     assert t31.source_digest == "sha256:3b319dc182915b409d01c26d5fe46326e0416f5e725aa556738d17ba60340f0a"
     assert t31.source_bytes == 2_088_477
-    assert t31.deeming_provision == "Pub. L. 97-258, § 4(b)"
+    assert t31.deeming_provision == "Pub. L. 97-258, § 4(b); Pub. L. 97-452, § 3(b)"
+    assert "Pub. L. 97-452" in t31.enacted_by
 
     t46 = by_title[46]
     assert t46.name == "title-46-2006"
@@ -694,6 +695,7 @@ def test_a_verdict_cannot_be_undeclared_or_contradict_its_own_fields() -> None:
     assert set(VERDICTS) == {
         "exists-as-recodified",
         "repealed-no-successor",
+        "eliminated-no-successor",
         "stated-without-successor",
         "not-in-table",
         "no-table-for-title",
@@ -802,8 +804,18 @@ def test_how_many_of_the_unknown_rows_the_table_answers() -> None:
 
     by_row = collections.Counter(_answers()[row[5]].verdict for row in unknown_rows())
     by_section = collections.Counter(answer.verdict for answer in _answers().values())
-    assert by_row == {"exists-as-recodified": 2_237, "not-in-table": 177, "repealed-no-successor": 134}
-    assert by_section == {"exists-as-recodified": 100, "not-in-table": 27, "repealed-no-successor": 19}
+    assert by_row == {
+        "exists-as-recodified": 2_237,
+        "not-in-table": 177,
+        "repealed-no-successor": 127,
+        "eliminated-no-successor": 7,
+    }
+    assert by_section == {
+        "exists-as-recodified": 100,
+        "not-in-table": 27,
+        "repealed-no-successor": 17,
+        "eliminated-no-successor": 2,
+    }
     assert sum(count for verdict, count in by_row.items() if verdict != "not-in-table") == 2_371
     # Nothing in this population is answered by a title with no table: they are
     # all title 49 by construction.
@@ -956,16 +968,16 @@ def _rows_for(parquet_name: str) -> tuple[dict, ...]:
 
 
 def test_title_31_table_is_the_size_and_shape_the_readme_states() -> None:
-    """Title 31 (Pub. L. 97-258, 1982): 965 entries, 1,561 rows, 1,156 former sections."""
+    """Title 31 (Pub. L. 97-258 / 97-452): 965 entries, 1,563 rows, 1,158 former sections."""
 
     data = _rows_for("usc-1994-title31-disposition.parquet")
     entries = {(row["page"], row["column"], row["former_text"], row["new_text"]) for row in data}
-    assert len(data) == 1_561
+    assert len(data) == 1_563
     assert len(entries) == 965
-    assert len({row["former_section"] for row in data}) == 1_156
-    assert len({(row["former_section"], row["former_subsection"]) for row in data}) == 1_456
+    assert len({row["former_section"] for row in data}) == 1_158
+    assert len({(row["former_section"], row["former_subsection"]) for row in data}) == 1_458
     assert collections.Counter(row["status"] for row in data) == {
-        "restated": 996,
+        "restated": 998,
         "repealed": 536,
         "eliminated": 21,
         "restated-as-note": 6,
@@ -980,7 +992,7 @@ def test_title_31_table_is_the_size_and_shape_the_readme_states() -> None:
 
 
 def test_title_31_specimens_including_483a_hyphenated_and_cross_title() -> None:
-    """Review § E row 7 (`31 USC 483a -> 9701`) plus hyphenated, cross-title, repealed, and note entries."""
+    """Review § E row 7 (`31 USC 483a -> 9701`) plus attested range members, Elim., and cross-title entries."""
 
     # Review § E row 7: Independent Offices Appropriations Act user-fee authority.
     fee = tables().disposition(31, "483a")
@@ -988,6 +1000,17 @@ def test_title_31_specimens_including_483a_hyphenated_and_cross_title() -> None:
     assert fee.recodification == "title-31-1982"
     assert [(s.title, s.section, s.status) for s in fee.successors] == [(31, "9701", "restated")]
     assert [(r.former_text, r.new_text, r.page, r.column) for r in fee.rows] == [("483a", "9701", 3, "left")]
+
+    # Independently attested alphanumeric range members resolve via their enclosing printed rows.
+    s22a = tables().disposition(31, "22a")
+    assert s22a.verdict == "exists-as-recodified"
+    assert [(s.title, s.section) for s in s22a.successors] == [(31, "1108")]
+    assert [r.former_text for r in s22a.rows] == ["22-24"]
+
+    s324b1 = tables().disposition(31, "324b-1")
+    assert s324b1.verdict == "exists-as-recodified"
+    assert [(s.title, s.section) for s in s324b1.successors] == [(31, "5112")]
+    assert [r.former_text for r in s324b1.rows] == ["324b to 324c"]
 
     # Cross-title restatements and hyphenated former/new sections preserved whole.
     assert [(s.title, s.section) for s in tables().disposition(31, "483b").successors] == [(10, "1042")]
@@ -1004,11 +1027,12 @@ def test_title_31_specimens_including_483a_hyphenated_and_cross_title() -> None:
         (22, "2668"),
     ]
 
-    # Repealed, eliminated, restated-as-note, see-reference, and not-in-table.
+    # Repealed vs editorial Eliminated, restated-as-note, see-reference, and not-in-table.
     assert tables().disposition(31, "1").verdict == "repealed-no-successor"
     assert tables().disposition(31, "47").verdict == "repealed-no-successor"
-    assert tables().disposition(31, "725a").verdict == "repealed-no-successor"
-    assert tables().disposition(31, "725a").rows[0].status == "eliminated"
+    elim = tables().disposition(31, "725a")
+    assert elim.verdict == "eliminated-no-successor"
+    assert elim.rows[0].status == "eliminated"
     note_row = tables().disposition(31, "638c")
     assert [(s.title, s.section, s.status) for s in note_row.successors] == [(31, "1343", "restated-as-note")]
     see_ref = tables().disposition(31, "155")
@@ -1027,18 +1051,18 @@ def test_title_31_specimens_including_483a_hyphenated_and_cross_title() -> None:
 
 
 def test_title_46_table_is_the_size_and_shape_the_readme_states() -> None:
-    """Title 46 / 46 App. (Pub. L. 98-89..109-304): 1,344 entries, 2,178 rows, 1,296 former sections."""
+    """Title 46 / 46 App. (Pub. L. 98-89..109-304): 1,344 entries, 2,169 rows, 1,299 former sections."""
 
     data = _rows_for("usc-2006-title46-disposition.parquet")
     entries = {(row["page"], row["column"], row["former_text"], row["new_text"]) for row in data}
-    assert len(data) == 2_178
+    assert len(data) == 2_169
     assert len(entries) == 1_344
-    assert len({row["former_section"] for row in data}) == 1_296
-    assert len({(row["former_section"], row["former_subsection"]) for row in data}) == 1_833
+    assert len({row["former_section"] for row in data}) == 1_299
+    assert len({(row["former_section"], row["former_subsection"]) for row in data}) == 1_836
     assert collections.Counter(row["status"] for row in data) == {
-        "restated": 1_469,
-        "repealed": 652,
-        "restated-as-note": 49,
+        "restated": 1_457,
+        "repealed": 654,
+        "restated-as-note": 50,
         "see-reference": 6,
         "eliminated": 2,
     }
@@ -1058,6 +1082,48 @@ def test_title_46_and_46_app_specimens() -> None:
     assert jones.verdict == "exists-as-recodified"
     assert jones.recodification == "title-46-2006"
     assert [(s.title, s.section) for s in jones.successors] == [(46, "30104"), (46, "30105")]
+
+    # Respective 1-to-1 range (`454-457 -> T. 33 §§ 1233-1236`): each singleton gets ONLY its paired destination,
+    # while a span query over 454..457 still unions all four.
+    for former_sec, dest_sec in (("454", "1233"), ("455", "1234"), ("456", "1235"), ("457", "1236")):
+        ans = tables().disposition(46, former_sec)
+        assert ans.verdict == "exists-as-recodified"
+        assert [(s.title, s.section, s.status) for s in ans.successors] == [(33, dest_sec, "restated")]
+        assert [(r.former_text, r.new_text) for r in ans.rows] == [("454-457", "T. 33 §§ 1233-1236")]
+    regatta_span = tables().disposition(46, "454", section_end="457")
+    assert regatta_span.covers == ("454", "455", "456", "457")
+    assert [(s.title, s.section) for s in regatta_span.successors] == [
+        (33, "1233"),
+        (33, "1234"),
+        (33, "1235"),
+        (33, "1236"),
+    ]
+
+    # Independently attested alphanumeric range members from OLRC 1994-2005 usc46a.htm.
+    for rep_sec in ("845a", "845b"):
+        rep = tables().disposition(46, rep_sec)
+        assert rep.verdict == "repealed-no-successor"
+        assert [r.former_text for r in rep.rows] == ["843-848"]
+    s1183a = tables().disposition(46, "1183a")
+    assert s1183a.verdict == "exists-as-recodified"
+    assert [(s.title, s.section, s.status) for s in s1183a.successors] == [(46, "53101", "restated-as-note")]
+    assert [r.former_text for r in s1183a.rows] == ["1183-1185a"]
+
+    # Editorial omission (`46 App. § 111 -> Elim.`, codified at 19 U.S.C. § 288) is distinct from legal repeal,
+    # and a span mixing Rep. and Elim. answers `stated-without-successor` with per-member verdicts preserved.
+    s111 = tables().disposition(46, "111")
+    assert s111.verdict == "eliminated-no-successor"
+    assert s111.successors == ()
+    assert [(r.status, r.new_text) for r in s111.rows] == [("eliminated", "Elim.")]
+    assert tables().disposition(46, "110").verdict == "repealed-no-successor"
+    assert tables().disposition(46, "112").verdict == "repealed-no-successor"
+    mixed = tables().disposition(46, "110", section_end="112")
+    assert mixed.verdict == "stated-without-successor"
+    assert [m.verdict for m in mixed.members] == [
+        "repealed-no-successor",
+        "eliminated-no-successor",
+        "repealed-no-successor",
+    ]
 
     # Cross-title restatement (former 46 App. § 466c -> 15 U.S.C. § 1824a).
     export_horses = tables().disposition(46, "466c")
@@ -1124,6 +1190,44 @@ def test_title_46_and_46_app_specimens() -> None:
     assert {s.section for s in shipping.successors} >= {"40101", "40102", "40301", "40303", "40304", "41307"}
 
 
+def test_crosscheck_script_rejects_empty_pdf_and_mutated_destination() -> None:
+    """Negative mutation controls: the independent cross-checker refuses empty PDFs and wrong destinations."""
+
+    import importlib.util
+    import sys
+
+    script = ARTIFACT_2026_11_18 / "scripts" / "crosscheck_disposition_tables.py"
+    spec = importlib.util.spec_from_file_location("crosscheck_disposition_tables_test", script)
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = mod
+    spec.loader.exec_module(mod)
+
+    # Mutation 1: Empty PDF text fails body-anchor check instead of passing on zero tokens.
+    with pytest.raises(SystemExit, match="body anchor"):
+        mod._body_after("", "SUBTITLE I-GENERAL", "USCODE-1994-title31.pdf")
+    with pytest.raises(SystemExit, match="body anchor"):
+        mod._body_after("", "Subtitle I-General", "USCODE-2006-title46.pdf")
+
+    # Mutation 2: Mutated 31:483a -> 99999 fails BOTH tabular HRN pair verification and specimen verification.
+    t31_rows = list(_rows_for("usc-1994-title31-disposition.parquet"))
+    mutated_t31 = [
+        ({**row, "new_section": "99999"} if row["former_section"] == "483a" else row) for row in t31_rows
+    ]
+    pair_res = mod._verify_hrn_pairs({("483a", "9701")}, mutated_t31, 31, {})
+    assert len(pair_res["unexpected_mismatches"]) == 1
+    assert pair_res["unexpected_mismatches"][0]["former_section"] == "483a"
+    spec_res = mod._verify_specimens(mutated_t31, mod.EXPECTED_TITLE31_SPECIMENS)
+    assert [m["former_section"] for m in spec_res["mismatches"]] == ["483a"]
+
+    # Mutation 3: Re-introducing a Cartesian destination (46:454 -> 33:1234) fails exact-set specimen verification.
+    t46_rows = list(_rows_for("usc-2006-title46-disposition.parquet"))
+    extra = next(row for row in t46_rows if row["former_section"] == "454")
+    mutated_t46 = [*t46_rows, {**extra, "new_section": "1234"}]
+    t46_spec_res = mod._verify_specimens(mutated_t46, mod.EXPECTED_TITLE46_SPECIMENS)
+    assert [m["former_section"] for m in t46_spec_res["mismatches"]] == ["454"]
+
+
 def test_title_49a_holdout_audit_matches_all_27_sections_and_177_rows() -> None:
     """The 2026-11-18 primary-source audit accounts for every one of the 27 HOLD_OUT sections / 177 rows."""
 
@@ -1138,13 +1242,29 @@ def test_title_49a_holdout_audit_matches_all_27_sections_and_177_rows() -> None:
     )
     expected_pairs = tuple(sorted(((sec, cnt) for sec, cnt, _ in HOLD_OUT), key=lambda item: (-item[1], item[0])))
     assert audited_pairs == expected_pairs
-    assert sum(c["rows"] for c in audit["summary"]["by_category"].values()) == 177
-    assert sum(c["sections"] for c in audit["summary"]["by_category"].values()) == 27
+    by_cat = audit["summary"]["by_category"]
+    assert by_cat == {
+        "current_title49_chapter_as_section": {"sections": 9, "rows": 114},
+        "filer_typo_truncation_or_parser_damage": {"sections": 9, "rows": 24},
+        "cfr_part_in_usc_slot": {"sections": 3, "rows": 13},
+        "lost_parenthesis_a4_shape": {"sections": 3, "rows": 12},
+        "wrong_usc_title": {"sections": 2, "rows": 9},
+        "positive_law_renumbered_mislabelled_app": {"sections": 1, "rows": 5},
+    }
     by_sec = {s["section"]: s for s in audit["sections"]}
-    # Verify key adjudicated findings from primary 1988 49a + 1994 Title 49 PDFs.
+    # Verify key adjudicated findings from primary 1988 49a, 1994 Title 49, and Agenda XMLs.
     assert by_sec["3102"]["category"] == "positive_law_renumbered_mislabelled_app"
     assert "31502" in by_sec["3102"]["statutory_status_1988_1994"]
     for ch in ("411", "413", "415", "417", "419", "447", "449", "463", "465"):
         assert by_sec[ch]["category"] == "current_title49_chapter_as_section"
+    assert by_sec["217"]["category"] == "cfr_part_in_usc_slot"
+    assert "49 CFR 21.7(a)" in by_sec["217"]["intended_referent"]
+    for succ in ("41702", "41501", "41705"):
+        assert succ in by_sec["374"]["intended_referent"]
+    assert "41310" not in by_sec["374"]["intended_referent"]
+    assert "46301" not in by_sec["374"]["intended_referent"]
+    assert "§ 34, 39 Stat. 543" in by_sec["114l"]["statutory_status_1988_1994"]
+    assert "§ 38, 39 Stat. 544" not in by_sec["114l"]["statutory_status_1988_1994"]
+    assert by_sec["134"]["intended_referent"].startswith("Uncertain:")
     assert by_sec["1509d"]["category"] == "lost_parenthesis_a4_shape"
     assert "1644a" in by_sec["1509d"]["statutory_status_1988_1994"]

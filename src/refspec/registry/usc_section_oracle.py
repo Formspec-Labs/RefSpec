@@ -1779,6 +1779,10 @@ class UscSectionOracle:
             )
         why = {
             "repealed-no-successor": "the {name} disposition table repeals it and names no successor",
+            "eliminated-no-successor": (
+                "the {name} disposition table marks it eliminated (editorial omission, not repeal) "
+                "and names no successor"
+            ),
             "stated-without-successor": (
                 "the {name} disposition table names no successor and points at another instrument"
             ),

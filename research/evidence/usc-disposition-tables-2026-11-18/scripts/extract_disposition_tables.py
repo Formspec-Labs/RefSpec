@@ -584,6 +584,74 @@ def parse_new(text: str, default_title: int) -> list[dict]:
     return out
 
 
+#: Printed entries where both sides are equal-length ranges paired 1-to-1
+#: respectively (verified from primary codification notes), rather than a
+#: Cartesian product where every former section maps to every successor.
+RESPECTIVE_RANGE_ENTRIES: dict[tuple[int, str, str], str] = {
+    (46, "454-457", "T. 33 §§ 1233-1236"): (
+        "Act of Apr. 28, 1908, ch. 151, §§ 1-4, 35 Stat. 69 (1994usc33.htm Codification notes: "
+        "46:454 -> 33:1233, 46:455 -> 33:1234, 46:456 -> 33:1235, 46:457 -> 33:1236)"
+    ),
+}
+
+#: Independently attested alphanumeric former sections falling strictly inside a
+#: printed range entry (verified from the volume's own Historical and Revision
+#: Notes or OLRC 1994-2005 annual ``usc46a.htm``). ``_expand_range`` never
+#: invents unattested intermediate lettered/hyphenated sections; only sections
+#: attested in primary OLRC sources are emitted beside the integer range members,
+#: preserving the enclosing entry's verbatim ``former_text`` and ``new_text``.
+ATTESTED_RANGE_MEMBERS: dict[tuple[int, str], tuple[tuple[str, str], ...]] = {
+    (31, "22-24"): (
+        ("22a", "USCODE-1994-title31.pdf p. 79 § 1108(g) HRN cites 31:22a"),
+    ),
+    (31, "324b to 324c"): (
+        ("324b-1", "USCODE-1994-title31.pdf § 5112 HRN cites 31:324b-1"),
+    ),
+    (46, "843-848"): (
+        ("845a", "OLRC 1994-2005 usc46a.htm attests 46 App. § 845a"),
+        ("845b", "OLRC 1994-2005 usc46a.htm attests 46 App. § 845b"),
+    ),
+    (46, "1183-1185a"): (
+        ("1183a", "OLRC 1994-2005 usc46a.htm attests 46 App. § 1183a"),
+    ),
+}
+
+_SECTION_ORDER_RE = re.compile(r"^(\d+)(.*)$")
+
+
+def _section_order(section: str) -> tuple[int, str]:
+    match = _SECTION_ORDER_RE.match(section.lower())
+    if match is None:
+        raise SystemExit(f"cannot order section token {section!r}")
+    return (int(match.group(1)), match.group(2))
+
+
+def _with_attested_range_members(
+    former_title: int, former_text: str, formers: list[dict]
+) -> list[dict]:
+    """Insert independently attested alphanumeric range members in section order."""
+
+    extras = ATTESTED_RANGE_MEMBERS.get((former_title, former_text))
+    if not extras:
+        return formers
+    existing = {f["section"].lower() for f in formers}
+    keys = [_section_order(f["section"]) for f in formers]
+    lo_key, hi_key = min(keys), max(keys)
+    merged = list(formers)
+    for member, _evidence in extras:
+        mkey = _section_order(member)
+        if not (lo_key < mkey < hi_key):
+            raise SystemExit(
+                f"attested range member {member!r} does not fall strictly inside {former_text!r}"
+            )
+        if member.lower() in existing:
+            raise SystemExit(f"attested range member {member!r} already emitted for {former_text!r}")
+        merged.append({"section": member, "subsection": None, "note": None})
+        existing.add(member.lower())
+    merged.sort(key=lambda item: _section_order(item["section"]))
+    return merged
+
+
 def build(pdf: Path, spec: SourceSpec) -> list[dict]:
     """The whole derived table: one record per (former section token x successor)."""
 
@@ -594,30 +662,54 @@ def build(pdf: Path, spec: SourceSpec) -> list[dict]:
 
     out: list[dict] = []
     prose: list[tuple[str, str]] = []
+    seen_attested: set[tuple[int, str]] = set()
+    seen_respective: set[tuple[int, str, str]] = set()
     for entry in printed:
         formers, skipped = parse_former(entry["former_text"])
         news = parse_new(entry["new_text"], spec.former_title)
         prose.extend((entry["former_text"], piece) for piece in skipped)
         if not formers:
             raise SystemExit(f"an entry naming no former section: {entry!r}")
-        for former in formers:
-            for new in news:
-                out.append(
-                    {
-                        "former_title": spec.former_title,
-                        "former_section": former["section"],
-                        "former_subsection": former["subsection"],
-                        "former_note": former["note"],
-                        "new_title": new["title"],
-                        "new_section": new["section"],
-                        "new_subsection": new["subsection"],
-                        "status": new["status"],
-                        "former_text": entry["former_text"],
-                        "new_text": entry["new_text"],
-                        "page": entry["page"],
-                        "column": entry["half"],
-                    }
-                )
+        attested_key = (spec.former_title, entry["former_text"])
+        if attested_key in ATTESTED_RANGE_MEMBERS:
+            formers = _with_attested_range_members(spec.former_title, entry["former_text"], formers)
+            seen_attested.add(attested_key)
+        respective_key = (spec.former_title, entry["former_text"], entry["new_text"])
+        if respective_key in RESPECTIVE_RANGE_ENTRIES:
+            if len(formers) != len(news):
+                raise SystemExit(f"respective-range length mismatch: {entry!r}")
+            pairs = list(zip(formers, news, strict=True))
+            seen_respective.add(respective_key)
+        elif len(formers) > 1 and len(news) > 1:
+            raise SystemExit(
+                f"unreviewed multi-former x multi-new entry (verify respective vs Cartesian): {entry!r}"
+            )
+        else:
+            pairs = [(former, new) for former in formers for new in news]
+        for former, new in pairs:
+            out.append(
+                {
+                    "former_title": spec.former_title,
+                    "former_section": former["section"],
+                    "former_subsection": former["subsection"],
+                    "former_note": former["note"],
+                    "new_title": new["title"],
+                    "new_section": new["section"],
+                    "new_subsection": new["subsection"],
+                    "status": new["status"],
+                    "former_text": entry["former_text"],
+                    "new_text": entry["new_text"],
+                    "page": entry["page"],
+                    "column": entry["half"],
+                }
+            )
+
+    expected_attested = {k for k in ATTESTED_RANGE_MEMBERS if k[0] == spec.former_title}
+    if seen_attested != expected_attested:
+        raise SystemExit(f"unmatched ATTESTED_RANGE_MEMBERS: {sorted(expected_attested - seen_attested)}")
+    expected_respective = {k for k in RESPECTIVE_RANGE_ENTRIES if k[0] == spec.former_title}
+    if seen_respective != expected_respective:
+        raise SystemExit(f"unmatched RESPECTIVE_RANGE_ENTRIES: {sorted(expected_respective - seen_respective)}")
 
     if prose:
         raise SystemExit(f"former fields whose pieces named no address: {prose!r}")

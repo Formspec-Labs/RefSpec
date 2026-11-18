@@ -6,11 +6,12 @@ recodification disposition tables to `refspec.registry.usc_disposition_tables`
 and records the primary-source statutory audit of all **27** distinct
 `not-in-table` Title 49a sections (**177** rows in `HOLD_OUT`):
 
-1. **Title 31 (Money and Finance)** — Pub. L. 97-258, § 1, Sept. 13, 1982, 96 Stat. 877
-   (deeming provision: Pub. L. 97-258, § 4(b)), extracted from born-digital GovInfo
-   `USCODE-1994-title31.pdf` pp. 1–6 ("TABLE SHOWING DISPOSITION OF ALL SECTIONS
-   OF FORMER TITLE 31"), cross-checked against `USCODE-1994-title31.pdf` Historical
-   and Revision Notes and 1982 LoC `uscode1982-013031001.pdf` (`31 U.S.C. 483a -> 9701`).
+1. **Title 31 (Money and Finance)** — Pub. L. 97-258, § 1, Sept. 13, 1982, 96 Stat. 877,
+   as supplemented by Pub. L. 97-452, § 1, Jan. 12, 1983, 96 Stat. 2467
+   (deeming provisions: Pub. L. 97-258 § 4(b), Pub. L. 97-452 § 3(b)), extracted from
+   born-digital GovInfo `USCODE-1994-title31.pdf` pp. 1–6 ("TABLE SHOWING DISPOSITION OF
+   ALL SECTIONS OF FORMER TITLE 31"), cross-checked against `USCODE-1994-title31.pdf`
+   Historical and Revision Notes and 1982 LoC `uscode1982-013031001.pdf` (`31 U.S.C. 483a -> 9701`).
 2. **Title 46 / Title 46 Appendix (Shipping)** — consolidated across all five
    enacting acts: Pub. L. 98-89 (1983), Pub. L. 99-509 (1986), Pub. L. 100-424
    (1988), Pub. L. 100-710 (1988), and Pub. L. 109-304 (2006) (deeming provisions:
@@ -87,53 +88,61 @@ Geometry notes (measured from `-bbox-layout` XML across all table pages):
 - Right table block: former `xMax <= 410.0`, new `xMin = 416.5` (`COLUMN_SPLIT["right"] = 413.5`).
 - Full-width prose following each table (`ENACTING CLAUSE` on Title 31 p. 6 left, `ENACTING CLAUSES` on Title 46 p. 9 right) crosses the column split and terminates extraction for that half.
 - Hyphenated former section tokens (`52-1`..`52-7`, `82a-1`, `725q-1a`, `404-1`, `883-1`, `1126-1`, `1295c-1`, etc.) are preserved intact (distinguished from ascending section ranges because every hyphenated suffix is strictly smaller than its leading section number). Zero comma-pieces go unparsed (`prose == []`).
+- Respective 1-to-1 ranges: the lone multi-former x multi-new entry across both tables (`454-457 -> T. 33 §§ 1233-1236`, Title 46 p. 3 right) is zipped 1-to-1 (`454->33:1233`, `455->33:1234`, `456->33:1235`, `457->33:1236`) per the `1994usc33.htm` Codification notes for Act of Apr. 28, 1908, ch. 151, §§ 1–4, 35 Stat. 69, preserving verbatim `former_text`/`new_text` and eliminating 12 false Cartesian pairs.
+- Independently attested alphanumeric range members (`31:22a` inside `22-24`, `31:324b-1` inside `324b to 324c`, `46:845a`/`46:845b` inside `843-848`, and `46:1183a` inside `1183-1185a` — each verified in the volume's HRN or OLRC 1994–2005 `usc46a.htm`) are emitted against their enclosing printed rows so direct lookups resolve rather than answering `not-in-table`. Unattested intermediate lettered sections are never invented.
 
 ## Files
 
 | file | sha256 | bytes | entries / rows |
 |---|---|---:|---:|
-| `usc-1994-title31-disposition.parquet` | `9b8fcb6e6d10a5a06e36ce88a5d7887c5746ff13f083cf1a1e7aab53c2cd780d` | 21,194 | 1,561 rows |
+| `usc-1994-title31-disposition.parquet` | `febacca0f59193fc4524ce780d29ba5440d8ee47f8041f133fda161d0c765cd5` | 21,251 | 1,563 rows |
 | `usc-1994-title31-disposition.txt` | `e79941a9cb0480a629bda8dc492b02ce8724f329f1b89a13b18b834cc1c1db15` | 25,848 | 965 entries |
-| `usc-2006-title46-disposition.parquet` | `8d8421bdbb971a0e474626d9176e7d25fac255805855b829fc6ff38cc760066e` | 29,334 | 2,178 rows |
+| `usc-2006-title46-disposition.parquet` | `2b6a315482a8b8ba142360ea3303e55e6e8e07d632ebe4c3a1a24d38a9efca84` | 29,320 | 2,169 rows |
 | `usc-2006-title46-disposition.txt` | `4b6c152c1b72b253fd18466eeb32598d560e659708ec557579c54714794e9539` | 36,881 | 1,344 entries |
-| `crosscheck-report.json` | `a2eb4de6f03b8367b71b14ff6a16f7013c383024f8ba10586869293ed398c511` | 8,050 | — |
-| `title49a-holdout-audit.json` | `e0531bf6e5a983354ccf91f2ade1400386cb20fa7f567a1cb4cbd5d78b2f6b38` | 40,283 | 27 sections / 177 rows |
-| `title49a-holdout-audit.md` | `7d0016f88d777d93f9e834520b4394207b31d0ed35c4dee7bde252f22886215a` | 20,713 | 27 sections / 177 rows |
-| `scripts/extract_disposition_tables.py` | `717dd034ba0ca76d58a3afc3b6916885720036310362a403decf54da26f6ca53` | 29,695 | — |
-| `scripts/crosscheck_disposition_tables.py` | `e7f46daaed17aaa9db4565e6e2436cfce8a24c6dbc4a6282e6e364a04a7dfa51` | 15,316 | — |
-| `scripts/build_title49a_holdout_audit.py` | `d612f532a68041c1f6240c2c96144626a7cffa3a4dbb4652e9cc6f1b4c45b4b2` | 38,757 | — |
+| `crosscheck-report.json` | `201dce646ca8dd4a9ad1c70a096061742300e2fb3b7ff47687c369cdaa18f2eb` | 6,669 | — |
+| `title49a-holdout-audit.json` | `970757491eb0117d7adbc2afd9c4184117fece29ccf6cd3facd2611b364dc912` | 41,898 | 27 sections / 177 rows |
+| `title49a-holdout-audit.md` | `9af961814c5c7e1da1e231d97d70d30f02eb4aa55ef28d08b84f9f7e58fc67d4` | 22,379 | 27 sections / 177 rows |
+| `scripts/extract_disposition_tables.py` | `3f1585b511158267b4f40a5caf3e0698a84b5e4091c04a81833b89aa2023fb08` | 34,081 | — |
+| `scripts/crosscheck_disposition_tables.py` | `7152ef90d2b3ba69c902a430481ac9a28a03f8fc2b65e9c833beda50f2a36ff0` | 22,639 | — |
+| `scripts/build_title49a_holdout_audit.py` | `3b2444039c2e4671a44c349f2aacb183e072525a55fcd17b3f4b91e7678cb66c` | 41,706 | — |
 
 ## Counts
 
 | measure | Title 31 (`title-31-1982`) | Title 46 (`title-46-2006`) |
 |---|---:|---:|
 | printed entries | 965 | 1,344 |
-| emitted rows | 1,561 | 2,178 |
-| distinct former sections | 1,156 | 1,296 |
-| distinct former `(section, subsection)` | 1,456 | 1,833 |
+| emitted rows | 1,563 | 2,169 |
+| distinct former sections | 1,158 | 1,299 |
+| distinct former `(section, subsection)` | 1,458 | 1,836 |
 | distinct successors `(title, section)` | 413 | 769 |
-| former sections with >1 row | 103 | 204 |
-| rows `restated` / `repealed` / `eliminated` / `see-reference` / `restated-as-note` | 996 / 536 / 21 / 2 / 6 | 1,469 / 652 / 2 / 6 / 49 |
-| former sections with **only** repealed rows | 492 | 600 |
+| former sections with >1 row | 103 | 200 |
+| rows `restated` / `repealed` / `eliminated` / `see-reference` / `restated-as-note` | 998 / 536 / 21 / 2 / 6 | 1,457 / 654 / 2 / 6 / 50 |
+| former sections with **only** repealed rows | 492 | 602 |
+| former sections with **only** eliminated rows | 21 | 2 |
 | former sections with both a successor and a repealed part | 23 | 32 |
 | table pages | 1–6 | 1–9 |
 
 ## Independent cross-checks (`crosscheck-report.json`)
 
+The cross-checker fails loudly on missing PDF body anchors, below-threshold HRN
+populations, missing tokens, or destination mismatches (verified with planted
+negative mutations: empty PDF text and mutated `31:483a -> 99999`):
+
 1. **Title 31 Historical and Revision Notes (`USCODE-1994-title31.pdf`)**:
    - **541** distinct `31:<sec>` tokens appear in the body notes:
-     - **526** match exact keys in `usc-1994-title31-disposition.parquet`,
-     - **2** (`22a`, `324b-1`) fall strictly inside printed range entries (`22-24`, `324b to 324c`),
+     - **528** match exact keys in `usc-1994-title31-disposition.parquet` (including attested range members `22a` and `324b-1`),
      - **13** (`1305, 3302, 3331, 3701, 3702, 5103, 5112, 5132, 5154, 6102, 6501, 9101, 9107`) are post-1982 revised positive-law Title 31 section headings referenced by 1983/1984 improvement Act notes (Pub. L. 97-452 / Pub. L. 98-216),
      - **0** pre-1982 tokens missing.
-   - `31 U.S.C. 483a -> 9701` verified in the disposition table (p. 3 left), in `USCODE-1994-title31.pdf` § 9701 Historical and Revision Notes (`31:483a`), and in 1982 LoC `uscode1982-013031001.pdf`.
+   - **Tabular HRN `(former -> new)` pairs**: **272 of 275** match exact Parquet destinations; the remaining 3 are documented OLRC front-matter-vs-HRN divergences (`665 -> 1349/1350` where p. 4 prints `1549/1550`, and `1001 -> 321` where p. 5 prints `301`).
+   - Independent exact-destination specimens verified (`483a -> 31:9701` also in § 9701 HRN and 1982 LoC `uscode1982-013031001.pdf`; `22a -> 31:1108`; `324b-1 -> 31:5112`; `725a -> Elim.`).
 2. **Title 46 Historical and Revision Notes (`USCODE-2006-title46.pdf`)**:
    - **`46 App.:<sec>`**: **283 of 283 (100.0%)** match exact keys in `usc-2006-title46-disposition.parquet` (**0** missing).
    - **Pre-codification `46:<sec>` (`< 2100`)**: **280 of 281** match exact keys; the lone discrepancy (`46:525h` in § 4103's HRN) is a verified single-digit publisher typo in OLRC's note for `46:526h` (Motorboat Act of 1940 § 9, which the disposition table maps to `4103`).
+   - **Tabular HRN `(46 App.:former -> new)` pairs**: **208 of 209** match exact Parquet destinations (1 documented divergence: `1244 -> 113`, where p. 7 prints `1244(a) -> 109`).
 3. **OLRC 1994–2005 `usc46a.htm` annual archive cross-check**:
-   - All **434** distinct Title 46 Appendix sections in `usc-oracle-annual-sections.parquet` are accounted for: **431** exact keys plus **3** (`845a`, `845b`, `1183a`) strictly inside printed range entries (`843-848 -> Rep.`, `1183-1185a -> 53101 note`). **0** missing.
-4. **1988 LoC Title 46 (`uscode1988-018046000.pdf`) spot verification**:
-   - Spot-checked Subtitle II–III codification mappings (`71`, `72`, `75`, `391a`) and post-1988 Title 46 Appendix codifications (`466c -> 15:1824a`, `688 -> 46:30104, 30105`, `1300 -> 46:30701 note`).
+   - All **434 of 434 (100.0%)** distinct Title 46 Appendix sections in `usc-oracle-annual-sections.parquet` match exact keys in the Parquet (including attested range members `845a`, `845b`, `1183a`). **0** missing.
+4. **Independent destination specimens & 1988 LoC confirmation**:
+   - Verified 13 independent exact destination sets against the Parquet, including 1-to-1 respective pairs (`454 -> 33:1233`, `455 -> 33:1234`, `456 -> 33:1235`, `457 -> 33:1236`), editorial omission (`111 -> Elim.`, codified at `19 U.S.C. § 288`), `466c -> 15:1824a`, `688 -> 46:30104, 30105`, `1300 -> 46:30701 note`, `72 -> 46:14503`, `75 -> 46:14512`, `845a`/`845b -> Rep.`, `1183a -> 46:53101 note`, and the 1988 LoC transfer-to-Appendix note (`uscode1988-018046000.pdf`).
 
 ## Title 49a 27-Section Hold-Out Audit Summary
 
@@ -142,8 +151,8 @@ section-by-section adjudication against eight primary 1988 Title 49a chapter
 PDFs (`uscode1988-019049a{001,004,006,008,009,013,020,026}.pdf`) and GovInfo
 `USCODE-1994-title49.pdf`:
 
-- **0 / 27** hold-out tokens existed as sections of 1988 Title 49 Appendix; **0 / 27** are omissions from the 1994 Title 49 Disposition Table.
+- **0 / 27** hold-out tokens appear as sections in the examined 1988 Title 49 Appendix PDFs; **0 / 27** are omissions from the 1994 Title 49 Disposition Table.
 - **9 sections / 114 rows** (`411, 413, 415, 417, 419, 447, 449, 463, 465`) are current positive-law **Title 49 Subtitle VII chapter numbers** cited without `ch.`/`chapters` (correcting the earlier 14 CFR ch. III conjecture).
 - **1 section / 5 rows** (`3102`) is pre-1994 positive-law `49 U.S.C. § 3102` (Pub. L. 97-449; renumbered `§ 31502` by Pub. L. 103-272), mislabelled `app`.
-- **17 sections / 58 rows** are lost-parenthesis pinpoints (`322a`, `1509d`, `114l`), wrong-title citations (`5:552a(k)`, `23:217`, former `15:1392`), CFR parts in the U.S.C. slot (`49 CFR 190`, `49 CFR 29`), or filer typos/truncations/parser damage (`374, 166, 1085, 10109, 40, 134, 406, 1491, 1763`).
+- **17 sections / 58 rows** are filer typos/truncations/parser damage (**9 / 24**: `374, 166, 1085, 10109, 40, 134 [uncertain], 406, 1491, 1763`), 49 CFR citations in the U.S.C. slot (**3 / 13**: `49 CFR 190`, `49 CFR 29`, and `49 CFR 21.7(a)` damaged to `49 U.S.C. 217(a)` between 2014-10 and 2015-04), lost-parenthesis pinpoints (**3 / 12**: `322(a)`, `1509(d)`, `114(l)`), or wrong-title U.S.C. citations (**2 / 9**: `5:552a(k)`, former `15:1392`).
 - Raw 1988 OCR is **not** imported into `UscSectionOracle` (it would recover 0 of 177 rows).

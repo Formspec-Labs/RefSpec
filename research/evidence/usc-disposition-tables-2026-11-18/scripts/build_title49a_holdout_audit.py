@@ -17,6 +17,7 @@ import json
 import sys
 from pathlib import Path
 
+import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
 from refspec.registry.usc_disposition_tables import UscDispositionTables
@@ -83,6 +84,9 @@ SOURCES = {
 }
 
 #: Adjudication of every one of the 27 distinct `not-in-table` Title 49a sections.
+#: Historical absence statements are strictly scoped to the examined primary
+#: editions (1988 U.S. Code Title 49 Appendix PDFs on tile.loc.gov and GovInfo
+#: 1994 U.S. Code Title 49).
 ADJUDICATIONS: dict[str, dict] = {
     "29": {
         "category": "cfr_part_in_usc_slot",
@@ -91,9 +95,9 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a001.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed in Title 49 or Title 49 Appendix. In 1988 Title 49a, Ch. 1 ends at § 27 "
-            "(Repealed, Pub. L. 95-473, § 4(b), Oct. 17, 1978, 92 Stat. 1466) and Ch. 2 opens at § 41; "
-            "sections 28-40 were never assigned."
+            "Absent from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a, Ch. 1 ends at § 27 (Repealed, Pub. L. 95-473, § 4(b), Oct. 17, 1978, "
+            "92 Stat. 1466) and Ch. 2 opens at § 41; sections 28-40 are not printed in the 1988 edition."
         ),
         "intended_referent": "49 CFR Part 29 (Governmentwide Debarment and Suspension), cited beside EO 11738, EO 12549, EO 12689, and Pub. L. 103-355 § 2455 in RIN 2105-AD68.",
     },
@@ -104,9 +108,9 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a001.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed in Title 49 or Title 49 Appendix. In 1988 Title 49a, Ch. 1 ends at § 27 "
-            "(Repealed, Pub. L. 95-473, § 4(b), Oct. 17, 1978, 92 Stat. 1466) and Ch. 2 opens at § 41; "
-            "sections 28-40 were never assigned."
+            "Absent from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a, Ch. 1 ends at § 27 (Repealed, Pub. L. 95-473, § 4(b), Oct. 17, 1978, "
+            "92 Stat. 1466) and Ch. 2 opens at § 41; sections 28-40 are not printed in the 1988 edition."
         ),
         "intended_referent": "Truncated 49 U.S.C. § 40118 (Fly America Act), filed in 2025-04 GSA Federal Travel Regulation RIN 3090-AL06 beside 5 U.S.C. 5707, 5738 and 40 U.S.C. 121(c).",
     },
@@ -117,9 +121,10 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a004.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed in Title 49 Appendix. In 1988 Title 49a Ch. 4 (Bills of Lading), § 114 "
-            "(Aug. 29, 1916, ch. 415, § 38, 39 Stat. 544; restated as 49 U.S.C. § 80107 by Pub. L. 103-272) "
-            "is immediately followed by § 115; no § 114l existed."
+            "Absent from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a Ch. 4 (Bills of Lading, p. 7 left column), § 114 "
+            "(Aug. 29, 1916, ch. 415, § 34, 39 Stat. 543; restated as 49 U.S.C. § 80107 by Pub. L. 103-272) "
+            "is immediately followed by § 115; no § 114l is printed."
         ),
         "intended_referent": "Live positive-law 49 U.S.C. § 114(l) (TSA rulemaking authority, enacted by Aviation and Transportation Security Act, Pub. L. 107-71, § 101(a), Nov. 19, 2001, 115 Stat. 597), missing parentheses in RIN 1652-AA08.",
     },
@@ -130,11 +135,15 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a004.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed in Title 49 or Title 49 Appendix. In 1988 Title 49a, Ch. 4 ends at § 124 "
-            "(Aug. 29, 1916, ch. 415, § 44, 39 Stat. 545; repealed by Pub. L. 103-272) and Ch. 5 opens at § 141; "
-            "sections 125-140 were never assigned."
+            "Absent from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a, Ch. 4 ends at § 124 (Aug. 29, 1916, ch. 415, § 44, 39 Stat. 545; "
+            "repealed by Pub. L. 103-272) and Ch. 5 opens at § 141; sections 125-140 are not printed in the 1988 edition."
         ),
-        "intended_referent": "Truncated pre-recodification Federal Aviation Act citation (likely 49 U.S.C. App. § 1348, airspace control, or § 1341) filed in 1995-10 FAA RIN 2120-AE61 beside 49 USC 106(g), 1354(a), 1355, 1421-1430.",
+        "intended_referent": (
+            "Uncertain: possibly a truncated pre-recodification Federal Aviation Act citation "
+            "(e.g., 49 U.S.C. App. § 1348, airspace control, or § 1341) filed in 1995-10 FAA RIN 2120-AE61 "
+            "beside 49 USC 106(g), 1354(a), 1355, 1421-1430; no sibling edition confirms a single referent."
+        ),
     },
     "166": {
         "category": "filer_typo_truncation_or_parser_damage",
@@ -143,9 +152,10 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a006.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed in Title 49 or Title 49 Appendix. In 1988 Title 49a, Ch. 5 ends at §§ 151-157 "
-            "(Repealed, Pub. L. 88-67, § 1(1), July 19, 1963, 77 Stat. 81) and Ch. 6 opens at § 171 "
-            "(Repealed, Pub. L. 85-726, title XIV, § 1401(a), Aug. 23, 1958, 72 Stat. 806); sections 158-170 were never assigned."
+            "Absent from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a, Ch. 5 ends at §§ 151-157 (Repealed, Pub. L. 88-67, § 1(1), July 19, 1963, "
+            "77 Stat. 81) and Ch. 6 opens at § 171 (Repealed, Pub. L. 85-726, title XIV, § 1401(a), "
+            "Aug. 23, 1958, 72 Stat. 806); sections 158-170 are not printed in the 1988 edition."
         ),
         "intended_referent": "Single-digit typo (`166 to 117`) for live 49 U.S.C. §§ 116 to 117, corroborated verbatim by sibling editions of RIN 2105-AE69 writing `49 U.S.C. 116 to 117` and `49 U.S.C. 116 and 117`.",
     },
@@ -156,24 +166,31 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a006.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed in Title 49 or Title 49 Appendix. In 1988 Title 49a Ch. 6, Subch. I ends at §§ 179-184 "
-            "(Repealed, Pub. L. 85-726, title XIV, § 1401(a), Aug. 23, 1958, 72 Stat. 806) and Subch. II opens at § 201 "
-            "(Repealed, act Aug. 10, 1956, ch. 1041, § 53, 70A Stat. 641); sections 185-200 were never assigned."
+            "Absent from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a Ch. 6, Subch. I ends at §§ 179-184 (Repealed, Pub. L. 85-726, title XIV, "
+            "§ 1401(a), Aug. 23, 1958, 72 Stat. 806) and Subch. II opens at § 201 (Repealed, act Aug. 10, "
+            "1956, ch. 1041, § 53, 70A Stat. 641); sections 185-200 are not printed in the 1988 edition."
         ),
         "intended_referent": "49 CFR Part 190 (Pipeline Safety Enforcement and Regulatory Procedures) fused into `49 USC 60101 et seq` in PHMSA RIN 2137-AD77.",
     },
     "217": {
-        "category": "wrong_usc_title",
+        "category": "cfr_part_in_usc_slot",
         "existed_in_1988_title_49a": False,
         "in_1994_disposition_table": False,
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a006.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed in Title 49 or Title 49 Appendix. In 1988 Title 49a Ch. 6, Subch. III (Public Airports) "
-            "contains §§ 211-214 (§ 214 repealed by Pub. L. 94-579, title VII, § 704(a), Oct. 21, 1976, 90 Stat. 2792) "
-            "and Subch. IV opens at § 231; sections 215-230 were never assigned."
+            "Absent from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a Ch. 6, Subch. III (Public Airports) contains §§ 211-214 "
+            "(§ 214 repealed by Pub. L. 94-579, title VII, § 704(a), Oct. 21, 1976, 90 Stat. 2792) "
+            "and Subch. IV opens at § 231; sections 215-230 are not printed in the 1988 edition."
         ),
-        "intended_referent": "Live 23 U.S.C. § 217 (Bicycle transportation and pedestrian walkways), mis-filed under Title 49 alongside 49 CFR Part 1 delegations (`1.51(f), 1.81, 1.85, 1.90`); sibling editions of RINs 2125-AF66 and 2132-AB21 cite `23 U.S.C. ..., 217(g), ...`.",
+        "intended_referent": (
+            "Damaged CFR citation (`49 CFR 21.7(a)`): prior edition XML (`REGINFO_RIN_DATA_201410.xml:157705`) "
+            "prints `49 CFR 21.7(a), 1.51(f), 1.81, 1.85, and 1.90`, which the next edition "
+            "(`REGINFO_RIN_DATA_201504.xml:151271`) damages to `49 U.S.C. 217(a), 1.51(F), 1.81, 1.85 and 1.90` "
+            "while listing `23 U.S.C. ..., 217(G), ...` separately in both editions (RINs 2125-AF66 and 2132-AB21)."
+        ),
     },
     "322a": {
         "category": "lost_parenthesis_a4_shape",
@@ -182,8 +199,9 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a008.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed in Title 49 Appendix. In 1988 Title 49a Ch. 8 (Motor Carriers), §§ 321-324a were repealed by "
-            "Pub. L. 95-473, § 4(b), Oct. 17, 1978, 92 Stat. 1466, and printed § 322 immediately before § 323; no § 322a existed."
+            "Absent from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a Ch. 8 (Motor Carriers), §§ 321-324a were repealed by "
+            "Pub. L. 95-473, § 4(b), Oct. 17, 1978, 92 Stat. 1466, printing § 322 immediately before § 323; no § 322a is printed."
         ),
         "intended_referent": "Live positive-law 49 U.S.C. § 322(a) (Secretary of Transportation general rulemaking authority, enacted by Pub. L. 97-449, Jan. 12, 1983, 96 Stat. 2422), missing parentheses in DOT RINs 2105-AD93 and 2127-AL06.",
     },
@@ -194,11 +212,16 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a008.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed in Title 49 or Title 49 Appendix. In 1988 Title 49a, Ch. 8 ends at § 327 "
-            "(Repealed, Pub. L. 95-473, § 4(b), Oct. 17, 1978, 92 Stat. 1466) and Ch. 9 opens at § 401; "
-            "sections 328-400 were never assigned."
+            "Absent from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a, Ch. 8 ends at § 327 (Repealed, Pub. L. 95-473, § 4(b), Oct. 17, 1978, "
+            "92 Stat. 1466) and Ch. 9 opens at § 401; sections 328-400 are not printed in the 1988 edition."
         ),
-        "intended_referent": "Dropped leading digit `1` for former 49 U.S.C. App. § 1374(a), (c) (Federal Aviation Act § 404, safe/adequate air carrier service and Air Carrier Access Act nondiscrimination; in 1994 Title 49 table -> 41702, 41501, 41310, 41705, 46301) in DOT OST RIN 2105-AC28 (1995-1998).",
+        "intended_referent": (
+            "Dropped leading digit `1` for former 49 U.S.C. App. § 1374(a), (c) (Federal Aviation Act § 404, "
+            "safe/adequate air carrier service and Air Carrier Access Act nondiscrimination; in sealed 1994 "
+            "Title 49 table lines 912-915: `1374(a)(1) -> 41702`, `1374(a)(2) -> 41501`, `1374(c) -> 41705`) "
+            "in DOT OST RIN 2105-AC28 (1995-1998)."
+        ),
     },
     "406": {
         "category": "filer_typo_truncation_or_parser_damage",
@@ -207,9 +230,10 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a009.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed in Title 49 or Title 49 Appendix. In 1988 Title 49a Ch. 9 (Civil Aeronautics Act of 1938), "
-            "§§ 401-403 (Repealed, Pub. L. 85-726, title XIV, § 1401(b), Aug. 23, 1958, 72 Stat. 806) are followed "
-            "immediately by §§ 421-422; sections 404-420 were never assigned."
+            "Absent from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a Ch. 9 (Civil Aeronautics Act of 1938), §§ 401-403 (Repealed, Pub. L. 85-726, "
+            "title XIV, § 1401(b), Aug. 23, 1958, 72 Stat. 806) are followed immediately by §§ 421-422; "
+            "sections 404-420 are not printed in the 1988 edition."
         ),
         "intended_referent": "Single-digit typo (`406(f)`) for live 49 U.S.C. § 106(f) (FAA Administrator authority), corroborated verbatim by sibling editions of FAA RIN 2120-AK54 citing `49 U.S.C. 106(f)`.",
     },
@@ -220,9 +244,10 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a009.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed as a section in Title 49 or Title 49 Appendix. In 1988 Title 49a Ch. 9, §§ 401-403 "
-            "(Repealed, Pub. L. 85-726, § 1401(b), Aug. 23, 1958, 72 Stat. 806) jump directly to §§ 421-422; "
-            "sections 404-420 were never assigned. (Note: Civil Aeronautics Act § 411 was codified at former 49 U.S.C. § 491.)"
+            "Absent as a section from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a Ch. 9, §§ 401-403 (Repealed, Pub. L. 85-726, § 1401(b), Aug. 23, 1958, 72 Stat. 806) "
+            "jump directly to §§ 421-422; sections 404-420 are not printed in the 1988 edition. "
+            "(Note: Civil Aeronautics Act § 411 was codified at former 49 U.S.C. § 491.)"
         ),
         "intended_referent": "Current positive-law Title 49 Subtitle VII Chapter 411 (Air Carrier Certificates, 49 U.S.C. §§ 41101 et seq.) cited without `ch.`/`chapters` by DOT OST aviation RINs (e.g. 2105-AD66 sibling editions write `49 U.S.C. chapters 401, 411, and 417`). Corrects earlier conjecture attributing 401-465 to 14 CFR ch. III.",
     },
@@ -233,9 +258,9 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a009.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed as a section in Title 49 or Title 49 Appendix. In 1988 Title 49a Ch. 9, §§ 401-403 "
-            "(Repealed, Pub. L. 85-726, § 1401(b), Aug. 23, 1958, 72 Stat. 806) jump directly to §§ 421-422; "
-            "sections 404-420 were never assigned."
+            "Absent as a section from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a Ch. 9, §§ 401-403 (Repealed, Pub. L. 85-726, § 1401(b), Aug. 23, 1958, 72 Stat. 806) "
+            "jump directly to §§ 421-422; sections 404-420 are not printed in the 1988 edition."
         ),
         "intended_referent": "Current positive-law Title 49 Subtitle VII Chapter 413 (Foreign Air Transportation, 49 U.S.C. §§ 41301 et seq.) cited without `ch.`/`chapters` in DOT OST aviation RINs.",
     },
@@ -246,9 +271,9 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a009.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed as a section in Title 49 or Title 49 Appendix. In 1988 Title 49a Ch. 9, §§ 401-403 "
-            "(Repealed, Pub. L. 85-726, § 1401(b), Aug. 23, 1958, 72 Stat. 806) jump directly to §§ 421-422; "
-            "sections 404-420 were never assigned."
+            "Absent as a section from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a Ch. 9, §§ 401-403 (Repealed, Pub. L. 85-726, § 1401(b), Aug. 23, 1958, 72 Stat. 806) "
+            "jump directly to §§ 421-422; sections 404-420 are not printed in the 1988 edition."
         ),
         "intended_referent": "Current positive-law Title 49 Subtitle VII Chapter 415 (Pricing, 49 U.S.C. §§ 41501 et seq.) cited without `ch.`/`chapters` in DOT OST aviation RINs.",
     },
@@ -259,9 +284,9 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a009.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed as a section in Title 49 or Title 49 Appendix. In 1988 Title 49a Ch. 9, §§ 401-403 "
-            "(Repealed, Pub. L. 85-726, § 1401(b), Aug. 23, 1958, 72 Stat. 806) jump directly to §§ 421-422; "
-            "sections 404-420 were never assigned."
+            "Absent as a section from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a Ch. 9, §§ 401-403 (Repealed, Pub. L. 85-726, § 1401(b), Aug. 23, 1958, 72 Stat. 806) "
+            "jump directly to §§ 421-422; sections 404-420 are not printed in the 1988 edition."
         ),
         "intended_referent": "Current positive-law Title 49 Subtitle VII Chapter 417 (Operations of Carriers, 49 U.S.C. §§ 41701 et seq.) cited without `ch.`/`chapters` in DOT OST aviation RINs (corroborated by RIN 2105-AD66 `49 U.S.C. chapters 401, 411, and 417`).",
     },
@@ -272,9 +297,9 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a009.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed as a section in Title 49 or Title 49 Appendix. In 1988 Title 49a Ch. 9, §§ 401-403 "
-            "(Repealed, Pub. L. 85-726, § 1401(b), Aug. 23, 1958, 72 Stat. 806) jump directly to §§ 421-422; "
-            "sections 404-420 were never assigned."
+            "Absent as a section from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a Ch. 9, §§ 401-403 (Repealed, Pub. L. 85-726, § 1401(b), Aug. 23, 1958, 72 Stat. 806) "
+            "jump directly to §§ 421-422; sections 404-420 are not printed in the 1988 edition."
         ),
         "intended_referent": "Current positive-law Title 49 Subtitle VII Chapter 419 (Transportation of Mail, 49 U.S.C. §§ 41901 et seq.) cited without `ch.`/`chapters` in DOT OST RIN 2105-AD10.",
     },
@@ -285,9 +310,9 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a009.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed as a section in Title 49 or Title 49 Appendix. In 1988 Title 49a Ch. 9, §§ 423-427 "
-            "(Repealed, Pub. L. 85-726, § 1401(b), Aug. 23, 1958, 72 Stat. 806) jump directly to §§ 451-460; "
-            "sections 428-450 were never assigned."
+            "Absent as a section from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a Ch. 9, §§ 423-427 (Repealed, Pub. L. 85-726, § 1401(b), Aug. 23, 1958, 72 Stat. 806) "
+            "jump directly to §§ 451-460; sections 428-450 are not printed in the 1988 edition."
         ),
         "intended_referent": "Current positive-law Title 49 Subtitle VII Chapter 447 (Safety Regulation, 49 U.S.C. §§ 44701 et seq.), corroborated verbatim by sibling editions of RIN 2105-AD66 writing `49 U.S.C. 106(g), chapters 447 and 451`.",
     },
@@ -298,9 +323,9 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a009.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed as a section in Title 49 or Title 49 Appendix. In 1988 Title 49a Ch. 9, §§ 423-427 "
-            "(Repealed, Pub. L. 85-726, § 1401(b), Aug. 23, 1958, 72 Stat. 806) jump directly to §§ 451-460; "
-            "sections 428-450 were never assigned."
+            "Absent as a section from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a Ch. 9, §§ 423-427 (Repealed, Pub. L. 85-726, § 1401(b), Aug. 23, 1958, 72 Stat. 806) "
+            "jump directly to §§ 451-460; sections 428-450 are not printed in the 1988 edition."
         ),
         "intended_referent": "Current positive-law Title 49 Subtitle VII Chapter 449 (Security, 49 U.S.C. §§ 44901 et seq.) cited without `ch.`/`chapters` in DOT OST RIN 2105-AD10.",
     },
@@ -311,9 +336,10 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a009.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed as a section in Title 49 or Title 49 Appendix. In 1988 Title 49a Ch. 9, § 461 "
-            "(Transferred to note under § 1343, then repealed Pub. L. 87-367, title I, § 103(15), Oct. 4, 1961, 75 Stat. 788) "
-            "jumps directly to §§ 481-485; sections 462-480 were never assigned."
+            "Absent as a section from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a Ch. 9, § 461 (Transferred to note under § 1343, then repealed Pub. L. 87-367, "
+            "title I, § 103(15), Oct. 4, 1961, 75 Stat. 788) jumps directly to §§ 481-485; "
+            "sections 462-480 are not printed in the 1988 edition."
         ),
         "intended_referent": "Current positive-law Title 49 Subtitle VII Chapter 463 (Penalties, 49 U.S.C. §§ 46301 et seq.) cited without `ch.`/`chapters` in DOT OST RIN 2105-AD10.",
     },
@@ -324,8 +350,9 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a009.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed as a section in Title 49 or Title 49 Appendix. In 1988 Title 49a Ch. 9, § 461 "
-            "(Transferred, repealed Pub. L. 87-367, § 103(15)) jumps directly to §§ 481-485; sections 462-480 were never assigned."
+            "Absent as a section from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a Ch. 9, § 461 (Transferred, repealed Pub. L. 87-367, § 103(15)) "
+            "jumps directly to §§ 481-485; sections 462-480 are not printed in the 1988 edition."
         ),
         "intended_referent": "Current positive-law Title 49 Subtitle VII Chapter 465 (Special Aircraft Jurisdiction of the United States, 49 U.S.C. §§ 46501 et seq.) cited without `ch.`/`chapters` in DOT OST RIN 2105-AD10.",
     },
@@ -336,8 +363,9 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a009.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed in Title 49 or Title 49 Appendix. In 1988 Title 49a Ch. 9, §§ 551-560 "
-            "(Repealed, Pub. L. 85-726, § 1401(b), Aug. 23, 1958, 72 Stat. 806) printed § 552 immediately before § 553; no § 552a existed."
+            "Absent from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a Ch. 9, §§ 551-560 (Repealed, Pub. L. 85-726, § 1401(b), Aug. 23, 1958, "
+            "72 Stat. 806) print § 552 immediately before § 553; no § 552a is printed."
         ),
         "intended_referent": "Live 5 U.S.C. § 552a(k) (Privacy Act exemptions), mis-filed under Title 49 in TSA RIN 1652-AA48 beside `49 USC 114(l)(1)`.",
     },
@@ -348,9 +376,11 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a013.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed in Title 49 or Title 49 Appendix. In 1988 Title 49a, Ch. 13 (Freight Forwarders) ends at § 1022 "
-            "(Repealed, Pub. L. 95-473, § 4(b), Oct. 17, 1978, 92 Stat. 1466) and Ch. 14 (Federal Aid for Public Airport Development) "
-            "opens at §§ 1101-1103 (Repealed, Pub. L. 91-258, title I, § 52(a), May 21, 1970, 84 Stat. 235); sections 1023-1100 were never assigned."
+            "Absent from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a, Ch. 13 (Freight Forwarders) ends at § 1022 (Repealed, Pub. L. 95-473, § 4(b), "
+            "Oct. 17, 1978, 92 Stat. 1466) and Ch. 14 (Federal Aid for Public Airport Development) opens at "
+            "§§ 1101-1103 (Repealed, Pub. L. 91-258, title I, § 52(a), May 21, 1970, 84 Stat. 235); "
+            "sections 1023-1100 are not printed in the 1988 edition."
         ),
         "intended_referent": "Typo (`1085` for `1-85`) for FERC's preserved oil-pipeline authority `49 U.S.C. App. §§ 1-85 (1988)`, filed in FERC RIN 1902-AD06 directly beside `49 USC 60502`.",
     },
@@ -361,8 +391,9 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a020.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed in Title 49 or Title 49 Appendix. In 1988 Title 49a Ch. 20 (Federal Aviation Program), "
-            "Subch. IV ends at § 1389 and Subch. V opens at § 1401; sections 1390-1400 were never assigned."
+            "Absent from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a Ch. 20 (Federal Aviation Program), Subch. IV ends at § 1389 and "
+            "Subch. V opens at § 1401; sections 1390-1400 are not printed in the 1988 edition."
         ),
         "intended_referent": "Former 15 U.S.C. § 1392 (National Traffic and Motor Vehicle Safety Act of 1966, § 103 — Federal Motor Vehicle Safety Standards), repealed and restated in Title 49 (49 U.S.C. §§ 30101, 30111, 30112, 30117, 30125, 30166) by Pub. L. 103-272, §§ 1(e), 7(b), July 5, 1994, 108 Stat. 941, 1379; mis-filed under Title 49 in NHTSA RIN 2127-AJ47.",
     },
@@ -373,9 +404,10 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a020.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed in Title 49 or Title 49 Appendix. In 1988 Title 49a Ch. 20, Subch. X ends at § 1490 "
-            "(Pub. L. 85-726, title X, § 1010, as added Pub. L. 95-504, § 38(a), Oct. 24, 1978, 92 Stat. 1743) "
-            "and Subch. XI opens at § 1501; sections 1491-1500 were never assigned."
+            "Absent from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a Ch. 20, Subch. X ends at § 1490 (Pub. L. 85-726, title X, § 1010, as added "
+            "Pub. L. 95-504, § 38(a), Oct. 24, 1978, 92 Stat. 1743) and Subch. XI opens at § 1501; "
+            "sections 1491-1500 are not printed in the 1988 edition."
         ),
         "intended_referent": "Single-digit typo (`1491 to 1406`) for former 49 U.S.C. App. §§ 1401 to 1406 (aircraft registration), corroborated by RIN 2120-AF68 switching in 1996-04 to positive-law `49 USC 44110`.",
     },
@@ -386,10 +418,11 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a020.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed as a separate section `1509d` in Title 49 Appendix. In 1988 Title 49a Ch. 20, § 1509 "
-            "(Application of existing laws relating to foreign commerce) is immediately followed by § 1510. "
-            "However, subsection `§ 1509(d)` ('Animal and plant quarantine') IS a real 1988 Title 49a provision "
-            "and IS in the 1994 Title 49 Disposition Table (`1509(b)-(e) -> T. 19 § 1644a`, p. 8 left)."
+            "Absent as a separate section `1509d` from the examined 1988 Title 49 Appendix and 1994 Title 49 "
+            "Disposition Table. In 1988 Title 49a Ch. 20, § 1509 (Application of existing laws relating to "
+            "foreign commerce) is immediately followed by § 1510. However, subsection `§ 1509(d)` "
+            "('Animal and plant quarantine') IS a real 1988 Title 49a provision and IS in the 1994 Title 49 "
+            "Disposition Table (`1509(b)-(e) -> T. 19 § 1644a`, p. 8 left)."
         ),
         "intended_referent": "Former 49 U.S.C. App. § 1509(d) (recodified as 19 U.S.C. § 1644a by Pub. L. 103-272), missing parentheses in USDA APHIS quarantine RIN 0579-AB21 beside `21 USC 105, 112-114a, 120-121`.",
     },
@@ -400,9 +433,10 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a026.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed in Title 49 or Title 49 Appendix. In 1988 Title 49a, Ch. 26 (Hazardous Materials "
-            "Transportation Control) contained only §§ 1761-1762 (Repealed, Pub. L. 93-633, title I, § 113(g), "
-            "Jan. 3, 1975, 88 Stat. 2163), immediately followed by Ch. 27 opening at § 1801; sections 1763-1800 were never assigned."
+            "Absent from the examined 1988 Title 49 Appendix and 1994 Title 49 Disposition Table. "
+            "In 1988 Title 49a, Ch. 26 (Hazardous Materials Transportation Control) prints only §§ 1761-1762 "
+            "(Repealed, Pub. L. 93-633, title I, § 113(g), Jan. 3, 1975, 88 Stat. 2163), immediately followed "
+            "by Ch. 27 opening at § 1801; sections 1763-1800 are not printed in the 1988 edition."
         ),
         "intended_referent": "Statutes at Large pinpoint page `1763` from `119 Stat 1144, 1763` (Pub. L. 109-59 [mis-typed 109-159], § 4304, SAFETEA-LU) parsed as a comma-continued Title 49 section in FMCSA RIN 2126-AA22.",
     },
@@ -413,7 +447,7 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a001.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed in Title 49 Appendix (which ended at Ch. 36, § 2716 in 1988 and § 2812 in 1994). "
+            "Absent from the examined 1988 Title 49 Appendix (which ended at Ch. 36, § 2716 in 1988 and § 2812 in 1994). "
             "Was a real positive-law section of Title 49 Subtitle II Ch. 31 (`49 U.S.C. § 3102`, Requirements for "
             "qualifications, hours of service, safety, and equipment standards), enacted by Pub. L. 97-449, § 1(b), "
             "Jan. 12, 1983, 96 Stat. 2438, amended by Pub. L. 98-554, title II, § 206(h), Oct. 30, 1984, 98 Stat. 2835, "
@@ -430,8 +464,9 @@ ADJUDICATIONS: dict[str, dict] = {
         "table_omission": False,
         "primary_source_files": ["uscode1988-019049a001.pdf", "USCODE-1994-title49.pdf"],
         "statutory_status_1988_1994": (
-            "Never existed in Title 49 Appendix (ended at § 2716 in 1988 / § 2812 in 1994) or positive-law Title 49. "
-            "In 1994 positive-law Title 49 Subtitle IV Ch. 101 (General Provisions), only §§ 10101, 10101a, 10102, 10103 existed."
+            "Absent from the examined 1988 Title 49 Appendix (ended at § 2716 in 1988 / § 2812 in 1994) and "
+            "examined 1994 positive-law Title 49. In 1994 positive-law Title 49 Subtitle IV Ch. 101 "
+            "(General Provisions), only §§ 10101, 10101a, 10102, 10103 are printed."
         ),
         "intended_referent": "Single-digit typo (`10109`) for live 49 U.S.C. § 40109 (Authority to exempt), filed in FAA RIN 2120-AI58 beside `49 USC 106(g), 40103, 40106, 44502, 44514, 44701, 44719, 46301`.",
     },
@@ -474,19 +509,33 @@ def main() -> int:
         snap_path,
         columns=["rin", "publication_id", "authority_text", "authority_type", "usc_title", "usc_section", "usc_appendix"],
     )
-    cols = {n: tbl.column(n).to_pylist() for n in tbl.schema.names}
+    tbl = tbl.filter(
+        pc.and_(
+            pc.and_(pc.equal(tbl["authority_type"], "usc"), pc.equal(tbl["usc_title"], 49)),
+            pc.is_valid(tbl["usc_section"]),
+        )
+    )
+    cols = {n: tbl.column(n).to_pylist() for n in ("rin", "publication_id", "authority_text", "usc_section", "usc_appendix")}
+    verdict_cache: dict[tuple[str, int, bool], bool] = {}
+    answered_cache: dict[str, bool] = {}
     hold: dict[str, list[tuple[str, str, bool, str]]] = collections.defaultdict(list)
-    for rin, pub, text, atype, title, sec, app in zip(*cols.values(), strict=True):
-        if atype != "usc" or title != 49 or sec is None:
-            continue
+    for rin, pub, text, sec, app in zip(*cols.values(), strict=True):
         nsec = normalize_section(sec)
-        v = oracle.section_verdict(49, nsec, int(pub[:4]), appendix=bool(app))
-        if (
-            v.verdict == "unknown"
-            and v.reason == "title_49_appendix_not_published"
-            and not tables.disposition(49, nsec).answered
-        ):
-            hold[nsec].append((rin, pub, bool(app), text))
+        app_bool = bool(app)
+        key = (nsec, int(pub[:4]), app_bool)
+        is_t49_hole = verdict_cache.get(key)
+        if is_t49_hole is None:
+            v = oracle.section_verdict(49, nsec, key[1], appendix=app_bool)
+            is_t49_hole = v.verdict == "unknown" and v.reason == "title_49_appendix_not_published"
+            verdict_cache[key] = is_t49_hole
+        if not is_t49_hole:
+            continue
+        answered = answered_cache.get(nsec)
+        if answered is None:
+            answered = tables.disposition(49, nsec).answered
+            answered_cache[nsec] = answered
+        if not answered:
+            hold[nsec].append((rin, pub, app_bool, text))
 
     if set(hold) != set(ADJUDICATIONS):
         raise SystemExit(f"Hold-out mismatch: live={sorted(hold)} vs audited={sorted(ADJUDICATIONS)}")
@@ -587,9 +636,9 @@ def main() -> int:
     cat_desc = {
         "current_title49_chapter_as_section": "Positive-law Title 49 Subtitle VII chapters (`411, 413, 415, 417, 419, 447, 449, 463, 465`) written without `ch.`",
         "filer_typo_truncation_or_parser_damage": "Dropped digit, single-digit typo, truncation, or Statutes page parsed as section (`374, 166, 1085, 10109, 40, 134, 406, 1491, 1763`)",
-        "wrong_usc_title": "Valid section of another U.S.C. title filed under Title 49 (`5:552a(k)`, `23:217`, former `15:1392`)",
+        "wrong_usc_title": "Valid section of another U.S.C. title filed under Title 49 (`5:552a(k)`, former `15:1392`)",
         "lost_parenthesis_a4_shape": "Missing parentheses on a real section's subsection (`49:322(a)`, `49 App.:1509(d)`, `49:114(l)`)",
-        "cfr_part_in_usc_slot": "49 CFR part number placed in U.S.C. slot (`49 CFR 190`, `49 CFR 29`)",
+        "cfr_part_in_usc_slot": "49 CFR part or section citation placed in U.S.C. slot (`49 CFR 190`, `49 CFR 29`, `49 CFR 21.7(a)` damaged to `49 U.S.C. 217(a)`)",
         "positive_law_renumbered_mislabelled_app": "Real pre-1994 positive-law `49 U.S.C. § 3102` (renumbered `§ 31502` by Pub. L. 103-272), erroneously labelled `app`",
     }
     for cat, counts in payload["summary"]["by_category"].items():

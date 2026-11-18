@@ -1,11 +1,7 @@
 {
   "title_31": {
     "hrn_crosscheck": {
-      "covered_by_printed_range": {
-        "22a": "22-24",
-        "324b-1": "324b to 324c"
-      },
-      "exact_in_table": 526,
+      "exact_in_table": 528,
       "post_1982_revised_title31_self_refs": [
         "1305",
         "3302",
@@ -23,6 +19,50 @@
       ],
       "total_31_tokens_in_body": 541,
       "truly_missing": []
+    },
+    "hrn_destination_pairs": {
+      "matched_exact": 272,
+      "total_leader_pairs": 275,
+      "unexpected_mismatches": [],
+      "verified_olrc_divergences": {
+        "1001->321": "\u00a7 321(c) HRN cross-references 31:1001 beside 1002; p. 5 front-matter table maps 1001 -> 301",
+        "665->1349": "USCODE-1994-title31.pdf p. 4 front-matter table prints 1549 (OLRC typo for 1349 in \u00a7 1349 HRN)",
+        "665->1350": "USCODE-1994-title31.pdf p. 4 front-matter table prints 1550 (OLRC typo for 1350 in \u00a7 1350 HRN)"
+      }
+    },
+    "independent_specimens": {
+      "checked_count": 4,
+      "mismatches": [],
+      "verified_destinations": {
+        "22a": [
+          [
+            31,
+            "1108",
+            "restated"
+          ]
+        ],
+        "324b-1": [
+          [
+            31,
+            "5112",
+            "restated"
+          ]
+        ],
+        "483a": [
+          [
+            31,
+            "9701",
+            "restated"
+          ]
+        ],
+        "725a": [
+          [
+            null,
+            null,
+            "eliminated"
+          ]
+        ]
+      }
     },
     "page2_left_entries": 91,
     "specimen_483a": {
@@ -43,10 +83,11 @@
       ]
     },
     "stats": {
-      "distinct_former_section_subsection": 1456,
-      "distinct_former_sections": 1156,
+      "distinct_former_section_subsection": 1458,
+      "distinct_former_sections": 1158,
       "distinct_successors": 413,
-      "emitted_rows": 1561,
+      "emitted_rows": 1563,
+      "former_sections_only_eliminated": 21,
       "former_sections_only_repealed": 492,
       "former_sections_with_multiple_rows": 103,
       "former_sections_with_successor_and_repealed": 23,
@@ -62,7 +103,7 @@
       "statuses": {
         "eliminated": 21,
         "repealed": 536,
-        "restated": 996,
+        "restated": 998,
         "restated-as-note": 6,
         "see-reference": 2
       },
@@ -102,7 +143,6 @@
       "total_tokens": 283
     },
     "hrn_46_pre_codification_crosscheck": {
-      "covered_by_printed_range": {},
       "exact_in_table": 280,
       "total_tokens_under_2100": 281,
       "truly_missing": [],
@@ -110,12 +150,32 @@
         "525h": "OLRC printed HRN typo in \u00a7 4103 for 46:526h (table maps 526h -> 4103)"
       }
     },
-    "loc_1988_check": {
-      "bytes": 155564,
-      "file": "uscode1988-018046000.pdf",
-      "notes_transfer_to_46_appendix": true,
-      "sha256": "46917f78ef80ef7f0c85a0196620444e659a4ce48263cff44b2324eab74f67d5",
-      "spot_checks_in_2006_table": {
+    "hrn_destination_pairs": {
+      "matched_exact": 208,
+      "total_leader_pairs": 209,
+      "unexpected_mismatches": [],
+      "verified_olrc_divergences": {
+        "1244->113": "\u00a7 113 HRN cites 46 App.:1244(a); p. 7 front-matter table maps 1244(a) -> 109"
+      }
+    },
+    "independent_specimens": {
+      "checked_count": 13,
+      "mismatches": [],
+      "verified_destinations": {
+        "111": [
+          [
+            null,
+            null,
+            "eliminated"
+          ]
+        ],
+        "1183a": [
+          [
+            46,
+            "53101",
+            "restated-as-note"
+          ]
+        ],
         "1300": [
           [
             46,
@@ -123,170 +183,31 @@
             "restated-as-note"
           ]
         ],
-        "391a": [
+        "454": [
           [
-            null,
-            null,
-            "repealed"
-          ],
-          [
-            46,
-            "2101",
+            33,
+            "1233",
             "restated"
-          ],
+          ]
+        ],
+        "455": [
           [
-            46,
-            "2106",
+            33,
+            "1234",
             "restated"
-          ],
+          ]
+        ],
+        "456": [
           [
-            46,
-            "2107",
+            33,
+            "1235",
             "restated"
-          ],
+          ]
+        ],
+        "457": [
           [
-            46,
-            "2109",
-            "restated"
-          ],
-          [
-            46,
-            "2301",
-            "restated"
-          ],
-          [
-            46,
-            "3301",
-            "restated"
-          ],
-          [
-            46,
-            "3303",
-            "restated"
-          ],
-          [
-            46,
-            "3309",
-            "restated"
-          ],
-          [
-            46,
-            "3313",
-            "restated"
-          ],
-          [
-            46,
-            "3701",
-            "restated"
-          ],
-          [
-            46,
-            "3702",
-            "restated"
-          ],
-          [
-            46,
-            "3703",
-            "restated"
-          ],
-          [
-            46,
-            "3704",
-            "restated"
-          ],
-          [
-            46,
-            "3705",
-            "restated"
-          ],
-          [
-            46,
-            "3706",
-            "restated"
-          ],
-          [
-            46,
-            "3707",
-            "restated"
-          ],
-          [
-            46,
-            "3708",
-            "restated"
-          ],
-          [
-            46,
-            "3709",
-            "restated"
-          ],
-          [
-            46,
-            "3710",
-            "restated"
-          ],
-          [
-            46,
-            "3711",
-            "restated"
-          ],
-          [
-            46,
-            "3712",
-            "restated"
-          ],
-          [
-            46,
-            "3713",
-            "restated"
-          ],
-          [
-            46,
-            "3714",
-            "restated"
-          ],
-          [
-            46,
-            "3715",
-            "restated"
-          ],
-          [
-            46,
-            "3716",
-            "restated"
-          ],
-          [
-            46,
-            "3717",
-            "restated"
-          ],
-          [
-            46,
-            "3718",
-            "restated"
-          ],
-          [
-            46,
-            "7317",
-            "restated"
-          ],
-          [
-            46,
-            "8502",
-            "restated"
-          ],
-          [
-            46,
-            "8703",
-            "restated"
-          ],
-          [
-            46,
-            "9101",
-            "restated"
-          ],
-          [
-            46,
-            "9102",
+            33,
+            "1236",
             "restated"
           ]
         ],
@@ -309,53 +230,6 @@
             "restated"
           ]
         ],
-        "71": [
-          [
-            46,
-            "12102",
-            "restated"
-          ],
-          [
-            46,
-            "14102",
-            "restated"
-          ],
-          [
-            46,
-            "14104",
-            "restated"
-          ],
-          [
-            46,
-            "14501",
-            "restated"
-          ],
-          [
-            46,
-            "14502",
-            "restated"
-          ],
-          [
-            46,
-            "14504",
-            "restated"
-          ],
-          [
-            46,
-            "14511",
-            "restated"
-          ],
-          [
-            46,
-            "14521",
-            "restated"
-          ],
-          [
-            46,
-            "14522",
-            "restated"
-          ]
-        ],
         "72": [
           [
             46,
@@ -369,26 +243,42 @@
             "14512",
             "restated"
           ]
+        ],
+        "845a": [
+          [
+            null,
+            null,
+            "repealed"
+          ]
+        ],
+        "845b": [
+          [
+            null,
+            null,
+            "repealed"
+          ]
         ]
       }
     },
+    "loc_1988_check": {
+      "bytes": 155564,
+      "file": "uscode1988-018046000.pdf",
+      "notes_transfer_to_46_appendix": true,
+      "sha256": "46917f78ef80ef7f0c85a0196620444e659a4ce48263cff44b2324eab74f67d5"
+    },
     "olrc_1994_2005_46_app_crosscheck": {
-      "covered_by_printed_range": {
-        "1183a": "1183-1185a",
-        "845a": "843-848",
-        "845b": "843-848"
-      },
-      "exact_in_table": 431,
-      "total_olrc_46a_sections": 434,
-      "truly_missing": []
+      "exact_in_table": 434,
+      "missing": [],
+      "total_olrc_46a_sections": 434
     },
     "stats": {
-      "distinct_former_section_subsection": 1833,
-      "distinct_former_sections": 1296,
+      "distinct_former_section_subsection": 1836,
+      "distinct_former_sections": 1299,
       "distinct_successors": 769,
-      "emitted_rows": 2178,
-      "former_sections_only_repealed": 600,
-      "former_sections_with_multiple_rows": 204,
+      "emitted_rows": 2169,
+      "former_sections_only_eliminated": 2,
+      "former_sections_only_repealed": 602,
+      "former_sections_with_multiple_rows": 200,
       "former_sections_with_successor_and_repealed": 32,
       "pages": [
         1,
@@ -404,16 +294,16 @@
       "printed_entries": 1344,
       "statuses": {
         "eliminated": 2,
-        "repealed": 652,
-        "restated": 1469,
-        "restated-as-note": 49,
+        "repealed": 654,
+        "restated": 1457,
+        "restated-as-note": 50,
         "see-reference": 6
       },
       "successors_outside_title": {
         "15": 2,
         "18": 2,
         "19": 1,
-        "33": 16,
+        "33": 4,
         "49": 12
       }
     }

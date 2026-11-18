@@ -120,25 +120,37 @@ def _usc_disposition_table_test_inputs() -> dict[str, tuple[dict[str, Any], ...]
         head, *tail = re.split(r"[^0-9A-Za-z]+", Path(urlsplit(recodification.source_url).path).stem)
         return head.lower() + "".join(part[:1].upper() + part[1:] for part in tail) + "PrintedVolume"
 
+    def local_path_for(recodification: Any) -> str:
+        if recodification.source_local_path is not None:
+            return recodification.source_local_path
+        return f"{recodification.artifact}/{Path(urlsplit(recodification.source_url).path).name}"
+
+    def scope_for(recodification: Any) -> str:
+        committed = recodification.source_local_path is None
+        custody = (
+            "retained in the repository beside its derived table"
+            if committed
+            else "retained outside Git (re-fetchable from publisherUrl and verified against this sha256 and byte length)"
+        )
+        return (
+            f"the printed volume carrying the disposition table for the {recodification.name} "
+            f"recodification ({recodification.enacted_by}), fetched {recodification.source_fetched}, "
+            f"{custody}; the committed extractor in {recodification.artifact}/scripts/ re-checks this "
+            f"sha256 and byte length before reading a page, and writes {recodification.table} at "
+            f"{recodification.digest}"
+        )
+
     return {
         "usc_disposition_tables.py": tuple(
             {
                 "name": named(recodification),
-                "localPath": (
-                    f"{tables.USC_DISPOSITION_TABLES_ARTIFACT}/"
-                    f"{Path(urlsplit(recodification.source_url).path).name}"
-                ),
+                "localPath": local_path_for(recodification),
                 "publisherUrl": recodification.source_url,
                 "sha256": recodification.source_digest,
                 "byteLength": recodification.source_bytes,
                 "acquisition": "directPublisherDownload",
                 "provenance": "publisherDistribution",
-                "scope": (
-                    f"the printed volume carrying the disposition table for the {recodification.name} "
-                    f"recodification ({recodification.enacted_by}), fetched 2026-08-23; the committed "
-                    f"extractor beside it re-checks this sha256 and byte length before reading a page, "
-                    f"and writes {recodification.table} at {recodification.digest}"
-                ),
+                "scope": scope_for(recodification),
             }
             for recodification in tables.RECODIFICATIONS
         ),
