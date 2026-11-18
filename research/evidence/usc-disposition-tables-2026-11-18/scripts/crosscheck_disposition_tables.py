@@ -65,16 +65,48 @@ MIN_TITLE46_PRE_TOKENS = 250
 MIN_TITLE46_HRN_PAIRS = 180
 MIN_OLRC_46A_SECTIONS = 400
 
-#: Verified OLRC front-matter-vs-HRN divergences (front-matter table prints a
-#: different destination than a body HRN table line; table bytes are preserved
-#: faithfully rather than silently rewritten).
-VERIFIED_TITLE31_HRN_DIVERGENCES: dict[tuple[str, str], str] = {
-    ("665", "1349"): "USCODE-1994-title31.pdf p. 4 front-matter table prints 1549 (OLRC typo for 1349 in § 1349 HRN)",
-    ("665", "1350"): "USCODE-1994-title31.pdf p. 4 front-matter table prints 1550 (OLRC typo for 1350 in § 1350 HRN)",
-    ("1001", "321"): "§ 321(c) HRN cross-references 31:1001 beside 1002; p. 5 front-matter table maps 1001 -> 301",
+#: Verified OLRC front-matter-vs-HRN divergences, each pinning BOTH the exact
+#: printed substitute destination AND the complete expected Parquet destination
+#: set for that former section so mutating any allowlisted row (e.g.
+#: ``31:665 -> 1549`` to ``99999``) still fails loudly.
+_T31_665_EXPECTED_DESTS = frozenset(
+    {"1341", "1342", "1351", "1511", "1512", "1513", "1514", "1515", "1516", "1517", "1518", "1519", "1549", "1550"}
+)
+VERIFIED_TITLE31_HRN_DIVERGENCES: dict[tuple[str, str], tuple[str, frozenset[str], str]] = {
+    (
+        "665",
+        "1349",
+    ): (
+        "1549",
+        _T31_665_EXPECTED_DESTS,
+        "USCODE-1994-title31.pdf p. 4 front-matter table prints 1549 (OLRC typo for 1349 in § 1349 HRN)",
+    ),
+    (
+        "665",
+        "1350",
+    ): (
+        "1550",
+        _T31_665_EXPECTED_DESTS,
+        "USCODE-1994-title31.pdf p. 4 front-matter table prints 1550 (OLRC typo for 1350 in § 1350 HRN)",
+    ),
+    (
+        "1001",
+        "321",
+    ): (
+        "301",
+        frozenset({"301"}),
+        "§ 321(c) HRN cross-references 31:1001 beside 1002; p. 5 front-matter table maps 1001 -> 301",
+    ),
 }
-VERIFIED_TITLE46_HRN_DIVERGENCES: dict[tuple[str, str], str] = {
-    ("1244", "113"): "§ 113 HRN cites 46 App.:1244(a); p. 7 front-matter table maps 1244(a) -> 109",
+VERIFIED_TITLE46_HRN_DIVERGENCES: dict[tuple[str, str], tuple[str, frozenset[str], str]] = {
+    (
+        "1244",
+        "113",
+    ): (
+        "109",
+        frozenset({"109", "114", "50501"}),
+        "§ 113 HRN cites 46 App.:1244(a); p. 7 front-matter table maps 1244(a) -> 109",
+    ),
 }
 
 #: Independently sourced exact-destination assertions checked against the Parquets
@@ -209,7 +241,7 @@ def _verify_hrn_pairs(
     pairs: set[tuple[str, str]],
     rows: list[dict],
     expected_title: int,
-    verified_divergences: dict[tuple[str, str], str],
+    verified_divergences: dict[tuple[str, str], tuple[str, frozenset[str], str]],
 ) -> dict:
     """Compare independently extracted HRN ``(former -> new)`` pairs against the Parquet."""
 
@@ -221,16 +253,29 @@ def _verify_hrn_pairs(
     documented: dict[str, str] = {}
     mismatched: list[dict] = []
     for former, new_sec in sorted(pairs):
-        if new_sec in pq_map.get(former, set()):
+        observed = pq_map.get(former, set())
+        if new_sec in observed:
             matched += 1
         elif (former, new_sec) in verified_divergences:
-            documented[f"{former}->{new_sec}"] = verified_divergences[(former, new_sec)]
+            expected_printed, expected_all, note = verified_divergences[(former, new_sec)]
+            if expected_printed in observed and observed == expected_all:
+                documented[f"{former}->{new_sec}"] = note
+            else:
+                mismatched.append(
+                    {
+                        "former_section": former,
+                        "hrn_new_section": new_sec,
+                        "expected_printed_destination": expected_printed,
+                        "expected_all_destinations": sorted(expected_all),
+                        "parquet_destinations": sorted(observed),
+                    }
+                )
         else:
             mismatched.append(
                 {
                     "former_section": former,
                     "hrn_new_section": new_sec,
-                    "parquet_destinations": sorted(pq_map.get(former, set())),
+                    "parquet_destinations": sorted(observed),
                 }
             )
     return {

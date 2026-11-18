@@ -103,7 +103,7 @@ Geometry notes (measured from `-bbox-layout` XML across all table pages):
 | `title49a-holdout-audit.json` | `970757491eb0117d7adbc2afd9c4184117fece29ccf6cd3facd2611b364dc912` | 41,898 | 27 sections / 177 rows |
 | `title49a-holdout-audit.md` | `9af961814c5c7e1da1e231d97d70d30f02eb4aa55ef28d08b84f9f7e58fc67d4` | 22,379 | 27 sections / 177 rows |
 | `scripts/extract_disposition_tables.py` | `3f1585b511158267b4f40a5caf3e0698a84b5e4091c04a81833b89aa2023fb08` | 34,081 | — |
-| `scripts/crosscheck_disposition_tables.py` | `7152ef90d2b3ba69c902a430481ac9a28a03f8fc2b65e9c833beda50f2a36ff0` | 22,639 | — |
+| `scripts/crosscheck_disposition_tables.py` | `04e9cfce97772c51c0c6d8afa4ab79585a85e802f8806f46f2c050ae93d41814` | 23,895 | — |
 | `scripts/build_title49a_holdout_audit.py` | `3b2444039c2e4671a44c349f2aacb183e072525a55fcd17b3f4b91e7678cb66c` | 41,706 | — |
 
 ## Counts

@@ -104,8 +104,8 @@ ARTIFACT_2026_11_18_PINS = {
         34_081,
     ),
     "scripts/crosscheck_disposition_tables.py": (
-        "sha256:7152ef90d2b3ba69c902a430481ac9a28a03f8fc2b65e9c833beda50f2a36ff0",
-        22_639,
+        "sha256:04e9cfce97772c51c0c6d8afa4ab79585a85e802f8806f46f2c050ae93d41814",
+        23_895,
     ),
     "scripts/build_title49a_holdout_audit.py": (
         "sha256:3b2444039c2e4671a44c349f2aacb183e072525a55fcd17b3f4b91e7678cb66c",
@@ -1220,8 +1220,26 @@ def test_crosscheck_script_rejects_empty_pdf_and_mutated_destination() -> None:
     spec_res = mod._verify_specimens(mutated_t31, mod.EXPECTED_TITLE31_SPECIMENS)
     assert [m["former_section"] for m in spec_res["mismatches"]] == ["483a"]
 
-    # Mutation 3: Re-introducing a Cartesian destination (46:454 -> 33:1234) fails exact-set specimen verification.
+    # Mutation 3: Mutating an allowlisted HRN divergence (31:665 1549->99999 or 46:1244 109->99999)
+    # still fails because the allowlist pins the exact printed substitute AND full destination set.
+    mutated_t31_665 = [
+        ({**row, "new_section": "99999"} if row["former_section"] == "665" and row["new_section"] == "1549" else row)
+        for row in t31_rows
+    ]
+    div_t31_res = mod._verify_hrn_pairs(
+        {("665", "1349"), ("665", "1350")}, mutated_t31_665, 31, mod.VERIFIED_TITLE31_HRN_DIVERGENCES
+    )
+    assert [m["hrn_new_section"] for m in div_t31_res["unexpected_mismatches"]] == ["1349", "1350"]
+
     t46_rows = list(_rows_for("usc-2006-title46-disposition.parquet"))
+    mutated_t46_1244 = [
+        ({**row, "new_section": "99999"} if row["former_section"] == "1244" and row["new_section"] == "109" else row)
+        for row in t46_rows
+    ]
+    div_t46_res = mod._verify_hrn_pairs({("1244", "113")}, mutated_t46_1244, 46, mod.VERIFIED_TITLE46_HRN_DIVERGENCES)
+    assert [m["former_section"] for m in div_t46_res["unexpected_mismatches"]] == ["1244"]
+
+    # Mutation 4: Re-introducing a Cartesian destination (46:454 -> 33:1234) fails exact-set specimen verification.
     extra = next(row for row in t46_rows if row["former_section"] == "454")
     mutated_t46 = [*t46_rows, {**extra, "new_section": "1234"}]
     t46_spec_res = mod._verify_specimens(mutated_t46, mod.EXPECTED_TITLE46_SPECIMENS)
