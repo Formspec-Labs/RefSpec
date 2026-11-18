@@ -102,6 +102,7 @@ from refspec.registry.unified_agenda_editions import (
 )
 from refspec.registry.usc_disposition_tables import (
     USC_DISPOSITION_TABLES_ARTIFACT,
+    USC_DISPOSITION_TABLES_ARTIFACTS,
     UscDispositionTables,
 )
 
@@ -1263,7 +1264,11 @@ _USC_SECTION_ORACLE_DIR = Path(__file__).resolve().parents[3] / USC_SECTION_ORAC
 #: coverage hole it cannot answer from its own sources. Digest-pinned inside
 #: :mod:`refspec.registry.usc_disposition_tables` and re-checked on every load,
 #: so a swapped directory refuses there rather than answering differently here.
-_USC_DISPOSITION_TABLES_DIR = Path(__file__).resolve().parents[3] / USC_DISPOSITION_TABLES_ARTIFACT
+_USC_DISPOSITION_TABLES_ROOT = Path(__file__).resolve().parents[3]
+_USC_DISPOSITION_TABLES_DIR = _USC_DISPOSITION_TABLES_ROOT / USC_DISPOSITION_TABLES_ARTIFACT
+_USC_DISPOSITION_TABLES_DIRS = tuple(
+    _USC_DISPOSITION_TABLES_ROOT / artifact for artifact in USC_DISPOSITION_TABLES_ARTIFACTS
+)
 #: The Code's own source credits -- the second, independent act-section source
 #: :func:`refspec.registry.act_resolution.resolve_act_relative_citation`
 #: consults beside Table III. Digest-pinned in that module, so a swapped
@@ -1303,9 +1308,9 @@ _EO_ROSTER_DIR = Path(__file__).resolve().parents[3] / EO_ROSTER_ARTIFACT
 def _usc_disposition_tables() -> UscDispositionTables | None:
     """The pinned recodification tables, or None where this tree lacks them."""
 
-    if not _USC_DISPOSITION_TABLES_DIR.is_dir():
+    if not all(directory.is_dir() for directory in _USC_DISPOSITION_TABLES_DIRS):
         return None
-    return UscDispositionTables.from_directory(_USC_DISPOSITION_TABLES_DIR)
+    return UscDispositionTables.from_repository(_USC_DISPOSITION_TABLES_ROOT)
 
 
 def _usc_section_oracle() -> UscSectionOracle | None:
@@ -10224,7 +10229,7 @@ def main(argv: list[str] | None = None) -> int:
         path
         for path in (
             _USC_SECTION_ORACLE_DIR,
-            _USC_DISPOSITION_TABLES_DIR,
+            *_USC_DISPOSITION_TABLES_DIRS,
             _USC_SOURCE_CREDIT_DIR,
             _EO_ROSTER_DIR,
             args.act_index,

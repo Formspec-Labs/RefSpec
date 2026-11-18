@@ -1242,13 +1242,18 @@ class UscSectionOracle:
     ) -> Disposition | None:
         """What a pinned recodification table says became of a former section.
 
+        Answers every title pinned in
+        :data:`~refspec.registry.usc_disposition_tables.RECODIFICATIONS`
+        (currently Title 31, Title 46 / Title 46 Appendix, and Title 49 / Title
+        49 Appendix), returning ``no-table-for-title`` for unpinned titles and
+        ``None`` when no tables are bound on this oracle.
+
         Keyed ``(title, section, subsection, section_end, appendix)`` and NOT
         by edition year, which is the whole difference from
         :meth:`section_verdict`'s memo: a citation's edition decides what the
-        Code printed *then* and decides nothing about what Pub. L. 103-272 did
-        in 1994. The same 146 sections are cited across thirty Agenda editions
-        in the pinned build, so a year in the key would ask the same question
-        of the same table thirty times over.
+        Code printed *then* and decides nothing about what a positive-law
+        recodification enacted (Pub. L. 97-258 for Title 31, Pub. L. 98-89..
+        109-304 for Title 46 / 46 App., Pub. L. 103-272 for Title 49).
 
         The pinpoint and the far end are IN the key rather than filtered after
         it, for the reason ``_ActNumbering``'s claims are in the correction
@@ -1256,12 +1261,6 @@ class UscSectionOracle:
         (two candidates against one), and a memo keyed without them would
         publish whichever citation asked first. Over the pinned build's 2,548
         asked rows that is 161 keys without them and 226 with.
-
-        ``None`` where no tables are bound, and ``None`` where the coverage
-        hole is not the one a table speaks into — an appendix citation in a
-        title that has no pinned recodification gets
-        ``no-table-for-title`` if it is asked, so the gate is here rather than
-        publishing a verdict about a table nobody read.
         """
 
         if self.dispositions is None:

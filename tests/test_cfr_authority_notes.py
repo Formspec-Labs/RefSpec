@@ -32,7 +32,7 @@ from refspec.registry.cfr_authority_notes import (
     read_note_citations,
     usc_citation,
 )
-from refspec.registry.usc_disposition_tables import USC_DISPOSITION_TABLES_ARTIFACT
+from refspec.registry.usc_disposition_tables import USC_DISPOSITION_TABLES_ARTIFACTS
 from refspec.registry.usc_section_oracle import USC_SECTION_ORACLE_ARTIFACT
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -778,7 +778,7 @@ def test_a_drifted_section_oracle_refuses_instead_of_quietly_withholding(tmp_pat
     """
 
     notes_path = _repository_carrying_only_the_notes_cache(tmp_path)
-    for artifact in (USC_SECTION_ORACLE_ARTIFACT, USC_DISPOSITION_TABLES_ARTIFACT):
+    for artifact in (USC_SECTION_ORACLE_ARTIFACT, *USC_DISPOSITION_TABLES_ARTIFACTS):
         source = REPOSITORY_ROOT / artifact
         if not source.is_dir():
             missing_pinned_input(f"the pinned {artifact} is not present")
