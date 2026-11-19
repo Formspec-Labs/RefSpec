@@ -799,7 +799,7 @@ REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/regi
 # edited that day, is NOT index evidence and moved nothing here). The
 # descriptors .nq graph is byte-identical both times; only the proof's
 # inputs.atlasIndexDigest moved, and this pin moves with it.
-REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:a78d988a7d6199970cc31d683d5d59ce3a99026c40a34c74122081855e7f3a71"
+REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = "sha256:a82d5c66acda316376bd872c798d5a682f54753439f16b881f68ab15017b9dfd"
 
 
 def _load_validator() -> Any:
