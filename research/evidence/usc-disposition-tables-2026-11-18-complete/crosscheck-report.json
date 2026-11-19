@@ -4,16 +4,18 @@
   "summaries": [
     {
       "table": "usc-1996-title10-ropma-disposition.parquet",
-      "parquet_restated_pairs": 271,
-      "body_note_pairs_extracted": 265,
-      "body_note_pairs_matched": 265,
+      "parquet_restated_pairs": 276,
+      "body_note_pairs_extracted": 270,
+      "body_note_pairs_matched": 270,
+      "extra_on_covered_former_checked": true,
       "known_publisher_typos": []
     },
     {
       "table": "usc-2017-title34-disposition.parquet",
-      "parquet_restated_pairs": 724,
+      "parquet_restated_pairs": 697,
       "body_note_pairs_extracted": 653,
       "body_note_pairs_matched": 651,
+      "extra_on_covered_former_checked": true,
       "known_publisher_typos": [
         {
           "body_note_pair": {
@@ -50,6 +52,7 @@
       "parquet_restated_pairs": 285,
       "body_note_pairs_extracted": 276,
       "body_note_pairs_matched": 275,
+      "extra_on_covered_former_checked": true,
       "known_publisher_typos": [
         {
           "body_note_pair": {
@@ -72,6 +75,7 @@
       "parquet_restated_pairs": 226,
       "body_note_pairs_extracted": 206,
       "body_note_pairs_matched": 206,
+      "extra_on_covered_former_checked": true,
       "known_publisher_typos": []
     },
     {
@@ -79,6 +83,7 @@
       "parquet_restated_pairs": 376,
       "body_note_pairs_extracted": 362,
       "body_note_pairs_matched": 361,
+      "extra_on_covered_former_checked": true,
       "known_publisher_typos": [
         {
           "body_note_pair": {
@@ -99,14 +104,16 @@
     {
       "table": "usc-1994-title49-positivelaw-disposition.parquet",
       "parquet_restated_pairs": 12,
-      "body_note_pairs_extracted": 11,
-      "body_note_pairs_matched": 11,
+      "body_note_pairs_extracted": 12,
+      "body_note_pairs_matched": 12,
+      "extra_on_covered_former_checked": true,
       "known_publisher_typos": []
     }
   ],
   "planted_corruption_self_test": [
     {
       "table": "usc-1996-title10-ropma-disposition.parquet",
+      "mutation": "replace_successor",
       "planted_victim": [
         10,
         "1001",
@@ -114,10 +121,23 @@
         "12641"
       ],
       "caught": true,
-      "error": "usc-1996-title10-ropma-disposition.parquet: pair-level mismatch! missing_from_parquet=[(10, '1001', 10, '12641')] (count=1), missing_typos_i"
+      "error": "usc-1996-title10-ropma-disposition.parquet: pair-level mismatch! missing_from_parquet=[(10, '1001', 10, '12641')] (count=1), extra_on_covere"
+    },
+    {
+      "table": "usc-1996-title10-ropma-disposition.parquet",
+      "mutation": "extra_spurious_successor",
+      "planted_victim": [
+        10,
+        "1001",
+        10,
+        "999999"
+      ],
+      "caught": true,
+      "error": "usc-1996-title10-ropma-disposition.parquet: pair-level mismatch! missing_from_parquet=[] (count=0), extra_on_covered_former=[(10, '1001', 10"
     },
     {
       "table": "usc-2017-title34-disposition.parquet",
+      "mutation": "replace_successor",
       "planted_victim": [
         42,
         "10420",
@@ -125,10 +145,11 @@
         "12464"
       ],
       "caught": true,
-      "error": "usc-2017-title34-disposition.parquet: pair-level mismatch! missing_from_parquet=[(42, '10420', 34, '12464')] (count=1), missing_typos_in_bod"
+      "error": "usc-2017-title34-disposition.parquet: pair-level mismatch! missing_from_parquet=[(42, '10420', 34, '12464')] (count=1), extra_on_covered_for"
     },
     {
       "table": "usc-2017-title34-disposition.parquet",
+      "mutation": "replace_successor",
       "planted_victim": [
         42,
         "13136f",
@@ -136,10 +157,11 @@
         "40728"
       ],
       "caught": true,
-      "error": "usc-2017-title34-disposition.parquet: pair-level mismatch! missing_from_parquet=[] (count=0), missing_typos_in_body=[], missing_typos_in_par"
+      "error": "usc-2017-title34-disposition.parquet: pair-level mismatch! missing_from_parquet=[] (count=0), extra_on_covered_former=[] (count=0), missing_"
     },
     {
       "table": "usc-2017-title34-disposition.parquet",
+      "mutation": "replace_successor",
       "planted_victim": [
         42,
         "3797ee-1",
@@ -147,10 +169,23 @@
         "16902"
       ],
       "caught": true,
-      "error": "usc-2017-title34-disposition.parquet: pair-level mismatch! missing_from_parquet=[] (count=0), missing_typos_in_body=[], missing_typos_in_par"
+      "error": "usc-2017-title34-disposition.parquet: pair-level mismatch! missing_from_parquet=[] (count=0), extra_on_covered_former=[(42, '3797ee-1', 34, "
+    },
+    {
+      "table": "usc-2017-title34-disposition.parquet",
+      "mutation": "extra_spurious_successor",
+      "planted_victim": [
+        42,
+        "10420",
+        34,
+        "999999"
+      ],
+      "caught": true,
+      "error": "usc-2017-title34-disposition.parquet: pair-level mismatch! missing_from_parquet=[] (count=0), extra_on_covered_former=[(42, '10420', 34, '99"
     },
     {
       "table": "usc-2011-title41-disposition.parquet",
+      "mutation": "replace_successor",
       "planted_victim": [
         41,
         "10a",
@@ -158,10 +193,11 @@
         "8302"
       ],
       "caught": true,
-      "error": "usc-2011-title41-disposition.parquet: pair-level mismatch! missing_from_parquet=[(41, '10a', 41, '8302')] (count=1), missing_typos_in_body=["
+      "error": "usc-2011-title41-disposition.parquet: pair-level mismatch! missing_from_parquet=[(41, '10a', 41, '8302')] (count=1), extra_on_covered_former"
     },
     {
       "table": "usc-2011-title41-disposition.parquet",
+      "mutation": "replace_successor",
       "planted_victim": [
         41,
         "46",
@@ -169,10 +205,23 @@
         "8502"
       ],
       "caught": true,
-      "error": "usc-2011-title41-disposition.parquet: pair-level mismatch! missing_from_parquet=[(41, '46', 41, '8502')] (count=1), missing_typos_in_body=[]"
+      "error": "usc-2011-title41-disposition.parquet: pair-level mismatch! missing_from_parquet=[(41, '46', 41, '8502')] (count=1), extra_on_covered_former="
+    },
+    {
+      "table": "usc-2011-title41-disposition.parquet",
+      "mutation": "extra_spurious_successor",
+      "planted_victim": [
+        41,
+        "10a",
+        41,
+        "999999"
+      ],
+      "caught": true,
+      "error": "usc-2011-title41-disposition.parquet: pair-level mismatch! missing_from_parquet=[] (count=0), extra_on_covered_former=[(41, '10a', 41, '9999"
     },
     {
       "table": "usc-2010-title51-disposition.parquet",
+      "mutation": "replace_successor",
       "planted_victim": [
         15,
         "1511e",
@@ -180,10 +229,23 @@
         "50702"
       ],
       "caught": true,
-      "error": "usc-2010-title51-disposition.parquet: pair-level mismatch! missing_from_parquet=[(15, '1511e', 51, '50702')] (count=1), missing_typos_in_bod"
+      "error": "usc-2010-title51-disposition.parquet: pair-level mismatch! missing_from_parquet=[(15, '1511e', 51, '50702')] (count=1), extra_on_covered_for"
+    },
+    {
+      "table": "usc-2010-title51-disposition.parquet",
+      "mutation": "extra_spurious_successor",
+      "planted_victim": [
+        15,
+        "1511e",
+        51,
+        "999999"
+      ],
+      "caught": true,
+      "error": "usc-2010-title51-disposition.parquet: pair-level mismatch! missing_from_parquet=[] (count=0), extra_on_covered_former=[(15, '1511e', 51, '99"
     },
     {
       "table": "usc-2014-title54-disposition.parquet",
+      "mutation": "replace_successor",
       "planted_victim": [
         16,
         "1",
@@ -191,10 +253,11 @@
         "100101"
       ],
       "caught": true,
-      "error": "usc-2014-title54-disposition.parquet: pair-level mismatch! missing_from_parquet=[(16, '1', 54, '100101')] (count=1), missing_typos_in_body=["
+      "error": "usc-2014-title54-disposition.parquet: pair-level mismatch! missing_from_parquet=[(16, '1', 54, '100101')] (count=1), extra_on_covered_former"
     },
     {
       "table": "usc-2014-title54-disposition.parquet",
+      "mutation": "replace_successor",
       "planted_victim": [
         16,
         "458a",
@@ -202,10 +265,23 @@
         "104908"
       ],
       "caught": true,
-      "error": "usc-2014-title54-disposition.parquet: pair-level mismatch! missing_from_parquet=[] (count=0), missing_typos_in_body=[], missing_typos_in_par"
+      "error": "usc-2014-title54-disposition.parquet: pair-level mismatch! missing_from_parquet=[] (count=0), extra_on_covered_former=[(16, '458a', 54, '999"
+    },
+    {
+      "table": "usc-2014-title54-disposition.parquet",
+      "mutation": "extra_spurious_successor",
+      "planted_victim": [
+        16,
+        "1",
+        54,
+        "999999"
+      ],
+      "caught": true,
+      "error": "usc-2014-title54-disposition.parquet: pair-level mismatch! missing_from_parquet=[] (count=0), extra_on_covered_former=[(16, '1', 54, '999999"
     },
     {
       "table": "usc-1994-title49-positivelaw-disposition.parquet",
+      "mutation": "replace_successor",
       "planted_victim": [
         49,
         "3101",
@@ -213,7 +289,31 @@
         "31501"
       ],
       "caught": true,
-      "error": "usc-1994-title49-positivelaw-disposition.parquet: pair-level mismatch! missing_from_parquet=[(49, '3101', 49, '31501')] (count=1), missing_t"
+      "error": "usc-1994-title49-positivelaw-disposition.parquet: pair-level mismatch! missing_from_parquet=[(49, '3101', 49, '31501')] (count=1), extra_on_"
+    },
+    {
+      "table": "usc-1994-title49-positivelaw-disposition.parquet",
+      "mutation": "extra_spurious_successor",
+      "planted_victim": [
+        49,
+        "3101",
+        49,
+        "999999"
+      ],
+      "caught": true,
+      "error": "usc-1994-title49-positivelaw-disposition.parquet: pair-level mismatch! missing_from_parquet=[] (count=0), extra_on_covered_former=[(49, '310"
+    },
+    {
+      "table": "usc-1994-title49-positivelaw-disposition.parquet",
+      "mutation": "wrong_pinpoint",
+      "caught": true,
+      "error": "usc-1994-title49-positivelaw-disposition.parquet: missing expected pinpoint rows: [(49, '508', '(d)', 49, '5903', '(b)', 'restated')]"
+    },
+    {
+      "table": "usc-1994-title49-positivelaw-disposition.parquet",
+      "mutation": "wrong_status",
+      "caught": true,
+      "error": "usc-1994-title49-positivelaw-disposition.parquet: status mismatch on (49, '335'): expected=['repealed'], observed=['eliminated']"
     }
   ]
 }

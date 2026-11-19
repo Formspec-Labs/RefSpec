@@ -6816,11 +6816,20 @@ def _eliminated_verdict_landed() -> bool:
     return "eliminated-no-successor" in declared.get("uscDispositionVerdictRows", {})
 
 
-def _multi_title_dispositions_landed(con) -> bool:
-    """Whether the built artifact reflects multi-title disposition attachment across all 9 tables."""
+def _multi_title_dispositions_landed() -> bool:
+    """Whether the built artifact's receipt declares the post-M8 multi-title disposition contract.
 
-    L = "'{d}/unified_agenda_legal_authorities.parquet'"
-    return _one(con, f"select count(distinct usc_disposition_table) from {L} where usc_disposition_table is not null") > 1
+    Read from ``receipt.json``'s declared classification contract (never from
+    the output data table itself) so a regression in a post-M8 build fails
+    loudly instead of silently falling back to legacy single-table expectations.
+    """
+
+    import json
+
+    declared = json.loads((ARTIFACT / "receipt.json").read_text(encoding="utf-8"))["contract"][
+        "declaredClassifications"
+    ]
+    return "current_chapter_number_collision" in declared.get("uscDispositionRefusalRows", {})
 
 
 @pytest.mark.slow
@@ -6830,21 +6839,23 @@ def test_the_recodification_answers_the_one_unknown_it_can(con) -> None:
     The fence says ``unknown`` for ``title_49_appendix_not_published`` because
     no OLRC annual archive year holds a ``usc49a.htm`` -- and that stays true
     on every one of these rows. With all nine recodification tables pinned and
-    generalized disposition attachment enabled, the oracle also attaches
-    answered dispositions on ``absent`` and ``appendix_title_not_published``
-    former sections (while never attaching ``not-in-table`` outside
-    ``title_49_appendix_not_published`` and never attaching to ``exists``).
+    guarded multi-title disposition attachment enabled, the oracle also attaches
+    answered dispositions on genuine ``absent`` former sections (refusing bare
+    current-chapter collisions like ``46 U.S.C. 701`` and damaged current-law
+    spans like ``49 USC 2011 to 20113``, never attaching ``not-in-table``
+    outside ``title_49_appendix_not_published``, and never attaching to ``exists``).
     """
 
     _awaits_the_rebuild(con, "usc_disposition_span_members", _DISPOSITION_SCRATCH_BUILDER)
     L = "'{d}/unified_agenda_legal_authorities.parquet'"
-    multi = _multi_title_dispositions_landed(con)
+    multi = _multi_title_dispositions_landed()
     expected_verdicts = (
         {
-            # Post-M8 9-table rebuild: closes 49 USC app 3102 (5 rows -> exists-as-recodified)
-            # and attaches 1,106 answered absent former-section rows across Titles 10, 31, 46, and 49.
-            "exists-as-recodified": (2_730, 291, 382, 178),
-            "repealed-no-successor": (647, 67, 140, 40),
+            # Post-M8 9-table guarded rebuild: closes 49 USC app 3102 (5 rows -> exists-as-recodified)
+            # and attaches 851 guarded absent former-section rows across Titles 10, 31, 46, and 49
+            # while refusing 254 current-chapter collisions and 1 damaged current-law span.
+            "exists-as-recodified": (2_565, 275, 359, 167),
+            "repealed-no-successor": (557, 55, 128, 31),
             "eliminated-no-successor": (32, 11, 12, 7),
             "not-in-table": (170, 31, 28, 25),
         }
@@ -7053,7 +7064,7 @@ def test_the_successor_is_evidence_and_never_an_identity(con) -> None:
     # opposite lesson: ONE former section, the Department of Transportation
     # Act's transfer section, 101 successors spread over aviation, rail, motor
     # carrier and pipeline titles.
-    multi = _multi_title_dispositions_landed(con)
+    multi = _multi_title_dispositions_landed()
     widest = _rows(
         con,
         f"select usc_section, len(usc_disposition_successors), "
@@ -7066,8 +7077,8 @@ def test_the_successor_is_evidence_and_never_an_identity(con) -> None:
         [
             ("1101", 176, 200, "Merchant Marine Act 1936 as amended, (46 USC 1101-1294)", "2133-AB80"),
             ("1", 168, 84, "49 USC 1 to 85 (app)", "1902-AB24"),
-            ("2011", 156, 181, "49 USC 2011 to 20113", "2130-AB13"),
             ("1", 155, 41, "49 USC 1 to 27", "1902-AB34"),
+            ("1655", 101, 0, "49 USC 1655", "1625-AA30"),
         ]
         if multi
         else [
@@ -7077,8 +7088,8 @@ def test_the_successor_is_evidence_and_never_an_identity(con) -> None:
             ("1358", 97, 35, "49 USC 1358 to 1421", "2120-AE14"),
         ]
     )
-    assert _one(con, f"select count(*) from {L} where len(usc_disposition_successors) > 1") == (1_867 if multi else 1_640)
-    assert _one(con, f"select count(*) from {L} where len(usc_disposition_successors) = 1") == (863 if multi else 541)
+    assert _one(con, f"select count(*) from {L} where len(usc_disposition_successors) > 1") == (1_818 if multi else 1_640)
+    assert _one(con, f"select count(*) from {L} where len(usc_disposition_successors) = 1") == (747 if multi else 541)
 
     # NOTHING is corrected from any of this. Nine rows carry both a correction
     # and a disposition, and on all nine the correction is the A4 reading the
@@ -7117,7 +7128,7 @@ def test_the_disposition_census_is_the_receipts(con) -> None:
         "declaredClassifications"
     ]
     landed = _eliminated_verdict_landed()
-    multi = _multi_title_dispositions_landed(con)
+    multi = _multi_title_dispositions_landed()
     verdicts = (
         DISPOSITION_VERDICTS
         if landed
@@ -7150,12 +7161,12 @@ def test_the_disposition_census_is_the_receipts(con) -> None:
     }
     assert declared["uscDispositionSpanRows"] == _one(
         con, f"select count(*) from {L} where usc_disposition_span_members is not null"
-    ) == (358 if multi else 296)
+    ) == (357 if multi else 296)
     assert declared["uscDispositionSpans"] == _one(
         con,
         f"select count(distinct (usc_title, usc_section, usc_section_end)) from {L} "
         "where usc_disposition_span_members is not null",
-    ) == (52 if multi else 38)
+    ) == (51 if multi else 38)
     assert declared["uscDispositionPinpointResolvedRows"] == _one(
         con, f"select count(*) from {L} where usc_disposition_pinpoint is not null"
     ) == (545 if multi else 246)
@@ -7166,6 +7177,24 @@ def test_the_disposition_census_is_the_receipts(con) -> None:
         f"select count(*) from {L} where usc_disposition_span_members is not null "
         "and usc_section_span_rule is distinct from 'stated'",
     ) == 0
+    expected_refusal_rows = (
+        {
+            "chapter_qualifier_governs_the_token": 17,
+            "current_chapter_number_collision": 254,
+            "span_end_is_current_law_section": 1,
+        }
+        if multi
+        else {"chapter_qualifier_governs_the_token": 17}
+    )
+    expected_refusal_pairs = (
+        {
+            "chapter_qualifier_governs_the_token": 2,
+            "current_chapter_number_collision": 19,
+            "span_end_is_current_law_section": 1,
+        }
+        if multi
+        else {"chapter_qualifier_governs_the_token": 2}
+    )
     assert declared["uscDispositionRefusalRows"] == {
         row[0]: row[1]
         for row in _rows(
@@ -7173,12 +7202,12 @@ def test_the_disposition_census_is_the_receipts(con) -> None:
             f"select usc_disposition_refusal, count(*) from {L} "
             "where usc_disposition_refusal is not null group by 1",
         )
-    } == {"chapter_qualifier_governs_the_token": 17}
-    assert declared["uscDispositionRefusalPairs"] == {"chapter_qualifier_governs_the_token": 2}
-    expected_total = 3_579 if multi else 2_473
+    } == expected_refusal_rows
+    assert declared["uscDispositionRefusalPairs"] == expected_refusal_pairs
+    expected_total = 3_324 if multi else 2_473
     assert sum(declared["uscDispositionRowsBySuccessorCount"].values()) == expected_total
     assert sum(declared["uscDispositionVerdictRows"].values()) == expected_total
-    assert sum(declared["uscDispositionRefusalRows"].values()) == 17
+    assert sum(declared["uscDispositionRefusalRows"].values()) == (272 if multi else 17)
     assert declared["uscSectionUnknownRowsByReason"]["title_49_appendix_not_published"] == 2_490
     assert _one(
         con,
@@ -7188,25 +7217,31 @@ def test_the_disposition_census_is_the_receipts(con) -> None:
 
 
 @pytest.mark.no_artifact
-def test_multi_title_recodifications_attach_across_all_nine_tables() -> None:
-    """_judge_usc_sections attaches answered dispositions across all 9 recodification tables without touching live sections."""
+def test_multi_title_recodifications_attach_and_guard_false_readings() -> None:
+    """_judge_usc_sections attaches genuine former sections and guards chapter collisions, damaged spans, and non-appendix App. cites."""
 
     from refspec.registry.unified_agenda_parquet import _judge_usc_sections, _usc_section_oracle
 
     rows = [
+        # Genuine absent former sections across pre-1994/1994 recodifications:
         _usc_row("10 U.S.C. 593", publication_id="200510"),
         _usc_row("31 U.S.C. 483a", publication_id="200510"),
+        _usc_row("46 U.S.C. 1177", publication_id="201510"),
+        _usc_row("49 USC 1472", publication_id="199510"),
+        _usc_row("49 USC 3102", publication_id="200510"),
+        _usc_row("49 USC app 3102", publication_id="200510"),
+        # Negative control 1 — explicit `App.` on non-appendix main-body recodifications MUST NOT attach:
         _usc_row("41 U.S.C. App. 15", publication_id="201510"),
         _usc_row("42 U.S.C. App. 3711", publication_id="202010"),
         _usc_row("42 U.S.C. App. 2451", publication_id="202010"),
         _usc_row("16 U.S.C. App. 470f", publication_id="202010"),
+        # Negative control 2 — bare current-chapter collision (`46 U.S.C. 701` = Coast Guard Ch. 701 Port Security):
         _usc_row("46 U.S.C. 701", publication_id="201510"),
-        _usc_row("49 USC 1472", publication_id="199510"),
-        _usc_row("49 USC 3102", publication_id="200510"),
-        _usc_row("49 USC app 3102", publication_id="200510"),
-        # Live attested section (`46 U.S.C. App. 688` at 2005 -> `exists`): disposition MUST stay None.
+        # Negative control 3 — damaged current-law span (`49 USC 2011 to 20113` for `20111 to 20113`):
+        _usc_row("49 USC 2011 to 20113", publication_id="200510", usc_section_end="20113", usc_section_span_rule="stated"),
+        # Negative control 4 — live attested section (`46 U.S.C. App. 688` at 2005 -> `exists`):
         _usc_row("46 U.S.C. App. 688", publication_id="200510"),
-        # Absent non-table section outside Title 49a (`10 U.S.C. 999999`): disposition MUST stay None.
+        # Negative control 5 — absent non-table section outside Title 49a (`10 U.S.C. 999999`):
         _usc_row("10 U.S.C. 999999", publication_id="200510"),
     ]
     _judge_usc_sections(rows, _usc_section_oracle())
@@ -7216,21 +7251,25 @@ def test_multi_title_recodifications_attach_across_all_nine_tables() -> None:
             r["usc_disposition_table"],
             r["usc_disposition_verdict"],
             r["usc_disposition_successors"],
+            r["usc_disposition_refusal"],
         )
         for r in rows
     }
-    assert by_text["10 U.S.C. 593"] == ("absent", "title-10-1994", "exists-as-recodified", ["10:12203"])
-    assert by_text["31 U.S.C. 483a"] == ("absent", "title-31-1982", "exists-as-recodified", ["31:9701"])
-    assert by_text["41 U.S.C. App. 15"] == ("unknown", "title-41-2011", "exists-as-recodified", ["41:6305"])
-    assert by_text["42 U.S.C. App. 3711"] == ("unknown", "title-34-2017", "exists-as-recodified", ["34:10101"])
-    assert by_text["42 U.S.C. App. 2451"] == ("unknown", "title-51-2010", "exists-as-recodified", ["51:20102"])
-    assert by_text["16 U.S.C. App. 470f"] == ("unknown", "title-54-2014", "exists-as-recodified", ["54:306108"])
-    assert by_text["46 U.S.C. 701"] == ("absent", "title-46-2006", "exists-as-recodified", ["46:11501"])
+    assert by_text["10 U.S.C. 593"] == ("absent", "title-10-1994", "exists-as-recodified", ["10:12203"], None)
+    assert by_text["31 U.S.C. 483a"] == ("absent", "title-31-1982", "exists-as-recodified", ["31:9701"], None)
+    assert by_text["46 U.S.C. 1177"][:3] == ("absent", "title-46-2006", "exists-as-recodified")
+    assert "46:53503" in by_text["46 U.S.C. 1177"][3]
     assert by_text["49 USC 1472"][:3] == ("unknown", "title-49-1994", "exists-as-recodified")
-    assert by_text["49 USC 3102"] == ("absent", "title-49-1994-positivelaw", "exists-as-recodified", ["49:31502"])
-    assert by_text["49 USC app 3102"] == ("unknown", "title-49-1994-positivelaw", "exists-as-recodified", ["49:31502"])
-    assert by_text["46 U.S.C. App. 688"] == ("exists", None, None, None)
-    assert by_text["10 U.S.C. 999999"] == ("absent", None, None, None)
+    assert by_text["49 USC 3102"] == ("absent", "title-49-1994-positivelaw", "exists-as-recodified", ["49:31502"], None)
+    assert by_text["49 USC app 3102"] == ("unknown", "title-49-1994-positivelaw", "exists-as-recodified", ["49:31502"], None)
+    # Non-appendix App. citations stay cleanly unanswered:
+    for fake_app in ("41 U.S.C. App. 15", "42 U.S.C. App. 3711", "42 U.S.C. App. 2451", "16 U.S.C. App. 470f"):
+        assert by_text[fake_app] == ("unknown", None, None, None, None)
+    # Guarded false historical readings carry named refusals and ZERO successors/verdicts:
+    assert by_text["46 U.S.C. 701"] == ("absent", None, None, None, "current_chapter_number_collision")
+    assert by_text["49 USC 2011 to 20113"] == ("absent", None, None, None, "span_end_is_current_law_section")
+    assert by_text["46 U.S.C. App. 688"] == ("exists", None, None, None, None)
+    assert by_text["10 U.S.C. 999999"] == ("absent", None, None, None, None)
 
 
 @pytest.mark.slow

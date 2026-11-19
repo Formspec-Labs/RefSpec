@@ -214,6 +214,12 @@ class Recodification:
     #: Destination U.S.C. title enacted or editorially populated by this table;
     #: defaults to ``former_title`` when ``None``.
     enacted_title: int | None = None
+    #: Whether this table covers explicit ``<title> U.S.C. App.`` lookups.
+    #: Only Appendix-bearing recodifications (Title 46 / 46 App., Title 49 / 49 App.,
+    #: and Title 49's disjoint positive-law companion resolving audited mislabelled
+    #: ``49 USC app 3102`` filings) set this ``True``; main-body recodifications
+    #: (Titles 10, 31, 34, 41, 51, 54) refuse explicit ``appendix=True`` queries.
+    covers_appendix: bool = False
 
     @property
     def effective_former_titles(self) -> tuple[int, ...]:
@@ -227,12 +233,12 @@ RECODIFICATIONS = (
         name="title-10-1994",
         former_title=10,
         table="usc-1996-title10-ropma-disposition.parquet",
-        digest="sha256:7d9064f81959988fc4438fcbc0af04d90f7fdaa8d81aa8ed6bea28002595484e",
+        digest="sha256:442e94ab766f901c76c6cbe8ad872f6d5b8eec7c0e1ff6c8d7ada0f6f415da56",
         enacted_by=(
             "Pub. L. 103-337, div. A, title XVI, Oct. 5, 1994, 108 Stat. 2924; "
             "Pub. L. 104-106, div. A, title XV, § 1501(c)(26), Feb. 10, 1996, 110 Stat. 499"
         ),
-        deeming_provision="Pub. L. 103-337, § 1665(b)",
+        deeming_provision="Pub. L. 103-337, § 1665(a)",
         source_url="https://www.govinfo.gov/content/pkg/USCODE-1996-title10/pdf/USCODE-1996-title10.pdf",
         source_digest="sha256:d1877b5aa58f17062263fed5a04da62f3ad885b4b01a0da7f0e41d0da15e0010",
         source_bytes=8_971_147,
@@ -279,7 +285,7 @@ RECODIFICATIONS = (
         name="title-41-2011",
         former_title=41,
         table="usc-2011-title41-disposition.parquet",
-        digest="sha256:dda721b867d8a945143c0b391881a2b3454c0fddc8e83b63c8a3a4614badadd2",
+        digest="sha256:74d5ae44e60394d4d57538cdb7ae5bee124b92e766f279cb822353fd5cdb3986",
         enacted_by="Pub. L. 111-350, § 3, Jan. 4, 2011, 124 Stat. 3677",
         deeming_provision="Pub. L. 111-350, § 6(c)",
         source_url="https://www.govinfo.gov/content/pkg/USCODE-2011-title41/pdf/USCODE-2011-title41.pdf",
@@ -310,6 +316,7 @@ RECODIFICATIONS = (
         source_fetched="2026-11-18",
         source_local_path="output/registry-real-data-sources/USCODE-2006-title46.pdf",
         enacted_title=46,
+        covers_appendix=True,
     ),
     Recodification(
         name="title-49-1994",
@@ -324,12 +331,13 @@ RECODIFICATIONS = (
         artifact=USC_DISPOSITION_TABLES_ARTIFACT,
         source_fetched="2026-08-23",
         enacted_title=49,
+        covers_appendix=True,
     ),
     Recodification(
         name="title-49-1994-positivelaw",
         former_title=49,
         table="usc-1994-title49-positivelaw-disposition.parquet",
-        digest="sha256:ea911259c1e4a18eff88fc019f9c54061723d7e3650f4a606594641251a30a41",
+        digest="sha256:6de3a95b245505b6e79e8f7d92bc8c1e96130175e7f8aa94a09a632b7539da8c",
         enacted_by="Pub. L. 103-272, §§ 1(c), (d), (e), 4(j)(9)(A), (11)(B), July 5, 1994, 108 Stat. 745, 1367, 1368",
         deeming_provision="Pub. L. 103-272, § 6(b)",
         source_url="https://www.govinfo.gov/content/pkg/USCODE-1994-title49/pdf/USCODE-1994-title49.pdf",
@@ -339,6 +347,7 @@ RECODIFICATIONS = (
         source_fetched="2026-08-23",
         source_local_path=f"{USC_DISPOSITION_TABLES_ARTIFACT}/USCODE-1994-title49.pdf",
         enacted_title=49,
+        covers_appendix=True,
     ),
     Recodification(
         name="title-51-2010",
@@ -360,7 +369,7 @@ RECODIFICATIONS = (
         name="title-54-2014",
         former_title=16,
         table="usc-2014-title54-disposition.parquet",
-        digest="sha256:806456eada77086301062282814ac63789ef28c5c8c5b6160b9e08995766c990",
+        digest="sha256:a624b659570bdb0979fec5cea8ae6cbcc0ffb4b9c0dd4ec073a21aec4efe6360",
         enacted_by="Pub. L. 113-287, § 3, Dec. 19, 2014, 128 Stat. 3094",
         deeming_provision="Pub. L. 113-287, § 6(e)",
         source_url="https://www.govinfo.gov/content/pkg/USCODE-2014-title54/pdf/USCODE-2014-title54.pdf",
@@ -410,6 +419,21 @@ _WITH_SUCCESSOR = frozenset({"restated", "restated-as-note"})
 #: the recodification was enacted; one repealed before that was never in it.
 NOT_IN_TABLE_CAVEATS = ("repealed_before_the_recodification_not_listed",)
 
+#: Verified OLRC front-matter print errors where the printed disposition table
+#: disagrees with the same volume's body Historical and Revision / Codification
+#: Notes. The printed row is preserved verbatim so the table stays faithful to
+#: the primary source, while callers querying any affected ``(former_title,
+#: former_section)`` receive an explicit caveat on :attr:`Disposition.caveats`.
+KNOWN_PRINT_DISCREPANCIES: Mapping[tuple[int, str], tuple[str, ...]] = {
+    (42, "13136f"): ("olrc_front_matter_print_typo:printed_42:13136f_body_codification_42:14136f",),
+    (42, "14136f"): ("olrc_front_matter_print_typo:printed_as_42:13136f_body_codification_34:40728",),
+    (42, "3797ee-1"): ("olrc_front_matter_print_typo:printed_34:16902_body_codification_34:10692",),
+    (16, "458a"): ("olrc_front_matter_print_typo:printed_54:104908_body_hrn_54:104905",),
+}
+_KNOWN_PRINT_DISCREPANCY_CAVEATS = frozenset(
+    caveat for caveats in KNOWN_PRINT_DISCREPANCIES.values() for caveat in caveats
+)
+
 #: Restated from :mod:`refspec.registry.citation_grammar`, the way
 #: :mod:`refspec.registry.usc_section_oracle` restates it, rather than imported:
 #: the section oracle will consult this module in the next cycle, and an import
@@ -425,13 +449,14 @@ _GROUP = re.compile(r"\(([0-9A-Za-z]{1,4})\)")
 #: this module may not import in that direction.
 #: ``test_the_span_order_is_the_oracles_over_every_former_section`` runs both
 #: over every former section the pinned tables list and holds the copy true.
-#: Comparing numeric prefixes alone would order ``1421a`` before ``1421``.
-_LEADING_DIGITS = re.compile(r"^(\d+)(.*)$")
+#: Letter suffixes order length-first (``19d..19g`` before ``19aa..19gg``),
+#: matching U.S. Code bijective letter numbering.
+_SECTION_KEY = re.compile(r"^(\d+)([a-z]*)(.*)$")
 
 
-def _section_order(section: str) -> tuple[int, str] | None:
-    match = _LEADING_DIGITS.match(section)
-    return (int(match.group(1)), match.group(2)) if match else None
+def _section_order(section: str) -> tuple[int, int, str, str] | None:
+    match = _SECTION_KEY.match(section)
+    return (int(match.group(1)), len(match.group(2)), match.group(2), match.group(3)) if match else None
 
 
 def normalize_section(value: object) -> str:
@@ -535,10 +560,14 @@ class Disposition:
     def __post_init__(self) -> None:
         if self.verdict not in VERDICTS:
             raise ValueError(f"undeclared verdict: {self.verdict!r}")
-        if self.verdict == "not-in-table" and self.caveats != NOT_IN_TABLE_CAVEATS:
-            raise ValueError("an absence from a table is only as wide as the table, and must say so")
-        if self.verdict != "not-in-table" and self.caveats:
-            raise ValueError("only an absence from the table carries the table's caveat")
+        if self.verdict == "not-in-table":
+            if NOT_IN_TABLE_CAVEATS[0] not in self.caveats:
+                raise ValueError("an absence from a table is only as wide as the table, and must say so")
+            unknown = set(self.caveats) - set(NOT_IN_TABLE_CAVEATS) - _KNOWN_PRINT_DISCREPANCY_CAVEATS
+            if unknown:
+                raise ValueError(f"undeclared caveat(s) on not-in-table disposition: {sorted(unknown)}")
+        elif self.caveats and not set(self.caveats).issubset(_KNOWN_PRINT_DISCREPANCY_CAVEATS):
+            raise ValueError("only an absence from the table or a verified print discrepancy carries a caveat")
         if (self.verdict == "exists-as-recodified") != bool(self.successors):
             raise ValueError("a recodified verdict names its successors, and no other verdict names any")
         if self.verdict in ("not-in-table", "no-table-for-title") and self.rows:
@@ -717,12 +746,29 @@ class UscDispositionTables:
             for ft, sections in self._tagged_rows.items()
         }
 
-    def former_sections(self, former_title: int) -> frozenset[str]:
-        """Every former section the pinned table(s) for that title list."""
+    def _recodifications_for(self, former_title: int, *, appendix: bool = False) -> tuple[Recodification, ...]:
+        recods = self._by_title.get(former_title, ())
+        if appendix:
+            return tuple(r for r in recods if r.covers_appendix)
+        return recods
 
-        return frozenset(self._rows.get(former_title, {}))
+    def former_sections(self, former_title: int, *, appendix: bool = False) -> frozenset[str]:
+        """Every former section the pinned table(s) for that title (and appendix scope) list."""
 
-    def sections_in_span(self, former_title: int, former_section: str, section_end: object) -> tuple[str, ...]:
+        if not appendix:
+            return frozenset(self._rows.get(former_title, {}))
+        allowed = {r.name for r in self._recodifications_for(former_title, appendix=True)}
+        if not allowed:
+            return frozenset()
+        return frozenset(
+            sec
+            for sec, items in self._tagged_rows.get(former_title, {}).items()
+            if any(name in allowed for name, _ in items)
+        )
+
+    def sections_in_span(
+        self, former_title: int, former_section: str, section_end: object, *, appendix: bool = False
+    ) -> tuple[str, ...]:
         """Every former section the pinned table(s) LIST inside a stated span.
 
         Sorted in canonical section order, endpoints included. Empty where no
@@ -736,7 +782,7 @@ class UscDispositionTables:
             return ()
         matched = [
             (key, section)
-            for section in self._rows.get(former_title, {})
+            for section in self.former_sections(former_title, appendix=appendix)
             if (key := _section_order(section)) is not None and low <= key <= high
         ]
         matched.sort(key=lambda item: item[0])
@@ -749,13 +795,14 @@ class UscDispositionTables:
         subsection: object = None,
         *,
         section_end: object = None,
+        appendix: bool = False,
     ) -> Disposition:
         """What became of one former section, of one subsection, or of a span."""
 
         section = normalize_section(former_section)
         wanted = normalize_subsection(subsection)
         end = normalize_section(section_end) or None
-        recods = self._by_title.get(former_title)
+        recods = self._recodifications_for(former_title, appendix=appendix)
         if not recods:
             return Disposition(
                 former_title=former_title,
@@ -770,11 +817,15 @@ class UscDispositionTables:
             )
 
         checked_names = "+".join(r.name for r in recods)
+        allowed_names = {r.name for r in recods}
+        print_caveats = KNOWN_PRINT_DISCREPANCIES.get((former_title, section), ())
 
         if end is not None:
             members = tuple(
-                self.disposition(former_title, member, subsection if member == section else None)
-                for member in self.sections_in_span(former_title, section, end)
+                self.disposition(
+                    former_title, member, subsection if member == section else None, appendix=appendix
+                )
+                for member in self.sections_in_span(former_title, section, end, appendix=appendix)
             )
             if not members:
                 return Disposition(
@@ -787,7 +838,7 @@ class UscDispositionTables:
                     successors=(),
                     rows=(),
                     subsection_resolved=None,
-                    caveats=NOT_IN_TABLE_CAVEATS,
+                    caveats=NOT_IN_TABLE_CAVEATS + print_caveats,
                 )
             matched = tuple(row for member in members for row in member.rows)
             start = next((member for member in members if member.former_section == section), None)
@@ -799,6 +850,7 @@ class UscDispositionTables:
                     for part in member.recodification.split("+")
                 )
             )
+            span_caveats = tuple(dict.fromkeys(c for member in members for c in member.caveats))
             return Disposition(
                 former_title=former_title,
                 former_section=section,
@@ -810,9 +862,14 @@ class UscDispositionTables:
                 rows=matched,
                 subsection_resolved=None if start is None else start.subsection_resolved,
                 members=members,
+                caveats=span_caveats,
             )
 
-        tagged = self._tagged_rows.get(former_title, {}).get(section, ())
+        tagged = tuple(
+            pair
+            for pair in self._tagged_rows.get(former_title, {}).get(section, ())
+            if pair[0] in allowed_names
+        )
         if not tagged:
             return Disposition(
                 former_title=former_title,
@@ -823,7 +880,7 @@ class UscDispositionTables:
                 successors=(),
                 rows=(),
                 subsection_resolved=None,
-                caveats=NOT_IN_TABLE_CAVEATS,
+                caveats=NOT_IN_TABLE_CAVEATS + print_caveats,
             )
 
         resolved: bool | None = None
@@ -844,6 +901,7 @@ class UscDispositionTables:
             successors=tuple({row.successor: None for row in matched if row.successor is not None}),
             rows=matched,
             subsection_resolved=resolved,
+            caveats=print_caveats,
         )
 
 

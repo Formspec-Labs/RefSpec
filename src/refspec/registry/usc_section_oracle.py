@@ -1284,7 +1284,7 @@ class UscSectionOracle:
         key = (title, normalize_section(section), pinpoint, end, bool(appendix))
         if key not in self._disposition_memo:
             self._disposition_memo[key] = self.dispositions.disposition(
-                key[0], key[1], pinpoint, section_end=end
+                key[0], key[1], pinpoint, section_end=end, appendix=key[4]
             )
         return self._disposition_memo[key]
 

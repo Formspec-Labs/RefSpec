@@ -822,27 +822,26 @@ def test_oracle_resolves_and_attaches_dispositions_across_all_recodified_titles(
     ]
     assert known.disposition(46, "1719", appendix=True, subsection="a").verdict == "repealed-no-successor"
 
-    # Multi-title `appendix_title_not_published` (`C5`) and `title-49-1994-positivelaw` (`49:3102 -> 31502`):
-    c5_41 = known.section_verdict(41, "15", 2015, appendix=True)
-    assert (c5_41.verdict, c5_41.reason) == ("unknown", "appendix_title_not_published")
-    assert [(s.title, s.section) for s in c5_41.disposition.successors] == [(41, "6305")]
-    assert known.classify_section_miss(41, "15", appendix=True).disposition == c5_41.disposition
+    # Explicit `appendix=True` lookups on non-appendix main-body recodifications (`41`, `42->34`, `42->51`, `16->54`)
+    # MUST NOT receive main-body dispositions (`disposition is None` / `no-table-for-title`).
+    for title, sec, yr in ((41, "15", 2015), (42, "3711", 2020), (42, "2451", 2020), (16, "470f", 2020)):
+        c5_v = known.section_verdict(title, sec, yr, appendix=True)
+        assert (c5_v.verdict, c5_v.reason) == ("unknown", "appendix_title_not_published")
+        assert c5_v.disposition is None
+        assert known.disposition(title, sec, appendix=True).verdict == "no-table-for-title"
+        assert known.classify_section_miss(title, sec, appendix=True).disposition is None
 
-    c5_34 = known.section_verdict(42, "3711", 2020, appendix=True)
-    assert c5_34.disposition.recodification == "title-34-2017"
-    assert [(s.title, s.section, s.status) for s in c5_34.disposition.successors] == [
+    # Direct main-body lookups (`appendix=False`) still resolve post-1994 recodifications (2010-2017) cleanly:
+    assert [(s.title, s.section) for s in known.disposition(41, "15").successors] == [(41, "6305")]
+    assert [(s.title, s.section, s.status) for s in known.disposition(42, "3711").successors] == [
         (34, "10101", "restated"),
         (34, "10101", "restated-as-note"),
     ]
+    assert [(s.title, s.section) for s in known.disposition(42, "2451").successors] == [(51, "20102")]
+    assert [(s.title, s.section) for s in known.disposition(16, "470f").successors] == [(54, "306108")]
 
-    c5_51 = known.section_verdict(42, "2451", 2020, appendix=True)
-    assert c5_51.disposition.recodification == "title-51-2010"
-    assert [(s.title, s.section) for s in c5_51.disposition.successors] == [(51, "20102")]
-
-    c5_54 = known.section_verdict(16, "470f", 2020, appendix=True)
-    assert c5_54.disposition.recodification == "title-54-2014"
-    assert [(s.title, s.section) for s in c5_54.disposition.successors] == [(54, "306108")]
-
+    # Title 49 positive-law companion (`49:3102 -> 31502`) resolves BOTH `49 USC 3102` (`absent`) and
+    # the 5 audited mislabelled `49 USC app 3102` filings (`title_49_appendix_not_published`):
     for app_flag in (False, True):
         v3102 = known.section_verdict(49, "3102", 2005, appendix=app_flag)
         assert v3102.disposition is not None

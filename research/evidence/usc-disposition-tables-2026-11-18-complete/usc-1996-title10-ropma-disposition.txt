@@ -1,4 +1,5 @@
   62 left  § 115b	Renumbered § 10541
+1527 right § 175	Transferred/repealed in part; see § 10301
  120 right Section 261(a)	Repealed; See sections 10101 and 10213 of this title.
  120 right Section 261(b)	Repealed; See sections 10101 and 10213 of this title.
  120 right Section 262	Repealed; See section 10102 of this title.
@@ -37,6 +38,8 @@
  153 right § 510	Renumbered § 12102
  153 right § 511	Renumbered § 12103
  153 right § 512	Renumbered § 12104
+1543 left  § 517(b)	Transferred/repealed in part; see § 12012
+1543 left  § 517(c)	Transferred/repealed in part; see § 12012
  163 left  § 524	Renumbered § 12011
  181 right Prior section 591	Renumbered § 12201
  181 right Prior section 592	Renumbered § 12202
@@ -51,7 +54,7 @@
  181 right Prior section 599	Renumbered § 12243
  181 right Prior section 600	Renumbered § 12209
  181 right Prior section 600a	Renumbered § 12210
- 214 right Section 644	Repealed.
+ 214 right Section 644	Repealed; See section 123 of this title.
  217 left  Section 652	Repealed; See section 10205 of this title.
  231 left  Prior section 672	Renumbered § 12301
  231 right § 673	Renumbered § 12302
@@ -104,10 +107,13 @@
  497 left  Section 1374(f)	Repealed; See sections 12771 to 12773 of this title.
  497 left  Section 1374(e)	Repealed; See sections 12771 to 12773 of this title.
  497 left  Section 1374(d)	Repealed; See sections 12771 to 12773 of this title.
+1597 left  § 1376(a)	Transferred/repealed in part; see § 12774
+1596 left  § 1401(a)	Transferred/repealed in part; see § 12739
  643 right Section 2001	Repealed; See section 10141(c) of this title.
  673 right Prior section 2128	Renumbered § 16201
  673 right Prior section 2129	Renumbered § 16202
  673 right Prior section 2130	Renumbered § 16203
+ 673 right Prior section 2130(c)	Repealed in part; see § 16204
  675 right Prior section 2131	Renumbered § 16131
  676 left  § 2132	Renumbered § 16132
  676 left  § 2133	Renumbered § 16133
@@ -128,10 +134,6 @@
  707 left  Prior section 2239	Renumbered § 18239
  940 left  A prior section 2540	Repealed; See section 18502 of this title.
 1110 right Prior section 3021	Renumbered § 10302
-1119 right Section 3040(a)	Repealed; See sections 10501, 10502, and 10505 of this title.
-1119 right Section 3040(b)	Repealed; See sections 10501, 10502, and 10505 of this title.
-1119 right Section 3040(c)	Repealed; See sections 10501, 10502, and 10505 of this title.
-1119 right Section 3040(d)	Repealed; See sections 10501, 10502, and 10505 of this title.
 1127 left  Section 3076	Repealed; See section 10104 of this title.
 1127 left  Section 3077	Repealed; See section 10105 of this title.
 1127 left  Section 3078	Repealed; See section 10106 of this title.
@@ -156,37 +158,37 @@
 1137 left  Section 3353	Repealed; See section 12207 of this title.
 1137 left  Section 3354	Repealed.
 1137 left  Section 3357	Repealed.
-1137 left  Section 3359	Repealed; See section 12201 et seq.
-1137 right Section 3360	Repealed; See section 14001 et seq.
-1137 right Section 3362(b)	Repealed; See section 14101 et seq.
-1137 right Section 3362(c)	Repealed; See section 14101 et seq.
-1137 right Section 3362(d)	Repealed; See section 14101 et seq.
-1137 right Section 3362(f)	Repealed; See section 14101 et seq.
-1137 right Section 3362(e)	Repealed; See section 14101 et seq.
-1137 right Section 3363(e)	Repealed; See section 14301 et seq.
-1137 right Section 3364	Repealed; See section 14301 et seq.
-1137 right Section 3365	Repealed; See section 14301 et seq.
-1137 right Section 3366	Repealed; See section 14301 et seq.
-1137 right Section 3367	Repealed; See section 14301 et seq.
-1137 right Section 3368	Repealed; See section 14301 et seq.
+1137 left  Section 3359	Repealed; See section 12201 et seq. of this title.
+1137 right Section 3360	Repealed; See section 14001 et seq. of this title.
+1137 right Section 3362(b)	Repealed; See section 14101 et seq. of this title.
+1137 right Section 3362(c)	Repealed; See section 14101 et seq. of this title.
+1137 right Section 3362(d)	Repealed; See section 14101 et seq. of this title.
+1137 right Section 3362(f)	Repealed; See section 14101 et seq. of this title.
+1137 right Section 3362(e)	Repealed; See section 14101 et seq. of this title.
+1137 right Section 3363(e)	Repealed; See section 14301 et seq. of this title.
+1137 right Section 3364	Repealed; See section 14301 et seq. of this title.
+1137 right Section 3365	Repealed; See section 14301 et seq. of this title.
+1137 right Section 3366	Repealed; See section 14301 et seq. of this title.
+1137 right Section 3367	Repealed; See section 14301 et seq. of this title.
+1137 right Section 3368	Repealed; See section 14301 et seq. of this title.
 1137 right Section 3369	Repealed.
-1137 right Section 3370	Repealed; See section 14301 et seq.
-1137 right Section 3371	Repealed; See section 14301 et seq.
+1137 right Section 3370	Repealed; See section 14301 et seq. of this title.
+1137 right Section 3371	Repealed; See section 14301 et seq. of this title.
 1137 right Section 3375	Repealed; See section 14314(a) of this title.
 1138 left  Section 3378	Repealed; See section 14317(a) of this title.
 1138 left  Section 3380(b)	Repealed; See section 14311(e) of this title.
-1138 left  Section 3382	Repealed; See section 14301 et seq.
-1138 left  Section 3383	Repealed; See section 14301 et seq.
+1138 left  Section 3382	Repealed; See section 14301 et seq. of this title.
+1138 left  Section 3383	Repealed; See section 14301 et seq. of this title.
 1138 left  Section 3384	Repealed; See section 14315 of this title.
 1138 left  Section 3385	Repealed; See section 14308(f) of this title.
-1138 left  Section 3386	Repealed; See section 14301 et seq.
-1138 left  Section 3388	Repealed; See section 14301 et seq.
-1138 left  Section 3389	Repealed; See section 14301 et seq.
-1138 left  Section 3390	Repealed; See section 14301 et seq.
+1138 left  Section 3386	Repealed; See section 14301 et seq. of this title.
+1138 left  Section 3388	Repealed; See section 14301 et seq. of this title.
+1138 left  Section 3389	Repealed; See section 14301 et seq. of this title.
+1138 left  Section 3390	Repealed; See section 14301 et seq. of this title.
 1138 right Section 3392	Repealed; See section 12215(a) of this title.
 1138 right Section 3393	Repealed.
 1138 right Section 3394	Repealed; See section 14309 of this title.
-1138 right Section 3395	Repealed; See section 14301 et seq.
+1138 right Section 3395	Repealed; See section 14301 et seq. of this title.
 1138 right Section 3396	Repealed.
 1140 right Section 3495	Repealed; See section 12401 of this title.
 1140 right Section 3496	Repealed; See section 12402(a), (b)(1) of this title.
@@ -207,8 +209,8 @@
 1156 left  Section 3843	Repealed; See sections 14509 and 14510 of this title.
 1156 left  Section 3844	Repealed; See section 14511 of this title.
 1156 left  Section 3845	Repealed; See section 14512(a) of this title.
-1156 right Section 3846	Repealed; See section 14501 et seq.
-1156 right Section 3848	Repealed; See section 14501 et seq.
+1156 right Section 3846	Repealed; See section 14501 et seq. of this title.
+1156 right Section 3848	Repealed; See section 14501 et seq. of this title.
 1156 right Section 3850	Repealed; See sections 14514 and 14704 of this title.
 1156 right Section 3851	Repealed; See section 14508(a), (c) of this title.
 1157 left  Section 3852	Repealed; See section 14508(b), (d) of this title.
@@ -237,8 +239,8 @@
 1257 right Section 5506	Repealed.
 1265 right Section 5600	Repealed; See section 12207 of this title.
 1266 left  Section 5665	Repealed; See section 14306 of this title.
-1270 right Section 5891	Repealed; See section 14301 et seq.
-1270 right Section 5892	Repealed; See section 14001 et seq.
+1270 right Section 5891	Repealed; See section 14301 et seq. of this title.
+1270 right Section 5892	Repealed; See section 14001 et seq. of this title.
 1270 right Section 5893(a)	Repealed; See sections 14102 and 14108(b) of this title.
 1270 right Section 5893(b)	Repealed; See sections 14102 and 14108(b) of this title.
 1270 right Section 5893(c)	Repealed; See sections 14102 and 14108(b) of this title.
@@ -258,17 +260,20 @@
 1271 left  Section 5902(b)	Repealed; See sections 14308(a), (d) and 14311(a) of this title.
 1271 left  Section 5902(c)	Repealed; See sections 14308(a), (d) and 14311(a) of this title.
 1271 left  Section 5902(d)	Repealed; See sections 14308(a), (d) and 14311(a) of this title.
-1271 left  Section 5903	Repealed; See section 14501 et seq.
+1271 left  Section 5903	Repealed; See section 14501 et seq. of this title.
 1271 left  Section 5904	Repealed; See section 14502 of this title.
 1271 left  Section 5905	Repealed; See section 14310 of this title.
 1271 left  Section 5906	Repealed; See section 14317(a) of this title.
-1271 right Section 5908	Repealed; See section 14001 et seq.
+1271 right Section 5908	Repealed; See section 14001 et seq. of this title.
 1271 right Section 5909	Repealed.
-1271 right Section 5910	Repealed; See section 14301 et seq.
-1271 right Section 5911	Repealed; See section 14301 et seq.
-1271 right Section 5912	Repealed; See section 14301 et seq.
+1271 right Section 5910	Repealed; See section 14301 et seq. of this title.
+1271 right Section 5911	Repealed; See section 14301 et seq. of this title.
+1271 right Section 5912	Repealed; See section 14301 et seq. of this title.
 1276 right Section 6017	Repealed; See section 12774(b) of this title.
-1278 left  Section 6034	Repealed; See section 12731 et seq.
+1278 left  Section 6034	Repealed; See section 12731 et seq. of this title.
+1619 left  § 6389(f)(1)	Transferred/repealed in part; see § 14508
+1619 left  § 6389(f)(2)	Transferred/repealed in part; see § 14508
+1622 right § 6389(f)(3)	Transferred/repealed in part; see § 14705
 1313 left  Section 6391(b)	Repealed; See section 14512(b) of this title.
 1313 left  Section 6392(a)	Repealed; See section 14703(a)(2), (b) of this title.
 1313 left  Section 6392(c)(1)	Repealed; See section 14703(a)(2), (b) of this title.
@@ -298,27 +303,27 @@
 1431 left  Section 8353	Repealed; See section 12207 of this title.
 1431 left  Section 8354	Repealed.
 1431 right Section 8356	Repealed.
-1431 right Section 8358	Repealed; See section 12201 et seq.
-1431 right Section 8359	Repealed; See section 12201 et seq.
-1431 right Section 8360	Repealed; See section 14001 et seq.
-1431 right Section 8361	Repealed; See section 14301 et seq.
-1431 right Section 8362(b)	Repealed; See section 14101 et seq.
-1431 right Section 8362(c)	Repealed; See section 14101 et seq.
-1431 right Section 8362(d)	Repealed; See section 14101 et seq.
-1431 right Section 8362(f)	Repealed; See section 14101 et seq.
-1431 right Section 8362(e)	Repealed; See section 14101 et seq.
-1431 right Section 8363(g)	Repealed; See section 14301 et seq.
-1431 right Section 8365	Repealed; See section 14301 et seq.
-1431 right Section 8366	Repealed; See section 14301 et seq.
-1431 right Section 8367	Repealed; See section 14001 et seq.
-1431 right Section 8368	Repealed; See section 14301 et seq.
-1432 left  Section 8371	Repealed; See section 14301 et seq.
-1432 left  Section 8372	Repealed; See section 14301 et seq.
+1431 right Section 8358	Repealed; See section 12201 et seq. of this title.
+1431 right Section 8359	Repealed; See section 12201 et seq. of this title.
+1431 right Section 8360	Repealed; See section 14001 et seq. of this title.
+1431 right Section 8361	Repealed; See section 14301 et seq. of this title.
+1431 right Section 8362(b)	Repealed; See section 14101 et seq. of this title.
+1431 right Section 8362(c)	Repealed; See section 14101 et seq. of this title.
+1431 right Section 8362(d)	Repealed; See section 14101 et seq. of this title.
+1431 right Section 8362(f)	Repealed; See section 14101 et seq. of this title.
+1431 right Section 8362(e)	Repealed; See section 14101 et seq. of this title.
+1431 right Section 8363(g)	Repealed; See section 14301 et seq. of this title.
+1431 right Section 8365	Repealed; See section 14301 et seq. of this title.
+1431 right Section 8366	Repealed; See section 14301 et seq. of this title.
+1431 right Section 8367	Repealed; See section 14001 et seq. of this title.
+1431 right Section 8368	Repealed; See section 14301 et seq. of this title.
+1432 left  Section 8371	Repealed; See section 14301 et seq. of this title.
+1432 left  Section 8372	Repealed; See section 14301 et seq. of this title.
 1432 left  Section 8373	Repealed; See section 14315 of this title.
 1432 left  Section 8374	Repealed; See section 14308(f) of this title.
 1432 left  Section 8375	Repealed; See section 14314(a), (c) of this title.
-1432 left  Section 8376	Repealed; See section 14301 et seq.
-1432 left  Section 8377	Repealed; See section 14301 et seq.
+1432 left  Section 8376	Repealed; See section 14301 et seq. of this title.
+1432 left  Section 8377	Repealed; See section 14301 et seq. of this title.
 1432 left  Section 8378	Repealed; See section 14317(a) of this title.
 1432 left  Section 8379	Repealed.
 1432 right Section 8380(b)	Repealed; See section 14311(e) of this title.
@@ -345,7 +350,7 @@
 1448 right Section 8844	Repealed; See section 14511 of this title.
 1448 right Section 8845	Repealed; See section 14512(a) of this title.
 1448 right Section 8846	Repealed.
-1448 right Section 8848	Repealed; See section 14501 et seq.
+1448 right Section 8848	Repealed; See section 14501 et seq. of this title.
 1449 left  Section 8850	Repealed; See sections 14514 and 14704 of this title.
 1449 left  Section 8851	Repealed; See section 14508(a), (c) of this title.
 1449 left  Section 8852	Repealed; See section 14508(b), (d) of this title.

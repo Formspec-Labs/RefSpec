@@ -114,6 +114,7 @@ from refspec.registry.usc_disposition_tables import VERDICTS as DISPOSITION_VERD
 from refspec.registry.usc_section_oracle import (
     CANDIDATE_ONLY_RULES,
     CORRECTION_RULES,
+    DISPOSITION_REASON,
     UNKNOWN_REASONS,
     USC_SECTION_ORACLE_ARTIFACT,
     VERDICTS,
@@ -3669,11 +3670,18 @@ _USC_DISPOSITION_COLUMNS: tuple[str, ...] = (
     "usc_disposition_refusal",
 )
 
-#: The one refusal the disposition block publishes, named once so the writer,
-#: the census and the contract cannot drift apart. See
+#: The three named refusals the disposition block publishes, declared once so
+#: the writer, the census and the contract cannot drift apart. See
 #: :func:`~refspec.registry.citation_grammar.usc_token_is_chapter_qualified`
-#: and the guard in :func:`_judge_usc_sections`.
+#: and the guards in :func:`_judge_usc_sections`.
 CHAPTER_QUALIFIED_REFUSAL = "chapter_qualifier_governs_the_token"
+CURRENT_CHAPTER_COLLISION_REFUSAL = "current_chapter_number_collision"
+SPAN_END_CURRENT_LAW_REFUSAL = "span_end_is_current_law_section"
+_DISPOSITION_REFUSALS = (
+    CHAPTER_QUALIFIED_REFUSAL,
+    CURRENT_CHAPTER_COLLISION_REFUSAL,
+    SPAN_END_CURRENT_LAW_REFUSAL,
+)
 
 
 def _judge_usc_section_magnitudes(authorities: list[dict[str, object]]) -> int:
@@ -4089,8 +4097,10 @@ def _judge_usc_sections(
     disposition_pairs: dict[str, set[tuple[int, str, bool]]] = {name: set() for name in DISPOSITION_VERDICTS}
     disposition_by_count: dict[int, int] = {}
     disposition_spans: set[tuple[int, str, str]] = set()
-    disposition_refusal_rows: dict[str, int] = {CHAPTER_QUALIFIED_REFUSAL: 0}
-    disposition_refusal_pairs: dict[str, set[tuple[int, str, bool]]] = {CHAPTER_QUALIFIED_REFUSAL: set()}
+    disposition_refusal_rows: dict[str, int] = dict.fromkeys(_DISPOSITION_REFUSALS, 0)
+    disposition_refusal_pairs: dict[str, set[tuple[int, str, bool]]] = {
+        code: set() for code in _DISPOSITION_REFUSALS
+    }
     #: The rows the guard's row-local half accepted, held back until the loop
     #: has written every sibling's verdict -- the record-wide half reads them.
     guard_candidates: list[tuple[dict[str, object], tuple[int, str, bool], object]] = []
@@ -4153,42 +4163,71 @@ def _judge_usc_sections(
         # Correction and never from this. The section verdict and its reason do
         # not move; the only values that do are these six columns' own.
         if verdict.disposition is not None:
-            # What ELSE the citation stated about the same token. A span is
-            # taken only where the publisher WROTE the range ("stated"): the
-            # abbreviated rule is this module's reading of "1421-31", and
-            # AuthorityCitation.usc_section_span_rule carries the measurement
-            # that says an expanded span can claim sections that are not law.
             stated_span = row["usc_section_end"] if row["usc_section_span_rule"] == USC_SPAN_STATED else None
-            if row["usc_section_end"] is not None and stated_span is None:
-                abbreviated_span_rows += 1
-            stated_pinpoint = usc_section_pinpoint(row["authority_text"], section)
-            moved = verdict.disposition
-            if stated_span is not None or stated_pinpoint is not None:
-                # The bare answer above is the memoised one the verdict
-                # carries; this asks the same table the citation's own fuller
-                # question. Same oracle, same memo, one key wider.
-                moved = oracle.disposition(
-                    pair[0], pair[1], appendix=pair[2], subsection=stated_pinpoint, section_end=stated_span
-                )
-            if stated_span is not None:
-                span_rows += 1
-                disposition_spans.add((pair[0], pair[1], normalize_section(stated_span)))
-            if stated_pinpoint is not None:
-                pinpoint_rows += 1
-                pinpoint_resolved_rows += bool(moved.subsection_resolved)
-            # The guard's row-local half: the citation writes "ch" over a list
-            # and the token is a CURRENT chapter of the title, while the row's
-            # own usc_appendix says the parser never read it as an appendix
-            # citation. Held back -- the record-wide half needs verdicts this
-            # loop has not written yet.
+            # Guard 1 (outside title_49_appendix_not_published): a bare absent
+            # token whose (title, section) is ALSO a current chapter of that
+            # title (e.g. Coast Guard `46 U.S.C. 701` = Ch. 701 Port Security,
+            # `46 U.S.C. 51` = Ch. 51 Load Lines, `31 U.S.C. 75` = Ch. 75
+            # Single Audit) is refused rather than mapped to a repealed
+            # pre-recodification section sharing that integer.
             if (
-                not pair[2]
+                verdict.verdict == "absent"
+                and not pair[2]
                 and (pair[0], pair[1]) in oracle.chapters
-                and usc_token_is_chapter_qualified(row["authority_text"], section)
             ):
-                guard_candidates.append((row, pair, moved))
+                row["usc_disposition_refusal"] = CURRENT_CHAPTER_COLLISION_REFUSAL
+                disposition_refusal_rows[CURRENT_CHAPTER_COLLISION_REFUSAL] += 1
+                disposition_refusal_pairs[CURRENT_CHAPTER_COLLISION_REFUSAL].add(pair)
+            # Guard 2 (outside title_49_appendix_not_published): a stated span
+            # whose far endpoint is a LIVE current-law section not listed as a
+            # former section (e.g. damaged `49 USC 2011 to 20113` for
+            # `20111 to 20113`) is refused rather than sweeping hundreds of
+            # unrelated pre-recodification sections.
+            elif (
+                verdict.verdict == "absent"
+                and stated_span is not None
+                and oracle.dispositions is not None
+                and normalize_section(stated_span)
+                not in oracle.dispositions.former_sections(pair[0], appendix=pair[2])
+                and oracle.section_verdict(pair[0], stated_span, appendix=pair[2]).verdict == "exists"
+            ):
+                row["usc_disposition_refusal"] = SPAN_END_CURRENT_LAW_REFUSAL
+                disposition_refusal_rows[SPAN_END_CURRENT_LAW_REFUSAL] += 1
+                disposition_refusal_pairs[SPAN_END_CURRENT_LAW_REFUSAL].add(pair)
             else:
-                publish(row, pair, moved)
+                if row["usc_section_end"] is not None and stated_span is None:
+                    abbreviated_span_rows += 1
+                stated_pinpoint = usc_section_pinpoint(row["authority_text"], section)
+                moved = verdict.disposition
+                if stated_span is not None or stated_pinpoint is not None:
+                    # The bare answer above is the memoised one the verdict
+                    # carries; this asks the same table the citation's own fuller
+                    # question. Same oracle, same memo, one key wider.
+                    moved = oracle.disposition(
+                        pair[0], pair[1], appendix=pair[2], subsection=stated_pinpoint, section_end=stated_span
+                    )
+                if verdict.reason != DISPOSITION_REASON and not moved.answered:
+                    pass
+                else:
+                    if stated_span is not None:
+                        span_rows += 1
+                        disposition_spans.add((pair[0], pair[1], normalize_section(stated_span)))
+                    if stated_pinpoint is not None:
+                        pinpoint_rows += 1
+                        pinpoint_resolved_rows += bool(moved.subsection_resolved)
+                    # The guard's row-local half: the citation writes "ch" over a list
+                    # and the token is a CURRENT chapter of the title, while the row's
+                    # own usc_appendix says the parser never read it as an appendix
+                    # citation. Held back -- the record-wide half needs verdicts this
+                    # loop has not written yet.
+                    if (
+                        not pair[2]
+                        and (pair[0], pair[1]) in oracle.chapters
+                        and usc_token_is_chapter_qualified(row["authority_text"], section)
+                    ):
+                        guard_candidates.append((row, pair, moved))
+                    else:
+                        publish(row, pair, moved)
 
         text = row["authority_text"]
         # The claims are part of the KEY, not a filter after it: which acts a
