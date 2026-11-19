@@ -404,6 +404,9 @@ def _shape(group: str) -> str:
     return "mixed"
 
 
+_SUBSECTION_RANK = {"lower": 1, "digit": 2, "upper": 3}
+
+
 def _inherit(previous: str | None, groups: list[str]) -> str:
     if not previous:
         return "".join(groups)
@@ -412,6 +415,8 @@ def _inherit(previous: str | None, groups: list[str]) -> str:
     for i in range(len(prior) - 1, -1, -1):
         if _shape(prior[i]) == want:
             return "".join(prior[:i]) + "".join(groups)
+    if _SUBSECTION_RANK.get(want, 0) > _SUBSECTION_RANK.get(_shape(prior[-1]), 99):
+        return "".join(prior) + "".join(groups)
     return "".join(groups)
 
 

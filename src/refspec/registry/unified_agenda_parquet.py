@@ -4281,17 +4281,38 @@ def _judge_usc_sections(
                 if row["usc_section_end"] is not None and stated_span is None:
                     abbreviated_span_rows += 1
                 stated_pinpoint = usc_section_pinpoint(row["authority_text"], section)
+                # Guard spelled-out or spaced-dash Appendix ranges (e.g. `49 USC app 3102 to 3104`)
+                # whose endpoint `_USC_APPENDIX` drops (`usc_section_end is None`), so only genuinely
+                # single-section `49 USC app 3102` citations clear `appendix`.
+                has_span_tail = bool(
+                    pair[2]
+                    and (pair[0], pair[1]) in AUDITED_MISLABELLED_APPENDIX_PAIRS
+                    and (
+                        row["usc_section_end"] is not None
+                        or re.search(
+                            rf"(?<![0-9a-zA-Z]){re.escape(str(section))}(?:\s*\([0-9a-zA-Z]{{1,4}}\))*\s*"
+                            r"(?:(?:to|through|thru)\b|[-‐‑‒–—―−\x96\x97]\s*\d|et\.?\s+seq\b)",
+                            str(row["authority_text"] or ""),
+                            re.IGNORECASE,
+                        )
+                    )
+                )
                 moved = verdict.disposition
-                if stated_span is not None or stated_pinpoint is not None:
+                if stated_span is not None or stated_pinpoint is not None or has_span_tail:
                     # The bare answer above is the memoised one the verdict
                     # carries; this asks the same table the citation's own fuller
-                    # question. Only bare single-section citations (`stated_span is None`)
-                    # on the audited `(49, "3102")` exception clear `appendix`; an
-                    # unverified Appendix span such as `49 USC app 3102-3104` stays
-                    # gated out as `appendix=True` (`not-in-table`).
+                    # question. Only bare single-section citations (`stated_span is None`
+                    # and `not has_span_tail`) on the audited `(49, "3102")` exception
+                    # clear `appendix`; any Appendix span such as `49 USC app 3102-3104`
+                    # or `49 USC app 3102 to 3104` stays `appendix=True` (`not-in-table`).
                     eff_appendix = (
                         False
-                        if stated_span is None and pair[2] and (pair[0], pair[1]) in AUDITED_MISLABELLED_APPENDIX_PAIRS
+                        if (
+                            stated_span is None
+                            and not has_span_tail
+                            and pair[2]
+                            and (pair[0], pair[1]) in AUDITED_MISLABELLED_APPENDIX_PAIRS
+                        )
                         else pair[2]
                     )
                     moved = oracle.disposition(

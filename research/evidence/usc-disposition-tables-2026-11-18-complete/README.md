@@ -105,7 +105,7 @@ python3 scripts/crosscheck_disposition_tables.py --pdf-dir <cache> --self-test
 | `usc-1996-title10-ropma-disposition.txt` | `4902caf1a97c73f9f395f01ad08c4b49aa217281f80ac39f6c618e9aa3597d4a` | 23,541 | 359 entries |
 | `usc-2017-title34-disposition.parquet` | `17e063ddd410d39c135e4d14550dceadc62707a811dc9e7bd2f63999014dd047` | 21,329 | 1,002 entries / 1,002 rows |
 | `usc-2017-title34-disposition.txt` | `faf1a8ae771bfd59d36f17f11b0d8a75640bf2b0d4c1eec6a13f774d95849c01` | 52,822 | 1,002 entries |
-| `usc-2011-title41-disposition.parquet` | `74d5ae44e60394d4d57538cdb7ae5bee124b92e766f279cb822353fd5cdb3986` | 9,695 | 320 entries / 549 rows |
+| `usc-2011-title41-disposition.parquet` | `327de9b607eaf74679c21af8a6cf27086c7bf5aaf19c01dbcf3005959fa3a51b` | 9,706 | 320 entries / 549 rows |
 | `usc-2011-title41-disposition.txt` | `0e7b60a6c8dd0b6441391899eef5aa461bd4ce2e582e8dfcdaf9c1c9dd7bffd9` | 10,058 | 320 entries |
 | `usc-2010-title51-disposition.parquet` | `507bdd8da5dd9a1ff6b5f395193408e1f36120803637ee367ddfecc3792d7c0a` | 8,074 | 244 entries / 345 rows |
 | `usc-2010-title51-disposition.txt` | `fd4f112682511f5e06f0d3ee0ff8b2fe5b21c1a2f747879e62d02c25b6720b7d` | 6,649 | 244 entries |
@@ -114,7 +114,7 @@ python3 scripts/crosscheck_disposition_tables.py --pdf-dir <cache> --self-test
 | `usc-1994-title49-positivelaw-disposition.parquet` | `6387ca0487ec234ae04811e90d1490e9bf93407d1b3dd5f3fa40836e3bc21510` | 4,624 | 49 entries / 49 rows |
 | `usc-1994-title49-positivelaw-disposition.txt` | `d894c4534ec4c67f7b516e3543be4a6ceb628a515c1b997be475f1721476d83b` | 2,985 | 49 entries |
 | `crosscheck-report.json` | `594b35d952e4ffa96e3ec4f14e58ad3ae8de38bcf2986e71967895e0d41ca23e` | 10,592 | 6 tables / 20 planted self-tests |
-| `scripts/extract_disposition_tables.py` | `49a9cb8528d0f75f5045e7ca385e2f038c35c38a55a68908e83b7e1ca7108dad` | 69,262 | — |
+| `scripts/extract_disposition_tables.py` | `5724355304d7cc883cd4ff1b032fd8f765caecbb601529d8088be8d982608548` | 69,452 | — |
 | `scripts/crosscheck_disposition_tables.py` | `bcff1d412ecc9ca4bc3c0222e0e5f2973cf8588e43e0a8cda02a47ee45f75b1f` | 39,615 | — |
 
 ## Counts & body cross-checks (`crosscheck-report.json`)

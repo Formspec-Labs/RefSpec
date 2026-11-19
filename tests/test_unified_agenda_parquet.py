@@ -6852,12 +6852,12 @@ def test_the_recodification_answers_the_one_unknown_it_can(con) -> None:
     expected_verdicts = (
         {
             # Post-M8 9-table guarded rebuild: closes 49 USC app 3102 (5 rows -> exists-as-recodified)
-            # and attaches 851 guarded absent former-section rows across Titles 10, 31, 46, and 49
-            # while refusing 254 current-chapter collisions and 1 damaged current-law span.
-            "exists-as-recodified": (2_565, 275, 359, 167),
-            "repealed-no-successor": (557, 55, 128, 31),
+            # and attaches 856 guarded absent former-section rows across Titles 10, 31, 46, and 49
+            # while refusing 39 chapter-qualified tokens, 249 current-chapter collisions, and 1 damaged current-law span.
+            "exists-as-recodified": (2_568, 275, 359, 167),
+            "repealed-no-successor": (550, 51, 125, 31),
             "eliminated-no-successor": (32, 11, 12, 7),
-            "not-in-table": (170, 31, 28, 25),
+            "not-in-table": (157, 28, 26, 24),
         }
         if multi
         else {
@@ -7088,7 +7088,7 @@ def test_the_successor_is_evidence_and_never_an_identity(con) -> None:
             ("1358", 97, 35, "49 USC 1358 to 1421", "2120-AE14"),
         ]
     )
-    assert _one(con, f"select count(*) from {L} where len(usc_disposition_successors) > 1") == (1_818 if multi else 1_640)
+    assert _one(con, f"select count(*) from {L} where len(usc_disposition_successors) > 1") == (1_821 if multi else 1_640)
     assert _one(con, f"select count(*) from {L} where len(usc_disposition_successors) = 1") == (747 if multi else 541)
 
     # NOTHING is corrected from any of this. Nine rows carry both a correction
@@ -7272,14 +7272,22 @@ def test_multi_title_recodifications_attach_and_guard_false_readings() -> None:
             "usc_chapter": "201",
             "usc_chapter_end": "213",
         },
-        # Negative control 5 — explicit `49 USC app 335` and unverified Appendix span `49 USC app 3102-3104` stay `not-in-table`:
+        # Negative control 5 — explicit `49 USC app 335` and unverified Appendix spans
+        # (`49 USC app 3102 to 3104` where `_USC_APPENDIX` drops `usc_section_end`, plus
+        # `through`, spaced dash, pinpoint + `to`, and hyphenated `3102-3104`) stay `not-in-table`:
         _usc_row("49 USC app 335", publication_id="200510"),
-        _usc_row("49 USC app 3102 to 3104", publication_id="200510", usc_section_end="3104", usc_section_span_rule="stated"),
+        _usc_row("49 USC app 3102 to 3104", publication_id="200510"),
+        _usc_row("49 USC app 3102 through 3104", publication_id="200510"),
+        _usc_row("49 USC app 3102 - 3104", publication_id="200510"),
+        _usc_row("49 USC app 3102(a) to 3104", publication_id="200510"),
+        _usc_row("49 USC app 3102-3104", publication_id="200510", usc_section_end="3104", usc_section_span_rule="stated"),
         _usc_row("46 U.S.C. App. 688", publication_id="200510"),
         _usc_row("10 U.S.C. 999999", publication_id="200510"),
     ]
+    # Prove `49 USC app 3102 to 3104` enters `_judge_usc_sections` with `usc_section_end is None` (as parsed in production):
+    assert next(r for r in rows if r["authority_text"] == "49 USC app 3102 to 3104")["usc_section_end"] is None
     census = _judge_usc_sections(rows, _usc_section_oracle())
-    # Span counters close strictly against published `usc_disposition_span_members` (refused `201 to 213` and `not-in-table` `app 3102 to 3104` excluded):
+    # Span counters close strictly against published `usc_disposition_span_members` (refused `201 to 213` and `not-in-table` `app 3102-3104` excluded):
     assert census.disposition_span_rows == sum(1 for r in rows if r["usc_disposition_span_members"] is not None) == 2
     assert census.disposition_spans == 2
     by_text = {
@@ -7300,7 +7308,14 @@ def test_multi_title_recodifications_attach_and_guard_false_readings() -> None:
     assert by_text["49 USC 1472"][:3] == ("unknown", "title-49-1994", "exists-as-recodified")
     assert by_text["49 USC 3102"] == ("absent", "title-49-1994-positivelaw", "exists-as-recodified", ["49:31502"], None)
     assert by_text["49 USC app 3102"] == ("unknown", "title-49-1994-positivelaw", "exists-as-recodified", ["49:31502"], None)
-    assert by_text["49 USC app 3102 to 3104"] == ("unknown", "title-49-1994", "not-in-table", None, None)
+    for app_span in (
+        "49 USC app 3102 to 3104",
+        "49 USC app 3102 through 3104",
+        "49 USC app 3102 - 3104",
+        "49 USC app 3102(a) to 3104",
+        "49 USC app 3102-3104",
+    ):
+        assert by_text[app_span] == ("unknown", "title-49-1994", "not-in-table", None, None), app_span
     assert by_text["49 USC app 335"] == ("unknown", "title-49-1994", "not-in-table", None, None)
     # Non-appendix App. citations stay cleanly unanswered:
     for fake_app in ("41 U.S.C. App. 15", "42 U.S.C. App. 3711", "42 U.S.C. App. 2451", "16 U.S.C. App. 470f"):

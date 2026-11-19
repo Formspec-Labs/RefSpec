@@ -285,7 +285,7 @@ RECODIFICATIONS = (
         name="title-41-2011",
         former_title=41,
         table="usc-2011-title41-disposition.parquet",
-        digest="sha256:74d5ae44e60394d4d57538cdb7ae5bee124b92e766f279cb822353fd5cdb3986",
+        digest="sha256:327de9b607eaf74679c21af8a6cf27086c7bf5aaf19c01dbcf3005959fa3a51b",
         enacted_by="Pub. L. 111-350, § 3, Jan. 4, 2011, 124 Stat. 3677",
         deeming_provision="Pub. L. 111-350, § 6(c)",
         source_url="https://www.govinfo.gov/content/pkg/USCODE-2011-title41/pdf/USCODE-2011-title41.pdf",
@@ -940,6 +940,52 @@ _INTRODUCTORY_MATTER = re.compile(
 )
 
 
+def _trailing_child_labels_after_paren(text: str, open_idx: int) -> frozenset[str]:
+    """Child labels listed after a balanced parenthetical qualifier, e.g. ``), (1) to (5)``."""
+
+    depth = 0
+    end_idx = len(text)
+    for idx in range(open_idx, len(text)):
+        ch = text[idx]
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                end_idx = idx + 1
+                break
+    tail = text[end_idx:].translate(_DASHES)
+    if "(" not in tail:
+        return frozenset()
+    found: set[str] = set()
+    for m_rng in re.finditer(
+        r"\(([0-9a-zA-Z]{1,4})\)\s*(?:to|through|-)\s*\(([0-9a-zA-Z]{1,4})\)", tail, re.IGNORECASE
+    ):
+        lo, hi = m_rng.group(1), m_rng.group(2)
+        if lo.isdigit() and hi.isdigit() and int(lo) <= int(hi):
+            found.update(str(n) for n in range(int(lo), int(hi) + 1))
+        elif len(lo) == 1 and len(hi) == 1 and lo.isalpha() and hi.isalpha() and lo.isupper() == hi.isupper() and lo <= hi:
+            found.update(chr(c).lower() for c in range(ord(lo), ord(hi) + 1))
+    for grp in _GROUP.findall(tail):
+        found.add(grp.lower())
+    return frozenset(found)
+
+
+def _introductory_excludes_child(
+    row: DispositionRow, labels: tuple[str, ...], wanted: tuple[str, ...]
+) -> bool:
+    """Whether ``row`` is an introductory-matter row at ``len(labels)`` that excludes ``wanted``."""
+
+    m = _INTRODUCTORY_MATTER.search(row.former_text)
+    if m is None:
+        return False
+    chapeau_depth = len(_GROUP.findall(row.former_text[: m.start()]))
+    if len(labels) != chapeau_depth:
+        return False
+    trailing = _trailing_child_labels_after_paren(row.former_text, m.start())
+    return not (trailing and wanted[chapeau_depth] in trailing)
+
+
 def _row_covers(row: DispositionRow, wanted: tuple[str, ...]) -> bool:
     """Whether a printed row speaks for the queried subsection.
 
@@ -960,19 +1006,20 @@ def _row_covers(row: DispositionRow, wanted: tuple[str, ...]) -> bool:
       disposes strictly of chapeau text preceding a structural unit (never
       punctuation splits such as ``words before semicolon``), so it speaks for
       its own level (``16654(a)``) and never for a deeper child (``1a-2(a)``,
-      ``16654(a)(1)``).
+      ``16654(a)(1)``) unless the same printed row also names that trailing
+      child (``351(a) (words before par. (1) ...), (1) to (5)``).
     """
 
     if row.former_note is not None:
         return False
     printed = row.former_subsection
     if printed is None:
-        return not bool(_INTRODUCTORY_MATTER.search(row.former_text))
+        return not _introductory_excludes_child(row, (), wanted)
     labels = tuple(g.lower() for g in _GROUP.findall(printed.split("-")[0]))
     if not labels:
         return False
     if "-" in printed:
         return wanted[0] == labels[0]
-    if len(wanted) > len(labels) and _INTRODUCTORY_MATTER.search(row.former_text):
+    if len(wanted) > len(labels) and _introductory_excludes_child(row, labels, wanted):
         return False
     return labels[: len(wanted)] == wanted[: len(labels)]

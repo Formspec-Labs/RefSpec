@@ -134,8 +134,8 @@ ARTIFACT_2026_11_18_COMPLETE_PINS = {
         52_822,
     ),
     "usc-2011-title41-disposition.parquet": (
-        "sha256:74d5ae44e60394d4d57538cdb7ae5bee124b92e766f279cb822353fd5cdb3986",
-        9_695,
+        "sha256:327de9b607eaf74679c21af8a6cf27086c7bf5aaf19c01dbcf3005959fa3a51b",
+        9_706,
     ),
     "usc-2011-title41-disposition.txt": (
         "sha256:0e7b60a6c8dd0b6441391899eef5aa461bd4ce2e582e8dfcdaf9c1c9dd7bffd9",
@@ -170,8 +170,8 @@ ARTIFACT_2026_11_18_COMPLETE_PINS = {
         10_592,
     ),
     "scripts/extract_disposition_tables.py": (
-        "sha256:49a9cb8528d0f75f5045e7ca385e2f038c35c38a55a68908e83b7e1ca7108dad",
-        69_262,
+        "sha256:5724355304d7cc883cd4ff1b032fd8f765caecbb601529d8088be8d982608548",
+        69_452,
     ),
     "scripts/crosscheck_disposition_tables.py": (
         "sha256:bcff1d412ecc9ca4bc3c0222e0e5f2973cf8588e43e0a8cda02a47ee45f75b1f",
@@ -1698,8 +1698,26 @@ def test_title_41_table_counts_and_specimens() -> None:
         assert rep.verdict == "repealed-no-successor"
         assert [r.former_text for r in rep.rows] == ["17 to 21"]
 
-    # Service Contract Act (`351 -> 6702, 6703, 6707`), `6a-1 -> 6102`, and cross-title transfers (`6a-2 -> 2:1816b`).
-    assert {s.section for s in tables().disposition(41, "351").successors} >= {"6702", "6703"}
+    # Service Contract Act (`351 -> 6702, 6703, 6704`): mixed chapeau row
+    # `351(a) (words before par. (1) related to required contract terms), (1) to (5) -> 6703`
+    # resolves `(a)` to `6702, 6703`, each of `(a)(1)` through `(a)(5)` strictly to `6703` alone
+    # (excluding pure chapeau `6702` and `351(b) -> 6704`), and `(b)` strictly to `6704`.
+    assert [(s.title, s.section) for s in tables().disposition(41, "351").successors] == [
+        (41, "6702"),
+        (41, "6703"),
+        (41, "6704"),
+    ]
+    d_351_a = tables().disposition(41, "351", "(a)")
+    assert d_351_a.subsection_resolved is True
+    assert [(s.title, s.section) for s in d_351_a.successors] == [(41, "6702"), (41, "6703")]
+    for par in range(1, 6):
+        d_par = tables().disposition(41, "351", f"(a)({par})")
+        assert d_par.subsection_resolved is True, f"41:351(a)({par})"
+        assert [(s.title, s.section) for s in d_par.successors] == [(41, "6703")], f"41:351(a)({par})"
+    d_351_b = tables().disposition(41, "351", "(b)")
+    assert d_351_b.subsection_resolved is True
+    assert [(s.title, s.section) for s in d_351_b.successors] == [(41, "6704")]
+    assert tables().disposition(41, "351", "(a)(6)").subsection_resolved is False
     assert [(s.title, s.section) for s in tables().disposition(41, "6a-1").successors] == [(41, "6102")]
     assert [(s.title, s.section) for s in tables().disposition(41, "6a-2").successors] == [(2, "1816b")]
 
