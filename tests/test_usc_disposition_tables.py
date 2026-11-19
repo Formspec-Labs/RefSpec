@@ -118,11 +118,11 @@ ARTIFACT_2026_11_18_PINS = {
 #: 34, 41, 51, 54, Title 49 positive-law, and pair-level body cross-checks).
 ARTIFACT_2026_11_18_COMPLETE_PINS = {
     "usc-1996-title10-ropma-disposition.parquet": (
-        "sha256:aab15c53b2836e486fc81c0d0b9468a688909cf5cd34f858ec69f54b851947c9",
-        9_177,
+        "sha256:5a08734b3c8ea948340203e0e3c67a256a6a62c95ece863a1328a662691eace6",
+        9_180,
     ),
     "usc-1996-title10-ropma-disposition.txt": (
-        "sha256:f99343a41879c3e2bae907a595564ff379b695f3a1ef79371c077082fbc7b00c",
+        "sha256:4902caf1a97c73f9f395f01ad08c4b49aa217281f80ac39f6c618e9aa3597d4a",
         23_541,
     ),
     "usc-2017-title34-disposition.parquet": (
@@ -158,11 +158,11 @@ ARTIFACT_2026_11_18_COMPLETE_PINS = {
         37_047,
     ),
     "usc-1994-title49-positivelaw-disposition.parquet": (
-        "sha256:69213d46b2745a36f08928cbba56bc542f0a3df1ecbd9f7a762fa8b92fbfd2d7",
+        "sha256:6387ca0487ec234ae04811e90d1490e9bf93407d1b3dd5f3fa40836e3bc21510",
         4_624,
     ),
     "usc-1994-title49-positivelaw-disposition.txt": (
-        "sha256:d72475d04c42c2c6d51c671f8af2bcae10b5c15f892336ffca9c66a341fbecd7",
+        "sha256:d894c4534ec4c67f7b516e3543be4a6ceb628a515c1b997be475f1721476d83b",
         2_985,
     ),
     "crosscheck-report.json": (
@@ -170,12 +170,12 @@ ARTIFACT_2026_11_18_COMPLETE_PINS = {
         10_592,
     ),
     "scripts/extract_disposition_tables.py": (
-        "sha256:d7ff44111dd46d1a6bc3109a34ff2855cd01f05c3bc2b1e8b8327a78c2ea9fe8",
-        67_507,
+        "sha256:49a9cb8528d0f75f5045e7ca385e2f038c35c38a55a68908e83b7e1ca7108dad",
+        69_262,
     ),
     "scripts/crosscheck_disposition_tables.py": (
-        "sha256:6cc290dce43e5c4fcbe6f1ada2a5f28c3504a05c2e8a78e597a3a98530571faa",
-        39_638,
+        "sha256:bcff1d412ecc9ca4bc3c0222e0e5f2973cf8588e43e0a8cda02a47ee45f75b1f",
+        39_615,
     ),
 }
 
@@ -1593,6 +1593,8 @@ def test_title_10_ropma_table_counts_and_specimens() -> None:
     assert (row_6389.page, row_6389.column) == (1623, "left")
     row_6034 = tables().disposition(10, "6034").rows[0]
     assert (row_6034.page, row_6034.column) == (1278, "right")
+    row_5600 = tables().disposition(10, "5600").rows[0]
+    assert (row_5600.page, row_5600.column) == (1265, "right")
 
     # No Cartesian pinpoint fabrication: p. 1138 specifies `3385 -> 14308(f)` ONLY (never `(a)` or `(d)`).
     s3385 = tables().disposition(10, "3385")
@@ -1726,6 +1728,21 @@ def test_title_51_table_counts_and_specimens() -> None:
     assert tables().disposition(42, "2451", appendix=True).verdict == "no-table-for-title"
     # Cross-title transfer to Title 42 (`42:16831 -> T. 42 § 1886a`).
     assert [(s.title, s.section) for s in tables().disposition(42, "16831").successors] == [(42, "1886a")]
+    # Nested introductory-matter chapeau (`42:16654(a) (matter before par. (1)) -> 51:30504(a)`) speaks for `(a)`,
+    # never for `(a)(1)` (which is `Elim.`, `eliminated-no-successor`), while punctuation splits (`46 App. 491(a)`,
+    # `words before semicolon` / `words after semicolon`) retain BOTH candidates:
+    assert [(s.title, s.section, s.subsection) for s in tables().disposition(42, "16654", "a").successors] == [
+        (51, "30504", "(a)"),
+        (51, "30504", "(b)"),
+    ]
+    d_16654_a1 = tables().disposition(42, "16654", "(a)(1)")
+    assert (d_16654_a1.verdict, d_16654_a1.successors, d_16654_a1.subsection_resolved) == (
+        "eliminated-no-successor",
+        (),
+        True,
+    )
+    d_491_a = tables().disposition(46, "491", "a", appendix=True)
+    assert [(s.title, s.section) for s in d_491_a.successors] == [(46, "30102"), (46, "30103")]
 
 
 def test_title_54_table_counts_and_specimens() -> None:
@@ -1824,6 +1841,12 @@ def test_title_49_positivelaw_table_and_complete_crosschecker_negative_controls(
         ("§ 508(a)(3) (related to violations)", "5903", "(a)", 160, "right"),
         ("§ 508(a)(3) (related to effective date)", "5907", "(b)", 161, "right"),
     ]
+    assert (tables().disposition(49, "334").rows[0].page, tables().disposition(49, "334").rows[0].column) == (764, "right")
+    assert (tables().disposition(49, "335").rows[0].page, tables().disposition(49, "335").rows[0].column) == (44, "right")
+    assert (tables().disposition(49, "508", "c").rows[0].page, tables().disposition(49, "508", "c").rows[0].column) == (160, "right")
+    assert (tables().disposition(49, "508", "(g)(2)(C)").rows[0].page, tables().disposition(49, "508", "(g)(2)(C)").rows[0].column) == (161, "right")
+    assert (tables().disposition(49, "3101").rows[0].page, tables().disposition(49, "3101").rows[0].column) == (556, "right")
+    assert (tables().disposition(49, "3103").rows[0].page, tables().disposition(49, "3103").rows[0].column) == (558, "left")
     # Nested subsection labels (`508(a)(1)` vs `508(a)(2)`) resolve cleanly to `5902(a)` and `5902(b)`.
     assert [(s.title, s.section, s.subsection) for s in tables().disposition(49, "508", "(a)(1)").successors] == [
         (49, "5902", "(a)")

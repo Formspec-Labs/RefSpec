@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Extract and verify the 2026-11-18 complete U.S.C. disposition tables.
 
 Produces deterministic, zstd-compressed Parquet tables (plus print-order `.txt`
@@ -681,20 +680,45 @@ def build_front_matter_table(
     return rows
 
 
-def _locate_column(pdf: Path, page: int, needle: str, page_cache: dict[int, list[dict]]) -> str:
-    if page not in page_cache:
-        page_cache[page] = page_blocks(pdf, page)
+def _locate_page_and_column(
+    pdf: Path,
+    page: int,
+    needle: str,
+    page_cache: dict[int, list[dict]],
+    *,
+    after_needle: str | None = None,
+) -> tuple[int, str]:
     compact_needle = re.sub(r"[\s-]+", "", needle.translate(_DASHES))
-    for blk in page_cache[page]:
-        txt = re.sub(r"[\s-]+", "", "".join(ln["text"] for ln in blk["lines"]))
-        if compact_needle in txt:
-            return "left" if blk["xMin"] < 306.0 else "right"
     short = compact_needle[:14]
-    for blk in page_cache[page]:
-        txt = re.sub(r"[\s-]+", "", "".join(ln["text"] for ln in blk["lines"]))
-        if short in txt:
-            return "left" if blk["xMin"] < 306.0 else "right"
+    for cand_page in (page, page + 1):
+        if cand_page not in page_cache:
+            page_cache[cand_page] = page_blocks(pdf, cand_page)
+        ordered = sorted(page_cache[cand_page], key=lambda b: (0 if b["xMin"] < 306.0 else 1, b["yMin"]))
+        start_idx = 0
+        if after_needle and cand_page == page:
+            compact_after = re.sub(r"[\s-]+", "", after_needle.translate(_DASHES))
+            for idx, blk in enumerate(ordered):
+                txt = re.sub(r"[\s-]+", "", "".join(ln["text"] for ln in blk["lines"]))
+                if compact_after in txt:
+                    start_idx = idx
+                    break
+        for probe in (compact_needle, short):
+            for blk in ordered[start_idx:]:
+                txt = re.sub(r"[\s-]+", "", "".join(ln["text"] for ln in blk["lines"]))
+                if probe in txt:
+                    return cand_page, ("left" if blk["xMin"] < 306.0 else "right")
     raise SystemExit(f"{pdf.name} p.{page}: could not locate column for {needle!r}")
+
+
+def _locate_column(
+    pdf: Path,
+    page: int,
+    needle: str,
+    page_cache: dict[int, list[dict]],
+    *,
+    after_needle: str | None = None,
+) -> str:
+    return _locate_page_and_column(pdf, page, needle, page_cache, after_needle=after_needle)[1]
 
 
 def _clean_raw_pages(pdf: Path) -> list[str]:
@@ -911,11 +935,12 @@ def build_title10_ropma_table(pdf: Path) -> list[dict]:
                                 targets.append((item["section"], item["subsection"]))
                     see_clause_m = re.search(r"See sections?\s+\d+[a-z]*(?:[^.]|\bet seq\.)*?\s+of this title\.", ntxt)
                     disp_txt = f"Repealed; {see_clause_m.group(0)}" if see_clause_m else "Repealed."
-                    # For single-section stubs (`Section, act ...`), anchor on `[§ <sh>.` when on the same page
-                    # so identical `"Section, act Aug. 10, 1956"` lines in the left column do not shadow the right column (e.g. § 6034).
-                    note_anchor = hdr[:24] if (ntxt.startswith("Section, ") and npno == pno) else ntxt[:28]
+                    # For single-section stubs (`Section, act ...`), search in reading order AFTER `[§ <sh>.` on the same page
+                    # and locate the `See section ...` clause when present (so § 5600 locates p. 1265 right, § 6034 p. 1278 right, § 8686 p. 1440 right).
+                    after_hdr = hdr[:18] if (ntxt.startswith("Section, ") and npno == pno) else None
+                    note_anchor = see_clause_m.group(0)[:24] if (ntxt.startswith("Section, ") and see_clause_m) else (hdr[:24] if after_hdr else ntxt[:28])
                     for sh in secs_here:
-                        repeal_ad[sh] = (targets, npno, f"Section {sh}", disp_txt, note_anchor, has_et_seq_see)
+                        repeal_ad[sh] = (targets, npno, f"Section {sh}", disp_txt, f"{after_hdr}||{note_anchor}" if after_hdr else note_anchor, has_et_seq_see)
                     j += 1
                 elif re.match(r"^A prior section \d", ntxt) and "103-337" not in ntxt:
                     # Skip older historical note embedded inside a section-notes run (e.g. 279, 5896, 8373)
@@ -1025,7 +1050,11 @@ def build_title10_ropma_table(pdf: Path) -> list[dict]:
                     )
         elif sec in repeal_ad:
             targets, pno, ftxt, ntxt, anchor, has_et_seq_see = repeal_ad[sec]
-            col = _locate_column(pdf, pno, anchor, bbox_cache)
+            if "||" in anchor:
+                after_part, target_part = anchor.split("||", 1)
+                pno, col = _locate_page_and_column(pdf, pno, target_part, bbox_cache, after_needle=after_part)
+            else:
+                pno, col = _locate_page_and_column(pdf, pno, anchor, bbox_cache)
             pinpoints = pp_pinpoints.get(sec, [])
             # Index exact forward destination subsections from the section's own `See section` note
             fwd_by_ns: dict[str, list[str | None]] = {}
@@ -1261,7 +1290,7 @@ def build_title49_positivelaw_table(pdf: Path, repo_root: Path) -> list[dict]:
 
     # Emit pure repeal stub (`335`)
     pno_335, ftxt_335, _ = stub_repeals["335"]
-    col_335 = _locate_column(pdf, pno_335, "335", bbox_cache)
+    col_335 = _locate_column(pdf, pno_335, "Section 335,", bbox_cache)
     rows.append(
         {
             "former_title": 49,
@@ -1279,9 +1308,11 @@ def build_title49_positivelaw_table(pdf: Path, repo_root: Path) -> list[dict]:
         }
     )
 
-    # Emit all positive-law HRN restated provisions (`334`, `501`, `508`, `10927 (note)`, `11506 (note)`)
+    # Emit all positive-law HRN restated provisions (`334`, `501`, `508`, `10927 (note)`, `11506 (note)`),
+    # anchoring on the dotted-leader HRN table entry `f"{new_sec}{new_sub or ''}.."` so body cross-references
+    # in the left column never shadow an HRN table in the right column.
     for fsec, fsub, fnote, qual, new_sec, new_sub, hrn_pno in hrn_entries:
-        col = _locate_column(pdf, hrn_pno, f"{new_sec}{new_sub or ''}", bbox_cache)
+        col = _locate_column(pdf, hrn_pno, f"{new_sec}{new_sub or ''} ..", bbox_cache)
         action_prefix = "Repealed; restated in" if fsec in stub_repeals else "Restated in"
         rows.append(
             {
@@ -1300,7 +1331,8 @@ def build_title49_positivelaw_table(pdf: Path, repo_root: Path) -> list[dict]:
             }
         )
 
-    # 3. Positive-law sections renumbered in place by Pub. L. 103-272 (`3101..3104 -> 31501..31504`)
+    # 3. Positive-law sections renumbered in place by Pub. L. 103-272 (`3101..3104 -> 31501..31504`),
+    #    anchored to the statutory credit `renumbered § <new_sec>` so page-bottom headings and TOC items never drift.
     renumbered_49: list[tuple[str, str, int]] = []
     for blk in re.split(r"(?m)^(?=§\d+[a-z]*\.)", full_49)[1:]:
         m_new = re.match(r"^§(\d+[a-z]*)\.", blk)
@@ -1310,7 +1342,10 @@ def build_title49_positivelaw_table(pdf: Path, repo_root: Path) -> list[dict]:
         m_am = re.search(r"1994-Pub\. L\. 103-272 renumbered section (\d+[a-z]*) of this title as this section", clean)
         if m_am:
             idx_in_full = full_49.find(blk)
-            pgs_before = re.findall(r"<<<PAGE:(\d+)>>>", full_49[:idx_in_full])
+            cred_pos = blk.find(f"renumbered §{new_sec}")
+            if cred_pos < 0:
+                cred_pos = blk.find("renumbered §")
+            pgs_before = re.findall(r"<<<PAGE:(\d+)>>>", full_49[:idx_in_full] + (blk[:cred_pos] if cred_pos >= 0 else ""))
             pno = int(pgs_before[-1]) if pgs_before else 25
             renumbered_49.append((m_am.group(1), new_sec, pno))
 
@@ -1323,7 +1358,7 @@ def build_title49_positivelaw_table(pdf: Path, repo_root: Path) -> list[dict]:
         raise SystemExit(f"unexpected Pub. L. 103-272 in-place renumberings: {renumbered_49}")
 
     for old_sec, new_sec, pno in renumbered_49:
-        col = _locate_column(pdf, pno, new_sec, bbox_cache)
+        col = _locate_column(pdf, pno, f"renumbered § {new_sec}", bbox_cache)
         rows.append(
             {
                 "former_title": 49,

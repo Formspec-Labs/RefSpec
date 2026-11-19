@@ -233,7 +233,7 @@ RECODIFICATIONS = (
         name="title-10-1994",
         former_title=10,
         table="usc-1996-title10-ropma-disposition.parquet",
-        digest="sha256:aab15c53b2836e486fc81c0d0b9468a688909cf5cd34f858ec69f54b851947c9",
+        digest="sha256:5a08734b3c8ea948340203e0e3c67a256a6a62c95ece863a1328a662691eace6",
         enacted_by=(
             "Pub. L. 103-337, div. A, title XVI, Oct. 5, 1994, 108 Stat. 2924; "
             "Pub. L. 104-106, div. A, title XV, § 1501(c)(26), Feb. 10, 1996, 110 Stat. 499"
@@ -337,7 +337,7 @@ RECODIFICATIONS = (
         name="title-49-1994-positivelaw",
         former_title=49,
         table="usc-1994-title49-positivelaw-disposition.parquet",
-        digest="sha256:69213d46b2745a36f08928cbba56bc542f0a3df1ecbd9f7a762fa8b92fbfd2d7",
+        digest="sha256:6387ca0487ec234ae04811e90d1490e9bf93407d1b3dd5f3fa40836e3bc21510",
         enacted_by="Pub. L. 103-272, §§ 1(c), (d), (e), 4(j)(9)(A), (11)(B), July 5, 1994, 108 Stat. 745, 1367, 1368",
         deeming_provision="Pub. L. 103-272, § 6(b)",
         source_url="https://www.govinfo.gov/content/pkg/USCODE-1994-title49/pdf/USCODE-1994-title49.pdf",
@@ -933,7 +933,9 @@ def _verdict_over(matched: tuple[DispositionRow, ...]) -> str:
 
 
 _INTRODUCTORY_MATTER = re.compile(
-    r"\((?:matter|words|provisions?|text)\s+(?:before|preceding)\b",
+    r"\((?:matter|words|provisions?|text)\s+(?:before|preceding)\s+"
+    r"(?:(?:subsec\.|par\.|subpar\.|cl\.|subsection|paragraph|subparagraph|clause)\s*)?"
+    r"\([0-9a-zA-Z]{1,4}\)",
     re.IGNORECASE,
 )
 
@@ -950,12 +952,15 @@ def _row_covers(row: DispositionRow, wanted: tuple[str, ...]) -> bool:
     span's members are not enumerable without inventing them, and the printed
     text says so.
 
-    Two exceptions narrow ``former_subsection is None``:
+    Two exceptions narrow chapeau / note entries:
     - A **note** row (``1374 note → 41706``, ``10927 (note) → 31138``) disposes
       of statutory notes under the section, not any subsection of it.
-    - An **introductory-matter** row (``16 U.S.C. 1a-2 (matter before (a))``,
-      ``41:35 (matter before subsec. (a) ...)``) disposes strictly of chapeau
-      text preceding the first subsection, never of ``(a)`` or later subsections.
+    - A **structural introductory-matter** row (``16 U.S.C. 1a-2 (matter before (a))``,
+      ``41:35 (matter before subsec. (a) ...)``, ``42:16654(a) (matter before par. (1))``)
+      disposes strictly of chapeau text preceding a structural unit (never
+      punctuation splits such as ``words before semicolon``), so it speaks for
+      its own level (``16654(a)``) and never for a deeper child (``1a-2(a)``,
+      ``16654(a)(1)``).
     """
 
     if row.former_note is not None:
@@ -968,4 +973,6 @@ def _row_covers(row: DispositionRow, wanted: tuple[str, ...]) -> bool:
         return False
     if "-" in printed:
         return wanted[0] == labels[0]
+    if len(wanted) > len(labels) and _INTRODUCTORY_MATTER.search(row.former_text):
+        return False
     return labels[: len(wanted)] == wanted[: len(labels)]

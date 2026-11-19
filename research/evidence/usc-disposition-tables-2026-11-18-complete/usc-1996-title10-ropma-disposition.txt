@@ -77,7 +77,7 @@
  231 right § 687	Renumbered § 12319
  232 right Prior section 689	Renumbered § 12320
  233 left  Prior section 690	Renumbered § 12321
- 241 right Section 715	Repealed; See section 12501 of this title.
+ 242 left  Section 715	Repealed; See section 12501 of this title.
  338 left  Prior section 1001	Renumbered § 12641
  338 left  Prior section 1002	Renumbered § 12642
  338 left  A prior section 1003	Repealed.
@@ -237,7 +237,7 @@
 1255 right Section 5458(c)	Repealed; See sections 12004(a), (d), (e)(2) and 12005(c), (d)(2) of this title.
 1255 right Section 5458(d)	Repealed; See sections 12004(a), (d), (e)(2) and 12005(c), (d)(2) of this title.
 1257 right Section 5506	Repealed.
-1265 left  Section 5600	Repealed; See section 12207 of this title.
+1265 right Section 5600	Repealed; See section 12207 of this title.
 1266 left  Section 5665	Repealed; See section 14306 of this title.
 1270 right Section 5891	Repealed; See section 14301 et seq. of this title.
 1270 right Section 5892	Repealed; See section 14001 et seq. of this title.

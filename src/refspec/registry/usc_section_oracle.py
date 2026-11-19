@@ -1387,14 +1387,17 @@ class UscSectionOracle:
         return verdict_of("absent")
 
     def is_current_release_section(self, title: int, section: str, *, appendix: bool = False) -> bool:
-        """Whether ``(title, section)`` is a live ``current`` section in the current OLRC release point."""
+        """Whether ``(title, section)`` is a live ``current`` section in the current OLRC release point.
+
+        Release-point range rows (all 1,751 of which carry noncurrent ``omitted``
+        or ``repealed`` statuses, e.g. ``10:3502–3511``) are deliberately
+        excluded so omitted endpoints are never treated as live current law.
+        """
 
         if appendix:
             return False
         norm = normalize_section(section)
-        if "current" in self.release_point_sections.get((title, norm), ()):
-            return True
-        return self._in_release_point_range(title, _section_key(norm))
+        return "current" in self.release_point_sections.get((title, norm), ())
 
     def subsection_verdict(self, title: int, section: str, sub: str) -> SubsectionVerdict:
         """Whether a section carries a lettered subsection — or whether we can know.

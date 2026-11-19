@@ -4108,7 +4108,9 @@ def _judge_usc_sections(
     #: The rows the chapter guard's first pass accepted (either row-locally
     #: qualified by ``ch`` or qualified under ``ch`` in a sibling edition of the
     #: same RIN), held back until the loop has written every sibling's verdict.
-    guard_candidates: list[tuple[dict[str, object], tuple[int, str, bool], object, bool]] = []
+    guard_candidates: list[
+        tuple[dict[str, object], tuple[int, str, bool], object, bool, str | None, str | None]
+    ] = []
     span_rows = abbreviated_span_rows = pinpoint_rows = pinpoint_resolved_rows = 0
     exists_not_at_edition = title_impossible = not_stated = 0
 
@@ -4168,8 +4170,16 @@ def _judge_usc_sections(
                         if usc_token_is_chapter_qualified(raw_txt, cand_ch):
                             rin_qualified_chapters.setdefault((rin_str, t_int), set()).add(cand_ch)
 
-    def publish(row: dict[str, object], pair: tuple[int, str, bool], moved: object) -> None:
+    def publish(
+        row: dict[str, object],
+        pair: tuple[int, str, bool],
+        moved: object,
+        *,
+        stated_span: str | None = None,
+        stated_pinpoint: str | None = None,
+    ) -> None:
         """Write one table answer onto a row, and count it. ONE writer."""
+        nonlocal span_rows, pinpoint_rows, pinpoint_resolved_rows
 
         # De-duplicated on the ADDRESS, so two printed rows that differ only by
         # a pinpoint into the same successor ("308(e)" beside "308") are one
@@ -4186,6 +4196,12 @@ def _judge_usc_sections(
         row["usc_disposition_pinpoint"] = (
             "".join(f"({label})" for label in moved.subsection) if moved.subsection_resolved else None
         )
+        if moved.members and stated_span is not None:
+            span_rows += 1
+            disposition_spans.add((pair[0], pair[1], normalize_section(stated_span)))
+        if stated_pinpoint is not None:
+            pinpoint_rows += 1
+            pinpoint_resolved_rows += bool(moved.subsection_resolved)
         disposition_rows[moved.verdict] += 1
         disposition_pairs[moved.verdict].add(pair)
         disposition_by_count[len(successors)] = disposition_by_count.get(len(successors), 0) + 1
@@ -4269,10 +4285,13 @@ def _judge_usc_sections(
                 if stated_span is not None or stated_pinpoint is not None:
                     # The bare answer above is the memoised one the verdict
                     # carries; this asks the same table the citation's own fuller
-                    # question. Same oracle, same memo, one key wider.
+                    # question. Only bare single-section citations (`stated_span is None`)
+                    # on the audited `(49, "3102")` exception clear `appendix`; an
+                    # unverified Appendix span such as `49 USC app 3102-3104` stays
+                    # gated out as `appendix=True` (`not-in-table`).
                     eff_appendix = (
                         False
-                        if pair[2] and (pair[0], pair[1]) in AUDITED_MISLABELLED_APPENDIX_PAIRS
+                        if stated_span is None and pair[2] and (pair[0], pair[1]) in AUDITED_MISLABELLED_APPENDIX_PAIRS
                         else pair[2]
                     )
                     moved = oracle.disposition(
@@ -4281,29 +4300,34 @@ def _judge_usc_sections(
                 if verdict.reason != DISPOSITION_REASON and not moved.answered:
                     pass
                 else:
-                    if stated_span is not None:
-                        span_rows += 1
-                        disposition_spans.add((pair[0], pair[1], normalize_section(stated_span)))
-                    if stated_pinpoint is not None:
-                        pinpoint_rows += 1
-                        pinpoint_resolved_rows += bool(moved.subsection_resolved)
                     # The guard's first half: the token is a CURRENT chapter of the
                     # title, the parser never read it as an appendix citation, and
                     # either THIS citation writes "ch" over the list OR a sibling
                     # edition of the same RIN explicitly chapter-qualifies this token
-                    # (e.g. `2105-AD66` writing `49 USC ch 401, 411, and 417` and
-                    # `ch 447 and 451` in Spring 2013 / Spring 2014 while dropping
-                    # `ch` in Fall 2013).
+                    # AND the rule's own CFR authority note does not attest that exact
+                    # U.S.C. section.
                     row_local_ch = usc_token_is_chapter_qualified(row["authority_text"], section)
-                    rin_history_ch = pair[1] in rin_qualified_chapters.get((str(row.get("rin") or ""), pair[0]), ())
+                    rin_history_ch = (
+                        not row_local_ch
+                        and pair[1] in rin_qualified_chapters.get((str(row.get("rin") or ""), pair[0]), ())
+                        and not (moved.answered and attested_in_own_cfr_note(row, pair[0], pair[1]))
+                    )
                     if (
                         not pair[2]
                         and (pair[0], pair[1]) in oracle.chapters
                         and (row_local_ch or rin_history_ch)
                     ):
-                        guard_candidates.append((row, pair, moved, row_local_ch))
+                        guard_candidates.append(
+                            (row, pair, moved, row_local_ch, stated_span, stated_pinpoint)
+                        )
                     else:
-                        publish(row, pair, moved)
+                        publish(
+                            row,
+                            pair,
+                            moved,
+                            stated_span=stated_span,
+                            stated_pinpoint=stated_pinpoint,
+                        )
 
         text = row["authority_text"]
         # The claims are part of the KEY, not a filter after it: which acts a
@@ -4362,8 +4386,8 @@ def _judge_usc_sections(
     # would be a range typed from memory. The chapter register is pinned, and
     # a chapter that exists today is current law whichever subtitle holds it.
     if guard_candidates:
-        wanted_rec = {(row["rin"], row["publication_id"], pair[0]) for row, pair, _, _ in guard_candidates}
-        wanted_rin = {(row["rin"], pair[0]) for row, pair, _, _ in guard_candidates}
+        wanted_rec = {(row["rin"], row["publication_id"], pair[0]) for row, pair, _, _, _, _ in guard_candidates}
+        wanted_rin = {(row["rin"], pair[0]) for row, pair, _, _, _, _ in guard_candidates}
         cites_current_law_rec: set[tuple[str, str, int]] = set()
         cites_current_law_rin: set[tuple[str, int]] = set()
         for other in authorities:
@@ -4379,14 +4403,20 @@ def _judge_usc_sections(
                 rec_key = (other["rin"], other["publication_id"], other["usc_title"])
                 if rec_key in wanted_rec:
                     cites_current_law_rec.add(rec_key)
-        for row, pair, moved, row_local_ch in guard_candidates:
+        for row, pair, moved, row_local_ch, cand_span, cand_pinpoint in guard_candidates:
             has_witness = (
                 (row["rin"], row["publication_id"], pair[0]) in cites_current_law_rec
                 if row_local_ch
                 else (row["rin"], pair[0]) in cites_current_law_rin
             )
             if not has_witness:
-                publish(row, pair, moved)
+                publish(
+                    row,
+                    pair,
+                    moved,
+                    stated_span=cand_span,
+                    stated_pinpoint=cand_pinpoint,
+                )
                 continue
             row["usc_disposition_refusal"] = CHAPTER_QUALIFIED_REFUSAL
             disposition_refusal_rows[CHAPTER_QUALIFIED_REFUSAL] += 1

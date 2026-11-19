@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Independent pair-level body-note cross-check for the 6 complete U.S.C. disposition tables.
 
 Verifies every extracted Parquet table in

@@ -3277,9 +3277,11 @@ def test_positive_law_appendix_gating_and_current_release_predicate() -> None:
     assert audited.verdict == "exists-as-recodified"
     assert [(s.title, s.section) for s in audited.successors] == [(49, "31502")]
 
-    # Current-release predicate distinguishes live sections (`49:20113`) from historical-only annuals (`10:3081`) and stubs (`49:335`).
+    # Current-release predicate distinguishes live sections (`49:20113`) from historical-only annuals (`10:3081`),
+    # omitted release-point ranges (`10:3511` in `10:3502–3511`), and repealed stubs (`49:335`).
     assert known.is_current_release_section(49, "20113") is True
     assert known.is_current_release_section(10, "3081") is False
+    assert known.is_current_release_section(10, "3511") is False
     assert known.is_current_release_section(49, "335") is False
 
 
