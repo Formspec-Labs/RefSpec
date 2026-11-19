@@ -102,13 +102,14 @@ from refspec.registry.unified_agenda_editions import (
 )
 from refspec.registry.usc_disposition_tables import (
     USC_DISPOSITION_TABLES_ARTIFACT,
+    USC_DISPOSITION_TABLES_ARTIFACTS,
     UscDispositionTables,
 )
 
 # The third closed vocabulary called VERDICTS, aliased for the same reason the
 # second one is: the recodification tables answer exists-as-recodified /
-# repealed-no-successor / stated-without-successor / not-in-table /
-# no-table-for-title, which is neither of the other two.
+# repealed-no-successor / eliminated-no-successor / stated-without-successor /
+# not-in-table / no-table-for-title, which is neither of the other two.
 from refspec.registry.usc_disposition_tables import VERDICTS as DISPOSITION_VERDICTS
 from refspec.registry.usc_section_oracle import (
     CANDIDATE_ONLY_RULES,
@@ -513,9 +514,10 @@ LEGAL_AUTHORITIES_SCHEMA = pa.schema(
         #: reason.** They answer a different question: whether the oracle can
         #: see the section (it cannot -- no OLRC archive year publishes a
         #: Title 49 Appendix) against what Pub. L. 103-272 § 6(b) deems a
-        #: citation to it to mean. Five values, the table's own
+        #: citation to it to mean. Six values, the table's own
         #: (usc_disposition_tables.VERDICTS): exists-as-recodified,
-        #: repealed-no-successor, stated-without-successor, not-in-table,
+        #: repealed-no-successor, eliminated-no-successor,
+        #: stated-without-successor, not-in-table,
         #: no-table-for-title. "not-in-table" is an ANSWER -- the pinned table
         #: was read and lists no such former section -- and only as wide as
         #: the table: a section repealed before 1994 was never in it.
@@ -564,11 +566,12 @@ LEGAL_AUTHORITIES_SCHEMA = pa.schema(
         pa.field("usc_disposition_refusal", pa.string(), nullable=True),
         #: WHICH pinned table answered, by its own name in
         #: usc_disposition_tables.RECODIFICATIONS ("title-49-1994", reading
-        #: usc-1994-title49-disposition.parquet). One table is pinned today
-        #: and six more recodifications are not, so a consumer must be able to
-        #: tell a verdict from one table from a verdict from another rather
-        #: than infer the source from the title. NULL exactly where
-        #: usc_disposition_verdict is.
+        #: usc-1994-title49-disposition.parquet). Three tables are pinned today
+        #: (Titles 31, 46 / 46 App., and 49) and five more recodifications are
+        #: not, so a consumer must be able to tell a verdict from one table from
+        #: a verdict from another rather than infer the source from the title.
+        #: This column stays gated on title_49_appendix_not_published, so only
+        #: title-49-1994 fires here. NULL exactly where usc_disposition_verdict is.
         pa.field("usc_disposition_table", pa.string(), nullable=True),
         #: WHICH non-U.S.C. numbering universe occupies the U.S.C. slot, on a
         #: row ``authority_type`` already reads as ``usc``. Additive only and
@@ -1263,7 +1266,11 @@ _USC_SECTION_ORACLE_DIR = Path(__file__).resolve().parents[3] / USC_SECTION_ORAC
 #: coverage hole it cannot answer from its own sources. Digest-pinned inside
 #: :mod:`refspec.registry.usc_disposition_tables` and re-checked on every load,
 #: so a swapped directory refuses there rather than answering differently here.
-_USC_DISPOSITION_TABLES_DIR = Path(__file__).resolve().parents[3] / USC_DISPOSITION_TABLES_ARTIFACT
+_USC_DISPOSITION_TABLES_ROOT = Path(__file__).resolve().parents[3]
+_USC_DISPOSITION_TABLES_DIR = _USC_DISPOSITION_TABLES_ROOT / USC_DISPOSITION_TABLES_ARTIFACT
+_USC_DISPOSITION_TABLES_DIRS = tuple(
+    _USC_DISPOSITION_TABLES_ROOT / artifact for artifact in USC_DISPOSITION_TABLES_ARTIFACTS
+)
 #: The Code's own source credits -- the second, independent act-section source
 #: :func:`refspec.registry.act_resolution.resolve_act_relative_citation`
 #: consults beside Table III. Digest-pinned in that module, so a swapped
@@ -1303,9 +1310,9 @@ _EO_ROSTER_DIR = Path(__file__).resolve().parents[3] / EO_ROSTER_ARTIFACT
 def _usc_disposition_tables() -> UscDispositionTables | None:
     """The pinned recodification tables, or None where this tree lacks them."""
 
-    if not _USC_DISPOSITION_TABLES_DIR.is_dir():
+    if not all(directory.is_dir() for directory in _USC_DISPOSITION_TABLES_DIRS):
         return None
-    return UscDispositionTables.from_directory(_USC_DISPOSITION_TABLES_DIR)
+    return UscDispositionTables.from_repository(_USC_DISPOSITION_TABLES_ROOT)
 
 
 def _usc_section_oracle() -> UscSectionOracle | None:
@@ -9474,9 +9481,12 @@ def build_unified_agenda_parquet(
             "'not-in-table' is an ANSWER and not a silence -- the pinned table was read "
             "and lists no such former section -- and it is only as wide as the table: "
             "the table lists what existed to be restated in 1994, so a section repealed "
-            "before that was never in it. One table is pinned; six other "
-            "recodifications (31, 41, 46, 51, 54, 34, 10 ch. 1201) are not, which is "
-            "why usc_disposition_table names which one answered"
+            "before that was never in it. Three tables are pinned (Titles 31, "
+            "46 / 46 App., and 49); five other recodifications (10 subtitle E / "
+            "ch. 1205, 34, 41, 51, 54) are not, which is why "
+            "usc_disposition_table names which one answered (and this column "
+            "stays gated on title_49_appendix_not_published, so only "
+            "title-49-1994 fires here)"
         ),
         "theTableIsAskedTheCITATIONSOwnQuestion": (
             "the recodification table is asked over exactly what the citation states "
@@ -10224,7 +10234,7 @@ def main(argv: list[str] | None = None) -> int:
         path
         for path in (
             _USC_SECTION_ORACLE_DIR,
-            _USC_DISPOSITION_TABLES_DIR,
+            *_USC_DISPOSITION_TABLES_DIRS,
             _USC_SOURCE_CREDIT_DIR,
             _EO_ROSTER_DIR,
             args.act_index,

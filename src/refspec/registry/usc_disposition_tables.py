@@ -25,19 +25,27 @@ corresponding provision enacted by it.
 
 What this module reads
 ----------------------
-``research/evidence/usc-disposition-tables-2026-08-23`` — the govinfo volume
-pinned by sha256 and byte length, the committed extractor, and the derived
-Parquet, all described in that directory's README. The Parquet is 3,102 rows,
-one per **(former section token x successor)**, over 1,852 printed entries and
-909 former sections; every row carries the printed former field and the printed
-value verbatim beside the parsed address, because the prose that says *which
-words* of a former section moved (``(1st sentence)``, ``(related to
-standards)``) is not an address and is not parsed into one.
+Each pinned recodification names its own sealed artifact directory under
+``research/evidence/`` (:data:`USC_DISPOSITION_TABLES_ARTIFACTS`):
 
-Only that table is read. The digest is restated here rather than read from the
-README beside it, for the reason :mod:`~refspec.registry.usc_section_oracle`
-gives: reading the pin *from* the paperwork in the directory would
-authenticate a swapped directory against its own paperwork.
+* ``research/evidence/usc-disposition-tables-2026-08-23`` — Title 49 (Pub. L.
+  103-272, 1994), 3,102 rows over 1,852 printed entries and 909 former sections;
+* ``research/evidence/usc-disposition-tables-2026-11-18`` — Title 31 (Pub. L.
+  97-258, 1982, as supplemented by Pub. L. 97-452, 1983; 1,563 rows over 965
+  printed entries and 1,158 former sections) and Title 46 / Title 46 Appendix
+  (Pub. L. 98-89 through Pub. L. 109-304, 1983–2006; 2,169 rows over 1,344
+  printed entries and 1,299 former sections).
+
+Every row is one **(former section token x successor)** carrying the printed
+former field and the printed value verbatim beside the parsed address, because
+the prose that says *which words* of a former section moved (``(1st sentence)``,
+``(related to standards)``) is not an address and is not parsed into one.
+
+Only those pinned tables are read. Every digest is restated here rather than
+read from the README beside it, for the reason
+:mod:`~refspec.registry.usc_section_oracle` gives: reading the pin *from* the
+paperwork in the directory would authenticate a swapped directory against its
+own paperwork.
 
 The rules
 ---------
@@ -84,11 +92,16 @@ already carries the warning that expanding a span is a claim about every
 section between its endpoints. Here the claim is only ever about sections the
 1994 volume itself prints, so the enumeration cannot invent one.
 
-**Repealed is not the same as pointed elsewhere.** ``Rep.`` and ``Elim.`` name
-no successor and mean the provision is gone; ``(See § 2 of Pub. L. 97-449.)``
-names no successor either, but means *another act* made the transfer.
-``1655(a)(4)`` is the specimen. Publishing that as ``repealed-no-successor``
-would state something the table denies, so it has its own verdict.
+**Repealed, eliminated, and pointed elsewhere are three different facts.**
+``Rep.`` means the provision was legally repealed (``repealed-no-successor``).
+``Elim.`` is an editorial omission from the title — the underlying statutory
+provision may remain in force or codified elsewhere (for example, former
+``46 App. § 111`` prints ``Elim.`` while its substance remains at
+``19 U.S.C. § 288``) — so it gets its own verdict (``eliminated-no-successor``)
+and is never published as a repeal. ``(See § 2 of Pub. L. 97-449.)`` names no
+successor either, but means *another act* made the transfer (``1655(a)(4)`` is
+the specimen), so it — and any span mixing non-successor statuses such as
+``Rep.`` beside ``Elim.`` — answers ``stated-without-successor``.
 
 **An absence from the table is only as wide as the table.** The Title 49 table
 lists the former sections that *existed to be restated in 1994*; a section
@@ -98,15 +111,15 @@ repealed before the 1978 or 1983 codifications was never in it. So
 :data:`~refspec.registry.usc_section_oracle.ABSENT_CAVEATS`.
 
 **And a title with no pinned table is not a title with nothing to say.** The
-same shape of table exists for every other positive-law recodification — 31
-(1982), 41 (2011), 46 (1983-2006), 51 (2010), 54 (2014), 34 (2017), 10 ch. 1201
-— and § E of the same review names two of them as live misses (``31 USC 483a``
-→ 9701; ``10 U.S.C. 593`` → 12203). Only Title 49 is pinned today, so a
-question about title 31 gets ``no-table-for-title`` and never ``not-in-table``:
-a consumer that read the second as "no recodification" would invert the answer.
-:data:`RECODIFICATIONS_NOT_PINNED` names what is missing, and adding one is
-adding a pinned directory and a row in :data:`RECODIFICATIONS` — nothing about
-Title 49 is special-cased in the interface.
+same shape of table exists for other positive-law recodifications — 10 ch. 1201
+(1994), 34 (2017), 41 (2011), 51 (2010), 54 (2014) — and § H of the review
+names ``10 U.S.C. 593`` → 12203. Titles 31, 46, and 49 are pinned today; a
+question about an unpinned title gets ``no-table-for-title`` and never
+``not-in-table``: a consumer that read the second as "no recodification" would
+invert the answer. :data:`RECODIFICATIONS_NOT_PINNED` names what is still
+missing, and adding one is adding a pinned directory and a row in
+:data:`RECODIFICATIONS` — nothing about any title is special-cased in the
+interface.
 
 What this module is NOT
 -----------------------
@@ -133,6 +146,7 @@ __all__ = [
     "RECODIFICATIONS_NOT_PINNED",
     "STATUSES",
     "USC_DISPOSITION_TABLES_ARTIFACT",
+    "USC_DISPOSITION_TABLES_ARTIFACTS",
     "VERDICTS",
     "Disposition",
     "DispositionRow",
@@ -143,8 +157,15 @@ __all__ = [
     "normalize_subsection",
 ]
 
-#: The sealed artifact, relative to the repository root.
+#: The initial sealed artifact directory (Title 49), relative to the repository root.
 USC_DISPOSITION_TABLES_ARTIFACT = "research/evidence/usc-disposition-tables-2026-08-23"
+#: The 2026-11-18 sealed artifact directory (Title 31 and Title 46 / 46 App.).
+_USC_DISPOSITION_TABLES_2026_11_18 = "research/evidence/usc-disposition-tables-2026-11-18"
+#: Every sealed artifact directory read by :meth:`UscDispositionTables.from_repository`.
+USC_DISPOSITION_TABLES_ARTIFACTS: tuple[str, ...] = (
+    USC_DISPOSITION_TABLES_ARTIFACT,
+    _USC_DISPOSITION_TABLES_2026_11_18,
+)
 
 
 @dataclass(frozen=True)
@@ -154,7 +175,8 @@ class Recodification:
     The interface is per-recodification on purpose: a table is a document with
     a date, an enacting law, and a deeming provision, and two of them can
     disagree about the same former title (title 46 was recodified in pieces
-    from 1983 to 2006). Adding one is adding a member here and a pinned file.
+    from 1983 to 2006, consolidated in the 2006 edition's front-matter table).
+    Adding one is adding a member here and a pinned file.
     """
 
     #: Stable name, used in :attr:`Disposition.recodification`.
@@ -173,9 +195,54 @@ class Recodification:
     source_url: str
     source_digest: str
     source_bytes: int
+    #: Sealed artifact directory containing :attr:`table`, relative to repo root.
+    artifact: str = USC_DISPOSITION_TABLES_ARTIFACT
+    #: Date the printed source volume was fetched (ISO ``YYYY-MM-DD``).
+    source_fetched: str = "2026-08-23"
+    #: RefSpec-owned relative path where the raw source PDF lives (or is
+    #: materialized by ``verify_registry_audit.py``). When ``None``, defaults to
+    #: ``<artifact>/<basename(source_url)>``.
+    source_local_path: str | None = None
 
 
 RECODIFICATIONS = (
+    Recodification(
+        name="title-31-1982",
+        former_title=31,
+        table="usc-1994-title31-disposition.parquet",
+        digest="sha256:febacca0f59193fc4524ce780d29ba5440d8ee47f8041f133fda161d0c765cd5",
+        enacted_by=(
+            "Pub. L. 97-258, § 1, Sept. 13, 1982, 96 Stat. 877; "
+            "Pub. L. 97-452, § 1, Jan. 12, 1983, 96 Stat. 2467"
+        ),
+        deeming_provision="Pub. L. 97-258, § 4(b); Pub. L. 97-452, § 3(b)",
+        source_url="https://www.govinfo.gov/content/pkg/USCODE-1994-title31/pdf/USCODE-1994-title31.pdf",
+        source_digest="sha256:3b319dc182915b409d01c26d5fe46326e0416f5e725aa556738d17ba60340f0a",
+        source_bytes=2_088_477,
+        artifact=_USC_DISPOSITION_TABLES_2026_11_18,
+        source_fetched="2026-11-18",
+        source_local_path="output/registry-real-data-sources/USCODE-1994-title31.pdf",
+    ),
+    Recodification(
+        name="title-46-2006",
+        former_title=46,
+        table="usc-2006-title46-disposition.parquet",
+        digest="sha256:2b6a315482a8b8ba142360ea3303e55e6e8e07d632ebe4c3a1a24d38a9efca84",
+        enacted_by=(
+            "Pub. L. 98-89, Aug. 26, 1983, 97 Stat. 500; "
+            "Pub. L. 99-509, Oct. 21, 1986, 100 Stat. 1913; "
+            "Pub. L. 100-424, Sept. 9, 1988, 102 Stat. 1591; "
+            "Pub. L. 100-710, Nov. 23, 1988, 102 Stat. 4738; "
+            "Pub. L. 109-304, Oct. 6, 2006, 120 Stat. 1485"
+        ),
+        deeming_provision="Pub. L. 98-89, § 2(b); Pub. L. 99-509, § 5103(b); Pub. L. 100-710, § 105(a); Pub. L. 109-304, § 18(c)",
+        source_url="https://www.govinfo.gov/content/pkg/USCODE-2006-title46/pdf/USCODE-2006-title46.pdf",
+        source_digest="sha256:6bda1578ab30e947d3f7e746bacd53048a197ef80c946f0f7300276c97a5887d",
+        source_bytes=2_449_872,
+        artifact=_USC_DISPOSITION_TABLES_2026_11_18,
+        source_fetched="2026-11-18",
+        source_local_path="output/registry-real-data-sources/USCODE-2006-title46.pdf",
+    ),
     Recodification(
         name="title-49-1994",
         former_title=49,
@@ -185,33 +252,38 @@ RECODIFICATIONS = (
         deeming_provision="Pub. L. 103-272, § 6(b)",
         source_url="https://www.govinfo.gov/content/pkg/USCODE-1994-title49/pdf/USCODE-1994-title49.pdf",
         source_digest="sha256:66f004679e27e0d16356e14b79cb3b4f7ebf63d91307435fa8f53c95bcc2848d",
-        source_bytes=5165242,
+        source_bytes=5_165_242,
+        artifact=USC_DISPOSITION_TABLES_ARTIFACT,
+        source_fetched="2026-08-23",
     ),
 )
 
 #: The recodifications this module does not read yet, so that
 #: ``no-table-for-title`` has somewhere to point and the gap is a list rather
 #: than a silence. Each is a printed disposition table in the front matter of
-#: the enacting edition, reachable the same way Title 49's was.
+#: the enacting edition, reachable the same way Titles 31, 46, and 49 were.
 RECODIFICATIONS_NOT_PINNED: Mapping[int, str] = {
-    10: "Pub. L. 103-337 (1994), ch. 1201 — reserve component renumbering; the review's § H row 8 (593 → 12203)",
-    31: "Pub. L. 97-258 (1982) — Money and Finance; the review's § E row 7 (483a → 9701)",
-    34: "Pub. L. 115-31 (2017) — Crime Control and Law Enforcement",
+    10: "Pub. L. 103-337 (1994), subtitle E (incl. ch. 1205) — reserve component renumbering; the review's § H row 8 (593 → 12203)",
+    34: "OLRC editorial reclassification (Sept. 1, 2017) — Crime Control and Law Enforcement (reclassified from former provisions of Titles 18, 28, and 42)",
     41: "Pub. L. 111-350 (2011) — Public Contracts; the review's § E row 10 neighbours",
-    46: "Pub. L. 98-89 (1983) through Pub. L. 109-304 (2006) — Shipping, in pieces",
     51: "Pub. L. 111-314 (2010) — National and Commercial Space Programs",
     54: "Pub. L. 113-287 (2014) — National Park Service and Related Programs",
 }
 
-#: What a verdict can be. The first four answer the question; the last says the
+#: What a verdict can be. The first five answer the question; the last says the
 #: question was not asked of anything.
 VERDICTS = (
     #: At least one row names a successor. ALL of them are returned.
     "exists-as-recodified",
-    #: Every matching row is ``Rep.`` or ``Elim.`` — the provision is gone.
+    #: Every matching row is ``Rep.`` — the provision was legally repealed.
     "repealed-no-successor",
-    #: Every matching row names no successor, and at least one points at
-    #: another instrument instead (``(See § 2 of Pub. L. 97-449.)``).
+    #: Every matching row is ``Elim.`` — editorial omission from the title
+    #: (e.g. transferred or still codified elsewhere, such as 46 App. § 111
+    #: remaining at 19 U.S.C. § 288), not a legal repeal.
+    "eliminated-no-successor",
+    #: Every matching row names no successor, and the rows point at another
+    #: instrument (``(See § 2 of Pub. L. 97-449.)``) or mix non-successor
+    #: statuses (such as a span mixing ``Rep.`` and ``Elim.``).
     "stated-without-successor",
     #: The pinned table for that title lists no such former section.
     "not-in-table",
@@ -224,8 +296,6 @@ STATUSES = ("restated", "restated-as-note", "repealed", "eliminated", "see-refer
 #: The statuses that name a successor, and so make a verdict of
 #: ``exists-as-recodified``.
 _WITH_SUCCESSOR = frozenset({"restated", "restated-as-note"})
-#: The statuses that say the provision is gone rather than moved.
-_GONE = frozenset({"repealed", "eliminated"})
 
 #: What a ``not-in-table`` verdict does NOT exclude, attached to every one of
 #: them. The table lists the former sections that existed to be restated when
@@ -246,7 +316,7 @@ _GROUP = re.compile(r"\(([0-9A-Za-z]{1,4})\)")
 #: ``cfr_authority_notes._section_order`` restates it: it is private there, and
 #: this module may not import in that direction.
 #: ``test_the_span_order_is_the_oracles_over_every_former_section`` runs both
-#: over all 909 former sections the pinned table lists and holds the copy true.
+#: over every former section the pinned tables list and holds the copy true.
 #: Comparing numeric prefixes alone would order ``1421a`` before ``1421``.
 _LEADING_DIGITS = re.compile(r"^(\d+)(.*)$")
 
@@ -267,8 +337,9 @@ def normalize_subsection(value: object) -> tuple[str, ...]:
 
     ``"(a)(1)"`` -> ``("a", "1")``. Case is folded because a bare ``"d"`` from a
     citation cannot express whether the print meant ``(d)`` or ``(D)``, and no
-    row in the pinned table opens its path with an uppercase label, so nothing
-    is conflated by folding.
+    former section in the pinned tables distinguishes uppercase and lowercase
+    labels at the same path position (e.g. Title 31 § 232 uses ``(A)``–``(F)``
+    with no lowercase ``(a)``–``(f)``), so nothing is conflated by folding.
     """
 
     text = str(value or "").strip().translate(_DASHES)
@@ -404,13 +475,18 @@ def _verify_pinned_parquet(directory: Path, name: str, expected: str) -> Path:
 
 @dataclass(frozen=True)
 class UscDispositionTables:
-    """The pinned recodification tables, loaded from one verified directory."""
+    """The pinned recodification tables, loaded from verified sealed directories."""
 
     directory: Path
+    #: When bound via :meth:`from_repository`, each recodification is read from
+    #: ``repository_root / recodification.artifact`` so sealed artifact
+    #: directories stay untouched without duplicating bytes. When ``None``
+    #: (:meth:`from_directory`), every pinned table is read flat from :attr:`directory`.
+    repository_root: Path | None = None
 
     @classmethod
     def from_directory(cls, directory: Path | str) -> UscDispositionTables:
-        """Bind to a sealed artifact directory, verifying every digest first."""
+        """Bind to a flat directory carrying every pinned table, verifying every digest first."""
 
         tables = cls(directory=Path(directory))
         tables.verify()
@@ -418,27 +494,40 @@ class UscDispositionTables:
 
     @classmethod
     def from_repository(cls, root: Path | str) -> UscDispositionTables:
-        """Bind to the copy this repository carries."""
+        """Bind to the sealed artifact directories this repository carries."""
 
-        return cls.from_directory(Path(root) / USC_DISPOSITION_TABLES_ARTIFACT)
+        root_path = Path(root)
+        tables = cls(directory=root_path / USC_DISPOSITION_TABLES_ARTIFACT, repository_root=root_path)
+        tables.verify()
+        return tables
+
+    def _directory_for(self, recodification: Recodification) -> Path:
+        if self.repository_root is not None:
+            return self.repository_root / recodification.artifact
+        return self.directory
 
     def verify(self) -> None:
         """Hash every pinned table, whatever this caller goes on to ask.
 
-        One table today, so this costs 0.1 ms; it is written over
-        :data:`RECODIFICATIONS` rather than over the one file because the next
-        table must be verified by existing code, not by a reader who
-        remembered to add it. Same reason
-        :meth:`~refspec.registry.usc_section_oracle.UscSectionOracle.verify`
-        hashes all six of its tables rather than the one a caller reads.
+        Written over :data:`RECODIFICATIONS` rather than over one file so every
+        pinned table is verified by existing code at bind time, and any
+        duplicate ``former_title`` fails loudly instead of silently overwriting.
         """
 
+        _ = self._by_title
         for recodification in RECODIFICATIONS:
-            _verify_pinned_parquet(self.directory, recodification.table, recodification.digest)
+            _verify_pinned_parquet(
+                self._directory_for(recodification), recodification.table, recodification.digest
+            )
 
     @cached_property
     def _by_title(self) -> Mapping[int, Recodification]:
-        return {recodification.former_title: recodification for recodification in RECODIFICATIONS}
+        by_title: dict[int, Recodification] = {}
+        for recodification in RECODIFICATIONS:
+            if recodification.former_title in by_title:
+                raise ValueError(f"duplicate former_title in RECODIFICATIONS: {recodification.former_title}")
+            by_title[recodification.former_title] = recodification
+        return by_title
 
     @cached_property
     def _rows(self) -> Mapping[int, Mapping[str, tuple[DispositionRow, ...]]]:
@@ -446,9 +535,12 @@ class UscDispositionTables:
 
         import pyarrow.parquet as pq
 
+        _ = self._by_title
         out: dict[int, dict[str, list[DispositionRow]]] = {}
         for recodification in RECODIFICATIONS:
-            path = _verify_pinned_parquet(self.directory, recodification.table, recodification.digest)
+            path = _verify_pinned_parquet(
+                self._directory_for(recodification), recodification.table, recodification.digest
+            )
             table = pq.read_table(path)
             columns = {name: table.column(name).to_pylist() for name in table.schema.names}
             sections: dict[str, list[DispositionRow]] = {}
@@ -626,8 +718,10 @@ def _verdict_over(matched: tuple[DispositionRow, ...]) -> str:
 
     if any(row.successor is not None for row in matched):
         return "exists-as-recodified"
-    if all(row.status in _GONE for row in matched):
+    if all(row.status == "repealed" for row in matched):
         return "repealed-no-successor"
+    if all(row.status == "eliminated" for row in matched):
+        return "eliminated-no-successor"
     return "stated-without-successor"
 
 

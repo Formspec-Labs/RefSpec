@@ -1,0 +1,311 @@
+{
+  "title_31": {
+    "hrn_crosscheck": {
+      "exact_in_table": 528,
+      "post_1982_revised_title31_self_refs": [
+        "1305",
+        "3302",
+        "3331",
+        "3701",
+        "3702",
+        "5103",
+        "5112",
+        "5132",
+        "5154",
+        "6102",
+        "6501",
+        "9101",
+        "9107"
+      ],
+      "total_31_tokens_in_body": 541,
+      "truly_missing": []
+    },
+    "hrn_destination_pairs": {
+      "matched_exact": 272,
+      "total_leader_pairs": 275,
+      "unexpected_mismatches": [],
+      "verified_olrc_divergences": {
+        "1001->321": "\u00a7 321(c) HRN cross-references 31:1001 beside 1002; p. 5 front-matter table maps 1001 -> 301",
+        "665->1349": "USCODE-1994-title31.pdf p. 4 front-matter table prints 1549 (OLRC typo for 1349 in \u00a7 1349 HRN)",
+        "665->1350": "USCODE-1994-title31.pdf p. 4 front-matter table prints 1550 (OLRC typo for 1350 in \u00a7 1350 HRN)"
+      }
+    },
+    "independent_specimens": {
+      "checked_count": 4,
+      "mismatches": [],
+      "verified_destinations": {
+        "22a": [
+          [
+            31,
+            "1108",
+            "restated"
+          ]
+        ],
+        "324b-1": [
+          [
+            31,
+            "5112",
+            "restated"
+          ]
+        ],
+        "483a": [
+          [
+            31,
+            "9701",
+            "restated"
+          ]
+        ],
+        "725a": [
+          [
+            null,
+            null,
+            "eliminated"
+          ]
+        ]
+      }
+    },
+    "page2_left_entries": 91,
+    "specimen_483a": {
+      "confirmed_in_1994_s9701_hrn": true,
+      "loc_1982_check": {
+        "bytes": 208275,
+        "contains_483a_and_9701": true,
+        "file": "uscode1982-013031001.pdf",
+        "sha256": "646296b4c59e422b968ef236fec95af996af7ea4af54732b5acc059202aa6804"
+      },
+      "table_rows": [
+        [
+          "483a",
+          31,
+          "9701",
+          "restated"
+        ]
+      ]
+    },
+    "stats": {
+      "distinct_former_section_subsection": 1458,
+      "distinct_former_sections": 1158,
+      "distinct_successors": 413,
+      "emitted_rows": 1563,
+      "former_sections_only_eliminated": 21,
+      "former_sections_only_repealed": 492,
+      "former_sections_with_multiple_rows": 103,
+      "former_sections_with_successor_and_repealed": 23,
+      "pages": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "printed_entries": 965,
+      "statuses": {
+        "eliminated": 21,
+        "repealed": 536,
+        "restated": 998,
+        "restated-as-note": 6,
+        "see-reference": 2
+      },
+      "successors_outside_title": {
+        "2": 32,
+        "5": 1,
+        "7": 1,
+        "10": 26,
+        "12": 1,
+        "15": 1,
+        "16": 7,
+        "18": 3,
+        "19": 5,
+        "21": 3,
+        "22": 3,
+        "24": 1,
+        "25": 3,
+        "26": 2,
+        "28": 4,
+        "32": 1,
+        "33": 3,
+        "37": 2,
+        "38": 1,
+        "39": 1,
+        "40": 2,
+        "41": 1,
+        "42": 2,
+        "43": 2,
+        "48": 1
+      }
+    }
+  },
+  "title_46": {
+    "hrn_46_app_crosscheck": {
+      "exact_in_table": 283,
+      "missing": [],
+      "total_tokens": 283
+    },
+    "hrn_46_pre_codification_crosscheck": {
+      "exact_in_table": 280,
+      "total_tokens_under_2100": 281,
+      "truly_missing": [],
+      "verified_olrc_hrn_typos": {
+        "525h": "OLRC printed HRN typo in \u00a7 4103 for 46:526h (table maps 526h -> 4103)"
+      }
+    },
+    "hrn_destination_pairs": {
+      "matched_exact": 208,
+      "total_leader_pairs": 209,
+      "unexpected_mismatches": [],
+      "verified_olrc_divergences": {
+        "1244->113": "\u00a7 113 HRN cites 46 App.:1244(a); p. 7 front-matter table maps 1244(a) -> 109"
+      }
+    },
+    "independent_specimens": {
+      "checked_count": 13,
+      "mismatches": [],
+      "verified_destinations": {
+        "111": [
+          [
+            null,
+            null,
+            "eliminated"
+          ]
+        ],
+        "1183a": [
+          [
+            46,
+            "53101",
+            "restated-as-note"
+          ]
+        ],
+        "1300": [
+          [
+            46,
+            "30701",
+            "restated-as-note"
+          ]
+        ],
+        "454": [
+          [
+            33,
+            "1233",
+            "restated"
+          ]
+        ],
+        "455": [
+          [
+            33,
+            "1234",
+            "restated"
+          ]
+        ],
+        "456": [
+          [
+            33,
+            "1235",
+            "restated"
+          ]
+        ],
+        "457": [
+          [
+            33,
+            "1236",
+            "restated"
+          ]
+        ],
+        "466c": [
+          [
+            15,
+            "1824a",
+            "restated"
+          ]
+        ],
+        "688": [
+          [
+            46,
+            "30104",
+            "restated"
+          ],
+          [
+            46,
+            "30105",
+            "restated"
+          ]
+        ],
+        "72": [
+          [
+            46,
+            "14503",
+            "restated"
+          ]
+        ],
+        "75": [
+          [
+            46,
+            "14512",
+            "restated"
+          ]
+        ],
+        "845a": [
+          [
+            null,
+            null,
+            "repealed"
+          ]
+        ],
+        "845b": [
+          [
+            null,
+            null,
+            "repealed"
+          ]
+        ]
+      }
+    },
+    "loc_1988_check": {
+      "bytes": 155564,
+      "file": "uscode1988-018046000.pdf",
+      "notes_transfer_to_46_appendix": true,
+      "sha256": "46917f78ef80ef7f0c85a0196620444e659a4ce48263cff44b2324eab74f67d5"
+    },
+    "olrc_1994_2005_46_app_crosscheck": {
+      "exact_in_table": 434,
+      "missing": [],
+      "total_olrc_46a_sections": 434
+    },
+    "stats": {
+      "distinct_former_section_subsection": 1836,
+      "distinct_former_sections": 1299,
+      "distinct_successors": 769,
+      "emitted_rows": 2169,
+      "former_sections_only_eliminated": 2,
+      "former_sections_only_repealed": 602,
+      "former_sections_with_multiple_rows": 200,
+      "former_sections_with_successor_and_repealed": 32,
+      "pages": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "printed_entries": 1344,
+      "statuses": {
+        "eliminated": 2,
+        "repealed": 654,
+        "restated": 1457,
+        "restated-as-note": 50,
+        "see-reference": 6
+      },
+      "successors_outside_title": {
+        "15": 2,
+        "18": 2,
+        "19": 1,
+        "33": 4,
+        "49": 12
+      }
+    }
+  }
+}

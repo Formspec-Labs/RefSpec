@@ -6805,6 +6805,26 @@ def test_the_note_verdict_census_is_the_receipts(con) -> None:
 _DISPOSITION_SCRATCH_BUILDER = "sha256:0f602120"
 
 
+def _eliminated_verdict_landed() -> bool:
+    """Whether the built artifact's receipt reflects the ``eliminated-no-successor`` verdict split.
+
+    Splitting editorial ``Elim.`` out of ``repealed-no-successor`` moves 7 rows
+    (``49:49`` and ``49:461``, 4 texts, 5 RINs, 2 pairs) in the Title 49
+    disposition census from ``repealed-no-successor`` to
+    ``eliminated-no-successor``. Both the retained pre-split artifact (117
+    repealed) and any post-split rebuild (110 repealed + 7 eliminated) are
+    exact pins chosen by this predicate so neither breaks while the retained
+    generation awaits its next rebuild, and any OTHER drift fails loudly.
+    """
+
+    import json
+
+    declared = json.loads((ARTIFACT / "receipt.json").read_text(encoding="utf-8"))["contract"][
+        "declaredClassifications"
+    ]
+    return "eliminated-no-successor" in declared.get("uscDispositionVerdictRows", {})
+
+
 @pytest.mark.slow
 def test_the_recodification_answers_the_one_unknown_it_can(con) -> None:
     """2,548 rows the section fence refuses, and what an Act did with them.
@@ -6833,6 +6853,26 @@ def test_the_recodification_answers_the_one_unknown_it_can(con) -> None:
     # (49:1341 and 49:201), because "49 USC 1341(c)" points at the one
     # subsection the volume prints as repealed while bare "49 USC 1341" takes
     # (a) and (b) to 106. The question is the citation's, not the pair's.
+    expected_verdicts = (
+        {
+            # Post-split rebuild: editorial `Elim.` (`49:49`, `49:461`; 7 rows, 4 texts,
+            # 5 RINs, 2 pairs) splits out of `repealed-no-successor` into
+            # `eliminated-no-successor`.
+            "exists-as-recodified": (2_181, 213, 301, 116),
+            "repealed-no-successor": (110, 29, 24, 18),
+            "eliminated-no-successor": (7, 4, 5, 2),
+            "not-in-table": (175, 32, 29, 26),
+        }
+        if _eliminated_verdict_landed()
+        else {
+            # Rebuild #15 (2026-09-01 wave, research/evidence/rebuild15-delta-2026-09-01.txt): -53 rows,
+            # the title-49-appendix dotted regulation numbers the reg-dot fence
+            # now refuses at parse (REF-062).
+            "exists-as-recodified": (2_181, 213, 301, 116),
+            "repealed-no-successor": (117, 32, 27, 20),
+            "not-in-table": (175, 32, 29, 26),
+        }
+    )
     assert {
         row[0]: row[1:]
         for row in _rows(
@@ -6841,14 +6881,7 @@ def test_the_recodification_answers_the_one_unknown_it_can(con) -> None:
             f"count(distinct (usc_title, usc_section, usc_appendix)) from {L} "
             "where usc_disposition_verdict is not null group by 1",
         )
-    } == {
-        # Rebuild #15 (2026-09-01 wave, research/evidence/rebuild15-delta-2026-09-01.txt): -53 rows,
-        # the title-49-appendix dotted regulation numbers the reg-dot fence
-        # now refuses at parse (REF-062).
-        "exists-as-recodified": (2_181, 213, 301, 116),
-        "repealed-no-successor": (117, 32, 27, 20),
-        "not-in-table": (175, 32, 29, 26),
-    }
+    } == expected_verdicts
     # THE GATE IS THE FENCE'S OWN REASON, and nothing else. A disposition is
     # written on exactly the rows the oracle refuses for that one hole -- never
     # on a row it could answer for itself, and never on a live section of the
@@ -6881,7 +6914,7 @@ def test_the_recodification_answers_the_one_unknown_it_can(con) -> None:
     ) == 0
     assert [row[0] for row in _rows(
         con, f"select distinct usc_disposition_table from {L} where usc_disposition_table is not null"
-    )] == ["title-49-1994"], "one table is pinned; six recodifications are not"
+    )] == ["title-49-1994"], "only title-49-1994 fires on the title_49_appendix_not_published gate"
 
 
 #: Ten of the 2,543 rows the table was ASKED about, drawn with
@@ -7058,10 +7091,16 @@ def test_the_disposition_census_is_the_receipts(con) -> None:
     declared = json.loads((ARTIFACT / "receipt.json").read_text(encoding="utf-8"))["contract"][
         "declaredClassifications"
     ]
+    landed = _eliminated_verdict_landed()
+    verdicts = (
+        DISPOSITION_VERDICTS
+        if landed
+        else tuple(v for v in DISPOSITION_VERDICTS if v != "eliminated-no-successor")
+    )
     L = "'{d}/unified_agenda_legal_authorities.parquet'"
     assert declared["uscDispositionVerdictRows"] == {
         verdict: _one(con, f"select count(*) from {L} where usc_disposition_verdict = '{verdict}'")
-        for verdict in DISPOSITION_VERDICTS
+        for verdict in verdicts
     }
     assert declared["uscDispositionVerdictPairs"] == {
         verdict: _one(
@@ -7069,8 +7108,10 @@ def test_the_disposition_census_is_the_receipts(con) -> None:
             f"select count(distinct (usc_title, usc_section, usc_appendix)) from {L} "
             f"where usc_disposition_verdict = '{verdict}'",
         )
-        for verdict in DISPOSITION_VERDICTS
+        for verdict in verdicts
     }
+    if not landed:
+        assert _one(con, f"select count(*) from {L} where usc_disposition_verdict = 'eliminated-no-successor'") == 0
     # Every declared verdict is listed even at zero. Two of the five are
     # unreachable in THIS corpus and are stated so rather than omitted:
     # "no-table-for-title" cannot fire because the gate is a title-49 reason
