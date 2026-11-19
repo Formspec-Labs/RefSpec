@@ -565,13 +565,13 @@ LEGAL_AUTHORITIES_SCHEMA = pa.schema(
         #: would answer about a repealed 1930s block the filer never cited.
         pa.field("usc_disposition_refusal", pa.string(), nullable=True),
         #: WHICH pinned table answered, by its own name in
-        #: usc_disposition_tables.RECODIFICATIONS ("title-49-1994", reading
-        #: usc-1994-title49-disposition.parquet). Three tables are pinned today
-        #: (Titles 31, 46 / 46 App., and 49) and five more recodifications are
-        #: not, so a consumer must be able to tell a verdict from one table from
-        #: a verdict from another rather than infer the source from the title.
-        #: This column stays gated on title_49_appendix_not_published, so only
-        #: title-49-1994 fires here. NULL exactly where usc_disposition_verdict is.
+        #: usc_disposition_tables.RECODIFICATIONS (all nine tables across Titles
+        #: 10 ROPMA, 31, 34, 41, 46 / 46 App., 49, 51, and 54 are pinned;
+        #: RECODIFICATIONS_NOT_PINNED is empty). Written on every
+        #: title_49_appendix_not_published row and on any
+        #: appendix_title_not_published or absent former section where a pinned
+        #: table answers for (title, section). NULL exactly where
+        #: usc_disposition_verdict is.
         pa.field("usc_disposition_table", pa.string(), nullable=True),
         #: WHICH non-U.S.C. numbering universe occupies the U.S.C. slot, on a
         #: row ``authority_type`` already reads as ``usc``. Additive only and
@@ -4143,14 +4143,15 @@ def _judge_usc_sections(
             exists_not_at_edition += 1
 
         # The recodification tables, gated by the verdict above: the oracle
-        # attaches a disposition only beside the one unknown a pinned table
-        # speaks into, so nothing here decides which rows are ASKED -- the
-        # fence already did, and its reason code is what the census below
-        # closes against. What this block decides is what to ask, and no
-        # single-valued correction is minted either way: usc_section_corrected
-        # is written further down from the oracle's own Correction and never
-        # from this. The section verdict and its reason do not move; the only
-        # values that do are these six columns' own.
+        # attaches a disposition beside every title_49_appendix_not_published
+        # row (closing that reason's census, including not-in-table) and beside
+        # any appendix_title_not_published or absent former section that a
+        # pinned table affirmatively answers, so nothing here decides which
+        # rows are ASKED -- the fence already did. What this block decides is
+        # what to ask, and no single-valued correction is minted either way:
+        # usc_section_corrected is written further down from the oracle's own
+        # Correction and never from this. The section verdict and its reason do
+        # not move; the only values that do are these six columns' own.
         if verdict.disposition is not None:
             # What ELSE the citation stated about the same token. A span is
             # taken only where the publisher WROTE the range ("stated"): the
@@ -9458,14 +9459,19 @@ def build_unified_agenda_parquet(
             "usc_disposition_verdict, usc_disposition_successors and "
             "usc_disposition_table say what a positive-law recodification did with a "
             "former section the U.S.C. section oracle cannot see, from "
-            "refspec.registry.usc_disposition_tables over the printed 'TABLE SHOWING "
-            "DISPOSITION OF FORMER SECTIONS OF TITLE 49' in the 1994 volume (govinfo "
-            "USCODE-1994-title49, digest-pinned in that module). They are written ONLY "
-            "beside a usc_section_verdict of 'unknown' whose reason is "
-            "title_49_appendix_not_published and are NULL on every other row. THE "
+            "refspec.registry.usc_disposition_tables over the nine digest-pinned "
+            "recodification tables (Titles 10 ROPMA, 31, 34, 41, 46 / 46 App., "
+            "49 / 49 App. plus pre-1994 positive-law Title 49, 51, and 54; "
+            "RECODIFICATIONS_NOT_PINNED is empty). They are written beside every "
+            "usc_section_verdict of 'unknown' whose reason is "
+            "title_49_appendix_not_published and beside any 'unknown' "
+            "(appendix_title_not_published) or 'absent' former section where a "
+            "pinned table positively answers for (title, section), and are NULL "
+            "on every other row (never on 'exists'). THE "
             "VERDICT BESIDE THEM DOES NOT MOVE and neither does its reason: no OLRC "
             "archive year publishes a Title 49 Appendix, which is still true, and what "
             "the table adds is a different question's answer -- Pub. L. 103-272 6(b) "
+            "(and each recodification's deeming provision) "
             "deems a citation to a former section to refer to its successor. "
             "usc_section_corrected is NOT written from this and no existing value in "
             "the row depends on it. THE SUCCESSOR IS EVIDENCE AND NEVER AN IDENTITY: "
@@ -9481,12 +9487,9 @@ def build_unified_agenda_parquet(
             "'not-in-table' is an ANSWER and not a silence -- the pinned table was read "
             "and lists no such former section -- and it is only as wide as the table: "
             "the table lists what existed to be restated in 1994, so a section repealed "
-            "before that was never in it. Three tables are pinned (Titles 31, "
-            "46 / 46 App., and 49); five other recodifications (10 subtitle E / "
-            "ch. 1205, 34, 41, 51, 54) are not, which is why "
-            "usc_disposition_table names which one answered (and this column "
-            "stays gated on title_49_appendix_not_published, so only "
-            "title-49-1994 fires here)"
+            "before that was never in it. All eight recodification families are now "
+            "pinned across nine tables, and usc_disposition_table names which table(s) "
+            "answered (joining names with '+' when multiple tables share a former title)"
         ),
         "theTableIsAskedTheCITATIONSOwnQuestion": (
             "the recodification table is asked over exactly what the citation states "
@@ -9932,12 +9935,11 @@ def build_unified_agenda_parquet(
             #: deciding what to key on, counted per rule because the rules do
             #: not carry the same risk.
             "uscSectionCorrectedIdentityMovedRowsByRule": usc_sections.identity_moved_rows_by_rule,
-            #: What a recodification did with the sections the fence above
-            #: refuses for title_49_appendix_not_published, and nothing else.
-            #: The census CLOSES against that reason's own row count: every
-            #: row the oracle refuses for that hole is a row the pinned table
-            #: was asked about, and "not-in-table" is one of the answers, not
-            #: a shortfall hidden outside the total.
+            #: What the nine pinned recodification tables did with every row
+            #: the fence refuses for title_49_appendix_not_published (closing
+            #: against that reason's row count, with "not-in-table" inside the
+            #: total) and with any appendix_title_not_published or absent
+            #: former section that a pinned table affirmatively resolves.
             "uscDispositionVerdictRows": usc_sections.disposition_rows_by_verdict,
             "uscDispositionVerdictPairs": usc_sections.disposition_pairs_by_verdict,
             #: Rows by HOW MANY successors the table named. Everything above

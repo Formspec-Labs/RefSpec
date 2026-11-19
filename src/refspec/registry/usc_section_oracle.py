@@ -371,7 +371,7 @@ import hashlib
 import re
 from bisect import bisect_right
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import cached_property
 from itertools import accumulate
 from pathlib import Path
@@ -387,6 +387,7 @@ __all__ = [
     "CANDIDATE_ONLY_RULES",
     "CORRECTION_RULES",
     "DISPOSITION_REASON",
+    "DISPOSITION_REASONS",
     "MISS_CLASSES",
     "ORACLE_ANNUAL_YEARS",
     "ORACLE_RELEASE_POINT",
@@ -449,13 +450,19 @@ UNKNOWN_REASONS = (
     "subsection_structure_not_published",
 )
 
-#: The ONE coverage hole a pinned recodification table can speak into, named
-#: once so :attr:`SectionVerdict.disposition`'s writer and its invariant read
-#: the same constant. The other three reasons have no such table: an appendix
-#: title outside :data:`APPENDIX_TITLES_PUBLISHED` is not a recodification, a
-#: missing subsection tree is a shape and not a move, and an out-of-window
-#: edition asks nothing about a section at all.
+#: The primary coverage hole whose ENTIRE population (answered and ``not-in-table``
+#: alike) carries :attr:`SectionVerdict.disposition`, plus the full set of
+#: ``unknown`` reasons eligible for disposition attachment. On
+#: ``appendix_title_not_published`` and on ``absent`` (``reason is None``), a
+#: disposition is attached when and only when a pinned recodification table
+#: positively answers for ``(title, section)`` (``disposition.answered`` is
+#: ``True``); ``exists``, ``edition_outside_oracle_window``, and
+#: ``subsection_structure_not_published`` never carry one.
 DISPOSITION_REASON = "title_49_appendix_not_published"
+DISPOSITION_REASONS = (
+    "title_49_appendix_not_published",
+    "appendix_title_not_published",
+)
 
 #: What an ``absent`` verdict does NOT exclude, attached to every one of them.
 #: See the module docstring: 18 U.S.C. 3568 is the specimen.
@@ -703,8 +710,15 @@ class SectionVerdict:
             raise ValueError("only an absence carries the window caveat")
         if self.disposition is None:
             return
-        if self.reason != DISPOSITION_REASON:
-            raise ValueError(f"a disposition stands only beside {DISPOSITION_REASON}, not beside {self.reason!r}")
+        if self.verdict == "exists" or self.reason not in (None, *DISPOSITION_REASONS):
+            raise ValueError(
+                f"a disposition stands only beside absent or {DISPOSITION_REASONS}, "
+                f"not beside verdict={self.verdict!r}, reason={self.reason!r}"
+            )
+        if self.reason != DISPOSITION_REASON and not self.disposition.answered:
+            raise ValueError(
+                "outside title_49_appendix_not_published, only an answered disposition may stand beside a verdict"
+            )
         if (self.disposition.former_title, self.disposition.former_section) != (self.title, self.section):
             raise ValueError("the disposition beside a verdict is the disposition of that section")
 
@@ -1313,6 +1327,14 @@ class UscSectionOracle:
         if in_release_range:
             evidence.append("release-point-range")
 
+        def attached_disposition(name: str, reason: str | None) -> Disposition | None:
+            if reason == DISPOSITION_REASON:
+                return self.disposition(title, section, appendix=appendix)
+            if name == "absent" or reason in DISPOSITION_REASONS:
+                candidate = self.disposition(title, section, appendix=appendix)
+                return candidate if candidate is not None and candidate.answered else None
+            return None
+
         def verdict_of(name: str, reason: str | None = None) -> SectionVerdict:
             at_edition: bool | None = None
             if edition_year is not None and window_start <= edition_year <= window_end:
@@ -1333,15 +1355,7 @@ class UscSectionOracle:
                 attested_years=years,
                 attested_at_edition=at_edition,
                 caveats=ABSENT_CAVEATS if name == "absent" else (),
-                # Written from the reason, in ONE place, so no branch below can
-                # attach a disposition to a verdict that did not earn one --
-                # and so adding a second answerable reason is adding it to
-                # DISPOSITION_REASON's neighbourhood and nothing else.
-                disposition=(
-                    self.disposition(title, section, appendix=appendix)
-                    if reason == DISPOSITION_REASON
-                    else None
-                ),
+                disposition=attached_disposition(name, reason),
             )
 
         if edition_year is not None and not window_start <= edition_year <= window_end:
@@ -1822,6 +1836,18 @@ class UscSectionOracle:
         near = self.near_misses(title, section)
         return len(near) > 1 and any(same_rin_statements.get((one.title, one.section), 0) > 0 for one in near)
 
+    def _with_disposition(
+        self, title: int, section: str, miss: MissClass, *, appendix: bool = False
+    ) -> MissClass:
+        """Attach a pinned disposition to a miss class when a recodification table answers for the pair."""
+
+        answer = self.disposition(title, section, appendix=appendix)
+        if answer is None:
+            return miss
+        if answer.answered or (title == 49 and appendix):
+            return replace(miss, disposition=answer)
+        return miss
+
     def classify_section_miss(
         self,
         title: int,
@@ -1866,57 +1892,97 @@ class UscSectionOracle:
         if self.c4_date_year_as_section(section, authority_text):
             return MissClass("C4", "date-year-as-section", None, "the token is a calendar year")
         if self.c5_appendix_out_of_oracle(title, appendix=appendix):
-            return MissClass("C5", "appendix-out-of-oracle", None, "no archive year publishes this appendix")
+            return self._with_disposition(
+                title,
+                section,
+                MissClass("C5", "appendix-out-of-oracle", None, "no archive year publishes this appendix"),
+                appendix=appendix,
+            )
         if self.c6_appendix_miss(title, appendix=appendix):
-            return MissClass("C6", "appendix-miss", None, "the appendix is published and does not carry it")
+            return self._with_disposition(
+                title,
+                section,
+                MissClass("C6", "appendix-miss", None, "the appendix is published and does not carry it"),
+                appendix=appendix,
+            )
         if self.c7_chapter_as_section(title, section):
-            return MissClass(
-                "C7",
-                "chapter-as-section",
-                f"{title} USC ch. {section}",
-                f"{title} USC has no section {section}; it has a chapter {section}",
+            return self._with_disposition(
+                title,
+                section,
+                MissClass(
+                    "C7",
+                    "chapter-as-section",
+                    f"{title} USC ch. {section}",
+                    f"{title} USC has no section {section}; it has a chapter {section}",
+                ),
+                appendix=appendix,
             )
         if self.c8_hyphen_part_dropped(title, section):
             children = self.hyphen_children[(title, section)]
-            return MissClass(
-                "C8",
-                "hyphen-part-dropped",
-                f"{title} USC {children[0]} et seq.",
-                f"{title} USC {section} is not a section; {len(children)} sections are named {section}-N",
+            return self._with_disposition(
+                title,
+                section,
+                MissClass(
+                    "C8",
+                    "hyphen-part-dropped",
+                    f"{title} USC {children[0]} et seq.",
+                    f"{title} USC {section} is not a section; {len(children)} sections are named {section}-N",
+                ),
+                appendix=appendix,
             )
         letter_o = self.c8b_proposal(title, section)
         if letter_o is not None:
-            return MissClass(
-                "C8b",
-                "letter-o-as-zero",
-                f"{title} USC {letter_o}",
-                "the section name's letter o was typed as a zero",
+            return self._with_disposition(
+                title,
+                section,
+                MissClass(
+                    "C8b",
+                    "letter-o-as-zero",
+                    f"{title} USC {letter_o}",
+                    "the section name's letter o was typed as a zero",
+                ),
+                appendix=appendix,
             )
         if self.c8c_inverted_range_kept_whole(title, section):
-            return MissClass(
-                "C8c",
-                "inverted-range-kept-whole",
-                f"{title} USC {section.split('-', 1)[0]} (range end unread)",
-                "second endpoint sorts before the first and abbreviates nothing, so the ordering rule kept the "
-                "pair as one name",
+            return self._with_disposition(
+                title,
+                section,
+                MissClass(
+                    "C8c",
+                    "inverted-range-kept-whole",
+                    f"{title} USC {section.split('-', 1)[0]} (range end unread)",
+                    "second endpoint sorts before the first and abbreviates nothing, so the ordering rule kept the "
+                    "pair as one name",
+                ),
+                appendix=appendix,
             )
         span = _abbreviated_span(section)
         if span is not None and self.c8d_abbreviated_span_kept_whole(title, section):
             low, high = span
-            return MissClass(
-                "C8d",
-                "abbreviated-span-kept-whole",
-                f"{title} USC {low} to {high}",
-                f"the pair abbreviates {low} to {high} GPO-style, so its second endpoint sorts before the first "
-                "and the ordering rule kept it as one name",
+            return self._with_disposition(
+                title,
+                section,
+                MissClass(
+                    "C8d",
+                    "abbreviated-span-kept-whole",
+                    f"{title} USC {low} to {high}",
+                    f"the pair abbreviates {low} to {high} GPO-style, so its second endpoint sorts before the first "
+                    "and the ordering rule kept it as one name",
+                ),
+                appendix=appendix,
             )
         if self.c9_title_49_pre_1996(title, section):
             return self._c9_class(title, section)
         near = self.near_misses(title, section)
         if self.c10_unique_near_miss(title, section):
             only = near[0]
-            return MissClass(
-                "C10", "unique-near-miss", f"{only.title} USC {only.section}", ", ".join(only.kinds), (only,)
+            return self._with_disposition(
+                title,
+                section,
+                MissClass(
+                    "C10", "unique-near-miss", f"{only.title} USC {only.section}", ", ".join(only.kinds), (only,)
+                ),
+                appendix=appendix,
             )
         if self.c11_corroborated_near_miss(title, section, statements):
             corroborated = tuple(
@@ -1926,17 +1992,27 @@ class UscSectionOracle:
                 )
             )
             best = corroborated[0]
-            return MissClass(
-                "C11",
-                "corroborated-near-miss",
-                f"{best.title} USC {best.section}",
-                f"{statements[(best.title, best.section)]} same-RIN statements among {len(near)} candidates",
-                corroborated,
+            return self._with_disposition(
+                title,
+                section,
+                MissClass(
+                    "C11",
+                    "corroborated-near-miss",
+                    f"{best.title} USC {best.section}",
+                    f"{statements[(best.title, best.section)]} same-RIN statements among {len(near)} candidates",
+                    corroborated,
+                ),
+                appendix=appendix,
             )
         # C12 is the fallthrough, and has no predicate of its own: "detected,
         # unexplained" is exactly "neither C10 nor C11", and a function
         # restating that is a second place for the boundary to move.
-        return MissClass("C12", "unresolved", None, f"{len(near)} candidates, none corroborated")
+        return self._with_disposition(
+            title,
+            section,
+            MissClass("C12", "unresolved", None, f"{len(near)} candidates, none corroborated"),
+            appendix=appendix,
+        )
 
     # -- corrections: exactly one survivor, or nothing --------------------- #
 

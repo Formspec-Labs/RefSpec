@@ -726,53 +726,70 @@ def test_the_disposition_is_asked_of_the_table_and_of_nothing_else() -> None:
 
 @pytest.mark.slow
 def test_a_disposition_cannot_be_attached_to_a_verdict_that_did_not_earn_one() -> None:
-    """The invariant, tried three ways. Each must raise, not be published."""
+    """The invariant across disallowed verdicts/reasons, unanswered absences, and wrong sections."""
 
     known = oracle()
     answer = known.section_verdict(49, "1432", 2000)
+    unanswered = known.disposition(49, "1509d")
     other = known.disposition(49, "1510")
     kind = type(answer)
-    # Beside a verdict that named a different hole.
+    # Beside a verdict that named an out-of-window hole.
     with pytest.raises(ValueError, match="a disposition stands only beside"):
-        kind(**{**answer.__dict__, "reason": "appendix_title_not_published"})
-    # Beside a verdict that named no hole at all -- the same guard, and the
-    # one that matters most, because "exists" plus a successor is the shape a
-    # consumer would read as a relocation of a live section.
-    with pytest.raises(ValueError, match="not beside None"):
+        kind(**{**answer.__dict__, "edition_year": 1990, "reason": "edition_outside_oracle_window"})
+    # Beside "exists" -- the guard that matters most, because "exists" plus a
+    # successor is the shape a consumer would read as relocating a live section.
+    with pytest.raises(ValueError, match="not beside verdict='exists'"):
         kind(**{**answer.__dict__, "verdict": "exists", "reason": None})
+    # Outside title_49_appendix_not_published, an UNANSWERED ("not-in-table")
+    # disposition cannot be attached to an absence or an unpublished appendix.
+    with pytest.raises(ValueError, match="only an answered disposition"):
+        kind(
+            **{
+                **known.section_verdict(49, "1509d", 2000).__dict__,
+                "verdict": "absent",
+                "reason": None,
+                "caveats": ABSENT_CAVEATS,
+                "disposition": unanswered,
+            }
+        )
+    with pytest.raises(ValueError, match="only an answered disposition"):
+        kind(**{**known.section_verdict(49, "1509d", 2000).__dict__, "reason": "appendix_title_not_published"})
     # And the disposition of some other section.
     with pytest.raises(ValueError, match="the disposition of that section"):
         kind(**{**answer.__dict__, "disposition": other})
 
 
-def test_oracle_resolves_pre_recodification_title_31_and_title_46_dispositions() -> None:
-    """UscSectionOracle.disposition resolves pinned Title 31 and Title 46 / 46 App. citations cleanly.
-
-    SectionVerdict.disposition remains gated exclusively on DISPOSITION_REASON
-    (title_49_appendix_not_published) so existing verdict invariants and corpus
-    counts do not shift, while oracle.disposition() answers every pinned
-    recodification (31, 46, 49) with memoization intact.
-    """
+def test_oracle_resolves_and_attaches_dispositions_across_all_recodified_titles() -> None:
+    """UscSectionOracle attaches answered dispositions on absent and appendix_title_not_published across all 8 families."""
 
     known = oracle()
+
+    # Title 10 ROPMA: 10 U.S.C. 593 -> 12203 and 597 -> 12241 (absent from 1994-2026 archives, attached directly!).
+    t10_verdict = known.section_verdict(10, "593", 2005)
+    assert t10_verdict.verdict == "absent"
+    assert t10_verdict.disposition is not None
+    assert t10_verdict.disposition.recodification == "title-10-1994"
+    assert [(s.title, s.section) for s in t10_verdict.disposition.successors] == [(10, "12203")]
+    t10_miss = known.classify_section_miss(10, "593")
+    assert t10_miss.code == "C12"
+    assert t10_miss.disposition == t10_verdict.disposition
 
     # Title 31: 31 U.S.C. 483a -> 9701 (Pub. L. 97-258, 1982; Pub. L. 97-452, 1983).
     t31_verdict = known.section_verdict(31, "483a", 2005)
     assert t31_verdict.verdict == "absent"
-    assert t31_verdict.disposition is None
     t31_disp = known.disposition(31, "483a")
     assert t31_disp is not None
+    assert t31_verdict.disposition is t31_disp
     assert t31_disp.verdict == "exists-as-recodified"
     assert t31_disp.recodification == "title-31-1982"
     assert [(s.title, s.section) for s in t31_disp.successors] == [(31, "9701")]
-    assert known.disposition(31, "483a") is t31_disp
+    assert known.classify_section_miss(31, "483a").disposition is t31_disp
     assert [(s.title, s.section) for s in known.disposition(31, "82a-1").successors] == [(31, "3527")]
-    # Independently attested Title 31 range members & editorial omission.
     assert [(s.title, s.section) for s in known.disposition(31, "22a").successors] == [(31, "1108")]
     assert [(s.title, s.section) for s in known.disposition(31, "324b-1").successors] == [(31, "5112")]
     assert known.disposition(31, "725a").verdict == "eliminated-no-successor"
 
-    # Title 46 Appendix: 46 U.S.C. App. 688 (Jones Act, attested 1994-2005) -> 46:30104, 30105.
+    # Title 46 Appendix: 46 U.S.C. App. 688 (Jones Act, attested 1994-2005 -> verdict=='exists', so disposition is None).
     t46_app_verdict = known.section_verdict(46, "688", 2005, appendix=True)
     assert t46_app_verdict.verdict == "exists"
     assert t46_app_verdict.disposition is None
@@ -782,11 +799,14 @@ def test_oracle_resolves_pre_recodification_title_31_and_title_46_dispositions()
     assert t46_jones.recodification == "title-46-2006"
     assert [(s.title, s.section) for s in t46_jones.successors] == [(46, "30104"), (46, "30105")]
 
-    # Title 46 Appendix cross-title, respective 1-to-1 range pairs, note, attested members, and Elim.
-    assert [(s.title, s.section) for s in known.disposition(46, "466c", appendix=True).successors] == [(15, "1824a")]
-    assert [(s.title, s.section, s.status) for s in known.disposition(46, "1300", appendix=True).successors] == [
-        (46, "30701", "restated-as-note")
-    ]
+    # Title 46 / 46 App. pre-1994 absent section (`391a`): attaches on BOTH non-appendix (`absent`) and `46 App.` (`C6`)!
+    t46_pre = known.section_verdict(46, "391a", 2000)
+    assert t46_pre.verdict == "absent"
+    assert t46_pre.disposition is not None and t46_pre.disposition.recodification == "title-46-2006"
+    t46_app_miss = known.classify_section_miss(46, "391a", appendix=True)
+    assert t46_app_miss.code == "C6"
+    assert t46_app_miss.disposition is not None and t46_app_miss.disposition.recodification == "title-46-2006"
+
     for former_sec, dest_sec in (("454", "1233"), ("455", "1234"), ("456", "1235"), ("457", "1236")):
         assert [(s.title, s.section) for s in known.disposition(46, former_sec).successors] == [(33, dest_sec)]
     assert known.disposition(46, "845a", appendix=True).verdict == "repealed-no-successor"
@@ -795,22 +815,45 @@ def test_oracle_resolves_pre_recodification_title_31_and_title_46_dispositions()
         (46, "53101", "restated-as-note")
     ]
     assert known.disposition(46, "111", appendix=True).verdict == "eliminated-no-successor"
-
-    # Pre-1983 Title 46 non-appendix section (absent from 1994-2026 archives, resolved via title-46-2006).
-    t46_pre = known.section_verdict(46, "391a", 2000)
-    assert t46_pre.verdict == "absent"
-    assert t46_pre.disposition is None
     t46_391a = known.disposition(46, "391a", subsection="(8)(D)")
-    assert t46_391a is not None
-    assert t46_391a.recodification == "title-46-2006"
     assert (46, "3710") in [(s.title, s.section) for s in t46_391a.successors]
     assert [(s.title, s.section) for s in known.disposition(46, "1705", appendix=True, subsection="a").successors] == [
         (46, "40304")
     ]
     assert known.disposition(46, "1719", appendix=True, subsection="a").verdict == "repealed-no-successor"
 
-    # Unpinned recodifications still return no-table-for-title cleanly.
-    assert known.disposition(41, "85").verdict == "no-table-for-title"
+    # Multi-title `appendix_title_not_published` (`C5`) and `title-49-1994-positivelaw` (`49:3102 -> 31502`):
+    c5_41 = known.section_verdict(41, "15", 2015, appendix=True)
+    assert (c5_41.verdict, c5_41.reason) == ("unknown", "appendix_title_not_published")
+    assert [(s.title, s.section) for s in c5_41.disposition.successors] == [(41, "6305")]
+    assert known.classify_section_miss(41, "15", appendix=True).disposition == c5_41.disposition
+
+    c5_34 = known.section_verdict(42, "3711", 2020, appendix=True)
+    assert c5_34.disposition.recodification == "title-34-2017"
+    assert [(s.title, s.section, s.status) for s in c5_34.disposition.successors] == [
+        (34, "10101", "restated"),
+        (34, "10101", "restated-as-note"),
+    ]
+
+    c5_51 = known.section_verdict(42, "2451", 2020, appendix=True)
+    assert c5_51.disposition.recodification == "title-51-2010"
+    assert [(s.title, s.section) for s in c5_51.disposition.successors] == [(51, "20102")]
+
+    c5_54 = known.section_verdict(16, "470f", 2020, appendix=True)
+    assert c5_54.disposition.recodification == "title-54-2014"
+    assert [(s.title, s.section) for s in c5_54.disposition.successors] == [(54, "306108")]
+
+    for app_flag in (False, True):
+        v3102 = known.section_verdict(49, "3102", 2005, appendix=app_flag)
+        assert v3102.disposition is not None
+        assert v3102.disposition.recodification == "title-49-1994-positivelaw"
+        assert [(s.title, s.section) for s in v3102.disposition.successors] == [(49, "31502")]
+
+    # Unanswered absences and non-recodified titles still keep `SectionVerdict.disposition is None`.
+    assert known.section_verdict(31, "999999", 2010).disposition is None
+    assert known.section_verdict(42, "999999", 2010, appendix=True).disposition is None
+    assert known.section_verdict(21, "371a", 2010).disposition is None
+    assert known.disposition(21, "371a").verdict == "no-table-for-title"
 
 
 @pytest.mark.slow
@@ -876,22 +919,22 @@ def test_the_disposition_over_the_corpus_and_the_hold_out_that_stays_unknown() -
         rows[verdict.disposition.verdict] += data["pair_rows"][key]
         pairs[verdict.disposition.verdict].add(key)
     assert dict(rows) == {
-        "exists-as-recodified": 2_237,
-        "not-in-table": 177,
+        "exists-as-recodified": 2_242,
+        "not-in-table": 172,
         "repealed-no-successor": 127,
         "eliminated-no-successor": 7,
     }
     assert {name: len(group) for name, group in pairs.items()} == {
-        "exists-as-recodified": 115,
-        "not-in-table": 27,
+        "exists-as-recodified": 116,
+        "not-in-table": 26,
         "repealed-no-successor": 17,
         "eliminated-no-successor": 2,
     }
     # The census closes against the reason code exactly: every row the oracle
-    # refuses for this one hole is a row the table was asked about, and the
-    # answered count is the review's own 93.1%.
+    # refuses for this one hole is a row the table was asked about, and
+    # title-49-1994-positivelaw closes 3102 -> 31502 (+5 rows -> 2,376 answered).
     assert sum(rows.values()) == 2_548
-    assert sum(count for name, count in rows.items() if name != "not-in-table") == 2_371
+    assert sum(count for name, count in rows.items() if name != "not-in-table") == 2_376
     assert sum(len(group) for group in pairs.values()) == 161
     assert len({key[1] for group in pairs.values() for key in group}) == 146
     # A held-out section carries the table's own statement of how wide its

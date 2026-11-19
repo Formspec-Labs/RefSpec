@@ -125,35 +125,52 @@ def _usc_disposition_table_test_inputs() -> dict[str, tuple[dict[str, Any], ...]
             return recodification.source_local_path
         return f"{recodification.artifact}/{Path(urlsplit(recodification.source_url).path).name}"
 
-    def scope_for(recodification: Any) -> str:
-        committed = recodification.source_local_path is None
+    def scope_for(group: list[Any], local_path: str) -> str:
+        committed = not local_path.startswith("output/")
         custody = (
             "retained in the repository beside its derived table"
             if committed
             else "retained outside Git (re-fetchable from publisherUrl and verified against this sha256 and byte length)"
         )
+        tables_clause = "; ".join(
+            f"{r.name} ({r.enacted_by}) -> {r.artifact}/{r.table} at {r.digest}" for r in group
+        )
         return (
-            f"the printed volume carrying the disposition table for the {recodification.name} "
-            f"recodification ({recodification.enacted_by}), fetched {recodification.source_fetched}, "
-            f"{custody}; the committed extractor in {recodification.artifact}/scripts/ re-checks this "
-            f"sha256 and byte length before reading a page, and writes {recodification.table} at "
-            f"{recodification.digest}"
+            f"the printed volume fetched {group[0].source_fetched}, {custody}, carrying the "
+            f"disposition evidence for {tables_clause}; each committed extractor re-checks this "
+            f"sha256 and byte length before reading a page"
+        )
+
+    grouped: dict[str, list[Any]] = {}
+    for recodification in tables.RECODIFICATIONS:
+        grouped.setdefault(recodification.source_url, []).append(recodification)
+
+    descriptors: list[dict[str, Any]] = []
+    for _url, group in grouped.items():
+        first = group[0]
+        local_path = local_path_for(first)
+        for other in group[1:]:
+            if (local_path_for(other), other.source_digest, other.source_bytes) != (
+                local_path,
+                first.source_digest,
+                first.source_bytes,
+            ):
+                raise ValueError(f"conflicting source volume pins across {first.name} and {other.name}")
+        descriptors.append(
+            {
+                "name": named(first),
+                "localPath": local_path,
+                "publisherUrl": first.source_url,
+                "sha256": first.source_digest,
+                "byteLength": first.source_bytes,
+                "acquisition": "directPublisherDownload",
+                "provenance": "publisherDistribution",
+                "scope": scope_for(group, local_path),
+            }
         )
 
     return {
-        "usc_disposition_tables.py": tuple(
-            {
-                "name": named(recodification),
-                "localPath": local_path_for(recodification),
-                "publisherUrl": recodification.source_url,
-                "sha256": recodification.source_digest,
-                "byteLength": recodification.source_bytes,
-                "acquisition": "directPublisherDownload",
-                "provenance": "publisherDistribution",
-                "scope": scope_for(recodification),
-            }
-            for recodification in tables.RECODIFICATIONS
-        ),
+        "usc_disposition_tables.py": tuple(descriptors),
     }
 
 

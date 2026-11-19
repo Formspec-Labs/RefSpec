@@ -1,0 +1,320 @@
+   1 left  1 to 4a	(Previously repealed)
+   1 left  5, 5a	6101
+   1 left  6	(Previously repealed)
+   1 left  6a(a)	6102
+   1 left  6a(b) to (e)	(Previously repealed)
+   1 left  6a(f)	6102
+   1 left  6a(g)	(Previously repealed)
+   1 left  6a(h)	6102
+   1 left  6a(i)	(Previously repealed)
+   1 left  6a(j)	6102
+   1 left  6a(k) to (n)	(Previously repealed)
+   1 left  6a(o)	(Omitted)
+   1 left  6a(p)	(Previously repealed)
+   1 left  6a-1	6102
+   1 left  6a-2	T. 2 § 1816b
+   1 left  6a-3, 6a-4	6102
+   1 left  6b(a), (b)	Rep.
+   1 left  6b(c)	T. 25 § 903g
+   1 left  6b(d)	6102
+   1 left  6b(e)	Rep.
+   1 left  6c to 6jj	(Previously repealed)
+   1 left  6kk	Rep.
+   1 left  6ll	(Previously repealed)
+   1 left  6mm	(Previously transferred to T. 41 § 6b(d) prior to repeal)
+   1 left  7 to 7d	(Previously repealed)
+   1 left  8	6103
+   1 left  9	(Previously repealed)
+   1 left  10	Rep.
+   1 left  10a	8302
+   1 left  10b	8303
+   1 left  10b-1	(Previously omitted)
+   1 left  10b-2	8304
+   1 left  10b-3	8305
+   1 left  10c	8301
+   1 left  10d	8303
+   1 left  11, 11a, 12, 13	6301 to 6304
+   1 left  13a	(Previously repealed)
+   1 left  14	6301
+   1 left  15	6305
+   1 left  16	(Previously repealed)
+   1 left  16a to 16d	Rep.
+   1 left  17 to 21	(Previously repealed)
+   1 left  22 to 24	6306 to 6308
+   1 left  24a	Rep.
+   1 left  25 to 27	(Previously repealed)
+   1 left  28 to 34	Rep.
+   1 left  35 (matter before subsec. (a) less words related to definition of ‘‘agency of the United States’’).	6502
+   1 left  35 (matter before subsec. (a) related to definition of ‘‘agency of the United States’’).	6501
+   1 left  35(a) to (d)	6502
+   1 left  36	6503
+   1 left  37	6504
+   1 right 38 to 40	6506 to 6508
+   1 right 41	6501
+   1 right 42	6511
+   1 right 43	6505
+   1 right 43a(a)	6509
+   1 right 43a(b) (1st sentence)	6507
+   1 right 43a(b) (last sentence), (c)	6509
+   1 right 43b	6510
+   1 right 44	Rep.
+   1 right 45	6502
+   1 right 46 to 48	8502 to 8504
+   1 right 48a	8505
+   1 right 48b	8501
+   1 right 48c	8506
+   1 right 49, 50	6309
+   1 right 51	Rep.
+   1 right 52	8701
+   1 right 53	8702
+   1 right 54	8707
+   1 right 55	8706
+   1 right 56	8705
+   1 right 57	8703
+   1 right 58	8704
+   1 right 101, 102(a)	Rep.
+   1 right 102(b)	(Previously repealed)
+   1 right 103	Rep.
+   1 right 104(a)	(Previously repealed)
+   1 right 104(b) to 115	Rep.
+   1 right 116	(Previously repealed)
+   1 right 117, 118(a)	Rep.
+   1 right 118(b)	(Previously repealed)
+   1 right 118(c) to 125	Rep.
+   1 right 151 to 162	(Previously repealed)
+   1 right 201 to 205	(Previously transferred to T. 40 §§ 471 to 475 prior to repeal)
+   1 right 211 to 213	(Previously transferred to T. 40 §§ 751 to 753 prior to repeal)
+   1 right 214	(Previously transferred to T. 44 § 391 prior to repeal)
+   1 right 215	(Previously transferred to T. 5 § 630c prior to repeal)
+   1 right 216	(Previously transferred to T. 5 § 630d and T. 40 § 754 prior to repeal)
+   1 right 217	(Previously transferred to T. 5 § 630e and T. 40 § 755 prior to repeal)
+   1 right 218	(Previously transferred to T. 5 § 630f prior to repeal)
+   1 right 219	(Previously transferred to T. 5 § 630g and T. 40 § 756 prior to repeal)
+   1 right 231 to 237	(Previously transferred to T. 40 §§ 481 to 488 prior to repeal)
+   1 right 238	(Previously transferred to T. 5 § 630h and T. 40 § 758 prior to repeal)
+   1 right 239 to 240	(Previously transferred to T. 40 §§ 489 to 492 prior to repeal)
+   1 right 251	Rep.
+   1 right 251 note (Pub. L. 110-252, §§ 6102, 6103).	3509
+   1 right 251 note (Pub. L. 110-417, § 867)	4711
+   1 right 252(a)	3101
+   1 right 252(b)	3104
+   1 right 252(c)(1)	3106
+   1 right 252(c)(2)	3301
+   1 right 252a, 252b	3101
+   2 left  252c	4709
+   2 left  253(a)	3301
+   2 left  253(b)	3303
+   2 left  253(c) to (f)	3304
+   2 left  253(g)	3305
+   2 left  253(h)	3301
+   2 left  253(i)	3105
+   2 left  253(j)	3304
+   2 left  253a	3306
+   2 left  253a note (Pub. L. 108-136, § 1428).	3306
+   2 left  253b(a), (b)	3701
+   2 left  253b(c) to (f)	3702 to 3705
+   2 left  253b(g) (related to 41:253b(e))	3704
+   2 left  253b(g) (related to 41:253b(f))	3705
+   2 left  253b(h)	3706
+   2 left  253b(i)	3707
+   2 left  253b(j)	3308
+   2 left  253b(k), (l)	3708
+   2 left  253b(m)	4702
+   2 left  253c	3311
+   2 left  253d	4703
+   2 left  253e	(Previously repealed)
+   2 left  253f	3310
+   2 left  253g	4704
+   2 left  253h	4103
+   2 left  253h note (Pub. L. 103-355, § 1054(b)).	4102
+   2 left  253h note (Pub. L. 106-65, § 804)	4104
+   2 left  253h note (Pub. L. 110-417, § 863(a)-(e)).	3302
+   2 left  253i	4105
+   2 left  253j	4106
+   2 left  253k	4101
+   2 left  253l	3902
+   2 left  253l-1 to 253l-8	3904
+   2 left  253m	3309
+   2 left  254(a)	3901
+   2 left  254(b)	3905
+   2 left  254 note (Pub. L. 110-417, § 864(a), (b), (d), (e), (f)(2), (g)).	3906
+   2 left  254a	4708
+   2 left  254b(a) to (g)	3502 to 3508
+   2 left  254b(h)	3501
+   2 left  254b note (Pub. L. 110-417, § 866).	4710
+   2 left  254b note (Pub. L. 110-417, § 868).	3501
+   2 left  254c	3903
+   2 left  254d	4706
+   2 left  255(a)	4501
+   2 left  255(b), (c)	4502
+   2 left  255(d) to (g)	4503 to 4506
+   2 left  256(a) to (d)	4303
+   2 left  256(e) to (k)	4304 to 4310
+   2 left  256(l)(1)	4301
+   2 left  256(l)(2)	4302
+   2 left  256(m)	4301
+   2 left  256a	4707
+   2 left  257	4701
+   2 left  258	(Previously repealed)
+   2 left  259(a)	151
+   2 left  259(b)	152
+   2 left  259(c)(1)	111
+   2 left  259(c)(2)	112
+   2 left  259(c)(3)	114
+   2 left  259(c)(4)	107
+   2 left  259(c)(5)	113
+   2 left  259(c)(6)	116
+   2 left  259(c)(7)	109
+   2 left  259(c)(8), (9)	108
+   2 left  259(c)(10)	115
+   2 left  259(c)(11)	103
+   2 left  259(c)(12)	110
+   2 left  259(c)(13)	102
+   2 left  259(c)(14)	105
+   2 left  259(d)	153
+   2 left  259(e)	106
+   2 left  260	3101
+   2 left  261	3102
+   2 left  262	4701
+   2 left  263	3103
+   2 left  264	3307
+   2 left  264 note (Pub. L. 103-355, § 8002)	3307
+   2 right 264a (‘‘commercial item’’)	103
+   2 right 264a (‘‘nondevelopmental item’’).	110
+   2 right 264a (‘‘component’’)	105
+   2 right 264a (‘‘commercial component’’).	102
+   2 right 264b	3307
+   2 right 265	4705
+   2 right 266	3105
+   2 right 266a	3901 note prec.
+   2 right 271 to 274	(Previously transferred to T. 40 §§ 511 to 514 prior to repeal)
+   2 right 281 to 291	(Previously transferred to T. 44 §§ 392 to 402 prior to repeal)
+   2 right 321 to 322	Rep.
+   2 right 351(a) (words before par. (1) related to applicability).	6702
+   2 right 351(a) (words before par. (1) related to required contract terms), (1) to (5).	6703
+   2 right 351(b)	6704
+   2 right 352	6705
+   2 right 353	6707
+   2 right 354(a)	6706
+   2 right 354(b)	6705
+   2 right 355	6707
+   2 right 356	6702
+   2 right 357	6701
+   2 right 358	6707
+   2 right 401, 402	(Previously repealed)
+   2 right 403(1)	133
+   2 right 403(2)	111
+   2 right 403(3)	112
+   2 right 403(4)	114
+   2 right 403(5)	132
+   2 right 403(6)	107
+   2 right 403(7)	113
+   2 right 403(8)	116
+   2 right 403(9)	109
+   2 right 403(10) (‘‘item’’, ‘‘item of supply’’).	108
+   2 right 403(10) (‘‘supplies’’)	115
+   2 right 403(11)	134
+   2 right 403(12)	103
+   2 right 403(13)	110
+   2 right 403(14)	105
+   2 right 403(15)	102
+   2 right 403(16)	131
+   2 right 403(17)	1301
+   2 right 404(a)	1101
+   2 right 404(b)	1102
+   2 right 405(a) to (c)	1121
+   2 right 405(d), (e)	1122
+   2 right 405(f)	1121
+   2 right 405(g)	1122
+   2 right 405(h)(1)	1130
+   2 right 405(h)(2)	2305
+   2 right 405(i)	1125
+   2 right 405(j)	1126
+   2 right 405(k)	1131
+   2 right 405 note (Pub. L. 108-136, § 1431(b)).	1129
+   2 right 405 note (Pub. L. 110-417, § 874(a)).	2311
+   2 right 405a (1st sentence)	1121
+   2 right 405a (last sentence)	1123
+   2 right 405b	2304
+   2 right 405c(a)	2303
+   2 right 405c(b)	2303 note
+   2 right 405c(c)	2303
+   2 right 406	1701
+   2 right 407	(Previously repealed)
+   2 right 408	1121
+   2 right 409	(Previously repealed)
+   2 right 410	1101
+   2 right 411	1122
+   2 right 412(a)	2307
+   2 right 412(b)	2306
+   2 right 413	1124
+   2 right 414	1702
+   2 right 414a	1706
+   2 right 414b(a) to (c)	1311
+   2 right 414b(d), (e)	1312
+   2 right 415	(Previously repealed)
+   2 right 416	1708
+   3 left  417	1712
+   3 left  417a	1713
+   3 left  417b	2313
+   3 left  418	1705
+   3 left  418a	2302
+   3 left  418b	1707
+   3 left  419	1709
+   3 left  420	(Previously repealed)
+   3 left  421(a), (b)	1302
+   3 left  421(c) to (f)	1303
+   3 left  422(a) to (e)	1501
+   3 left  422(f) to (h)(1)	1502
+   3 left  422(h)(2) to (4)	1503
+   3 left  422(i)	Rep.
+   3 left  422(j) to (l)	1504 to 1506
+   3 left  423(a), (b)	2102
+   3 left  423(c) to (e)	2103 to 2105
+   3 left  423(f)	2101
+   3 left  423(g)	2106
+   3 left  423(h)	2107
+   3 left  424	(Previously repealed)
+   3 left  425	1304
+   3 left  426	2301
+   3 left  426a	(Previously repealed)
+   3 left  427	1901
+   3 left  428	1902
+   3 left  428a	1903
+   3 left  428a note (Pub. L. 108-136, § 1441).	1904
+   3 left  429	1905
+   3 left  430	1906
+   3 left  431(a), (b)	1907
+   3 left  431(c)	104
+   3 left  431a	1908
+   3 left  431a note (Pub. L. 108-375, § 807(c)).	1908
+   3 left  432	1711
+   3 left  433	1703
+   3 left  433 notes (Pub. L. 108-136, §§ 1412(a), 1413).	1703
+   3 left  433 note (Pub. L. 108-136, § 1414).	1128
+   3 left  433a	1704
+   3 left  433a note (Pub. L. 110-417, § 869).	1704
+   3 left  434	2308
+   3 left  435	1127
+   3 left  436	2309
+   3 left  437	2310
+   3 left  438	7105
+   3 left  439	1710
+   3 left  440	2312
+   3 left  501 to 509	(Previously repealed)
+   3 left  601	7101
+   3 left  602, 603	7102
+   3 left  604, 605	7103
+   3 left  606	7104
+   3 left  607(a) to (e)	7105
+   3 left  607(f)	7106
+   3 left  607(g)	7107
+   3 left  608	7106
+   3 left  609(a)	7104
+   3 left  609(b) to (f)	7107
+   3 left  610	7105
+   3 left  611, 611 note (Pub. L. 102-572, § 907(a)(3)).	7109
+   3 left  612	7108
+   3 left  613	Rep.
+   3 left  701 to 705	8102 to 8106
+   3 left  706, 707	8101
