@@ -785,12 +785,10 @@ REGISTRY_DESCRIPTORS_PROOF_LOGICAL_PATH = "refspec/bindings/atlas/3.1/tests/regi
 # hand_validated_interpretations and infrastructure.invariants join as
 # implementation modules, having landed unclassified in the 2026-08-31/09-01
 # waves. The .nq graph is byte-identical once more; only the proof's
-# inputs.atlasIndexDigest moved. NOTE FOR THE NEXT READER: this pin is the
-# ninth link in the chain `make generate` runs, and the only one no `--check`
-# target can see, because it lives in source rather than in a generated file.
-# All three generators report "current" while 33 tests fail, and the failures
-# name validators and producers rather than the index that moved. If you are
-# here because of that, you are in the right place.
+# inputs.atlasIndexDigest moved. NOTE FOR THE NEXT READER: `tools/generate_atlas_v3_registry_descriptors.py`
+# (`--write` / `--check`) now updates and verifies both `REGISTRY_DESCRIPTORS_EXPECTED_DIGEST`
+# and `REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST` automatically during `make generate` /
+# `make check-generated`.
 # 2026-08-31: the intake-ledger identity wave adds iri_minting and
 # agency_crosswalk as implementation modules, and the same-day operational
 # wave's GEMET Theme label fix edits the two files the index pins as that

@@ -37,6 +37,15 @@ INDEX = ROOT / "portfolio" / "atlas-index-v0.json"
 PROFILES = ROOT / "bindings" / "atlas" / "3.1" / "registry-resource-profiles.json"
 DATASET_OUTPUT = ROOT / "bindings" / "atlas" / "3.1" / "tests" / "registry-descriptors.nq"
 PROOF_OUTPUT = ROOT / "bindings" / "atlas" / "3.1" / "tests" / "registry-descriptors.json"
+ATLAS_BUILDER = ROOT / "tools" / "generate_atlas_v3_full.py"
+_BUILDER_DESCRIPTOR_DIGEST_RE = re.compile(
+    r'^(REGISTRY_DESCRIPTORS_EXPECTED_DIGEST = ")(sha256:[0-9a-f]{64})(")$',
+    re.MULTILINE,
+)
+_BUILDER_PROOF_DIGEST_RE = re.compile(
+    r'^(REGISTRY_DESCRIPTORS_PROOF_EXPECTED_DIGEST = ")(sha256:[0-9a-f]{64})(")$',
+    re.MULTILINE,
+)
 
 ATLAS = Namespace("https://refspec.org/ns/atlas/v3#")
 GRAPH_IRI = URIRef("urn:ref:atlas-v3:registry-descriptors")
@@ -412,6 +421,31 @@ def _arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _update_builder_pins(dataset_digest: str, proof_digest: str) -> bool:
+    """Keep generate_atlas_v3_full.py descriptor pins synchronized with generated artifacts."""
+    text = ATLAS_BUILDER.read_text(encoding="utf-8")
+    updated, dataset_subs = _BUILDER_DESCRIPTOR_DIGEST_RE.subn(rf"\g<1>{dataset_digest}\g<3>", text, count=1)
+    updated, proof_subs = _BUILDER_PROOF_DIGEST_RE.subn(rf"\g<1>{proof_digest}\g<3>", updated, count=1)
+    if dataset_subs != 1 or proof_subs != 1:
+        _fail(f"could not locate descriptor digest constants in {ATLAS_BUILDER.relative_to(ROOT)}")
+    if updated == text:
+        return False
+    ATLAS_BUILDER.write_text(updated, encoding="utf-8")
+    return True
+
+
+def _stale_builder_pins(dataset_digest: str, proof_digest: str) -> bool:
+    """Return True if generate_atlas_v3_full.py pins disagree with the generated descriptor digests."""
+    if not ATLAS_BUILDER.is_file():
+        return True
+    text = ATLAS_BUILDER.read_text(encoding="utf-8")
+    m_desc = _BUILDER_DESCRIPTOR_DIGEST_RE.search(text)
+    m_proof = _BUILDER_PROOF_DIGEST_RE.search(text)
+    if m_desc is None or m_proof is None:
+        return True
+    return m_desc.group(2) != dataset_digest or m_proof.group(2) != proof_digest
+
+
 def main() -> int:
     args = _arguments()
     try:
@@ -419,22 +453,28 @@ def main() -> int:
         index = load_json(INDEX)
         profiles = load_json(PROFILES)
         dataset, proof = build_registry_descriptors(catalog, index, profiles)
+        dataset_digest = bytes_sha256(dataset)
+        proof_digest = bytes_sha256(proof)
         if args.write:
             DATASET_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
             DATASET_OUTPUT.write_bytes(dataset)
             PROOF_OUTPUT.write_bytes(proof)
             print(f"wrote {DATASET_OUTPUT.relative_to(ROOT)}")
             print(f"wrote {PROOF_OUTPUT.relative_to(ROOT)}")
+            if _update_builder_pins(dataset_digest, proof_digest):
+                print(f"updated {ATLAS_BUILDER.relative_to(ROOT)}")
             return 0
-        differences = []
+        differences: list[str] = []
         if not DATASET_OUTPUT.is_file() or DATASET_OUTPUT.read_bytes() != dataset:
-            differences.append(DATASET_OUTPUT.relative_to(ROOT))
+            differences.append(str(DATASET_OUTPUT.relative_to(ROOT)))
         if not PROOF_OUTPUT.is_file() or PROOF_OUTPUT.read_bytes() != proof:
-            differences.append(PROOF_OUTPUT.relative_to(ROOT))
+            differences.append(str(PROOF_OUTPUT.relative_to(ROOT)))
+        if _stale_builder_pins(dataset_digest, proof_digest):
+            differences.append(f"{ATLAS_BUILDER.relative_to(ROOT)} (stale descriptor digest pin)")
         if differences:
             _fail(
                 "checked registry descriptors differ from generation for "
-                f"{', '.join(map(str, differences))}; run "
+                f"{', '.join(differences)}; run "
                 "tools/generate_atlas_v3_registry_descriptors.py --write"
             )
         proof_value = json.loads(proof)

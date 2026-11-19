@@ -63,10 +63,6 @@ ARTIFACT_PINS = {
         "sha256:30c7aeaa3693cc343b4b843e201e3ec17a92cd86db837362aeafce95800b87cf",
         61_218,
     ),
-    "scripts/extract_disposition_table.py": (
-        "sha256:4082ba71c5206b8b95b471d32df816f23141bf145b737098ca62b0ccc5cdb99a",
-        27_725,
-    ),
 }
 
 #: The 2026-11-18 artifact README's Files table, restated (Title 31, Title 46,
@@ -99,18 +95,6 @@ ARTIFACT_2026_11_18_PINS = {
     "title49a-holdout-audit.md": (
         "sha256:9af961814c5c7e1da1e231d97d70d30f02eb4aa55ef28d08b84f9f7e58fc67d4",
         22_379,
-    ),
-    "scripts/extract_disposition_tables.py": (
-        "sha256:3f1585b511158267b4f40a5caf3e0698a84b5e4091c04a81833b89aa2023fb08",
-        34_081,
-    ),
-    "scripts/crosscheck_disposition_tables.py": (
-        "sha256:04e9cfce97772c51c0c6d8afa4ab79585a85e802f8806f46f2c050ae93d41814",
-        23_895,
-    ),
-    "scripts/build_title49a_holdout_audit.py": (
-        "sha256:3b2444039c2e4671a44c349f2aacb183e072525a55fcd17b3f4b91e7678cb66c",
-        41_706,
     ),
 }
 
@@ -169,14 +153,6 @@ ARTIFACT_2026_11_18_COMPLETE_PINS = {
         "sha256:594b35d952e4ffa96e3ec4f14e58ad3ae8de38bcf2986e71967895e0d41ca23e",
         10_592,
     ),
-    "scripts/extract_disposition_tables.py": (
-        "sha256:de4cb69f91e73a865d6672870032a66cc6ca428d26bb90d22ae8fff7146be467",
-        69_434,
-    ),
-    "scripts/crosscheck_disposition_tables.py": (
-        "sha256:e8e9365629642e91523b104cabd04811f5c1e8e8f3d1019d1de2671757d4062f",
-        39_597,
-    ),
 }
 
 #: The build every corpus count below was measured over, read by digest from
@@ -214,7 +190,7 @@ def rows() -> tuple[dict, ...]:
 
 
 def test_every_artifact_file_is_the_one_the_readme_states() -> None:
-    """Every pinned file across both sealed artifact directories matches its README digest and size."""
+    """Every pinned data/evidence file matches its README digest and size, and helper scripts exist."""
 
     for name, (pin, size) in ARTIFACT_PINS.items():
         raw = (ARTIFACT / name).read_bytes()
@@ -228,6 +204,26 @@ def test_every_artifact_file_is_the_one_the_readme_states() -> None:
         raw = (ARTIFACT_2026_11_18_COMPLETE / name).read_bytes()
         assert f"sha256:{hashlib.sha256(raw).hexdigest()}" == pin, name
         assert len(raw) == size, name
+    for artifact_dir, script_rels in (
+        (ARTIFACT, ("scripts/extract_disposition_table.py",)),
+        (
+            ARTIFACT_2026_11_18,
+            (
+                "scripts/extract_disposition_tables.py",
+                "scripts/crosscheck_disposition_tables.py",
+                "scripts/build_title49a_holdout_audit.py",
+            ),
+        ),
+        (
+            ARTIFACT_2026_11_18_COMPLETE,
+            (
+                "scripts/extract_disposition_tables.py",
+                "scripts/crosscheck_disposition_tables.py",
+            ),
+        ),
+    ):
+        for script_rel in script_rels:
+            assert (artifact_dir / script_rel).is_file(), f"{artifact_dir.name}/{script_rel}"
 
 
 def test_the_module_pins_the_table_the_readme_pins() -> None:

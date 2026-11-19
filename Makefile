@@ -424,7 +424,7 @@ stage-atlas-mapping-topology:
 # release artifact against the committed pins.
 ATLAS_CONTRACT_DEV_ROOT ?= output/atlas-3.1-contract-dev
 
-contract-dev:
+contract-dev: atlas-v3-fixtures
 	uv run --no-project --with-requirements bindings/atlas/3.1/requirements.txt \
 		python bindings/atlas/3.1/tools/build_fixtures.py --check
 	$(MAKE) test-atlas-v3
