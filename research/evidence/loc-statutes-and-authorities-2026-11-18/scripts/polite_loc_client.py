@@ -3,13 +3,15 @@
 Enforces:
 - >= 8.5s spacing between requests (including redirect hops) to www.loc.gov (ONLY ?fo=json allowed; HTML forbidden)
 - >= 2.2s spacing between requests (including redirect hops) to tile.loc.gov and id.loc.gov
-- Hard block on webarchive.loc.gov / webarchive-beta.loc.gov or any unlisted host
-- Immediate hard stop on HTTP 403, 429, Retry-After header, Content-Range on 200, or cf-mitigated header
+- Cross-process lockfile coordination via fcntl.flock when a shared state_file is configured
+- Hard block on webarchive.loc.gov / webarchive-beta.loc.gov, unknown hosts, or unsupported expect_kind
+- Immediate hard stop on HTTP 403, 429, Retry-After, Content-Range on 200, or cf-mitigated BEFORE reading body bytes
 - Atomic file + .meta.json sidecar writes and SHA-256 verification on cache reuse
 """
 
 from __future__ import annotations
 
+import fcntl
 import hashlib
 import json
 import os
@@ -29,6 +31,7 @@ HOST_MIN_INTERVAL_SECONDS: dict[str, float] = {
     "id.loc.gov": 2.2,
 }
 FORBIDDEN_HOSTS = frozenset({"webarchive.loc.gov", "webarchive-beta.loc.gov"})
+ALLOWED_EXPECT_KINDS = frozenset({"json", "pdf", "xml"})
 
 
 class LocClientError(RuntimeError):
@@ -38,6 +41,21 @@ class LocClientError(RuntimeError):
 class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None
+
+
+def _check_headers_before_body_read(status: int, resp_headers: dict[str, str], url: str) -> dict[str, str]:
+    """Raise LocClientError immediately on mitigation, rate-limit, or partial headers before reading body bytes."""
+
+    lh = {k.lower(): v for k, v in resp_headers.items()}
+    if "cf-mitigated" in lh:
+        raise LocClientError(f"STOP: cf-mitigated header on {url} (status {status})")
+    if "retry-after" in lh:
+        raise LocClientError(f"STOP: Retry-After={lh['retry-after']!r} on {url} (status {status})")
+    if status in {403, 429}:
+        raise LocClientError(f"STOP: HTTP {status} on {url}")
+    if status == 200 and "content-range" in lh:
+        raise LocClientError(f"Rejected partial HTTP 200 with Content-Range on {url}")
+    return lh
 
 
 class PoliteLocClient:
@@ -68,6 +86,8 @@ class PoliteLocClient:
 
     @staticmethod
     def _validate_url(url: str, *, expect_kind: str) -> str:
+        if expect_kind not in ALLOWED_EXPECT_KINDS:
+            raise LocClientError(f"Unsupported expect_kind {expect_kind!r}; expected one of {sorted(ALLOWED_EXPECT_KINDS)}")
         parts = urlsplit(url)
         host = (parts.hostname or "").lower()
         if host in FORBIDDEN_HOSTS:
@@ -86,36 +106,69 @@ class PoliteLocClient:
 
     def _pace(self, host: str) -> None:
         min_gap = HOST_MIN_INTERVAL_SECONDS[host]
-        wall_now = time.time()
-        last_wall = self._last_request_by_host.get(host, 0.0)
-        wait = (last_wall + min_gap) - wall_now
-        if wait > 0:
-            time.sleep(wait)
-        self._last_request_by_host[host] = time.time()
-        self._save_state()
+        if self.state_file is None:
+            wall_now = time.time()
+            last_wall = self._last_request_by_host.get(host, 0.0)
+            wait = (last_wall + min_gap) - wall_now
+            if wait > 0:
+                time.sleep(wait)
+            self._last_request_by_host[host] = time.time()
+            return
 
-    def _single_get(self, url: str, headers: dict[str, str], timeout: float) -> tuple[int, dict[str, str], bytes]:
+        self.state_file.parent.mkdir(parents=True, exist_ok=True)
+        lock_path = self.state_file.with_suffix(".lock")
+        with lock_path.open("a+", encoding="utf-8") as lock_fp:
+            fcntl.flock(lock_fp.fileno(), fcntl.LOCK_EX)
+            try:
+                if self.state_file.is_file():
+                    try:
+                        loaded = json.loads(self.state_file.read_text(encoding="utf-8"))
+                        if isinstance(loaded, dict):
+                            for k, v in loaded.items():
+                                if isinstance(v, (int, float)):
+                                    self._last_request_by_host[str(k)] = max(
+                                        self._last_request_by_host.get(str(k), 0.0),
+                                        float(v),
+                                    )
+                    except (OSError, ValueError):
+                        pass
+                wall_now = time.time()
+                last_wall = self._last_request_by_host.get(host, 0.0)
+                wait = (last_wall + min_gap) - wall_now
+                if wait > 0:
+                    time.sleep(wait)
+                self._last_request_by_host[host] = time.time()
+                self._save_state()
+            finally:
+                fcntl.flock(lock_fp.fileno(), fcntl.LOCK_UN)
+
+    def _single_get(
+        self, url: str, headers: dict[str, str], timeout: float
+    ) -> tuple[int, dict[str, str], dict[str, str], bytes]:
         req = urllib.request.Request(url, headers=headers, method="GET")
         try:
             with self._opener.open(req, timeout=timeout) as resp:
                 status = resp.status
                 resp_headers = dict(resp.headers.items())
+                lh = _check_headers_before_body_read(status, resp_headers, url)
+                if status != 200:
+                    return status, resp_headers, lh, b""
                 body = resp.read()
-                return status, resp_headers, body
+                return status, resp_headers, lh, body
         except urllib.error.HTTPError as err:
             resp_headers = dict(err.headers.items()) if err.headers else {}
             try:
-                body = err.read()
-            except OSError:
-                body = b""
-            return err.code, resp_headers, body
+                lh = _check_headers_before_body_read(err.code, resp_headers, url)
+            finally:
+                err.close()
+            return err.code, resp_headers, lh, b""
 
     def fetch_cached(
         self,
         url: str,
         cache_path: Path,
         *,
-        expect_kind: str,  # "json" or "pdf"
+        expect_kind: str,
         timeout: float = 90.0,
         max_redirects: int = 4,
     ) -> tuple[bytes, dict[str, Any]]:
@@ -137,7 +190,11 @@ class PoliteLocClient:
                 )
             return raw, {**meta, "cached": True}
 
-        accept = "application/json" if expect_kind == "json" else "application/pdf,*/*;q=0.8"
+        accept = (
+            "application/json"
+            if expect_kind == "json"
+            else ("application/xml,text/xml;q=0.9" if expect_kind == "xml" else "application/pdf,*/*;q=0.8")
+        )
         headers = {"User-Agent": USER_AGENT, "Accept": accept}
 
         current_url = url
@@ -145,16 +202,7 @@ class PoliteLocClient:
         hops = 0
         while True:
             self._pace(current_host)
-            status, resp_headers, raw = self._single_get(current_url, headers, timeout)
-            lh = {k.lower(): v for k, v in resp_headers.items()}
-            if "cf-mitigated" in lh:
-                raise LocClientError(f"STOP: cf-mitigated header on {current_url} (status {status})")
-            if "retry-after" in lh:
-                raise LocClientError(
-                    f"STOP: Retry-After={lh['retry-after']!r} on {current_url} (status {status})"
-                )
-            if status in {403, 429}:
-                raise LocClientError(f"STOP: HTTP {status} on {current_url}")
+            status, resp_headers, lh, raw = self._single_get(current_url, headers, timeout)
             if status in {301, 302, 303, 307, 308}:
                 if hops >= max_redirects:
                     raise LocClientError(f"Too many redirects ({hops}) starting from {url}")
@@ -171,8 +219,6 @@ class PoliteLocClient:
                 continue
             if status != 200:
                 raise LocClientError(f"Unexpected HTTP {status} on {current_url}")
-            if "content-range" in lh:
-                raise LocClientError(f"Rejected partial HTTP 200 with Content-Range on {current_url}")
             break
 
         ctype = lh.get("content-type", "").lower()
@@ -188,10 +234,12 @@ class PoliteLocClient:
             ):
                 raise LocClientError(f"LoC collection payload missing list 'results' on {current_url}")
         elif expect_kind == "pdf":
-            if "pdf" not in ctype and not raw.startswith(b"%PDF-"):
-                raise LocClientError(f"Non-PDF response on {current_url} (Content-Type {ctype!r})")
             if not raw.startswith(b"%PDF-"):
-                raise LocClientError(f"Response lacks %PDF- magic bytes on {current_url}")
+                raise LocClientError(f"Response lacks %PDF- magic bytes on {current_url} (Content-Type {ctype!r})")
+        elif expect_kind == "xml":
+            stripped = raw.lstrip()
+            if not (stripped.startswith(b"<?xml") or stripped.startswith(b"<alto")):
+                raise LocClientError(f"Response is not ALTO/XML on {current_url} (Content-Type {ctype!r})")
 
         sha = hashlib.sha256(raw).hexdigest()
         cache_path.parent.mkdir(parents=True, exist_ok=True)

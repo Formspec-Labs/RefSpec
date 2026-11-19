@@ -14,36 +14,41 @@ helper in this module:
    2,018,402 ``http://id.loc.gov/authorities/names/`` assertions (1,418,942 to
    OCLC FAST and 425,540 to Wikidata) unread. Every single one (54/54, 100%)
    of the verified federal corporate authorities in this study is already
-   present in that pinned archive. :func:`parse_lcnaf_external_links_statements`
-   parses those LCNAF statements while reusing ``lc_external_links``'s exact
-   unescaping and deterministic language-attribution rules.
-2. **Left-anchored ``suggest2`` queries require a 4-rung corporate heading
-   ladder and jurisdiction verification.** Bare Federal Register inverted names
+   present in that pinned August 2026 archive (23/54 with Wikidata links and
+   53/54 with FAST links there, rising to 50/54 with Wikidata links in the
+   November 2026 ``<lccn>.madsrdf.json`` graphs).
+   :func:`load_lcnaf_external_links_from_archive` and
+   :func:`parse_lcnaf_external_links_statements` stream those LCNAF statements
+   in two passes without materializing the 1.85 GB uncompressed member.
+2. **Left-anchored ``suggest2`` queries require a corporate heading ladder and
+   jurisdiction/parent verification.** Bare Federal Register inverted names
    (``"Energy Department"``) hit 0/3 (0%); bare acronyms (``"EPA"``, ``"DOT"``,
-   ``"FS"``) hit 0/4 in top-3 due to global corporate collisions; bare natural
-   names (``"Environmental Protection Agency"``, ``"Department of State"``)
-   reach top-1 exact on only 13/54 (24.1%), returning 0 hits on 14/54 (25.9%)
-   and foreign/state/sub-unit false friends at rank 1 on 27/54 (50.0%, e.g.
-   ``Liberia. Environmental Protection Agency``). Conversely, ``"United States.
-   <Name>"`` reaches top-1 exact on 52/54 (96.3%) and misses direct-entry
-   ``Centers for Medicare & Medicaid Services (U.S.)`` and department-subordinate
-   ``United States. Department of Justice. Executive Office for Immigration Review``.
+   ``"FS"``, ``"EAB"``) hit 0/4 in top-3 due to global corporate collisions;
+   bare natural names reach top-1 exact on only 13/54 (24.1%), returning 0 hits
+   on 14/54 (25.9%) and foreign/state/sub-unit false friends at rank 1 on 27/54
+   (50.0%, e.g. ``Liberia. Environmental Protection Agency`` ``no2025010917``).
+   ``"United States. <Name>"`` reaches top-1 exact on 52/54 (96.3%) and misses
+   direct-entry ``Centers for Medicare & Medicaid Services (U.S.)``
+   (``no2001093385``, where Rung 1 hits ``Medicare Recovery Audit Contractor
+   Program (U.S.)`` ``n2009184264``) and department-subordinate ``United States.
+   Department of Justice. Executive Office for Immigration Review``
+   (``n89643262``).
 3. **``AGENCY_CROSSWALK.primary_slug`` collapses sub-agencies outside
-   ``SPECIFICITY_MARGIN`` (0.05) and retains defunct codes.** Resolving an
-   ``agency_code`` through ``primary_slug`` alone would attach ``CDC`` to
-   ``HHS``, ``BOEM``/``MMS`` to ``DOI``, and ``CISA``/``USCBP`` to ``DHS``,
-   violating REF-038's subunit rule. :func:`lookup_verified_lcnaf_for_code`
-   returns the code's own corporate authority alongside explicit
+   ``SPECIFICITY_MARGIN`` (0.05) and retains defunct codes.** Six codes in the
+   47-agency sample (``CDC``, ``CISA``, ``USCBP``, ``BOEM``, plus defunct
+   ``MMS`` and ``OTS``) resolve ``primary_slug`` to their parent cabinet
+   department. :func:`lookup_verified_lcnaf_for_code` surfaces independent
    ``crosswalk_parent_collapsed`` and ``crosswalk_defunct_code`` flags.
 4. **LCNAF uses successive entry with heterogeneous RDF succession predicates.**
    Reorganizations mint new LCCNs, and MADS/RDF encodes their links across three
    inconsistent modes: explicit ``hasEarlierEstablishedForm``/``hasLaterEstablishedForm``
    (e.g. ``AEC -> {NRC, ERDA}``, ``HCFA <-> CMS``, ``INS -> {USCIS, CBP, ICE}``),
-   flattened untyped ``hasRelatedAuthority`` mixed with hundreds of child
-   offices (``HEW <-> HHS``, ``War Dept <-> Army <-> DoD``, ``GPO``), or zero
-   RDF links at all (``ICC`` vs ``STB``, ``CAB`` vs ``DOT``). LCNAF links
-   therefore align with REF-072 change events as cross-checkable leads, never
-   as ``atlas:sameEntityAs`` or an unverified succession oracle.
+   flattened untyped ``hasRelatedAuthority`` alongside child offices (``HEW <->
+   HHS``, ``War -> Army -> DoD``, ``GPO``; note ``HEW``, ``HHS``, ``War``, and
+   ``Army`` also carry unlinked blank-node pre-AACR2 ``Dept.`` earlier forms),
+   or zero RDF links at all (``ICC`` vs ``STB``; ``CAB`` vs ``FAA``/``DOT``).
+   LCNAF links therefore align with REF-072 change events as cross-checkable
+   leads, never as ``atlas:sameEntityAs`` or an unverified succession oracle.
 """
 
 from __future__ import annotations
@@ -51,7 +56,8 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from collections.abc import Iterable, Mapping, Sequence
+import zipfile
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
@@ -64,11 +70,12 @@ from refspec.registry import lc_external_links as lc
 EVIDENCE_RELATIVE_DIR = "research/evidence/loc-statutes-and-authorities-2026-11-18"
 
 LCNAF_ALIGNMENT_FILENAME = "lcnaf-federal-agencies-alignment.json"
-LCNAF_ALIGNMENT_SHA256 = "sha256:6fb107da6c70f37fc150866d9a82667c9fb8be5c4063546c5b67cd84d1a8380a"
-LCNAF_ALIGNMENT_BYTE_LENGTH = 91_737
+LCNAF_ALIGNMENT_SHA256 = "sha256:0cf1dc0b3b7599d4c06363176a1c3f95e3e3b0f6fcd394d9b50511dcf69b5d6f"
+LCNAF_ALIGNMENT_BYTE_LENGTH = 112_061
 
 LCNAF_AUTHORITY_PREFIX = "http://id.loc.gov/authorities/names/"
 
+MADS_CORPORATE_NAME = lc.MADS_NAMESPACE + "CorporateName"
 MADS_HAS_VARIANT = lc.MADS_NAMESPACE + "hasVariant"
 MADS_VARIANT_LABEL = lc.MADS_NAMESPACE + "variantLabel"
 MADS_EARLIER_FORM = lc.MADS_NAMESPACE + "hasEarlierEstablishedForm"
@@ -77,6 +84,19 @@ MADS_RELATED_AUTHORITY = lc.MADS_NAMESPACE + "hasRelatedAuthority"
 MADS_BROADER_AUTHORITY = lc.MADS_NAMESPACE + "hasBroaderAuthority"
 MADS_IDENTIFIES_RWO = lc.MADS_NAMESPACE + "identifiesRWO"
 BFLC_MARC_KEY = "http://id.loc.gov/ontologies/bflc/marcKey"
+
+_NON_CORPORATE_MADS_TYPES = frozenset(
+    {
+        lc.MADS_NAMESPACE + "PersonalName",
+        lc.MADS_NAMESPACE + "Topic",
+        lc.MADS_NAMESPACE + "Geographic",
+        lc.MADS_NAMESPACE + "ConferenceName",
+        lc.MADS_NAMESPACE + "FamilyName",
+        lc.MADS_NAMESPACE + "NameTitle",
+        lc.MADS_NAMESPACE + "Title",
+    }
+)
+_MARC_HEADING_TAG_RE = re.compile(r"^1\d\d")
 
 SuccessionEncodingMode = Literal[
     "explicit_earlier_or_later_established_form",
@@ -96,6 +116,14 @@ class LcnafAlignmentError(ValueError):
 
 def _default_repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
+
+
+def _freeze_json(value: Any) -> Any:
+    if isinstance(value, dict):
+        return MappingProxyType({k: _freeze_json(v) for k, v in value.items()})
+    if isinstance(value, list):
+        return tuple(_freeze_json(item) for item in value)
+    return value
 
 
 def _normalize_org_tokens(text: str) -> str:
@@ -125,11 +153,14 @@ class VerifiedLcnafAgencyRecord:
     us_prefixed_top1_exact: bool
     bare_name_top1_exact: bool
     in_pinned_lc_externallinks_zip: bool
+    pinned_zip_wikidata_iris: tuple[str, ...]
+    pinned_zip_fast_iris: tuple[str, ...]
     wikidata_iris: tuple[str, ...]
     fast_iris: tuple[str, ...]
     viaf_iris: tuple[str, ...]
     isni_iris: tuple[str, ...]
     earlier_lccns: tuple[str, ...]
+    earlier_unlinked_labels: tuple[str, ...]
     later_lccns: tuple[str, ...]
     related_authority_count: int
     succession_encoding_mode: SuccessionEncodingMode
@@ -142,7 +173,7 @@ class ParsedLcnafMadsGraph:
     lccn: str
     authority_iri: str
     authoritative_label: str
-    marc_key: str | None
+    marc_key: str
     variant_labels: tuple[str, ...]
     earlier_lccns: tuple[str, ...]
     earlier_unlinked_labels: tuple[str, ...]
@@ -156,8 +187,8 @@ class ParsedLcnafMadsGraph:
 
 
 @cache
-def load_lcnaf_alignment_manifest(repo_root: Path | None = None) -> dict[str, Any]:
-    """Load and SHA-256-verify ``lcnaf-federal-agencies-alignment.json``."""
+def load_lcnaf_alignment_manifest(repo_root: Path | None = None) -> Mapping[str, Any]:
+    """Load and SHA-256-verify the immutable ``lcnaf-federal-agencies-alignment.json`` manifest."""
 
     root = _default_repo_root() if repo_root is None else Path(repo_root)
     path = root / EVIDENCE_RELATIVE_DIR / LCNAF_ALIGNMENT_FILENAME
@@ -171,7 +202,7 @@ def load_lcnaf_alignment_manifest(repo_root: Path | None = None) -> dict[str, An
             f"expected=({LCNAF_ALIGNMENT_BYTE_LENGTH}, {LCNAF_ALIGNMENT_SHA256}), "
             f"observed=({len(payload)}, {observed_sha})"
         )
-    return json.loads(payload.decode("utf-8"))
+    return _freeze_json(json.loads(payload.decode("utf-8")))
 
 
 @cache
@@ -199,11 +230,14 @@ def load_verified_lcnaf_records(repo_root: Path | None = None) -> tuple[Verified
             us_prefixed_top1_exact=bool(r["us_prefixed_top1_exact"]),
             bare_name_top1_exact=bool(r["bare_name_top1_exact"]),
             in_pinned_lc_externallinks_zip=bool(r["in_pinned_lc_externallinks_zip"]),
+            pinned_zip_wikidata_iris=tuple(r["pinned_zip_wikidata_iris"]),
+            pinned_zip_fast_iris=tuple(r["pinned_zip_fast_iris"]),
             wikidata_iris=tuple(r["wikidata_iris"]),
             fast_iris=tuple(r["fast_iris"]),
             viaf_iris=tuple(r["viaf_iris"]),
             isni_iris=tuple(r["isni_iris"]),
             earlier_lccns=tuple(r["earlier_lccns"]),
+            earlier_unlinked_labels=tuple(r["earlier_unlinked_labels"]),
             later_lccns=tuple(r["later_lccns"]),
             related_authority_count=int(r["related_authority_count"]),
             succession_encoding_mode=r["succession_encoding_mode"],
@@ -220,8 +254,8 @@ def lookup_verified_lcnaf_for_code(
     """Look up a verified LCNAF corporate authority for a regulations.gov ``agency_code``.
 
     Cross-checks that ``agency_code`` exists in :data:`refspec.registry.agency_crosswalk.AGENCY_CROSSWALK_BY_CODE`
-    and preserves ``crosswalk_parent_collapsed`` / ``crosswalk_defunct_code`` flags so
-    callers never silently equate a sub-agency's LCNAF authority with its parent
+    and preserves independent ``crosswalk_parent_collapsed`` and ``crosswalk_defunct_code``
+    flags so callers never silently equate a sub-agency's LCNAF authority with its parent
     department's ``primary_slug``.
     """
 
@@ -241,7 +275,7 @@ def build_lcnaf_corporate_queries(
     """Build the ordered 3-query ``suggest2`` ladder covering all 4 LCNAF corporate entry patterns.
 
     1. ``"United States. <Name>"`` (AACR2/RDA subordinate to jurisdiction: 52/54 = 96.3%)
-    2. ``"<Name>"`` (direct entry with ``(U.S.)`` qualifier or bare corporate name, e.g. ``CMS``, ``FDIC``)
+    2. ``"<Name>"`` (direct entry with ``(U.S.)`` qualifier or ``Federal ...`` corporate body, e.g. ``CMS``, ``FDIC``)
     3. ``"United States. <Parent Dept>. <Name>"`` (department-subordinate office, e.g. ``EOIR`` under ``DOJ``)
     """
 
@@ -271,13 +305,19 @@ def select_verified_lcnaf_hit(
 ) -> Mapping[str, Any] | None:
     """Select an exact U.S. federal corporate match from ``suggest2`` hits, refusing false friends.
 
-    Refuses:
-    - Foreign or state jurisdictions (``"Liberia. Environmental Protection Agency"``,
-      ``"Bangladesh. Securities and Exchange Commission"``, ``"Alaska. Office of Management and Budget"``)
-    - Unrequested subordinate divisions or cooperative programs whose variant
-      happens to prefix-match (``"Medicare Recovery Audit Contractor Program (U.S.)"``,
-      ``"United States. Environmental Protection Agency. Acid Rain Division"``)
-    - Bare acronym collisions (``"Eglise protestante africaine (Cameroon)"``).
+    Requires explicit U.S. jurisdiction or parent-department corporate evidence:
+    - Refuses foreign or state jurisdictions (``"Liberia. Environmental Protection Agency"``,
+      ``"Bangladesh. Securities and Exchange Commission"``, ``"Alaska. Office of Management and Budget"``).
+    - Refuses unqualified generic corporate labels lacking U.S. federal evidence
+      (e.g. a bare ``"Executive Office for Immigration Review"`` or bare
+      ``"Environmental Protection Agency"`` without ``United States.`` / ``(U.S.)``);
+      only explicitly named ``"Federal ..."`` statutory corporations (such as
+      ``"Federal Deposit Insurance Corporation"``) are admissible without a
+      ``United States`` / ``(U.S.)`` qualifier when no parent department is supplied.
+    - Refuses unrequested subordinate divisions or cooperative programs whose
+      variant happens to prefix-match (``"Medicare Recovery Audit Contractor
+      Program (U.S.)"``, ``"United States. Environmental Protection Agency. Acid
+      Rain Division"``) and bare acronym collisions.
     """
 
     target_norm = _normalize_org_tokens(natural_name.removeprefix("United States.").removeprefix("U.S.").strip())
@@ -285,7 +325,6 @@ def select_verified_lcnaf_hit(
         return None
 
     admissible_authorized = {
-        target_norm,
         f"united states {target_norm}",
         f"u s {target_norm}",
         f"{target_norm} u s",
@@ -294,12 +333,16 @@ def select_verified_lcnaf_hit(
     if target_norm.startswith("department of "):
         short_dept = target_norm.removeprefix("department of ").strip()
         admissible_authorized.add(f"united states dept of {short_dept}")
+
     if parent_department_natural_name:
         pnorm = _normalize_org_tokens(
             parent_department_natural_name.removeprefix("United States.").removeprefix("U.S.").strip()
         )
         if pnorm:
             admissible_authorized.add(f"united states {pnorm} {target_norm}")
+            admissible_authorized.add(f"u s {pnorm} {target_norm}")
+    elif target_norm.startswith("federal "):
+        admissible_authorized.add(target_norm)
 
     for hit in hits:
         uri = str(hit.get("uri") or "")
@@ -322,7 +365,12 @@ def select_verified_lcnaf_hit(
 
 
 def parse_lcnaf_madsrdf_graph(payload: bytes | str | Sequence[Mapping[str, Any]], *, expected_lccn: str) -> ParsedLcnafMadsGraph:
-    """Parse one ``<lccn>.madsrdf.json`` JSON-LD array into typed corporate authority facts."""
+    """Parse one ``<lccn>.madsrdf.json`` JSON-LD array into typed corporate authority facts.
+
+    Verifies that the primary authority node is a corporate authority
+    (``madsrdf:CorporateName`` and MARC ``110`` heading), rejecting personal,
+    topical, geographic, or title records.
+    """
 
     if not _LCCN_RE.fullmatch(expected_lccn):
         raise LcnafAlignmentError(f"invalid LCCN identifier: {expected_lccn!r}")
@@ -337,6 +385,18 @@ def parse_lcnaf_madsrdf_graph(payload: bytes | str | Sequence[Mapping[str, Any]]
     main = by_id.get(authority_iri)
     if main is None:
         raise LcnafAlignmentError(f"MADS/RDF graph missing primary authority node {authority_iri}")
+
+    raw_types = main.get("@type", ())
+    node_types = {str(t) for t in (raw_types if isinstance(raw_types, list) else (raw_types,)) if isinstance(t, str)}
+    disallowed = node_types & _NON_CORPORATE_MADS_TYPES
+    if disallowed:
+        raise LcnafAlignmentError(
+            f"authority {authority_iri} has non-corporate MADS @type {sorted(disallowed)!r}"
+        )
+    if node_types and MADS_CORPORATE_NAME not in node_types:
+        raise LcnafAlignmentError(
+            f"authority {authority_iri} lacks madsrdf:CorporateName in @type {sorted(node_types)!r}"
+        )
 
     alabels = [
         str(item["@value"])
@@ -358,7 +418,15 @@ def parse_lcnaf_madsrdf_graph(payload: bytes | str | Sequence[Mapping[str, Any]]
         if isinstance(item, Mapping) and "@value" in item
     ]
     marc_110 = [m for m in marc_keys if m.startswith("110")]
-    selected_marc_key = marc_110[0] if marc_110 else (marc_keys[0] if marc_keys else None)
+    other_1xx = [m for m in marc_keys if _MARC_HEADING_TAG_RE.match(m) and not m.startswith("110")]
+    if other_1xx and not marc_110:
+        raise LcnafAlignmentError(
+            f"authority {authority_iri} carries non-corporate MARC 1XX key {other_1xx[0]!r} without MARC 110"
+        )
+    if not marc_110:
+        raise LcnafAlignmentError(
+            f"corporate authority {authority_iri} missing authorized MARC 110 key (found {marc_keys!r})"
+        )
 
     variants: list[str] = []
     for ref in main.get(MADS_HAS_VARIANT, ()):
@@ -406,7 +474,7 @@ def parse_lcnaf_madsrdf_graph(payload: bytes | str | Sequence[Mapping[str, Any]]
         lccn=expected_lccn,
         authority_iri=authority_iri,
         authoritative_label=alabels[0],
-        marc_key=selected_marc_key,
+        marc_key=marc_110[0],
         variant_labels=tuple(variants),
         earlier_lccns=ear_lccns,
         earlier_unlinked_labels=ear_unlinked,
@@ -420,24 +488,18 @@ def parse_lcnaf_madsrdf_graph(payload: bytes | str | Sequence[Mapping[str, Any]]
     )
 
 
-def parse_lcnaf_external_links_statements(
+def _scan_lcnaf_assertions(
     lines: Iterable[bytes],
     *,
     retained_subject_iris: frozenset[str] | None = None,
-) -> tuple[tuple[lc.LcExternalLinkAssertion, ...], Mapping[str, tuple[lc.LcExternalEndpointLabel, ...]]]:
-    """Parse ``http://id.loc.gov/authorities/names/`` links from ``external_links.nt`` statement bytes.
+) -> tuple[lc.LcExternalLinkAssertion, ...]:
+    """Stream pass 1 over ``external_links.nt``, retaining only matching LCNAF assertions."""
 
-    Reuses :mod:`refspec.registry.lc_external_links`'s vocabulary prefixes,
-    predicate validation, duplicate-claim refusal, N-Triples literal unescaping,
-    and deterministic endpoint language tagging without duplicating policy.
-    """
-
-    materialized = tuple(lines)
     subject_prefix = ("<" + LCNAF_AUTHORITY_PREFIX).encode("ascii")
     assertions: list[lc.LcExternalLinkAssertion] = []
     claims: set[tuple[str, str, str]] = set()
 
-    for line_number, line in enumerate(materialized, start=1):
+    for line_number, line in enumerate(lines, start=1):
         if not isinstance(line, bytes):
             raise TypeError("LC external-links statements must be bytes")
         if not line.startswith(subject_prefix):
@@ -476,9 +538,103 @@ def parse_lcnaf_external_links_statements(
             )
         )
 
+    return tuple(assertions)
+
+
+def parse_lcnaf_external_links_statements(
+    lines: Iterable[bytes] | Callable[[], Iterable[bytes]],
+    *,
+    retained_subject_iris: frozenset[str] | None = None,
+) -> tuple[tuple[lc.LcExternalLinkAssertion, ...], Mapping[str, tuple[lc.LcExternalEndpointLabel, ...]]]:
+    """Parse ``http://id.loc.gov/authorities/names/`` links from ``external_links.nt`` bytes without full-file materialization.
+
+    Accepts a reopenable zero-argument line-stream factory (used for 1.85 GB ZIP
+    archives), any re-iterable ``Iterable[bytes]`` (such as a ``Sequence[bytes]``),
+    or a single-pass ``Iterator[bytes]`` (for which non-matching assertion lines
+    are discarded immediately and pass 2 is skipped altogether when no assertions
+    match).
+    """
+
+    if callable(lines):
+        assertions = _scan_lcnaf_assertions(lines(), retained_subject_iris=retained_subject_iris)
+        if not assertions:
+            return (), MappingProxyType({})
+        target_vocabularies = {row.object_iri: row.target_vocabulary for row in assertions}
+        labels = lc._scan_endpoint_labels(lines(), target_vocabularies=target_vocabularies)
+        return assertions, MappingProxyType(dict(labels))
+
+    if not isinstance(lines, Iterator):
+        assertions = _scan_lcnaf_assertions(lines, retained_subject_iris=retained_subject_iris)
+        if not assertions:
+            return (), MappingProxyType({})
+        target_vocabularies = {row.object_iri: row.target_vocabulary for row in assertions}
+        labels = lc._scan_endpoint_labels(lines, target_vocabularies=target_vocabularies)
+        return assertions, MappingProxyType(dict(labels))
+
+    # Single-pass iterator fallback: never retain id.loc.gov assertion lines; buffer only non-LC literal lines with line numbers if needed.
+    buffered_label_lines: list[tuple[int, bytes]] = []
+    keep_literals = retained_subject_iris is None or len(retained_subject_iris) > 0
+    lc_iri_prefix = b"<http://id.loc.gov/"
+
+    def _tee_non_lc_literals() -> Iterator[bytes]:
+        for idx, raw_line in enumerate(lines, start=1):
+            if not isinstance(raw_line, bytes):
+                raise TypeError("LC external-links statements must be bytes")
+            if keep_literals and not raw_line.startswith(lc_iri_prefix) and b'"' in raw_line:
+                buffered_label_lines.append((idx, raw_line))
+            yield raw_line
+
+    assertions = _scan_lcnaf_assertions(_tee_non_lc_literals(), retained_subject_iris=retained_subject_iris)
+    if not assertions:
+        return (), MappingProxyType({})
     target_vocabularies = {row.object_iri: row.target_vocabulary for row in assertions}
-    labels = lc._scan_endpoint_labels(materialized, target_vocabularies=target_vocabularies)
-    return tuple(assertions), MappingProxyType(dict(labels))
+
+    def _sparse_indexed_stream() -> Iterator[bytes]:
+        cursor = 1
+        for orig_idx, raw_line in buffered_label_lines:
+            while cursor < orig_idx:
+                yield b""
+                cursor += 1
+            yield raw_line
+            cursor += 1
+
+    labels = lc._scan_endpoint_labels(_sparse_indexed_stream(), target_vocabularies=target_vocabularies)
+    return assertions, MappingProxyType(dict(labels))
+
+
+def load_lcnaf_external_links_from_archive(
+    path: Path,
+    *,
+    retained_subject_iris: frozenset[str] | None = None,
+) -> tuple[tuple[lc.LcExternalLinkAssertion, ...], Mapping[str, tuple[lc.LcExternalEndpointLabel, ...]]]:
+    """Verify the pinned ``lcsh-externallinks-2026-08-15.nt.zip`` archive and stream LCNAF assertions in two passes."""
+
+    source = Path(path)
+    lc._verify_archive(source)
+    try:
+        with zipfile.ZipFile(source) as archive:
+            members = archive.infolist()
+            if len(members) != 1 or members[0].filename != lc.LC_EXTERNAL_LINKS_MEMBER:
+                raise lc.LcExternalLinksError(
+                    f"LC external-links ZIP member shape differs: {[item.filename for item in members]!r}"
+                )
+            if members[0].file_size != lc.LC_EXTERNAL_LINKS_UNCOMPRESSED_BYTE_LENGTH:
+                raise lc.LcExternalLinksError(
+                    "LC external-links uncompressed byte length differs: "
+                    f"expected {lc.LC_EXTERNAL_LINKS_UNCOMPRESSED_BYTE_LENGTH}, "
+                    f"observed {members[0].file_size}"
+                )
+            with archive.open(lc.LC_EXTERNAL_LINKS_MEMBER) as stream1:
+                assertions = _scan_lcnaf_assertions(stream1, retained_subject_iris=retained_subject_iris)
+            if not assertions:
+                return (), MappingProxyType({})
+            target_vocabularies = {row.object_iri: row.target_vocabulary for row in assertions}
+            with archive.open(lc.LC_EXTERNAL_LINKS_MEMBER) as stream2:
+                labels = lc._scan_endpoint_labels(stream2, target_vocabularies=target_vocabularies)
+    except zipfile.BadZipFile as error:
+        raise lc.LcExternalLinksError(f"LC external-links source is not a valid ZIP: {source}") from error
+
+    return assertions, MappingProxyType(dict(labels))
 
 
 __all__ = [
@@ -493,6 +649,7 @@ __all__ = [
     "VerifiedLcnafAgencyRecord",
     "build_lcnaf_corporate_queries",
     "load_lcnaf_alignment_manifest",
+    "load_lcnaf_external_links_from_archive",
     "load_verified_lcnaf_records",
     "lookup_verified_lcnaf_for_code",
     "parse_lcnaf_external_links_statements",

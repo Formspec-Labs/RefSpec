@@ -1,5 +1,5 @@
 {
-  "schema_version": "refspec-loc-lcnaf-agency-alignment/1",
+  "schema_version": "refspec-loc-lcnaf-agency-alignment/2",
   "pinned_lc_external_links_baseline": {
     "filename": "lcsh-externallinks-2026-08-15.nt.zip",
     "sha256": "sha256:7d279d69c6920b41a579634a84a1b31ff73af764345fe51df3f7c480efeba9d1",
@@ -14,6 +14,8 @@
     "evaluated_entity_count": 54,
     "crosswalk_agency_count": 47,
     "historical_predecessor_count": 7,
+    "crosswalk_parent_collapsed_count": 6,
+    "crosswalk_defunct_code_count": 2,
     "four_rung_exact_match_count": 54,
     "rung1_united_states_prefixed_top1_exact_count": 52,
     "bare_natural_name_top1_exact_count": 13,
@@ -22,8 +24,10 @@
     "fr_inverted_name_probe_exact_count": 0,
     "bare_acronym_probe_top3_exact_count": 0,
     "present_in_pinned_externallinks_zip_count": 54,
-    "with_wikidata_link_count": 50,
-    "with_fast_link_count": 53
+    "with_pinned_zip_wikidata_link_count": 23,
+    "with_pinned_zip_fast_link_count": 53,
+    "with_madsrdf_wikidata_link_count": 50,
+    "with_madsrdf_fast_link_count": 53
   },
   "negative_and_sensitivity_probes": [
     {
@@ -177,11 +181,18 @@
       "madsrdf_sha256": "sha256:0f2f87baedcbb815380d9184d80f59bab7c2629f709241e9685dc7c78c743426",
       "madsrdf_bytes": 47634,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n79008243",
       "us_prefixed_top1_label": "United States. Department of Agriculture",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 6,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/no2002077088",
       "bare_name_top1_label": "Northern Ireland. Department of Agriculture and Rural Development",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/529578",
+        "http://id.worldcat.org/fast/1852329"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q501542"
       ],
@@ -196,6 +207,9 @@
         "https://isni.org/isni/0000000121621859"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [
+        "United States. Dept. of Agriculture"
+      ],
       "later_lccns": [],
       "related_authority_count": 426,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -217,11 +231,18 @@
       "madsrdf_sha256": "sha256:f04085b1854956dce34bb827cdcb02c60b1646e04b1873b85459fa6d65ee028e",
       "madsrdf_bytes": 34279,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n79071034",
       "us_prefixed_top1_label": "United States. Department of Commerce",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 0,
+      "bare_name_top1_uri": null,
       "bare_name_top1_label": null,
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/1852419",
+        "http://id.worldcat.org/fast/534265"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q503577"
       ],
@@ -236,6 +257,9 @@
         "https://isni.org/isni/0000000121885248"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [
+        "United States. Dept. of Commerce"
+      ],
       "later_lccns": [],
       "related_authority_count": 212,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -253,15 +277,24 @@
       "lccn": "n79021946",
       "authority_iri": "http://id.loc.gov/authorities/names/n79021946",
       "authoritative_label": "United States. Department of Defense",
-      "marc_key": "4102 $aМинистерство обороны США",
+      "marc_key": "1101 $aUnited States.$bDepartment of Defense",
       "madsrdf_sha256": "sha256:ce531d4473d993456aa3d8adeaac45e346d7b61a22c06e89fc7bce065aebc61b",
       "madsrdf_bytes": 49662,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n79021946",
       "us_prefixed_top1_label": "United States. Department of Defense",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 17,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/no94022300",
       "bare_name_top1_label": "Alternate Joint Communications Center (U.S.)",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [
+        "http://www.wikidata.org/entity/Q11209"
+      ],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/530399",
+        "http://id.worldcat.org/fast/1852447"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q11209"
       ],
@@ -277,6 +310,9 @@
       ],
       "earlier_lccns": [
         "n87836258"
+      ],
+      "earlier_unlinked_labels": [
+        "United States. Dept. of Defense"
       ],
       "later_lccns": [],
       "related_authority_count": 347,
@@ -299,11 +335,20 @@
       "madsrdf_sha256": "sha256:7ba3ee96abab1d1f12e31f7114bbbd21969e96994a5d4541df8dc00e466f2718",
       "madsrdf_bytes": 31259,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n78009820",
       "us_prefixed_top1_label": "United States. Department of Education",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 1,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/no2023095713",
       "bare_name_top1_label": "Boston Public Schools. Department of Educational Investigation and Measurement",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [
+        "http://www.wikidata.org/entity/Q861556"
+      ],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/524521",
+        "http://id.worldcat.org/fast/1852485"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q861556"
       ],
@@ -318,6 +363,9 @@
         "https://isni.org/isni/0000000121929933"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [
+        "United States. Dept. of Education"
+      ],
       "later_lccns": [],
       "related_authority_count": 179,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -339,11 +387,18 @@
       "madsrdf_sha256": "sha256:0872c21fe85ce9d0b724ac5db1a00a5babd249dba74b837d9c3be9ba155126eb",
       "madsrdf_bytes": 37521,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n78034868",
       "us_prefixed_top1_label": "United States. Department of Energy",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 3,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/no2021009044",
       "bare_name_top1_label": "R⁴D Program",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/525930",
+        "http://id.worldcat.org/fast/1852518"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q217810"
       ],
@@ -360,6 +415,9 @@
       "earlier_lccns": [
         "n78034864",
         "n78034871"
+      ],
+      "earlier_unlinked_labels": [
+        "United States. Dept. of Energy"
       ],
       "later_lccns": [],
       "related_authority_count": 382,
@@ -382,11 +440,18 @@
       "madsrdf_sha256": "sha256:fd358a4e8ebb44b4d249aad0912223784327dd9dd8278fc68639071840527947",
       "madsrdf_bytes": 43385,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n80102594",
       "us_prefixed_top1_label": "United States. Department of Health and Human Services",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 2,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/no96022752",
       "bare_name_top1_label": "Department of Health & Human Services Program Support Center (U.S.)",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/1852700",
+        "http://id.worldcat.org/fast/547838"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q942326"
       ],
@@ -401,6 +466,9 @@
         "https://isni.org/isni/0000000121776076"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [
+        "United States. Dept. of Health and Human Services"
+      ],
       "later_lccns": [],
       "related_authority_count": 156,
       "succession_encoding_mode": "flattened_into_untyped_related_authority"
@@ -422,11 +490,20 @@
       "madsrdf_sha256": "sha256:9990d8a49ece3f0ef2aa305609aae89d5ad594e05e42e6870f13b50104d56c29",
       "madsrdf_bytes": 15633,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/no2002051730",
       "us_prefixed_top1_label": "United States. Department of Homeland Security",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 0,
+      "bare_name_top1_uri": null,
       "bare_name_top1_label": null,
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [
+        "http://www.wikidata.org/entity/Q11231"
+      ],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/1802760",
+        "http://id.worldcat.org/fast/772683"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q11231"
       ],
@@ -442,6 +519,9 @@
       ],
       "earlier_lccns": [
         "no2002000670"
+      ],
+      "earlier_unlinked_labels": [
+        "United States. Dept. of Homeland Security"
       ],
       "later_lccns": [],
       "related_authority_count": 56,
@@ -464,11 +544,20 @@
       "madsrdf_sha256": "sha256:043a6bae94c00954ecdd7c3d07c7948ded226f349d98ee84e984ee12394653b6",
       "madsrdf_bytes": 29931,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n79049260",
       "us_prefixed_top1_label": "United States. Department of Housing and Urban Development",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 0,
+      "bare_name_top1_uri": null,
       "bare_name_top1_label": null,
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [
+        "http://www.wikidata.org/entity/Q811595"
+      ],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/532316",
+        "http://id.worldcat.org/fast/1852754"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q811595"
       ],
@@ -483,6 +572,9 @@
         "https://isni.org/isni/0000000110888697"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [
+        "United States. Dept. of Housing and Urban Development"
+      ],
       "later_lccns": [],
       "related_authority_count": 174,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -504,11 +596,20 @@
       "madsrdf_sha256": "sha256:f5e703c23788accfb362bb5fd8444af0d2cf199c336401a74ac2e2133f754172",
       "madsrdf_bytes": 37055,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n80126051",
       "us_prefixed_top1_label": "United States. Department of the Interior",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 2,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/no2021103123",
       "bare_name_top1_label": "United States. Department of the Interior. Unified Interior Region 1, North Atlantic and Appalachian Region",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [
+        "http://www.wikidata.org/entity/Q608427"
+      ],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/1853028",
+        "http://id.worldcat.org/fast/549680"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q608427"
       ],
@@ -523,6 +624,9 @@
         "https://isni.org/isni/0000000120975276"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [
+        "United States. Dept. of the Interior"
+      ],
       "later_lccns": [],
       "related_authority_count": 323,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -544,11 +648,18 @@
       "madsrdf_sha256": "sha256:280d89da9d78db66a4da270b55bcd1cf6bec2f6e38b9e81ecf8cba2f4fed3a9f",
       "madsrdf_bytes": 26481,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n79038419",
       "us_prefixed_top1_label": "United States. Department of Justice",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 3,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/no98102266",
       "bare_name_top1_label": "Department of Justice and Department of Defense Joint Technology Program (U.S.)",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/1852803",
+        "http://id.worldcat.org/fast/531530"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q1553390"
       ],
@@ -564,6 +675,9 @@
       ],
       "earlier_lccns": [
         "n79038418"
+      ],
+      "earlier_unlinked_labels": [
+        "United States. Dept. of Justice"
       ],
       "later_lccns": [],
       "related_authority_count": 131,
@@ -586,11 +700,20 @@
       "madsrdf_sha256": "sha256:8236f11a60c46bc57d440c475c079c412ab2cdb15274f2bcde7afe422eaf648b",
       "madsrdf_bytes": 26161,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n79029796",
       "us_prefixed_top1_label": "United States. Department of Labor",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 0,
+      "bare_name_top1_uri": null,
       "bare_name_top1_label": null,
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [
+        "http://www.wikidata.org/entity/Q628807"
+      ],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/1852863",
+        "http://id.worldcat.org/fast/530854"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q628807"
       ],
@@ -605,6 +728,9 @@
         "https://isni.org/isni/0000000122956159"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [
+        "United States. Dept. of Labor"
+      ],
       "later_lccns": [],
       "related_authority_count": 122,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -622,15 +748,24 @@
       "lccn": "n80126198",
       "authority_iri": "http://id.loc.gov/authorities/names/n80126198",
       "authoritative_label": "United States. Department of State",
-      "marc_key": "4101 $a美国.$b国务院",
+      "marc_key": "1101 $aUnited States.$bDepartment of State",
       "madsrdf_sha256": "sha256:4ad7a149e41b59a6d38a7368a6dbf59720cd35f9217d2e408663beaa65875fef",
       "madsrdf_bytes": 48790,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n80126198",
       "us_prefixed_top1_label": "United States. Department of State",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 3,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/n2007001800",
       "bare_name_top1_label": "Gambia. Department of State for Works, Construction, & Infrastructure Development",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [
+        "http://www.wikidata.org/entity/Q789915"
+      ],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/549760",
+        "http://id.worldcat.org/fast/1802976"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q789915"
       ],
@@ -645,6 +780,9 @@
         "https://isni.org/isni/0000000121517840"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [
+        "United States. Dept. of State"
+      ],
       "later_lccns": [],
       "related_authority_count": 272,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -666,11 +804,20 @@
       "madsrdf_sha256": "sha256:a4f827dfb478f74cef72d8108f2b82807b971861ce6c9c6babfb7d20d6cba854",
       "madsrdf_bytes": 21619,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n79058419",
       "us_prefixed_top1_label": "United States. Department of Transportation",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 1,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/no92018565",
       "bare_name_top1_label": "University Transportation Centers Program (U.S.)",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [
+        "http://www.wikidata.org/entity/Q852211"
+      ],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/1853127",
+        "http://id.worldcat.org/fast/533101"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q852211"
       ],
@@ -685,6 +832,9 @@
         "https://isni.org/isni/0000000123153139"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [
+        "United States. Dept. of Transportation"
+      ],
       "later_lccns": [],
       "related_authority_count": 122,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -706,11 +856,18 @@
       "madsrdf_sha256": "sha256:c7464a2a29abea326a76cbb1bef7c2624295e074232505aa53cb9c4433b0a745",
       "madsrdf_bytes": 24754,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n78096864",
       "us_prefixed_top1_label": "United States. Department of the Treasury",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 0,
+      "bare_name_top1_uri": null,
       "bare_name_top1_label": null,
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/528974",
+        "http://id.worldcat.org/fast/1853090"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q648666"
       ],
@@ -726,6 +883,10 @@
       ],
       "earlier_lccns": [
         "n88144111"
+      ],
+      "earlier_unlinked_labels": [
+        "United States. Dept. of the Treasury",
+        "United States. Treasury Dept."
       ],
       "later_lccns": [],
       "related_authority_count": 161,
@@ -748,11 +909,18 @@
       "madsrdf_sha256": "sha256:7415f8eee8220ef43c7a691bd7e0be9e84e959ca2c2113e29be0c4441c3901b7",
       "madsrdf_bytes": 26976,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n87945386",
       "us_prefixed_top1_label": "United States. Department of Veterans Affairs",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 16,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/no2024138354",
       "bare_name_top1_label": "Colonel Ola Lee Mize Department of Veterans Affairs Clinic (Guntersville, Ala.)",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/637348",
+        "http://id.worldcat.org/fast/1802763"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q592576"
       ],
@@ -767,6 +935,9 @@
         "https://isni.org/isni/0000000110899396"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [
+        "United States. Dept. of Veterans Affairs"
+      ],
       "later_lccns": [],
       "related_authority_count": 176,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -788,11 +959,19 @@
       "madsrdf_sha256": "sha256:2e2aec17e361abe975d2b0da8898d5b9b4d526805b0d42399ca429bd0865c2ff",
       "madsrdf_bytes": 26671,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n79079597",
       "us_prefixed_top1_label": "United States. Environmental Protection Agency",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 4,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/no2025010917",
       "bare_name_top1_label": "Liberia. Environmental Protection Agency",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [
+        "http://www.wikidata.org/entity/Q460173"
+      ],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/534882"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q460173"
       ],
@@ -806,6 +985,7 @@
         "https://isni.org/isni/0000000121462763"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 40,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -827,11 +1007,17 @@
       "madsrdf_sha256": "sha256:3acaf01a0812c06748b476e0076cbc6af0073313c2146eee7635000a3ded7bef",
       "madsrdf_bytes": 8481,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n80051251",
       "us_prefixed_top1_label": "United States. Federal Communications Commission",
       "bare_name_top1_exact": true,
       "bare_name_hits_count": 1,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/n80051251",
       "bare_name_top1_label": "United States. Federal Communications Commission",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/543957"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q128831"
       ],
@@ -845,6 +1031,7 @@
         "https://isni.org/isni/0000000123538346"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 4,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -866,11 +1053,17 @@
       "madsrdf_sha256": "sha256:0ba6eb428e9bb9fa14976b50ab8986c9ccd5f73e4726b14bf2894e891139b482",
       "madsrdf_bytes": 10167,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n81013186",
       "us_prefixed_top1_label": "Federal Deposit Insurance Corporation",
       "bare_name_top1_exact": true,
       "bare_name_hits_count": 52,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/n81013186",
       "bare_name_top1_label": "Federal Deposit Insurance Corporation",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/553796"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q1345065"
       ],
@@ -884,6 +1077,7 @@
         "https://isni.org/isni/0000000121949854"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 2,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -905,11 +1099,17 @@
       "madsrdf_sha256": "sha256:f59b081ac86de183b43593bcc5614235d9f8000b9df20e219a6219002aba9877",
       "madsrdf_bytes": 11899,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n78045614",
       "us_prefixed_top1_label": "United States. Federal Energy Regulatory Commission",
       "bare_name_top1_exact": true,
       "bare_name_hits_count": 1,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/n78045614",
       "bare_name_top1_label": "United States. Federal Energy Regulatory Commission",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/526360"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q3067862"
       ],
@@ -923,6 +1123,7 @@
         "https://isni.org/isni/0000000404053230"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 4,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -944,11 +1145,17 @@
       "madsrdf_sha256": "sha256:bd477f2d298772406638d78f89beec54a75b007ee382a48cabd4ba6a192712c6",
       "madsrdf_bytes": 17826,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n78091283",
       "us_prefixed_top1_label": "Board of Governors of the Federal Reserve System (U.S.)",
       "bare_name_top1_exact": true,
       "bare_name_hits_count": 74,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/n78091283",
       "bare_name_top1_label": "Board of Governors of the Federal Reserve System (U.S.)",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/528659"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q5440396"
       ],
@@ -963,6 +1170,9 @@
       ],
       "earlier_lccns": [
         "n84146831"
+      ],
+      "earlier_unlinked_labels": [
+        "United States. Board of Governors of the Federal Reserve System"
       ],
       "later_lccns": [],
       "related_authority_count": 6,
@@ -985,11 +1195,19 @@
       "madsrdf_sha256": "sha256:030e4ca1d84f589a934b52bef5f34b86659ac9be083db2f97acd09713d101fa3",
       "madsrdf_bytes": 12774,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n79066322",
       "us_prefixed_top1_label": "United States. Federal Trade Commission",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 2,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/n79105824",
       "bare_name_top1_label": "United States. Federal Trade Commission. Library",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [
+        "http://www.wikidata.org/entity/Q786713"
+      ],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/533978"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q786713"
       ],
@@ -1003,6 +1221,7 @@
         "https://isni.org/isni/0000000123420831"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 2,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -1024,11 +1243,17 @@
       "madsrdf_sha256": "sha256:b060d22c2dfe3f54d9d0c91dab8a12f12834303266037c08bb4e45721f276f9e",
       "madsrdf_bytes": 15425,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n84176101",
       "us_prefixed_top1_label": "United States. National Archives and Records Administration",
       "bare_name_top1_exact": true,
       "bare_name_hits_count": 1,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/n84176101",
       "bare_name_top1_label": "United States. National Archives and Records Administration",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/596913"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q518155"
       ],
@@ -1044,6 +1269,7 @@
       "earlier_lccns": [
         "n79091762"
       ],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 7,
       "succession_encoding_mode": "explicit_earlier_or_later_established_form"
@@ -1065,11 +1291,17 @@
       "madsrdf_sha256": "sha256:ccd891575b170aefadfac708ffd5eeb196bda5ce5d5f05b66efdd7d8437c8a88",
       "madsrdf_bytes": 21413,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n78087581",
       "us_prefixed_top1_label": "United States. National Aeronautics and Space Administration",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 4,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/no2007034478",
       "bare_name_top1_label": "National Aeronautics and Space Administration Aerospace Museum",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/528469"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q23548"
       ],
@@ -1085,8 +1317,9 @@
       "earlier_lccns": [
         "n79060141"
       ],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
-      "related_authority_count": 52,
+      "related_authority_count": 51,
       "succession_encoding_mode": "explicit_earlier_or_later_established_form"
     },
     {
@@ -1106,11 +1339,17 @@
       "madsrdf_sha256": "sha256:2dbe29f6e12d4c4701c0606824025cf2d2c3ece7cd1c96ab34f78e61c871b741",
       "madsrdf_bytes": 14791,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n78034875",
       "us_prefixed_top1_label": "U.S. Nuclear Regulatory Commission",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 3,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/n81125081",
       "bare_name_top1_label": "NRC/FEMA Steering Committee",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/525934"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q1320326"
       ],
@@ -1125,6 +1364,9 @@
       ],
       "earlier_lccns": [
         "n78034861"
+      ],
+      "earlier_unlinked_labels": [
+        "United States. Nuclear Regulatory Commission"
       ],
       "later_lccns": [],
       "related_authority_count": 8,
@@ -1147,11 +1389,19 @@
       "madsrdf_sha256": "sha256:6f9c5bd85105a82a5d6d9f386ef6b706ad6f9159a25555594a0d5f0062d2bbe3",
       "madsrdf_bytes": 12457,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n78088948",
       "us_prefixed_top1_label": "United States. Securities and Exchange Commission",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 10,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/no2001015215",
       "bare_name_top1_label": "Bangladesh. Securities and Exchange Commission",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [
+        "http://www.wikidata.org/entity/Q953944"
+      ],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/528527"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q953944"
       ],
@@ -1165,6 +1415,7 @@
         "https://isni.org/isni/0000000122384963"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 3,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -1186,11 +1437,17 @@
       "madsrdf_sha256": "sha256:cba7a2d04904f9054781fb850a84a845f07c23891b923be5403551f4209b1154",
       "madsrdf_bytes": 17319,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n80126011",
       "us_prefixed_top1_label": "United States. Social Security Administration",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 2,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/no2018100967",
       "bare_name_top1_label": "Columbia University. Oral History Research Office. Social Security Project",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/549664"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q2824618"
       ],
@@ -1205,6 +1462,7 @@
         "https://isni.org/isni/000000012348005X"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 17,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -1226,11 +1484,17 @@
       "madsrdf_sha256": "sha256:3c62011c61bd3532cfe4b47889682b6963db9ab5f9dd759b0b53c6a4c6893990",
       "madsrdf_bytes": 9204,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/no96011022",
       "us_prefixed_top1_label": "United States. Surface Transportation Board",
       "bare_name_top1_exact": true,
       "bare_name_hits_count": 1,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/no96011022",
       "bare_name_top1_label": "United States. Surface Transportation Board",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/714665"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q2368496"
       ],
@@ -1242,6 +1506,7 @@
         "https://isni.org/isni/0000000106948722"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 5,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -1263,11 +1528,17 @@
       "madsrdf_sha256": "sha256:05caf74af3e11304aab1ce4dc7aac438db29f8042dee84747f6c9f76c27f7bb4",
       "madsrdf_bytes": 10606,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n79005681",
       "us_prefixed_top1_label": "National Science Foundation (U.S.)",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 100,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/no2023084740",
       "bare_name_top1_label": "National Science Foundation Advisory Committee for Cyberinfrastructure",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/529404"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q304878"
       ],
@@ -1281,6 +1552,7 @@
         "https://isni.org/isni/0000000119587073"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 22,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -1302,11 +1574,17 @@
       "madsrdf_sha256": "sha256:0f013371308b4df2a28f8613d07f08835abcb2bf48a736f5a916656c38b20415",
       "madsrdf_bytes": 13208,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n79034443",
       "us_prefixed_top1_label": "United States. Federal Aviation Administration",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 14,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/n91050469",
       "bare_name_top1_label": "Federal Aviation Administration Academy (U.S.)",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/531205"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q335357"
       ],
@@ -1320,6 +1598,7 @@
         "https://isni.org/isni/000000040384994X"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 25,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -1341,11 +1620,17 @@
       "madsrdf_sha256": "sha256:c60236f4c8168cc531444c140aff68d13fec6845ab44626f348f183984ba83ae",
       "madsrdf_bytes": 32265,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n80126147",
       "us_prefixed_top1_label": "United States. Food and Drug Administration",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 2,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/no96013487",
       "bare_name_top1_label": "Pesticide Program (U.S.)",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/549734"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q204711"
       ],
@@ -1361,6 +1646,7 @@
       "earlier_lccns": [
         "n85209352"
       ],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 18,
       "succession_encoding_mode": "explicit_earlier_or_later_established_form"
@@ -1382,11 +1668,19 @@
       "madsrdf_sha256": "sha256:29ab91f2337b8c12e4c444ad214cd2c98dbb89cea5893ffaf0a0b54994723e9e",
       "madsrdf_bytes": 12649,
       "us_prefixed_top1_exact": false,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n2009184264",
       "us_prefixed_top1_label": "Medicare Recovery Audit Contractor Program (U.S.)",
       "bare_name_top1_exact": true,
       "bare_name_hits_count": 18,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/no2001093385",
       "bare_name_top1_label": "Centers for Medicare & Medicaid Services (U.S.)",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [
+        "http://www.wikidata.org/entity/Q5060058"
+      ],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/767996"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q5060058"
       ],
@@ -1402,6 +1696,7 @@
       "earlier_lccns": [
         "n77009797"
       ],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 5,
       "succession_encoding_mode": "explicit_earlier_or_later_established_form"
@@ -1423,11 +1718,19 @@
       "madsrdf_sha256": "sha256:a148984283f51a987fb0c76169241393ae0aae9375937cc1547a9be39350d4e7",
       "madsrdf_bytes": 15247,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n80020661",
       "us_prefixed_top1_label": "United States. Occupational Safety and Health Administration",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 0,
+      "bare_name_top1_uri": null,
       "bare_name_top1_label": null,
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [
+        "http://www.wikidata.org/entity/Q746186"
+      ],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/541589"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q746186"
       ],
@@ -1443,6 +1746,7 @@
       "earlier_lccns": [
         "n80020667"
       ],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 3,
       "succession_encoding_mode": "explicit_earlier_or_later_established_form"
@@ -1464,11 +1768,19 @@
       "madsrdf_sha256": "sha256:975bc369c57cea06cc4d57701e79082aab9842f34e123768240bb4c3ef27810a",
       "madsrdf_bytes": 12769,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n79063888",
       "us_prefixed_top1_label": "United States. Internal Revenue Service",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 2,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/no99070094",
       "bare_name_top1_label": "Internal Revenue Service/New York University Continuing Professional Education Program",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [
+        "http://www.wikidata.org/entity/Q973587"
+      ],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/533618"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q973587"
       ],
@@ -1482,6 +1794,7 @@
         "https://isni.org/isni/0000000121504193"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 8,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -1503,11 +1816,19 @@
       "madsrdf_sha256": "sha256:0d304311bd6e88b7f658c8d0a9891377c482cc36d2a9f231bed563d37fda4aa1",
       "madsrdf_bytes": 22251,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n80125851",
       "us_prefixed_top1_label": "United States. Coast Guard",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 16,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/no2009197846",
       "bare_name_top1_label": "Coast Guard Auxiliary Association",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [
+        "http://www.wikidata.org/entity/Q11224"
+      ],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/549578"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q11224"
       ],
@@ -1523,6 +1844,7 @@
       "earlier_lccns": [
         "n80125854"
       ],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 22,
       "succession_encoding_mode": "explicit_earlier_or_later_established_form"
@@ -1544,11 +1866,17 @@
       "madsrdf_sha256": "sha256:741d62ee31f4918ba1c4d9a3b2aa530fb41a028d041a7adf2582bc993b8ac988",
       "madsrdf_bytes": 17129,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/nb2015015976",
       "us_prefixed_top1_label": "United States. Consumer Financial Protection Bureau",
       "bare_name_top1_exact": true,
       "bare_name_hits_count": 1,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/nb2015015976",
       "bare_name_top1_label": "United States. Consumer Financial Protection Bureau",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/1912011"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q1091543"
       ],
@@ -1560,6 +1888,10 @@
       ],
       "isni_iris": [],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [
+        "Board of Governors of the Federal Reserve System (U.S.). Consumer Financial Protection Bureau",
+        "Consumer Financial Protection Bureau (U.S.)"
+      ],
       "later_lccns": [],
       "related_authority_count": 7,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -1581,11 +1913,19 @@
       "madsrdf_sha256": "sha256:58c5eca85ee5258e6520fe7936b99e754b61917bde01e7a7e51e1d6af00e5d4f",
       "madsrdf_bytes": 10783,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/no2002058066",
       "us_prefixed_top1_label": "United States. Bureau of Industry and Security",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 0,
+      "bare_name_top1_uri": null,
       "bare_name_top1_label": null,
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [
+        "http://www.wikidata.org/entity/Q455289"
+      ],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/773197"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q455289"
       ],
@@ -1601,6 +1941,7 @@
       "earlier_lccns": [
         "n88133814"
       ],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 1,
       "succession_encoding_mode": "explicit_earlier_or_later_established_form"
@@ -1622,11 +1963,17 @@
       "madsrdf_sha256": "sha256:0b0d76b4b132d0524fcab1bd583e663488cdb5c05d8a35a109c602c86207f48f",
       "madsrdf_bytes": 10596,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n80126133",
       "us_prefixed_top1_label": "United States. Office of Management and Budget",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 3,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/n84065964",
       "bare_name_top1_label": "Alaska. Office of Management and Budget",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/549720"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q284392"
       ],
@@ -1640,6 +1987,7 @@
         "https://isni.org/isni/0000000114820657"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 6,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -1661,11 +2009,17 @@
       "madsrdf_sha256": "sha256:9470cab858f576abbfca7aef29a61b143f224a601104f2a53aa38641cfa0f17c",
       "madsrdf_bytes": 17431,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/no93011529",
       "us_prefixed_top1_label": "Centers for Disease Control and Prevention (U.S.)",
       "bare_name_top1_exact": true,
       "bare_name_hits_count": 100,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/no93011529",
       "bare_name_top1_label": "Centers for Disease Control and Prevention (U.S.)",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/686437"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q583725"
       ],
@@ -1677,6 +2031,7 @@
         "https://isni.org/isni/0000000122915402"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 11,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -1698,11 +2053,17 @@
       "madsrdf_sha256": "sha256:f2763c35898b0c37a2d4bc457a8a9556b4f3579aa0a2222d33786ea1c5c56f8a",
       "madsrdf_bytes": 10531,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/no2020061910",
       "us_prefixed_top1_label": "United States. Cybersecurity & Infrastructure Security Agency",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 0,
+      "bare_name_top1_uri": null,
       "bare_name_top1_label": null,
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [
+        "http://www.wikidata.org/entity/Q5205058"
+      ],
+      "pinned_zip_fast_iris": [],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q5205058"
       ],
@@ -1714,6 +2075,7 @@
         "https://isni.org/isni/0000000495394558"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 1,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -1735,11 +2097,18 @@
       "madsrdf_sha256": "sha256:d0f7c1562adc90edf2779b5dbdd244dbe8c1426663b550924e61e78a0ae7ec83",
       "madsrdf_bytes": 15296,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/no2004040772",
       "us_prefixed_top1_label": "U.S. Customs and Border Protection",
       "bare_name_top1_exact": true,
       "bare_name_hits_count": 23,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/no2004040772",
       "bare_name_top1_label": "U.S. Customs and Border Protection",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/788277",
+        "http://id.worldcat.org/fast/1429649"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q368804"
       ],
@@ -1755,6 +2124,9 @@
       ],
       "earlier_lccns": [
         "no2003052379"
+      ],
+      "earlier_unlinked_labels": [
+        "United States. Customs and Border Protection"
       ],
       "later_lccns": [],
       "related_authority_count": 6,
@@ -1777,11 +2149,19 @@
       "madsrdf_sha256": "sha256:19b61198f9250e27f21381aacb999ce47360a6cc1439bad7a71abccf0d8c470c",
       "madsrdf_bytes": 11259,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/no2011188069",
       "us_prefixed_top1_label": "United States. Bureau of Ocean Energy Management",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 2,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/no2015160674",
       "bare_name_top1_label": "BOEM Alaska Environmental Studies Program",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [
+        "http://www.wikidata.org/entity/Q10960196"
+      ],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/1936708"
+      ],
       "wikidata_iris": [],
       "fast_iris": [
         "http://id.worldcat.org/fast/1936708"
@@ -1793,6 +2173,7 @@
       "earlier_lccns": [
         "no2010108932"
       ],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 7,
       "succession_encoding_mode": "explicit_earlier_or_later_established_form"
@@ -1804,7 +2185,7 @@
       "crosswalk_tier": "confident",
       "natural_name": "Minerals Management Service",
       "fr_or_alt_name": "Interior Department",
-      "crosswalk_parent_collapsed": false,
+      "crosswalk_parent_collapsed": true,
       "crosswalk_defunct_code": true,
       "resolution_rung": "rung1_united_states_prefixed_suggest2",
       "lccn": "n82104764",
@@ -1814,11 +2195,17 @@
       "madsrdf_sha256": "sha256:8380caf586043fefbfff5d9d332283d434d2071ccf36fcca3ea2d5d3a6da34bf",
       "madsrdf_bytes": 14103,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n82104764",
       "us_prefixed_top1_label": "United States. Minerals Management Service",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 1,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/n84137990",
       "bare_name_top1_label": "United States. Minerals Management Service. Technology Assessment and Research Program",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/571158"
+      ],
       "wikidata_iris": [],
       "fast_iris": [
         "http://id.worldcat.org/fast/571158"
@@ -1832,6 +2219,7 @@
       "earlier_lccns": [
         "n85166927"
       ],
+      "earlier_unlinked_labels": [],
       "later_lccns": [
         "no2010108932"
       ],
@@ -1845,7 +2233,7 @@
       "crosswalk_tier": "confident",
       "natural_name": "Office of Thrift Supervision",
       "fr_or_alt_name": "Treasury Department",
-      "crosswalk_parent_collapsed": false,
+      "crosswalk_parent_collapsed": true,
       "crosswalk_defunct_code": true,
       "resolution_rung": "rung1_united_states_prefixed_suggest2",
       "lccn": "no89013654",
@@ -1855,11 +2243,17 @@
       "madsrdf_sha256": "sha256:78c52888cbb61d646cc99397218ee07ac87f530f927ed059e5e5f7901563be08",
       "madsrdf_bytes": 9570,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/no89013654",
       "us_prefixed_top1_label": "United States. Office of Thrift Supervision",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 0,
+      "bare_name_top1_uri": null,
       "bare_name_top1_label": null,
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/653036"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q3881025"
       ],
@@ -1873,6 +2267,7 @@
       "earlier_lccns": [
         "n80126212"
       ],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 2,
       "succession_encoding_mode": "explicit_earlier_or_later_established_form"
@@ -1890,15 +2285,23 @@
       "lccn": "no2004066329",
       "authority_iri": "http://id.loc.gov/authorities/names/no2004066329",
       "authoritative_label": "United States. Government Accountability Office",
-      "marc_key": "4102 $aوان المساءلة لحكومة الولايات المتّحدة",
+      "marc_key": "1101 $aUnited States.$bGovernment Accountability Office",
       "madsrdf_sha256": "sha256:a09b1d36967d26adbcc9a8c405c12544b9e7e653559a58ffd653442a3274481c",
       "madsrdf_bytes": 10991,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/no2004066329",
       "us_prefixed_top1_label": "United States. Government Accountability Office",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 0,
+      "bare_name_top1_uri": null,
       "bare_name_top1_label": null,
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [
+        "http://www.wikidata.org/entity/Q749118"
+      ],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/789900"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q749118"
       ],
@@ -1914,6 +2317,7 @@
       "earlier_lccns": [
         "n80126064"
       ],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 1,
       "succession_encoding_mode": "explicit_earlier_or_later_established_form"
@@ -1935,11 +2339,17 @@
       "madsrdf_sha256": "sha256:23b2fc148d29c9b9d36a0c34672b5e71ac5ecb37f8f643a1037a4017f6f9f179",
       "madsrdf_bytes": 12282,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/no2015002503",
       "us_prefixed_top1_label": "United States. Government Publishing Office",
       "bare_name_top1_exact": true,
       "bare_name_hits_count": 1,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/no2015002503",
       "bare_name_top1_label": "United States. Government Publishing Office",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/1936725"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q2928358"
       ],
@@ -1951,6 +2361,7 @@
       ],
       "isni_iris": [],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 5,
       "succession_encoding_mode": "flattened_into_untyped_related_authority"
@@ -1972,11 +2383,19 @@
       "madsrdf_sha256": "sha256:adc2c0e8825444c98a0726cc6460463f68c6663f6bf4bb752aaeaa4b33231478",
       "madsrdf_bytes": 10029,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n80004006",
       "us_prefixed_top1_label": "United States. Federal Mediation and Conciliation Service",
       "bare_name_top1_exact": true,
       "bare_name_hits_count": 1,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/n80004006",
       "bare_name_top1_label": "United States. Federal Mediation and Conciliation Service",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [
+        "http://www.wikidata.org/entity/Q5440288"
+      ],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/540243"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q5440288"
       ],
@@ -1990,6 +2409,7 @@
         "https://isni.org/isni/0000000085937089"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 0,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -2011,11 +2431,20 @@
       "madsrdf_sha256": "sha256:484cc2ef542376d2714b79a354283dbe6e31b2f7094e8472e5fc42cffae25afb",
       "madsrdf_bytes": 8708,
       "us_prefixed_top1_exact": false,
+      "us_prefixed_top1_uri": null,
       "us_prefixed_top1_label": null,
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 0,
+      "bare_name_top1_uri": null,
       "bare_name_top1_label": null,
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [
+        "http://www.wikidata.org/entity/Q5419844"
+      ],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/650406",
+        "http://id.worldcat.org/fast/1852827"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q5419844"
       ],
@@ -2028,6 +2457,9 @@
       ],
       "isni_iris": [],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [
+        "United States. Dept. of Justice. Executive Office for Immigration Review"
+      ],
       "later_lccns": [],
       "related_authority_count": 4,
       "succession_encoding_mode": "no_corporate_rename_link"
@@ -2045,15 +2477,24 @@
       "lccn": "n79006771",
       "authority_iri": "http://id.loc.gov/authorities/names/n79006771",
       "authoritative_label": "United States. Department of Health, Education, and Welfare",
-      "marc_key": "4102 $aמשרד הבריאות, חינוך וסעד בממשלת ארה״ב",
+      "marc_key": "1101 $aUnited States.$bDepartment of Health, Education, and Welfare",
       "madsrdf_sha256": "sha256:5e3ea820c5afbdbedfe5307edf43aa064233d9488e58df248358aa8e46415623",
       "madsrdf_bytes": 27780,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n79006771",
       "us_prefixed_top1_label": "United States. Department of Health, Education, and Welfare",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 0,
+      "bare_name_top1_uri": null,
       "bare_name_top1_label": null,
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [
+        "http://www.wikidata.org/entity/Q1519761"
+      ],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/529473",
+        "http://id.worldcat.org/fast/1852722"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q1519761"
       ],
@@ -2068,6 +2509,9 @@
         "https://isni.org/isni/0000000110904933"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [
+        "United States. Dept. of Health, Education, and Welfare"
+      ],
       "later_lccns": [],
       "related_authority_count": 122,
       "succession_encoding_mode": "flattened_into_untyped_related_authority"
@@ -2089,11 +2533,18 @@
       "madsrdf_sha256": "sha256:f103250c5a481a08728013dfe3d7d77985fa7c078a738ded7d5fa62c1e6667d8",
       "madsrdf_bytes": 20378,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n79084108",
       "us_prefixed_top1_label": "United States. War Department",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 1,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/n2025182672",
       "bare_name_top1_label": "War Department Beneficial Association",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/535167",
+        "http://id.worldcat.org/fast/1853257"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q1143596"
       ],
@@ -2108,6 +2559,9 @@
         "https://isni.org/isni/0000000121886929"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [
+        "United States. War Dept."
+      ],
       "later_lccns": [],
       "related_authority_count": 115,
       "succession_encoding_mode": "flattened_into_untyped_related_authority"
@@ -2129,11 +2583,17 @@
       "madsrdf_sha256": "sha256:f305a256c04c98a8ca562d241d920d1d0c06a88846bb74415b16c7ad54741fab",
       "madsrdf_bytes": 12623,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n80126245",
       "us_prefixed_top1_label": "United States. Interstate Commerce Commission",
       "bare_name_top1_exact": true,
       "bare_name_hits_count": 1,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/n80126245",
       "bare_name_top1_label": "United States. Interstate Commerce Commission",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/549789"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q1647715"
       ],
@@ -2147,6 +2607,7 @@
         "https://isni.org/isni/0000000106573860"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 6,
       "succession_encoding_mode": "unlinked_in_rdf_prose_only"
@@ -2164,15 +2625,23 @@
       "lccn": "n78034861",
       "authority_iri": "http://id.loc.gov/authorities/names/n78034861",
       "authoritative_label": "U.S. Atomic Energy Commission",
-      "marc_key": "4102 $aلجنة الطاقة الذرية الأمريكية",
+      "marc_key": "1102 $aU.S. Atomic Energy Commission",
       "madsrdf_sha256": "sha256:2091e6c0273bd1a873e9ec7c53095451f463ec3387f6dafaabf9c0eab92178a5",
       "madsrdf_bytes": 20368,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n78034861",
       "us_prefixed_top1_label": "U.S. Atomic Energy Commission",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 5,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/n50073081",
       "bare_name_top1_label": "Hungary. Országos Atomenergia Bizottság",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [
+        "http://www.wikidata.org/entity/Q939090"
+      ],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/525928"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q939090"
       ],
@@ -2186,6 +2655,9 @@
         "https://isni.org/isni/0000000123239952"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [
+        "United States. Atomic Energy Commission"
+      ],
       "later_lccns": [
         "n78034875",
         "n78034864"
@@ -2210,11 +2682,17 @@
       "madsrdf_sha256": "sha256:ecfb7892b5cb57de9901c1df27d8a7328baf3faf7cf416b8354db3cb6361c61e",
       "madsrdf_bytes": 18204,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n77009797",
       "us_prefixed_top1_label": "United States. Health Care Financing Administration",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 0,
+      "bare_name_top1_uri": null,
       "bare_name_top1_label": null,
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/523174"
+      ],
       "wikidata_iris": [],
       "fast_iris": [
         "http://id.worldcat.org/fast/523174"
@@ -2226,6 +2704,7 @@
         "https://isni.org/isni/0000000110899716"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [],
       "later_lccns": [
         "no2001093385"
       ],
@@ -2249,11 +2728,17 @@
       "madsrdf_sha256": "sha256:232c571b079fe8a2abec7d1612f8e019d9b318bffe61dc515ca23e8ecccc3912",
       "madsrdf_bytes": 21242,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n79053784",
       "us_prefixed_top1_label": "United States. Immigration and Naturalization Service",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 0,
+      "bare_name_top1_uri": null,
       "bare_name_top1_label": null,
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/532653"
+      ],
       "wikidata_iris": [
         "http://www.wikidata.org/entity/Q194984"
       ],
@@ -2267,6 +2752,7 @@
         "https://isni.org/isni/0000000107245375"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [],
       "later_lccns": [
         "no2003104838",
         "no2003052379",
@@ -2292,11 +2778,17 @@
       "madsrdf_sha256": "sha256:e9c57b871f74e5dba4c4fca1e6674ed1092d2ec395efdb2692c2e23b6ded72ac",
       "madsrdf_bytes": 10406,
       "us_prefixed_top1_exact": true,
+      "us_prefixed_top1_uri": "http://id.loc.gov/authorities/names/n79046186",
       "us_prefixed_top1_label": "United States. Civil Aeronautics Board",
       "bare_name_top1_exact": false,
       "bare_name_hits_count": 3,
+      "bare_name_top1_uri": "http://id.loc.gov/authorities/names/n78067506",
       "bare_name_top1_label": "United States. Civil Aeronautics Board. Advisory Committee on Procedural Reform",
       "in_pinned_lc_externallinks_zip": true,
+      "pinned_zip_wikidata_iris": [],
+      "pinned_zip_fast_iris": [
+        "http://id.worldcat.org/fast/532083"
+      ],
       "wikidata_iris": [],
       "fast_iris": [
         "http://id.worldcat.org/fast/532083"
@@ -2308,6 +2800,7 @@
         "https://isni.org/isni/0000000121777087"
       ],
       "earlier_lccns": [],
+      "earlier_unlinked_labels": [],
       "later_lccns": [],
       "related_authority_count": 3,
       "succession_encoding_mode": "unlinked_in_rdf_prose_only"

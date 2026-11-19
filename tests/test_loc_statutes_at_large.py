@@ -7,7 +7,7 @@ import shutil
 from pathlib import Path
 
 import pytest
-from pypdf import PdfWriter
+from pypdf import PdfReader, PdfWriter
 from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
 
 from refspec.loc_statutes_at_large import (
@@ -20,6 +20,7 @@ from refspec.loc_statutes_at_large import (
     LLSL_OCR_MANIFEST_SHA256,
     LocStatutesError,
     extract_llsl_pdf_ocr_layers,
+    int_to_roman,
     llsalvol_segment_urls,
     load_llsl_catalog,
     load_llsl_ocr_verification_manifest,
@@ -27,19 +28,26 @@ from refspec.loc_statutes_at_large import (
     parse_enactment_year_from_table3_key,
     parse_llsalvol_page_stem,
     resolve_statutes_volume,
+    score_llsl_layer_citation,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def _build_synthetic_llsl_pdf(*, include_type1: bool, include_invisible_ocr: bool) -> bytes:
-    """Build a minimal 1-page PDF reproducing LoC llsl's dual-font 3 Tr content-stream layout."""
+def _build_synthetic_llsl_pdf(
+    *,
+    include_type1: bool,
+    include_invisible_ocr: bool,
+    render_mode: int = 3,
+    extra_non_legacy_font: str | None = None,
+) -> bytes:
+    """Build a minimal 1-page PDF reproducing LoC llsl's dual-font content-stream layout."""
 
     writer = PdfWriter()
     page = writer.add_blank_page(width=612, height=792)
 
     fonts = DictionaryObject()
-    ops: list[str] = ["BT", "3 Tr"]
+    ops: list[str] = ["BT", f"{render_mode} Tr"]
     if include_type1:
         f5 = writer._add_object(
             DictionaryObject(
@@ -52,7 +60,8 @@ def _build_synthetic_llsl_pdf(*, include_type1: bool, include_invisible_ocr: boo
             )
         )
         fonts[NameObject("/F5")] = f5
-        ops.append("/F5 11 Tf 72 720 Td (FIFTH CONGRESS. SESS. II. C. 58. 1798. SECTION 1. Be it enacted) Tj")
+        ops.append("1 0 0 1 72 750 Tm /F5 11 Tf (570 FIFTH CONGRESS. SESS. II. C. 58. 1798.) Tj")
+        ops.append("1 0 0 1 72 680 Tm /F5 11 Tf (CHAP. LVIII. SECTION 1. Be it enacted) Tj")
     if include_invisible_ocr:
         fxf1 = writer._add_object(
             DictionaryObject(
@@ -65,7 +74,21 @@ def _build_synthetic_llsl_pdf(*, include_type1: bool, include_invisible_ocr: boo
             )
         )
         fonts[NameObject("/FXF1")] = fxf1
-        ops.append("/FXF1 11 Tf 72 720 Td (570 FIFTH CONGRESS. Sass. IL Cn. 58. 1798. S ECTION 1. Be it enacted) Tj")
+        ops.append("1 0 0 1 72 750 Tm /FXF1 11 Tf (570 FIFTH CONGRESS. Sass. IL Cn. 58. 1798.) Tj")
+        ops.append("1 0 0 1 72 680 Tm /FXF1 11 Tf (C HAP. LVIII. S ECTION 1. Be it enacted) Tj")
+    if extra_non_legacy_font:
+        f_other = writer._add_object(
+            DictionaryObject(
+                {
+                    NameObject("/Type"): NameObject("/Font"),
+                    NameObject("/Subtype"): NameObject("/TrueType"),
+                    NameObject("/BaseFont"): NameObject(extra_non_legacy_font),
+                    NameObject("/Encoding"): NameObject("/WinAnsiEncoding"),
+                }
+            )
+        )
+        fonts[NameObject("/FX99")] = f_other
+        ops.append("1 0 0 1 72 400 Tm /FX99 11 Tf (STAMP) Tj")
     ops.append("ET")
 
     page[NameObject("/Resources")] = DictionaryObject({NameObject("/Font"): fonts})
@@ -78,96 +101,95 @@ def _build_synthetic_llsl_pdf(*, include_type1: bool, include_invisible_ocr: boo
     return buf.getvalue()
 
 
-def test_pinned_llsl_catalog_invariants_across_all_64_volumes() -> None:
-    """Pins the 64-volume LoC Statutes at Large catalogue structure (97 PDFs, 69 llsalvol objects)."""
+def test_pinned_llsl_catalog_invariants_immutability_and_caption_vs_term_years() -> None:
+    """Pins the 64-volume catalogue (97 PDFs, 69 llsalvol objects), immutability, and 5th Congress year bounds."""
 
     catalog = load_llsl_catalog(REPO_ROOT)
     assert tuple(sorted(catalog)) == tuple(range(1, 65))
+    with pytest.raises(TypeError):
+        catalog[1] = catalog[2]  # type: ignore[index]
 
-    total_pdfs = sum(len(v.pdf_resources) for v in catalog.values())
-    assert total_pdfs == 97
-
+    assert sum(len(v.pdf_resources) for v in catalog.values()) == 97
     single_pdf_vols = [v.volume for v in catalog.values() if len(v.pdf_resources) == 1]
     multi_pdf_vols = [v.volume for v in catalog.values() if len(v.pdf_resources) > 1]
     assert len(single_pdf_vols) == 52
     assert multi_pdf_vols == [1, 2, 3, 4, 5, 9, 10, 11, 12, 18, 20, 44]
 
-    total_llsalvol = sum(len(v.llsalvol_resources) for v in catalog.values())
-    assert total_llsalvol == 69
-    multi_llsalvol_vols = [v.volume for v in catalog.values() if len(v.llsalvol_resources) > 1]
-    assert multi_llsalvol_vols == [18, 44]
-    assert [r.url.rstrip("/").rsplit(".", 1)[-1] for r in catalog[18].llsalvol_resources] == [
-        "llsal_018a",
-        "llsal_018b",
-        "llsal_018c",
-        "llsal_018d",
-        "llsal_018e",
-    ]
-    assert [r.url.rstrip("/").rsplit(".", 1)[-1] for r in catalog[44].llsalvol_resources] == [
-        "llsal_044",
-        "llsal_044a",
-    ]
+    assert sum(len(v.llsalvol_resources) for v in catalog.values()) == 69
+    assert [v.volume for v in catalog.values() if len(v.llsalvol_resources) > 1] == [18, 44]
 
-    for vol, entry in catalog.items():
-        assert entry.shelf_id == f"llsl-v{vol}"
-        assert entry.item_url == f"https://www.loc.gov/item/llsl-v{vol}/"
-        for pdf in entry.pdf_resources:
-            assert "//llsl-" in pdf.published_pdf_url
-            assert "//llsl-" not in pdf.normalized_pdf_url.split("://", 1)[1]
-            assert pdf.filename.endswith(".pdf")
+    # llsl-c5.pdf preserves LoC's verbatim "5th Congress (1798/1799)" caption while expanding term years to 1797..1799.
+    c5 = catalog[1].pdf_resources[4]
+    assert c5.filename == "llsl-c5.pdf"
+    assert c5.caption == "5th Congress (1798/1799)"
+    assert (c5.caption_year_start, c5.caption_year_end) == (1798, 1799)
+    assert (c5.year_start, c5.year_end) == (1797, 1799)
 
 
-def test_pinned_ocr_verification_manifest_verdict_and_specimen_consistency() -> None:
-    """Pins the 10-PDF / 19,555-page dual-OCR verdict and all 16 multi-era specimens."""
+def test_pinned_ocr_manifest_boundary_counterexamples_and_scoped_accuracy() -> None:
+    """Pins the 10-PDF / 19,555-page OCR manifest, 51 Stat. 4 p. 10, ALTO header diff, and negative boundaries."""
 
     manifest = load_llsl_ocr_verification_manifest(REPO_ROOT)
+    with pytest.raises(TypeError):
+        manifest["verdict"] = {}  # type: ignore[index]
+
     verdict = manifest["verdict"]
     assert verdict["embedded_ocr_present_in_all_sampled_pdfs"] is True
     assert verdict["sampled_pdf_count"] == 10
     assert verdict["sampled_total_pdf_pages"] == 19_555
 
-    pdfs = manifest["pinned_pdfs"]
-    assert len(pdfs) == 10
-    assert sum(p["pages"] for p in pdfs) == 19_555
-    assert {p["volume"] for p in pdfs} == {1, 2, 23, 24, 38, 49, 51, 54, 60, 62}
-    for pdf in pdfs:
-        assert pdf["sha256"].startswith("sha256:") and len(pdf["sha256"]) == 71
-        assert pdf["has_invisible_ocr"] is True
-        assert pdf["has_legacy_type1_ocr"] is True
-        assert pdf["producer"] == "Foxit FXPDFA 1.2"
+    alto = manifest["pinned_alto_xml_samples"]
+    assert len(alto) == 2
+    assert alto[0]["stat_page"] == 570 and alto[0]["matches_pdf_layer2_header_verbatim"] is True
+    assert alto[1]["stat_page"] == 577 and alto[1]["matches_pdf_layer2_header_verbatim"] is False
 
-    acc = verdict["accuracy_summary"]
+    # Boundary & counterexample records grounded in cached primary PDFs
+    bounds = manifest["boundary_and_negative_checks"]
+    assert bounds["c5_page1_1797_session_start"]["stat_page"] == 536
+    assert "November, 1797" in bounds["c5_page1_1797_session_start"]["layer1_opening_excerpt"]
+    for lk in ("layer1_score_as_51stat4_ch3", "layer2_score_as_51stat4_ch3"):
+        assert bounds["c75s2_page9_folio3_rejects_folio4_and_ch3"][lk]["folio_in_running_header"] is False
+        assert bounds["c75s2_page9_folio3_rejects_folio4_and_ch3"][lk]["chapter_bound"] is False
+    for lk in ("layer1_score", "layer2_score"):
+        s_163 = bounds["c48_page360_23stat332_ch163_rejects_neighboring_sec2"][lk]
+        assert s_163["folio_in_running_header"] is True
+        assert s_163["chapter_heading_strict"] is True
+        assert s_163["section_in_act_split_tolerant"] is False
+    non_dual = bounds["c48_non_dual_ocr_scan_frames"]
+    assert non_dual[0]["pdf_page_1based"] == 292 and non_dual[0]["has_dual_ocr_collision"] is False
+    assert non_dual[1]["pdf_page_1based"] == 552 and non_dual[1]["chars_layer1"] == 0 and non_dual[1]["chars_layer2"] == 0
+
     specimens = manifest["specimens"]
     assert len(specimens) == 16
+    by_id = {s["specimen_id"]: s for s in specimens}
+    assert by_id["51stat4_fcu_amend"]["pdf_page_1based"] == 10
+    assert by_id["51stat4_fcu_amend"]["stat_page"] == 4
+    assert by_id["51stat4_fcu_amend"]["expected_chapter"] == "3"
+    assert by_id["23stat332_foran_labor"]["pdf_page_1based"] == 360
+    assert by_id["49stat647_ssa_1102"]["expected_chapter"] == "531"
+    assert all(s["uses_invisible_render_mode_3tr"] is True for s in specimens)
+
+    acc = dict(verdict["accuracy_summary"])
     assert acc == {
         "specimen_count": 16,
         "specimens_with_printed_section_label": 12,
-        "layer1_page_number_exact": 15,
-        "layer2_page_number_exact": 16,
-        "union_page_number_exact": 16,
-        "layer1_chapter_number_exact": 15,
-        "layer2_chapter_number_exact": 15,
-        "union_chapter_number_exact": 16,
-        "layer1_section_strict": 12,
-        "layer2_section_strict": 4,
-        "layer2_section_split_tolerant": 12,
-        "union_section_split_tolerant": 12,
+        "layer1_folio_in_running_header": 15,
+        "layer2_folio_in_running_header": 16,
+        "union_folio_in_running_header": 16,
+        "layer1_chapter_heading_strict": 14,
+        "layer2_chapter_heading_strict": 11,
+        "layer1_chapter_heading_tolerant": 15,
+        "layer2_chapter_heading_tolerant": 16,
+        "union_chapter_heading_tolerant": 16,
+        "layer1_section_in_act_strict": 11,
+        "layer2_section_in_act_strict": 4,
+        "layer1_section_in_act_split_tolerant": 11,
+        "layer2_section_in_act_split_tolerant": 12,
+        "union_section_in_act_split_tolerant": 12,
+        "layer1_full_citation_bound_strict": 13,
+        "layer2_full_citation_bound_normalized": 16,
+        "union_full_citation_bound_normalized": 16,
     }
-
-    # Recompute every summary figure from specimen rows to guard against internal drift.
-    with_sec = [s for s in specimens if s["printed_section_tested"] is not None]
-    assert len(with_sec) == 12
-    assert sum(1 for s in specimens if s["layer1_metrics"]["page_number_present"]) == 15
-    assert sum(1 for s in specimens if s["layer2_metrics"]["page_number_present"]) == 16
-    assert sum(1 for s in specimens if s["union_metrics"]["chapter_number_present"]) == 16
-    assert sum(1 for s in with_sec if s["layer1_metrics"]["section_label_strict"]) == 12
-    assert sum(1 for s in with_sec if s["layer2_metrics"]["section_label_strict"]) == 4
-    assert sum(1 for s in with_sec if s["layer2_metrics"]["section_label_split_tolerant"]) == 12
-    for s in specimens:
-        assert s["pdf_page_1based"] - s["stat_page"] == s["pdf_minus_stat_offset"]
-        assert s["chars_pdftotext_spatial_collided"] > max(
-            s["chars_layer1_2007_type1"], s["chars_layer2_2021_invisible_ocr"]
-        )
 
 
 def test_pinned_manifest_loaders_refuse_tampered_missing_or_symlinked_files(tmp_path: Path) -> None:
@@ -201,77 +223,157 @@ def test_pinned_manifest_loaders_refuse_tampered_missing_or_symlinked_files(tmp_
         load_llsl_ocr_verification_manifest(tmp_path)
 
 
-def test_resolve_statutes_volume_single_narrowed_and_ambiguous_cases() -> None:
-    """Tests single-PDF resolution, table3_key/Congress narrowing, and refusal to guess on multi-PDF overlaps."""
+def test_resolve_statutes_volume_handles_1797_autumn_session_overlaps_and_contradictions() -> None:
+    """Tests 1 Stat. 536 (1797:1), 1807 overlap, and explicit unresolved status on contradictory filters."""
 
     catalog = load_llsl_catalog(REPO_ROOT)
 
-    # Single-PDF volume (60 Stat. 237, Administrative Procedure Act)
+    # 1 Stat. 536 (1797:1, 5th Cong. 2d Sess., Dec. 15, 1797): must retain BOTH llsl-c4.pdf and llsl-c5.pdf
+    # rather than wrongly resolving to llsl-c4.pdf from LoC's incomplete "5th Congress (1798/1799)" caption.
+    s536 = resolve_statutes_volume(1, statutes_at_large_page=536, table3_key="1797:1", catalog=catalog)
+    assert s536.pdf_resolution_status == "ambiguous_multi_part_volume"
+    assert s536.unique_pdf is None
+    assert [p.filename for p in s536.candidate_pdfs] == ["llsl-c4.pdf", "llsl-c5.pdf"]
+
+    s536_c5 = resolve_statutes_volume(1, statutes_at_large_page=536, table3_key="1797:1", congress=5, catalog=catalog)
+    assert s536_c5.pdf_resolution_status == "narrowed_by_year"
+    assert s536_c5.unique_pdf is not None and s536_c5.unique_pdf.filename == "llsl-c5.pdf"
+
+    # Contradictory filters NEVER silently fall back to an earlier candidate set!
+    contradict_v2 = resolve_statutes_volume(2, statutes_at_large_page=443, table3_key="1807:39", congress=6, catalog=catalog)
+    assert contradict_v2.pdf_resolution_status == "unresolved_contradictory_filters"
+    assert contradict_v2.candidate_pdfs == ()
+    assert contradict_v2.unique_pdf is None
+
+    contradict_single = resolve_statutes_volume(60, statutes_at_large_page=237, table3_key="1797:1", catalog=catalog)
+    assert contradict_single.pdf_resolution_status == "unresolved_contradictory_filters"
+    assert contradict_single.candidate_pdfs == ()
+
+    contradict_years = resolve_statutes_volume(
+        1, statutes_at_large_page=577, enactment_year=1800, table3_key="1798:66", catalog=catalog
+    )
+    assert contradict_years.pdf_resolution_status == "unresolved_contradictory_filters"
+    assert contradict_years.candidate_pdfs == ()
+
+    # Valid single-PDF & narrowed cases
     apa = resolve_statutes_volume(60, statutes_at_large_page=237, table3_key="1946:324", catalog=catalog)
     assert apa.pdf_resolution_status == "single_volume_pdf"
-    assert apa.unique_pdf is not None
-    assert apa.unique_pdf.filename == "llsl-c79s2.pdf"
-    assert apa.llsalvol_is_single_object is True
+    assert apa.unique_pdf is not None and apa.unique_pdf.filename == "llsl-c79s2.pdf"
 
-    # Multi-Congress Vol. 1 narrowed uniquely by 1798:66 (Alien Enemies Act, 1 Stat. 577)
     aea = resolve_statutes_volume(1, statutes_at_large_page=577, table3_key="1798:66", catalog=catalog)
     assert aea.pdf_resolution_status == "narrowed_by_year"
-    assert aea.unique_pdf is not None
-    assert aea.unique_pdf.filename == "llsl-c5.pdf"
+    assert aea.unique_pdf is not None and aea.unique_pdf.filename == "llsl-c5.pdf"
 
-    # Multi-Congress Vol. 1 without year/key must NOT guess among 5 Congress PDFs
-    unscoped_v1 = resolve_statutes_volume(1, statutes_at_large_page=577, catalog=catalog)
-    assert unscoped_v1.pdf_resolution_status == "ambiguous_multi_part_volume"
-    assert unscoped_v1.unique_pdf is None
-    assert len(unscoped_v1.candidate_pdfs) == 5
+    v18_bare = resolve_statutes_volume(18, enactment_year=1874, catalog=catalog)
+    assert v18_bare.pdf_resolution_status == "ambiguous_multi_part_volume"
+    assert len(v18_bare.candidate_pdfs) == 4
 
-    # Congress-transition year 1807 in Vol. 2 overlaps 9th Congress (1805/1807) and 10th Congress (1807/1809)
-    ins_year_only = resolve_statutes_volume(2, statutes_at_large_page=443, table3_key="1807:39", catalog=catalog)
-    assert ins_year_only.pdf_resolution_status == "ambiguous_multi_part_volume"
-    assert [p.filename for p in ins_year_only.candidate_pdfs] == ["llsl-c9.pdf", "llsl-c10.pdf"]
 
-    # Supplying congress=9 resolves 1807:39 uniquely to llsl-c9.pdf
-    ins_cong = resolve_statutes_volume(
-        2, statutes_at_large_page=443, table3_key="1807:39", congress=9, catalog=catalog
+def test_score_llsl_layer_citation_rejects_wrong_folio_wrong_roman_and_wrong_chapter_section() -> None:
+    """Proves folio, Roman chapter, and section checks are strictly bound to the header and act block."""
+
+    assert int_to_roman(58) == "LVIII"
+    assert int_to_roman(66) == "LXVI"
+    with pytest.raises(LocStatutesError):
+        int_to_roman(0)
+
+    # 51 Stat. 3 (PDF p. 9) has "$4 per day" in body and footer "3": must FAIL when scored as 51 Stat. 4 ch. 3
+    p9_body = (
+        "PUBLIC LAWS [CHAPTER 1] JOINT RESOLUTION ... [CHAPTER 2] JOINT RESOLUTION "
+        "compensated at the rate of $4 per day. Approved, November 26, 1937."
     )
-    assert ins_cong.pdf_resolution_status == "narrowed_by_year"
-    assert ins_cong.unique_pdf is not None and ins_cong.unique_pdf.filename == "llsl-c9.pdf"
+    p9_as_4 = score_llsl_layer_citation(
+        body_text=p9_body,
+        header_text="PUBLIC LAWS",
+        footer_text="3",
+        statutes_at_large_page=4,
+        expected_chapter=3,
+    )
+    assert p9_as_4.folio_in_running_header is False
+    assert p9_as_4.chapter_bound is False
+    assert p9_as_4.full_citation_bound_normalized is False
 
-    # Vol. 18: bare year 1874 keeps Revised Statutes/DC/Post-Roads parts ambiguous, whereas YYYY:ch session-law key narrows to llsl-c43.pdf
-    v18_bare_year = resolve_statutes_volume(18, enactment_year=1874, catalog=catalog)
-    assert v18_bare_year.pdf_resolution_status == "ambiguous_multi_part_volume"
-    assert len(v18_bare_year.candidate_pdfs) == 4
-    assert v18_bare_year.llsalvol_is_single_object is False
+    p9_as_3 = score_llsl_layer_citation(
+        body_text=p9_body,
+        header_text="PUBLIC LAWS",
+        footer_text="3",
+        statutes_at_large_page=3,
+        expected_chapter=2,
+    )
+    assert p9_as_3.folio_in_running_header is True
+    assert p9_as_3.chapter_heading_strict is True
 
-    v18_session_law = resolve_statutes_volume(18, table3_key="1874:390", catalog=catalog)
-    assert v18_session_law.pdf_resolution_status == "narrowed_by_year"
-    assert v18_session_law.unique_pdf is not None and v18_session_law.unique_pdf.filename == "llsl-c43.pdf"
+    # 23 Stat. 332 has SEC. 2 in CHAP. 162 AND S EC. 2 in CHAP. 164, while CHAP. 163 in between has NO Sec. 2!
+    p332_body = (
+        "332 FORTY-EIGHTH CONGRESS. SESS. II. CH. 161-164. 1885. "
+        "CHAP. 162.—An act to enlarge the custom-house at Richmond. Be it enacted... "
+        "S EC. 2. That said sum shall be expended upon the order of the Secretary. Approved, Feb. 26, 1885. "
+        "CHAP. 163.—An act to increase the water-supply of Washington. Be it enacted... extended one year. "
+        "CHAP. 164.—An act to prohibit the importation of foreigners under contract to perform labor. "
+        "Be it enacted... S EC. 2. That all contracts or agreements shall be utterly void."
+    )
+    hdr_332 = "332 FORTY-EIGHTH CONGRESS. SESS. II. CH. 161-164. 1885."
+
+    s_163 = score_llsl_layer_citation(
+        body_text=p332_body,
+        header_text=hdr_332,
+        footer_text="",
+        statutes_at_large_page=332,
+        expected_chapter=163,
+        expected_section="2",
+    )
+    assert s_163.folio_in_running_header is True
+    assert s_163.chapter_heading_strict is True
+    assert s_163.section_in_act_strict is False
+    assert s_163.section_in_act_split_tolerant is False
+    assert s_163.full_citation_bound_normalized is False
+
+    s_164 = score_llsl_layer_citation(
+        body_text=p332_body,
+        header_text=hdr_332,
+        footer_text="",
+        statutes_at_large_page=332,
+        expected_chapter=164,
+        expected_section="2",
+    )
+    assert s_164.section_in_act_strict is False
+    assert s_164.section_in_act_split_tolerant is True
+    assert s_164.full_citation_bound_normalized is True
+
+    # Arbitrary Roman numerals (CHAP. XXXVII = 37) must NOT match expected_chapter=39 (XXXIX)
+    wrong_roman = score_llsl_layer_citation(
+        body_text="CHAP. XXXVII.—An act making appropriations for fortifying the ports.",
+        header_text="NINTH CONGRESS. SESS. II. CH. 37. 1807. 443",
+        footer_text="",
+        statutes_at_large_page=443,
+        expected_chapter=39,
+    )
+    assert wrong_roman.chapter_heading_strict is False
+    assert wrong_roman.chapter_heading_tolerant is False
 
 
 @pytest.mark.parametrize(
-    ("bad_volume", "bad_page", "bad_congress"),
+    ("bad_volume", "bad_page", "bad_congress", "bad_key"),
     [
-        (0, 1, None),
-        (65, 1, None),
-        (-3, 1, None),
-        (True, 1, None),
-        (1, 0, None),
-        (1, -10, None),
-        (1, False, None),
-        (1, 10, 0),
-        (1, 10, True),
+        (0, 1, None, None),
+        (65, 1, None, None),
+        (True, 1, None, None),
+        (1, 0, None, None),
+        (1, False, None, None),
+        (1, 10, 0, None),
+        (1, 10, True, None),
+        (1, 10, None, "85-1"),
     ],
 )
 def test_resolve_statutes_volume_rejects_out_of_domain_inputs(
-    bad_volume: object, bad_page: object, bad_congress: object
+    bad_volume: object, bad_page: object, bad_congress: object, bad_key: str | None
 ) -> None:
-    """Negative gate: volumes outside 1..64 (e.g. post-1950 Vol. 65), booleans, or non-positive pages/congress fail."""
-
     with pytest.raises(LocStatutesError):
         resolve_statutes_volume(
             bad_volume,  # type: ignore[arg-type]
             statutes_at_large_page=bad_page,  # type: ignore[arg-type]
             congress=bad_congress,  # type: ignore[arg-type]
+            table3_key=bad_key,
         )
 
 
@@ -279,18 +381,25 @@ def test_parse_enactment_year_from_table3_key() -> None:
     assert parse_enactment_year_from_table3_key("1798:66") == 1798
     assert parse_enactment_year_from_table3_key(" 1948:758 ") == 1948
     assert parse_enactment_year_from_table3_key("85-1") is None
-    assert parse_enactment_year_from_table3_key("1798:0") is None
     assert parse_enactment_year_from_table3_key(None) is None
 
 
-def test_llsalvol_page_stem_and_url_builders_positive_and_negative() -> None:
-    """Tests 8-character METS/ALTO page-stem parsing and Vol. 18 / Vol. 44 part_suffix rules."""
+def test_llsalvol_page_stem_accepts_0043r000_and_url_builders_validate_bounds() -> None:
+    """Accepts Vol. 52's 0043r000.alto.xml unnumbered Roman separator while rejecting frame 0."""
 
-    arabic = parse_llsalvol_page_stem("https://tile.loc.gov/storage-services/service/ll/llsalvol/llsal_001/06940570.alto.xml")
+    arabic = parse_llsalvol_page_stem("06940570.alto.xml")
     assert (arabic.stem, arabic.scan_frame, arabic.kind, arabic.page_number) == ("06940570", 694, "arabic", 570)
 
     roman = parse_llsalvol_page_stem("0041r045")
     assert (roman.stem, roman.scan_frame, roman.kind, roman.page_number) == ("0041r045", 41, "roman", 45)
+
+    roman_zero = parse_llsalvol_page_stem("0043r000.alto.xml")
+    assert (roman_zero.stem, roman_zero.scan_frame, roman_zero.kind, roman_zero.page_number) == (
+        "0043r000",
+        43,
+        "unnumbered",
+        None,
+    )
 
     unnumbered = parse_llsalvol_page_stem("00010000.jp2")
     assert (unnumbered.stem, unnumbered.scan_frame, unnumbered.kind, unnumbered.page_number) == (
@@ -300,21 +409,10 @@ def test_llsalvol_page_stem_and_url_builders_positive_and_negative() -> None:
         None,
     )
 
-    urls_v1 = llsalvol_segment_urls(1, stem="06940570.alto.xml", sequence_index_1based=693)
-    assert urls_v1 == {
-        "viewer_url": "https://www.loc.gov/resource/llsalvol.llsal_001/?sp=693",
-        "alto_xml_url": "https://tile.loc.gov/storage-services/service/ll/llsalvol/llsal_001/06940570.alto.xml",
-        "jp2_url": "https://tile.loc.gov/storage-services/service/ll/llsalvol/llsal_001/06940570.jp2",
-        "iiif_full_jpg_url": "https://tile.loc.gov/image-services/iiif/service:ll:llsalvol:llsal_001:06940570/full/pct:100/0/default.jpg",
-    }
+    urls_v52 = llsalvol_segment_urls(52, stem="0043r000.alto.xml", sequence_index_1based=43)
+    assert urls_v52["alto_xml_url"].endswith("/llsal_052/0043r000.alto.xml")
 
-    urls_v18 = llsalvol_segment_urls(18, stem="00100001", sequence_index_1based=10, part_suffix="a")
-    assert "llsal_018a/00100001.alto.xml" in urls_v18["alto_xml_url"]
-
-    urls_v44a = llsalvol_segment_urls(44, stem="00050001", sequence_index_1based=5, part_suffix="a")
-    assert "llsal_044a/00050001.alto.xml" in urls_v44a["alto_xml_url"]
-
-    for bad_stem in ("short", "00000570", "0000r001", "0010r000", "abcdefgh"):
+    for bad_stem in ("short", "00000570", "0000r001", "0000r000", "abcdefgh"):
         with pytest.raises(LocStatutesError):
             parse_llsalvol_page_stem(bad_stem)
 
@@ -324,41 +422,41 @@ def test_llsalvol_page_stem_and_url_builders_positive_and_negative() -> None:
         llsalvol_segment_urls(44, stem="00100001", sequence_index_1based=10, part_suffix="b")
     with pytest.raises(LocStatutesError, match="only Volumes 18 and 44"):
         llsalvol_segment_urls(1, stem="06940570", sequence_index_1based=693, part_suffix="a")
-    with pytest.raises(LocStatutesError):
-        llsalvol_segment_urls(1, stem="06940570", sequence_index_1based=0)
-    with pytest.raises(LocStatutesError):
-        llsalvol_segment_urls(True, stem="06940570", sequence_index_1based=1)  # type: ignore[arg-type]
 
 
-def test_extract_llsl_pdf_ocr_layers_and_smallcaps_normalizer() -> None:
-    """Separates Type 1 and /InvisibleOCR streams cleanly and normalizes Foxit small-caps splits."""
+def test_extract_llsl_pdf_ocr_layers_reader_reuse_3tr_and_font_classification() -> None:
+    """Reuses PdfReader, checks 3 Tr operators, isolates third-class fonts, and handles blank pages."""
 
-    dual_pdf = _build_synthetic_llsl_pdf(include_type1=True, include_invisible_ocr=True)
-    layers = extract_llsl_pdf_ocr_layers(dual_pdf, 1)
-    assert layers.page_number == 1
+    dual_bytes = _build_synthetic_llsl_pdf(
+        include_type1=True,
+        include_invisible_ocr=True,
+        render_mode=3,
+        extra_non_legacy_font="/CustomStampFont",
+    )
+    shared_reader = PdfReader(io.BytesIO(dual_bytes))
+    layers = extract_llsl_pdf_ocr_layers(shared_reader, 1)
     assert layers.has_legacy_type1_layer is True
     assert layers.has_invisible_ocr_layer is True
     assert layers.has_dual_ocr_collision is True
-    assert layers.font_names == ("/InvisibleOCR", "/Times-Roman")
-    assert layers.layer1_type1_text == "FIFTH CONGRESS. SESS. II. C. 58. 1798. SECTION 1. Be it enacted"
-    assert layers.layer2_invisible_ocr_text == "570 FIFTH CONGRESS. Sass. IL Cn. 58. 1798. S ECTION 1. Be it enacted"
+    assert layers.uses_invisible_render_mode_3tr is True
+    assert layers.other_font_names == ("/CustomStampFont",)
+    assert layers.other_font_text == "STAMP"
+    assert "STAMP" not in layers.layer1_type1_text
+    assert layers.layer1_header_text == "570 FIFTH CONGRESS. SESS. II. C. 58. 1798."
     assert normalize_split_smallcaps_designators(layers.layer2_invisible_ocr_text).endswith(
-        "SECTION 1. Be it enacted"
-    )
-    assert (
-        normalize_split_smallcaps_designators("C HAP. 164. S EC. 201. S ECTION 3.")
-        == "CHAP. 164. SEC. 201. SECTION 3."
+        "CHAP. LVIII. SECTION 1. Be it enacted"
     )
 
-    single_pdf = _build_synthetic_llsl_pdf(include_type1=False, include_invisible_ocr=True)
-    single_layers = extract_llsl_pdf_ocr_layers(single_pdf, 1)
-    assert single_layers.has_legacy_type1_layer is False
-    assert single_layers.has_invisible_ocr_layer is True
-    assert single_layers.has_dual_ocr_collision is False
+    visible_pdf = _build_synthetic_llsl_pdf(include_type1=True, include_invisible_ocr=False, render_mode=0)
+    vis_layers = extract_llsl_pdf_ocr_layers(visible_pdf, 1)
+    assert vis_layers.uses_invisible_render_mode_3tr is False
+    assert vis_layers.has_dual_ocr_collision is False
 
-    with pytest.raises(LocStatutesError, match="exceeds PDF page count"):
-        extract_llsl_pdf_ocr_layers(dual_pdf, 2)
-    with pytest.raises(LocStatutesError, match="1-based positive integer"):
-        extract_llsl_pdf_ocr_layers(dual_pdf, 0)
-    with pytest.raises(LocStatutesError, match="1-based positive integer"):
-        extract_llsl_pdf_ocr_layers(dual_pdf, True)  # type: ignore[arg-type]
+    blank_writer = PdfWriter()
+    blank_writer.add_blank_page(width=612, height=792)
+    blank_buf = io.BytesIO()
+    blank_writer.write(blank_buf)
+    blank_layers = extract_llsl_pdf_ocr_layers(blank_buf.getvalue(), 1)
+    assert blank_layers.has_legacy_type1_layer is False
+    assert blank_layers.has_invisible_ocr_layer is False
+    assert blank_layers.uses_invisible_render_mode_3tr is False

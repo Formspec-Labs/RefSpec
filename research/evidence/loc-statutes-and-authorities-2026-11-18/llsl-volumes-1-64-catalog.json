@@ -1,5 +1,5 @@
 {
-  "schema_version": "refspec-loc-llsl-catalog/1",
+  "schema_version": "refspec-loc-llsl-catalog/2",
   "collection_url": "https://www.loc.gov/collections/united-states-statutes-at-large/?fo=json&c=25",
   "source_collection_pages": [
     {
@@ -146,6 +146,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1789,
+          "caption_year_end": 1791,
           "year_start": 1789,
           "year_end": 1791
         },
@@ -158,6 +160,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1791,
+          "caption_year_end": 1793,
           "year_start": 1791,
           "year_end": 1793
         },
@@ -170,7 +174,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1794,
+          "caption_year_start": 1794,
+          "caption_year_end": 1795,
+          "year_start": 1793,
           "year_end": 1795
         },
         {
@@ -182,7 +188,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1796,
+          "caption_year_start": 1796,
+          "caption_year_end": 1797,
+          "year_start": 1795,
           "year_end": 1797
         },
         {
@@ -194,7 +202,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1798,
+          "caption_year_start": 1798,
+          "caption_year_end": 1799,
+          "year_start": 1797,
           "year_end": 1799
         }
       ]
@@ -225,6 +235,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1799,
+          "caption_year_end": 1801,
           "year_start": 1799,
           "year_end": 1801
         },
@@ -237,7 +249,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1802,
+          "caption_year_start": 1802,
+          "caption_year_end": 1803,
+          "year_start": 1801,
           "year_end": 1803
         },
         {
@@ -249,6 +263,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1803,
+          "caption_year_end": 1805,
           "year_start": 1803,
           "year_end": 1805
         },
@@ -261,6 +277,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1805,
+          "caption_year_end": 1807,
           "year_start": 1805,
           "year_end": 1807
         },
@@ -273,6 +291,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1807,
+          "caption_year_end": 1809,
           "year_start": 1807,
           "year_end": 1809
         },
@@ -285,6 +305,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1809,
+          "caption_year_end": 1811,
           "year_start": 1809,
           "year_end": 1811
         },
@@ -297,6 +319,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1811,
+          "caption_year_end": 1813,
           "year_start": 1811,
           "year_end": 1813
         }
@@ -328,6 +352,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1813,
+          "caption_year_end": 1815,
           "year_start": 1813,
           "year_end": 1815
         },
@@ -340,6 +366,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1815,
+          "caption_year_end": 1817,
           "year_start": 1815,
           "year_end": 1817
         },
@@ -352,6 +380,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1817,
+          "caption_year_end": 1819,
           "year_start": 1817,
           "year_end": 1819
         },
@@ -364,6 +394,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1819,
+          "caption_year_end": 1821,
           "year_start": 1819,
           "year_end": 1821
         },
@@ -376,6 +408,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1821,
+          "caption_year_end": 1823,
           "year_start": 1821,
           "year_end": 1823
         }
@@ -407,7 +441,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1824,
+          "caption_year_start": 1824,
+          "caption_year_end": 1825,
+          "year_start": 1823,
           "year_end": 1825
         },
         {
@@ -419,7 +455,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1826,
+          "caption_year_start": 1826,
+          "caption_year_end": 1827,
+          "year_start": 1825,
           "year_end": 1827
         },
         {
@@ -431,7 +469,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1828,
+          "caption_year_start": 1828,
+          "caption_year_end": 1829,
+          "year_start": 1827,
           "year_end": 1829
         },
         {
@@ -443,6 +483,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1829,
+          "caption_year_end": 1831,
           "year_start": 1829,
           "year_end": 1831
         },
@@ -455,7 +497,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1832,
+          "caption_year_start": 1832,
+          "caption_year_end": 1833,
+          "year_start": 1831,
           "year_end": 1833
         },
         {
@@ -467,7 +511,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1834,
+          "caption_year_start": 1834,
+          "caption_year_end": 1835,
+          "year_start": 1833,
           "year_end": 1835
         }
       ]
@@ -498,7 +544,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1836,
+          "caption_year_start": 1836,
+          "caption_year_end": 1837,
+          "year_start": 1835,
           "year_end": 1837
         },
         {
@@ -510,6 +558,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1837,
+          "caption_year_end": 1839,
           "year_start": 1837,
           "year_end": 1839
         },
@@ -522,7 +572,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1840,
+          "caption_year_start": 1840,
+          "caption_year_end": 1841,
+          "year_start": 1839,
           "year_end": 1841
         },
         {
@@ -534,6 +586,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1841,
+          "caption_year_end": 1843,
           "year_start": 1841,
           "year_end": 1843
         },
@@ -546,7 +600,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1844,
+          "caption_year_start": 1844,
+          "caption_year_end": 1845,
+          "year_start": 1843,
           "year_end": 1845
         }
       ]
@@ -577,6 +633,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1789,
+          "caption_year_end": 1845,
           "year_start": 1789,
           "year_end": 1845
         }
@@ -608,6 +666,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1789,
+          "caption_year_end": 1845,
           "year_start": 1789,
           "year_end": 1845
         }
@@ -639,6 +699,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1789,
+          "caption_year_end": 1845,
           "year_start": 1789,
           "year_end": 1845
         }
@@ -670,6 +732,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1845,
+          "caption_year_end": 1847,
           "year_start": 1845,
           "year_end": 1847
         },
@@ -682,7 +746,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1848,
+          "caption_year_start": 1848,
+          "caption_year_end": 1849,
+          "year_start": 1847,
           "year_end": 1849
         },
         {
@@ -694,7 +760,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1850,
+          "caption_year_start": 1850,
+          "caption_year_end": 1851,
+          "year_start": 1849,
           "year_end": 1851
         }
       ]
@@ -725,6 +793,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1851,
+          "caption_year_end": 1853,
           "year_start": 1851,
           "year_end": 1853
         },
@@ -737,7 +807,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1854,
+          "caption_year_start": 1854,
+          "caption_year_end": 1855,
+          "year_start": 1853,
           "year_end": 1855
         }
       ]
@@ -768,6 +840,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1856,
+          "caption_year_end": 1857,
           "year_start": 1855,
           "year_end": 1857
         },
@@ -780,6 +854,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1857,
+          "caption_year_end": 1859,
           "year_start": 1857,
           "year_end": 1859
         }
@@ -811,7 +887,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1860,
+          "caption_year_start": 1860,
+          "caption_year_end": 1861,
+          "year_start": 1859,
           "year_end": 1861
         },
         {
@@ -823,6 +901,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1861,
+          "caption_year_end": 1863,
           "year_start": 1861,
           "year_end": 1863
         }
@@ -854,7 +934,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1864,
+          "caption_year_start": 1864,
+          "caption_year_end": 1865,
+          "year_start": 1863,
           "year_end": 1865
         }
       ]
@@ -885,6 +967,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1865,
+          "caption_year_end": 1867,
           "year_start": 1865,
           "year_end": 1867
         }
@@ -916,6 +1000,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1867,
+          "caption_year_end": 1869,
           "year_start": 1867,
           "year_end": 1869
         }
@@ -947,6 +1033,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1869,
+          "caption_year_end": 1871,
           "year_start": 1869,
           "year_end": 1871
         }
@@ -978,6 +1066,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1871,
+          "caption_year_end": 1873,
           "year_start": 1871,
           "year_end": 1873
         }
@@ -1029,6 +1119,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1873,
+          "caption_year_end": 1875,
           "year_start": 1873,
           "year_end": 1875
         },
@@ -1041,6 +1133,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": "revised-statutes",
+          "caption_year_start": null,
+          "caption_year_end": null,
           "year_start": 1873,
           "year_end": 1875
         },
@@ -1053,6 +1147,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": "dc",
+          "caption_year_start": null,
+          "caption_year_end": null,
           "year_start": 1873,
           "year_end": 1875
         },
@@ -1065,6 +1161,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": "post-roads",
+          "caption_year_start": null,
+          "caption_year_end": null,
           "year_start": 1873,
           "year_end": 1875
         }
@@ -1096,7 +1194,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1876,
+          "caption_year_start": 1876,
+          "caption_year_end": 1877,
+          "year_start": 1875,
           "year_end": 1877
         }
       ]
@@ -1127,6 +1227,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1877,
+          "caption_year_end": 1879,
           "year_start": 1877,
           "year_end": 1879
         },
@@ -1139,6 +1241,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": "revised-statutes-supplement",
+          "caption_year_start": 1874,
+          "caption_year_end": 1891,
           "year_start": 1874,
           "year_end": 1891
         }
@@ -1170,6 +1274,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1879,
+          "caption_year_end": 1881,
           "year_start": 1879,
           "year_end": 1881
         }
@@ -1201,6 +1307,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1881,
+          "caption_year_end": 1883,
           "year_start": 1881,
           "year_end": 1883
         }
@@ -1232,7 +1340,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1884,
+          "caption_year_start": 1884,
+          "caption_year_end": 1885,
+          "year_start": 1883,
           "year_end": 1885
         }
       ]
@@ -1263,7 +1373,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1886,
+          "caption_year_start": 1886,
+          "caption_year_end": 1887,
+          "year_start": 1885,
           "year_end": 1887
         }
       ]
@@ -1294,7 +1406,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1888,
+          "caption_year_start": 1888,
+          "caption_year_end": 1889,
+          "year_start": 1887,
           "year_end": 1889
         }
       ]
@@ -1325,7 +1439,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1890,
+          "caption_year_start": 1890,
+          "caption_year_end": 1891,
+          "year_start": 1889,
           "year_end": 1891
         }
       ]
@@ -1356,7 +1472,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1892,
+          "caption_year_start": 1892,
+          "caption_year_end": 1893,
+          "year_start": 1891,
           "year_end": 1893
         }
       ]
@@ -1387,6 +1505,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1893,
+          "caption_year_end": 1895,
           "year_start": 1893,
           "year_end": 1895
         }
@@ -1418,7 +1538,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1896,
+          "caption_year_start": 1896,
+          "caption_year_end": 1897,
+          "year_start": 1895,
           "year_end": 1897
         }
       ]
@@ -1449,6 +1571,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1897,
+          "caption_year_end": 1899,
           "year_start": 1897,
           "year_end": 1899
         }
@@ -1480,7 +1604,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1900,
+          "caption_year_start": 1900,
+          "caption_year_end": 1901,
+          "year_start": 1899,
           "year_end": 1901
         }
       ]
@@ -1511,7 +1637,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1902,
+          "caption_year_start": 1902,
+          "caption_year_end": 1903,
+          "year_start": 1901,
           "year_end": 1903
         }
       ]
@@ -1542,8 +1670,10 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1903,
+          "caption_year_end": 1904,
           "year_start": 1903,
-          "year_end": 1904
+          "year_end": 1905
         }
       ]
     },
@@ -1573,6 +1703,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1905,
+          "caption_year_end": 1907,
           "year_start": 1905,
           "year_end": 1907
         }
@@ -1604,7 +1736,9 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
-          "year_start": 1908,
+          "caption_year_start": 1908,
+          "caption_year_end": 1909,
+          "year_start": 1907,
           "year_end": 1909
         }
       ]
@@ -1635,6 +1769,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1909,
+          "caption_year_end": 1911,
           "year_start": 1909,
           "year_end": 1911
         }
@@ -1666,6 +1802,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1911,
+          "caption_year_end": 1913,
           "year_start": 1911,
           "year_end": 1913
         }
@@ -1697,6 +1835,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1913,
+          "caption_year_end": 1915,
           "year_start": 1913,
           "year_end": 1915
         }
@@ -1728,8 +1868,10 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1915,
+          "caption_year_end": 1916,
           "year_start": 1915,
-          "year_end": 1916
+          "year_end": 1917
         }
       ]
     },
@@ -1759,6 +1901,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1917,
+          "caption_year_end": 1919,
           "year_start": 1917,
           "year_end": 1919
         }
@@ -1790,6 +1934,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1919,
+          "caption_year_end": 1921,
           "year_start": 1919,
           "year_end": 1921
         }
@@ -1821,6 +1967,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1921,
+          "caption_year_end": 1923,
           "year_start": 1921,
           "year_end": 1923
         }
@@ -1852,6 +2000,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1923,
+          "caption_year_end": 1925,
           "year_start": 1923,
           "year_end": 1925
         }
@@ -1888,6 +2038,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1925,
+          "caption_year_end": 1927,
           "year_start": 1925,
           "year_end": 1927
         },
@@ -1900,6 +2052,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": "us-code",
+          "caption_year_start": null,
+          "caption_year_end": null,
           "year_start": 1925,
           "year_end": 1927
         }
@@ -1931,6 +2085,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1927,
+          "caption_year_end": 1929,
           "year_start": 1927,
           "year_end": 1929
         }
@@ -1962,6 +2118,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1929,
+          "caption_year_end": 1931,
           "year_start": 1929,
           "year_end": 1931
         }
@@ -1993,6 +2151,8 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1931,
+          "caption_year_end": 1933,
           "year_start": 1931,
           "year_end": 1933
         }
@@ -2024,8 +2184,10 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1933,
+          "caption_year_end": 1934,
           "year_start": 1933,
-          "year_end": 1934
+          "year_end": 1935
         }
       ]
     },
@@ -2055,8 +2217,10 @@
           "session_start": null,
           "session_end": null,
           "part_tag": null,
+          "caption_year_start": 1935,
+          "caption_year_end": 1936,
           "year_start": 1935,
-          "year_end": 1936
+          "year_end": 1937
         }
       ]
     },
@@ -2086,8 +2250,10 @@
           "session_start": 1,
           "session_end": 1,
           "part_tag": null,
+          "caption_year_start": 1937,
+          "caption_year_end": 1937,
           "year_start": 1937,
-          "year_end": 1937
+          "year_end": 1939
         }
       ]
     },
@@ -2117,8 +2283,10 @@
           "session_start": 2,
           "session_end": 2,
           "part_tag": null,
+          "caption_year_start": 1937,
+          "caption_year_end": 1937,
           "year_start": 1937,
-          "year_end": 1937
+          "year_end": 1939
         }
       ]
     },
@@ -2148,8 +2316,10 @@
           "session_start": 3,
           "session_end": 3,
           "part_tag": null,
-          "year_start": 1938,
-          "year_end": 1938
+          "caption_year_start": 1938,
+          "caption_year_end": 1938,
+          "year_start": 1937,
+          "year_end": 1939
         }
       ]
     },
@@ -2179,8 +2349,10 @@
           "session_start": 1,
           "session_end": 1,
           "part_tag": null,
+          "caption_year_start": 1939,
+          "caption_year_end": 1939,
           "year_start": 1939,
-          "year_end": 1939
+          "year_end": 1941
         }
       ]
     },
@@ -2210,6 +2382,8 @@
           "session_start": 2,
           "session_end": 3,
           "part_tag": null,
+          "caption_year_start": 1939,
+          "caption_year_end": 1941,
           "year_start": 1939,
           "year_end": 1941
         }
@@ -2241,8 +2415,10 @@
           "session_start": 1,
           "session_end": 1,
           "part_tag": null,
+          "caption_year_start": 1941,
+          "caption_year_end": 1942,
           "year_start": 1941,
-          "year_end": 1942
+          "year_end": 1943
         }
       ]
     },
@@ -2272,8 +2448,10 @@
           "session_start": 2,
           "session_end": 2,
           "part_tag": null,
-          "year_start": 1942,
-          "year_end": 1942
+          "caption_year_start": 1942,
+          "caption_year_end": 1942,
+          "year_start": 1941,
+          "year_end": 1943
         }
       ]
     },
@@ -2303,8 +2481,10 @@
           "session_start": 1,
           "session_end": 1,
           "part_tag": null,
+          "caption_year_start": 1943,
+          "caption_year_end": 1943,
           "year_start": 1943,
-          "year_end": 1943
+          "year_end": 1945
         }
       ]
     },
@@ -2334,8 +2514,10 @@
           "session_start": 2,
           "session_end": 2,
           "part_tag": null,
-          "year_start": 1944,
-          "year_end": 1944
+          "caption_year_start": 1944,
+          "caption_year_end": 1944,
+          "year_start": 1943,
+          "year_end": 1945
         }
       ]
     },
@@ -2365,8 +2547,10 @@
           "session_start": 1,
           "session_end": 1,
           "part_tag": null,
+          "caption_year_start": 1945,
+          "caption_year_end": 1946,
           "year_start": 1945,
-          "year_end": 1946
+          "year_end": 1947
         }
       ]
     },
@@ -2396,8 +2580,10 @@
           "session_start": 2,
           "session_end": 2,
           "part_tag": null,
-          "year_start": 1946,
-          "year_end": 1946
+          "caption_year_start": 1946,
+          "caption_year_end": 1946,
+          "year_start": 1945,
+          "year_end": 1947
         }
       ]
     },
@@ -2427,8 +2613,10 @@
           "session_start": 1,
           "session_end": 1,
           "part_tag": null,
+          "caption_year_start": 1947,
+          "caption_year_end": 1947,
           "year_start": 1947,
-          "year_end": 1947
+          "year_end": 1949
         }
       ]
     },
@@ -2458,8 +2646,10 @@
           "session_start": 2,
           "session_end": 2,
           "part_tag": null,
-          "year_start": 1948,
-          "year_end": 1948
+          "caption_year_start": 1948,
+          "caption_year_end": 1948,
+          "year_start": 1947,
+          "year_end": 1949
         }
       ]
     },
@@ -2489,8 +2679,10 @@
           "session_start": 1,
           "session_end": 1,
           "part_tag": null,
+          "caption_year_start": 1949,
+          "caption_year_end": 1949,
           "year_start": 1949,
-          "year_end": 1949
+          "year_end": 1951
         }
       ]
     },
@@ -2520,10 +2712,104 @@
           "session_start": 2,
           "session_end": 2,
           "part_tag": null,
-          "year_start": 1950,
+          "caption_year_start": 1950,
+          "caption_year_end": 1951,
+          "year_start": 1949,
           "year_end": 1951
         }
       ]
+    }
+  ],
+  "non_volume_collection_items": [
+    {
+      "id": "http://www.loc.gov/collections/united-states-statutes-at-large/about-this-collection/",
+      "shelf_id": "~/collections/united-states-statutes-at-large/about-this-collection/",
+      "title": "United States Statutes at Large"
+    },
+    {
+      "id": "http://www.loc.gov/collections/united-states-statutes-at-large/articles-and-essays/vol14-18/",
+      "shelf_id": "~/collections/united-states-statutes-at-large/articles-and-essays/vol14-18/",
+      "title": "Volumes 14-18 (1865 to 1875)"
+    },
+    {
+      "id": "http://www.loc.gov/collections/united-states-statutes-at-large/articles-and-essays/vol19-23/",
+      "shelf_id": "~/collections/united-states-statutes-at-large/articles-and-essays/vol19-23/",
+      "title": "Volumes 19-23 (1876 to 1885)"
+    },
+    {
+      "id": "http://www.loc.gov/collections/united-states-statutes-at-large/articles-and-essays/vol24-28/",
+      "shelf_id": "~/collections/united-states-statutes-at-large/articles-and-essays/vol24-28/",
+      "title": "Volumes 24-28 (1876 to 1885)"
+    },
+    {
+      "id": "http://www.loc.gov/collections/united-states-statutes-at-large/articles-and-essays/vol29-33/",
+      "shelf_id": "~/collections/united-states-statutes-at-large/articles-and-essays/vol29-33/",
+      "title": "Volumes 29-33 (1896 to 1904)"
+    },
+    {
+      "id": "http://www.loc.gov/collections/united-states-statutes-at-large/articles-and-essays/vol34-38/",
+      "shelf_id": "~/collections/united-states-statutes-at-large/articles-and-essays/vol34-38/",
+      "title": "Volumes 34-38 (1905 to 1915)"
+    },
+    {
+      "id": "http://www.loc.gov/collections/united-states-statutes-at-large/articles-and-essays/vol39-43/",
+      "shelf_id": "~/collections/united-states-statutes-at-large/articles-and-essays/vol39-43/",
+      "title": "Volumes 39-43 (1915 to 1925)"
+    },
+    {
+      "id": "http://www.loc.gov/collections/united-states-statutes-at-large/articles-and-essays/vol44-48/",
+      "shelf_id": "~/collections/united-states-statutes-at-large/articles-and-essays/vol44-48/",
+      "title": "Volumes 44-48 (1925 to 1934)"
+    },
+    {
+      "id": "http://www.loc.gov/collections/united-states-statutes-at-large/articles-and-essays/vol49-54/",
+      "shelf_id": "~/collections/united-states-statutes-at-large/articles-and-essays/vol49-54/",
+      "title": "Volumes 49-54 (1935 to 1941)"
+    },
+    {
+      "id": "http://www.loc.gov/collections/united-states-statutes-at-large/articles-and-essays/vol55-60/",
+      "shelf_id": "~/collections/united-states-statutes-at-large/articles-and-essays/vol55-60/",
+      "title": "Volumes 55-60 (1941 to 1946)"
+    },
+    {
+      "id": "http://www.loc.gov/collections/united-states-statutes-at-large/articles-and-essays/vol6-8/",
+      "shelf_id": "~/collections/united-states-statutes-at-large/articles-and-essays/vol6-8/",
+      "title": "Volumes 6-8 (1789 to 1845)"
+    },
+    {
+      "id": "http://www.loc.gov/collections/united-states-statutes-at-large/articles-and-essays/vol61-64/",
+      "shelf_id": "~/collections/united-states-statutes-at-large/articles-and-essays/vol61-64/",
+      "title": "Volumes 61-64 (1947 to 1951)"
+    },
+    {
+      "id": "http://www.loc.gov/collections/united-states-statutes-at-large/articles-and-essays/vol9-13/",
+      "shelf_id": "~/collections/united-states-statutes-at-large/articles-and-essays/vol9-13/",
+      "title": "Volumes 9-13 (1845 to 1865)"
+    },
+    {
+      "id": "http://www.loc.gov/collections/united-states-statutes-at-large/about-this-collection/rights-and-access/",
+      "shelf_id": "~/collections/united-states-statutes-at-large/about-this-collection/rights-and-access/",
+      "title": "Rights and Access"
+    },
+    {
+      "id": "http://www.loc.gov/collections/united-states-statutes-at-large/articles-and-essays/",
+      "shelf_id": "~/collections/united-states-statutes-at-large/articles-and-essays/",
+      "title": "Articles and Essays"
+    },
+    {
+      "id": "http://www.loc.gov/collections/united-states-statutes-at-large/articles-and-essays/acts-of-congress/",
+      "shelf_id": "~/collections/united-states-statutes-at-large/articles-and-essays/acts-of-congress/",
+      "title": "Acts of Congress"
+    },
+    {
+      "id": "http://www.loc.gov/collections/united-states-statutes-at-large/articles-and-essays/vol1-5/",
+      "shelf_id": "~/collections/united-states-statutes-at-large/articles-and-essays/vol1-5/",
+      "title": "Volumes 1-5 (1789 to 1845)"
+    },
+    {
+      "id": "http://www.loc.gov/collections/united-states-statutes-at-large/articles-and-essays/vol18/",
+      "shelf_id": "~/collections/united-states-statutes-at-large/articles-and-essays/vol18/",
+      "title": "Volume 18: Revised Statutes (dates TBD)"
     }
   ]
 }
