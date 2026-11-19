@@ -1,0 +1,49 @@
+ 764 right § 334	Repealed; restated in 49 U.S.C. 45301
+  44 right § 335	Repealed (Pub. L. 103-272, § 4(j)(9)(A))
+ 159 right § 501(a)(1)	Restated in 49 U.S.C. 5901(1)
+ 159 right § 501(a)(4)	Restated in 49 U.S.C. 5901(2)
+ 159 right § 501(a)(5)	Restated in 49 U.S.C. 5901(3)
+ 159 right § 501(a)(6)	Restated in 49 U.S.C. 5901(4)
+ 159 right § 501(a)(7)	Restated in 49 U.S.C. 5901(5)
+ 159 right § 501(a)(8)	Restated in 49 U.S.C. 5901(6)
+ 159 right § 501(a)(9)	Restated in 49 U.S.C. 5901(7)
+ 160 left  § 508(a)(1)	Repealed; restated in 49 U.S.C. 5902(a)
+ 160 left  § 508(a)(2)	Repealed; restated in 49 U.S.C. 5902(b)
+ 160 left  § 508(b)	Repealed; restated in 49 U.S.C. 5902(c)
+ 160 left  § 508(e)	Repealed; restated in 49 U.S.C. 5902(d)(1)
+ 160 left  § 508(a)(4)	Repealed; restated in 49 U.S.C. 5902(d)(2)
+ 160 right § 508(a)(3) (related to violations)	Repealed; restated in 49 U.S.C. 5903(a)
+ 160 right § 508(d)	Repealed; restated in 49 U.S.C. 5903(b)
+ 160 right § 508(c)	Repealed; restated in 49 U.S.C. 5903(c)
+ 161 left  § 508(f)	Repealed; restated in 49 U.S.C. 5904(a)
+ 161 left  § 508(h)	Repealed; restated in 49 U.S.C. 5904(b)
+ 161 right § 508(g)(1)	Repealed; restated in 49 U.S.C. 5905(a)
+ 161 right § 508(g)(2)(A)	Repealed; restated in 49 U.S.C. 5905(b)
+ 161 right § 508(g)(2)(B)	Repealed; restated in 49 U.S.C. 5905(b)
+ 161 right § 508(g)(2)(C)	Repealed; restated in 49 U.S.C. 5906
+ 161 right § 508 (note)	Repealed; restated in 49 U.S.C. 5907(a)
+ 161 right § 508(a)(3) (related to effective date)	Repealed; restated in 49 U.S.C. 5907(b)
+ 556 right § 3101	Renumbered § 31501 (Pub. L. 103-272, § 1(c), (e))
+ 557 left  § 3102	Renumbered § 31502 (Pub. L. 103-272, § 1(c), (e))
+ 558 left  § 3103	Renumbered § 31503 (Pub. L. 103-272, § 1(c), (e))
+ 558 left  § 3104	Renumbered § 31504 (Pub. L. 103-272, § 1(c), (e))
+ 539 left  § 10927 (note)	Restated in 49 U.S.C. 31138(a)
+ 539 left  § 10927 (note)	Restated in 49 U.S.C. 31138(b)
+ 539 left  § 10927 (note)	Restated in 49 U.S.C. 31138(c)
+ 539 left  § 10927 (note)	Restated in 49 U.S.C. 31138(d)
+ 539 left  § 10927 (note)	Restated in 49 U.S.C. 31138(e)
+ 540 right § 10927 (note)	Restated in 49 U.S.C. 31139(a)
+ 540 right § 10927 (note)	Restated in 49 U.S.C. 31139(b)
+ 540 right § 10927 (note)	Restated in 49 U.S.C. 31139(c)
+ 540 right § 10927 (note)	Restated in 49 U.S.C. 31139(d)
+ 540 right § 10927 (note)	Restated in 49 U.S.C. 31139(e)
+ 540 right § 10927 (note)	Restated in 49 U.S.C. 31139(f)
+ 540 right § 10927 (note)	Restated in 49 U.S.C. 31139(g)
+ 559 left  § 11506 (note)	Restated in 49 U.S.C. 31701
+ 559 right § 11506 (note)	Restated in 49 U.S.C. 31702
+ 559 right § 11506 (note)	Restated in 49 U.S.C. 31703
+ 560 left  § 11506 (note)	Restated in 49 U.S.C. 31704
+ 560 left  § 11506 (note)	Restated in 49 U.S.C. 31705
+ 560 right § 11506 (note)	Restated in 49 U.S.C. 31706
+ 560 right § 11506 (note)	Restated in 49 U.S.C. 31707
+ 561 left  § 11506 (note)	Restated in 49 U.S.C. 31708

@@ -161,10 +161,13 @@ __all__ = [
 USC_DISPOSITION_TABLES_ARTIFACT = "research/evidence/usc-disposition-tables-2026-08-23"
 #: The 2026-11-18 sealed artifact directory (Title 31 and Title 46 / 46 App.).
 _USC_DISPOSITION_TABLES_2026_11_18 = "research/evidence/usc-disposition-tables-2026-11-18"
+#: The 2026-11-18 complete artifact directory (Titles 10 ROPMA, 34, 41, 51, 54 & Title 49 positive-law).
+_USC_DISPOSITION_TABLES_2026_11_18_COMPLETE = "research/evidence/usc-disposition-tables-2026-11-18-complete"
 #: Every sealed artifact directory read by :meth:`UscDispositionTables.from_repository`.
 USC_DISPOSITION_TABLES_ARTIFACTS: tuple[str, ...] = (
     USC_DISPOSITION_TABLES_ARTIFACT,
     _USC_DISPOSITION_TABLES_2026_11_18,
+    _USC_DISPOSITION_TABLES_2026_11_18_COMPLETE,
 )
 
 
@@ -174,8 +177,9 @@ class Recodification:
 
     The interface is per-recodification on purpose: a table is a document with
     a date, an enacting law, and a deeming provision, and two of them can
-    disagree about the same former title (title 46 was recodified in pieces
-    from 1983 to 2006, consolidated in the 2006 edition's front-matter table).
+    cover the same former title (Title 42 provisions moved to Title 51 in 2010
+    and to Title 34 in 2017; Title 49's 1994 Act restated former Title 49 / 49 App.
+    and also renumbered pre-1994 positive-law Title 49 sections in place).
     Adding one is adding a member here and a pinned file.
     """
 
@@ -203,9 +207,46 @@ class Recodification:
     #: materialized by ``verify_registry_audit.py``). When ``None``, defaults to
     #: ``<artifact>/<basename(source_url)>``.
     source_local_path: str | None = None
+    #: All former titles whose sections appear in :attr:`table` when a table
+    #: consolidates multiple source titles (e.g. Title 51 from Titles 15 and 42;
+    #: Title 34 from Titles 18, 28, and 42). Defaults to ``(former_title,)``.
+    former_titles: tuple[int, ...] = ()
+    #: Destination U.S.C. title enacted or editorially populated by this table;
+    #: defaults to ``former_title`` when ``None``.
+    enacted_title: int | None = None
+    #: Whether this table covers explicit ``<title> U.S.C. App.`` lookups.
+    #: Only Appendix-bearing recodifications (Title 46 / 46 App., Title 49 / 49 App.,
+    #: and Title 49's disjoint positive-law companion resolving audited mislabelled
+    #: ``49 USC app 3102`` filings) set this ``True``; main-body recodifications
+    #: (Titles 10, 31, 34, 41, 51, 54) refuse explicit ``appendix=True`` queries.
+    covers_appendix: bool = False
+
+    @property
+    def effective_former_titles(self) -> tuple[int, ...]:
+        """Every former U.S.C. title this table is authorised to carry rows for."""
+
+        return self.former_titles or (self.former_title,)
 
 
 RECODIFICATIONS = (
+    Recodification(
+        name="title-10-1994",
+        former_title=10,
+        table="usc-1996-title10-ropma-disposition.parquet",
+        digest="sha256:5a08734b3c8ea948340203e0e3c67a256a6a62c95ece863a1328a662691eace6",
+        enacted_by=(
+            "Pub. L. 103-337, div. A, title XVI, Oct. 5, 1994, 108 Stat. 2924; "
+            "Pub. L. 104-106, div. A, title XV, § 1501(c)(26), Feb. 10, 1996, 110 Stat. 499"
+        ),
+        deeming_provision="Pub. L. 103-337, § 1665(a)",
+        source_url="https://www.govinfo.gov/content/pkg/USCODE-1996-title10/pdf/USCODE-1996-title10.pdf",
+        source_digest="sha256:d1877b5aa58f17062263fed5a04da62f3ad885b4b01a0da7f0e41d0da15e0010",
+        source_bytes=8_971_147,
+        artifact=_USC_DISPOSITION_TABLES_2026_11_18_COMPLETE,
+        source_fetched="2026-11-18",
+        source_local_path="output/registry-real-data-sources/USCODE-1996-title10.pdf",
+        enacted_title=10,
+    ),
     Recodification(
         name="title-31-1982",
         former_title=31,
@@ -222,6 +263,38 @@ RECODIFICATIONS = (
         artifact=_USC_DISPOSITION_TABLES_2026_11_18,
         source_fetched="2026-11-18",
         source_local_path="output/registry-real-data-sources/USCODE-1994-title31.pdf",
+        enacted_title=31,
+    ),
+    Recodification(
+        name="title-34-2017",
+        former_title=42,
+        table="usc-2017-title34-disposition.parquet",
+        digest="sha256:17e063ddd410d39c135e4d14550dceadc62707a811dc9e7bd2f63999014dd047",
+        enacted_by="OLRC editorial reclassification under 2 U.S.C. 285b, eff. Sept. 1, 2017 (through Pub. L. 115-31)",
+        deeming_provision="2 U.S.C. 285b (editorial reclassification without substantive change)",
+        source_url="https://www.govinfo.gov/content/pkg/USCODE-2017-title34/pdf/USCODE-2017-title34.pdf",
+        source_digest="sha256:c121b7ca9147571955edbb9857da95e17292f21eb00f0a90741ae5b99c40bcd9",
+        source_bytes=2_753_424,
+        artifact=_USC_DISPOSITION_TABLES_2026_11_18_COMPLETE,
+        source_fetched="2026-11-18",
+        source_local_path="output/registry-real-data-sources/USCODE-2017-title34.pdf",
+        former_titles=(42, 18, 28),
+        enacted_title=34,
+    ),
+    Recodification(
+        name="title-41-2011",
+        former_title=41,
+        table="usc-2011-title41-disposition.parquet",
+        digest="sha256:327de9b607eaf74679c21af8a6cf27086c7bf5aaf19c01dbcf3005959fa3a51b",
+        enacted_by="Pub. L. 111-350, § 3, Jan. 4, 2011, 124 Stat. 3677",
+        deeming_provision="Pub. L. 111-350, § 6(c)",
+        source_url="https://www.govinfo.gov/content/pkg/USCODE-2011-title41/pdf/USCODE-2011-title41.pdf",
+        source_digest="sha256:3b253b255aa058d05aa4b3e6b6aa2f345ee25a1f98cff5ea19f514c2d0a417c1",
+        source_bytes=1_037_994,
+        artifact=_USC_DISPOSITION_TABLES_2026_11_18_COMPLETE,
+        source_fetched="2026-11-18",
+        source_local_path="output/registry-real-data-sources/USCODE-2011-title41.pdf",
+        enacted_title=41,
     ),
     Recodification(
         name="title-46-2006",
@@ -242,6 +315,8 @@ RECODIFICATIONS = (
         artifact=_USC_DISPOSITION_TABLES_2026_11_18,
         source_fetched="2026-11-18",
         source_local_path="output/registry-real-data-sources/USCODE-2006-title46.pdf",
+        enacted_title=46,
+        covers_appendix=True,
     ),
     Recodification(
         name="title-49-1994",
@@ -255,20 +330,62 @@ RECODIFICATIONS = (
         source_bytes=5_165_242,
         artifact=USC_DISPOSITION_TABLES_ARTIFACT,
         source_fetched="2026-08-23",
+        enacted_title=49,
+        covers_appendix=True,
+    ),
+    Recodification(
+        name="title-49-1994-positivelaw",
+        former_title=49,
+        table="usc-1994-title49-positivelaw-disposition.parquet",
+        digest="sha256:6387ca0487ec234ae04811e90d1490e9bf93407d1b3dd5f3fa40836e3bc21510",
+        enacted_by="Pub. L. 103-272, §§ 1(c), (d), (e), 4(j)(9)(A), (11)(B), July 5, 1994, 108 Stat. 745, 1367, 1368",
+        deeming_provision="Pub. L. 103-272, § 6(b)",
+        source_url="https://www.govinfo.gov/content/pkg/USCODE-1994-title49/pdf/USCODE-1994-title49.pdf",
+        source_digest="sha256:66f004679e27e0d16356e14b79cb3b4f7ebf63d91307435fa8f53c95bcc2848d",
+        source_bytes=5_165_242,
+        artifact=_USC_DISPOSITION_TABLES_2026_11_18_COMPLETE,
+        source_fetched="2026-08-23",
+        source_local_path=f"{USC_DISPOSITION_TABLES_ARTIFACT}/USCODE-1994-title49.pdf",
+        enacted_title=49,
+        covers_appendix=False,
+    ),
+    Recodification(
+        name="title-51-2010",
+        former_title=42,
+        table="usc-2010-title51-disposition.parquet",
+        digest="sha256:507bdd8da5dd9a1ff6b5f395193408e1f36120803637ee367ddfecc3792d7c0a",
+        enacted_by="Pub. L. 111-314, § 3, Dec. 18, 2010, 124 Stat. 3326",
+        deeming_provision="Pub. L. 111-314, § 5(e)",
+        source_url="https://www.govinfo.gov/content/pkg/USCODE-2010-title51/pdf/USCODE-2010-title51.pdf",
+        source_digest="sha256:66d48661b3bae9b9e9e7a1964a64ff093dc22d94fae81eda6429a4f9551cea84",
+        source_bytes=914_412,
+        artifact=_USC_DISPOSITION_TABLES_2026_11_18_COMPLETE,
+        source_fetched="2026-11-18",
+        source_local_path="output/registry-real-data-sources/USCODE-2010-title51.pdf",
+        former_titles=(42, 15),
+        enacted_title=51,
+    ),
+    Recodification(
+        name="title-54-2014",
+        former_title=16,
+        table="usc-2014-title54-disposition.parquet",
+        digest="sha256:49e79253f9240b75edd85afa3d8fe9b513e231e060434d4fea0d6bab3ac60034",
+        enacted_by="Pub. L. 113-287, § 3, Dec. 19, 2014, 128 Stat. 3094",
+        deeming_provision="Pub. L. 113-287, § 6(e)",
+        source_url="https://www.govinfo.gov/content/pkg/USCODE-2014-title54/pdf/USCODE-2014-title54.pdf",
+        source_digest="sha256:548f857e19f2ce9c384211062872d422142a2b55129251d3f82e35c80eafcf21",
+        source_bytes=1_085_260,
+        artifact=_USC_DISPOSITION_TABLES_2026_11_18_COMPLETE,
+        source_fetched="2026-11-18",
+        source_local_path="output/registry-real-data-sources/USCODE-2014-title54.pdf",
+        enacted_title=54,
     ),
 )
 
-#: The recodifications this module does not read yet, so that
-#: ``no-table-for-title`` has somewhere to point and the gap is a list rather
-#: than a silence. Each is a printed disposition table in the front matter of
-#: the enacting edition, reachable the same way Titles 31, 46, and 49 were.
-RECODIFICATIONS_NOT_PINNED: Mapping[int, str] = {
-    10: "Pub. L. 103-337 (1994), subtitle E (incl. ch. 1205) — reserve component renumbering; the review's § H row 8 (593 → 12203)",
-    34: "OLRC editorial reclassification (Sept. 1, 2017) — Crime Control and Law Enforcement (reclassified from former provisions of Titles 18, 28, and 42)",
-    41: "Pub. L. 111-350 (2011) — Public Contracts; the review's § E row 10 neighbours",
-    51: "Pub. L. 111-314 (2010) — National and Commercial Space Programs",
-    54: "Pub. L. 113-287 (2014) — National Park Service and Related Programs",
-}
+#: All eight recodification families named by the 2026-08-23 review (Titles 10
+#: ROPMA, 31, 34, 41, 46, 49, 51, and 54) are now pinned above. Kept as an empty
+#: mapping so callers inspecting remaining gaps observe closure directly.
+RECODIFICATIONS_NOT_PINNED: Mapping[int, str] = {}
 
 #: What a verdict can be. The first five answer the question; the last says the
 #: question was not asked of anything.
@@ -302,6 +419,22 @@ _WITH_SUCCESSOR = frozenset({"restated", "restated-as-note"})
 #: the recodification was enacted; one repealed before that was never in it.
 NOT_IN_TABLE_CAVEATS = ("repealed_before_the_recodification_not_listed",)
 
+#: Verified OLRC front-matter print errors where the printed disposition table
+#: disagrees with the same volume's body Historical and Revision / Codification
+#: Notes. The printed row is preserved verbatim so the table stays faithful to
+#: the primary source, while callers querying any affected ``(former_title,
+#: former_section)`` receive an explicit caveat on :attr:`Disposition.caveats`.
+KNOWN_PRINT_DISCREPANCIES: Mapping[tuple[int, str], tuple[str, ...]] = {
+    (42, "13136f"): ("olrc_front_matter_print_typo:printed_42:13136f_body_codification_42:14136f",),
+    (42, "14136f"): ("olrc_front_matter_print_typo:printed_as_42:13136f_body_codification_34:40728",),
+    (42, "3797ee-1"): ("olrc_front_matter_print_typo:printed_34:16902_body_codification_34:10692",),
+    (41, "46"): ("olrc_hrn_divergence:printed_41:8502_body_hrn_also_cites_41:8501(2)",),
+    (16, "458a"): ("olrc_front_matter_print_typo:printed_54:104908_body_hrn_54:104905",),
+}
+_KNOWN_PRINT_DISCREPANCY_CAVEATS = frozenset(
+    caveat for caveats in KNOWN_PRINT_DISCREPANCIES.values() for caveat in caveats
+)
+
 #: Restated from :mod:`refspec.registry.citation_grammar`, the way
 #: :mod:`refspec.registry.usc_section_oracle` restates it, rather than imported:
 #: the section oracle will consult this module in the next cycle, and an import
@@ -317,13 +450,28 @@ _GROUP = re.compile(r"\(([0-9A-Za-z]{1,4})\)")
 #: this module may not import in that direction.
 #: ``test_the_span_order_is_the_oracles_over_every_former_section`` runs both
 #: over every former section the pinned tables list and holds the copy true.
-#: Comparing numeric prefixes alone would order ``1421a`` before ``1421``.
-_LEADING_DIGITS = re.compile(r"^(\d+)(.*)$")
+#: Letter suffixes order length-first (``19d..19g`` before ``19aa..19gg``),
+#: matching U.S. Code bijective letter numbering, and hyphenated numeric tails
+#: order numerically (``1a-9`` before ``1a-10``).
+_SECTION_KEY = re.compile(r"^(\d+)([a-z]*)(.*)$")
+_TAIL_PART = re.compile(r"(\d+|[a-z]+|[^0-9a-z]+)")
 
 
-def _section_order(section: str) -> tuple[int, str] | None:
-    match = _LEADING_DIGITS.match(section)
-    return (int(match.group(1)), match.group(2)) if match else None
+def _tail_order(tail: str) -> tuple[tuple[int, int, str], ...]:
+    parts: list[tuple[int, int, str]] = []
+    for part in _TAIL_PART.findall(tail):
+        if part.isdigit():
+            parts.append((1, int(part), ""))
+        elif part.isalpha():
+            parts.append((2, len(part), part))
+        else:
+            parts.append((0, 0, part))
+    return tuple(parts)
+
+
+def _section_order(section: str) -> tuple[int, int, str, tuple[tuple[int, int, str], ...]] | None:
+    match = _SECTION_KEY.match(section)
+    return (int(match.group(1)), len(match.group(2)), match.group(2), _tail_order(match.group(3))) if match else None
 
 
 def normalize_section(value: object) -> str:
@@ -427,10 +575,14 @@ class Disposition:
     def __post_init__(self) -> None:
         if self.verdict not in VERDICTS:
             raise ValueError(f"undeclared verdict: {self.verdict!r}")
-        if self.verdict == "not-in-table" and self.caveats != NOT_IN_TABLE_CAVEATS:
-            raise ValueError("an absence from a table is only as wide as the table, and must say so")
-        if self.verdict != "not-in-table" and self.caveats:
-            raise ValueError("only an absence from the table carries the table's caveat")
+        if self.verdict == "not-in-table":
+            if NOT_IN_TABLE_CAVEATS[0] not in self.caveats:
+                raise ValueError("an absence from a table is only as wide as the table, and must say so")
+            unknown = set(self.caveats) - set(NOT_IN_TABLE_CAVEATS) - _KNOWN_PRINT_DISCREPANCY_CAVEATS
+            if unknown:
+                raise ValueError(f"undeclared caveat(s) on not-in-table disposition: {sorted(unknown)}")
+        elif self.caveats and not set(self.caveats).issubset(_KNOWN_PRINT_DISCREPANCY_CAVEATS):
+            raise ValueError("only an absence from the table or a verified print discrepancy carries a caveat")
         if (self.verdict == "exists-as-recodified") != bool(self.successors):
             raise ValueError("a recodified verdict names its successors, and no other verdict names any")
         if self.verdict in ("not-in-table", "no-table-for-title") and self.rows:
@@ -483,12 +635,21 @@ class UscDispositionTables:
     #: directories stay untouched without duplicating bytes. When ``None``
     #: (:meth:`from_directory`), every pinned table is read flat from :attr:`directory`.
     repository_root: Path | None = None
+    #: Optional override of :data:`RECODIFICATIONS` (used by unit tests to prove
+    #: multi-table non-overwrite behavior without mutating module constants).
+    recodifications: tuple[Recodification, ...] | None = None
+
+    @property
+    def _catalog(self) -> tuple[Recodification, ...]:
+        return RECODIFICATIONS if self.recodifications is None else self.recodifications
 
     @classmethod
-    def from_directory(cls, directory: Path | str) -> UscDispositionTables:
+    def from_directory(
+        cls, directory: Path | str, *, recodifications: tuple[Recodification, ...] | None = None
+    ) -> UscDispositionTables:
         """Bind to a flat directory carrying every pinned table, verifying every digest first."""
 
-        tables = cls(directory=Path(directory))
+        tables = cls(directory=Path(directory), recodifications=recodifications)
         tables.verify()
         return tables
 
@@ -509,45 +670,56 @@ class UscDispositionTables:
     def verify(self) -> None:
         """Hash every pinned table, whatever this caller goes on to ask.
 
-        Written over :data:`RECODIFICATIONS` rather than over one file so every
-        pinned table is verified by existing code at bind time, and any
-        duplicate ``former_title`` fails loudly instead of silently overwriting.
+        Written over :attr:`_catalog` rather than over one file so every pinned
+        table is verified by existing code at bind time, and any duplicate
+        recodification ``name`` fails loudly. Multiple recodifications sharing a
+        ``former_title`` (such as Title 42 -> Titles 51 and 34, or Title 49's
+        front-matter and positive-law tables) are indexed together without
+        overwriting one another.
         """
 
+        seen_names: set[str] = set()
+        for recodification in self._catalog:
+            if recodification.name in seen_names:
+                raise ValueError(f"duplicate recodification name: {recodification.name!r}")
+            seen_names.add(recodification.name)
         _ = self._by_title
-        for recodification in RECODIFICATIONS:
+        for recodification in self._catalog:
             _verify_pinned_parquet(
                 self._directory_for(recodification), recodification.table, recodification.digest
             )
 
     @cached_property
-    def _by_title(self) -> Mapping[int, Recodification]:
-        by_title: dict[int, Recodification] = {}
-        for recodification in RECODIFICATIONS:
-            if recodification.former_title in by_title:
-                raise ValueError(f"duplicate former_title in RECODIFICATIONS: {recodification.former_title}")
-            by_title[recodification.former_title] = recodification
-        return by_title
+    def _by_title(self) -> Mapping[int, tuple[Recodification, ...]]:
+        by_title: dict[int, list[Recodification]] = {}
+        for recodification in self._catalog:
+            for ft in recodification.effective_former_titles:
+                if recodification not in by_title.setdefault(ft, []):
+                    by_title[ft].append(recodification)
+        return {ft: tuple(recs) for ft, recs in by_title.items()}
 
     @cached_property
-    def _rows(self) -> Mapping[int, Mapping[str, tuple[DispositionRow, ...]]]:
-        """``former title -> former section -> its printed rows``, in print order."""
+    def _tagged_rows(self) -> Mapping[int, Mapping[str, tuple[tuple[str, DispositionRow], ...]]]:
+        """``former title -> former section -> (recodification name, DispositionRow)``, never overwriting."""
 
         import pyarrow.parquet as pq
 
         _ = self._by_title
-        out: dict[int, dict[str, list[DispositionRow]]] = {}
-        for recodification in RECODIFICATIONS:
+        out: dict[int, dict[str, list[tuple[str, DispositionRow]]]] = {}
+        for recodification in self._catalog:
+            allowed_titles = frozenset(recodification.effective_former_titles)
             path = _verify_pinned_parquet(
                 self._directory_for(recodification), recodification.table, recodification.digest
             )
             table = pq.read_table(path)
             columns = {name: table.column(name).to_pylist() for name in table.schema.names}
-            sections: dict[str, list[DispositionRow]] = {}
             for values in zip(*columns.values(), strict=True):
                 row = dict(zip(columns, values, strict=True))
-                if row["former_title"] != recodification.former_title:
-                    raise ValueError(f"{recodification.table} states former title {row['former_title']}")
+                ft = int(row["former_title"])
+                if ft not in allowed_titles:
+                    raise ValueError(
+                        f"{recodification.table} states former title {ft}, outside {recodification.effective_former_titles}"
+                    )
                 successor = (
                     Successor(
                         title=row["new_title"],
@@ -559,51 +731,77 @@ class UscDispositionTables:
                     else None
                 )
                 section = normalize_section(row["former_section"])
-                sections.setdefault(section, []).append(
-                    DispositionRow(
-                        former_section=section,
-                        former_subsection=row["former_subsection"],
-                        former_note=row["former_note"],
-                        successor=successor,
-                        status=row["status"],
-                        former_text=row["former_text"],
-                        new_text=row["new_text"],
-                        page=row["page"],
-                        column=row["column"],
+                out.setdefault(ft, {}).setdefault(section, []).append(
+                    (
+                        recodification.name,
+                        DispositionRow(
+                            former_section=section,
+                            former_subsection=row["former_subsection"],
+                            former_note=row["former_note"],
+                            successor=successor,
+                            status=row["status"],
+                            former_text=row["former_text"],
+                            new_text=row["new_text"],
+                            page=row["page"],
+                            column=row["column"],
+                        ),
                     )
                 )
-            out[recodification.former_title] = {key: tuple(value) for key, value in sections.items()}
-        return out
+        return {
+            ft: {sec: tuple(items) for sec, items in sections.items()}
+            for ft, sections in out.items()
+        }
 
-    def former_sections(self, former_title: int) -> frozenset[str]:
-        """Every former section the pinned table for that title lists."""
+    @cached_property
+    def _rows(self) -> Mapping[int, Mapping[str, tuple[DispositionRow, ...]]]:
+        """``former title -> former section -> its printed rows``, in print order."""
 
-        return frozenset(self._rows.get(former_title, {}))
+        return {
+            ft: {sec: tuple(row for _, row in items) for sec, items in sections.items()}
+            for ft, sections in self._tagged_rows.items()
+        }
 
-    def sections_in_span(self, former_title: int, former_section: str, section_end: object) -> tuple[str, ...]:
-        """Every former section the pinned table LISTS inside a stated span.
+    def _recodifications_for(self, former_title: int, *, appendix: bool = False) -> tuple[Recodification, ...]:
+        recods = self._by_title.get(former_title, ())
+        if appendix:
+            return tuple(r for r in recods if r.covers_appendix)
+        return recods
 
-        In print order, endpoints included. Empty where no table is pinned,
-        where either endpoint has no order key, where the span runs backwards,
-        or where the table lists nothing between them.
+    def former_sections(self, former_title: int, *, appendix: bool = False) -> frozenset[str]:
+        """Every former section the pinned table(s) for that title (and appendix scope) list."""
 
-        Membership, never a count: the members are the table's own keys whose
-        order key falls inside the span, the way
-        :meth:`~refspec.registry.cfr_authority_notes.AuthorityNote._span_covers`
-        tests a note's printed range. For ``1 to 85`` a count would claim 17
-        integers the volume never prints and miss 16 lettered sections it
-        does; see the module docstring.
+        if not appendix:
+            return frozenset(self._rows.get(former_title, {}))
+        allowed = {r.name for r in self._recodifications_for(former_title, appendix=True)}
+        if not allowed:
+            return frozenset()
+        return frozenset(
+            sec
+            for sec, items in self._tagged_rows.get(former_title, {}).items()
+            if any(name in allowed for name, _ in items)
+        )
+
+    def sections_in_span(
+        self, former_title: int, former_section: str, section_end: object, *, appendix: bool = False
+    ) -> tuple[str, ...]:
+        """Every former section the pinned table(s) LIST inside a stated span.
+
+        Sorted in canonical section order, endpoints included. Empty where no
+        table is pinned, where either endpoint has no order key, where the span
+        runs backwards, or where the table lists nothing between them.
         """
 
         low = _section_order(normalize_section(former_section))
         high = _section_order(normalize_section(section_end))
         if low is None or high is None or high < low:
             return ()
-        return tuple(
-            section
-            for section in self._rows.get(former_title, {})
+        matched = [
+            (key, section)
+            for section in self.former_sections(former_title, appendix=appendix)
             if (key := _section_order(section)) is not None and low <= key <= high
-        )
+        ]
+        matched.sort(key=lambda item: item[0])
+        return tuple(section for _, section in matched)
 
     def disposition(
         self,
@@ -612,27 +810,15 @@ class UscDispositionTables:
         subsection: object = None,
         *,
         section_end: object = None,
+        appendix: bool = False,
     ) -> Disposition:
-        """What became of one former section, of one subsection, or of a span.
-
-        Returns every successor the table names — see the module docstring on
-        why picking one would be a guess — with the printed rows beside them.
-
-        ``section_end`` asks the same question of a stated range. Every member
-        :meth:`sections_in_span` finds is asked on its own and kept in
-        :attr:`Disposition.members`; the successors are their union in member
-        order, and the verdict is read off the union of their printed rows
-        exactly as one section's verdict is read off its own. A ``subsection``
-        beside a span narrows the START member and no other: a pinpoint is
-        written on the section it follows, and carrying it to the other members
-        would apply one citation's ``(b)(2)`` to ten sections that never saw it.
-        """
+        """What became of one former section, of one subsection, or of a span."""
 
         section = normalize_section(former_section)
         wanted = normalize_subsection(subsection)
         end = normalize_section(section_end) or None
-        recodification = self._by_title.get(former_title)
-        if recodification is None:
+        recods = self._recodifications_for(former_title, appendix=appendix)
+        if not recods:
             return Disposition(
                 former_title=former_title,
                 former_section=section,
@@ -645,12 +831,16 @@ class UscDispositionTables:
                 subsection_resolved=None,
             )
 
+        checked_names = "+".join(r.name for r in recods)
+        allowed_names = {r.name for r in recods}
+        print_caveats = KNOWN_PRINT_DISCREPANCIES.get((former_title, section), ())
+
         if end is not None:
-            # Every member comes from the table's own keys, so each one's own
-            # answer is an answer -- there is no not-in-table member to filter.
             members = tuple(
-                self.disposition(former_title, member, subsection if member == section else None)
-                for member in self.sections_in_span(former_title, section, end)
+                self.disposition(
+                    former_title, member, subsection if member == section else None, appendix=appendix
+                )
+                for member in self.sections_in_span(former_title, section, end, appendix=appendix)
             )
             if not members:
                 return Disposition(
@@ -659,57 +849,74 @@ class UscDispositionTables:
                     former_section_end=end,
                     subsection=wanted,
                     verdict="not-in-table",
-                    recodification=recodification.name,
+                    recodification=checked_names,
                     successors=(),
                     rows=(),
                     subsection_resolved=None,
-                    caveats=NOT_IN_TABLE_CAVEATS,
+                    caveats=NOT_IN_TABLE_CAVEATS + print_caveats,
                 )
             matched = tuple(row for member in members for row in member.rows)
             start = next((member for member in members if member.former_section == section), None)
+            span_recod = "+".join(
+                dict.fromkeys(
+                    part
+                    for member in members
+                    if member.recodification is not None
+                    for part in member.recodification.split("+")
+                )
+            )
+            span_caveats = tuple(dict.fromkeys(c for member in members for c in member.caveats))
             return Disposition(
                 former_title=former_title,
                 former_section=section,
                 former_section_end=end,
                 subsection=wanted,
                 verdict=_verdict_over(matched),
-                recodification=recodification.name,
+                recodification=span_recod,
                 successors=tuple(dict.fromkeys(one for member in members for one in member.successors)),
                 rows=matched,
                 subsection_resolved=None if start is None else start.subsection_resolved,
                 members=members,
+                caveats=span_caveats,
             )
 
-        rows = self._rows[former_title].get(section, ())
-        if not rows:
+        tagged = tuple(
+            pair
+            for pair in self._tagged_rows.get(former_title, {}).get(section, ())
+            if pair[0] in allowed_names
+        )
+        if not tagged:
             return Disposition(
                 former_title=former_title,
                 former_section=section,
                 subsection=wanted,
                 verdict="not-in-table",
-                recodification=recodification.name,
+                recodification=checked_names,
                 successors=(),
                 rows=(),
                 subsection_resolved=None,
-                caveats=NOT_IN_TABLE_CAVEATS,
+                caveats=NOT_IN_TABLE_CAVEATS + print_caveats,
             )
 
         resolved: bool | None = None
-        matched = rows
+        matched_tagged = tagged
         if wanted:
-            narrowed = tuple(row for row in rows if _row_covers(row, wanted))
+            narrowed = tuple(pair for pair in tagged if _row_covers(pair[1], wanted))
             resolved = bool(narrowed)
-            matched = narrowed or rows
+            matched_tagged = narrowed or tagged
 
+        matched = tuple(row for _, row in matched_tagged)
+        answering_names = "+".join(dict.fromkeys(name for name, _ in matched_tagged))
         return Disposition(
             former_title=former_title,
             former_section=section,
             subsection=wanted,
             verdict=_verdict_over(matched),
-            recodification=recodification.name,
+            recodification=answering_names,
             successors=tuple({row.successor: None for row in matched if row.successor is not None}),
             rows=matched,
             subsection_resolved=resolved,
+            caveats=print_caveats,
         )
 
 
@@ -725,6 +932,60 @@ def _verdict_over(matched: tuple[DispositionRow, ...]) -> str:
     return "stated-without-successor"
 
 
+_INTRODUCTORY_MATTER = re.compile(
+    r"\((?:matter|words|provisions?|text)\s+(?:before|preceding)\s+"
+    r"(?:(?:subsec\.|par\.|subpar\.|cl\.|subsection|paragraph|subparagraph|clause)\s*)?"
+    r"\([0-9a-zA-Z]{1,4}\)",
+    re.IGNORECASE,
+)
+
+
+def _trailing_child_labels_after_paren(text: str, open_idx: int) -> frozenset[str]:
+    """Child labels listed after a balanced parenthetical qualifier, e.g. ``), (1) to (5)``."""
+
+    depth = 0
+    end_idx = len(text)
+    for idx in range(open_idx, len(text)):
+        ch = text[idx]
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                end_idx = idx + 1
+                break
+    tail = text[end_idx:].translate(_DASHES)
+    if "(" not in tail:
+        return frozenset()
+    found: set[str] = set()
+    for m_rng in re.finditer(
+        r"\(([0-9a-zA-Z]{1,4})\)\s*(?:to|through|-)\s*\(([0-9a-zA-Z]{1,4})\)", tail, re.IGNORECASE
+    ):
+        lo, hi = m_rng.group(1), m_rng.group(2)
+        if lo.isdigit() and hi.isdigit() and int(lo) <= int(hi):
+            found.update(str(n) for n in range(int(lo), int(hi) + 1))
+        elif len(lo) == 1 and len(hi) == 1 and lo.isalpha() and hi.isalpha() and lo.isupper() == hi.isupper() and lo <= hi:
+            found.update(chr(c).lower() for c in range(ord(lo), ord(hi) + 1))
+    for grp in _GROUP.findall(tail):
+        found.add(grp.lower())
+    return frozenset(found)
+
+
+def _introductory_excludes_child(
+    row: DispositionRow, labels: tuple[str, ...], wanted: tuple[str, ...]
+) -> bool:
+    """Whether ``row`` is an introductory-matter row at ``len(labels)`` that excludes ``wanted``."""
+
+    m = _INTRODUCTORY_MATTER.search(row.former_text)
+    if m is None:
+        return False
+    chapeau_depth = len(_GROUP.findall(row.former_text[: m.start()]))
+    if len(labels) != chapeau_depth:
+        return False
+    trailing = _trailing_child_labels_after_paren(row.former_text, m.start())
+    return not (trailing and wanted[chapeau_depth] in trailing)
+
+
 def _row_covers(row: DispositionRow, wanted: tuple[str, ...]) -> bool:
     """Whether a printed row speaks for the queried subsection.
 
@@ -737,21 +998,28 @@ def _row_covers(row: DispositionRow, wanted: tuple[str, ...]) -> bool:
     span's members are not enumerable without inventing them, and the printed
     text says so.
 
-    A **note** row is the exception to the whole-section rule: ``1374 note →
-    41706`` and ``1421 notes → 44716, 44717, 44722`` dispose of the notes under
-    a section, not of any subsection of it, so they answer a question about the
-    section and not one about ``1374(c)``. Without that, the review's cleanest
-    row — ``1374(c)`` → 41705, one successor — would come back with two.
+    Two exceptions narrow chapeau / note entries:
+    - A **note** row (``1374 note → 41706``, ``10927 (note) → 31138``) disposes
+      of statutory notes under the section, not any subsection of it.
+    - A **structural introductory-matter** row (``16 U.S.C. 1a-2 (matter before (a))``,
+      ``41:35 (matter before subsec. (a) ...)``, ``42:16654(a) (matter before par. (1))``)
+      disposes strictly of chapeau text preceding a structural unit (never
+      punctuation splits such as ``words before semicolon``), so it speaks for
+      its own level (``16654(a)``) and never for a deeper child (``1a-2(a)``,
+      ``16654(a)(1)``) unless the same printed row also names that trailing
+      child (``351(a) (words before par. (1) ...), (1) to (5)``).
     """
 
     if row.former_note is not None:
         return False
     printed = row.former_subsection
     if printed is None:
-        return True
+        return not _introductory_excludes_child(row, (), wanted)
     labels = tuple(g.lower() for g in _GROUP.findall(printed.split("-")[0]))
     if not labels:
         return False
     if "-" in printed:
         return wanted[0] == labels[0]
+    if len(wanted) > len(labels) and _introductory_excludes_child(row, labels, wanted):
+        return False
     return labels[: len(wanted)] == wanted[: len(labels)]
