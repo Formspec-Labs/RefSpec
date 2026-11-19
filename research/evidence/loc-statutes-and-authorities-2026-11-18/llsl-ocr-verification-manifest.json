@@ -16,12 +16,12 @@
       "layer1_chapter_heading_tolerant": 15,
       "layer2_chapter_heading_tolerant": 16,
       "union_chapter_heading_tolerant": 16,
-      "layer1_section_in_act_strict": 11,
+      "layer1_section_in_act_strict": 9,
       "layer2_section_in_act_strict": 4,
-      "layer1_section_in_act_split_tolerant": 11,
+      "layer1_section_in_act_split_tolerant": 9,
       "layer2_section_in_act_split_tolerant": 12,
       "union_section_in_act_split_tolerant": 12,
-      "layer1_full_citation_bound_strict": 13,
+      "layer1_full_citation_bound_strict": 12,
       "layer2_full_citation_bound_normalized": 16,
       "union_full_citation_bound_normalized": 16
     }
@@ -285,6 +285,83 @@
       "table3_key": "1797:1",
       "caption": "5th Congress (1798/1799)",
       "layer1_opening_excerpt": "ACTS OF THE FIFTH CONGRESS OF THE UNITED STATES, Passed at the second session, which was begun and held at the City of Philadelphia, in the state of Pennsylvania, on Monday, the thirteenth day of November, 1797, and ended on the sixteenth d"
+    },
+    "c75s2_page10_rejects_date_day_folio6_and_inline_sec1756": {
+      "pdf_filename": "llsl-c75s2.pdf",
+      "pdf_page_1based": 10,
+      "actual_printed_folio": 4,
+      "layer1_score_as_51stat6_ch3": {
+        "folio_in_running_header": false,
+        "chapter_in_running_header": true,
+        "chapter_heading_strict": true,
+        "chapter_heading_tolerant": true,
+        "chapter_bound": true,
+        "section_in_act_strict": null,
+        "section_in_act_split_tolerant": null,
+        "full_citation_bound_strict": false,
+        "full_citation_bound_normalized": false
+      },
+      "layer2_score_as_51stat6_ch3": {
+        "folio_in_running_header": false,
+        "chapter_in_running_header": true,
+        "chapter_heading_strict": true,
+        "chapter_heading_tolerant": true,
+        "chapter_bound": true,
+        "section_in_act_strict": null,
+        "section_in_act_split_tolerant": null,
+        "full_citation_bound_strict": false,
+        "full_citation_bound_normalized": false
+      },
+      "layer1_score_as_51stat4_ch3_sec1756": {
+        "folio_in_running_header": true,
+        "chapter_in_running_header": true,
+        "chapter_heading_strict": true,
+        "chapter_heading_tolerant": true,
+        "chapter_bound": true,
+        "section_in_act_strict": false,
+        "section_in_act_split_tolerant": false,
+        "full_citation_bound_strict": false,
+        "full_citation_bound_normalized": false
+      },
+      "layer2_score_as_51stat4_ch3_sec1756": {
+        "folio_in_running_header": true,
+        "chapter_in_running_header": true,
+        "chapter_heading_strict": true,
+        "chapter_heading_tolerant": true,
+        "chapter_bound": true,
+        "section_in_act_strict": false,
+        "section_in_act_split_tolerant": false,
+        "full_citation_bound_strict": false,
+        "full_citation_bound_normalized": false
+      }
+    },
+    "c9_page96_2stat443_rejects_split_roman_ch10": {
+      "pdf_filename": "llsl-c9.pdf",
+      "pdf_page_1based": 96,
+      "stat_page": 443,
+      "tested_chapter": 10,
+      "layer1_score": {
+        "folio_in_running_header": true,
+        "chapter_in_running_header": false,
+        "chapter_heading_strict": false,
+        "chapter_heading_tolerant": false,
+        "chapter_bound": false,
+        "section_in_act_strict": null,
+        "section_in_act_split_tolerant": null,
+        "full_citation_bound_strict": false,
+        "full_citation_bound_normalized": false
+      },
+      "layer2_score": {
+        "folio_in_running_header": true,
+        "chapter_in_running_header": false,
+        "chapter_heading_strict": false,
+        "chapter_heading_tolerant": false,
+        "chapter_bound": false,
+        "section_in_act_strict": null,
+        "section_in_act_split_tolerant": null,
+        "full_citation_bound_strict": false,
+        "full_citation_bound_normalized": false
+      }
     },
     "c75s2_page9_folio3_rejects_folio4_and_ch3": {
       "pdf_filename": "llsl-c75s2.pdf",
@@ -609,10 +686,10 @@
         "chapter_heading_strict": false,
         "chapter_heading_tolerant": true,
         "chapter_bound": true,
-        "section_in_act_strict": true,
-        "section_in_act_split_tolerant": true,
+        "section_in_act_strict": false,
+        "section_in_act_split_tolerant": false,
         "full_citation_bound_strict": false,
-        "full_citation_bound_normalized": true
+        "full_citation_bound_normalized": false
       },
       "layer2_metrics": {
         "folio_in_running_header": true,
@@ -631,7 +708,7 @@
         "chapter_heading_strict": true,
         "chapter_heading_tolerant": true,
         "chapter_bound": true,
-        "section_in_act_strict": true,
+        "section_in_act_strict": false,
         "section_in_act_split_tolerant": true,
         "full_citation_bound_strict": false,
         "full_citation_bound_normalized": true
@@ -833,10 +910,10 @@
         "chapter_heading_strict": true,
         "chapter_heading_tolerant": true,
         "chapter_bound": true,
-        "section_in_act_strict": true,
-        "section_in_act_split_tolerant": true,
-        "full_citation_bound_strict": true,
-        "full_citation_bound_normalized": true
+        "section_in_act_strict": false,
+        "section_in_act_split_tolerant": false,
+        "full_citation_bound_strict": false,
+        "full_citation_bound_normalized": false
       },
       "layer2_metrics": {
         "folio_in_running_header": true,
@@ -857,7 +934,7 @@
         "chapter_bound": true,
         "section_in_act_strict": true,
         "section_in_act_split_tolerant": true,
-        "full_citation_bound_strict": true,
+        "full_citation_bound_strict": false,
         "full_citation_bound_normalized": true
       },
       "layer1_opening_excerpt": "620 August 14, 1935. [H. R. 7260.] [Public, No. 271.] Social Security Act. Title I-Grants to States for old-age assist- ance. Appropriation. 7 4 TH CONGRESS. SESS. I. CH. 531. AUGUST 14, 1935. [CHAPTER 531.] AN ACT To provide for the general welfare by establishing a system of Federal old-age benefits, and by enabling the several States to make more adequate",

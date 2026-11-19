@@ -318,7 +318,9 @@ def build_ocr_verification_manifest(cache_root: Path) -> dict[str, Any]:
 
     # Verified boundary & counterexample pages proving non-universal page OCR and strict folio/act scoping
     p1_c5 = extract_llsl_pdf_ocr_layers(_reader("llsl-c5.pdf"), 1)
+    p96_c9 = extract_llsl_pdf_ocr_layers(_reader("llsl-c9.pdf"), 96)
     p9_c75 = extract_llsl_pdf_ocr_layers(_reader("llsl-c75s2.pdf"), 9)
+    p10_c75 = extract_llsl_pdf_ocr_layers(_reader("llsl-c75s2.pdf"), 10)
     p360_c48 = extract_llsl_pdf_ocr_layers(_reader("llsl-c48.pdf"), 360)
     p292_c48 = extract_llsl_pdf_ocr_layers(_reader("llsl-c48.pdf"), 292)
     p552_c48 = extract_llsl_pdf_ocr_layers(_reader("llsl-c48.pdf"), 552)
@@ -331,6 +333,73 @@ def build_ocr_verification_manifest(cache_root: Path) -> dict[str, Any]:
             "table3_key": "1797:1",
             "caption": "5th Congress (1798/1799)",
             "layer1_opening_excerpt": p1_c5.layer1_type1_text[:240],
+        },
+        "c75s2_page10_rejects_date_day_folio6_and_inline_sec1756": {
+            "pdf_filename": "llsl-c75s2.pdf",
+            "pdf_page_1based": 10,
+            "actual_printed_folio": 4,
+            "layer1_score_as_51stat6_ch3": dataclasses.asdict(
+                score_llsl_layer_citation(
+                    body_text=p10_c75.layer1_type1_text,
+                    header_text=p10_c75.layer1_header_text,
+                    footer_text=p10_c75.layer1_footer_text,
+                    statutes_at_large_page=6,
+                    expected_chapter=3,
+                )
+            ),
+            "layer2_score_as_51stat6_ch3": dataclasses.asdict(
+                score_llsl_layer_citation(
+                    body_text=p10_c75.layer2_invisible_ocr_text,
+                    header_text=p10_c75.layer2_header_text,
+                    footer_text=p10_c75.layer2_footer_text,
+                    statutes_at_large_page=6,
+                    expected_chapter=3,
+                )
+            ),
+            "layer1_score_as_51stat4_ch3_sec1756": dataclasses.asdict(
+                score_llsl_layer_citation(
+                    body_text=p10_c75.layer1_type1_text,
+                    header_text=p10_c75.layer1_header_text,
+                    footer_text=p10_c75.layer1_footer_text,
+                    statutes_at_large_page=4,
+                    expected_chapter=3,
+                    expected_section="1756",
+                )
+            ),
+            "layer2_score_as_51stat4_ch3_sec1756": dataclasses.asdict(
+                score_llsl_layer_citation(
+                    body_text=p10_c75.layer2_invisible_ocr_text,
+                    header_text=p10_c75.layer2_header_text,
+                    footer_text=p10_c75.layer2_footer_text,
+                    statutes_at_large_page=4,
+                    expected_chapter=3,
+                    expected_section="1756",
+                )
+            ),
+        },
+        "c9_page96_2stat443_rejects_split_roman_ch10": {
+            "pdf_filename": "llsl-c9.pdf",
+            "pdf_page_1based": 96,
+            "stat_page": 443,
+            "tested_chapter": 10,
+            "layer1_score": dataclasses.asdict(
+                score_llsl_layer_citation(
+                    body_text=p96_c9.layer1_type1_text,
+                    header_text=p96_c9.layer1_header_text,
+                    footer_text=p96_c9.layer1_footer_text,
+                    statutes_at_large_page=443,
+                    expected_chapter=10,
+                )
+            ),
+            "layer2_score": dataclasses.asdict(
+                score_llsl_layer_citation(
+                    body_text=p96_c9.layer2_invisible_ocr_text,
+                    header_text=p96_c9.layer2_header_text,
+                    footer_text=p96_c9.layer2_footer_text,
+                    statutes_at_large_page=443,
+                    expected_chapter=10,
+                )
+            ),
         },
         "c75s2_page9_folio3_rejects_folio4_and_ch3": {
             "pdf_filename": "llsl-c75s2.pdf",

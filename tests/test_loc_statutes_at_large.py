@@ -169,6 +169,13 @@ def test_pinned_ocr_manifest_boundary_counterexamples_and_scoped_accuracy() -> N
     assert by_id["49stat647_ssa_1102"]["expected_chapter"] == "531"
     assert all(s["uses_invisible_render_mode_3tr"] is True for s in specimens)
 
+    for lk in ("layer1_score_as_51stat6_ch3", "layer2_score_as_51stat6_ch3"):
+        assert bounds["c75s2_page10_rejects_date_day_folio6_and_inline_sec1756"][lk]["folio_in_running_header"] is False
+    for lk in ("layer1_score_as_51stat4_ch3_sec1756", "layer2_score_as_51stat4_ch3_sec1756"):
+        assert bounds["c75s2_page10_rejects_date_day_folio6_and_inline_sec1756"][lk]["section_in_act_split_tolerant"] is False
+    for lk in ("layer1_score", "layer2_score"):
+        assert bounds["c9_page96_2stat443_rejects_split_roman_ch10"][lk]["chapter_bound"] is False
+
     acc = dict(verdict["accuracy_summary"])
     assert acc == {
         "specimen_count": 16,
@@ -181,12 +188,12 @@ def test_pinned_ocr_manifest_boundary_counterexamples_and_scoped_accuracy() -> N
         "layer1_chapter_heading_tolerant": 15,
         "layer2_chapter_heading_tolerant": 16,
         "union_chapter_heading_tolerant": 16,
-        "layer1_section_in_act_strict": 11,
+        "layer1_section_in_act_strict": 9,
         "layer2_section_in_act_strict": 4,
-        "layer1_section_in_act_split_tolerant": 11,
+        "layer1_section_in_act_split_tolerant": 9,
         "layer2_section_in_act_split_tolerant": 12,
         "union_section_in_act_split_tolerant": 12,
-        "layer1_full_citation_bound_strict": 13,
+        "layer1_full_citation_bound_strict": 12,
         "layer2_full_citation_bound_normalized": 16,
         "union_full_citation_bound_normalized": 16,
     }
@@ -268,6 +275,20 @@ def test_resolve_statutes_volume_handles_1797_autumn_session_overlaps_and_contra
     assert v18_bare.pdf_resolution_status == "ambiguous_multi_part_volume"
     assert len(v18_bare.candidate_pdfs) == 4
 
+    # Multi-Congress Vol. 6 (Private Laws 1789-1845, congress=None) must retain llsl-vol-6-private.pdf for Congress 1..28,
+    # while rejecting contradictory congress/year pairs (e.g. 1790 + congress=20 or congress=50).
+    v6_c1 = resolve_statutes_volume(6, enactment_year=1790, congress=1, catalog=catalog)
+    assert v6_c1.pdf_resolution_status == "single_volume_pdf"
+    assert v6_c1.unique_pdf is not None and v6_c1.unique_pdf.filename == "llsl-vol-6-private.pdf"
+
+    v6_mismatch_year_cong = resolve_statutes_volume(6, enactment_year=1790, congress=20, catalog=catalog)
+    assert v6_mismatch_year_cong.pdf_resolution_status == "unresolved_contradictory_filters"
+    assert v6_mismatch_year_cong.candidate_pdfs == ()
+
+    v6_out_of_span_cong = resolve_statutes_volume(6, congress=50, catalog=catalog)
+    assert v6_out_of_span_cong.pdf_resolution_status == "unresolved_contradictory_filters"
+    assert v6_out_of_span_cong.candidate_pdfs == ()
+
 
 def test_score_llsl_layer_citation_rejects_wrong_folio_wrong_roman_and_wrong_chapter_section() -> None:
     """Proves folio, Roman chapter, and section checks are strictly bound to the header and act block."""
@@ -340,7 +361,7 @@ def test_score_llsl_layer_citation_rejects_wrong_folio_wrong_roman_and_wrong_cha
     assert s_164.section_in_act_split_tolerant is True
     assert s_164.full_citation_bound_normalized is True
 
-    # Arbitrary Roman numerals (CHAP. XXXVII = 37) must NOT match expected_chapter=39 (XXXIX)
+    # Arbitrary or split Roman numerals ('CHAP. XXXVII' or 'C HAP. X XX') must NOT match expected_chapter=39 or 10 ('X')
     wrong_roman = score_llsl_layer_citation(
         body_text="CHAP. XXXVII.—An act making appropriations for fortifying the ports.",
         header_text="NINTH CONGRESS. SESS. II. CH. 37. 1807. 443",
@@ -350,6 +371,48 @@ def test_score_llsl_layer_citation_rejects_wrong_folio_wrong_roman_and_wrong_cha
     )
     assert wrong_roman.chapter_heading_strict is False
     assert wrong_roman.chapter_heading_tolerant is False
+
+    split_roman_x = score_llsl_layer_citation(
+        body_text="C HAP. X XX .Ict making further appropriations for fortifying the ports.",
+        header_text="NINTH CONGRESS . S ass. II . C H. 37, 30, 40, 41. 1807. 443",
+        footer_text="",
+        statutes_at_large_page=443,
+        expected_chapter=10,
+    )
+    assert split_roman_x.chapter_heading_strict is False
+    assert split_roman_x.chapter_heading_tolerant is False
+    assert split_roman_x.chapter_bound is False
+
+    # Header date day ("DECEMBER 6, 1937") and inline body cross-ref ("title 12, sec. 1756)") must BOTH fail on 51 Stat. 4!
+    p10_hdr = "4 75TH CONGRESS, 2D SESSION—CH. 3—DECEMBER 6, 1937"
+    p10_body = (
+        "[CHAPTER 3] AN ACT To amend certain sections of the Federal Credit Union Act. "
+        "Be it enacted, That section 6 of the Federal Credit Union Act (U. S. C., 1934 edition, title 12, sec. 1756), "
+        "be, and the same is hereby, amended."
+    )
+    date_day_6 = score_llsl_layer_citation(
+        body_text=p10_body,
+        header_text=p10_hdr,
+        footer_text="",
+        statutes_at_large_page=6,
+        expected_chapter=3,
+    )
+    assert date_day_6.folio_in_running_header is False
+    assert date_day_6.full_citation_bound_normalized is False
+
+    inline_1756 = score_llsl_layer_citation(
+        body_text=p10_body,
+        header_text=p10_hdr,
+        footer_text="",
+        statutes_at_large_page=4,
+        expected_chapter=3,
+        expected_section="1756",
+    )
+    assert inline_1756.folio_in_running_header is True
+    assert inline_1756.chapter_heading_strict is True
+    assert inline_1756.section_in_act_strict is False
+    assert inline_1756.section_in_act_split_tolerant is False
+    assert inline_1756.full_citation_bound_normalized is False
 
 
 @pytest.mark.parametrize(
@@ -451,6 +514,27 @@ def test_extract_llsl_pdf_ocr_layers_reader_reuse_3tr_and_font_classification() 
     vis_layers = extract_llsl_pdf_ocr_layers(visible_pdf, 1)
     assert vis_layers.uses_invisible_render_mode_3tr is False
     assert vis_layers.has_dual_ocr_collision is False
+
+    # Setting 3 Tr and immediately resetting to 0 Tr before any Tj must report uses_invisible_render_mode_3tr=False!
+    reset_writer = PdfWriter()
+    reset_page = reset_writer.add_blank_page(width=612, height=792)
+    f_ref = reset_writer._add_object(
+        DictionaryObject(
+            {
+                NameObject("/Type"): NameObject("/Font"),
+                NameObject("/Subtype"): NameObject("/Type1"),
+                NameObject("/BaseFont"): NameObject("/Times-Roman"),
+                NameObject("/Encoding"): NameObject("/WinAnsiEncoding"),
+            }
+        )
+    )
+    reset_page[NameObject("/Resources")] = DictionaryObject({NameObject("/Font"): DictionaryObject({NameObject("/F5"): f_ref})})
+    reset_stream = DecodedStreamObject()
+    reset_stream.set_data(b"BT 3 Tr 0 Tr /F5 11 Tf (Visible text after 3 Tr reset) Tj ET")
+    reset_page[NameObject("/Contents")] = reset_writer._add_object(reset_stream)
+    reset_buf = io.BytesIO()
+    reset_writer.write(reset_buf)
+    assert extract_llsl_pdf_ocr_layers(reset_buf.getvalue(), 1).uses_invisible_render_mode_3tr is False
 
     blank_writer = PdfWriter()
     blank_writer.add_blank_page(width=612, height=792)

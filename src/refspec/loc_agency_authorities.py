@@ -297,6 +297,9 @@ def build_lcnaf_corporate_queries(
     return tuple(queries)
 
 
+_UNQUALIFIED_US_STATUTORY_CORPORATIONS = frozenset({"federal deposit insurance corporation"})
+
+
 def select_verified_lcnaf_hit(
     hits: Sequence[Mapping[str, Any]],
     *,
@@ -308,11 +311,10 @@ def select_verified_lcnaf_hit(
     Requires explicit U.S. jurisdiction or parent-department corporate evidence:
     - Refuses foreign or state jurisdictions (``"Liberia. Environmental Protection Agency"``,
       ``"Bangladesh. Securities and Exchange Commission"``, ``"Alaska. Office of Management and Budget"``).
-    - Refuses unqualified generic corporate labels lacking U.S. federal evidence
-      (e.g. a bare ``"Executive Office for Immigration Review"`` or bare
-      ``"Environmental Protection Agency"`` without ``United States.`` / ``(U.S.)``);
-      only explicitly named ``"Federal ..."`` statutory corporations (such as
-      ``"Federal Deposit Insurance Corporation"``) are admissible without a
+    - Refuses unqualified corporate labels lacking U.S. federal evidence (including
+      ``"Federal Trade Commission"`` if stripped of ``"United States."``); only
+      entries in the explicit statutory-corporation allowlist
+      (``"Federal Deposit Insurance Corporation"``) are admissible without a
       ``United States`` / ``(U.S.)`` qualifier when no parent department is supplied.
     - Refuses unrequested subordinate divisions or cooperative programs whose
       variant happens to prefix-match (``"Medicare Recovery Audit Contractor
@@ -341,7 +343,7 @@ def select_verified_lcnaf_hit(
         if pnorm:
             admissible_authorized.add(f"united states {pnorm} {target_norm}")
             admissible_authorized.add(f"u s {pnorm} {target_norm}")
-    elif target_norm.startswith("federal "):
+    elif target_norm in _UNQUALIFIED_US_STATUTORY_CORPORATIONS:
         admissible_authorized.add(target_norm)
 
     for hit in hits:
@@ -393,7 +395,7 @@ def parse_lcnaf_madsrdf_graph(payload: bytes | str | Sequence[Mapping[str, Any]]
         raise LcnafAlignmentError(
             f"authority {authority_iri} has non-corporate MADS @type {sorted(disallowed)!r}"
         )
-    if node_types and MADS_CORPORATE_NAME not in node_types:
+    if MADS_CORPORATE_NAME not in node_types:
         raise LcnafAlignmentError(
             f"authority {authority_iri} lacks madsrdf:CorporateName in @type {sorted(node_types)!r}"
         )
@@ -546,14 +548,19 @@ def parse_lcnaf_external_links_statements(
     *,
     retained_subject_iris: frozenset[str] | None = None,
 ) -> tuple[tuple[lc.LcExternalLinkAssertion, ...], Mapping[str, tuple[lc.LcExternalEndpointLabel, ...]]]:
-    """Parse ``http://id.loc.gov/authorities/names/`` links from ``external_links.nt`` bytes without full-file materialization.
+    """Parse ``http://id.loc.gov/authorities/names/`` links from ``external_links.nt`` bytes in bounded ``O(retained)`` memory.
 
-    Accepts a reopenable zero-argument line-stream factory (used for 1.85 GB ZIP
-    archives), any re-iterable ``Iterable[bytes]`` (such as a ``Sequence[bytes]``),
-    or a single-pass ``Iterator[bytes]`` (for which non-matching assertion lines
-    are discarded immediately and pass 2 is skipped altogether when no assertions
-    match).
+    Requires a reopenable zero-argument line-stream factory (such as
+    ``lambda: archive.open(...)``) or a re-iterable ``Iterable[bytes]``
+    container. Refuses single-pass ``Iterator[bytes]`` inputs so callers never
+    buffer millions of unrelated literal lines from the 1.85 GB stream in RAM.
     """
+
+    if isinstance(lines, Iterator):
+        raise TypeError(
+            "parse_lcnaf_external_links_statements requires a re-iterable container or zero-argument "
+            "stream factory for bounded-memory two-pass scanning; got a single-pass Iterator"
+        )
 
     if callable(lines):
         assertions = _scan_lcnaf_assertions(lines(), retained_subject_iris=retained_subject_iris)
@@ -563,42 +570,11 @@ def parse_lcnaf_external_links_statements(
         labels = lc._scan_endpoint_labels(lines(), target_vocabularies=target_vocabularies)
         return assertions, MappingProxyType(dict(labels))
 
-    if not isinstance(lines, Iterator):
-        assertions = _scan_lcnaf_assertions(lines, retained_subject_iris=retained_subject_iris)
-        if not assertions:
-            return (), MappingProxyType({})
-        target_vocabularies = {row.object_iri: row.target_vocabulary for row in assertions}
-        labels = lc._scan_endpoint_labels(lines, target_vocabularies=target_vocabularies)
-        return assertions, MappingProxyType(dict(labels))
-
-    # Single-pass iterator fallback: never retain id.loc.gov assertion lines; buffer only non-LC literal lines with line numbers if needed.
-    buffered_label_lines: list[tuple[int, bytes]] = []
-    keep_literals = retained_subject_iris is None or len(retained_subject_iris) > 0
-    lc_iri_prefix = b"<http://id.loc.gov/"
-
-    def _tee_non_lc_literals() -> Iterator[bytes]:
-        for idx, raw_line in enumerate(lines, start=1):
-            if not isinstance(raw_line, bytes):
-                raise TypeError("LC external-links statements must be bytes")
-            if keep_literals and not raw_line.startswith(lc_iri_prefix) and b'"' in raw_line:
-                buffered_label_lines.append((idx, raw_line))
-            yield raw_line
-
-    assertions = _scan_lcnaf_assertions(_tee_non_lc_literals(), retained_subject_iris=retained_subject_iris)
+    assertions = _scan_lcnaf_assertions(lines, retained_subject_iris=retained_subject_iris)
     if not assertions:
         return (), MappingProxyType({})
     target_vocabularies = {row.object_iri: row.target_vocabulary for row in assertions}
-
-    def _sparse_indexed_stream() -> Iterator[bytes]:
-        cursor = 1
-        for orig_idx, raw_line in buffered_label_lines:
-            while cursor < orig_idx:
-                yield b""
-                cursor += 1
-            yield raw_line
-            cursor += 1
-
-    labels = lc._scan_endpoint_labels(_sparse_indexed_stream(), target_vocabularies=target_vocabularies)
+    labels = lc._scan_endpoint_labels(lines, target_vocabularies=target_vocabularies)
     return assertions, MappingProxyType(dict(labels))
 
 

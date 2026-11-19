@@ -94,10 +94,13 @@ def test_pinned_lcnaf_alignment_manifest_marc110_immutability_and_crosswalk_pari
     assert by_key["HIST_HEW"].marc_key == "1101 $aUnited States.$bDepartment of Health, Education, and Welfare"
     assert by_key["HIST_AEC"].marc_key == "1102 $aU.S. Atomic Energy Commission"
 
-    # Verify pinned false-friend IDs in raw manifest rows
+    # Verify all 5 pinned false-friend IDs cited in README match raw manifest rows verbatim
     raw_by_key = {r["key_id"]: r for r in doc["agencies"]}
     assert str(raw_by_key["CMS"]["us_prefixed_top1_uri"]).endswith("/n2009184264")
     assert str(raw_by_key["EPA"]["bare_name_top1_uri"]).endswith("/no2025010917")
+    assert str(raw_by_key["SEC"]["bare_name_top1_uri"]).endswith("/no2001015215")
+    assert str(raw_by_key["OMB"]["bare_name_top1_uri"]).endswith("/n84065964")
+    assert str(raw_by_key["USDA"]["bare_name_top1_uri"]).endswith("/no2002077088")
 
 
 def test_lookup_verified_lcnaf_for_code_surfaces_independent_parent_collapse_and_defunct_flags() -> None:
@@ -198,12 +201,17 @@ def test_corporate_selector_requires_us_or_parent_jurisdiction_evidence() -> Non
     ]
     assert select_verified_lcnaf_hit(unqualified_epa, natural_name="Environmental Protection Agency") is None
 
-    # Explicitly named "Federal ..." statutory corporation (FDIC) IS accepted when no parent is supplied.
+    # Explicitly allowlisted statutory corporation (FDIC) passes, whereas other "Federal ..." names stripped of "United States." fail!
     fdic_hits = [
         {"aLabel": "Federal Deposit Insurance Corporation", "uri": "http://id.loc.gov/authorities/names/n81013186"}
     ]
     picked_fdic = select_verified_lcnaf_hit(fdic_hits, natural_name="Federal Deposit Insurance Corporation")
     assert picked_fdic is not None and picked_fdic["uri"].endswith("/n81013186")
+
+    stripped_ftc = [
+        {"aLabel": "Federal Trade Commission", "uri": "http://id.loc.gov/authorities/names/n79066322"}
+    ]
+    assert select_verified_lcnaf_hit(stripped_ftc, natural_name="Federal Trade Commission") is None
 
     # Foreign/state jurisdictions and CMS trap are refused; U.S.-qualified CMS and DOJ-subordinate EOIR succeed.
     epa_hits = [
@@ -281,12 +289,22 @@ def test_parse_lcnaf_madsrdf_graph_enforces_corporate_type_and_marc_110() -> Non
             BFLC_MARC_KEY: [{"@value": "1001 $aSmith, John,$d1900-1980"}],
         }
     ]
-    with pytest.raises(LcnafAlignmentError, match="non-corporate MARC 1XX"):
+    with pytest.raises(LcnafAlignmentError, match="lacks madsrdf:CorporateName in @type"):
         parse_lcnaf_madsrdf_graph(marc_100_without_type, expected_lccn="n78034868")
 
+    corp_without_type = [
+        {
+            "@id": iri,
+            lc.MADS_AUTHORITATIVE_LABEL: [{"@value": "United States. Department of Defense"}],
+            BFLC_MARC_KEY: [{"@value": "1101 $aUnited States.$bDepartment of Defense"}],
+        }
+    ]
+    with pytest.raises(LcnafAlignmentError, match="lacks madsrdf:CorporateName in @type"):
+        parse_lcnaf_madsrdf_graph(corp_without_type, expected_lccn="n78034868")
 
-def test_parse_lcnaf_external_links_streams_factory_sequence_and_iterator_identically() -> None:
-    """Factory, sequence, and single-pass iterator produce identical assertions and 1-based line numbers."""
+
+def test_parse_lcnaf_external_links_streams_factory_and_sequence_and_refuses_single_pass_iterator() -> None:
+    """Factory and re-iterable sequence stream in O(retained) memory; single-pass Iterator is refused."""
 
     epa = "http://id.loc.gov/authorities/names/n79079597"
     wd = "http://www.wikidata.org/entity/Q460173"
@@ -301,8 +319,7 @@ def test_parse_lcnaf_external_links_streams_factory_sequence_and_iterator_identi
 
     from_seq = parse_lcnaf_external_links_statements(lines)
     from_factory = parse_lcnaf_external_links_statements(lambda: iter(lines))
-    from_iter = parse_lcnaf_external_links_statements(iter(lines))
-    assert from_seq == from_factory == from_iter
+    assert from_seq == from_factory
 
     assertions, labels = from_factory
     assert len(assertions) == 2
@@ -311,7 +328,8 @@ def test_parse_lcnaf_external_links_streams_factory_sequence_and_iterator_identi
     assert labels[fast][0].line_number == 5
     assert labels[wd][0].determined_language == "en"
 
-    assert parse_lcnaf_external_links_statements(iter(lines), retained_subject_iris=frozenset()) == ((), {})
+    with pytest.raises(TypeError, match="single-pass Iterator"):
+        parse_lcnaf_external_links_statements(iter(lines))
 
 
 def test_polite_loc_client_validates_expect_kind_and_stops_before_reading_blocked_body() -> None:
@@ -328,6 +346,39 @@ def test_polite_loc_client_validates_expect_kind_and_stops_before_reading_blocke
 
     with pytest.raises(plc.LocClientError, match="missing fo=json"):
         client._validate_url("https://www.loc.gov/collections/united-states-statutes-at-large/", expect_kind="json")
+
+    # Cache-hit payload validator must reject JSON bytes when expect_kind="pdf"
+    with pytest.raises(plc.LocClientError, match="lacks %PDF- magic bytes"):
+        client._validate_payload_bytes(
+            b'[{"@id": "http://id.loc.gov/authorities/names/n79021946"}]',
+            current_url="https://id.loc.gov/authorities/names/n79021946.madsrdf.json",
+            current_host="id.loc.gov",
+            ctype="application/json",
+            expect_kind="pdf",
+        )
+
+    # Fake-clock check: _paced_single_get updates post-request timestamp so a slow/paused first request
+    # never permits a second request to start 0s after the first finishes!
+    clock = [1000.0]
+    request_starts: list[float] = []
+    orig_time, orig_sleep = plc.time.time, plc.time.sleep
+    try:
+        plc.time.time = lambda: clock[0]
+        plc.time.sleep = lambda dt: clock.__setitem__(0, clock[0] + dt)
+        paced_client = plc.PoliteLocClient()
+
+        def _slow_get(_url: str, _hdrs: dict[str, str], _timeout: float) -> tuple[int, dict[str, str], dict[str, str], bytes]:
+            clock[0] += 3.0  # Simulate 3s pause/transfer before actual wire completion
+            request_starts.append(clock[0])
+            return 200, {"Content-Type": "application/json"}, {"content-type": "application/json"}, b"{}"
+
+        paced_client._single_get = _slow_get  # type: ignore[method-assign]
+        paced_client._paced_single_get("id.loc.gov", "https://id.loc.gov/a", {}, 10.0)
+        paced_client._paced_single_get("id.loc.gov", "https://id.loc.gov/b", {}, 10.0)
+        assert request_starts[1] - request_starts[0] >= 2.2
+    finally:
+        plc.time.time = orig_time
+        plc.time.sleep = orig_sleep
 
     class _FakeResponse:
         def __init__(self, status: int, headers: dict[str, str]) -> None:

@@ -104,7 +104,62 @@ class PoliteLocClient:
                 raise LocClientError(f"www.loc.gov only allowed for json, got {expect_kind!r}: {url}")
         return host
 
-    def _pace(self, host: str) -> None:
+    @staticmethod
+    def _validate_payload_bytes(
+        raw: bytes,
+        *,
+        current_url: str,
+        current_host: str,
+        ctype: str,
+        expect_kind: str,
+    ) -> None:
+        if expect_kind == "json":
+            try:
+                parsed = json.loads(raw.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                raise LocClientError(f"Invalid UTF-8 JSON from {current_url} (Content-Type {ctype!r}): {exc}") from exc
+            if (
+                current_host == "www.loc.gov"
+                and "/collections/" in current_url
+                and (not isinstance(parsed, dict) or not isinstance(parsed.get("results"), list))
+            ):
+                raise LocClientError(f"LoC collection payload missing list 'results' on {current_url}")
+        elif expect_kind == "pdf":
+            if not raw.startswith(b"%PDF-"):
+                raise LocClientError(f"Response lacks %PDF- magic bytes on {current_url} (Content-Type {ctype!r})")
+        elif expect_kind == "xml":
+            stripped = raw.lstrip()
+            if not (stripped.startswith(b"<?xml") or stripped.startswith(b"<alto")):
+                raise LocClientError(f"Response is not ALTO/XML on {current_url} (Content-Type {ctype!r})")
+        else:
+            raise LocClientError(f"Unsupported expect_kind {expect_kind!r}")
+
+    def _single_get(
+        self, url: str, headers: dict[str, str], timeout: float
+    ) -> tuple[int, dict[str, str], dict[str, str], bytes]:
+        req = urllib.request.Request(url, headers=headers, method="GET")
+        try:
+            with self._opener.open(req, timeout=timeout) as resp:
+                status = resp.status
+                resp_headers = dict(resp.headers.items())
+                lh = _check_headers_before_body_read(status, resp_headers, url)
+                if status != 200:
+                    return status, resp_headers, lh, b""
+                body = resp.read()
+                return status, resp_headers, lh, body
+        except urllib.error.HTTPError as err:
+            resp_headers = dict(err.headers.items()) if err.headers else {}
+            try:
+                lh = _check_headers_before_body_read(err.code, resp_headers, url)
+            finally:
+                err.close()
+            return err.code, resp_headers, lh, b""
+
+    def _paced_single_get(
+        self, host: str, url: str, headers: dict[str, str], timeout: float
+    ) -> tuple[int, dict[str, str], dict[str, str], bytes]:
+        """Hold the cross-process pacing lock across both the sleep window and request start/timestamp write."""
+
         min_gap = HOST_MIN_INTERVAL_SECONDS[host]
         if self.state_file is None:
             wall_now = time.time()
@@ -113,7 +168,10 @@ class PoliteLocClient:
             if wait > 0:
                 time.sleep(wait)
             self._last_request_by_host[host] = time.time()
-            return
+            try:
+                return self._single_get(url, headers, timeout)
+            finally:
+                self._last_request_by_host[host] = max(self._last_request_by_host.get(host, 0.0), time.time())
 
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
         lock_path = self.state_file.with_suffix(".lock")
@@ -139,29 +197,13 @@ class PoliteLocClient:
                     time.sleep(wait)
                 self._last_request_by_host[host] = time.time()
                 self._save_state()
+                try:
+                    return self._single_get(url, headers, timeout)
+                finally:
+                    self._last_request_by_host[host] = max(self._last_request_by_host.get(host, 0.0), time.time())
+                    self._save_state()
             finally:
                 fcntl.flock(lock_fp.fileno(), fcntl.LOCK_UN)
-
-    def _single_get(
-        self, url: str, headers: dict[str, str], timeout: float
-    ) -> tuple[int, dict[str, str], dict[str, str], bytes]:
-        req = urllib.request.Request(url, headers=headers, method="GET")
-        try:
-            with self._opener.open(req, timeout=timeout) as resp:
-                status = resp.status
-                resp_headers = dict(resp.headers.items())
-                lh = _check_headers_before_body_read(status, resp_headers, url)
-                if status != 200:
-                    return status, resp_headers, lh, b""
-                body = resp.read()
-                return status, resp_headers, lh, body
-        except urllib.error.HTTPError as err:
-            resp_headers = dict(err.headers.items()) if err.headers else {}
-            try:
-                lh = _check_headers_before_body_read(err.code, resp_headers, url)
-            finally:
-                err.close()
-            return err.code, resp_headers, lh, b""
 
     def fetch_cached(
         self,
@@ -188,6 +230,15 @@ class PoliteLocClient:
                 raise LocClientError(
                     f"Cached file URL mismatch for {cache_path}: meta={meta.get('requested_url')} vs {url}"
                 )
+            final_url = str(meta.get("final_url") or url)
+            final_host = (urlsplit(final_url).hostname or host).lower()
+            self._validate_payload_bytes(
+                raw,
+                current_url=final_url,
+                current_host=final_host,
+                ctype=str(meta.get("content_type") or "").lower(),
+                expect_kind=expect_kind,
+            )
             return raw, {**meta, "cached": True}
 
         accept = (
@@ -201,8 +252,7 @@ class PoliteLocClient:
         current_host = host
         hops = 0
         while True:
-            self._pace(current_host)
-            status, resp_headers, lh, raw = self._single_get(current_url, headers, timeout)
+            status, resp_headers, lh, raw = self._paced_single_get(current_host, current_url, headers, timeout)
             if status in {301, 302, 303, 307, 308}:
                 if hops >= max_redirects:
                     raise LocClientError(f"Too many redirects ({hops}) starting from {url}")
@@ -222,24 +272,13 @@ class PoliteLocClient:
             break
 
         ctype = lh.get("content-type", "").lower()
-        if expect_kind == "json":
-            try:
-                parsed = json.loads(raw.decode("utf-8"))
-            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-                raise LocClientError(f"Invalid UTF-8 JSON from {current_url} (Content-Type {ctype!r}): {exc}") from exc
-            if (
-                current_host == "www.loc.gov"
-                and "/collections/" in current_url
-                and (not isinstance(parsed, dict) or not isinstance(parsed.get("results"), list))
-            ):
-                raise LocClientError(f"LoC collection payload missing list 'results' on {current_url}")
-        elif expect_kind == "pdf":
-            if not raw.startswith(b"%PDF-"):
-                raise LocClientError(f"Response lacks %PDF- magic bytes on {current_url} (Content-Type {ctype!r})")
-        elif expect_kind == "xml":
-            stripped = raw.lstrip()
-            if not (stripped.startswith(b"<?xml") or stripped.startswith(b"<alto")):
-                raise LocClientError(f"Response is not ALTO/XML on {current_url} (Content-Type {ctype!r})")
+        self._validate_payload_bytes(
+            raw,
+            current_url=current_url,
+            current_host=current_host,
+            ctype=ctype,
+            expect_kind=expect_kind,
+        )
 
         sha = hashlib.sha256(raw).hexdigest()
         cache_path.parent.mkdir(parents=True, exist_ok=True)

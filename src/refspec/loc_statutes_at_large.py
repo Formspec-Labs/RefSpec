@@ -70,8 +70,8 @@ LLSL_CATALOG_SHA256 = "sha256:160b009b925adaa29fb93a2dfe8d43de56cf28727ddc5ec2ae
 LLSL_CATALOG_BYTE_LENGTH = 104_453
 
 LLSL_OCR_MANIFEST_FILENAME = "llsl-ocr-verification-manifest.json"
-LLSL_OCR_MANIFEST_SHA256 = "sha256:5f34b6f415997d926c5c71ba6456610cc73df981c1dcd2eb51b15f24295337c7"
-LLSL_OCR_MANIFEST_BYTE_LENGTH = 65_671
+LLSL_OCR_MANIFEST_SHA256 = "sha256:635e2377701e916c6ac738b9c0e165dd1ac2ecb15354816b030c3b968db15fc0"
+LLSL_OCR_MANIFEST_BYTE_LENGTH = 68_572
 
 MIN_PRE1951_VOLUME = 1
 MAX_PRE1951_VOLUME = 64
@@ -411,7 +411,25 @@ def resolve_statutes_volume(
         if primary:
             candidates = primary
     if congress is not None:
-        candidates = tuple(p for p in candidates if p.congress == congress)
+        c_start = 1789 + 2 * (congress - 1)
+        c_end = 1789 + 2 * congress
+        if effective_year is not None and not (c_start <= effective_year <= c_end):
+            candidates = ()
+        else:
+            candidates = tuple(
+                p
+                for p in candidates
+                if (
+                    p.congress == congress
+                    if p.congress is not None
+                    else (
+                        p.year_start is not None
+                        and p.year_end is not None
+                        and p.year_start <= c_end
+                        and c_start <= p.year_end
+                    )
+                )
+            )
     if effective_year is not None:
         candidates = tuple(
             p
@@ -587,7 +605,23 @@ def extract_llsl_pdf_ocr_layers(pdf_source: bytes | Path | PdfReader, page_numbe
     contents = page.get_contents()
     if contents is not None:
         stream = ContentStream(contents, reader)
-        uses_3tr = any(op == b"Tr" and bool(operands) and int(operands[0]) == 3 for operands, op in stream.operations)
+        tr_mode = 0
+        tr_stack: list[int] = []
+        text_render_modes: set[int] = set()
+        for operands, op in stream.operations:
+            if op == b"q":
+                tr_stack.append(tr_mode)
+            elif op == b"Q":
+                tr_mode = tr_stack.pop() if tr_stack else 0
+            elif op == b"Tr" and operands:
+                tr_mode = int(operands[0])
+            elif (
+                (op in {b"Tj", b"'"} and operands and str(operands[0]))
+                or (op == b'"' and len(operands) >= 3 and str(operands[2]))
+                or (op == b"TJ" and operands and any(not isinstance(x, (int, float)) and str(x) for x in operands[0]))
+            ):
+                text_render_modes.add(tr_mode)
+        uses_3tr = text_render_modes == {3}
 
     layer1_parts: list[str] = []
     layer2_parts: list[str] = []
@@ -671,15 +705,25 @@ def score_llsl_layer_citation(
     if statutes_at_large_page <= 0 or expected_chapter <= 0:
         raise LocStatutesError("statutes_at_large_page and expected_chapter must be positive integers")
 
-    folio_re = re.compile(
-        rf"(?<![$0-9.-])\b{statutes_at_large_page}\b(?!\s*S\s*TAT|\s*C\s*O\s*N\s*G)",
-        re.IGNORECASE,
-    )
     has_running_hdr = bool(re.search(r"C\s*O\s*N\s*G|S\s*TAT|S\s*ESS", header_text, re.IGNORECASE))
+    hdr_candidates: set[int] = set()
+    hdr_stripped = header_text.strip()
+    if hdr_stripped:
+        m_left = re.match(r"^(\d+)\b(?!\s*S\s*TAT|\s*(?:ST|ND|RD|TH|n|rH|zEf)\b)", hdr_stripped, re.IGNORECASE)
+        if m_left:
+            hdr_candidates.add(int(m_left.group(1)))
+        m_right = re.search(r"(?:1[789]\d\d\.?\s+)(\d+)\b(?:\s+[a-z]{1,4})?\s*$", hdr_stripped)
+        if m_right:
+            hdr_candidates.add(int(m_right.group(1)))
+
     if has_running_hdr:
-        folio_ok = bool(folio_re.search(header_text))
+        folio_ok = statutes_at_large_page in hdr_candidates
     else:
-        folio_ok = bool(folio_re.search(header_text) or folio_re.search(footer_text))
+        ftr_match = re.search(r"(?:^|\s)(\d+)\s*$", footer_text.strip())
+        ftr_folio = int(ftr_match.group(1)) if ftr_match is not None else None
+        folio_ok = (statutes_at_large_page in hdr_candidates) or (
+            ftr_folio == statutes_at_large_page and not (1789 <= statutes_at_large_page <= 1951)
+        )
 
     ch_str = str(expected_chapter)
     roman = int_to_roman(expected_chapter)
@@ -695,14 +739,15 @@ def score_llsl_layer_citation(
                 hdr_chapter_ok = True
 
     strict_head_re = re.compile(
-        rf"(?:\[\s*CHAPTER\s+{ch_str}\.?\s*\]|\b(?:CHAP|CHAPTER|CAP)\.\s*(?:{ch_str}|{roman})\b)",
+        rf"(?:\[\s*CHAPTER\s+{ch_str}\.?\s*\]|\b(?:CHAP|CHAPTER|CAP)\.\s*(?:{ch_str}\b|{roman}(?!\s*[IVXLCDM])\b))",
         re.IGNORECASE,
     )
-    # Tolerant heading allows spaced small-caps ('C HAP.', 'C ] HAP.', 'C RAP.') or closing-bracket ']' OCR'd as '1'/'4' before AN ACT.
+    # Tolerant heading allows spaced small-caps ('C HAP.', 'C ] HAP.', 'C RAP.') or closing-bracket ']' OCR'd as '1'/'4' before AN ACT,
+    # while requiring a whole-token Roman match (never matching 'X' inside 'X XX').
     tolerant_head_re = re.compile(
         rf"(?:\[\s*C\s*HAPTER\s+{ch_str}\.?\s*\]"
         rf"|\[\s*C\s*HAPTER\s+{ch_str}[14]\s*(?=AN\s+ACT|A\s+N\s+A\s+C\s+T|JOINT\s+RESOLUTION)"
-        rf"|\bC\s*(?:[\]\[]\s*)?(?:HAP|HAPTER|AP|RAP)\.\s*(?:{ch_str}|{roman_split})\b)",
+        rf"|\bC\s*(?:[\]\[]\s*)?(?:HAP|HAPTER|AP|RAP)\.\s*(?:{ch_str}\b|{roman_split}(?!\s*[IVXLCDM])\b))",
         re.IGNORECASE,
     )
 
@@ -729,11 +774,20 @@ def score_llsl_layer_citation(
         else:
             act_slice = ""
 
+        esc_sec = re.escape(expected_section)
+        # Case-sensitive heading match: requires capital 'S', heading-opening boundary, and trailing period after section number
+        # (rejecting inline cross-references such as "title 12, sec. 1756)" or "That section 6 of").
         sec_strict = bool(
-            re.search(rf"\b(?:SEC|SECTION)\.?\s*{re.escape(expected_section)}\b", act_slice, re.IGNORECASE)
+            re.search(
+                rf"(?:^|(?<=[.!?;:\]\"”])\s+|(?<=\([a-z0-9]\))\s+|(?<=[A-Z]{{2}}\s))S(?:EC\.|Ec\.|ec\.|ECTION\b)\s*{esc_sec}\.",
+                act_slice,
+            )
         )
         sec_tol = bool(
-            re.search(rf"\bS\s*EC(?:TION)?\.?\s*{re.escape(expected_section)}\b", act_slice, re.IGNORECASE)
+            re.search(
+                rf"(?:^|(?<=[.!?;:\]\"”])\s+|(?<=\([a-z0-9]\))\s+|(?<=[A-Z]{{2}}\s))S\s*(?:EC\.|Ec\.|ec\.|ECTION\b)\s*{esc_sec}\.",
+                act_slice,
+            )
         )
         full_strict = folio_ok and chap_strict and sec_strict
         full_norm = folio_ok and chap_tol and sec_tol
