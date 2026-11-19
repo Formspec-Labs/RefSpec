@@ -112,6 +112,7 @@ from refspec.registry.usc_disposition_tables import (
 # not-in-table / no-table-for-title, which is neither of the other two.
 from refspec.registry.usc_disposition_tables import VERDICTS as DISPOSITION_VERDICTS
 from refspec.registry.usc_section_oracle import (
+    AUDITED_MISLABELLED_APPENDIX_PAIRS,
     CANDIDATE_ONLY_RULES,
     CORRECTION_RULES,
     DISPOSITION_REASON,
@@ -4023,6 +4024,9 @@ def _judge_usc_sections(
     authorities: list[dict[str, object]],
     oracle: UscSectionOracle | None,
     act_numbering: _ActNumbering | None = None,
+    *,
+    references: list[dict[str, object]] | None = None,
+    cfr_notes: CfrAuthorityNotes | None = None,
 ) -> _UscSectionCensus:
     """Write the section verdict and its correction on every U.S.C. row.
 
@@ -4101,11 +4105,68 @@ def _judge_usc_sections(
     disposition_refusal_pairs: dict[str, set[tuple[int, str, bool]]] = {
         code: set() for code in _DISPOSITION_REFUSALS
     }
-    #: The rows the guard's row-local half accepted, held back until the loop
-    #: has written every sibling's verdict -- the record-wide half reads them.
-    guard_candidates: list[tuple[dict[str, object], tuple[int, str, bool], object]] = []
+    #: The rows the chapter guard's first pass accepted (either row-locally
+    #: qualified by ``ch`` or qualified under ``ch`` in a sibling edition of the
+    #: same RIN), held back until the loop has written every sibling's verdict.
+    guard_candidates: list[tuple[dict[str, object], tuple[int, str, bool], object, bool]] = []
     span_rows = abbreviated_span_rows = pinpoint_rows = pinpoint_resolved_rows = 0
     exists_not_at_edition = title_impossible = not_stated = 0
+
+    held_by_rule = _held_parts_by_rule(references or [], cfr_notes)
+    cfr_present_memo: dict[tuple[str, str, int, str], bool] = {}
+
+    def attested_in_own_cfr_note(row: Mapping[str, object], title_num: int, sec_norm: str) -> bool:
+        if row.get("authority_in_own_cfr_note") == "present":
+            return True
+        if cfr_notes is None:
+            return False
+        rin_key, pub_key = str(row.get("rin") or ""), str(row.get("publication_id") or "")
+        memo_key = (rin_key, pub_key, title_num, sec_norm)
+        cached = cfr_present_memo.get(memo_key)
+        if cached is not None:
+            return cached
+        parts = held_by_rule.get((rin_key, pub_key))
+        if not parts:
+            cfr_present_memo[memo_key] = False
+            return False
+        citation = usc_citation(title_num, sec_norm)
+        note_verdict = cfr_notes.judge(citation, parts) if citation is not None else None
+        is_present = note_verdict is not None and note_verdict.verdict == "present"
+        cfr_present_memo[memo_key] = is_present
+        return is_present
+
+    rin_qualified_chapters: dict[tuple[str, int], set[str]] = {}
+    if oracle is not None:
+        chapters_by_title: dict[int, list[str]] = {}
+        for ch_title, ch_token in oracle.chapters:
+            chapters_by_title.setdefault(ch_title, []).append(ch_token)
+        seen_ch_texts: set[tuple[str, int, str]] = set()
+        for other in authorities:
+            other_title = other.get("usc_title")
+            if other_title is None:
+                continue
+            t_int = int(other_title)
+            if t_int not in chapters_by_title:
+                continue
+            rin_str = str(other.get("rin") or "")
+            if other.get("authority_type") == "usc_chapter" and other.get("usc_chapter"):
+                ch_start = normalize_section(other["usc_chapter"])
+                if (t_int, ch_start) in oracle.chapters:
+                    rin_qualified_chapters.setdefault((rin_str, t_int), set()).add(ch_start)
+                if other.get("usc_chapter_end"):
+                    ch_end = normalize_section(other["usc_chapter_end"])
+                    if ch_start.isdigit() and ch_end.isdigit():
+                        lo_ch, hi_ch = int(ch_start), int(ch_end)
+                        for cand_ch in chapters_by_title[t_int]:
+                            if cand_ch.isdigit() and lo_ch <= int(cand_ch) <= hi_ch:
+                                rin_qualified_chapters.setdefault((rin_str, t_int), set()).add(cand_ch)
+            if not other.get("usc_appendix"):
+                raw_txt = str(other.get("authority_text") or "")
+                if "ch" in raw_txt.lower() and (rin_str, t_int, raw_txt) not in seen_ch_texts:
+                    seen_ch_texts.add((rin_str, t_int, raw_txt))
+                    for cand_ch in chapters_by_title[t_int]:
+                        if usc_token_is_chapter_qualified(raw_txt, cand_ch):
+                            rin_qualified_chapters.setdefault((rin_str, t_int), set()).add(cand_ch)
 
     def publish(row: dict[str, object], pair: tuple[int, str, bool], moved: object) -> None:
         """Write one table answer onto a row, and count it. ONE writer."""
@@ -4169,27 +4230,33 @@ def _judge_usc_sections(
             # title (e.g. Coast Guard `46 U.S.C. 701` = Ch. 701 Port Security,
             # `46 U.S.C. 51` = Ch. 51 Load Lines, `31 U.S.C. 75` = Ch. 75
             # Single Audit) is refused rather than mapped to a repealed
-            # pre-recodification section sharing that integer.
+            # pre-recodification section sharing that integer -- UNLESS the
+            # agency's own CFR authority note attests that exact U.S.C. section
+            # (e.g. Army `32 CFR 552` citing former `31 U.S.C. 71`, transferred
+            # to `31:3526` and `31:3702`).
             if (
                 verdict.verdict == "absent"
                 and not pair[2]
                 and (pair[0], pair[1]) in oracle.chapters
+                and not attested_in_own_cfr_note(row, pair[0], pair[1])
             ):
                 row["usc_disposition_refusal"] = CURRENT_CHAPTER_COLLISION_REFUSAL
                 disposition_refusal_rows[CURRENT_CHAPTER_COLLISION_REFUSAL] += 1
                 disposition_refusal_pairs[CURRENT_CHAPTER_COLLISION_REFUSAL].add(pair)
             # Guard 2 (outside title_49_appendix_not_published): a stated span
-            # whose far endpoint is a LIVE current-law section not listed as a
-            # former section (e.g. damaged `49 USC 2011 to 20113` for
+            # whose far endpoint is a LIVE current-release section not listed as
+            # a former section (e.g. damaged `49 USC 2011 to 20113` for
             # `20111 to 20113`) is refused rather than sweeping hundreds of
-            # unrelated pre-recodification sections.
+            # unrelated pre-recodification sections. Historical-only annual
+            # sections absent from the current release point (e.g. `10 USC 3078
+            # to 3081`, where § 3081 left Title 10 in 2018) are NOT refused.
             elif (
                 verdict.verdict == "absent"
                 and stated_span is not None
                 and oracle.dispositions is not None
                 and normalize_section(stated_span)
                 not in oracle.dispositions.former_sections(pair[0], appendix=pair[2])
-                and oracle.section_verdict(pair[0], stated_span, appendix=pair[2]).verdict == "exists"
+                and oracle.is_current_release_section(pair[0], stated_span, appendix=pair[2])
             ):
                 row["usc_disposition_refusal"] = SPAN_END_CURRENT_LAW_REFUSAL
                 disposition_refusal_rows[SPAN_END_CURRENT_LAW_REFUSAL] += 1
@@ -4203,8 +4270,13 @@ def _judge_usc_sections(
                     # The bare answer above is the memoised one the verdict
                     # carries; this asks the same table the citation's own fuller
                     # question. Same oracle, same memo, one key wider.
+                    eff_appendix = (
+                        False
+                        if pair[2] and (pair[0], pair[1]) in AUDITED_MISLABELLED_APPENDIX_PAIRS
+                        else pair[2]
+                    )
                     moved = oracle.disposition(
-                        pair[0], pair[1], appendix=pair[2], subsection=stated_pinpoint, section_end=stated_span
+                        pair[0], pair[1], appendix=eff_appendix, subsection=stated_pinpoint, section_end=stated_span
                     )
                 if verdict.reason != DISPOSITION_REASON and not moved.answered:
                     pass
@@ -4215,17 +4287,21 @@ def _judge_usc_sections(
                     if stated_pinpoint is not None:
                         pinpoint_rows += 1
                         pinpoint_resolved_rows += bool(moved.subsection_resolved)
-                    # The guard's row-local half: the citation writes "ch" over a list
-                    # and the token is a CURRENT chapter of the title, while the row's
-                    # own usc_appendix says the parser never read it as an appendix
-                    # citation. Held back -- the record-wide half needs verdicts this
-                    # loop has not written yet.
+                    # The guard's first half: the token is a CURRENT chapter of the
+                    # title, the parser never read it as an appendix citation, and
+                    # either THIS citation writes "ch" over the list OR a sibling
+                    # edition of the same RIN explicitly chapter-qualifies this token
+                    # (e.g. `2105-AD66` writing `49 USC ch 401, 411, and 417` and
+                    # `ch 447 and 451` in Spring 2013 / Spring 2014 while dropping
+                    # `ch` in Fall 2013).
+                    row_local_ch = usc_token_is_chapter_qualified(row["authority_text"], section)
+                    rin_history_ch = pair[1] in rin_qualified_chapters.get((str(row.get("rin") or ""), pair[0]), ())
                     if (
                         not pair[2]
                         and (pair[0], pair[1]) in oracle.chapters
-                        and usc_token_is_chapter_qualified(row["authority_text"], section)
+                        and (row_local_ch or rin_history_ch)
                     ):
-                        guard_candidates.append((row, pair, moved))
+                        guard_candidates.append((row, pair, moved, row_local_ch))
                     else:
                         publish(row, pair, moved)
 
@@ -4286,19 +4362,30 @@ def _judge_usc_sections(
     # would be a range typed from memory. The chapter register is pinned, and
     # a chapter that exists today is current law whichever subtitle holds it.
     if guard_candidates:
-        wanted = {(row["rin"], row["publication_id"], pair[0]) for row, pair, _ in guard_candidates}
-        cites_current_law: set[tuple[str, str, int]] = set()
+        wanted_rec = {(row["rin"], row["publication_id"], pair[0]) for row, pair, _, _ in guard_candidates}
+        wanted_rin = {(row["rin"], pair[0]) for row, pair, _, _ in guard_candidates}
+        cites_current_law_rec: set[tuple[str, str, int]] = set()
+        cites_current_law_rin: set[tuple[str, int]] = set()
         for other in authorities:
-            key = (other["rin"], other["publication_id"], other["usc_title"])
-            if key not in wanted:
+            rin_key = (other["rin"], other["usc_title"])
+            if rin_key not in wanted_rin:
                 continue
-            if other["usc_section_verdict"] == "exists" or (
+            is_current_witness = other["usc_section_verdict"] == "exists" or (
                 other["authority_type"] == "usc_chapter"
-                and (key[2], normalize_section(other["usc_chapter"])) in oracle.chapters
-            ):
-                cites_current_law.add(key)
-        for row, pair, moved in guard_candidates:
-            if (row["rin"], row["publication_id"], pair[0]) not in cites_current_law:
+                and (rin_key[1], normalize_section(other["usc_chapter"])) in oracle.chapters
+            )
+            if is_current_witness:
+                cites_current_law_rin.add(rin_key)
+                rec_key = (other["rin"], other["publication_id"], other["usc_title"])
+                if rec_key in wanted_rec:
+                    cites_current_law_rec.add(rec_key)
+        for row, pair, moved, row_local_ch in guard_candidates:
+            has_witness = (
+                (row["rin"], row["publication_id"], pair[0]) in cites_current_law_rec
+                if row_local_ch
+                else (row["rin"], pair[0]) in cites_current_law_rin
+            )
+            if not has_witness:
                 publish(row, pair, moved)
                 continue
             row["usc_disposition_refusal"] = CHAPTER_QUALIFIED_REFUSAL
@@ -9228,6 +9315,11 @@ def build_unified_agenda_parquet(
     # columns, so a flag written at emission would describe a citation the
     # published row no longer states.
     restating_rows = _judge_restatements(authorities)
+    # Loaded ONCE for the whole build: read by ``_judge_usc_sections`` (to
+    # distinguish CFR-note-attested former sections such as Army ``31 U.S.C. 71``
+    # from bare current-chapter collisions such as ``46 U.S.C. 701``) and then
+    # by the additive CFR-note, B8, and placeholder passes below.
+    cfr_notes_reader = _cfr_authority_notes(section_oracle)
     # And one writer for the section fence, in the same place and for the same
     # reason: corroboration mints U.S.C. readings of its own, and a fence
     # applied before them would leave those rows unjudged.
@@ -9240,6 +9332,8 @@ def build_unified_agenda_parquet(
         # section token itself". Built here rather than inside the fence so the
         # act index is opened once for the whole build.
         _ActNumbering.build(act_index, act_keys_by_rin, act_keys_by_agency),
+        references=references,
+        cfr_notes=cfr_notes_reader,
     )
     # And the cheap fence beside it, derived from this build's own rows.
     implausible_magnitudes = _judge_usc_section_magnitudes(authorities)
@@ -9262,7 +9356,6 @@ def build_unified_agenda_parquet(
     # SAYS, and corroboration, the sibling carry and the act resolver are all
     # able to change that. Additive -- it writes two columns of its own and
     # touches no other value.
-    cfr_notes_reader = _cfr_authority_notes(section_oracle)
     cfr_notes = _judge_against_cfr_notes(authorities, references, cfr_notes_reader)
     # And the U.S.C.-slot naming, additive and last for the same reason: it
     # only ever reads usc_title/usc_section/usc_section_verdict, never writes

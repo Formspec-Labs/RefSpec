@@ -24,14 +24,16 @@ Title 49a hold-out audit), leaving `RECODIFICATIONS_NOT_PINNED` empty (`{}`).
      (ch. 1205) and `10 U.S.C. 597 -> 12241` (ch. 1207). Instead, `USCODE-1996-title10.pdf`
      states every 1994 ROPMA disposition in two independent places that reconcile
      with **83 / 83** exact renumbering agreement (`1331a -> 12731a` and
-     `2233a -> 18233a` included) and **270 / 270** bidirectional pair-level
-     body-note agreement: Subtitles A–D (`pp. 14–1511`, bracketed `[§ X. Renumbered § 1xxxx]`
-     / `[§ ... Repealed. Pub. L. 103-337, div. A, title XVI ...]` stubs and
-     `Prior section(s)` notes, preserving all **39** `See section ... et seq.`
+     `2233a -> 18233a` included), **270 / 270** bidirectional section-pair
+     body-note agreement, and **58 / 58** exact non-successor status agreement
+     across all **39** `see-reference` and **19** `repealed` sections: Subtitles A–D
+     (`pp. 14–1511`, bracketed `[§ X. Renumbered § 1xxxx]` / `[§ ... Repealed. Pub. L. 103-337, div. A, title XVI ...]`
+     stubs and `Prior section(s)` notes, preserving all **39** `See section ... et seq.`
      onward pointers as `status="see-reference"` without manufacturing Cartesian
      subsection pairs) and Subtitle E (`pp. 1512–1647`, `§§ 10001–18505`
      `AMENDMENTS` and `PRIOR PROVISIONS` notes, including partial ROPMA transfers
-     out of surviving sections `175`, `517(b),(c)`, `1376(a)`, `1401(a)`, and `6389(f)`).
+     out of surviving sections `175`, `517(b),(c)`, `1376(a)`, `1401(a) (table formula 3)`,
+     and `6389(f)`).
 2. **Title 34 — Crime Control and Law Enforcement (`title-34-2017`)** — OLRC
    editorial reclassification under `2 U.S.C. 285b`, effective Sept. 1, 2017
    (cutoff after Pub. L. 115-31), extracted from `USCODE-2017-title34.pdf` pp. 1–9
@@ -52,20 +54,26 @@ Title 49a hold-out audit), leaving `RECODIFICATIONS_NOT_PINNED` empty (`{}`).
    Pub. L. 113-287, Dec. 19, 2014, 128 Stat. 3094 (deeming provision:
    Pub. L. 113-287, § 6(e)), extracted from `USCODE-2014-title54.pdf` pp. 2–9
    (former **Title 16** -> Title 54, plus cross-title transfers to Title 15).
-6. **Title 49 Pre-1994 Positive-Law Renumberings & Repeals (`title-49-1994-positivelaw`)**
+6. **Title 49 Pre-1994 Positive-Law Renumberings, Repeals & Note Transfers (`title-49-1994-positivelaw`)**
    — Pub. L. 103-272, July 5, 1994, 108 Stat. 745 (deeming provision:
-   Pub. L. 103-272, § 6(b)), extracted from `USCODE-1994-title49.pdf` body stubs,
-   Chapter 59 HRN tables (`pp. 159–161`), and statutory credits (`334 -> 45301`,
-   `335 -> repealed`, `501(a)(1),(4)–(9) -> 5901(1)–(7)`, nested `508`
-   subsections/note -> `5902..5907`, `3101..3104 -> 31501..31504`). Resolves
-   the sole genuine statutory hold-out among the 2,548
-   `title_49_appendix_not_published` Unified Agenda rows (`49 U.S.C. 3102 -> 31502`,
-   5 audited mislabelled `49 USC app 3102` rows), bringing bare-token table
-   coverage to **2,376 / 2,548** (note: this measures bare-token table coverage
-   prior to publication-time chapter-guard refusals; the remaining **26** tokens
-   / **172** rows are primary-source-verified non-statutory chapter numbers, CFR
-   parts, wrong titles, lost-parenthesis pinpoints, or typos in
-   `../usc-disposition-tables-2026-11-18/title49a-holdout-audit.{json,md}`).
+   Pub. L. 103-272, § 6(b); `covers_appendix=False`), extracted across all
+   `Pub. L. 103-272, § 1` Historical and Revision Notes tables, repeal stubs, and
+   statutory credits in `USCODE-1994-title49.pdf` whose former section is disjoint
+   from `../usc-disposition-tables-2026-08-23/usc-1994-title49-disposition.parquet`
+   (`334 -> 45301`, `335 -> repealed`, `501(a)(1),(4)–(9) -> 5901(1)–(7)`, nested
+   `508` subsections/note -> `5902..5907` preserving `(related to violations)` /
+   `(related to effective date)` on `508(a)(3)`, `3101..3104 -> 31501..31504`,
+   `10927 (note) -> 31138(a)–(e), 31139(a)–(g)` [pp. 539–540], and
+   `11506 (note) -> 31701..31708` [pp. 559–561]; Subtitle I note credits under live
+   `49:101`, `49:301`, and `49:308` are excluded so they never conflate with pre-1983
+   `101 / 301 / 308` entries already in `usc-1994-title49-disposition.parquet`).
+   Explicit `appendix=True` lookups stay gated out (`covers_appendix=False`), while
+   `UscSectionOracle` narrowly resolves the 5 audited mislabelled `49 USC app 3102`
+   Unified Agenda rows (`../usc-disposition-tables-2026-11-18/title49a-holdout-audit.{json,md}`),
+   bringing bare-token table coverage across the 2,548 `title_49_appendix_not_published`
+   Unified Agenda rows to **2,376 / 2,548** (the remaining **26** tokens / **172**
+   rows are primary-source-verified non-statutory chapter numbers, CFR parts, wrong
+   titles, lost-parenthesis pinpoints, or typos).
 
 ## Sources (verified by SHA-256 and byte length prior to extraction)
 
@@ -93,32 +101,32 @@ python3 scripts/crosscheck_disposition_tables.py --pdf-dir <cache> --self-test
 
 | file | sha256 | bytes | entries / rows |
 |---|---|---:|---:|
-| `usc-1996-title10-ropma-disposition.parquet` | `442e94ab766f901c76c6cbe8ad872f6d5b8eec7c0e1ff6c8d7ada0f6f415da56` | 9,143 | 359 entries / 371 rows |
-| `usc-1996-title10-ropma-disposition.txt` | `1688225bebe8a88112dcd156a3bc4d615d270fe927e14fb649e6be9038590018` | 23,523 | 359 entries |
+| `usc-1996-title10-ropma-disposition.parquet` | `aab15c53b2836e486fc81c0d0b9468a688909cf5cd34f858ec69f54b851947c9` | 9,177 | 359 entries / 371 rows |
+| `usc-1996-title10-ropma-disposition.txt` | `f99343a41879c3e2bae907a595564ff379b695f3a1ef79371c077082fbc7b00c` | 23,541 | 359 entries |
 | `usc-2017-title34-disposition.parquet` | `17e063ddd410d39c135e4d14550dceadc62707a811dc9e7bd2f63999014dd047` | 21,329 | 1,002 entries / 1,002 rows |
 | `usc-2017-title34-disposition.txt` | `faf1a8ae771bfd59d36f17f11b0d8a75640bf2b0d4c1eec6a13f774d95849c01` | 52,822 | 1,002 entries |
 | `usc-2011-title41-disposition.parquet` | `74d5ae44e60394d4d57538cdb7ae5bee124b92e766f279cb822353fd5cdb3986` | 9,695 | 320 entries / 549 rows |
 | `usc-2011-title41-disposition.txt` | `0e7b60a6c8dd0b6441391899eef5aa461bd4ce2e582e8dfcdaf9c1c9dd7bffd9` | 10,058 | 320 entries |
 | `usc-2010-title51-disposition.parquet` | `507bdd8da5dd9a1ff6b5f395193408e1f36120803637ee367ddfecc3792d7c0a` | 8,074 | 244 entries / 345 rows |
 | `usc-2010-title51-disposition.txt` | `fd4f112682511f5e06f0d3ee0ff8b2fe5b21c1a2f747879e62d02c25b6720b7d` | 6,649 | 244 entries |
-| `usc-2014-title54-disposition.parquet` | `a624b659570bdb0979fec5cea8ae6cbcc0ffb4b9c0dd4ec073a21aec4efe6360` | 17,061 | 493 entries / 626 rows |
+| `usc-2014-title54-disposition.parquet` | `49e79253f9240b75edd85afa3d8fe9b513e231e060434d4fea0d6bab3ac60034` | 17,061 | 493 entries / 626 rows |
 | `usc-2014-title54-disposition.txt` | `e2c1b9689b76ffe96f1c556e8b1c80389e9c6d2d5a1bcbc42d53ff7d89b59432` | 37,047 | 493 entries |
-| `usc-1994-title49-positivelaw-disposition.parquet` | `6de3a95b245505b6e79e8f7d92bc8c1e96130175e7f8aa94a09a632b7539da8c` | 4,324 | 29 entries / 29 rows |
-| `usc-1994-title49-positivelaw-disposition.txt` | `aab7879ca8412db80912a4854d1650b96e4df6e933454dec3f458f06b8bbb29c` | 1,787 | 29 entries |
-| `crosscheck-report.json` | `9e015e3715d801b6f064ce6ee89b52161f8d9982feab3ece04d6b4d57df45b8c` | 9,979 | 6 tables / 18 planted self-tests |
-| `scripts/extract_disposition_tables.py` | `97a51ff2baf55674bd5fc3ad8bec0d1e36b64c984ec11bacad978f544a1c1674` | 65,188 | — |
-| `scripts/crosscheck_disposition_tables.py` | `d59ef6a28f9ff31274f89d9bdfbc4bf03c092e4be874b562b5877e2196037c80` | 29,210 | — |
+| `usc-1994-title49-positivelaw-disposition.parquet` | `69213d46b2745a36f08928cbba56bc542f0a3df1ecbd9f7a762fa8b92fbfd2d7` | 4,624 | 49 entries / 49 rows |
+| `usc-1994-title49-positivelaw-disposition.txt` | `d72475d04c42c2c6d51c671f8af2bcae10b5c15f892336ffca9c66a341fbecd7` | 2,985 | 49 entries |
+| `crosscheck-report.json` | `594b35d952e4ffa96e3ec4f14e58ad3ae8de38bcf2986e71967895e0d41ca23e` | 10,592 | 6 tables / 20 planted self-tests |
+| `scripts/extract_disposition_tables.py` | `d7ff44111dd46d1a6bc3109a34ff2855cd01f05c3bc2b1e8b8327a78c2ea9fe8` | 67,507 | — |
+| `scripts/crosscheck_disposition_tables.py` | `6cc290dce43e5c4fcbe6f1ada2a5f28c3504a05c2e8a78e597a3a98530571faa` | 39,638 | — |
 
-## Counts & pair-level body cross-checks (`crosscheck-report.json`)
+## Counts & body cross-checks (`crosscheck-report.json`)
 
-| table | former titles | entries | rows | distinct former | statuses (`restated` / `note` / `repealed` / `eliminated` / `see`) | body-note pair match |
+| table | former titles | entries | rows | distinct former | statuses (`restated` / `note` / `repealed` / `eliminated` / `see`) | body-note cross-check scope |
 |---|---|---:|---:|---:|---|---:|
-| `title-10-1994` | `10` | 359 | 371 | 300 | `313 / 0 / 19 / 0 / 39` | `270 / 270` (100.0%, two-way) |
-| `title-34-2017` | `42` (942), `18` (31), `28` (29) | 1,002 | 1,002 | 711 | `697 / 253 / 0 / 52 / 0` | `651 / 653` (+ 2 OLRC print typos, two-way) |
-| `title-41-2011` | `41` | 320 | 549 | 344 | `351 / 2 / 194 / 2 / 0` | `275 / 276` (+ 1 OLRC HRN divergence, two-way) |
-| `title-51-2010` | `42` (297), `15` (48) | 244 | 345 | 246 | `251 / 25 / 27 / 42 / 0` | `206 / 206` (100.0%, two-way) |
-| `title-54-2014` | `16` | 493 | 626 | 350 | `486 / 0 / 107 / 0 / 33` | `361 / 362` (+ 1 OLRC print typo, two-way) |
-| `title-49-1994-positivelaw` | `49` | 29 | 29 | 8 | `28 / 0 / 1 / 0 / 0` | `12 / 12` (100.0%, two-way + exact pinpoints) |
+| `title-10-1994` | `10` | 359 | 371 | 300 | `313 / 0 / 19 / 0 / 39` | `270 / 270` section-pairs (two-way) + exact `58 / 58` non-successor statuses |
+| `title-34-2017` | `42` (942), `18` (31), `28` (29) | 1,002 | 1,002 | 711 | `697 / 253 / 0 / 52 / 0` | `651 / 653` section-pairs (+ 2 OLRC print typos, two-way) |
+| `title-41-2011` | `41` | 320 | 549 | 344 | `351 / 2 / 194 / 2 / 0` | `275 / 276` section-pairs (+ 1 OLRC HRN divergence, two-way) |
+| `title-51-2010` | `42` (297), `15` (48) | 244 | 345 | 246 | `251 / 25 / 27 / 42 / 0` | `206 / 206` section-pairs (100.0%, two-way) |
+| `title-54-2014` | `16` | 493 | 626 | 350 | `486 / 0 / 107 / 0 / 33` | `361 / 362` section-pairs (+ 1 OLRC print typo, two-way) |
+| `title-49-1994-positivelaw` | `49` | 49 | 49 | 10 | `48 / 0 / 1 / 0 / 0` | `22 / 22` section-pairs (two-way) + exact `49 / 49` row/pinpoint/note equality |
 
 ### Verified OLRC front-matter print typos / divergences (pinned two-way in `crosscheck_disposition_tables.py` and surfaced on `Disposition.caveats`)
 

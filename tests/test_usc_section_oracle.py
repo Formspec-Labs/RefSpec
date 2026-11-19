@@ -3263,3 +3263,23 @@ def test_enacted_oracle_and_lexical_proposed_classifier_compose_without_mutating
     assert is_proposed_usc_section(41, "8302A", bill_prose) is True
     assert is_proposed_usc_section(41, "8302", bill_prose) is False
 
+
+def test_positive_law_appendix_gating_and_current_release_predicate() -> None:
+    """Explicit ``appendix=True`` stays gated out of ``title-49-1994-positivelaw`` except audited ``49 USC app 3102``."""
+
+    known = oracle()
+    assert known.disposition(49, "335", appendix=True).verdict == "not-in-table"
+    assert known.disposition(49, "508", appendix=True, subsection="d").verdict == "not-in-table"
+    assert known.disposition(49, "3102", appendix=True).verdict == "not-in-table"
+    assert known.section_verdict(49, "335", appendix=True).disposition.verdict == "not-in-table"
+    assert known.section_verdict(49, "508", appendix=True).disposition.verdict == "not-in-table"
+    audited = known.section_verdict(49, "3102", appendix=True).disposition
+    assert audited.verdict == "exists-as-recodified"
+    assert [(s.title, s.section) for s in audited.successors] == [(49, "31502")]
+
+    # Current-release predicate distinguishes live sections (`49:20113`) from historical-only annuals (`10:3081`) and stubs (`49:335`).
+    assert known.is_current_release_section(49, "20113") is True
+    assert known.is_current_release_section(10, "3081") is False
+    assert known.is_current_release_section(49, "335") is False
+
+

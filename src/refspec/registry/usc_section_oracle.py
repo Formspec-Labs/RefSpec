@@ -464,6 +464,15 @@ DISPOSITION_REASONS = (
     "appendix_title_not_published",
 )
 
+#: Audited ``(title, section)`` pairs where filers wrote ``App.`` on a positive-law
+#: main-body section that never existed in the Appendix (``49 USC app 3102``: 5
+#: Unified Agenda rows citing former positive-law ``49 U.S.C. 3102``, Motor Carrier
+#: safety requirements renumbered ``49 U.S.C. 31502`` by Pub. L. 103-272; see
+#: ``research/evidence/usc-disposition-tables-2026-11-18/title49a-holdout-audit.md``).
+#: Kept strictly narrow so ``title-49-1994-positivelaw`` keeps ``covers_appendix=False``
+#: and explicit ``49 App. 335`` / ``49 App. 508(d)`` queries return ``not-in-table``.
+AUDITED_MISLABELLED_APPENDIX_PAIRS: frozenset[tuple[int, str]] = frozenset({(49, "3102")})
+
 #: What an ``absent`` verdict does NOT exclude, attached to every one of them.
 #: See the module docstring: 18 U.S.C. 3568 is the specimen.
 ABSENT_CAVEATS = ("repealed_before_1994_not_stubbed",)
@@ -1329,7 +1338,14 @@ class UscSectionOracle:
 
         def attached_disposition(name: str, reason: str | None) -> Disposition | None:
             if reason == DISPOSITION_REASON:
-                return self.disposition(title, section, appendix=appendix)
+                candidate = self.disposition(title, section, appendix=appendix)
+                if (
+                    appendix
+                    and (candidate is None or not candidate.answered)
+                    and (title, section) in AUDITED_MISLABELLED_APPENDIX_PAIRS
+                ):
+                    return self.disposition(title, section, appendix=False)
+                return candidate
             if name == "absent" or reason in DISPOSITION_REASONS:
                 candidate = self.disposition(title, section, appendix=appendix)
                 return candidate if candidate is not None and candidate.answered else None
@@ -1369,6 +1385,16 @@ class UscSectionOracle:
         if self.c9_title_49_pre_1996(title, section):
             return verdict_of("unknown", "title_49_appendix_not_published")
         return verdict_of("absent")
+
+    def is_current_release_section(self, title: int, section: str, *, appendix: bool = False) -> bool:
+        """Whether ``(title, section)`` is a live ``current`` section in the current OLRC release point."""
+
+        if appendix:
+            return False
+        norm = normalize_section(section)
+        if "current" in self.release_point_sections.get((title, norm), ()):
+            return True
+        return self._in_release_point_range(title, _section_key(norm))
 
     def subsection_verdict(self, title: int, section: str, sub: str) -> SubsectionVerdict:
         """Whether a section carries a lettered subsection — or whether we can know.
@@ -1842,6 +1868,12 @@ class UscSectionOracle:
         """Attach a pinned disposition to a miss class when a recodification table answers for the pair."""
 
         answer = self.disposition(title, section, appendix=appendix)
+        if (
+            appendix
+            and (answer is None or not answer.answered)
+            and (title, section) in AUDITED_MISLABELLED_APPENDIX_PAIRS
+        ):
+            answer = self.disposition(title, section, appendix=False)
         if answer is None:
             return miss
         if answer.answered or (title == 49 and appendix):

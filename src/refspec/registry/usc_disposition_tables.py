@@ -233,7 +233,7 @@ RECODIFICATIONS = (
         name="title-10-1994",
         former_title=10,
         table="usc-1996-title10-ropma-disposition.parquet",
-        digest="sha256:442e94ab766f901c76c6cbe8ad872f6d5b8eec7c0e1ff6c8d7ada0f6f415da56",
+        digest="sha256:aab15c53b2836e486fc81c0d0b9468a688909cf5cd34f858ec69f54b851947c9",
         enacted_by=(
             "Pub. L. 103-337, div. A, title XVI, Oct. 5, 1994, 108 Stat. 2924; "
             "Pub. L. 104-106, div. A, title XV, § 1501(c)(26), Feb. 10, 1996, 110 Stat. 499"
@@ -337,7 +337,7 @@ RECODIFICATIONS = (
         name="title-49-1994-positivelaw",
         former_title=49,
         table="usc-1994-title49-positivelaw-disposition.parquet",
-        digest="sha256:6de3a95b245505b6e79e8f7d92bc8c1e96130175e7f8aa94a09a632b7539da8c",
+        digest="sha256:69213d46b2745a36f08928cbba56bc542f0a3df1ecbd9f7a762fa8b92fbfd2d7",
         enacted_by="Pub. L. 103-272, §§ 1(c), (d), (e), 4(j)(9)(A), (11)(B), July 5, 1994, 108 Stat. 745, 1367, 1368",
         deeming_provision="Pub. L. 103-272, § 6(b)",
         source_url="https://www.govinfo.gov/content/pkg/USCODE-1994-title49/pdf/USCODE-1994-title49.pdf",
@@ -347,7 +347,7 @@ RECODIFICATIONS = (
         source_fetched="2026-08-23",
         source_local_path=f"{USC_DISPOSITION_TABLES_ARTIFACT}/USCODE-1994-title49.pdf",
         enacted_title=49,
-        covers_appendix=True,
+        covers_appendix=False,
     ),
     Recodification(
         name="title-51-2010",
@@ -369,7 +369,7 @@ RECODIFICATIONS = (
         name="title-54-2014",
         former_title=16,
         table="usc-2014-title54-disposition.parquet",
-        digest="sha256:a624b659570bdb0979fec5cea8ae6cbcc0ffb4b9c0dd4ec073a21aec4efe6360",
+        digest="sha256:49e79253f9240b75edd85afa3d8fe9b513e231e060434d4fea0d6bab3ac60034",
         enacted_by="Pub. L. 113-287, § 3, Dec. 19, 2014, 128 Stat. 3094",
         deeming_provision="Pub. L. 113-287, § 6(e)",
         source_url="https://www.govinfo.gov/content/pkg/USCODE-2014-title54/pdf/USCODE-2014-title54.pdf",
@@ -428,6 +428,7 @@ KNOWN_PRINT_DISCREPANCIES: Mapping[tuple[int, str], tuple[str, ...]] = {
     (42, "13136f"): ("olrc_front_matter_print_typo:printed_42:13136f_body_codification_42:14136f",),
     (42, "14136f"): ("olrc_front_matter_print_typo:printed_as_42:13136f_body_codification_34:40728",),
     (42, "3797ee-1"): ("olrc_front_matter_print_typo:printed_34:16902_body_codification_34:10692",),
+    (41, "46"): ("olrc_hrn_divergence:printed_41:8502_body_hrn_also_cites_41:8501(2)",),
     (16, "458a"): ("olrc_front_matter_print_typo:printed_54:104908_body_hrn_54:104905",),
 }
 _KNOWN_PRINT_DISCREPANCY_CAVEATS = frozenset(
@@ -450,13 +451,27 @@ _GROUP = re.compile(r"\(([0-9A-Za-z]{1,4})\)")
 #: ``test_the_span_order_is_the_oracles_over_every_former_section`` runs both
 #: over every former section the pinned tables list and holds the copy true.
 #: Letter suffixes order length-first (``19d..19g`` before ``19aa..19gg``),
-#: matching U.S. Code bijective letter numbering.
+#: matching U.S. Code bijective letter numbering, and hyphenated numeric tails
+#: order numerically (``1a-9`` before ``1a-10``).
 _SECTION_KEY = re.compile(r"^(\d+)([a-z]*)(.*)$")
+_TAIL_PART = re.compile(r"(\d+|[a-z]+|[^0-9a-z]+)")
 
 
-def _section_order(section: str) -> tuple[int, int, str, str] | None:
+def _tail_order(tail: str) -> tuple[tuple[int, int, str], ...]:
+    parts: list[tuple[int, int, str]] = []
+    for part in _TAIL_PART.findall(tail):
+        if part.isdigit():
+            parts.append((1, int(part), ""))
+        elif part.isalpha():
+            parts.append((2, len(part), part))
+        else:
+            parts.append((0, 0, part))
+    return tuple(parts)
+
+
+def _section_order(section: str) -> tuple[int, int, str, tuple[tuple[int, int, str], ...]] | None:
     match = _SECTION_KEY.match(section)
-    return (int(match.group(1)), len(match.group(2)), match.group(2), match.group(3)) if match else None
+    return (int(match.group(1)), len(match.group(2)), match.group(2), _tail_order(match.group(3))) if match else None
 
 
 def normalize_section(value: object) -> str:
@@ -917,6 +932,12 @@ def _verdict_over(matched: tuple[DispositionRow, ...]) -> str:
     return "stated-without-successor"
 
 
+_INTRODUCTORY_MATTER = re.compile(
+    r"\((?:matter|words|provisions?|text)\s+(?:before|preceding)\b",
+    re.IGNORECASE,
+)
+
+
 def _row_covers(row: DispositionRow, wanted: tuple[str, ...]) -> bool:
     """Whether a printed row speaks for the queried subsection.
 
@@ -929,18 +950,19 @@ def _row_covers(row: DispositionRow, wanted: tuple[str, ...]) -> bool:
     span's members are not enumerable without inventing them, and the printed
     text says so.
 
-    A **note** row is the exception to the whole-section rule: ``1374 note →
-    41706`` and ``1421 notes → 44716, 44717, 44722`` dispose of the notes under
-    a section, not of any subsection of it, so they answer a question about the
-    section and not one about ``1374(c)``. Without that, the review's cleanest
-    row — ``1374(c)`` → 41705, one successor — would come back with two.
+    Two exceptions narrow ``former_subsection is None``:
+    - A **note** row (``1374 note → 41706``, ``10927 (note) → 31138``) disposes
+      of statutory notes under the section, not any subsection of it.
+    - An **introductory-matter** row (``16 U.S.C. 1a-2 (matter before (a))``,
+      ``41:35 (matter before subsec. (a) ...)``) disposes strictly of chapeau
+      text preceding the first subsection, never of ``(a)`` or later subsections.
     """
 
     if row.former_note is not None:
         return False
     printed = row.former_subsection
     if printed is None:
-        return True
+        return not bool(_INTRODUCTORY_MATTER.search(row.former_text))
     labels = tuple(g.lower() for g in _GROUP.findall(printed.split("-")[0]))
     if not labels:
         return False

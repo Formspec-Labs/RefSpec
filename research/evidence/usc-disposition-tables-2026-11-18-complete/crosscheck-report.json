@@ -103,9 +103,9 @@
     },
     {
       "table": "usc-1994-title49-positivelaw-disposition.parquet",
-      "parquet_restated_pairs": 12,
-      "body_note_pairs_extracted": 12,
-      "body_note_pairs_matched": 12,
+      "parquet_restated_pairs": 22,
+      "body_note_pairs_extracted": 22,
+      "body_note_pairs_matched": 22,
       "extra_on_covered_former_checked": true,
       "known_publisher_typos": []
     }
@@ -284,36 +284,48 @@
       "mutation": "replace_successor",
       "planted_victim": [
         49,
-        "3101",
+        "10927",
         49,
-        "31501"
+        "31138"
       ],
       "caught": true,
-      "error": "usc-1994-title49-positivelaw-disposition.parquet: pair-level mismatch! missing_from_parquet=[(49, '3101', 49, '31501')] (count=1), extra_on_"
+      "error": "usc-1994-title49-positivelaw-disposition.parquet: pair-level mismatch! missing_from_parquet=[(49, '10927', 49, '31138')] (count=1), extra_on"
     },
     {
       "table": "usc-1994-title49-positivelaw-disposition.parquet",
       "mutation": "extra_spurious_successor",
       "planted_victim": [
         49,
-        "3101",
+        "10927",
         49,
         "999999"
       ],
       "caught": true,
-      "error": "usc-1994-title49-positivelaw-disposition.parquet: pair-level mismatch! missing_from_parquet=[] (count=0), extra_on_covered_former=[(49, '310"
+      "error": "usc-1994-title49-positivelaw-disposition.parquet: pair-level mismatch! missing_from_parquet=[] (count=0), extra_on_covered_former=[(49, '109"
     },
     {
       "table": "usc-1994-title49-positivelaw-disposition.parquet",
       "mutation": "wrong_pinpoint",
       "caught": true,
-      "error": "usc-1994-title49-positivelaw-disposition.parquet: missing expected pinpoint rows: [(49, '508', '(d)', 49, '5903', '(b)', 'restated')]"
+      "error": "usc-1994-title49-positivelaw-disposition.parquet: pinpoint row mismatch! missing=[(49, '508', '(d)', None, 49, '5903', '(b)', 'restated')], "
+    },
+    {
+      "table": "usc-1994-title49-positivelaw-disposition.parquet",
+      "mutation": "extra_pinpoint_508d_5903a",
+      "caught": true,
+      "error": "usc-1994-title49-positivelaw-disposition.parquet: pinpoint row mismatch! missing=[], extra=[(49, '508', '(d)', None, 49, '5903', '(a)', 'res"
     },
     {
       "table": "usc-1994-title49-positivelaw-disposition.parquet",
       "mutation": "wrong_status",
       "caught": true,
       "error": "usc-1994-title49-positivelaw-disposition.parquet: status mismatch on (49, '335'): expected=['repealed'], observed=['eliminated']"
+    },
+    {
+      "table": "usc-1996-title10-ropma-disposition.parquet",
+      "mutation": "flip_3360_see_reference_to_repealed",
+      "caught": true,
+      "error": "usc-1996-title10-ropma-disposition.parquet: status mismatch on (10, '3360'): expected=['see-reference'], observed=['repealed']"
     }
   ]
 }

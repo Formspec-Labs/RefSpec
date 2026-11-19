@@ -58,6 +58,12 @@ SOURCE_PINS: dict[str, tuple[int, str]] = {
     ),
 }
 
+TITLE49_FRONT_PIN = (
+    "research/evidence/usc-disposition-tables-2026-08-23/usc-1994-title49-disposition.parquet",
+    37_672,
+    "sha256:8403212c0193b3361accf7ff4be238420634beb5aa5740d78b9960fef5b2aedd",
+)
+
 Pair = tuple[int, str, int, str]
 
 
@@ -110,7 +116,7 @@ def load_parquet_pairs(parquet_path: Path, *, include_notes: bool = True) -> set
 
 _HRN_TABLE_STOP = (
     r"(?:\n(?:In |The |Subsection |Subsections |Paragraph |Paragraphs |Clause |Subclause |Subparagraph "
-    r"|Section \d|This section |This chapter )|\n[A-Z][A-Z0-9 ,.'()-]{4,}\n|\Z)"
+    r"|Section \d|This section |This chapter |This amends )|\n[A-Z][A-Z0-9 ,.'()-]{4,}\n|\Z)"
 )
 
 
@@ -123,7 +129,7 @@ def extract_hrn_pairs_colon(pdf: Path, start_page: int, new_title: int, allowed_
         if not m_ns:
             continue
         new_sec = m_ns.group(1)
-        m_hrn = re.search(rf"HISTORICAL AND REVISION NOTES\n(.*?){_HRN_TABLE_STOP}", blk, re.S)
+        m_hrn = re.search(rf"HISTORICAL AND REVISION NOTES\n(.*?){_HRN_TABLE_STOP}", blk, re.DOTALL)
         if not m_hrn:
             continue
         hrn = re.sub(r"\s+", " ", m_hrn.group(1))
@@ -144,7 +150,7 @@ def extract_hrn_pairs_usc(pdf: Path, start_page: int, new_title: int, allowed_fo
         if not m_ns:
             continue
         new_sec = m_ns.group(1)
-        m_hrn = re.search(rf"HISTORICAL AND REVISION NOTES\n(.*?){_HRN_TABLE_STOP}", blk, re.S)
+        m_hrn = re.search(rf"HISTORICAL AND REVISION NOTES\n(.*?){_HRN_TABLE_STOP}", blk, re.DOTALL)
         if not m_hrn:
             continue
         hrn = re.sub(r"\s+", " ", m_hrn.group(1))
@@ -168,7 +174,7 @@ def extract_title34_codification_pairs(pdf: Path) -> set[Pair]:
         m_cod = re.search(
             r"CODIFICATION\n(.*?)(?:\nPRIOR PROVISIONS|\nAMENDMENTS|\nEFFECTIVE DATE|\nCHANGE OF NAME|\nTRANSFER OF FUNCTIONS|\Z)",
             blk,
-            re.S,
+            re.DOTALL,
         )
         if not m_cod:
             continue
@@ -221,8 +227,129 @@ def extract_title10_subtitle_e_pairs(pdf: Path) -> set[Pair]:
     return pairs
 
 
-def extract_title49_positivelaw_body_pairs(pdf: Path) -> set[Pair]:
+def _load_front_title49_former_sections(repo_root: Path) -> set[str]:
+    rel, exp_bytes, exp_sha = TITLE49_FRONT_PIN
+    p = repo_root / rel
+    data = p.read_bytes()
+    sha = "sha256:" + hashlib.sha256(data).hexdigest()
+    if len(data) != exp_bytes or sha != exp_sha:
+        raise SystemExit(f"Title 49 front-table pin mismatch on {p}: {len(data)} / {sha}")
+    return {str(s).strip().lower() for s in pq.read_table(p, columns=["former_section"])["former_section"].to_pylist()}
+
+
+def extract_title10_non_successor_statuses(pdf: Path) -> dict[tuple[int, str], set[str]]:
+    """Independently extract ALL Title 10 ROPMA `see-reference` and `repealed` section statuses from Subtitles A–D."""
+    full_body = read_body_raw(pdf, 14)
+    m_sub_e = re.search(r"(?m)^Subtitle E-Reserve Components\b", full_body)
+    if not m_sub_e:
+        raise SystemExit("Subtitle E heading not found in USCODE-1996-title10.pdf")
+    ad_text = full_body[: m_sub_e.start()]
+
+    paras: list[str] = []
+    buf: list[str] = []
+    in_b = False
+    for ln in ad_text.splitlines():
+        s = ln.strip()
+        if not s:
+            if buf and not in_b:
+                paras.append(" ".join(buf))
+                buf = []
+            continue
+        if (
+            not in_b
+            and buf
+            and (
+                s.startswith("[§")
+                or re.match(r"^§\s*\d+[a-z]*\.", s)
+                or re.match(
+                    r"^(?:Section \d|Sections \d|Section, |A prior section |Prior sections? |CODIFICATION|PRIOR PROVISIONS|AMENDMENTS|EFFECTIVE DATE|HISTORICAL AND REVISION|CROSS REFERENCES|SECTION REFERRED|CHAPTER |SUBCHAPTER |PART )",
+                    s,
+                )
+            )
+        ):
+            paras.append(" ".join(buf))
+            buf = [s]
+        else:
+            buf.append(s)
+        joined = " ".join(buf)
+        in_b = ("[" in joined) and ("]" not in joined.split("[")[-1])
+    if buf:
+        paras.append(" ".join(buf))
+
+    def expand_list(spec: str) -> list[str]:
+        out: list[str] = []
+        for chunk in re.split(r",\s*(?:and\s+)?|\s+and\s+", spec.strip()):
+            c = chunk.strip()
+            if not c:
+                continue
+            mr = re.match(rf"^({_SEC})\s+to\s+({_SEC})$", c)
+            if mr:
+                out.extend(str(n) for n in range(int(mr.group(1)), int(mr.group(2)) + 1))
+            else:
+                out.append(c)
+        return out
+
+    statuses: dict[tuple[int, str], set[str]] = {}
+    i = 0
+    while i < len(paras):
+        txt = paras[i]
+        is_stub = txt.startswith("[§") and "Repealed" in txt and (
+            ("103-337" in txt and "title XVI" in txt)
+            or ("104-106" in txt and "§1501(c)(26)" in txt.replace(" ", ""))
+        )
+        is_prior_rep = txt.startswith("Prior sections ") and "were repealed by Pub. L. 103-337" in txt
+        if is_stub or is_prior_rep:
+            j = i + 1
+            while j < len(paras):
+                nt = paras[j]
+                if re.match(r"^(?:Section \d|Sections \d|Section, )", nt):
+                    if nt.startswith("Section, "):
+                        m1 = re.match(rf"^\[§\s*({_SEC})\.\s*Repealed", txt)
+                        assert m1 is not None
+                        secs = [m1.group(1)]
+                    elif nt.startswith("Sections "):
+                        mm = re.match(r"^Sections\s+(.*?),\s+(?:act|acts|added)\b", nt)
+                        assert mm is not None
+                        secs = expand_list(mm.group(1))
+                    else:
+                        ms = re.match(rf"^Section\s+({_SEC}),\s+", nt)
+                        assert ms is not None
+                        secs = [ms.group(1)]
+                    see_clauses = [m.group(1) for m in re.finditer(r"See sections?\s+(\d+[a-z]*(?:[^.]|\bet seq\.)*?)\s+of this title", nt)]
+                    has_concrete = any("et seq." not in sc for sc in see_clauses)
+                    has_et_seq = any("et seq." in sc for sc in see_clauses)
+                    if not has_concrete:
+                        st = "see-reference" if has_et_seq else "repealed"
+                        for s_old in secs:
+                            statuses[(10, s_old)] = {st}
+                    j += 1
+                elif re.match(r"^A prior section \d", nt) and "103-337" not in nt:
+                    j += 1
+                else:
+                    break
+            i = j
+            continue
+        if txt.startswith("A prior section ") and "prior to repeal by Pub. L. 103-337" in txt:
+            m_old = re.match(rf"^A prior section ({_SEC}),", txt)
+            assert m_old is not None
+            concrete = re.findall(r"\b1\d{4}[a-z]*\b", txt)
+            if not concrete:
+                statuses[(10, m_old.group(1))] = {"repealed"}
+        i += 1
+    sub_e_covered = {fs for _, fs, _, _ in extract_title10_subtitle_e_pairs(pdf)}
+    for fs in list(statuses):
+        if fs[1] in sub_e_covered:
+            del statuses[fs]
+    see_cnt = sum(1 for v in statuses.values() if v == {"see-reference"})
+    rep_cnt = sum(1 for v in statuses.values() if v == {"repealed"})
+    if see_cnt != 39 or rep_cnt != 19:
+        raise SystemExit(f"unexpected Title 10 non-successor status counts: see={see_cnt}, repealed={rep_cnt}")
+    return statuses
+
+
+def extract_title49_positivelaw_body_pairs(pdf: Path, repo_root: Path) -> set[Pair]:
     """Independently extract `(49, old_sec, 49, new_sec)` from statutory credits and HRN tables in Title 49."""
+    front_former = _load_front_title49_former_sections(repo_root)
     body = read_body_raw(pdf, 25)
     pairs: set[Pair] = set()
     for blk in re.split(r"(?m)^(?=§\d+[a-z]*\.)", body)[1:]:
@@ -236,50 +363,81 @@ def extract_title49_positivelaw_body_pairs(pdf: Path) -> set[Pair]:
             rf"Stat\.\s+\d+,\s*§\s*(\d+[a-z]*)\s*;.{{0,350}}?renumbered\s+§\s*{re.escape(new_sec)}(?:\s+and\s+amended)?,?\s+Pub\.\s*L\.\s*103-272",
             clean,
         )
-        if m_cred:
-            pairs.add((49, m_cred.group(1), 49, new_sec))
-        # HRN table rows ONLY (stopping before prose like `This chapter restates 49:508`)
+        if m_cred and m_cred.group(1).lower() not in front_former:
+            pairs.add((49, m_cred.group(1).lower(), 49, new_sec))
+        # HRN table rows ONLY (stopping before prose like `This chapter restates 49:508` or `This amends 49:47531`)
         if re.search(r"\((?:Added )?Pub\.\s*L\.\s*103-272,\s*§\s*1\b", clean):
-            m_hrn = re.search(rf"HISTORICAL AND REVISION NOTES\n(.*?){_HRN_TABLE_STOP}", blk, re.S)
+            m_hrn = re.search(rf"HISTORICAL AND REVISION NOTES\n(.*?){_HRN_TABLE_STOP}", blk, re.DOTALL)
             if m_hrn:
-                for m_src in re.finditer(r"(?<!App\.:)\b49:(334|501|508)\b", m_hrn.group(1)):
-                    pairs.add((49, m_src.group(1), 49, new_sec))
+                for m_src in re.finditer(r"\b49:(\d+[a-z]*)\b", m_hrn.group(1)):
+                    prefix = m_hrn.group(1)[max(0, m_src.start() - 10) : m_src.start()]
+                    if "App" in prefix:
+                        continue
+                    fsec = m_src.group(1).lower()
+                    if fsec not in front_former:
+                        pairs.add((49, fsec, 49, new_sec))
     return pairs
 
 
-PinpointRow = tuple[int, str, str | None, int | None, str | None, str | None, str]
+PinpointRow = tuple[int, str, str | None, str | None, int | None, str | None, str | None, str]
 
 
 def load_parquet_rows(parquet_path: Path) -> list[dict]:
     return pq.read_table(parquet_path).to_pylist()
 
 
-def extract_title49_positivelaw_body_pinpoints(pdf: Path) -> set[PinpointRow]:
-    """Independently extract exact Chapter 59 HRN pinpoint rows `(49, fsec, fsub, 49, nsec, nsub, 'restated')`."""
-    body = read_body_raw(pdf, 159)
+def extract_title49_positivelaw_body_pinpoints(pdf: Path, repo_root: Path) -> set[PinpointRow]:
+    """Independently extract ALL 49 positive-law Title 49 row tuples (HRN tables + repeal stub + renumberings)."""
+    front_former = _load_front_title49_former_sections(repo_root)
+    body = read_body_raw(pdf, 25)
     out: set[PinpointRow] = set()
-    for blk in re.split(r"(?m)^(?=§590\d\.)", body)[1:]:
-        m_ns = re.match(r"^§(590\d)\.", blk)
+    for m_stub in re.finditer(r"\[§§?([^\]]*?Repealed\.\s*Pub\.\s*L\.\s*103-272[^\]]*)\]", body, re.DOTALL):
+        hdr = re.sub(r"\s+", " ", m_stub.group(0)).strip()
+        tail = body[m_stub.end() : m_stub.end() + 1400]
+        if "334, 335" in hdr:
+            for sec in ("334", "335"):
+                mn = re.search(rf"Section {sec},.*?(?=\nSection |\n§|\Z)", tail, re.DOTALL)
+                if mn and "See section" not in mn.group(0):
+                    out.add((49, sec, None, None, None, None, None, "repealed"))
+    for blk in re.split(r"(?m)^(?=§\d+[a-z]*\.)", body)[1:]:
+        m_ns = re.match(r"^§(\d+[a-z]*)\.", blk)
         if not m_ns:
             continue
         new_sec = m_ns.group(1)
-        m_hrn = re.search(rf"HISTORICAL AND REVISION NOTES\n(.*?){_HRN_TABLE_STOP}", blk, re.S)
+        clean = re.sub(r"\s+", " ", blk)
+        m_cred = re.search(
+            rf"Stat\.\s+\d+,\s*§\s*(\d+[a-z]*)\s*;.{{0,350}}?renumbered\s+§\s*{re.escape(new_sec)}(?:\s+and\s+amended)?,?\s+Pub\.\s*L\.\s*103-272",
+            clean,
+        )
+        if m_cred and m_cred.group(1).lower() not in front_former:
+            out.add((49, m_cred.group(1).lower(), None, None, 49, new_sec, None, "restated"))
+        if not re.search(r"\((?:Added )?Pub\.\s*L\.\s*103-272,\s*§\s*1\b", clean):
+            continue
+        m_hrn = re.search(rf"HISTORICAL AND REVISION NOTES\n(.*?){_HRN_TABLE_STOP}", blk, re.DOTALL)
         if not m_hrn:
             continue
         cur_new_sub: str | None = None
         for ln in m_hrn.group(1).splitlines():
-            m_rev = re.match(rf"^{new_sec}((?:\([0-9a-zA-Z]+\))*)", ln.strip())
+            m_rev = re.match(rf"^{re.escape(new_sec)}((?:\([0-9a-zA-Z]+\))*)", ln.strip())
             if m_rev:
                 cur_new_sub = m_rev.group(1) or None
-            for m_src in re.finditer(r"\b49:(501|508)((?:\([0-9a-zA-Z]+\))*)(?:,\s*(\([0-9a-zA-Z]+\)))?", ln):
-                fsec = m_src.group(1)
+            for m_src in re.finditer(
+                r"\b49:(\d+[a-z]*)((?:\([0-9a-zA-Z]+\))*)(?:,\s*(\([0-9a-zA-Z]+\)))?(?:\s*\((note(?:\s+prec\.)?)\))?",
+                ln,
+            ):
+                prefix = ln[max(0, m_src.start() - 10) : m_src.start()]
+                if "App" in prefix:
+                    continue
+                fsec = m_src.group(1).lower()
+                if fsec in front_former:
+                    continue
                 fsub = m_src.group(2) or None
                 extra = m_src.group(3)
-                out.add((49, fsec, fsub, 49, new_sec, cur_new_sub, "restated"))
+                fnote = "note" if m_src.group(4) else None
+                out.add((49, fsec, fsub, fnote, 49, new_sec, cur_new_sub, "restated"))
                 if fsub and extra:
-                    # `(g)(2)(A), (B)` -> `(g)(2)(B)`
                     stem = fsub[: fsub.rfind("(")]
-                    out.add((49, fsec, stem + extra, 49, new_sec, cur_new_sub, "restated"))
+                    out.add((49, fsec, stem + extra, fnote, 49, new_sec, cur_new_sub, "restated"))
     return out
 
 
@@ -342,8 +500,10 @@ def verify_pinpoint_and_status_integrity(
     rows: list[dict],
     *,
     expected_pinpoints: set[PinpointRow] | None = None,
+    exact_pinpoints: bool = False,
     forbidden_pinpoints: set[PinpointRow] | None = None,
     expected_statuses: dict[tuple[int, str], set[str]] | None = None,
+    exact_non_successor_statuses: bool = False,
 ) -> None:
     """Verify row-level status invariants, exact pinpoint tuples, and non-successor statuses."""
     valid_statuses = {"restated", "restated-as-note", "repealed", "eliminated", "see-reference"}
@@ -364,6 +524,7 @@ def verify_pinpoint_and_status_integrity(
                 int(row["former_title"]),
                 str(row["former_section"]),
                 row["former_subsection"],
+                row["former_note"],
                 int(row["new_title"]) if row["new_title"] is not None else None,
                 str(row["new_section"]) if row["new_section"] is not None else None,
                 row["new_subsection"],
@@ -372,8 +533,9 @@ def verify_pinpoint_and_status_integrity(
         )
     if expected_pinpoints:
         missing_pp = sorted(expected_pinpoints - observed_pinpoints)
-        if missing_pp:
-            raise ValueError(f"{name}: missing expected pinpoint rows: {missing_pp[:10]}")
+        extra_pp = sorted(observed_pinpoints - expected_pinpoints) if exact_pinpoints else []
+        if missing_pp or extra_pp:
+            raise ValueError(f"{name}: pinpoint row mismatch! missing={missing_pp[:10]}, extra={extra_pp[:10]}")
     if forbidden_pinpoints:
         bad_pp = sorted(forbidden_pinpoints & observed_pinpoints)
         if bad_pp:
@@ -383,17 +545,29 @@ def verify_pinpoint_and_status_integrity(
             got = statuses_by_sec.get(key, set())
             if got != want_statuses:
                 raise ValueError(f"{name}: status mismatch on {key}: expected={sorted(want_statuses)}, observed={sorted(got)}")
+        if exact_non_successor_statuses:
+            observed_non_succ = {
+                k: v for k, v in statuses_by_sec.items() if v & {"repealed", "eliminated", "see-reference"}
+            }
+            expected_non_succ = {
+                k: v for k, v in expected_statuses.items() if v & {"repealed", "eliminated", "see-reference"}
+            }
+            if observed_non_succ != expected_non_succ:
+                extra_st = sorted(set(observed_non_succ) - set(expected_non_succ))
+                raise ValueError(f"{name}: unexpected non-successor status sections: {extra_st[:10]}")
 
 
 def run_self_test(
     specs: list[tuple[str, set[Pair], set[Pair], int, dict[Pair, Pair], bool, set[Pair]]],
     t49p_rows: list[dict],
     t49p_body_pinpoints: set[PinpointRow],
+    t10_rows: list[dict],
+    t10_non_succ_statuses: dict[tuple[int, str], set[str]],
 ) -> list[dict]:
-    """Plant wrong successors, EXTRA spurious successors, wrong pinpoints, and wrong statuses; prove every one fails."""
+    """Plant wrong successors, EXTRA spurious successors, wrong/extra pinpoints, and wrong statuses; prove every one fails."""
     results = []
     for name, body_pairs, parquet_pairs, min_cnt, typos, strict_extra, allowed_extra in specs:
-        victims = [sorted(body_pairs & parquet_pairs)[0], *sorted(typos.values())]
+        victims = [min(body_pairs & parquet_pairs), *sorted(typos.values())]
         for victim in victims:
             corrupted = (parquet_pairs - {victim}) | {(victim[0], victim[1], victim[2], "999999")}
             try:
@@ -411,7 +585,7 @@ def run_self_test(
             else:
                 raise SystemExit(f"SELF-TEST FAILED on {name}: planted corruption on {victim} was NOT caught!")
         if strict_extra:
-            victim = sorted(body_pairs & parquet_pairs)[0]
+            victim = min(body_pairs & parquet_pairs)
             with_extra = parquet_pairs | {(victim[0], victim[1], victim[2], "999999")}
             try:
                 verify_pair_agreement(
@@ -438,11 +612,31 @@ def run_self_test(
             "usc-1994-title49-positivelaw-disposition.parquet",
             mutated_pp,
             expected_pinpoints=t49p_body_pinpoints,
+            exact_pinpoints=True,
         )
     except ValueError as exc:
         results.append({"table": "usc-1994-title49-positivelaw-disposition.parquet", "mutation": "wrong_pinpoint", "caught": True, "error": str(exc)[:140]})
     else:
         raise SystemExit("SELF-TEST FAILED: planted wrong pinpoint on 508(d) was NOT caught!")
+
+    # Planted EXTRA spurious pinpoint alongside genuine row (`508(d) -> 5903(a)` added alongside `508(d) -> 5903(b)`)
+    extra_pp_rows = [dict(r) for r in t49p_rows] + [
+        {
+            **next(r for r in t49p_rows if r["former_section"] == "508" and r["former_subsection"] == "(d)"),
+            "new_subsection": "(a)",
+        }
+    ]
+    try:
+        verify_pinpoint_and_status_integrity(
+            "usc-1994-title49-positivelaw-disposition.parquet",
+            extra_pp_rows,
+            expected_pinpoints=t49p_body_pinpoints,
+            exact_pinpoints=True,
+        )
+    except ValueError as exc:
+        results.append({"table": "usc-1994-title49-positivelaw-disposition.parquet", "mutation": "extra_pinpoint_508d_5903a", "caught": True, "error": str(exc)[:140]})
+    else:
+        raise SystemExit("SELF-TEST FAILED: planted extra pinpoint 508(d)->5903(a) was NOT caught!")
 
     # Planted wrong status on Title 49 positive-law (`335` mutated from `repealed` to `eliminated`)
     mutated_st = [dict(r) for r in t49p_rows]
@@ -459,6 +653,23 @@ def run_self_test(
         results.append({"table": "usc-1994-title49-positivelaw-disposition.parquet", "mutation": "wrong_status", "caught": True, "error": str(exc)[:140]})
     else:
         raise SystemExit("SELF-TEST FAILED: planted wrong status on 335 was NOT caught!")
+
+    # Planted status flip on Title 10 (`3360` mutated from `see-reference` to `repealed`)
+    mutated_t10 = [dict(r) for r in t10_rows]
+    for r in mutated_t10:
+        if r["former_section"] == "3360":
+            r["status"] = "repealed"
+    try:
+        verify_pinpoint_and_status_integrity(
+            "usc-1996-title10-ropma-disposition.parquet",
+            mutated_t10,
+            expected_statuses=t10_non_succ_statuses,
+            exact_non_successor_statuses=True,
+        )
+    except ValueError as exc:
+        results.append({"table": "usc-1996-title10-ropma-disposition.parquet", "mutation": "flip_3360_see_reference_to_repealed", "caught": True, "error": str(exc)[:140]})
+    else:
+        raise SystemExit("SELF-TEST FAILED: planted status flip on 10:3360 was NOT caught!")
     return results
 
 
@@ -555,9 +766,9 @@ def main() -> int:
         ),
         (
             "usc-1994-title49-positivelaw-disposition.parquet",
-            extract_title49_positivelaw_body_pairs(pdfs["USCODE-1994-title49.pdf"]),
+            extract_title49_positivelaw_body_pairs(pdfs["USCODE-1994-title49.pdf"], repo_root),
             load_parquet_pairs(ev_dir / "usc-1994-title49-positivelaw-disposition.parquet"),
-            12,
+            22,
             {},
             True,
             set(),
@@ -579,42 +790,47 @@ def main() -> int:
 
     # Row-level pinpoint & status integrity checks across all 6 tables
     t49p_rows = load_parquet_rows(ev_dir / "usc-1994-title49-positivelaw-disposition.parquet")
-    t49p_body_pinpoints = extract_title49_positivelaw_body_pinpoints(pdfs["USCODE-1994-title49.pdf"])
+    t49p_body_pinpoints = extract_title49_positivelaw_body_pinpoints(pdfs["USCODE-1994-title49.pdf"], repo_root)
     verify_pinpoint_and_status_integrity(
         "usc-1994-title49-positivelaw-disposition.parquet",
         t49p_rows,
         expected_pinpoints=t49p_body_pinpoints,
-        forbidden_pinpoints={(49, "508", "(d)", 49, "5901", "(7)", "restated")},
+        exact_pinpoints=True,
+        forbidden_pinpoints={(49, "508", "(d)", None, 49, "5901", "(7)", "restated")},
         expected_statuses={(49, "335"): {"repealed"}, (49, "3102"): {"restated"}, (49, "501"): {"restated"}},
+        exact_non_successor_statuses=True,
     )
+    t10_rows = load_parquet_rows(ev_dir / "usc-1996-title10-ropma-disposition.parquet")
+    t10_non_succ_statuses = extract_title10_non_successor_statuses(pdfs["USCODE-1996-title10.pdf"])
     verify_pinpoint_and_status_integrity(
         "usc-1996-title10-ropma-disposition.parquet",
-        load_parquet_rows(ev_dir / "usc-1996-title10-ropma-disposition.parquet"),
+        t10_rows,
         expected_pinpoints={
-            (10, "1376", "(a)", 10, "12774", None, "restated"),
-            (10, "3385", None, 10, "14308", "(f)", "restated"),
-            (10, "6389", "(f)(3)", 10, "14705", None, "restated"),
+            (10, "1376", "(a)", None, 10, "12774", None, "restated"),
+            (10, "3385", None, None, 10, "14308", "(f)", "restated"),
+            (10, "6389", "(f)(3)", None, 10, "14705", None, "restated"),
         },
         forbidden_pinpoints={
-            (10, "3385", None, 10, "14308", "(a)", "restated"),
-            (10, "3385", None, 10, "14308", "(d)", "restated"),
+            (10, "3385", None, None, 10, "14308", "(a)", "restated"),
+            (10, "3385", None, None, 10, "14308", "(d)", "restated"),
         },
-        expected_statuses={(10, "3359"): {"see-reference"}, (10, "3354"): {"repealed"}},
+        expected_statuses=t10_non_succ_statuses,
+        exact_non_successor_statuses=True,
     )
     verify_pinpoint_and_status_integrity(
         "usc-2011-title41-disposition.parquet",
         load_parquet_rows(ev_dir / "usc-2011-title41-disposition.parquet"),
-        expected_pinpoints={(41, "422", "(g)", 41, "1502", None, "restated")},
+        expected_pinpoints={(41, "422", "(g)", None, 41, "1502", None, "restated")},
         expected_statuses={(41, "20a"): {"repealed"}, (41, "20b"): {"repealed"}},
     )
     verify_pinpoint_and_status_integrity(
         "usc-2014-title54-disposition.parquet",
         load_parquet_rows(ev_dir / "usc-2014-title54-disposition.parquet"),
         expected_pinpoints={
-            (16, "470h-2", "(k)", 54, "306113", None, "restated"),
-            (16, "470h-2", "(l)", 54, "306114", None, "restated"),
-            (16, "5952", "(7)(B)", 54, "101913", None, "restated"),
-            (16, "5952", "(7)(D)", 54, "101913", None, "restated"),
+            (16, "470h-2", "(k)", None, 54, "306113", None, "restated"),
+            (16, "470h-2", "(l)", None, 54, "306114", None, "restated"),
+            (16, "5952", "(7)(B)", None, 54, "101913", None, "restated"),
+            (16, "5952", "(7)(D)", None, 54, "101913", None, "restated"),
         },
         expected_statuses={(16, "457"): {"see-reference"}, (16, "19bb"): {"repealed"}},
     )
@@ -628,7 +844,11 @@ def main() -> int:
         load_parquet_rows(ev_dir / "usc-2010-title51-disposition.parquet"),
     )
 
-    planted = run_self_test(specs, t49p_rows, t49p_body_pinpoints) if args.self_test else []
+    planted = (
+        run_self_test(specs, t49p_rows, t49p_body_pinpoints, t10_rows, t10_non_succ_statuses)
+        if args.self_test
+        else []
+    )
 
     report = {
         "pdftotext_version": PDFTOTEXT_VERSION,

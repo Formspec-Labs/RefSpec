@@ -94,6 +94,12 @@ ORACLE_ANNUAL_PIN = (
     "sha256:4757327d2bbcd5258d0fc51f0658df7fc9999c21d5a40dbe0c2d466cf25e7323",
 )
 
+TITLE49_FRONT_PIN = (
+    "research/evidence/usc-disposition-tables-2026-08-23/usc-1994-title49-disposition.parquet",
+    37_672,
+    "sha256:8403212c0193b3361accf7ff4be238420634beb5aa5740d78b9960fef5b2aedd",
+)
+
 PARQUET_SCHEMA = pa.schema(
     [
         ("former_title", pa.int32()),
@@ -131,12 +137,27 @@ def verify_pin(path: Path, expected_bytes: int, expected_sha256: str) -> None:
         )
 
 
-def section_order_key(token: str) -> tuple[int, int, str, str] | None:
+_TAIL_PART = re.compile(r"(\d+|[a-z]+|[^0-9a-z]+)")
+
+
+def _tail_order(tail: str) -> tuple[tuple[int, int, str], ...]:
+    parts: list[tuple[int, int, str]] = []
+    for part in _TAIL_PART.findall(tail):
+        if part.isdigit():
+            parts.append((1, int(part), ""))
+        elif part.isalpha():
+            parts.append((2, len(part), part))
+        else:
+            parts.append((0, 0, part))
+    return tuple(parts)
+
+
+def section_order_key(token: str) -> tuple[int, int, str, tuple[tuple[int, int, str], ...]] | None:
     m = re.match(r"^(\d+)([a-z]*)(.*)$", token.strip().lower())
     if not m:
         return None
     letters = m.group(2)
-    return (int(m.group(1)), len(letters), letters, m.group(3))
+    return (int(m.group(1)), len(letters), letters, _tail_order(m.group(3)))
 
 
 def load_oracle_pre_cutoff_sections(repo_root: Path) -> dict[int, list[tuple[tuple[int, int, str, str], str, int]]]:
@@ -361,7 +382,7 @@ def expand_sec_range(
             if first_yr < cutoff_year and k_lo <= okey <= k_hi and sec not in known:
                 base.append(sec)
                 known.add(sec)
-        base.sort(key=lambda s: section_order_key(s) or (10**9, 0, s, ""))
+        base.sort(key=lambda s: section_order_key(s) or (10**9, 0, s, ()))
     return base
 
 
@@ -712,7 +733,7 @@ def _expand_prior_list(spec: str, extras: set[str]) -> list[str]:
                 k_ex = section_order_key(ex)
                 if k_ex and k_lo <= k_ex <= k_hi and ex not in members:
                     members.append(ex)
-            members.sort(key=lambda s: section_order_key(s) or (10**9, 0, s, ""))
+            members.sort(key=lambda s: section_order_key(s) or (10**9, 0, s, ()))
             out.extend(members)
         else:
             out.append(c)
@@ -727,7 +748,7 @@ def build_title10_ropma_table(pdf: Path) -> list[dict]:
     # 1. Parse Subtitle E (`§§ 10001–18505`) renumberings + Prior Provisions subsection pinpoints
     full_e = "\n".join(f"<<<PAGE:{p}>>>\n{pages[p - 1]}" for p in range(sub_e_start, len(pages) + 1))
     renum_e: dict[str, str] = {}
-    pp_pinpoints: dict[str, list[tuple[str | None, str, str | None, int]]] = {}
+    pp_pinpoints: dict[str, list[tuple[str | None, str, str | None, int, str]]] = {}
     for part in re.split(r"(?m)^(?=§\s*1\d{4}[a-z]*\.)", full_e)[1:]:
         m_new = re.match(r"^§\s*(1\d{4}[a-z]*)\.", part)
         assert m_new is not None
@@ -750,6 +771,9 @@ def build_title10_ropma_table(pdf: Path) -> list[dict]:
             clean,
         )
         if m_pp and "by Pub. L. 103-337" in m_pp.group(1):
+            pp_idx = part.find("PRIOR PROVISIONS")
+            pgs_in_part = re.findall(r"<<<PAGE:(\d+)>>>", part[:pp_idx]) if pp_idx >= 0 else []
+            pp_pno = int(pgs_in_part[-1]) if pgs_in_part else sub_e_pno
             for m_cl in re.finditer(
                 r"Provisions similar to those in (.*?)\s+were contained in\s+(.*?)\s+of this title,?\s+prior to (?:repeal|amendment|general amendment) by Pub\. L\. 103-337([^.]*)\.",
                 m_pp.group(1),
@@ -763,6 +787,8 @@ def build_title10_ropma_table(pdf: Path) -> list[dict]:
                     found_ns = re.findall(r"\([0-9a-zA-Z]{1,4}\)", lhs)
                     if found_ns:
                         new_subs = found_ns
+                m_formula = re.match(r"^(formula \d+) of the table in sections?\s+", rhs)
+                qual_suffix = f" (table {m_formula.group(1)})" if m_formula else ""
                 rhs_norm = re.sub(r"^(?:formula \d+ of the table in )?sections?\s+", "", rhs)
                 rhs_norm = re.sub(r"\)\s*-\s*\(", ") to (", rhs_norm)
                 rhs_norm = re.sub(r",\s+and\s+|\s+and\s+", ", ", rhs_norm)
@@ -777,7 +803,7 @@ def build_title10_ropma_table(pdf: Path) -> list[dict]:
                 )
                 for pf in parsed_f:
                     for nsub in effective_new_subs:
-                        entry = (pf["subsection"], new_s, nsub, sub_e_pno)
+                        entry = (pf["subsection"], new_s, nsub, pp_pno, qual_suffix)
                         bucket = pp_pinpoints.setdefault(pf["section"], [])
                         if not any(e[:3] == entry[:3] for e in bucket):
                             bucket.append(entry)
@@ -885,8 +911,11 @@ def build_title10_ropma_table(pdf: Path) -> list[dict]:
                                 targets.append((item["section"], item["subsection"]))
                     see_clause_m = re.search(r"See sections?\s+\d+[a-z]*(?:[^.]|\bet seq\.)*?\s+of this title\.", ntxt)
                     disp_txt = f"Repealed; {see_clause_m.group(0)}" if see_clause_m else "Repealed."
+                    # For single-section stubs (`Section, act ...`), anchor on `[§ <sh>.` when on the same page
+                    # so identical `"Section, act Aug. 10, 1956"` lines in the left column do not shadow the right column (e.g. § 6034).
+                    note_anchor = hdr[:24] if (ntxt.startswith("Section, ") and npno == pno) else ntxt[:28]
                     for sh in secs_here:
-                        repeal_ad[sh] = (targets, npno, f"Section {sh}", disp_txt, ntxt[:28], has_et_seq_see)
+                        repeal_ad[sh] = (targets, npno, f"Section {sh}", disp_txt, note_anchor, has_et_seq_see)
                     j += 1
                 elif re.match(r"^A prior section \d", ntxt) and "103-337" not in ntxt:
                     # Skip older historical note embedded inside a section-notes run (e.g. 279, 5896, 8373)
@@ -950,10 +979,10 @@ def build_title10_ropma_table(pdf: Path) -> list[dict]:
         )
 
     rows: list[dict] = []
-    # Combine renumbered + repealed + surviving partial transfers (e.g. 175, 517(b)-(c), 1376(a), 6389(f))
+    # Combine renumbered + repealed + surviving partial transfers (e.g. 175, 517(b)-(c), 1376(a), 1401(a), 6389(f))
     all_former = sorted(
         set(renum_ad) | set(repeal_ad) | set(pp_pinpoints),
-        key=lambda s: section_order_key(s) or (10**9, 0, s, ""),
+        key=lambda s: section_order_key(s) or (10**9, 0, s, ()),
     )
     for sec in all_former:
         if sec in renum_ad:
@@ -975,8 +1004,9 @@ def build_title10_ropma_table(pdf: Path) -> list[dict]:
                     "column": col,
                 }
             )
-            for fsub, ns, nsub, _ in pp_pinpoints.get(sec, []):
+            for fsub, ns, nsub, pp_pno, qual_suffix in pp_pinpoints.get(sec, []):
                 if ns != new_s:
+                    pp_col = _locate_column(pdf, pp_pno, sec, bbox_cache)
                     rows.append(
                         {
                             "former_title": 10,
@@ -987,10 +1017,10 @@ def build_title10_ropma_table(pdf: Path) -> list[dict]:
                             "new_section": ns,
                             "new_subsection": nsub,
                             "status": "restated",
-                            "former_text": f"{ftxt}{fsub or ''}",
+                            "former_text": f"{ftxt}{fsub or ''}{qual_suffix}",
                             "new_text": f"Repealed in part; see § {ns}{nsub or ''}",
-                            "page": pno,
-                            "column": col,
+                            "page": pp_pno,
+                            "column": pp_col,
                         }
                     )
         elif sec in repeal_ad:
@@ -1001,10 +1031,10 @@ def build_title10_ropma_table(pdf: Path) -> list[dict]:
             fwd_by_ns: dict[str, list[str | None]] = {}
             for ns, nsub in targets:
                 fwd_by_ns.setdefault(ns, []).append(nsub)
-            has_sub_pinpoint = any(fsub is not None or nsub is not None for fsub, _, nsub, _ in pinpoints)
+            has_sub_pinpoint = any(fsub is not None or nsub is not None for fsub, _, nsub, _, _ in pinpoints)
             if has_sub_pinpoint:
-                covered_new = {ns for _, ns, _, _ in pinpoints}
-                for fsub, ns, nsub, _ in pinpoints:
+                covered_new = {ns for _, ns, _, _, _ in pinpoints}
+                for fsub, ns, nsub, _, qual_suffix in pinpoints:
                     # If collective PRIOR PROVISIONS left nsub=None while the section's own forward note
                     # names a single exact destination subsection (e.g. 3385 -> 14308(f), 8374 -> 14308(f)), use it!
                     eff_nsub = nsub
@@ -1020,7 +1050,7 @@ def build_title10_ropma_table(pdf: Path) -> list[dict]:
                             "new_section": ns,
                             "new_subsection": eff_nsub,
                             "status": "restated",
-                            "former_text": f"{ftxt}{fsub or ''}",
+                            "former_text": f"{ftxt}{fsub or ''}{qual_suffix}",
                             "new_text": ntxt,
                             "page": pno,
                             "column": col,
@@ -1047,7 +1077,7 @@ def build_title10_ropma_table(pdf: Path) -> list[dict]:
             elif targets or pinpoints:
                 combined_targets: list[tuple[str, str | None]] = list(targets)
                 seen_ns = {ns for ns, _ in combined_targets}
-                for _, ns, nsub, _ in pinpoints:
+                for _, ns, nsub, _, _ in pinpoints:
                     if ns not in seen_ns:
                         combined_targets.append((ns, nsub))
                         seen_ns.add(ns)
@@ -1086,9 +1116,9 @@ def build_title10_ropma_table(pdf: Path) -> list[dict]:
                     }
                 )
         else:
-            # Surviving Subtitle A-C section with partial ROPMA transfer into Subtitle E (e.g. 175, 517(b)-(c), 1376(a), 6389(f))
-            for fsub, ns, nsub, sub_e_pno in pp_pinpoints[sec]:
-                col = _locate_column(pdf, sub_e_pno, f"§ {ns}.", bbox_cache)
+            # Surviving Subtitle A-C section with partial ROPMA transfer into Subtitle E (e.g. 175, 517(b)-(c), 1376(a), 1401(a), 6389(f))
+            for fsub, ns, nsub, pp_pno, qual_suffix in pp_pinpoints[sec]:
+                col = _locate_column(pdf, pp_pno, sec, bbox_cache)
                 rows.append(
                     {
                         "former_title": 10,
@@ -1099,9 +1129,9 @@ def build_title10_ropma_table(pdf: Path) -> list[dict]:
                         "new_section": ns,
                         "new_subsection": nsub,
                         "status": "restated",
-                        "former_text": f"§ {sec}{fsub or ''}",
+                        "former_text": f"§ {sec}{fsub or ''}{qual_suffix}",
                         "new_text": f"Transferred/repealed in part; see § {ns}{nsub or ''}",
-                        "page": sub_e_pno,
+                        "page": pp_pno,
                         "column": col,
                     }
                 )
@@ -1109,23 +1139,29 @@ def build_title10_ropma_table(pdf: Path) -> list[dict]:
     return rows
 
 
-def build_title49_positivelaw_table(pdf: Path) -> list[dict]:
-    """Extract positive-law Title 49 sections repealed or renumbered in place by Pub. L. 103-272."""
+def build_title49_positivelaw_table(pdf: Path, repo_root: Path) -> list[dict]:
+    """Extract positive-law Title 49 provisions repealed, restated, or renumbered by Pub. L. 103-272."""
+    front_rel, front_bytes, front_sha = TITLE49_FRONT_PIN
+    front_parq = repo_root / front_rel
+    verify_pin(front_parq, front_bytes, front_sha)
+    front_former_sections = {
+        str(s).strip().lower() for s in pq.read_table(front_parq, columns=["former_section"])["former_section"].to_pylist()
+    }
+
     pages = _clean_raw_pages(pdf)
     bbox_cache: dict[int, list[dict]] = {}
     rows: list[dict] = []
 
     # 1. Bracketed repeal stubs in Subtitle I enacted by Pub. L. 103-272 (`[§§ 334, 335...]` p.44, `[§ 508...]` p.52)
-    #    and HRN subsection mapping for `508 -> 5901..5907` (pp. 139–143).
     stub_repeals: dict[str, tuple[int, str, str]] = {}
     for pno in range(25, len(pages) + 1):
         pg = pages[pno - 1]
-        for m in re.finditer(r"\[§§?([^\]]*?Repealed\.\s*Pub\.\s*L\.\s*103-272[^\]]*)\]", pg, re.S):
+        for m in re.finditer(r"\[§§?([^\]]*?Repealed\.\s*Pub\.\s*L\.\s*103-272[^\]]*)\]", pg, re.DOTALL):
             hdr = re.sub(r"\s+", " ", m.group(0)).strip()
             tail = pg[m.end() : m.end() + 1400]
             if "334, 335" in hdr:
                 for sec in ("334", "335"):
-                    m_note = re.search(rf"Section {sec},.*?(?=\nSection |\n§|\Z)", tail, re.S)
+                    m_note = re.search(rf"Section {sec},.*?(?=\nSection |\n§|\Z)", tail, re.DOTALL)
                     assert m_note is not None
                     ntxt = re.sub(r"\s+", " ", m_note.group(0)).strip()
                     stub_repeals[sec] = (pno, f"§ {sec}", ntxt)
@@ -1133,7 +1169,7 @@ def build_title49_positivelaw_table(pdf: Path) -> list[dict]:
                 m_sec = re.match(rf"^\[§\s*({_SEC_TOK})\.\s*Repealed", hdr)
                 assert m_sec is not None, hdr
                 sec = m_sec.group(1)
-                m_note = re.search(r"Section,.*?(?=\nREGULATIONS|\nSUBCHAPTER|\n§|\Z)", tail, re.S)
+                m_note = re.search(r"Section,.*?(?=\nREGULATIONS|\nSUBCHAPTER|\n§|\Z)", tail, re.DOTALL)
                 assert m_note is not None
                 ntxt = re.sub(r"\s+", " ", m_note.group(0)).strip()
                 stub_repeals[sec] = (pno, f"§ {sec}", ntxt)
@@ -1141,136 +1177,131 @@ def build_title49_positivelaw_table(pdf: Path) -> list[dict]:
     if set(stub_repeals) != {"334", "335", "508"}:
         raise SystemExit(f"unexpected Pub. L. 103-272 positive-law repeal stubs: {sorted(stub_repeals)}")
 
-    # Parse Chapter 59 (`§§ 5901–5907`) HRN Source (U.S. Code) table rows ONLY (stopping before prose notes!)
-    # Captures BOTH `49:501(a)(1), (4)-(9) -> 5901(1)-(7)` AND full nested `49:508` subsections -> `5902..5907`.
-    ch59_pinpoints: list[tuple[str, str | None, str | None, str, str | None, int]] = []
-    full_59 = "\n".join(f"<<<PAGE:{p}>>>\n{pages[p - 1]}" for p in range(25, len(pages) + 1))
-    _ch59_hrn_stop = (
-        r"(?:\n(?:This chapter |In |The words |Subsection |Subsections |AMENDMENTS|SECTION REFERRED|"
-        r"REFERENCES IN TEXT|REGULATIONS)|\Z)"
+    # 2. Scan ALL `Pub. L. 103-272, § 1` sections' HRN Source (U.S. Code) tables across the entire volume
+    #    for main-body `49:<sec>` entries disjoint from `usc-1994-title49-disposition.parquet`.
+    full_49 = "\n".join(f"<<<PAGE:{p}>>>\n{pages[p - 1]}" for p in range(25, len(pages) + 1))
+    _hrn_stop = (
+        r"(?:\n(?:This chapter |This section |This amends |In |The words |The word |The text |Subsection |Subsections |"
+        r"Paragraph |Clause |Section \d|AMENDMENTS|SECTION REFERRED|SECTIONS REFERRED|REFERENCES IN TEXT|"
+        r"REGULATIONS|PRIOR PROVISIONS|EFFECTIVE DATE|SAVINGS|TRANSFER)|\Z)"
     )
-    for blk in re.split(r"(?m)^(?=§590\d\.)", full_59)[1:]:
-        m_ns = re.match(r"^§(590\d)\.", blk)
+    hrn_entries: list[tuple[str, str | None, str | None, str, str, str | None, int]] = []
+    for blk in re.split(r"(?m)^(?=§\d+[a-z]*\.)", full_49)[1:]:
+        m_ns = re.match(r"^§(\d+[a-z]*)\.", blk)
         assert m_ns is not None
         new_sec = m_ns.group(1)
-        idx_in_full = full_59.find(blk)
-        pgs_before = re.findall(r"<<<PAGE:(\d+)>>>", full_59[:idx_in_full])
-        sec_pno = int(pgs_before[-1]) if pgs_before else 159
-        blk_no_marks = re.sub(r"<<<PAGE:\d+>>>\n?", "", blk)
-        m_hrn = re.search(rf"HISTORICAL AND REVISION NOTES\n(.*?){_ch59_hrn_stop}", blk_no_marks, re.S)
-        if not m_hrn:
+        clean_blk = re.sub(r"\s+", " ", re.sub(r"<<<PAGE:\d+>>>", " ", blk))
+        if not re.search(r"\((?:Added )?Pub\.\s*L\.\s*103-272,\s*§\s*1\b", clean_blk):
             continue
-        hrn_lines = m_hrn.group(1)
+        idx_in_full = full_49.find(blk)
+        pgs_before = re.findall(r"<<<PAGE:(\d+)>>>", full_49[:idx_in_full])
+        cur_pno = int(pgs_before[-1]) if pgs_before else 25
+        m_hrn_start = re.search(r"HISTORICAL AND REVISION NOTES\n", blk)
+        if not m_hrn_start:
+            continue
+        for pm in re.findall(r"<<<PAGE:(\d+)>>>", blk[: m_hrn_start.end()]):
+            cur_pno = int(pm)
+        tail_after_hdr = blk[m_hrn_start.end() :]
+        m_stop = re.search(_hrn_stop, re.sub(r"<<<PAGE:\d+>>>\n?", "", tail_after_hdr), re.DOTALL)
+        # Keep page markers while slicing only up to the first prose paragraph / post-table heading
+        raw_lines = tail_after_hdr.splitlines()
+        table_lines: list[tuple[int, str]] = []
+        stop_re = re.compile(
+            r"^(?:This chapter |This section |This amends |In |The words |The word |The text |Subsection |Subsections |"
+            r"Paragraph |Clause |Section \d|AMENDMENTS|SECTION REFERRED|SECTIONS REFERRED|REFERENCES IN TEXT|"
+            r"REGULATIONS|PRIOR PROVISIONS|EFFECTIVE DATE|SAVINGS|TRANSFER)"
+        )
+        for raw_ln in raw_lines:
+            mp = re.match(r"^<<<PAGE:(\d+)>>>$", raw_ln.strip())
+            if mp:
+                cur_pno = int(mp.group(1))
+                continue
+            if stop_re.match(raw_ln.strip()):
+                break
+            table_lines.append((cur_pno, raw_ln))
+        _ = m_stop
+
         cur_new_sub: str | None = None
-        for ln in hrn_lines.splitlines():
-            m_rev = re.match(rf"^{new_sec}((?:\([0-9a-zA-Z]+\))*)", ln.strip())
+        for idx_ln, (ln_pno, ln) in enumerate(table_lines):
+            m_rev = re.match(rf"^{re.escape(new_sec)}((?:\([0-9a-zA-Z]+\))*)", ln.strip())
             if m_rev:
                 cur_new_sub = m_rev.group(1) or None
+            # Join continuation line when an unclosed `(related ...` wraps onto the next table line
+            joined_ln = ln
+            if "(related" in ln and ")" not in ln.split("(related", 1)[1] and idx_ln + 1 < len(table_lines):
+                joined_ln = f"{ln.strip()} {table_lines[idx_ln + 1][1].strip()}"
             for m_src in re.finditer(
-                r"\b49:(501|508)((?:\([0-9a-zA-Z]+\))*)(?:,\s*(\([0-9a-zA-Z]+\)))?(?:\s*\((note)\))?",
-                ln,
+                r"\b49:(\d+[a-z]*)((?:\([0-9a-zA-Z]+\))*)(?:,\s*(\([0-9a-zA-Z]+\)))?(?:\s*\((note(?:\s+prec\.)?)\))?(?:\s*(\(related to [^)]+\)))?",
+                joined_ln,
             ):
-                fsec = m_src.group(1)
+                prefix = joined_ln[max(0, m_src.start() - 10) : m_src.start()]
+                if "App" in prefix:
+                    continue
+                fsec = m_src.group(1).lower()
+                if fsec in front_former_sections:
+                    continue
                 fsub = m_src.group(2) or None
                 extra_sibling = m_src.group(3)
-                fnote = m_src.group(4)
+                raw_note = m_src.group(4)
+                fnote = "note" if raw_note else None
+                rel_qual = m_src.group(5) or ""
                 fsubs = [fsub]
                 if fsub and extra_sibling:
                     fsubs.append(_inherit(fsub, _GROUP.findall(extra_sibling)))
                 for one_fsub in fsubs:
-                    tup = (fsec, one_fsub, fnote, new_sec, cur_new_sub, sec_pno)
-                    if not any(x[:5] == tup[:5] for x in ch59_pinpoints):
-                        ch59_pinpoints.append(tup)
-    if not ch59_pinpoints:
-        raise SystemExit("failed to extract Chapter 59 HRN mappings for 49:501 / 49:508")
+                    qual = f" ({raw_note})" if raw_note else ""
+                    if rel_qual:
+                        qual = f"{qual} {rel_qual}"
+                    tup = (fsec, one_fsub, fnote, qual, new_sec, cur_new_sub, ln_pno)
+                    if not any((x[0], x[1], x[2], x[4], x[5]) == (tup[0], tup[1], tup[2], tup[4], tup[5]) for x in hrn_entries):
+                        hrn_entries.append(tup)
 
-    # Emit 334, 335, 501 (Chapter 59 definitions restated in §5901), and 508 (Chapter 59 §§5902..5907)
-    for sec in ("334", "335", "501", "508"):
-        if sec == "501":
-            for fsec, fsub, fnote, new_sec, new_sub, hrn_pno in ch59_pinpoints:
-                if fsec != "501":
-                    continue
-                col = _locate_column(pdf, hrn_pno, f"{new_sec}{new_sub or ''}", bbox_cache)
-                rows.append(
-                    {
-                        "former_title": 49,
-                        "former_section": "501",
-                        "former_subsection": fsub,
-                        "former_note": fnote,
-                        "new_title": 49,
-                        "new_section": new_sec,
-                        "new_subsection": new_sub,
-                        "status": "restated",
-                        "former_text": f"§ 501{fsub or ''}",
-                        "new_text": f"Restated in 49 U.S.C. {new_sec}{new_sub or ''}",
-                        "page": hrn_pno,
-                        "column": col,
-                    }
-                )
-            continue
-        pno, ftxt, ntxt = stub_repeals[sec]
-        col = _locate_column(pdf, pno, sec, bbox_cache)
-        if sec == "334":
-            m_see = re.search(r"See section (\d+) of this title", ntxt)
-            assert m_see is not None
-            rows.append(
-                {
-                    "former_title": 49,
-                    "former_section": "334",
-                    "former_subsection": None,
-                    "former_note": None,
-                    "new_title": 49,
-                    "new_section": m_see.group(1),
-                    "new_subsection": None,
-                    "status": "restated",
-                    "former_text": ftxt,
-                    "new_text": f"Repealed; see 49 U.S.C. {m_see.group(1)}",
-                    "page": pno,
-                    "column": col,
-                }
-            )
-        elif sec == "335":
-            rows.append(
-                {
-                    "former_title": 49,
-                    "former_section": "335",
-                    "former_subsection": None,
-                    "former_note": None,
-                    "new_title": None,
-                    "new_section": None,
-                    "new_subsection": None,
-                    "status": "repealed",
-                    "former_text": ftxt,
-                    "new_text": "Repealed (Pub. L. 103-272, § 4(j)(9)(A))",
-                    "page": pno,
-                    "column": col,
-                }
-            )
-        elif sec == "508":
-            for fsec, fsub, fnote, new_sec, new_sub, _ in ch59_pinpoints:
-                if fsec != "508":
-                    continue
-                label_f = f"§ 508{fsub or ''}{' note' if fnote else ''}"
-                rows.append(
-                    {
-                        "former_title": 49,
-                        "former_section": "508",
-                        "former_subsection": fsub,
-                        "former_note": fnote,
-                        "new_title": 49,
-                        "new_section": new_sec,
-                        "new_subsection": new_sub,
-                        "status": "restated",
-                        "former_text": label_f,
-                        "new_text": f"Repealed; restated in 49 U.S.C. {new_sec}{new_sub or ''}",
-                        "page": pno,
-                        "column": col,
-                    }
-                )
+    if not hrn_entries:
+        raise SystemExit("failed to extract positive-law Title 49 HRN mappings")
 
-    # 2. Positive-law sections renumbered in place by Pub. L. 103-272 (`3101..3104 -> 31501..31504`)
+    # Emit pure repeal stub (`335`)
+    pno_335, ftxt_335, _ = stub_repeals["335"]
+    col_335 = _locate_column(pdf, pno_335, "335", bbox_cache)
+    rows.append(
+        {
+            "former_title": 49,
+            "former_section": "335",
+            "former_subsection": None,
+            "former_note": None,
+            "new_title": None,
+            "new_section": None,
+            "new_subsection": None,
+            "status": "repealed",
+            "former_text": ftxt_335,
+            "new_text": "Repealed (Pub. L. 103-272, § 4(j)(9)(A))",
+            "page": pno_335,
+            "column": col_335,
+        }
+    )
+
+    # Emit all positive-law HRN restated provisions (`334`, `501`, `508`, `10927 (note)`, `11506 (note)`)
+    for fsec, fsub, fnote, qual, new_sec, new_sub, hrn_pno in hrn_entries:
+        col = _locate_column(pdf, hrn_pno, f"{new_sec}{new_sub or ''}", bbox_cache)
+        action_prefix = "Repealed; restated in" if fsec in stub_repeals else "Restated in"
+        rows.append(
+            {
+                "former_title": 49,
+                "former_section": fsec,
+                "former_subsection": fsub,
+                "former_note": fnote,
+                "new_title": 49,
+                "new_section": new_sec,
+                "new_subsection": new_sub,
+                "status": "restated",
+                "former_text": f"§ {fsec}{fsub or ''}{qual}",
+                "new_text": f"{action_prefix} 49 U.S.C. {new_sec}{new_sub or ''}",
+                "page": hrn_pno,
+                "column": col,
+            }
+        )
+
+    # 3. Positive-law sections renumbered in place by Pub. L. 103-272 (`3101..3104 -> 31501..31504`)
     renumbered_49: list[tuple[str, str, int]] = []
-    full_49 = "\n".join(f"<<<PAGE:{p}>>>\n{pages[p - 1]}" for p in range(25, len(pages) + 1))
     for blk in re.split(r"(?m)^(?=§\d+[a-z]*\.)", full_49)[1:]:
         m_new = re.match(r"^§(\d+[a-z]*)\.", blk)
         assert m_new is not None
@@ -1292,7 +1323,7 @@ def build_title49_positivelaw_table(pdf: Path) -> list[dict]:
         raise SystemExit(f"unexpected Pub. L. 103-272 in-place renumberings: {renumbered_49}")
 
     for old_sec, new_sec, pno in renumbered_49:
-        col = _locate_column(pdf, pno, f"§ {new_sec}." if pno < 0 else new_sec, bbox_cache)
+        col = _locate_column(pdf, pno, new_sec, bbox_cache)
         rows.append(
             {
                 "former_title": 49,
@@ -1310,6 +1341,14 @@ def build_title49_positivelaw_table(pdf: Path) -> list[dict]:
             }
         )
 
+    rows.sort(
+        key=lambda r: (
+            section_order_key(r["former_section"]) or (10**9, 0, r["former_section"], ()),
+            r["page"],
+            r["new_section"] or "",
+            r["new_subsection"] or "",
+        )
+    )
     validate_rows(rows)
     return rows
 
@@ -1444,7 +1483,7 @@ def main() -> int:
         ),
         (
             "usc-1994-title49-positivelaw-disposition",
-            lambda: build_title49_positivelaw_table(pdfs["USCODE-1994-title49.pdf"]),
+            lambda: build_title49_positivelaw_table(pdfs["USCODE-1994-title49.pdf"], repo_root),
         ),
     ]
 

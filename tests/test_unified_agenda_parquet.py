@@ -7235,13 +7235,28 @@ def test_multi_title_recodifications_attach_and_guard_false_readings() -> None:
         _usc_row("42 U.S.C. App. 3711", publication_id="202010"),
         _usc_row("42 U.S.C. App. 2451", publication_id="202010"),
         _usc_row("16 U.S.C. App. 470f", publication_id="202010"),
-        # Negative control 2 — bare current-chapter collision (`46 U.S.C. 701` = Coast Guard Ch. 701 Port Security):
+        # Negative control 2 — bare current-chapter collision (`46 U.S.C. 701` = Coast Guard Ch. 701 Port Security)
+        # vs CFR-note-attested former section (`31 U.S.C. 71` in Army `32 CFR 552` -> `31:3526, 31:3702`):
         _usc_row("46 U.S.C. 701", publication_id="201510"),
-        # Negative control 3 — damaged current-law span (`49 USC 2011 to 20113` for `20111 to 20113`):
+        _usc_row("31 U.S.C. 71", rin="0702-AA77", publication_id="201704", authority_in_own_cfr_note="present"),
+        # Negative control 3 — damaged current-law span (`49 USC 2011 to 20113`, `20113` in current release)
+        # vs historical-annual span (`10 USC 3078 to 3081`, `3081` attested only through 2017 annuals):
         _usc_row("49 USC 2011 to 20113", publication_id="200510", usc_section_end="20113", usc_section_span_rule="stated"),
-        # Negative control 4 — live attested section (`46 U.S.C. App. 688` at 2005 -> `exists`):
+        _usc_row("10 USC 3078 to 3081", publication_id="201510", usc_section_end="3081", usc_section_span_rule="stated"),
+        # Negative control 4 — RIN-history chapter qualifier (`2105-AD66` drops `ch` in `201310`, adds `ch` in `201404`):
+        _usc_row("49 USC 329", rin="2105-AD66", publication_id="201310"),
+        _usc_row("49 USC 401, 411, and 417", rin="2105-AD66", publication_id="201310", usc_section="401"),
+        _usc_row("49 USC 106(g), 447 and 451", rin="2105-AD66", publication_id="201310", usc_section="451"),
+        {
+            **_usc_row("49 USC ch 401, 411, and 417", rin="2105-AD66", publication_id="201404"),
+            "authority_type": "usc_chapter",
+            "usc_section": None,
+            "usc_chapter": "401",
+        },
+        _usc_row("49 USC 106(g), ch 447 and 451", rin="2105-AD66", publication_id="201404", usc_section="451"),
+        # Negative control 5 — explicit `49 USC app 335` stays `not-in-table`, live `46 U.S.C. App. 688` -> `exists`, absent `10:999999` -> `None`:
+        _usc_row("49 USC app 335", publication_id="200510"),
         _usc_row("46 U.S.C. App. 688", publication_id="200510"),
-        # Negative control 5 — absent non-table section outside Title 49a (`10 U.S.C. 999999`):
         _usc_row("10 U.S.C. 999999", publication_id="200510"),
     ]
     _judge_usc_sections(rows, _usc_section_oracle())
@@ -7257,17 +7272,28 @@ def test_multi_title_recodifications_attach_and_guard_false_readings() -> None:
     }
     assert by_text["10 U.S.C. 593"] == ("absent", "title-10-1994", "exists-as-recodified", ["10:12203"], None)
     assert by_text["31 U.S.C. 483a"] == ("absent", "title-31-1982", "exists-as-recodified", ["31:9701"], None)
+    assert by_text["31 U.S.C. 71"] == ("absent", "title-31-1982", "exists-as-recodified", ["31:3526", "31:3702"], None)
     assert by_text["46 U.S.C. 1177"][:3] == ("absent", "title-46-2006", "exists-as-recodified")
     assert "46:53503" in by_text["46 U.S.C. 1177"][3]
     assert by_text["49 USC 1472"][:3] == ("unknown", "title-49-1994", "exists-as-recodified")
     assert by_text["49 USC 3102"] == ("absent", "title-49-1994-positivelaw", "exists-as-recodified", ["49:31502"], None)
     assert by_text["49 USC app 3102"] == ("unknown", "title-49-1994-positivelaw", "exists-as-recodified", ["49:31502"], None)
+    assert by_text["49 USC app 335"] == ("unknown", "title-49-1994", "not-in-table", None, None)
     # Non-appendix App. citations stay cleanly unanswered:
     for fake_app in ("41 U.S.C. App. 15", "42 U.S.C. App. 3711", "42 U.S.C. App. 2451", "16 U.S.C. App. 470f"):
         assert by_text[fake_app] == ("unknown", None, None, None, None)
-    # Guarded false historical readings carry named refusals and ZERO successors/verdicts:
+    # Guarded false historical readings carry named refusals, while historical-only annual span `10 USC 3078 to 3081` is NOT refused:
     assert by_text["46 U.S.C. 701"] == ("absent", None, None, None, "current_chapter_number_collision")
     assert by_text["49 USC 2011 to 20113"] == ("absent", None, None, None, "span_end_is_current_law_section")
+    assert by_text["10 USC 3078 to 3081"] == (
+        "absent",
+        "title-10-1994",
+        "exists-as-recodified",
+        ["10:10106", "10:10107", "10:10215"],
+        None,
+    )
+    assert by_text["49 USC 401, 411, and 417"] == ("unknown", None, None, None, "chapter_qualifier_governs_the_token")
+    assert by_text["49 USC 106(g), 447 and 451"] == ("unknown", None, None, None, "chapter_qualifier_governs_the_token")
     assert by_text["46 U.S.C. App. 688"] == ("exists", None, None, None, None)
     assert by_text["10 U.S.C. 999999"] == ("absent", None, None, None, None)
 
@@ -7348,24 +7374,35 @@ def test_the_three_citations_visual_review_2_read_as_wrong_or_short(con) -> None
     # exposure, and this is what it would be worth.
     text, section, _, verdict, _, _, _, refusal = one_row("2105-AD66", "201310", 2, 2)
     assert (text, section) == ("49 USC 106(g), 447 and 451", "451")
-    assert (verdict, refusal) == ("repealed-no-successor", None)
-    assert _rows(
-        con,
-        f"select usc_section, usc_disposition_verdict from {L} where rin = '2105-AD66' "
-        "and publication_id = '201310' and usc_disposition_verdict is not null order by usc_section",
-    ) == [
-        ("401", "repealed-no-successor"),
-        ("411", "not-in-table"),
-        ("417", "not-in-table"),
-        ("447", "not-in-table"),
-        ("451", "repealed-no-successor"),
-    ]
-    # And the guard's whole reach, listed: two RINs, 17 rows, one section each.
-    assert _rows(
-        con,
-        f"select rin, usc_section, count(*), count(distinct publication_id) from {L} "
-        "where usc_disposition_refusal is not null group by 1, 2 order by 1",
-    ) == [("2105-AD66", "451", 16, 16), ("2105-AE02", "417", 1, 1)]
+    if _multi_title_dispositions_landed():
+        assert (verdict, refusal) == (None, "chapter_qualifier_governs_the_token")
+        assert _rows(
+            con,
+            f"select usc_section, usc_disposition_refusal from {L} where rin = '2105-AD66' "
+            "and publication_id = '201310' and usc_section in ('401', '411', '417', '447', '451') order by usc_section",
+        ) == [
+            (sec, "chapter_qualifier_governs_the_token")
+            for sec in ("401", "411", "417", "447", "451")
+        ]
+    else:
+        assert (verdict, refusal) == ("repealed-no-successor", None)
+        assert _rows(
+            con,
+            f"select usc_section, usc_disposition_verdict from {L} where rin = '2105-AD66' "
+            "and publication_id = '201310' and usc_disposition_verdict is not null order by usc_section",
+        ) == [
+            ("401", "repealed-no-successor"),
+            ("411", "not-in-table"),
+            ("417", "not-in-table"),
+            ("447", "not-in-table"),
+            ("451", "repealed-no-successor"),
+        ]
+        # And the guard's whole reach in pre-M8 rebuild #12/#15, listed: two RINs, 17 rows, one section each.
+        assert _rows(
+            con,
+            f"select rin, usc_section, count(*), count(distinct publication_id) from {L} "
+            "where usc_disposition_refusal is not null group by 1, 2 order by 1",
+        ) == [("2105-AD66", "451", 16, 16), ("2105-AE02", "417", 1, 1)]
 
 
 #: The FR-roster corroboration's counts were measured on a scratch build whose
