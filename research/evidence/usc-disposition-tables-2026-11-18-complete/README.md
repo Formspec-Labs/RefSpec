@@ -114,8 +114,8 @@ python3 scripts/crosscheck_disposition_tables.py --pdf-dir <cache> --self-test
 | `usc-1994-title49-positivelaw-disposition.parquet` | `6387ca0487ec234ae04811e90d1490e9bf93407d1b3dd5f3fa40836e3bc21510` | 4,624 | 49 entries / 49 rows |
 | `usc-1994-title49-positivelaw-disposition.txt` | `d894c4534ec4c67f7b516e3543be4a6ceb628a515c1b997be475f1721476d83b` | 2,985 | 49 entries |
 | `crosscheck-report.json` | `594b35d952e4ffa96e3ec4f14e58ad3ae8de38bcf2986e71967895e0d41ca23e` | 10,592 | 6 tables / 20 planted self-tests |
-| `scripts/extract_disposition_tables.py` | `5724355304d7cc883cd4ff1b032fd8f765caecbb601529d8088be8d982608548` | 69,452 | — |
-| `scripts/crosscheck_disposition_tables.py` | `bcff1d412ecc9ca4bc3c0222e0e5f2973cf8588e43e0a8cda02a47ee45f75b1f` | 39,615 | — |
+| `scripts/extract_disposition_tables.py` | `de4cb69f91e73a865d6672870032a66cc6ca428d26bb90d22ae8fff7146be467` | 69,434 | — |
+| `scripts/crosscheck_disposition_tables.py` | `e8e9365629642e91523b104cabd04811f5c1e8e8f3d1019d1de2671757d4062f` | 39,597 | — |
 
 ## Counts & body cross-checks (`crosscheck-report.json`)
 

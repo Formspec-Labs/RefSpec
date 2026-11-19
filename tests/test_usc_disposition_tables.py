@@ -170,12 +170,12 @@ ARTIFACT_2026_11_18_COMPLETE_PINS = {
         10_592,
     ),
     "scripts/extract_disposition_tables.py": (
-        "sha256:5724355304d7cc883cd4ff1b032fd8f765caecbb601529d8088be8d982608548",
-        69_452,
+        "sha256:de4cb69f91e73a865d6672870032a66cc6ca428d26bb90d22ae8fff7146be467",
+        69_434,
     ),
     "scripts/crosscheck_disposition_tables.py": (
-        "sha256:bcff1d412ecc9ca4bc3c0222e0e5f2973cf8588e43e0a8cda02a47ee45f75b1f",
-        39_615,
+        "sha256:e8e9365629642e91523b104cabd04811f5c1e8e8f3d1019d1de2671757d4062f",
+        39_597,
     ),
 }
 

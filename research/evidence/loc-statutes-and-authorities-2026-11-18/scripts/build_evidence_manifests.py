@@ -12,6 +12,7 @@ research manifests and production readers cannot drift apart.
 
 from __future__ import annotations
 
+import argparse
 import dataclasses
 import hashlib
 import json
@@ -41,9 +42,7 @@ from refspec.loc_statutes_at_large import (  # noqa: E402
 from refspec.registry import agency_crosswalk as cw  # noqa: E402
 
 EVIDENCE_DIR = REPO_ROOT / "research" / "evidence" / "loc-statutes-and-authorities-2026-11-18"
-DEFAULT_CACHE_ROOT = Path(
-    "/Users/mikewolfd/Work/congressional-tech/.cache/archive-release/refspec-loc-statutes-20261118"
-)
+DEFAULT_CACHE_ROOT = REPO_ROOT / "output" / "loc-statutes-and-authorities-2026-11-18"
 
 # Constitutional Congress calendar-year spans (81st Congress sat through Jan. 2, 1951 in Vol. 64).
 CONGRESS_TERM_YEARS: dict[int, tuple[int, int]] = {
@@ -763,10 +762,19 @@ def build_lcnaf_alignment_manifest(cache_root: Path) -> dict[str, Any]:
 
 
 def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument(
+        "--cache-root",
+        type=Path,
+        default=DEFAULT_CACHE_ROOT,
+        help="directory holding cached LoC Statutes at Large & id.loc.gov captures",
+    )
+    args = ap.parse_args()
+    cache_root = args.cache_root
     EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
-    catalog = build_statutes_catalog(DEFAULT_CACHE_ROOT)
-    ocr_manifest = build_ocr_verification_manifest(DEFAULT_CACHE_ROOT)
-    lcnaf_manifest = build_lcnaf_alignment_manifest(DEFAULT_CACHE_ROOT)
+    catalog = build_statutes_catalog(cache_root)
+    ocr_manifest = build_ocr_verification_manifest(cache_root)
+    lcnaf_manifest = build_lcnaf_alignment_manifest(cache_root)
 
     for fname, obj in [
         ("llsl-volumes-1-64-catalog.json", catalog),

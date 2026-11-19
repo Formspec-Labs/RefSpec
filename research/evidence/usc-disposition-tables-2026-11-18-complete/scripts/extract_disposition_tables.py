@@ -1436,7 +1436,7 @@ def main() -> int:
     ap.add_argument(
         "--pdf-dir",
         type=Path,
-        default=Path("/Users/mikewolfd/Work/congressional-tech/.cache/archive-release/refspec-uscode-20261118"),
+        default=Path(__file__).resolve().parents[4] / "output" / "registry-real-data-sources",
         help="directory holding cached GovInfo USCODE-*.pdf files",
     )
     ap.add_argument(

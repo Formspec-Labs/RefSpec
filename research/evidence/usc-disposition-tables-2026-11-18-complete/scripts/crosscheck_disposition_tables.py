@@ -688,7 +688,7 @@ def main() -> int:
     ap.add_argument(
         "--pdf-dir",
         type=Path,
-        default=Path("/Users/mikewolfd/Work/congressional-tech/.cache/archive-release/refspec-uscode-20261118"),
+        default=Path(__file__).resolve().parents[4] / "output" / "registry-real-data-sources",
     )
     ap.add_argument(
         "--evidence-dir",
