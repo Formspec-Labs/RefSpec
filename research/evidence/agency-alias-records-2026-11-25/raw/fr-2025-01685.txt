@@ -1,0 +1,344 @@
+<html>
+<head>
+<title>Federal Register, Volume 90 Issue 15 (Friday, January 24, 2025)</title>
+</head>
+<body><pre>
+[Federal Register Volume 90, Number 15 (Friday, January 24, 2025)]
+[Notices]
+[Pages 8124-8127]
+From the Federal Register Online via the Government Publishing Office [<a href="http://www.gpo.gov">www.gpo.gov</a>]
+[FR Doc No: 2025-01685]
+
+
+=======================================================================
+-----------------------------------------------------------------------
+
+FEDERAL RESERVE SYSTEM
+
+
+Privacy Act of 1974; System of Records
+
+AGENCY: Board of Governors of the Federal Reserve System.
+
+ACTION: Notice of a modified system of records.
+
+-----------------------------------------------------------------------
+
+SUMMARY: Pursuant to the provisions of the Privacy Act of 1974, notice 
+is given that the Board of Governors of the Federal Reserve System 
+(Board) proposes to modify an existing system of records entitled 
+BGFRS/OIG-1, ``FRB--OIG Investigative Records.'' These records are 
+collected and maintained by the Office of Inspector General (OIG) in 
+support of its inquiries, investigations, and reports relating to the 
+programs and operations of the Board and the Consumer Financial 
+Protection Bureau and to manage its investigations.
+
+DATES: Comments must be received on or before February 24, 2025. This 
+modified system of records will become effective February 24, 2025, 
+without further notice, unless comments dictate otherwise.
+    The Office of Management and Budget (OMB), which has oversight 
+responsibility under the Privacy Act, requires a 30-day period prior to 
+publication in the Federal Register in which to review the system and 
+to provide any comments to the agency. The public is then given a 30-
+day period in which to comment, in accordance with 5 U.S.C. 552a(e)(4) 
+and (11).
+
+[[Page 8125]]
+
+
+ADDRESSES: You may submit comments, identified by BGFRS/OIG-1 ``FRB--
+OIG Investigative Records'', by any of the following methods:
+    <bullet> Agency Website: <a href="https://www.federalreserve.gov/apps/proposals/">https://www.federalreserve.gov/apps/proposals/</a>. Follow the instructions for submitting comments, including 
+attachments. Preferred Method.
+    <bullet> Mail: Ann E. Misback, Secretary, Board of Governors of the 
+Federal Reserve System, 20th Street and Constitution Avenue NW, 
+Washington, DC 20551.
+    <bullet> Hand Delivery/Courier: Same as mailing address.
+    <bullet> Other Means: <a href="/cdn-cgi/l/email-protection#aadadfc8c6c3c9c9c5c7c7cfc4ded9eaccd8c884cdc5dc"><span class="__cf_email__" data-cfemail="b8c8cddad4d1dbdbd7d5d5ddd6cccbf8decada96dfd7ce">[email&#160;protected]</span></a>. You must include the 
+docket number in the subject line of the message.
+    Comments received are subject to public disclosure. In general, 
+comments received will be made available on the Board's website at 
+<a href="https://www.federalreserve.gov/apps/proposals/">https://www.federalreserve.gov/apps/proposals/</a> without change and will 
+not be modified to remove personal or business information including 
+confidential, contact, or other identifying information. Comments 
+should not include any information such as confidential information 
+that would be not appropriate for public disclosure. Public comments 
+may also be viewed electronically or in person in Room M-4365A, 2001 C 
+St. NW, Washington, DC 20551, between 9 a.m. and 5 p.m. during Federal 
+business weekdays.
+
+FOR FURTHER INFORMATION CONTACT: Matthew C. Glover, Senior Counsel, 
+(202) 736-1994 or <a href="/cdn-cgi/l/email-protection#0c616d787864697b226f226b60637a697e4c6a7e6e226b637a"><span class="__cf_email__" data-cfemail="0b666a7f7f636e7c2568256c67647d6e794b6d7969256c647d">[email&#160;protected]</span></a>; Legal Division, Board of 
+Governors of the Federal Reserve System, 20th Street and Constitution 
+Avenue NW, Washington, DC 20551. For users of telephone systems via 
+text telephone (TTY) or any TTY-based Telecommunications Relay 
+Services, please call 711 from any telephone, anywhere in the United 
+States.
+
+SUPPLEMENTARY INFORMATION: The Board is amending BGFRS/OIG-1 to reflect 
+changes that have occurred since the system was last amended in 2008. 
+These changes include the Dodd-Frank Wall Street Reform and Consumer 
+Protection Act's (Pub. L. 111-203) creation of the Consumer Financial 
+Protection Board (CFPB) and amendment of Sec.  8G(c) of the Inspector 
+General Act of 1978 to make the Inspector General responsible for 
+oversight of the Board and the CFPB's programs and operations. 
+Accordingly, the Board is amending the purpose of the system, the 
+categories of individuals, and the record source categories to add the 
+CFPB. The Board is also taking this opportunity to revise the category 
+of individuals to clarify that the OIG collects information about the 
+individuals to determine if they have been or are engaging in civil, 
+criminal, or administrative wrongdoing or have information regarding 
+such wrongdoing. In addition, the Board is adding ``contractors'' to 
+the records source categories.
+    Further, in another change since 2008, to facilitate the OIG's 
+voluntary compliance with certain provisions of Executive Order (E.O.) 
+14074, Advancing Effective, Accountable Policing and Criminal Justice 
+Practices to Enhance Public Trust and Public Safety, issued on May 25, 
+2022, the Board is updating the categories of records to include video 
+and audio recordings that may be captured by OIG criminal investigators 
+wearing body cameras during investigative operations. The Board is also 
+updating the system location to indicate the storage of the video and 
+audio recordings by a vendor, updating the system manager, and amending 
+the authority for the system to include E.O. 14074 as additional 
+authority. Moreover, the Board is modifying the category of records to 
+refer to ``investigative case files'' rather than ``individual 
+investigations'' as that better reflects the OIG's investigative 
+records.
+    The Board is also updating the access controls to reflect system 
+management changes. In addition, the Board is revising the retention of 
+the records to provide that files related to significant investigations 
+will be retained permanently while files related to all other 
+investigations will continue to be retained for ten years after cut-
+off.
+    Further, the Board is revising system-specific Routine Use 1, 
+deleting the existing system-specific Routine Use 2, and renumbering 
+system-specific Routine Use 3 to be Routine Use 2. The Board is 
+deleting the current Routine Use 2 as disclosures contemplated under 
+that use will now be incorporated into revised Routine Use 1. The Board 
+is also revising system-specific Routine Use 1 regarding the audit or 
+review of the OIG's investigatory program by outside entities or 
+persons to permit the release of individually identifiable information. 
+The Board is making this change because, for the audit or review to be 
+effective, the OIG needs to be able to share identifiable information 
+as necessary for the audit or review. In its current form, the Routine 
+Use 1 limits disclosure to information that is not individually 
+identifiable information; however, release of information that is not 
+individually identifiable is not a disclosure of Privacy Act 
+information and therefore the Board is revising Routine Use 1 to remove 
+this language. Finally, the revision to system-specific Routine Use 1 
+also accounts for the technical amendments to the Inspector General Act 
+of 1978, which replaced the Executive Council on Integrity and 
+Efficiency and the President's Council on Integrity and Efficiency with 
+the Council of the Inspectors General on Integrity and Efficiency.
+    In order to permit information sharing contemplated under E.O. 
+14074, the Board is amending the system to add a new routine use, which 
+will be Routine Use 3. The new routine use will permit the OIG to 
+disclose information to federal, state, or local agencies maintaining 
+civil, criminal, or other relevant investigative information for 
+purposes of data collection on OIG law enforcement activities. This 
+proposed routine use will allow the OIG to share information with 
+various government-wide databases, such as the FBI National Use-of-
+Force Data Database, to enhance public trust and public safety.
+    The Board is also making technical changes to BGFRS/OIG-1 
+consistent with the template laid out in OMB Circular No. A-108. 
+Accordingly, the Board has made technical corrections and non-
+substantive language revisions to the following categories: ``Policies 
+and Practices for Storage of Records,'' ``Policies and Practices for 
+Retrieval of Records,'' ``Policies and Practices for Retention and 
+Disposal of Records,'' ``Administrative, Technical and Physical 
+Safeguards,'' ``Record Access Procedures,'' ``Contesting Record 
+Procedures'' and ``Notification Procedures.'' The Board is adding the 
+following new fields: ``Security Classification'' and ``History.'' The 
+Board is also adding a link to its general routine uses.
+
+SYSTEM NAME AND NUMBER:
+    BGFRS/OIG-1, ``FRB--OIG Investigative Records''.
+
+SECURITY CLASSIFICATION:
+    Unclassified.
+
+SYSTEM LOCATION:
+    Office of Inspector General (OIG) for the Board of Governors of the 
+Federal Reserve System (Board) and the Consumer Financial Protection 
+Bureau (CFPB), 1850 I Street NW, Washington, DC 20006; Axon Enterprise, 
+Inc. 17800 N 85th Street, Scottsdale, AZ 85255.
+
+SYSTEM MANAGER(S):
+    Stephen Carroll, Associate Inspector General for Investigations, 
+(202) 973-5018 or <a href="/cdn-cgi/l/email-protection#8dfef9e8fde5e8e3a3eca3eeecffffe2e1e1cdebffefa3eae2fb"><span class="__cf_email__" data-cfemail="0f7c7b6a7f676a61216e216c6e7d7d6063634f697d6d21686079">[email&#160;protected]</span></a>; Office of Inspector 
+General (OIG), Board of Governors of the Federal Reserve
+
+[[Page 8126]]
+
+System and Consumer Financial Protection Bureau, 1850 I Street NW, 
+Washington, DC 20006.
+
+AUTHORITY FOR MAINTENANCE OF THE SYSTEM:
+    Sections 4 and 6 of the Inspector General Act of 1978 (5 U.S.C. 404 
+and 406) and Executive Order 14074.
+
+PURPOSE(S) OF THE SYSTEM:
+    These records are collected and maintained by the OIG in its 
+inquiries, investigations, and reports relating to the administration 
+of the Board's and the CFPB's programs and operations and to manage its 
+investigations.
+
+CATEGORIES OF INDIVIDUALS COVERED BY THE SYSTEM:
+    Officers or employees of the Board, the CFPB, or other persons 
+related to an investigation by the OIG in order to determine whether 
+such officers, employees, or other persons have been or are engaging in 
+civil, criminal, or administrative wrongdoing or have information 
+regarding such wrongdoing, relating to the Board's or the CFPB's 
+programs or operations, and complainants and witnesses when necessary 
+for future retrieval.
+
+CATEGORIES OF RECORDS IN THE SYSTEM:
+    Investigative case files, including investigative reports and 
+related records generated or gathered during the course of or 
+subsequent to an investigation; electronic and hard-copy case-tracking 
+systems; databases and applications containing investigatory 
+information, including ``Hotline'' information and investigator work-
+papers; video and audio recordings, and other information of a personal 
+nature provided or obtained in connection with an investigation; and 
+memoranda and letter referrals to management or others.
+
+RECORD SOURCE CATEGORIES:
+    Information is provided by the individual to whom the record 
+pertains; employees or contractors of the Board, the CFPB, and the 
+Federal Reserve System; other government employees; witnesses and 
+informants; and nongovernmental sources.
+
+ROUTINE USES OF RECORDS MAINTAINED IN THE SYSTEM, INCLUDING CATEGORIES 
+OF USERS AND PURPOSES OF SUCH USES:
+    General routine uses A, B, C, D, E, F, G, I, and J apply to this 
+system. These general routine uses are located at <a href="https://www.federalreserve.gov/files/SORN-page-general-routine-uses-of-board-systems-of-records.pdf">https://www.federalreserve.gov/files/SORN-page-general-routine-uses-of-board-systems-of-records.pdf</a> and are published in the Federal Register at 83 
+FR 43872 at 43873-74 (August 28, 2018). Records may also be used to 
+disclose:
+    1. information to other federal entities, such as other federal 
+OIGs or the U.S. Government Accountability Office; or to members of the 
+Council of Inspectors General on Integrity and Efficiency (CIGIE), 
+officials and administrative staff authorized by CIGIE to conduct or 
+participate in assessment reviews or to a private party with which the 
+OIG, the Board, or the CFPB has contracted for the purpose of auditing, 
+reviewing, or conducting qualitative assessment reviews of the 
+performance or internal safeguards and management of the OIG's 
+investigatory program, provided that the entity acknowledges in writing 
+that it is required to maintain Privacy Act safeguards for the 
+information;
+    2. information to any source, including a federal, state, or local 
+agency maintaining civil, criminal, or other relevant enforcement 
+information or other pertinent information, but only to the extent 
+necessary for the OIG to obtain information relevant to an OIG 
+investigation; and
+    3. information to a federal, state, or local agency maintaining 
+civil, criminal, or other relevant investigative information for 
+purposes of data collection on OIG law enforcement activities.
+
+POLICIES AND PRACTICES FOR STORAGE OF RECORDS:
+    Paper records in this system are stored in file folders with access 
+limited to staff with a need to know. Electronic records are stored on 
+secure servers or FedRAMP-certified cloud based systems.
+
+POLICIES AND PRACTICES FOR RETRIEVAL OF RECORDS:
+    Records can be retrieved by numerous identifiers, including the 
+name of the individual under investigation, the criminal investigator, 
+the investigation number, the referral number, or the investigative 
+subject matter.
+
+POLICIES AND PRACTICES FOR RETENTION AND DISPOSAL OF RECORDS:
+    Files related to significant investigations are cut off when the 
+investigation is closed and permanently retained. Files related to all 
+other investigations are cut off when the investigation is closed and 
+destroyed ten years after cut-off.
+
+ADMINISTRATIVE, TECHNICAL, AND PHYSICAL SAFEGUARDS:
+    Paper records are secured by lock and key and electronic files are 
+stored on secure servers or FedRAMP-certified cloud based systems. The 
+system has the ability to track individual user actions within the 
+system. The audit and accountability controls are based on NIST and 
+Board standards which, in turn, are based on applicable laws and 
+regulations. The controls assist in detecting security violations and 
+performance or other issues in the system. Access to the system is 
+restricted to authorized users within the Board who require access for 
+official business purposes. Users are classified into different roles 
+and common access and usage rights are established for each role. User 
+roles are used to delineate between the different types of access 
+requirements such that users are restricted to data that is required in 
+the performance of their duties. Periodic assessments and reviews are 
+conducted to determine whether users still require access, have the 
+appropriate role, and whether there have been any unauthorized changes.
+
+RECORD ACCESS PROCEDURES:
+    The Privacy Act allows individuals the right to access records 
+maintained about them in a Board system of records. Your request for 
+access must: (1) contain a statement that the request is made pursuant 
+to the Privacy Act of 1974; (2) provide either the name of the Board 
+system of records expected to contain the record requested or a concise 
+description of the system of records; (3) provide the information 
+necessary to verify your identity; and (4) provide any other 
+information that may assist in the rapid identification of the record 
+you seek.
+    Current or former Board or CFPB employees may make a request for 
+access by contacting the Board office that maintains the record. The 
+Board handles all Privacy Act requests as both a Privacy Act request 
+and as a Freedom of Information Act request. The Board does not charge 
+fees to a requestor seeking to access or amend his/her Privacy Act 
+records.
+    Current or former Board or CFPB employees making a Privacy Act 
+request for records maintained by the Office of Inspector General may 
+submit their request to the--Inspector General, Board of Governors of 
+the Federal Reserve System, 20th Street and Constitution Avenue NW, 
+Washington, DC 20551.
+    You may also submit your Privacy Act request electronically by 
+filling out the required information at: <a href="https://foia.federalreserve.gov/">https://foia.federalreserve.gov/</a>.
+
+CONTESTING RECORD PROCEDURES:
+    The Privacy Act allows individuals to seek amendment of information 
+that is erroneous, irrelevant, untimely, or incomplete and is 
+maintained in a system of records that pertains to them. To request an 
+amendment to your
+
+[[Page 8127]]
+
+record, you should clearly mark the request as a ``Privacy Act 
+Amendment Request.'' You have the burden of proof for demonstrating the 
+appropriateness of the requested amendment and you must provide 
+relevant and convincing evidence in support of your request.
+    Your request for amendment must: (1) provide the name of the 
+specific Board system of records containing the record you seek to 
+amend; (2) identify the specific portion of the record you seek to 
+amend; (3) describe the nature of and reasons for each requested 
+amendment; (4) explain why you believe the record is not accurate, 
+relevant, timely, or complete; and (5) unless you have already done so 
+in a related Privacy Act request for access or amendment, provide the 
+necessary information to verify your identity.
+
+NOTIFICATION PROCEDURES:
+    Same as ``Access procedures'' above. You may also follow this 
+procedure in order to request an accounting of previous disclosures of 
+records pertaining to you as provided for by 5 U.S.C. 552a(c).
+
+EXEMPTIONS PROMULGATED FOR THE SYSTEM:
+    This system is exempt from any part of the Privacy Act, 5 U.S.C. 
+552a, except 5 U.S.C. 552a(b), (c)(1) and (2), (e)(4)(A) through (F), 
+(e)(6), (7), (9), (10), and (11), and (i) pursuant to 5 U.S.C. 
+552a(j)(2). Additionally, certain portions of this system of records 
+may be exempt from 5 U.S.C. 552a(c)(3), (d), (e)(1), (e)(4)(G), (H), 
+and (I), and (f) of the Privacy Act pursuant to 5 U.S.C. 552a(k)(2) and 
+(k)(5).
+
+HISTORY:
+    This system was previously published in the Federal Register at 73 
+FR 24984 at 25012 (May 6, 2008). The SORN was also amended to 
+incorporate two new routine uses required by OMB at 83 FR 43872 (August 
+28, 2018).
+
+    Board of Governors of the Federal Reserve System.
+Benjamin W. McDonough,
+Deputy Secretary of the Board.
+[FR Doc. 2025-01685 Filed 1-23-25; 8:45 am]
+BILLING CODE 6210-01-P
+
+
+</pre><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
+</html>

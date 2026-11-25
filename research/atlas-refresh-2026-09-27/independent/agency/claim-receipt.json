@@ -3162,5 +3162,3850 @@
         ]
       }
     ]
+  },
+  "aliasBatch2Review": {
+    "reviewedOn": "2026-11-25",
+    "reviewer": "ct-aory / refspec-1.4 verification pass",
+    "aliasesCandidatesPath": "plans/agency-registry-alias-batch-2-candidates.json",
+    "aliasesCandidatesDigest": "sha256:0cb4bfbf239d4b2f8bb555f944484b4c47ad18d9df1dd6a1d505ff442953766d",
+    "scope": "The owner-decided aliases of plans/agency-registry-alias-batch-2-candidates.json: every cited record re-hashed against the retained manifest and verified verbatim in retained bytes.",
+    "aliases": [
+      {
+        "aliasId": "alias:2nd-marine-division",
+        "nameKey": "2nd marine division",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:11b3604fcd9904835adddb52e932174fbe22a65412a398c18cf73eadfc64a02d",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): H.A.S.C. FY2016 Military Construction & Readiness Hearing (CHRG-114hhrg97822): \"Brian D. Beaudreault, USMC, Commanding General, 2nd Marine Division\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:378",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "H.A.S.C. FY2016 Military Construction & Readiness Hearing (CHRG-114hhrg97822)",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/CHRG-114hhrg97822/html/CHRG-114hhrg97822.htm",
+                "sourceSha256": "87abc659c7934f82c0109ed674cddf810a035e9716f8558e4f0dd3b2d26225bc",
+                "retainedPath": "raw/chrg-114hhrg97822.htm",
+                "passage": "Brian D. Beaudreault, USMC, Commanding General, 2nd Marine Division"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:air-force-global-strike-command",
+        "nameKey": "air force global strike command",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:f2311ceea1aab1a5517996a04bf1286406ec78d8b7c860b4d1fb3c053264f9f1",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 91 FR 64644 (2026-10-09), FR Doc 2026-20724, Department of the Air Force: \"Department of the Air Force\"; 91 FR 64644 (2026-10-09), FR Doc 2026-20724, Department of the Air Force: \"Air Force Global Strike Command\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:13",
+        "target": "urn:ref:opm-ehri-agency-subelement:AFGS",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "91 FR 64644 (2026-10-09), FR Doc 2026-20724, Department of the Air Force",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2026/10/09/2026-20724.txt",
+                "sourceSha256": "8d5663aca1f2284cf44f8089d8752a3e05e74e150ed6d1ad8587c35a88b8b0b7",
+                "retainedPath": "raw/fr-2026-20724.txt",
+                "passage": "Department of the Air Force"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "91 FR 64644 (2026-10-09), FR Doc 2026-20724, Department of the Air Force",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2026/10/09/2026-20724.txt",
+                "sourceSha256": "8d5663aca1f2284cf44f8089d8752a3e05e74e150ed6d1ad8587c35a88b8b0b7",
+                "retainedPath": "raw/fr-2026-20724.txt",
+                "passage": "Air Force Global Strike Command"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:air-force-reserve",
+        "nameKey": "air force reserve",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:76cc60a1f54a296d4cac600d8942d77de7faad34b14e590bf5fb00fa418931b0",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 10110: \"The Air Force Reserve is a reserve component of the Air Force\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:13",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 10110",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleE-partI-chap1003-sec10110.htm",
+                "sourceSha256": "cadb2808aa5d05ec5ea0fbe3f2f94ec0ee0e0dbacf7030ba60acc088badda991",
+                "retainedPath": "raw/usc-10-10110.htm",
+                "passage": "The Air Force Reserve is a reserve component of the Air Force"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:air-national-guard",
+        "nameKey": "air national guard",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:d5fdceb072d7c65f6cb2c722c970ee5ad139c5a8092a359a77e5f080e8f2d154",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 10111: \"The Air National Guard of the United States is the reserve component of the Air Force\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:13",
+        "target": "urn:ref:opm-ehri-agency-subelement:AF34",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 10111",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleE-partI-chap1003-sec10111.htm",
+                "sourceSha256": "fd6875afaccd5fce52209ae25f93f52fb5b1f8c93fc5a653011f97b75f4a5369",
+                "retainedPath": "raw/usc-10-10111.htm",
+                "passage": "The Air National Guard of the United States is the reserve component of the Air Force"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:americorps",
+        "nameKey": "americorps",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:1785d0cd1bbf3d579bbcb9b3bf41eb275a71d7b6bc7dfb1c94e7025643986000",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 6432 (2024-02-01), FR Doc 2024-01555, Corporation for National and Community Service, 45 CFR Part 2500: \"AmeriCorps Statement of Organization AGENCY: Corporation for National and Community Service.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:91",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "89 FR 6432 (2024-02-01), FR Doc 2024-01555, Corporation for National and Community Service, 45 CFR Part 2500",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/02/01/2024-01555.txt",
+                "sourceSha256": "d5a540bfcb39a49e3c1acb6a79b533662030868bbd460795e05b497cf0371107",
+                "retainedPath": "raw/fr-2024-01555.txt",
+                "passage": "AmeriCorps Statement of Organization AGENCY: Corporation for National and Community Service."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:army-aviation-center-of-excellence-and-fort-novosel",
+        "nameKey": "army aviation center of excellence and fort novosel",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:c3ab368f29504f2d63f96d73e5bc34ba6a968774c599a1a2bf9c94008884663a",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): H.A.S.C. FY2024 Seapower and Tactical Air Forces Hearing (CHRG-118hhrg52384): \"Commanding General, U.S. Army Aviation Center of Excellence and Fort Novosel\"; 90 FR 21552 (2025-05-20), FR Doc 2025-08853, Department of Defense: \"ARMY AVIATION CENTER OF EXCELLENCE\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:32",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "H.A.S.C. FY2024 Seapower and Tactical Air Forces Hearing (CHRG-118hhrg52384)",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/CHRG-118hhrg52384/html/CHRG-118hhrg52384.htm",
+                "sourceSha256": "76d962ddcfa05877b6700411d0a271a5b9f7038e84fc50e907ec45f1386ddfb3",
+                "retainedPath": "raw/chrg-118hhrg52384.htm",
+                "passage": "Commanding General, U.S. Army Aviation Center of Excellence and Fort Novosel"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "90 FR 21552 (2025-05-20), FR Doc 2025-08853, Department of Defense",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/05/20/2025-08853.txt",
+                "sourceSha256": "645991eb7145a146a78e8fb3c2130ee1c9c33fd2181e2a5a4f23a34ef121aec2",
+                "retainedPath": "raw/fr-2025-08853.txt",
+                "passage": "ARMY AVIATION CENTER OF EXCELLENCE"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:army-forces-command",
+        "nameKey": "army forces command",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:bb18afbc9c0b894209a0f5cd0d4fcbe9c131b33dece13226dd6a3d9de27f8d57",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 92662 (2024-11-22), FR Doc 2024-27459, Department of the Army, DoD: \"AGENCY: Department of the Army, DoD.\"; 89 FR 92662 (2024-11-22), FR Doc 2024-27459, Department of the Army, DoD: \"U.S. Army Forces Command\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:32",
+        "target": "urn:ref:opm-ehri-agency-subelement:ARFC",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "89 FR 92662 (2024-11-22), FR Doc 2024-27459, Department of the Army, DoD",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/11/22/2024-27459.txt",
+                "sourceSha256": "a303f7d3f14372b390663ed00e26e50a225287cfd882fc756ab9c14db8cb3f24",
+                "retainedPath": "raw/fr-2024-27459.txt",
+                "passage": "AGENCY: Department of the Army, DoD."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "89 FR 92662 (2024-11-22), FR Doc 2024-27459, Department of the Army, DoD",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/11/22/2024-27459.txt",
+                "sourceSha256": "a303f7d3f14372b390663ed00e26e50a225287cfd882fc756ab9c14db8cb3f24",
+                "retainedPath": "raw/fr-2024-27459.txt",
+                "passage": "U.S. Army Forces Command"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:army-futures-command",
+        "nameKey": "army futures command",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:93e173317468af3a420c37cfc609d876b0e06d7f41fe157265f3040e4ef09710",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 13548 (2024-02-22), FR Doc 2024-03586, Department of Defense / Army: \"Army Futures Command\"; 89 FR 13548 (2024-02-22), FR Doc 2024-03586, Department of Defense / Army: \"Department of the Army\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:32",
+        "target": "urn:ref:opm-ehri-agency-subelement:ARAF",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "89 FR 13548 (2024-02-22), FR Doc 2024-03586, Department of Defense / Army",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/02/22/2024-03586.txt",
+                "sourceSha256": "8679d8656552a0ec821d9a7f6378d17a68dea7c99e7b32c21f3300573637d33e",
+                "retainedPath": "raw/fr-2024-03586.txt",
+                "passage": "Army Futures Command"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "89 FR 13548 (2024-02-22), FR Doc 2024-03586, Department of Defense / Army",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/02/22/2024-03586.txt",
+                "sourceSha256": "8679d8656552a0ec821d9a7f6378d17a68dea7c99e7b32c21f3300573637d33e",
+                "retainedPath": "raw/fr-2024-03586.txt",
+                "passage": "Department of the Army"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:army-materiel-command",
+        "nameKey": "army materiel command",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:a919407d2c5b996ed3e8bfbf47d34e2c79f51e45676e0a0e8f794f0f54baf3d6",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 91 FR 67302 (2026-10-26), FR Doc 2026-21777, Department of Defense: \"U.S. Army Materiel Command.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:32",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "91 FR 67302 (2026-10-26), FR Doc 2026-21777, Department of Defense",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2026/10/26/2026-21777.txt",
+                "sourceSha256": "159c629c389de5b5d4ba42979d076442dee3c045caab17922ea0e8fd7e35dd6f",
+                "retainedPath": "raw/fr-2026-21777.txt",
+                "passage": "U.S. Army Materiel Command."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:army-national-guard",
+        "nameKey": "army national guard",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:ae841af9acefb745f379d26a46a34199f27e3f166306cec02331d098d75c7dbc",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 10105: \"The Army National Guard of the United States is the reserve component of the Army\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:32",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 10105",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleE-partI-chap1003-sec10105.htm",
+                "sourceSha256": "f9ffca7cbb8b1cad0efb392ba5dfb5fc63421022f460cd8c0735b04bb48a7ee6",
+                "retainedPath": "raw/usc-10-10105.htm",
+                "passage": "The Army National Guard of the United States is the reserve component of the Army"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:army-reserve",
+        "nameKey": "army reserve",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:09de2da8ffbe610140a7ab0ed723f966f9d10eabe954c2cf0de695184d4758ee",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 10104: \"The Army Reserve includes all Reserves of the Army\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:32",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 10104",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleE-partI-chap1003-sec10104.htm",
+                "sourceSha256": "a38985bf842d342ce60417a5ffb8281f3dcb3c2d1d9e9b3ceadc5c8e1b669cf3",
+                "retainedPath": "raw/usc-10-10104.htm",
+                "passage": "The Army Reserve includes all Reserves of the Army"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:army-reserve-command",
+        "nameKey": "army reserve command",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:8acaa2af2fac5ae4cfb8fcc9755d274481ae996c0379a7fec41637231845466e",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 10171: \"The United States Army Reserve Command is a separate command of the Army commanded by the Chief of Army Reserve.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:32",
+        "target": "urn:ref:opm-ehri-agency-subelement:ARHR",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 10171",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleE-partI-chap1006-sec10171.htm",
+                "sourceSha256": "32d8addbf608d8ef0ac5fcee555b32f1ce90b1619a201dae03a5328a5f6cab90",
+                "retainedPath": "raw/usc-10-10171.htm",
+                "passage": "The United States Army Reserve Command is a separate command of the Army commanded by the Chief of Army Reserve."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:army-space-and-missile-defense-command",
+        "nameKey": "army space and missile defense command",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:dd1de320af87c5e49c77aa5dae4022555d092938df1ba5db04bc3d9c5c3840e8",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 90 FR 56739 (2025-12-08), FR Doc 2025-22150, Department of the Army: \"U.S. Army Space and Missile Defense Command\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:32",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "90 FR 56739 (2025-12-08), FR Doc 2025-22150, Department of the Army",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/12/08/2025-22150.txt",
+                "sourceSha256": "35a033362822b618adb496edb2bf6d7bddefe1a206b43c1ba691a37334fd0118",
+                "retainedPath": "raw/fr-2025-22150.txt",
+                "passage": "U.S. Army Space and Missile Defense Command"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:assistant-secretary-for-financial-resources",
+        "nameKey": "assistant secretary for financial resources",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:3727038c670c21d0f8fdec00a8f056462205bed42bde9f2133d56a75999142b8",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 91 FR 12200 (2026-03-12), FR Doc 2026-04842, Department of Health and Human Services: \"AGENCY: Office of the Assistant Secretary for Financial Resources (ASFR), Department of Health and Human Services (HHS).\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:221",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "91 FR 12200 (2026-03-12), FR Doc 2026-04842, Department of Health and Human Services",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2026/03/12/2026-04842.txt",
+                "sourceSha256": "94f85e1a5d70b08248479cfd47fc5d5a7b022ddc9b1a5c779af5977c4c25cbe8",
+                "retainedPath": "raw/fr-2026-04842.txt",
+                "passage": "AGENCY: Office of the Assistant Secretary for Financial Resources (ASFR), Department of Health and Human Services (HHS)."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:benghazi-accountability-review-board",
+        "nameKey": "benghazi accountability review board",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:7523ed5efaca65f1536103db15b2ff2ceeaaf90f0f1a9c2cc338b5b61c69a3b6",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 22 U.S.C. 4831: \"Secretary of State shall convene an Accountability Review Board\"; 77 FR 66909 (2012-11-07), FR Doc 2012-27189, Department of State: \"the Department of State announced the formation of the Benghazi Accountability Review Board (ARB)\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:476",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "22 U.S.C. 4831",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title22/html/USCODE-2024-title22-chap58-subchapIII-sec4831.htm",
+                "sourceSha256": "5bed4a9f61ba4d72472c58293e7a3874b82a7b0475ec6a8a837cae5b48c2fc12",
+                "retainedPath": "raw/usc-22-4831.htm",
+                "passage": "Secretary of State shall convene an Accountability Review Board"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "77 FR 66909 (2012-11-07), FR Doc 2012-27189, Department of State",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2012/11/07/2012-27189.txt",
+                "sourceSha256": "9118eb0a3ca36dafeeff5c221f6311c8c1b60f8b6e5a494721cc4f1984d7444a",
+                "retainedPath": "raw/fr-2012-27189.txt",
+                "passage": "the Department of State announced the formation of the Benghazi Accountability Review Board (ARB)"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:bureau-for-middle-east",
+        "nameKey": "bureau for middle east",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:8f76b013e4a50f3429651ae9156f44fb0c5e870be1836747c66f70dc47a6f08e",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 85136 (2024-10-25), FR Doc 2024-24830, USAID: \"Bureau for the Middle East, U.S. Agency for International Development.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:6",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "89 FR 85136 (2024-10-25), FR Doc 2024-24830, USAID",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/10/25/2024-24830.txt",
+                "sourceSha256": "14c50b200715bf54e245777691eef41df1bee5f54e7b33629a3ffa1e1311fa09",
+                "retainedPath": "raw/fr-2024-24830.txt",
+                "passage": "Bureau for the Middle East, U.S. Agency for International Development."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:chemical-safety-board",
+        "nameKey": "chemical safety board",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:9afb7e6c3dcb96fb91192d5177c87a9650e17e812f49535d3bf22577c6dcb5f8",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 85 FR 4944 (2020-01-28), FR Doc 2020-01490, Chemical Safety and Hazard Investigation Board: \"PLACE: U.S. Chemical Safety Board, 1750 Pennsylvania Ave. NW, Suite 910, Washington, DC 20006. STATUS: Open to the public. MATTERS TO BE CONSIDERED: The Chemical Safety and Hazard Investigation Board\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:47",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "85 FR 4944 (2020-01-28), FR Doc 2020-01490, Chemical Safety and Hazard Investigation Board",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2020/01/28/2020-01490.txt",
+                "sourceSha256": "620d529ed89bf101a484d9a253287e81dec8020dfa6689c30f075af3f4aa30ef",
+                "retainedPath": "raw/fr-2020-01490.txt",
+                "passage": "PLACE: U.S. Chemical Safety Board, 1750 Pennsylvania Ave. NW, Suite 910, Washington, DC 20006. STATUS: Open to the public. MATTERS TO BE CONSIDERED: The Chemical Safety and Hazard Investigation Board"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:commission-on-civil-rights",
+        "nameKey": "commission on civil rights",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:6afb848a860a2e3c5ce66455faf82f74bd34bcf67e5c6d271974bbc12f50094c",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 42 U.S.C. 1975: \"There is established the United States Commission on Civil Rights\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:52",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "42 U.S.C. 1975",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap20A-sec1975.htm",
+                "sourceSha256": "05b6579f26b60e1c3d5d57c2a21674fdad59b9bd8517189e8a2f22a3ccf28efb",
+                "retainedPath": "raw/usc-42-1975.htm",
+                "passage": "There is established the United States Commission on Civil Rights"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:defense-security-cooperation-agency",
+        "nameKey": "defense security cooperation agency",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:d55978fa5b09b86594c5be450d4304f7a399c9c6d7c7d8930a375fd236636982",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR 286.2: \"the Combatant Commands, the Office of the Inspector General of the Department of Defense, the Defense Agencies, the DoD Field Activities, and all other organizational entities within the DoD\"; 82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR part 286: \"Defense Security Cooperation Agency\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": "urn:ref:opm-ehri-agency-subelement:DD06",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR 286.2",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2017/01/05/2016-31686.txt",
+                "sourceSha256": "6bc7707ed2a8cbce822b4158f87ccf972773898782fb86f9576766869f3b7112",
+                "retainedPath": "raw/fr-2016-31686.txt",
+                "passage": "the Combatant Commands, the Office of the Inspector General of the Department of Defense, the Defense Agencies, the DoD Field Activities, and all other organizational entities within the DoD"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR part 286",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2017/01/05/2016-31686.txt",
+                "sourceSha256": "6bc7707ed2a8cbce822b4158f87ccf972773898782fb86f9576766869f3b7112",
+                "retainedPath": "raw/fr-2016-31686.txt",
+                "passage": "Defense Security Cooperation Agency"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:defense-threat-reduction-agency",
+        "nameKey": "defense threat reduction agency",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:729b31f2cca0497719e490fccd5925b19c92818c91bc335f18c32360efd84b31",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR 286.2: \"the Combatant Commands, the Office of the Inspector General of the Department of Defense, the Defense Agencies, the DoD Field Activities, and all other organizational entities within the DoD\"; 82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR part 286: \"Defense Threat Reduction Agency\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": "urn:ref:opm-ehri-agency-subelement:DD61",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR 286.2",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2017/01/05/2016-31686.txt",
+                "sourceSha256": "6bc7707ed2a8cbce822b4158f87ccf972773898782fb86f9576766869f3b7112",
+                "retainedPath": "raw/fr-2016-31686.txt",
+                "passage": "the Combatant Commands, the Office of the Inspector General of the Department of Defense, the Defense Agencies, the DoD Field Activities, and all other organizational entities within the DoD"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR part 286",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2017/01/05/2016-31686.txt",
+                "sourceSha256": "6bc7707ed2a8cbce822b4158f87ccf972773898782fb86f9576766869f3b7112",
+                "retainedPath": "raw/fr-2016-31686.txt",
+                "passage": "Defense Threat Reduction Agency"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:department-of-interior-s-office-of-insular-affairs",
+        "nameKey": "department of interior s office of insular affairs",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:79f4e1d94bd255c08272ae96d5dca528279172b380197ffa951952c184a0b7a4",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 101040 (2024-12-13), FR Doc 2024-29437, Department of the Interior: \"DEPARTMENT OF THE INTERIOR Office of the Secretary\"; 89 FR 101040 (2024-12-13), FR Doc 2024-29437, Department of the Interior: \"Office of Insular Affairs\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:253",
+        "target": "urn:ref:federal-hierarchy-org:100116252",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "89 FR 101040 (2024-12-13), FR Doc 2024-29437, Department of the Interior",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/12/13/2024-29437.txt",
+                "sourceSha256": "be29d5b4cd2e8d5a8367df155d48d0396ea377731662f87d165e0136fe4f015c",
+                "retainedPath": "raw/fr-2024-29437.txt",
+                "passage": "DEPARTMENT OF THE INTERIOR Office of the Secretary"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "89 FR 101040 (2024-12-13), FR Doc 2024-29437, Department of the Interior",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/12/13/2024-29437.txt",
+                "sourceSha256": "be29d5b4cd2e8d5a8367df155d48d0396ea377731662f87d165e0136fe4f015c",
+                "retainedPath": "raw/fr-2024-29437.txt",
+                "passage": "Office of Insular Affairs"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:development-finance-corporation",
+        "nameKey": "development finance corporation",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:dd5bd5eff724a64e2aec6789e21da87234c8c2be56243d7160c6a74932ee0b69",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): REF-038 reviewed identity publisher name."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:606",
+        "target": "urn:ref:federal-register-agency:606",
+        "claims": []
+      },
+      {
+        "aliasId": "alias:director-of-national-intelligence",
+        "nameKey": "director of national intelligence",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:810413093ac3b756dc0b87f6a8f6bd3b38281e3bd1895b93abeec45d95605348",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 50 U.S.C. 3023: \"There is a Director of National Intelligence\"; 50 U.S.C. 3033: \"There is within the Office of the Director of National Intelligence\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:354",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "50 U.S.C. 3023",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title50/html/USCODE-2024-title50-chap44-subchapI-sec3023.htm",
+                "sourceSha256": "082392679344f3a5c057353bbcc7962f395428e54fc864f7b47c175121054a68",
+                "retainedPath": "raw/usc-50-3023.htm",
+                "passage": "There is a Director of National Intelligence"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "50 U.S.C. 3033",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title50/html/USCODE-2024-title50-chap44-subchapI-sec3033.htm",
+                "sourceSha256": "2d9c8960551d0ef4fe272a9e9c8b2f6b7a27823f491d0b51e9a6caafbe18c929",
+                "retainedPath": "raw/usc-50-3033.htm",
+                "passage": "There is within the Office of the Director of National Intelligence"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:environment-and-natural-resources-division",
+        "nameKey": "environment and natural resources division",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:e3628887c39e3f29cf58ecb9b55794eefaa829af012f0cfc2e073e55c4416426",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 30392 (2024-04-23), FR Doc 2024-07613, Department of Justice: \"AGENCY: Environment and Natural Resources Division, United States Department of Justice.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:268",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "89 FR 30392 (2024-04-23), FR Doc 2024-07613, Department of Justice",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/04/23/2024-07613.txt",
+                "sourceSha256": "5fac243e28e7b62747f68001bb6d687d31e8ffaddc364c2e7de572cf9b110d02",
+                "retainedPath": "raw/fr-2024-07613.txt",
+                "passage": "AGENCY: Environment and Natural Resources Division, United States Department of Justice."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:federal-reserve-bank-of-atlanta",
+        "nameKey": "federal reserve bank of atlanta",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:5d9884f9c198018d8592c43399cf239888b5597233633e466f30fb413c5202b5",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2: \"Federal Reserve Bank of Atlanta, 1000 Peachtree Street, NE., Atlanta, GA 30309.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:188",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 222",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapI-sec222.htm",
+                "sourceSha256": "176cccfe53a53b5d3ddf677d47d83d7c74a8ceb7ef5cc38fcae29aecb725c0ee",
+                "retainedPath": "raw/usc-12-222.htm",
+                "passage": "Sec. 222 - Federal reserve districts; membership of national banks"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 241",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapII-sec241.htm",
+                "sourceSha256": "df34771a6351788bae5631267bd25c2d2c9642b31b3198ad219c732a10c6f334",
+                "retainedPath": "raw/usc-12-241.htm",
+                "passage": "BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2006/03/07/06-2124.txt",
+                "sourceSha256": "d6ef6314aa6479e19ababc721c8abe1173dd14bc6dca90041055bac03f882a26",
+                "retainedPath": "raw/fr-06-2124.txt",
+                "passage": "Federal Reserve Bank of Atlanta, 1000 Peachtree Street, NE., Atlanta, GA 30309."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:federal-reserve-bank-of-boston",
+        "nameKey": "federal reserve bank of boston",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:4aecf7f7cdefd213c07192069c1ec4a7f63dc65d098221ac0260f4d32158b070",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2: \"Federal Reserve Bank of Boston, 600 Atlantic Avenue, Boston, MA 02210.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:188",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 222",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapI-sec222.htm",
+                "sourceSha256": "176cccfe53a53b5d3ddf677d47d83d7c74a8ceb7ef5cc38fcae29aecb725c0ee",
+                "retainedPath": "raw/usc-12-222.htm",
+                "passage": "Sec. 222 - Federal reserve districts; membership of national banks"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 241",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapII-sec241.htm",
+                "sourceSha256": "df34771a6351788bae5631267bd25c2d2c9642b31b3198ad219c732a10c6f334",
+                "retainedPath": "raw/usc-12-241.htm",
+                "passage": "BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2006/03/07/06-2124.txt",
+                "sourceSha256": "d6ef6314aa6479e19ababc721c8abe1173dd14bc6dca90041055bac03f882a26",
+                "retainedPath": "raw/fr-06-2124.txt",
+                "passage": "Federal Reserve Bank of Boston, 600 Atlantic Avenue, Boston, MA 02210."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:federal-reserve-bank-of-chicago",
+        "nameKey": "federal reserve bank of chicago",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:88864bba373b835f9fd5ef0b359ec816434d524b1370f3823182c4f094195fba",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2: \"Federal Reserve Bank of Chicago, 230 South LaSalle Street, Chicago, IL 60604.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:188",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 222",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapI-sec222.htm",
+                "sourceSha256": "176cccfe53a53b5d3ddf677d47d83d7c74a8ceb7ef5cc38fcae29aecb725c0ee",
+                "retainedPath": "raw/usc-12-222.htm",
+                "passage": "Sec. 222 - Federal reserve districts; membership of national banks"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 241",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapII-sec241.htm",
+                "sourceSha256": "df34771a6351788bae5631267bd25c2d2c9642b31b3198ad219c732a10c6f334",
+                "retainedPath": "raw/usc-12-241.htm",
+                "passage": "BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2006/03/07/06-2124.txt",
+                "sourceSha256": "d6ef6314aa6479e19ababc721c8abe1173dd14bc6dca90041055bac03f882a26",
+                "retainedPath": "raw/fr-06-2124.txt",
+                "passage": "Federal Reserve Bank of Chicago, 230 South LaSalle Street, Chicago, IL 60604."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:federal-reserve-bank-of-cleveland",
+        "nameKey": "federal reserve bank of cleveland",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:62cceca2dd22a347eccffb675bc93b7c4f27ac0ab30fd7a0d122b910b03d38f9",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 90 FR 50869 (2025-11-12), FR Doc 2025-19855, Federal Reserve System: \"Federal Reserve Bank of Cleveland (Jenni M. Frazer, Vice President)\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:188",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 222",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapI-sec222.htm",
+                "sourceSha256": "176cccfe53a53b5d3ddf677d47d83d7c74a8ceb7ef5cc38fcae29aecb725c0ee",
+                "retainedPath": "raw/usc-12-222.htm",
+                "passage": "Sec. 222 - Federal reserve districts; membership of national banks"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 241",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapII-sec241.htm",
+                "sourceSha256": "df34771a6351788bae5631267bd25c2d2c9642b31b3198ad219c732a10c6f334",
+                "retainedPath": "raw/usc-12-241.htm",
+                "passage": "BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "90 FR 50869 (2025-11-12), FR Doc 2025-19855, Federal Reserve System",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/11/12/2025-19855.txt",
+                "sourceSha256": "86e992fd5b58aaa811931d91eff1f62daf2187884c5be59af939dc607739f96e",
+                "retainedPath": "raw/fr-2025-19855.txt",
+                "passage": "Federal Reserve Bank of Cleveland (Jenni M. Frazer, Vice President)"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:federal-reserve-bank-of-dallas",
+        "nameKey": "federal reserve bank of dallas",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:0d6ebb6cb798af791ad2714e4f85a29048b43e81af7d8669111afe31ad37de78",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2: \"Federal Reserve Bank of Dallas, 2200 North Pearl Street, Dallas, TX 75201.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:188",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 222",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapI-sec222.htm",
+                "sourceSha256": "176cccfe53a53b5d3ddf677d47d83d7c74a8ceb7ef5cc38fcae29aecb725c0ee",
+                "retainedPath": "raw/usc-12-222.htm",
+                "passage": "Sec. 222 - Federal reserve districts; membership of national banks"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 241",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapII-sec241.htm",
+                "sourceSha256": "df34771a6351788bae5631267bd25c2d2c9642b31b3198ad219c732a10c6f334",
+                "retainedPath": "raw/usc-12-241.htm",
+                "passage": "BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2006/03/07/06-2124.txt",
+                "sourceSha256": "d6ef6314aa6479e19ababc721c8abe1173dd14bc6dca90041055bac03f882a26",
+                "retainedPath": "raw/fr-06-2124.txt",
+                "passage": "Federal Reserve Bank of Dallas, 2200 North Pearl Street, Dallas, TX 75201."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:federal-reserve-bank-of-kansas-city",
+        "nameKey": "federal reserve bank of kansas city",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:9d97b41fe781506269922c048eecda5b7823dcf81907249c105f9dfcebafc2e2",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2: \"Federal Reserve Bank of Kansas City, 925 Grand Boulevard, Kansas City, MO 64198.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:188",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 222",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapI-sec222.htm",
+                "sourceSha256": "176cccfe53a53b5d3ddf677d47d83d7c74a8ceb7ef5cc38fcae29aecb725c0ee",
+                "retainedPath": "raw/usc-12-222.htm",
+                "passage": "Sec. 222 - Federal reserve districts; membership of national banks"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 241",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapII-sec241.htm",
+                "sourceSha256": "df34771a6351788bae5631267bd25c2d2c9642b31b3198ad219c732a10c6f334",
+                "retainedPath": "raw/usc-12-241.htm",
+                "passage": "BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2006/03/07/06-2124.txt",
+                "sourceSha256": "d6ef6314aa6479e19ababc721c8abe1173dd14bc6dca90041055bac03f882a26",
+                "retainedPath": "raw/fr-06-2124.txt",
+                "passage": "Federal Reserve Bank of Kansas City, 925 Grand Boulevard, Kansas City, MO 64198."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:federal-reserve-bank-of-minneapolis",
+        "nameKey": "federal reserve bank of minneapolis",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:50048d62dc88238bc92cb70e301e72c423ee77d345d4a3440bfbaf7a91d336df",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2: \"Federal Reserve Bank of Minneapolis, 90 Hennepin Avenue, Minneapolis, MN 55401.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:188",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 222",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapI-sec222.htm",
+                "sourceSha256": "176cccfe53a53b5d3ddf677d47d83d7c74a8ceb7ef5cc38fcae29aecb725c0ee",
+                "retainedPath": "raw/usc-12-222.htm",
+                "passage": "Sec. 222 - Federal reserve districts; membership of national banks"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 241",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapII-sec241.htm",
+                "sourceSha256": "df34771a6351788bae5631267bd25c2d2c9642b31b3198ad219c732a10c6f334",
+                "retainedPath": "raw/usc-12-241.htm",
+                "passage": "BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2006/03/07/06-2124.txt",
+                "sourceSha256": "d6ef6314aa6479e19ababc721c8abe1173dd14bc6dca90041055bac03f882a26",
+                "retainedPath": "raw/fr-06-2124.txt",
+                "passage": "Federal Reserve Bank of Minneapolis, 90 Hennepin Avenue, Minneapolis, MN 55401."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:federal-reserve-bank-of-new-york",
+        "nameKey": "federal reserve bank of new york",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:7447c73ce647731feca3b8555f3024fead7db34d2744b75433f70a01b38b744e",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 90 FR 50869 (2025-11-12), FR Doc 2025-19855, Federal Reserve System: \"Federal Reserve Bank of New York (Keith Goodwin, Head of Bank Applications)\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:188",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 222",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapI-sec222.htm",
+                "sourceSha256": "176cccfe53a53b5d3ddf677d47d83d7c74a8ceb7ef5cc38fcae29aecb725c0ee",
+                "retainedPath": "raw/usc-12-222.htm",
+                "passage": "Sec. 222 - Federal reserve districts; membership of national banks"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 241",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapII-sec241.htm",
+                "sourceSha256": "df34771a6351788bae5631267bd25c2d2c9642b31b3198ad219c732a10c6f334",
+                "retainedPath": "raw/usc-12-241.htm",
+                "passage": "BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "90 FR 50869 (2025-11-12), FR Doc 2025-19855, Federal Reserve System",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/11/12/2025-19855.txt",
+                "sourceSha256": "86e992fd5b58aaa811931d91eff1f62daf2187884c5be59af939dc607739f96e",
+                "retainedPath": "raw/fr-2025-19855.txt",
+                "passage": "Federal Reserve Bank of New York (Keith Goodwin, Head of Bank Applications)"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:federal-reserve-bank-of-philadelphia",
+        "nameKey": "federal reserve bank of philadelphia",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:898c7e78a4bae286ef256025239c0d4c21e72b63852a6be05d2a38cc22fafeb7",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2: \"Federal Reserve Bank of Philadelphia, 10 Independence Mall, Philadelphia, PA 19106.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:188",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 222",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapI-sec222.htm",
+                "sourceSha256": "176cccfe53a53b5d3ddf677d47d83d7c74a8ceb7ef5cc38fcae29aecb725c0ee",
+                "retainedPath": "raw/usc-12-222.htm",
+                "passage": "Sec. 222 - Federal reserve districts; membership of national banks"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 241",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapII-sec241.htm",
+                "sourceSha256": "df34771a6351788bae5631267bd25c2d2c9642b31b3198ad219c732a10c6f334",
+                "retainedPath": "raw/usc-12-241.htm",
+                "passage": "BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2006/03/07/06-2124.txt",
+                "sourceSha256": "d6ef6314aa6479e19ababc721c8abe1173dd14bc6dca90041055bac03f882a26",
+                "retainedPath": "raw/fr-06-2124.txt",
+                "passage": "Federal Reserve Bank of Philadelphia, 10 Independence Mall, Philadelphia, PA 19106."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:federal-reserve-bank-of-richmond",
+        "nameKey": "federal reserve bank of richmond",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:5aa726caaef6ace5c41e85975f68356223067044c95cb7725e547572e593e5ef",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 72 FR 132 (2007-01-03), FR Doc E6-22472, Federal Reserve System: \"Federal Reserve Bank of Richmond (A. Linwood Gill, III, Vice President)\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:188",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 222",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapI-sec222.htm",
+                "sourceSha256": "176cccfe53a53b5d3ddf677d47d83d7c74a8ceb7ef5cc38fcae29aecb725c0ee",
+                "retainedPath": "raw/usc-12-222.htm",
+                "passage": "Sec. 222 - Federal reserve districts; membership of national banks"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 241",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapII-sec241.htm",
+                "sourceSha256": "df34771a6351788bae5631267bd25c2d2c9642b31b3198ad219c732a10c6f334",
+                "retainedPath": "raw/usc-12-241.htm",
+                "passage": "BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "72 FR 132 (2007-01-03), FR Doc E6-22472, Federal Reserve System",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2007/01/03/E6-22472.txt",
+                "sourceSha256": "c44d853580715a82fc08cb584d2a6b39cb56f54edd22d25469a3fb37b3077a0f",
+                "retainedPath": "raw/fr-E6-22472.txt",
+                "passage": "Federal Reserve Bank of Richmond (A. Linwood Gill, III, Vice President)"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:federal-reserve-bank-of-san-francisco",
+        "nameKey": "federal reserve bank of san francisco",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:3b8f8ccf58ebbd4c921b0ccfa52af490e1a87954c2b374115371d320e0efb969",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2: \"Federal Reserve Bank of San Francisco, 101 Market Street, San Francisco, CA 94105.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:188",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 222",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapI-sec222.htm",
+                "sourceSha256": "176cccfe53a53b5d3ddf677d47d83d7c74a8ceb7ef5cc38fcae29aecb725c0ee",
+                "retainedPath": "raw/usc-12-222.htm",
+                "passage": "Sec. 222 - Federal reserve districts; membership of national banks"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 241",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapII-sec241.htm",
+                "sourceSha256": "df34771a6351788bae5631267bd25c2d2c9642b31b3198ad219c732a10c6f334",
+                "retainedPath": "raw/usc-12-241.htm",
+                "passage": "BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2006/03/07/06-2124.txt",
+                "sourceSha256": "d6ef6314aa6479e19ababc721c8abe1173dd14bc6dca90041055bac03f882a26",
+                "retainedPath": "raw/fr-06-2124.txt",
+                "passage": "Federal Reserve Bank of San Francisco, 101 Market Street, San Francisco, CA 94105."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:federal-reserve-bank-of-st-louis",
+        "nameKey": "federal reserve bank of st louis",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:3ef0ad839274c79d81b873ec995ff077bed74257cd51fa4a02dd4069e100fc36",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2: \"Federal Reserve Bank of St. Louis, P.O. Box 442, St. Louis, MO 63166-0442.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:188",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 222",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapI-sec222.htm",
+                "sourceSha256": "176cccfe53a53b5d3ddf677d47d83d7c74a8ceb7ef5cc38fcae29aecb725c0ee",
+                "retainedPath": "raw/usc-12-222.htm",
+                "passage": "Sec. 222 - Federal reserve districts; membership of national banks"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 241",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapII-sec241.htm",
+                "sourceSha256": "df34771a6351788bae5631267bd25c2d2c9642b31b3198ad219c732a10c6f334",
+                "retainedPath": "raw/usc-12-241.htm",
+                "passage": "BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2006/03/07/06-2124.txt",
+                "sourceSha256": "d6ef6314aa6479e19ababc721c8abe1173dd14bc6dca90041055bac03f882a26",
+                "retainedPath": "raw/fr-06-2124.txt",
+                "passage": "Federal Reserve Bank of St. Louis, P.O. Box 442, St. Louis, MO 63166-0442."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:federal-reserve-board",
+        "nameKey": "federal reserve board",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:3fbd0ae416504a5870ad252f986c07d99c86c504d8c06085e868749498a40436",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 241: \"Federal Reserve Board\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:188",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 241",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapII-sec241.htm",
+                "sourceSha256": "df34771a6351788bae5631267bd25c2d2c9642b31b3198ad219c732a10c6f334",
+                "retainedPath": "raw/usc-12-241.htm",
+                "passage": "Federal Reserve Board"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 241",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapII-sec241.htm",
+                "sourceSha256": "df34771a6351788bae5631267bd25c2d2c9642b31b3198ad219c732a10c6f334",
+                "retainedPath": "raw/usc-12-241.htm",
+                "passage": "BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:federal-reserve-board-of-governors",
+        "nameKey": "federal reserve board of governors",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:0ec5ee134084d68a669bffd8e7600f7fa7ab7554639b4f5c015e9caa3e530651",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:188",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "12 U.S.C. 241",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapII-sec241.htm",
+                "sourceSha256": "df34771a6351788bae5631267bd25c2d2c9642b31b3198ad219c732a10c6f334",
+                "retainedPath": "raw/usc-12-241.htm",
+                "passage": "BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:federal-voting-assistance-program",
+        "nameKey": "federal voting assistance program",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:074ffc538d3ae21004e958e3662d04534d7fb935589f3458a7d2db13897c163c",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 52 U.S.C. 20301: \"Department of Defense\"; 91 FR 60944 (2026-09-25), FR Doc 2026-19607, Department of Defense: \"Federal Voting Assistance Program, Defense Support Services Center/Personnel Readiness Management Agency\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "52 U.S.C. 20301",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title52/html/USCODE-2024-title52-subtitleII-chap203-sec20301.htm",
+                "sourceSha256": "20996e8848408c94b1b384ad1decfdfd3822b943d0fce4979b95abe137370f62",
+                "retainedPath": "raw/usc-52-20301.htm",
+                "passage": "Department of Defense"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "91 FR 60944 (2026-09-25), FR Doc 2026-19607, Department of Defense",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2026/09/25/2026-19607.txt",
+                "sourceSha256": "1737a9dd284a20b9cf840d40c35328838b418abf1196f8be0462387909d1f159",
+                "retainedPath": "raw/fr-2026-19607.txt",
+                "passage": "Federal Voting Assistance Program, Defense Support Services Center/Personnel Readiness Management Agency"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:geological-survey-water-resources-mission-area",
+        "nameKey": "geological survey water resources mission area",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:047251fe22eb5c730ed1e48de453f510031e4277eabdafaee932c762aef76408",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 90 FR 31678 (2025-07-15), FR Doc 2025-13203, U.S. Geological Survey, DOI: \"DEPARTMENT OF THE INTERIOR Geological Survey\"; 90 FR 31678 (2025-07-15), FR Doc 2025-13203, U.S. Geological Survey, DOI: \"Water Resources Mission Area\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:212",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "90 FR 31678 (2025-07-15), FR Doc 2025-13203, U.S. Geological Survey, DOI",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/07/15/2025-13203.txt",
+                "sourceSha256": "50bd6350523a185d50ad7fc491850597feeaa09e68ecab41a2a74c2e551173e4",
+                "retainedPath": "raw/fr-2025-13203.txt",
+                "passage": "DEPARTMENT OF THE INTERIOR Geological Survey"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "90 FR 31678 (2025-07-15), FR Doc 2025-13203, U.S. Geological Survey, DOI",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/07/15/2025-13203.txt",
+                "sourceSha256": "50bd6350523a185d50ad7fc491850597feeaa09e68ecab41a2a74c2e551173e4",
+                "retainedPath": "raw/fr-2025-13203.txt",
+                "passage": "Water Resources Mission Area"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:government-printing-office",
+        "nameKey": "government printing office",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:4c77d9f8099ebaab05dbed84a6cdece54d5002c1a2b4360c300dc234f88dd9b9",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): Pub. L. 113-235, Div. H, sec. 1301(a), 128 Stat. 2537 (2014-12-16): \"The Government Printing Office is hereby redesignated the Government Publishing Office.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:217",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "Pub. L. 113-235, Div. H, sec. 1301(a), 128 Stat. 2537 (2014-12-16)",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/PLAW-113publ235/html/PLAW-113publ235.htm",
+                "sourceSha256": "96ab7ed1d845c8e5bedf6d2db62362589365e7989c11d81d5741118aa482fa15",
+                "retainedPath": "raw/plaw-113-235.htm",
+                "passage": "The Government Printing Office is hereby redesignated the Government Publishing Office."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:indo-pacific-command",
+        "nameKey": "indo pacific command",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:d74c9506dd25b4ae8cfff4a2ac2bfba5c0ba34fd690c6e9cf1d94f95cd9a5619",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 10 U.S.C. 161: \"The combatant command known as the United States Pacific Command shall be known as the 'United States Indo-Pacific Command'.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 111",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm",
+                "sourceSha256": "3a2e6c8384a316a5ab5ffa7dc5556a3389ffc86e2dff6bf7221e397074af3a1f",
+                "retainedPath": "raw/usc-10-111.htm",
+                "passage": "(9) The unified and specified combatant commands."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 161",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap6-sec161.htm",
+                "sourceSha256": "f0db66d6a1cdfd3dcb8fa32ded99ec658ebe9d6f43379b0fae28128fd171d3cc",
+                "retainedPath": "raw/usc-10-161.htm",
+                "passage": "The combatant command known as the United States Pacific Command shall be known as the 'United States Indo-Pacific Command'."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:installation-management-command",
+        "nameKey": "installation management command",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:7a42ba4989e2bfc41f867b5cd465c981d0a9582824b7c9c8644f88faed82c981",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 90 FR 43147 (2025-09-08), FR Doc 2025-17223, FAA / DoD Army airspace: \"United States (U.S.) Army Installation Management Command (IMCOM)\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:32",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "90 FR 43147 (2025-09-08), FR Doc 2025-17223, FAA / DoD Army airspace",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/09/08/2025-17223.txt",
+                "sourceSha256": "1b4fea8dba301a3f672e5a6700e8b2158fc73983d3113422cf88bf1a6b3f938f",
+                "retainedPath": "raw/fr-2025-17223.txt",
+                "passage": "United States (U.S.) Army Installation Management Command (IMCOM)"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:institute-for-national-strategic-studies",
+        "nameKey": "institute for national strategic studies",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:2a5e07034274202272378085226fbf04274ceb4d38ee5bf1ca716f10041db506",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 81 FR 91143 (2016-12-16), FR Doc 2016-30271, National Defense University, DoD: \"AGENCY: National Defense University, DoD.\"; 81 FR 91143 (2016-12-16), FR Doc 2016-30271, National Defense University, DoD: \"Institute for National Strategic Studies\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "81 FR 91143 (2016-12-16), FR Doc 2016-30271, National Defense University, DoD",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2016/12/16/2016-30271.txt",
+                "sourceSha256": "e644e525c2070b0a54b7399f169490cd04ce709d2aa14c2ec7f6678725c19806",
+                "retainedPath": "raw/fr-2016-30271.txt",
+                "passage": "AGENCY: National Defense University, DoD."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "81 FR 91143 (2016-12-16), FR Doc 2016-30271, National Defense University, DoD",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2016/12/16/2016-30271.txt",
+                "sourceSha256": "e644e525c2070b0a54b7399f169490cd04ce709d2aa14c2ec7f6678725c19806",
+                "retainedPath": "raw/fr-2016-30271.txt",
+                "passage": "Institute for National Strategic Studies"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:interagency-council-on-homelessness",
+        "nameKey": "interagency council on homelessness",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:a6b75992dcea5cf0bc00a202c9ae6266d151a7b9a7dbd81f9b7fc5859fc314ee",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 42 U.S.C. 11311: \"United States Interagency Council on Homelessness\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": null,
+        "fr": null,
+        "target": "urn:ref:opm-ehri-agency-subelement:HW00",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "42 U.S.C. 11311",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap119-subchapII-sec11311.htm",
+                "sourceSha256": "6a97bfaa488fb8187216314798d098a4ba9760bbc452f6b5882dc747f886cd2a",
+                "retainedPath": "raw/usc-42-11311.htm",
+                "passage": "United States Interagency Council on Homelessness"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:joint-functional-component-command-for-integrated-missile-defense",
+        "nameKey": "joint functional component command for integrated missile defense",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:81713df76ece62b749369330b8483af472a316121fe768a6a1a5434d9ab8d6dc",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 82 FR 5325 (2017-01-17), FR Doc 2017-01169, Executive Order 13760: \"United States Strategic Command (USSTRATCOM) and all components, centers, or sub-unified commands currently assigned to USSTRATCOM\"; 82 FR 5325 (2017-01-17), FR Doc 2017-01169, Executive Order 13760: \"Joint Functional Component Command--Integrated Missile Defense (JFCC IMD).\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 111",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm",
+                "sourceSha256": "3a2e6c8384a316a5ab5ffa7dc5556a3389ffc86e2dff6bf7221e397074af3a1f",
+                "retainedPath": "raw/usc-10-111.htm",
+                "passage": "(9) The unified and specified combatant commands."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "82 FR 5325 (2017-01-17), FR Doc 2017-01169, Executive Order 13760",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2017/01/17/2017-01169.txt",
+                "sourceSha256": "79734337dcfb21740b621cac8bf22bf17e69fac2b500a41575114812449b9a2f",
+                "retainedPath": "raw/fr-2017-01169.txt",
+                "passage": "United States Strategic Command (USSTRATCOM) and all components, centers, or sub-unified commands currently assigned to USSTRATCOM"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "82 FR 5325 (2017-01-17), FR Doc 2017-01169, Executive Order 13760",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2017/01/17/2017-01169.txt",
+                "sourceSha256": "79734337dcfb21740b621cac8bf22bf17e69fac2b500a41575114812449b9a2f",
+                "retainedPath": "raw/fr-2017-01169.txt",
+                "passage": "Joint Functional Component Command--Integrated Missile Defense (JFCC IMD)."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:joint-functional-component-command-for-space",
+        "nameKey": "joint functional component command for space",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:ad2f0abba980d9042a3f9b51a7b14a5cf7a9ff2080b743dcba29b43933157c68",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 82 FR 5325 (2017-01-17), FR Doc 2017-01169, Executive Order 13760: \"United States Strategic Command (USSTRATCOM) and all components, centers, or sub-unified commands currently assigned to USSTRATCOM\"; 82 FR 5325 (2017-01-17), FR Doc 2017-01169, Executive Order 13760: \"Joint Functional Component Command--Space (JFCC Space).\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 111",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm",
+                "sourceSha256": "3a2e6c8384a316a5ab5ffa7dc5556a3389ffc86e2dff6bf7221e397074af3a1f",
+                "retainedPath": "raw/usc-10-111.htm",
+                "passage": "(9) The unified and specified combatant commands."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "82 FR 5325 (2017-01-17), FR Doc 2017-01169, Executive Order 13760",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2017/01/17/2017-01169.txt",
+                "sourceSha256": "79734337dcfb21740b621cac8bf22bf17e69fac2b500a41575114812449b9a2f",
+                "retainedPath": "raw/fr-2017-01169.txt",
+                "passage": "United States Strategic Command (USSTRATCOM) and all components, centers, or sub-unified commands currently assigned to USSTRATCOM"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "82 FR 5325 (2017-01-17), FR Doc 2017-01169, Executive Order 13760",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2017/01/17/2017-01169.txt",
+                "sourceSha256": "79734337dcfb21740b621cac8bf22bf17e69fac2b500a41575114812449b9a2f",
+                "retainedPath": "raw/fr-2017-01169.txt",
+                "passage": "Joint Functional Component Command--Space (JFCC Space)."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:marketing-and-regulatory-programs",
+        "nameKey": "marketing and regulatory programs",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:32ca89f31dd3bfeec915d0a48f620518d85fdc59606dcf7928bec193bc779ad7",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 91 FR 47212 (2026-07-28), FR Doc 2026-15156, USDA: \"The Marketing and Regulatory Programs (MRP) mission area of USDA\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:12",
+        "target": "urn:ref:federal-hierarchy-org:100525723",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "91 FR 47212 (2026-07-28), FR Doc 2026-15156, USDA",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2026/07/28/2026-15156.txt",
+                "sourceSha256": "969f0ceabe4bf3d435cd7716624218b863d8116135e858ae99f173f695767207",
+                "retainedPath": "raw/fr-2026-15156.txt",
+                "passage": "The Marketing and Regulatory Programs (MRP) mission area of USDA"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:medicaid-and-chip-payment-and-access-commission",
+        "nameKey": "medicaid and chip payment and access commission",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:5380b910e63d122ad0c272ea104d2a38b9c04a8fbc8e771e28d759dd60c3daf8",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 42 U.S.C. 1396: \"There is hereby established the Medicaid and CHIP Payment and Access Commission (in this section referred to as \"MACPAC\").\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": null,
+        "fr": null,
+        "target": "urn:ref:opm-ehri-agency-subelement:RO00",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "42 U.S.C. 1396",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap7-subchapXIX-sec1396.htm",
+                "sourceSha256": "fad2d8a9155ebe6275a9d554e84b60c9d4aef038b42a2aa5cec616b22e094af2",
+                "retainedPath": "raw/usc-42-1396.htm",
+                "passage": "There is hereby established the Medicaid and CHIP Payment and Access Commission (in this section referred to as \"MACPAC\")."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:morris-k-and-stewart-l-udall-foundation",
+        "nameKey": "morris k and stewart l udall foundation",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:ceadf1d5e232dde57069e42f5129f9c8774d3b12bcd166809918966efa1c9002",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 20 U.S.C. 5603: \"Establishment of Morris K. Udall and Stewart L. Udall Foundation\"; 89 FR 84400 (2024-10-22), FR Doc 2024-24461, Morris K. Udall and Stewart L. Udall Foundation: \"AGENCY: Morris K. Udall and Stewart L. Udall Foundation.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:296",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "20 U.S.C. 5603",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title20/html/USCODE-2024-title20-chap66-sec5603.htm",
+                "sourceSha256": "1fa213a0c7ae8d784bd9d34b3ba43c889f4f302e055fbb6fdc4496742f1fa990",
+                "retainedPath": "raw/usc-20-5603.htm",
+                "passage": "Establishment of Morris K. Udall and Stewart L. Udall Foundation"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "89 FR 84400 (2024-10-22), FR Doc 2024-24461, Morris K. Udall and Stewart L. Udall Foundation",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/10/22/2024-24461.txt",
+                "sourceSha256": "d3a8afd10ad9a41e3cb58c67f2385fdc4f47cbc23c73569ba30f34506ad3b264",
+                "retainedPath": "raw/fr-2024-24461.txt",
+                "passage": "AGENCY: Morris K. Udall and Stewart L. Udall Foundation."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:nasa-aeronautics-research-institute",
+        "nameKey": "nasa aeronautics research institute",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:18ebb3ba290a14692a5becb76d2b8ab6723cf03f1aedad52616c51d0bc9976bf",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): NASA Aeronautics Research Institute (nari.arc.nasa.gov): \"NARI - NASA Aeronautics Research Institute\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:301",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "NASA Aeronautics Research Institute (nari.arc.nasa.gov)",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://nari.arc.nasa.gov/",
+                "sourceSha256": "38fa73f9348fa660640e5a7e4533a9987948f5378665986ed5f4fdfc442463b5",
+                "retainedPath": "raw/nasa-nari.html",
+                "passage": "NARI - NASA Aeronautics Research Institute"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:national-aeronautics-and-space-administration-office-of-inspector-general",
+        "nameKey": "national aeronautics and space administration office of inspector general",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:09fb310be9a2d1dc8820639c92ea386031fb4978fc88a80148253b01356da725",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 91 FR 45829 (2026-07-21), FR Doc 2026-14603, NASA: \"AGENCY: National Aeronautics and Space Administration (NASA).\"; 91 FR 45829 (2026-07-21), FR Doc 2026-14603, NASA: \"Office of Inspector General\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:301",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "91 FR 45829 (2026-07-21), FR Doc 2026-14603, NASA",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2026/07/21/2026-14603.txt",
+                "sourceSha256": "e2569a13d4e1c65826a999a1a601c88242d4dba080c33470a5bf3896f6f37ec4",
+                "retainedPath": "raw/fr-2026-14603.txt",
+                "passage": "AGENCY: National Aeronautics and Space Administration (NASA)."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "91 FR 45829 (2026-07-21), FR Doc 2026-14603, NASA",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2026/07/21/2026-14603.txt",
+                "sourceSha256": "e2569a13d4e1c65826a999a1a601c88242d4dba080c33470a5bf3896f6f37ec4",
+                "retainedPath": "raw/fr-2026-14603.txt",
+                "passage": "Office of Inspector General"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:national-cancer-institute",
+        "nameKey": "national cancer institute",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:5a1f971f0ebc090b4bf916ff2209c12714e3536d350616b495e77cf371d85d45",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 42 U.S.C. 281: \"The following agencies of the National Institutes of Health are national research institutes or national centers:\"; 42 U.S.C. 281: \"(1) The National Cancer Institute.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:353",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "42 U.S.C. 281",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap6A-subchapIII-partA-sec281.htm",
+                "sourceSha256": "9690f8b28178b5bc4ccf6b215839ff6ea65a5685802c6d0a507593930bc56278",
+                "retainedPath": "raw/usc-42-281.htm",
+                "passage": "The following agencies of the National Institutes of Health are national research institutes or national centers:"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "42 U.S.C. 281",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap6A-subchapIII-partA-sec281.htm",
+                "sourceSha256": "9690f8b28178b5bc4ccf6b215839ff6ea65a5685802c6d0a507593930bc56278",
+                "retainedPath": "raw/usc-42-281.htm",
+                "passage": "(1) The National Cancer Institute."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:national-center-for-injury-prevention-and-control",
+        "nameKey": "national center for injury prevention and control",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:71c350403224cd7a60ed7a5b3e6dd55d058b1b7a3aaf8359c42b27ae8d5d7da4",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 91 FR 10612 (2026-03-04), FR Doc 2026-04237, CDC / HHS: \"National Center for Injury Prevention and Control; Notice of Charter Renewal AGENCY: Centers for Disease Control and Prevention (CDC)\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:44",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "91 FR 10612 (2026-03-04), FR Doc 2026-04237, CDC / HHS",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2026/03/04/2026-04237.txt",
+                "sourceSha256": "cf4169bd8830a66b1488034ccdd456ce428a7d62edcc1cc3179067029c5cc039",
+                "retainedPath": "raw/fr-2026-04237.txt",
+                "passage": "National Center for Injury Prevention and Control; Notice of Charter Renewal AGENCY: Centers for Disease Control and Prevention (CDC)"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:national-heart-lung-and-blood-institute",
+        "nameKey": "national heart lung and blood institute",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:134952fb5bc3b99ebb924ad19719bfd1acad282328bc0714dcf9e0f3ce29b27b",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 42 U.S.C. 281: \"The following agencies of the National Institutes of Health are national research institutes or national centers:\"; 42 U.S.C. 281: \"(2) The National Heart, Lung, and Blood Institute.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:353",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "42 U.S.C. 281",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap6A-subchapIII-partA-sec281.htm",
+                "sourceSha256": "9690f8b28178b5bc4ccf6b215839ff6ea65a5685802c6d0a507593930bc56278",
+                "retainedPath": "raw/usc-42-281.htm",
+                "passage": "The following agencies of the National Institutes of Health are national research institutes or national centers:"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "42 U.S.C. 281",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap6A-subchapIII-partA-sec281.htm",
+                "sourceSha256": "9690f8b28178b5bc4ccf6b215839ff6ea65a5685802c6d0a507593930bc56278",
+                "retainedPath": "raw/usc-42-281.htm",
+                "passage": "(2) The National Heart, Lung, and Blood Institute."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:national-institute-of-general-medical-sciences",
+        "nameKey": "national institute of general medical sciences",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:ea6b8a3d9ffde99fbde5e75bd199b0b70b88e69806d6e3f49fa7d5287e068036",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 42 U.S.C. 281: \"The following agencies of the National Institutes of Health are national research institutes or national centers:\"; 42 U.S.C. 281: \"(15) The National Institute of General Medical Sciences.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:353",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "42 U.S.C. 281",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap6A-subchapIII-partA-sec281.htm",
+                "sourceSha256": "9690f8b28178b5bc4ccf6b215839ff6ea65a5685802c6d0a507593930bc56278",
+                "retainedPath": "raw/usc-42-281.htm",
+                "passage": "The following agencies of the National Institutes of Health are national research institutes or national centers:"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "42 U.S.C. 281",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap6A-subchapIII-partA-sec281.htm",
+                "sourceSha256": "9690f8b28178b5bc4ccf6b215839ff6ea65a5685802c6d0a507593930bc56278",
+                "retainedPath": "raw/usc-42-281.htm",
+                "passage": "(15) The National Institute of General Medical Sciences."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:national-institute-of-mental-health",
+        "nameKey": "national institute of mental health",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:97b5bbbb3e645e073727ee9b07168dc71d28176e1cb69e0f29f79a3b87cf6407",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 42 U.S.C. 281: \"The following agencies of the National Institutes of Health are national research institutes or national centers:\"; 42 U.S.C. 281: \"(14) The National Institute of Mental Health.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:353",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "42 U.S.C. 281",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap6A-subchapIII-partA-sec281.htm",
+                "sourceSha256": "9690f8b28178b5bc4ccf6b215839ff6ea65a5685802c6d0a507593930bc56278",
+                "retainedPath": "raw/usc-42-281.htm",
+                "passage": "The following agencies of the National Institutes of Health are national research institutes or national centers:"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "42 U.S.C. 281",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap6A-subchapIII-partA-sec281.htm",
+                "sourceSha256": "9690f8b28178b5bc4ccf6b215839ff6ea65a5685802c6d0a507593930bc56278",
+                "retainedPath": "raw/usc-42-281.htm",
+                "passage": "(14) The National Institute of Mental Health."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:national-institute-of-neurological-disorders-and-stroke",
+        "nameKey": "national institute of neurological disorders and stroke",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:abed992730b11901eddd832ed3a92b289828121da420c853414af33b7a7617c8",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 42 U.S.C. 281: \"The following agencies of the National Institutes of Health are national research institutes or national centers:\"; 42 U.S.C. 281: \"(10) The National Institute of Neurological Disorders and Stroke.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:353",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "42 U.S.C. 281",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap6A-subchapIII-partA-sec281.htm",
+                "sourceSha256": "9690f8b28178b5bc4ccf6b215839ff6ea65a5685802c6d0a507593930bc56278",
+                "retainedPath": "raw/usc-42-281.htm",
+                "passage": "The following agencies of the National Institutes of Health are national research institutes or national centers:"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "42 U.S.C. 281",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap6A-subchapIII-partA-sec281.htm",
+                "sourceSha256": "9690f8b28178b5bc4ccf6b215839ff6ea65a5685802c6d0a507593930bc56278",
+                "retainedPath": "raw/usc-42-281.htm",
+                "passage": "(10) The National Institute of Neurological Disorders and Stroke."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:national-institute-on-drug-abuse",
+        "nameKey": "national institute on drug abuse",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:e96fa9f8b3c6beec7e38d99b00a6720210f9f02a4bdd2525a4c0c338971a205d",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 42 U.S.C. 281: \"The following agencies of the National Institutes of Health are national research institutes or national centers:\"; 42 U.S.C. 281: \"(13) The National Institute on Drug Abuse.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:353",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "42 U.S.C. 281",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap6A-subchapIII-partA-sec281.htm",
+                "sourceSha256": "9690f8b28178b5bc4ccf6b215839ff6ea65a5685802c6d0a507593930bc56278",
+                "retainedPath": "raw/usc-42-281.htm",
+                "passage": "The following agencies of the National Institutes of Health are national research institutes or national centers:"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "42 U.S.C. 281",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap6A-subchapIII-partA-sec281.htm",
+                "sourceSha256": "9690f8b28178b5bc4ccf6b215839ff6ea65a5685802c6d0a507593930bc56278",
+                "retainedPath": "raw/usc-42-281.htm",
+                "passage": "(13) The National Institute on Drug Abuse."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:national-marine-fisheries-service",
+        "nameKey": "national marine fisheries service",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:412478896ac58ced884eaaaf4cf356c309e941e35d48aff53d32243f05c7ad5a",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 72381 (2024-09-05), FR Doc 2024-19930, Department of Commerce / NOAA: \"National Marine Fisheries Service, NOAA\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:361",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "89 FR 72381 (2024-09-05), FR Doc 2024-19930, Department of Commerce / NOAA",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/09/05/2024-19930.txt",
+                "sourceSha256": "623daa84df052ef2c87a26a199686e69d2f9d6d3558b38cc677bfe89334bd10b",
+                "retainedPath": "raw/fr-2024-19930.txt",
+                "passage": "National Marine Fisheries Service, NOAA"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:national-ocean-service",
+        "nameKey": "national ocean service",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:b17b1045fb1835cc4577d221436037303f37b72033fa6f83e0c60af577f2ac01",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 72381 (2024-09-05), FR Doc 2024-19930, Department of Commerce / NOAA: \"National Ocean Service, NOAA\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:361",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "89 FR 72381 (2024-09-05), FR Doc 2024-19930, Department of Commerce / NOAA",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/09/05/2024-19930.txt",
+                "sourceSha256": "623daa84df052ef2c87a26a199686e69d2f9d6d3558b38cc677bfe89334bd10b",
+                "retainedPath": "raw/fr-2024-19930.txt",
+                "passage": "National Ocean Service, NOAA"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:national-security-commission-on-emerging-biotechnology",
+        "nameKey": "national security commission on emerging biotechnology",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:bd310a60bb7661ec020310dd6ac7caf6a751fc11f539beece6ce632018b8f04a",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): National Security Commission on Emerging Biotechnology (biotech.senate.gov/about): \"National Security Commission on Emerging Biotechnology\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": null,
+        "fr": null,
+        "target": "urn:ref:opm-ehri-agency-subelement:LL08",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "National Security Commission on Emerging Biotechnology (biotech.senate.gov/about)",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.biotech.senate.gov/aboutus/",
+                "sourceSha256": "fba34a74bdec34a1b4f1c372af2527b33e459b3a762a738e32967e8e1b9cf7cb",
+                "retainedPath": "raw/nsceb-about.html",
+                "passage": "National Security Commission on Emerging Biotechnology"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:national-weather-service",
+        "nameKey": "national weather service",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:e3083892c336564b78ffbb09860690ac5e99e639540a1fad9a7415d603a719c1",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 15 U.S.C. 313: \"CHAPTER 9 - NATIONAL WEATHER SERVICE\"; 89 FR 72381 (2024-09-05), FR Doc 2024-19930, Department of Commerce / NOAA: \"National Weather Service, NOAA\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:361",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "15 U.S.C. 313",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title15/html/USCODE-2024-title15-chap9-sec313.htm",
+                "sourceSha256": "af35aefac6fea35b6bc0f66a1f79f549d6d5b85f534471d8cdd5b706a8f0e845",
+                "retainedPath": "raw/usc-15-313.htm",
+                "passage": "CHAPTER 9 - NATIONAL WEATHER SERVICE"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "89 FR 72381 (2024-09-05), FR Doc 2024-19930, Department of Commerce / NOAA",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/09/05/2024-19930.txt",
+                "sourceSha256": "623daa84df052ef2c87a26a199686e69d2f9d6d3558b38cc677bfe89334bd10b",
+                "retainedPath": "raw/fr-2024-19930.txt",
+                "passage": "National Weather Service, NOAA"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:naval-surface-warfare-center",
+        "nameKey": "naval surface warfare center",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:86f8ab216b621df68f3c3a1be59d2a2e18a978193f8005c1866939872fe69e6f",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 74263 (2024-09-12), FR Doc 2024-20680, Department of the Navy: \"Naval Surface Warfare Center Carderock\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:378",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "89 FR 74263 (2024-09-12), FR Doc 2024-20680, Department of the Navy",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/09/12/2024-20680.txt",
+                "sourceSha256": "29bc437f23afdf4ad611ee48c8fc3f02a002dc3108ca3ae55bffb8ea92feb402",
+                "retainedPath": "raw/fr-2024-20680.txt",
+                "passage": "Naval Surface Warfare Center Carderock"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:naval-war-college",
+        "nameKey": "naval war college",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:a2b4292690018e589dbb51240ac2fd2bef7bcbf0021e51595cd678095b265b9d",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 8591: \"Naval War College\"; 91 FR 35969 (2026-06-15), FR Doc 2026-11925, Department of the Navy: \"Naval War College (NWC)\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:378",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 8591",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleC-partIII-chap859-sec8591.htm",
+                "sourceSha256": "caaff58606061be23d9e1cb257fb08a904e44edcaac8da8398116ca229effc57",
+                "retainedPath": "raw/usc-10-8591.htm",
+                "passage": "Naval War College"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "91 FR 35969 (2026-06-15), FR Doc 2026-11925, Department of the Navy",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2026/06/15/2026-11925.txt",
+                "sourceSha256": "8e1f08792a08645f17b318a8e85c9c691cf5abe39872b8ca1278046b01f0cd41",
+                "retainedPath": "raw/fr-2026-11925.txt",
+                "passage": "Naval War College (NWC)"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:navy-energy-installations-and-environment",
+        "nameKey": "navy energy installations and environment",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:09d342cab90e205e41e5ff091abe864499f3ee7d5fd6e8c8cfcd93578d234c7f",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 8016: \"Assistant Secretaries of the Navy\"; 90 FR 21552 (2025-05-20), FR Doc 2025-08853, Department of Defense: \"ASSISTANT SECRETARY OF THE NAVY (ENERGY, INSTALLATIONS AND ENVIRONMENT)\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:378",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 8016",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleC-partI-chap803-sec8016.htm",
+                "sourceSha256": "8ff564bdb8496507b7f7f26eef2bdcbb4e0a22c77f195d8c088852ae27253dde",
+                "retainedPath": "raw/usc-10-8016.htm",
+                "passage": "Assistant Secretaries of the Navy"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "90 FR 21552 (2025-05-20), FR Doc 2025-08853, Department of Defense",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/05/20/2025-08853.txt",
+                "sourceSha256": "645991eb7145a146a78e8fb3c2130ee1c9c33fd2181e2a5a4f23a34ef121aec2",
+                "retainedPath": "raw/fr-2025-08853.txt",
+                "passage": "ASSISTANT SECRETARY OF THE NAVY (ENERGY, INSTALLATIONS AND ENVIRONMENT)"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:networking-and-information-technology-research-and-development-program",
+        "nameKey": "networking and information technology research and development program",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:b0a9a640e55741007b2aebd20251b25fbd0e7ed35304c42684d838f45f64c816",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 15 U.S.C. 5511: \"Sec. 5511 - Networking and Information Technology Research and Development Program\"; 89 FR 106608 (2024-12-30), FR Doc 2024-31221, OSTP: \"Networking and Information Technology Research and Development (NITRD) Program\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:464",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "15 U.S.C. 5511",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title15/html/USCODE-2024-title15-chap81-subchapI-sec5511.htm",
+                "sourceSha256": "c2d36ab26786bc5e6e5e8b838be207acc06ab5ea7c5aa58191da954ade32d9e2",
+                "retainedPath": "raw/usc-15-5511.htm",
+                "passage": "Sec. 5511 - Networking and Information Technology Research and Development Program"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "89 FR 106608 (2024-12-30), FR Doc 2024-31221, OSTP",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/12/30/2024-31221.txt",
+                "sourceSha256": "8856bdfbad73b4a692cbb3bf5b0c748259b37f6d0c62207177ef33024c7ebf27",
+                "retainedPath": "raw/fr-2024-31221.txt",
+                "passage": "Networking and Information Technology Research and Development (NITRD) Program"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:noaa-fisheries",
+        "nameKey": "noaa fisheries",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:1d16efdcdacf8900dd20e30e5cb27491af8f2a670327e9716135ebd62a395052",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 90 FR 42571 (2025-09-03), FR Doc 2025-16825, NOAA: \"NOAA Fisheries Virtual Peer Review Workshop for the Fishing Effort Survey Calibration Model AGENCY: National Marine Fisheries Service (NMFS), National Oceanic and Atmospheric Administration (NOAA)\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:361",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "90 FR 42571 (2025-09-03), FR Doc 2025-16825, NOAA",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/09/03/2025-16825.txt",
+                "sourceSha256": "15eca69d6f773febf8c891340f89d9c5a464965cf614c7a57bf3d49a80dfed02",
+                "retainedPath": "raw/fr-2025-16825.txt",
+                "passage": "NOAA Fisheries Virtual Peer Review Workshop for the Fishing Effort Survey Calibration Model AGENCY: National Marine Fisheries Service (NMFS), National Oceanic and Atmospheric Administration (NOAA)"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:noaa-pacific-islands-fisheries-science-center",
+        "nameKey": "noaa pacific islands fisheries science center",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:59322b67e8e5eec9721d94cde929b818f640862a809791d18e94806e9f9cbe97",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 90 FR 16113 (2025-04-17), FR Doc 2025-06579, NMFS/NOAA: \"permit has been issued to NMFS' Pacific Islands Fisheries Science Center\"; 90 FR 42571 (2025-09-03), FR Doc 2025-16825, NOAA: \"National Marine Fisheries Service (NMFS), National Oceanic and Atmospheric Administration (NOAA)\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:361",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "90 FR 16113 (2025-04-17), FR Doc 2025-06579, NMFS/NOAA",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/04/17/2025-06579.txt",
+                "sourceSha256": "e21fbe3c3be1140f79fff72622b8a8334e51243a13631405accdb4f742a1e5c8",
+                "retainedPath": "raw/fr-2025-06579.txt",
+                "passage": "permit has been issued to NMFS' Pacific Islands Fisheries Science Center"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "90 FR 42571 (2025-09-03), FR Doc 2025-16825, NOAA",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/09/03/2025-16825.txt",
+                "sourceSha256": "15eca69d6f773febf8c891340f89d9c5a464965cf614c7a57bf3d49a80dfed02",
+                "retainedPath": "raw/fr-2025-16825.txt",
+                "passage": "National Marine Fisheries Service (NMFS), National Oceanic and Atmospheric Administration (NOAA)"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:noaa-s-national-environmental-satellite-data-and-information-service",
+        "nameKey": "noaa s national environmental satellite data and information service",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:7512c661aa82a1fb84ab1929b8f0b56e7af03df61bdb697105f73d04b9f11809",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 90 FR 55300 (2025-12-02), FR Doc 2025-21734, Department of Commerce: \"National Environmental Satellite Data and Information Service (NOAA)\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:361",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "90 FR 55300 (2025-12-02), FR Doc 2025-21734, Department of Commerce",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/12/02/2025-21734.txt",
+                "sourceSha256": "15b6b31d80179b90e668d82d0886842d48096a8ddce395dd04ee2a4ed22ee6c2",
+                "retainedPath": "raw/fr-2025-21734.txt",
+                "passage": "National Environmental Satellite Data and Information Service (NOAA)"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:northern-command",
+        "nameKey": "northern command",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:022de1b613a4a3b44c36fa3e23743caab746c4c95034b1f2e0cbad13857769a8",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR part 286: \"United States Africa Command, United States Central Command, United States European Command, United States Northern Command, United States Pacific Command, United States Special Operations Command, United States Strategic Command, and United States Transportation Command.\"; 82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR 286.2: \"the Combatant Commands, the Office of the Inspector General of the Department of Defense, the Defense Agencies, the DoD Field Activities, and all other organizational entities within the DoD\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 111",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm",
+                "sourceSha256": "3a2e6c8384a316a5ab5ffa7dc5556a3389ffc86e2dff6bf7221e397074af3a1f",
+                "retainedPath": "raw/usc-10-111.htm",
+                "passage": "(9) The unified and specified combatant commands."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR part 286",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2017/01/05/2016-31686.txt",
+                "sourceSha256": "6bc7707ed2a8cbce822b4158f87ccf972773898782fb86f9576766869f3b7112",
+                "retainedPath": "raw/fr-2016-31686.txt",
+                "passage": "United States Africa Command, United States Central Command, United States European Command, United States Northern Command, United States Pacific Command, United States Special Operations Command, United States Strategic Command, and United States Transportation Command."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR 286.2",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2017/01/05/2016-31686.txt",
+                "sourceSha256": "6bc7707ed2a8cbce822b4158f87ccf972773898782fb86f9576766869f3b7112",
+                "retainedPath": "raw/fr-2016-31686.txt",
+                "passage": "the Combatant Commands, the Office of the Inspector General of the Department of Defense, the Defense Agencies, the DoD Field Activities, and all other organizational entities within the DoD"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:office-of-accountability-and-whistleblower-protection",
+        "nameKey": "office of accountability and whistleblower protection",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:9713dc9a89ea31db3229a2ea4c40572a27917ba81fb817e40595d604d12f8c46",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 38 U.S.C. 323: \"There is established in the Department an office to be known as the \"Office of Accountability and Whistleblower Protection\"\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:520",
+        "target": "urn:ref:opm-ehri-agency-subelement:VAAJ",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "38 U.S.C. 323",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title38/html/USCODE-2024-title38-partI-chap3-sec323.htm",
+                "sourceSha256": "2ccf1b891d6c8f381e2657d39b606eb075fa70bcba675713a273784f43c8dc5f",
+                "retainedPath": "raw/usc-38-323.htm",
+                "passage": "There is established in the Department an office to be known as the \"Office of Accountability and Whistleblower Protection\""
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:office-of-assistant-secretary-for-indian-affairs",
+        "nameKey": "office of assistant secretary for indian affairs",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:353c9d14c8d751938f1b35bdc1f10080c3584e5293235ec7d7b74e2eb6279074",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 90 FR 44216 (2025-09-12), FR Doc 2025-17697, Department of the Interior: \"DEPARTMENT OF THE INTERIOR\"; 90 FR 44216 (2025-09-12), FR Doc 2025-17697, Department of the Interior: \"The Assistant Secretary for Indian Affairs approves\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:253",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "90 FR 44216 (2025-09-12), FR Doc 2025-17697, Department of the Interior",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/09/12/2025-17697.txt",
+                "sourceSha256": "44e44ce48cc4a8f99d90a2a3adc41217cfaf3786370d49381655395c6222bc68",
+                "retainedPath": "raw/fr-2025-17697.txt",
+                "passage": "DEPARTMENT OF THE INTERIOR"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "90 FR 44216 (2025-09-12), FR Doc 2025-17697, Department of the Interior",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/09/12/2025-17697.txt",
+                "sourceSha256": "44e44ce48cc4a8f99d90a2a3adc41217cfaf3786370d49381655395c6222bc68",
+                "retainedPath": "raw/fr-2025-17697.txt",
+                "passage": "The Assistant Secretary for Indian Affairs approves"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:office-of-assistant-secretary-of-army",
+        "nameKey": "office of assistant secretary of army",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:fb7f39462220486280b7302513f029438006620411cfefbcb41a0de14ac4b1ab",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 7016: \"Assistant Secretary of the Army for Manpower and Reserve Affairs\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:32",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 7016",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleB-partI-chap703-sec7016.htm",
+                "sourceSha256": "e966989a9d73674dbe29c38fda5a28a2dedbbd803d083a3af32d70109a1577d2",
+                "retainedPath": "raw/usc-10-7016.htm",
+                "passage": "Assistant Secretary of the Army for Manpower and Reserve Affairs"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:office-of-assistant-secretary-of-defense-for-health-affairs",
+        "nameKey": "office of assistant secretary of defense for health affairs",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:978792fa7bdeae37bb55c5df3f94f90a076e324c2eb7119a81ec0460f5af4f33",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 138: \"Assistant Secretary of Defense for Health Affairs\"; 90 FR 17582 (2025-04-28), FR Doc 2025-07258, Department of Defense: \"The Assistant Secretary of Defense for Health Affairs (ASD(HA))\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 138",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap4-sec138.htm",
+                "sourceSha256": "74381f224403de2e25baa1b1d0a51db3688774af723f6da45ebe8b6934f823cb",
+                "retainedPath": "raw/usc-10-138.htm",
+                "passage": "Assistant Secretary of Defense for Health Affairs"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "90 FR 17582 (2025-04-28), FR Doc 2025-07258, Department of Defense",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/04/28/2025-07258.txt",
+                "sourceSha256": "8c6355f865b5dacbc25d306637ae11c3a935f2187b9c811ae757c7c60bca07a7",
+                "retainedPath": "raw/fr-2025-07258.txt",
+                "passage": "The Assistant Secretary of Defense for Health Affairs (ASD(HA))"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:office-of-inspector-general-americorps",
+        "nameKey": "office of inspector general americorps",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:0fb8765df38690158aff4adac1ae0f58edffbf1b5b983687a95adab1607cd303",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 6432 (2024-02-01), FR Doc 2024-01555, Corporation for National and Community Service: \"AmeriCorps Statement of Organization AGENCY: Corporation for National and Community Service.\"; 89 FR 6432 (2024-02-01), FR Doc 2024-01555, Corporation for National and Community Service: \"Agency's Office of Inspector General\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:91",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "89 FR 6432 (2024-02-01), FR Doc 2024-01555, Corporation for National and Community Service",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/02/01/2024-01555.txt",
+                "sourceSha256": "d5a540bfcb39a49e3c1acb6a79b533662030868bbd460795e05b497cf0371107",
+                "retainedPath": "raw/fr-2024-01555.txt",
+                "passage": "AmeriCorps Statement of Organization AGENCY: Corporation for National and Community Service."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "89 FR 6432 (2024-02-01), FR Doc 2024-01555, Corporation for National and Community Service",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/02/01/2024-01555.txt",
+                "sourceSha256": "d5a540bfcb39a49e3c1acb6a79b533662030868bbd460795e05b497cf0371107",
+                "retainedPath": "raw/fr-2024-01555.txt",
+                "passage": "Agency's Office of Inspector General"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:office-of-inspector-general-for-board-of-governors-of-federal-reserve-system-and-consumer-financial-protection-bureau",
+        "nameKey": "office of inspector general for board of governors of federal reserve system and consumer financial protection bureau",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:28ce739e15864941daee5c473ce1c5f2fc73884ca92ee877932b559f3a92a7ae",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 90 FR 8124 (2025-01-24), FR Doc 2025-01685, Federal Reserve System: \"Office of Inspector General (OIG) in support of its inquiries, investigations, and reports relating to the programs and operations of the Board and the Consumer Financial Protection Bureau\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:188",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "90 FR 8124 (2025-01-24), FR Doc 2025-01685, Federal Reserve System",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/01/24/2025-01685.txt",
+                "sourceSha256": "bcb67b8456119d7a194d39497f26e0dad3a6658aa1571f51d889de6d418f310c",
+                "retainedPath": "raw/fr-2025-01685.txt",
+                "passage": "Office of Inspector General (OIG) in support of its inquiries, investigations, and reports relating to the programs and operations of the Board and the Consumer Financial Protection Bureau"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:office-of-inspector-general-of-intelligence-community",
+        "nameKey": "office of inspector general of intelligence community",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:e286653ba1d405a42782203ac13c3464f2abcbba33ee0c9bfa8e43f12d30ae7e",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 50 U.S.C. 3033: \"Office of the Director of National Intelligence an Office of the Inspector General of the Intelligence Community.\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:354",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "50 U.S.C. 3033",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title50/html/USCODE-2024-title50-chap44-subchapI-sec3033.htm",
+                "sourceSha256": "2d9c8960551d0ef4fe272a9e9c8b2f6b7a27823f491d0b51e9a6caafbe18c929",
+                "retainedPath": "raw/usc-50-3033.htm",
+                "passage": "Office of the Director of National Intelligence an Office of the Inspector General of the Intelligence Community."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:office-of-insular-affairs",
+        "nameKey": "office of insular affairs",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:e38ac4fc2e8051da0d6dbc243e9f5c8f2b0003845ce63863b45bd05998a64936",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 101040 (2024-12-13), FR Doc 2024-29437, Department of the Interior: \"DEPARTMENT OF THE INTERIOR Office of the Secretary\"; 89 FR 101040 (2024-12-13), FR Doc 2024-29437, Department of the Interior: \"Office of Insular Affairs\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:253",
+        "target": "urn:ref:federal-hierarchy-org:100116252",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "89 FR 101040 (2024-12-13), FR Doc 2024-29437, Department of the Interior",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/12/13/2024-29437.txt",
+                "sourceSha256": "be29d5b4cd2e8d5a8367df155d48d0396ea377731662f87d165e0136fe4f015c",
+                "retainedPath": "raw/fr-2024-29437.txt",
+                "passage": "DEPARTMENT OF THE INTERIOR Office of the Secretary"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "89 FR 101040 (2024-12-13), FR Doc 2024-29437, Department of the Interior",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/12/13/2024-29437.txt",
+                "sourceSha256": "be29d5b4cd2e8d5a8367df155d48d0396ea377731662f87d165e0136fe4f015c",
+                "retainedPath": "raw/fr-2024-29437.txt",
+                "passage": "Office of Insular Affairs"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:office-of-under-secretary-of-defense-for-intelligence",
+        "nameKey": "office of under secretary of defense for intelligence",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:dae33c85259ac4d3e117153cbc880cb846d7d4fdc77e7118ca5330c1684318c4",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 137: \"Under Secretary of Defense for Intelligence and Security\"; 10 U.S.C. 137: \"Department of Defense\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 137",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap4-sec137.htm",
+                "sourceSha256": "651120fe9e3073358ad9ca68ebfecbb4e94a4213b567eef942d2851475560696",
+                "retainedPath": "raw/usc-10-137.htm",
+                "passage": "Under Secretary of Defense for Intelligence and Security"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 137",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap4-sec137.htm",
+                "sourceSha256": "651120fe9e3073358ad9ca68ebfecbb4e94a4213b567eef942d2851475560696",
+                "retainedPath": "raw/usc-10-137.htm",
+                "passage": "Department of Defense"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:office-of-under-secretary-of-defense-for-intelligence-and-security",
+        "nameKey": "office of under secretary of defense for intelligence and security",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:ba6109a2b2bd9d2d2eaed0f504076e20a8a755b13df00f8a5131a93175978d38",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 137: \"There is an Under Secretary of Defense for Intelligence and Security\"; 10 U.S.C. 137: \"Department of Defense\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 137",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap4-sec137.htm",
+                "sourceSha256": "651120fe9e3073358ad9ca68ebfecbb4e94a4213b567eef942d2851475560696",
+                "retainedPath": "raw/usc-10-137.htm",
+                "passage": "There is an Under Secretary of Defense for Intelligence and Security"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 137",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap4-sec137.htm",
+                "sourceSha256": "651120fe9e3073358ad9ca68ebfecbb4e94a4213b567eef942d2851475560696",
+                "retainedPath": "raw/usc-10-137.htm",
+                "passage": "Department of Defense"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:open-world-leadership-center",
+        "nameKey": "open world leadership center",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:be2e5c952fae0729d543cee55daa0c810cfb797076e3742f4629f9c23e3156ea",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 2 U.S.C. 1151: \"Open World Leadership Center\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": null,
+        "fr": null,
+        "target": "urn:ref:federal-hierarchy-org:300000111",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "2 U.S.C. 1151",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2025-title2/html/USCODE-2025-title2-chap22A-sec1151.htm",
+                "sourceSha256": "14cba47fea067fa0a8d7d1686a1fd652f723b6def5f662bf79f6842ad69025a0",
+                "retainedPath": "raw/usc-2-1151.htm",
+                "passage": "Open World Leadership Center"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:pacific-command",
+        "nameKey": "pacific command",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:9e22807f36534874bea032fbeb8501dc5d0a75db72dbf0958da7591f5ead273d",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR part 286: \"United States Africa Command, United States Central Command, United States European Command, United States Northern Command, United States Pacific Command, United States Special Operations Command, United States Strategic Command, and United States Transportation Command.\"; 10 U.S.C. 161: \"United States Pacific Command\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 111",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm",
+                "sourceSha256": "3a2e6c8384a316a5ab5ffa7dc5556a3389ffc86e2dff6bf7221e397074af3a1f",
+                "retainedPath": "raw/usc-10-111.htm",
+                "passage": "(9) The unified and specified combatant commands."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR part 286",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2017/01/05/2016-31686.txt",
+                "sourceSha256": "6bc7707ed2a8cbce822b4158f87ccf972773898782fb86f9576766869f3b7112",
+                "retainedPath": "raw/fr-2016-31686.txt",
+                "passage": "United States Africa Command, United States Central Command, United States European Command, United States Northern Command, United States Pacific Command, United States Special Operations Command, United States Strategic Command, and United States Transportation Command."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 161",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap6-sec161.htm",
+                "sourceSha256": "f0db66d6a1cdfd3dcb8fa32ded99ec658ebe9d6f43379b0fae28128fd171d3cc",
+                "retainedPath": "raw/usc-10-161.htm",
+                "passage": "United States Pacific Command"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:science-mission-directorate",
+        "nameKey": "science mission directorate",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:391880ede38571009f9b1b3d0c0bdf3577deab0f2207b0d016922561ab9af5b4",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 70210 (2024-08-29), FR Doc 2024-19473, NASA: \"Science Mission Directorate, NASA Headquarters\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:301",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "89 FR 70210 (2024-08-29), FR Doc 2024-19473, NASA",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/08/29/2024-19473.txt",
+                "sourceSha256": "2d1b93bb8468542205ee8aab322f7f51143f62967131a4939cacc7a59bac160b",
+                "retainedPath": "raw/fr-2024-19473.txt",
+                "passage": "Science Mission Directorate, NASA Headquarters"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:securities-and-exchange-commission-office-of-inspector-general",
+        "nameKey": "securities and exchange commission office of inspector general",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:1f5eaa5d313d0eac033ed71974abef0cbc940230ecc0831f1d61582c04994d9f",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 73764 (2024-09-11), FR Doc 2024-19819, SEC: \"SEC Office of Inspector General\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:466",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "89 FR 73764 (2024-09-11), FR Doc 2024-19819, SEC",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/09/11/2024-19819.txt",
+                "sourceSha256": "3ba32e30351db07435cb68ab0a87867cba846aaa39a3e1d078b198fbdf26bcf2",
+                "retainedPath": "raw/fr-2024-19819.txt",
+                "passage": "SEC Office of Inspector General"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:smithsonian-air-and-space-museum",
+        "nameKey": "smithsonian air and space museum",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:dce988578812fd858fd396072baabec74d66e68896789d2c2cfa61b1f508627c",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 20 U.S.C. 77: \"established under the Smithsonian Institution a bureau to be known as a National Air and Space Museum\"; 86 FR 72505 (2021-12-21), FR Doc 2021-27841, NASA: \"Smithsonian National Air and Space Museum\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:469",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "20 U.S.C. 77",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title20/html/USCODE-2024-title20-chap3-subchapVII-sec77.htm",
+                "sourceSha256": "84ade7e637884610b92860caee81163d55fcf48ac66fa1f983bdbdc852e22d34",
+                "retainedPath": "raw/usc-20-77.htm",
+                "passage": "established under the Smithsonian Institution a bureau to be known as a National Air and Space Museum"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "86 FR 72505 (2021-12-21), FR Doc 2021-27841, NASA",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2021/12/21/2021-27841.txt",
+                "sourceSha256": "e8210fa3f08d239fb9d3cf7120f9b3d80b95b9177346927027c88c361a338ec4",
+                "retainedPath": "raw/fr-2021-27841.txt",
+                "passage": "Smithsonian National Air and Space Museum"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:socom",
+        "nameKey": "socom",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:acf9c1ed26a391fef8174016ebe2e6d1d459bd40845a01a81e4db52511eace90",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 10 U.S.C. 167: \"unified combatant command for special operations forces\"; 89 FR 90678 (2024-11-18), FR Doc 2024-26843, Department of Defense: \"U.S. Special Operations Command (SOCOM)\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 111",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm",
+                "sourceSha256": "3a2e6c8384a316a5ab5ffa7dc5556a3389ffc86e2dff6bf7221e397074af3a1f",
+                "retainedPath": "raw/usc-10-111.htm",
+                "passage": "(9) The unified and specified combatant commands."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 167",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap6-sec167.htm",
+                "sourceSha256": "5823d55c918cbe6276e74213e8e668847ad9a760f746eb33ab793f090f38ec9f",
+                "retainedPath": "raw/usc-10-167.htm",
+                "passage": "unified combatant command for special operations forces"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "89 FR 90678 (2024-11-18), FR Doc 2024-26843, Department of Defense",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/11/18/2024-26843.txt",
+                "sourceSha256": "453a3c770437b3f012662d43ef33aac42587c893add55a653a99b94c55b9ebfa",
+                "retainedPath": "raw/fr-2024-26843.txt",
+                "passage": "U.S. Special Operations Command (SOCOM)"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:southern-command",
+        "nameKey": "southern command",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:a8ba9dd3b2f0b2cdf5e5002981c0aa5bbccaf9615dd6ca08d30926235560c452",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 91 FR 67302 (2026-10-26), FR Doc 2026-21777, Department of Defense: \"United States Southern Command\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 111",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap2-sec111.htm",
+                "sourceSha256": "3a2e6c8384a316a5ab5ffa7dc5556a3389ffc86e2dff6bf7221e397074af3a1f",
+                "retainedPath": "raw/usc-10-111.htm",
+                "passage": "(9) The unified and specified combatant commands."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "91 FR 67302 (2026-10-26), FR Doc 2026-21777, Department of Defense",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2026/10/26/2026-21777.txt",
+                "sourceSha256": "159c629c389de5b5d4ba42979d076442dee3c045caab17922ea0e8fd7e35dd6f",
+                "retainedPath": "raw/fr-2026-21777.txt",
+                "passage": "United States Southern Command"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:strategic-systems-programs",
+        "nameKey": "strategic systems programs",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:0fe6f2ab396f1aeffc934636acb0251e6598b7353f2aedf355bcaa2524cc141c",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 80 FR 66889 (2015-10-30), FR Doc 2015-27713, Department of the Navy: \"AGENCY: Department of the Navy, DoD.\"; 80 FR 66889 (2015-10-30), FR Doc 2015-27713, Department of the Navy: \"Director, Strategic Systems Programs HQ\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:378",
+        "target": "urn:ref:opm-ehri-agency-subelement:NV30",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "80 FR 66889 (2015-10-30), FR Doc 2015-27713, Department of the Navy",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2015/10/30/2015-27713.txt",
+                "sourceSha256": "8784cd7d68d06121ca957c36a3ed399b93c7024ff5c938d994cd1be7f0e666c7",
+                "retainedPath": "raw/fr-2015-27713.txt",
+                "passage": "AGENCY: Department of the Navy, DoD."
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "80 FR 66889 (2015-10-30), FR Doc 2015-27713, Department of the Navy",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2015/10/30/2015-27713.txt",
+                "sourceSha256": "8784cd7d68d06121ca957c36a3ed399b93c7024ff5c938d994cd1be7f0e666c7",
+                "retainedPath": "raw/fr-2015-27713.txt",
+                "passage": "Director, Strategic Systems Programs HQ"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:test-resource-management-center",
+        "nameKey": "test resource management center",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:eec7fb3a2bc3ce5c8141e768fe4f833feae81dd648e6280d02335416df9e3def",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 4173: \"Establishment as Department of Defense Field Activity\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:103",
+        "target": "urn:ref:opm-ehri-agency-subelement:DD68",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "10 U.S.C. 4173",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partV-subpartE-chap307-sec4173.htm",
+                "sourceSha256": "ead58c89de3b182a2ad21f62656fd440f67873ef3ed20f0ad82dddad53c20e84",
+                "retainedPath": "raw/usc-10-4173.htm",
+                "passage": "Establishment as Department of Defense Field Activity"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:trade-representative",
+        "nameKey": "trade representative",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:38ede20af2ea450623ab5ad51a9d30764351d686080866a1373ead699863b04b",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 19 U.S.C. 2171: \"There is established within the Executive Office of the President the Office of the United States Trade Representative\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:491",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "19 U.S.C. 2171",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title19/html/USCODE-2024-title19-chap12-subchapI-part4-sec2171.htm",
+                "sourceSha256": "5385a977706c715da8591f06eae5dfac2163ab783b93c480eeff793eeb3264bc",
+                "retainedPath": "raw/usc-19-2171.htm",
+                "passage": "There is established within the Executive Office of the President the Office of the United States Trade Representative"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:trustee-program",
+        "nameKey": "trustee program",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:02451a29fdf6b260589b843863fe1b0fd3e1d96526412677b2cc71417b4a2b13",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 28 U.S.C. 581: \"The Attorney General shall appoint one United States trustee\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:268",
+        "target": "urn:ref:opm-ehri-agency-subelement:DJ11",
+        "claims": [
+          {
+            "field": "record",
+            "citation": "28 U.S.C. 581",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title28/html/USCODE-2024-title28-partII-chap39-sec581.htm",
+                "sourceSha256": "4d0214e11c7d7c1e92223b140f6656003dc1a40e828dcaed8a1cd03a075846e1",
+                "retainedPath": "raw/usc-28-581.htm",
+                "passage": "The Attorney General shall appoint one United States trustee"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:usaid-bureau-of-conflict-prevention-and-stabilization",
+        "nameKey": "usaid bureau of conflict prevention and stabilization",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:4ca554994c3ce95d4c1bdb0f9f4dd21430e512d0bccf7d3eabca0082402033d0",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 37948 (2024-05-06), FR Doc 2024-09373, USAID: \"Bureau for Conflict Prevention and Stabilization\"; H.F.A.C. Hearing on Stabilization & Conflict Prevention (CHRG-117hhrg45602): \"U.S. Agency for International Development, Bureau for Conflict Prevention and Stabilization\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "partOf",
+        "fr": "urn:ref:federal-register-agency:6",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "89 FR 37948 (2024-05-06), FR Doc 2024-09373, USAID",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/05/06/2024-09373.txt",
+                "sourceSha256": "8dfcf14933f36fdfd0e90745a983a62a62d3f47f860df34e225025733810b2bc",
+                "retainedPath": "raw/fr-2024-09373.txt",
+                "passage": "Bureau for Conflict Prevention and Stabilization"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "H.F.A.C. Hearing on Stabilization & Conflict Prevention (CHRG-117hhrg45602)",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/CHRG-117hhrg45602/html/CHRG-117hhrg45602.htm",
+                "sourceSha256": "8bebad10036567666b7e008a83eaee683aa62384bd13e8e0ad712eeaf8083e7c",
+                "retainedPath": "raw/chrg-117hhrg45602.htm",
+                "passage": "U.S. Agency for International Development, Bureau for Conflict Prevention and Stabilization"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "aliasId": "alias:white-house-office-of-science-and-technology-policy",
+        "nameKey": "white house office of science and technology policy",
+        "ownerDecision": {
+          "answer": "yes",
+          "decided_on": "2026-11-25",
+          "content_digest": "sha256:935d4084b0fde146acd9e695883ac0f7a9629ed74c90f912ebd9af8408481824",
+          "channel": "decisionsFile",
+          "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 42 U.S.C. 6611: \"Office of Science and Technology Policy\"; 89 FR 48449 (2024-06-06), FR Doc 2024-12399, Office of Science and Technology Policy: \"The White House Office of Science and Technology Policy (OSTP)\"."
+        },
+        "decisionMatchesCandidateDigest": true,
+        "outcome": "alias",
+        "frRelation": "same",
+        "fr": "urn:ref:federal-register-agency:464",
+        "target": null,
+        "claims": [
+          {
+            "field": "record",
+            "citation": "42 U.S.C. 6611",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap79-subchapII-sec6611.htm",
+                "sourceSha256": "5bcb6571f45b808d3b86f6ac52bab80b097028068e1d5a398b246cab6e843b55",
+                "retainedPath": "raw/usc-42-6611.htm",
+                "passage": "Office of Science and Technology Policy"
+              }
+            ]
+          },
+          {
+            "field": "record",
+            "citation": "89 FR 48449 (2024-06-06), FR Doc 2024-12399, Office of Science and Technology Policy",
+            "status": "passage_found_in_retained_bytes",
+            "evidence": [
+              {
+                "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/06/06/2024-12399.txt",
+                "sourceSha256": "e57e5f393dc118ed3cd42ceeb3580acca75c9614ab80cf67d98a7504090ab0cd",
+                "retainedPath": "raw/fr-2024-12399.txt",
+                "passage": "The White House Office of Science and Technology Policy (OSTP)"
+              }
+            ]
+          }
+        ]
+      }
+    ]
   }
 }

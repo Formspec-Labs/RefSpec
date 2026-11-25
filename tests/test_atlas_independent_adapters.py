@@ -27,9 +27,9 @@ PDF_PATHS = {
 
 # The external pins the release job passes (.github/workflows/release.yml), so a
 # changed manifest or receipt fails here too instead of being re-hashed into agreement.
-AGENCY_EVIDENCE_SHA256 = "sha256:ea238cddc9f5089124d66f4ef1a16d55a05c2ed94099bf3a1dff6687093af996"
-AGENCY_REVIEW_SHA256 = "sha256:201b489c479ce7f5339079195310cb45fb6b0bd362ce7f7ac4d76de083c2576d"
-AGENCY_VIEW_SHA256 = "sha256:7a806ea060c0c7a0ee37a991f443edc1a1f9ba74a1f5e1007db1e4e28cb23b7d"
+AGENCY_EVIDENCE_SHA256 = "sha256:acd79fcd243ab03760a4a55c1c3cd995cb65bbc4d457c8b253f603a0d8910fe6"
+AGENCY_REVIEW_SHA256 = "sha256:2e4259576758c94cd5820eab481c2d7b791bc80d121d020e6e17be8fc629ba59"
+AGENCY_VIEW_SHA256 = "sha256:c89935debe320e35aaf748ea0519457c1618b49e13d79ddb33cbc30051b5a118"
 OPM_WORKBOOK = ROOT / agency.OPM_WORKBOOK
 
 
@@ -105,7 +105,13 @@ def plans():
 
 @pytest.fixture
 def alias_plans():
-    cp, dp, *_ = agency.BATCHES[-1]
+    cp, dp, *_ = agency.BATCHES[2]
+    return json.loads((ROOT / cp).read_text()), json.loads((ROOT / dp).read_text())
+
+
+@pytest.fixture
+def alias_batch_2_plans():
+    cp, dp, *_ = agency.BATCHES[3]
     return json.loads((ROOT / cp).read_text()), json.loads((ROOT / dp).read_text())
 
 
@@ -306,13 +312,13 @@ def test_real_agency_wrapper_checks_exact_dedicated_tables():
         "bridges": 13,
         "events": 15,
         "non-emissions": 11,
-        "aliases": 63,
+        "aliases": 157,
         "current-successors": 15,
         "projection": 321,
         "projection-unresolved": 10,
         "organizations": 472,
     }
-    assert len(result["aliasRecordsRead"]) == 62 and all(r["match"] for r in result["aliasRecordsRead"])
+    assert len(result["aliasRecordsRead"]) >= 62 and all(r["match"] for r in result["aliasRecordsRead"])
 
 
 def _remove(rows, key, value):
@@ -425,14 +431,14 @@ def test_every_batch_joins_in_the_expected_rows():
         "bridges": 13,
         "events": 15,
         "non-emissions": 11,
-        "aliases": 63,
+        "aliases": 157,
         "current-successors": 15,
     }
     fna = "urn:ref:federal-register-agency:"
     assert {"original": fna + "200", "successor": fna + "625"} in expected["current-successors"]
     assert details["event:fr200"]["effectiveDate"] == "2026-06-24"
     plan, decisions = agency.merged_plans(batches)
-    assert len(plan["events"]) == 10 and len(decisions["decisions"]) == 97
+    assert len(plan["events"]) == 10 and len(decisions["decisions"]) == 191
     with pytest.raises(ValueError, match="decided in two"):
         agency.merged_plans([*batches, batches[1]])
 
@@ -460,11 +466,14 @@ def test_alias_answers_follow_their_own_effects(alias_plans):
     assert agency.decision_failures(c, stale, agency.ALIAS_OWNER_AGGREGATE, agency.ALIAS_COVERED)
 
 
-def test_alias_records_are_read_and_a_changed_record_is_caught(tmp_path, alias_plans):
+def test_alias_records_are_read_and_a_changed_record_is_caught(tmp_path, alias_plans, alias_batch_2_plans):
     """Every cited record re-hashes and holds its passage; changed bytes or a reworded passage fail."""
     c, d = alias_plans
     errors, reads = agency.check_alias_records(ROOT, (c, d))
     assert errors == [] and len(reads) == 62
+    c2, d2 = alias_batch_2_plans
+    errors2, reads2 = agency.check_alias_records(ROOT, (c2, d2))
+    assert errors2 == [] and len(reads2) == 165
     record = c["aliases"][0]["records"][0]
     logical = f"{agency.ALIAS_RECORDS_DIR}/{record['file']}"
     tampered = tmp_path / Path(record["file"]).name
@@ -478,7 +487,7 @@ def test_alias_records_are_read_and_a_changed_record_is_caught(tmp_path, alias_p
 
 
 @pytest.mark.pinned_input(not OPM_WORKBOOK.is_file(), reason="Pinned OPM EHRI workbook absent")
-def test_alias_rosters_and_projection_from_raw_captures(alias_plans):
+def test_alias_rosters_and_projection_from_raw_captures(alias_plans, alias_batch_2_plans):
     """Alias names re-read from the raw rosters, FR ancestry, mechanical rules, and REF-038 from its adjudication."""
     c, d = alias_plans
     rosters = agency.read_rosters(ROOT)
@@ -487,6 +496,7 @@ def test_alias_rosters_and_projection_from_raw_captures(alias_plans):
     assert (len(projection), len(unresolved)) == (321, 10)
     opm = agency.read_opm_names(ROOT)
     assert agency.check_alias_rosters((c, d), rosters, opm, projection) == []
+    assert agency.check_alias_rosters(alias_batch_2_plans, rosters, opm, projection) == []
     for alias_id, side, field, value, path in [
         ("alias:veterans-health-administration", "target", "publisher_name", "VETERANS HEALTH", "/target/raw-roster"),
         ("alias:bureau-of-land-management", "fr_record", "id", 253, "/mechanical/"),

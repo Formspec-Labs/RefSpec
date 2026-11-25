@@ -1,0 +1,110 @@
+<html>
+<head>
+<title>Federal Register, Volume 91 Issue 185 (Friday, September 25, 2026)</title>
+</head>
+<body><pre>
+[Federal Register Volume 91, Number 185 (Friday, September 25, 2026)]
+[Notices]
+[Page 60944]
+From the Federal Register Online via the Government Publishing Office [<a href="http://www.gpo.gov">www.gpo.gov</a>]
+[FR Doc No: 2026-19607]
+
+
+-----------------------------------------------------------------------
+
+DEPARTMENT OF DEFENSE
+
+Office of the Secretary
+
+[Docket ID: DOD-2026-OS-2048]
+
+
+Proposed Collection; Comment Request
+
+AGENCY: Office of the Under Secretary of Defense for Personnel and 
+Readiness (OUSD(P&R)), Department of Defense (DoD).
+
+ACTION: 60-Day information collection notice.
+
+-----------------------------------------------------------------------
+
+SUMMARY: In compliance with the Paperwork Reduction Act of 1995, the 
+OUSD (P&R) announces a proposed public information collection and seeks 
+public comment on the provisions thereof. Comments are invited on: 
+whether the proposed collection of information is necessary for the 
+proper performance of the functions of the agency, including whether 
+the information shall have practical utility; the accuracy of the 
+agency's estimate of the burden of the proposed information collection; 
+ways to enhance the quality, utility, and clarity of the information to 
+be collected; and ways to minimize the burden of the information 
+collection on respondents, including through the use of automated 
+collection techniques or other forms of information technology.
+
+DATES: Consideration will be given to all comments received by November 
+24, 2026.
+
+ADDRESSES: You may submit comments, identified by docket number and 
+title, by any of the following methods:
+    Federal eRulemaking Portal: <a href="http://www.regulations.gov">http://www.regulations.gov</a>. Follow the 
+instructions for submitting comments.
+    Mail: Department of Defense, Office of the Director of 
+Administration and Management, Oversight and Compliance Directorate, 
+Regulatory Division, 4800 Mark Center Drive, Mailbox #24, Suite 05F16, 
+Alexandria, VA 22350-1700.
+    Instructions: All submissions received must include the agency 
+name, docket number and title for this Federal Register document. The 
+general policy for comments and other submissions from members of the 
+public is to make these submissions available for public viewing on the 
+internet at <a href="http://www.regulations.gov">http://www.regulations.gov</a> as they are received without 
+change, including any personal identifiers or contact information.
+
+FOR FURTHER INFORMATION CONTACT: To request more information on this 
+proposed information collection or to obtain a copy of the proposal and 
+associated collection instruments, please write to: Federal Voting 
+Assistance Program, Defense Support Services Center/Personnel Readiness 
+Management Agency, Under Secretary of War for Personnel and Readiness, 
+4800 Mark Center Drive, Suite 05E22, Alexandria, VA 22350-5000, Sara 
+Hedlund, (571) 372-0712.
+
+SUPPLEMENTARY INFORMATION: 
+    Title; Associated Form; and OMB Number: Post-Election Voting Survey 
+of State Election Officials; OMB Control Number 0704-0643.
+    Needs and Uses: The primary objective of the Post-Election Voting 
+Survey of State Election Officials, conducted on behalf of the Federal 
+Voting Assistance Program (FVAP), is to gather feedback from the State 
+Election Officials (SEOs) responsible for administering the Uniformed 
+and Overseas Citizens Absentee Voting Act (UOCAVA) on behalf of the 
+military and overseas voters. This customer service focused survey will 
+help FVAP understand how it can best engage election officials and 
+identify areas where its processes can be improved. This ongoing 
+evaluation will help determine the extent to which FVAP is achieving 
+its mission and what actions FVAP might be able to take in the future 
+to improve its products and services. Conducting this research will 
+help FVAP meet its federal and congressional mandates in terms of 
+ensuring that UOCAVA voters are receiving adequate support from state 
+officials in the registration and voting process for federal elections. 
+The data obtained through this study is also intended to provide 
+insights into existing barriers to UOCAVA voting and recommendations 
+for addressing these challenges. To obtain the necessary information, 
+the Post-Election Voting Survey of State Election Officials project 
+will use data collected from the population of SEOs from all 50 U.S. 
+States, the District of Columbia, and the four U.S. territories covered 
+under UOCAVA: Puerto Rico, Guam, American Samoa, and the U.S. Virgin 
+Islands.
+    Affected Public: Individuals or households.
+    Annual Burden Hours: 13.75 hours.
+    Number of Respondents: 55.
+    Responses per Respondent: 1.
+    Annual Responses: 55.
+    Average Burden per Response: 15 minutes.
+    Frequency: Biennially.
+
+    Dated: September 22, 2026.
+Stephanie J. Bost,
+Alternate OSD Federal Register Liaison Officer, Department of Defense.
+[FR Doc. 2026-19607 Filed 9-24-26; 8:45 am]
+BILLING CODE 6001-FR-P
+
+
+</pre></body>
+</html>

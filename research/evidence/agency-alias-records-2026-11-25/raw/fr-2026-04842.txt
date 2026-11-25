@@ -1,0 +1,175 @@
+<html>
+<head>
+<title>Federal Register, Volume 91 Issue 48 (Thursday, March 12, 2026)</title>
+</head>
+<body><pre>
+[Federal Register Volume 91, Number 48 (Thursday, March 12, 2026)]
+[Notices]
+[Pages 12200-12201]
+From the Federal Register Online via the Government Publishing Office [<a href="http://www.gpo.gov">www.gpo.gov</a>]
+[FR Doc No: 2026-04842]
+
+
+
+[[Page 12200]]
+
+-----------------------------------------------------------------------
+
+DEPARTMENT OF HEALTH AND HUMAN SERVICES
+
+
+Privacy Act of 1974; System of Records
+
+AGENCY: Office of the Assistant Secretary for Financial Resources 
+(ASFR), Department of Health and Human Services (HHS).
+
+ACTION: Notice of modified systems of records.
+
+-----------------------------------------------------------------------
+
+SUMMARY: In accordance with the requirements of the Privacy Act of 
+1974, as amended, the Department of Health and Human Services (HHS) is 
+modifying system of records 09-90-0024 ``HHS Financial Management 
+System Records'' to update the legal authorities, clarify the purpose 
+descriptions, add a new routine use, and revise an existing routine 
+use. The system of records is maintained by HHS' Office of the 
+Assistant Secretary for Financial Resources (ASFR) and covers records 
+retrieved by personal identifier about individuals who receive or are 
+entitled to a payment from HHS and individuals who pay or owe money to 
+HHS.
+
+DATES: In accordance with 5 U.S.C. 552a(e)(4) and (11), this notice is 
+effective March 12, 2026, with the exception of the new and revised 
+routine uses, which will be effective April 13, 2026. Please submit any 
+comments on this notice by April 13, 2026.
+
+ADDRESSES: The public should address written comments on this notice to 
+Beth Kramer, HHS Privacy Act Officer, by email at <a href="/cdn-cgi/l/email-protection#e183849589cf8a93808c8493a1898992cf868e97"><span class="__cf_email__" data-cfemail="30525544581e5b42515d5542705858431e575f46">[email&#160;protected]</span></a> 
+or by mail addressed to: HHS Privacy Act Officer, FOIA/Privacy Act 
+Division, 200 Independence Ave. SW--Suite 729H, Washington, DC 20201.
+
+FOR FURTHER INFORMATION CONTACT: General questions about the modified 
+system of records may be submitted to Beth Kramer, HHS Privacy Act 
+Officer, by email at <a href="/cdn-cgi/l/email-protection#bedcdbcad690d5ccdfd3dbccfed6d6cd90d9d1c8"><span class="__cf_email__" data-cfemail="365453425e185d44575b5344765e5e4518515940">[email&#160;protected]</span></a> or by mail addressed to: HHS 
+Privacy Act Officer, FOIA/Privacy Act Division, 200 Independence Ave. 
+SW--Suite 729H, Washington, DC 20201.
+
+SUPPLEMENTARY INFORMATION: System of records 09-90-0024 ``HHS Financial 
+Management System Records'' is departmentwide; it covers any records 
+about individual payees and payors of HHS that are used to manage HHS 
+payment, collection, and accounting functions, unless covered by a more 
+specific System of Records Notice (SORN). HHS is revising the SORN for 
+system of records 09-90-0024, affecting the Authorities, Purpose(s), 
+and Routine Uses sections of the SORN, as follows:
+    <bullet> HHS is updating the Authorities section to add Executive 
+Order (E.O.) 14249, published at 90 FR 14011 (Mar. 28, 2025), titled 
+``Protecting America's Bank Account Against Fraud, Waste, and Abuse,'' 
+and to remove 31 U.S.C. 3321 note (typed incorrectly as 31 U.S.C. 1321 
+note) which was repealed and moved to 31 U.S.C. 3354 in March 2020.
+    <bullet> HHS is revising the Purpose(s) section to make clear that 
+SORN 09-90-0024 is the only HHS SORN that covers records used to 
+determine award and payment eligibility through use of the Department 
+of the Treasury's Do Not Pay Working System, although other SORNs may 
+cover records used for other aspects of award and payment eligibility 
+determinations, i.e., aspects that do not involve using the Department 
+of the Treasury's Do Not Pay Working System.
+    <bullet> HHS is revising routine use 1 in the Routine Uses section 
+to use wording prescribed by the Office of Management and Budget (OMB) 
+in OMB Memorandum M-25-32, issued August 20, 2025, titled ``Preventing 
+Improper Payments and Protecting Privacy Through Do Not Pay,'' and to 
+move a portion of what is currently in routine use 1 to a separate, new 
+routine use 19. Revised routine use 1 will be worded as follows: ``1. 
+Records may be disclosed to the U.S. Department of the Treasury when 
+disclosure of the information is relevant to review payment and award 
+eligibility through the Do Not Pay Working System for the purposes of 
+identifying, preventing, or recouping improper payments to an applicant 
+for, or recipient of, Federal funds, including funds disbursed by a 
+state (meaning a state of the United States, the District of Columbia, 
+a territory or possession of the United States, or a federally 
+recognized Indian tribe) in a state-administered, federally funded 
+program.''
+    <bullet> HHS is adding a new routine use 19 which will be limited 
+to authorizing disclosures to the U.S. Department of the Treasury 
+(Treasury) for the purpose of effecting (meaning, disbursing or 
+issuing) payments.
+    Because these constitute significant changes to the system of 
+records, HHS provided a report on this modified system of records to 
+the Committee on Homeland Security and Governmental Affairs of the 
+Senate, the Committee on Oversight and Accountability of the House of 
+Representatives, and the OMB Office of Information and Regulatory 
+Affairs in accordance with 5 U.S.C. 552a(r).
+
+    Dated: December 10, 2025.
+Uma D. Yanamandra,
+Director, Division of Strategic Planning, Oversight, & Coordination, 
+Office of Systems, Policy & Oversight, Office of Finance.
+SYSTEM NAME AND NUMBER:
+    HHS Financial Management System Records, 09-90-0024.
+
+AUTHORITY FOR MAINTENANCE OF THE SYSTEM:
+    31 U.S.C. 3354, 3512, 3711, 3716, 3721; E.O.s 13520 and 14249. 31 
+U.S.C. 7701 mandates collection of Taxpayer Identification Number from 
+persons applying for a loan under a federal loan program and from 
+persons doing business with a federal agency.
+
+PURPOSE(S) OF THE SYSTEM:
+    Relevant HHS personnel use the records on a need-to-know basis to 
+process and track payments made and monies owed to or by individuals 
+and HHS, and to ensure that payments by HHS are proper (i.e., comply 
+with the Do Not Pay Initiative) and are based on an official commitment 
+and obligation of government funds. When an individual is required to 
+repay funds that have been advanced to him (e.g., as a loan or 
+scholarship), records are used to establish a receivable record and to 
+track repayment status. In the event of an overpayment to an 
+individual, records are used to establish a receivable record for 
+recovery of the amount claimed. Records of payments and uncollectible 
+debts are also used to develop reports of taxable income to the 
+Internal Revenue Service (IRS) and applicable state and local taxing 
+officials. Records in this system of records that pertain to current 
+(non-overdue), overdue, and delinquent federal debts are also used for 
+debt management and collection purposes, as described in the SORN 
+published for System of Records No. 09-90-40-0012 ``HHS Debt Management 
+and Collection Records.''
+    Note: This is the only HHS SORN that covers records HHS uses to 
+determine award and payment eligibility through the Department of the 
+Treasury's Do Not Pay Working System. Other HHS SORNs may cover other 
+aspects of award and payment eligibility determinations, i.e., aspects 
+that do not involve using the Department of the Treasury's Do Not Pay 
+Working System. For example, the SORNs that cover HHS suitability 
+determination records include records used to vet fitness of HHS 
+employees and contractor personnel to pass a background check or have 
+access to classified information, and the SORN that covers HHS payroll 
+records includes records HHS employees must
+
+[[Page 12201]]
+
+complete to be paid, to comply with the direct deposit mandate in 31 
+U.S.C. 3332(a).
+
+ROUTINE USES OF RECORDS MAINTAINED IN THE SYSTEM, INCLUDING CATEGORIES 
+OF USERS AND PURPOSES OF SUCH USES:
+    Routine use 1 is revised to read as follows:
+    1. Records may be disclosed to the U.S. Department of the Treasury 
+when disclosure of the information is relevant to review payment and 
+award eligibility through the Do Not Pay Working System for the 
+purposes of identifying, preventing, or recouping improper payments to 
+an applicant for, or recipient of, Federal funds, including funds 
+disbursed by a state (meaning a state of the United Staes, the District 
+of Columbia, a territory or possession of the United States, or a 
+federally recognized Indian tribe) in a state-administered, federally 
+funded program.
+    The two breach response-related routine uses that were revised or 
+added in February 2018 are now numbered as routine uses 17 and 18.
+    New routine use 19 is added to read as follows:
+    19. Records may be disclosed to the U.S. Department of the Treasury 
+for purposes of effecting (meaning, disbursing or issuing) payments.
+
+HISTORY:
+    80 FR 67767 (Nov. 3, 2015), 83 FR 6591 (Feb. 14, 2018).
+
+[FR Doc. 2026-04842 Filed 3-11-26; 8:45 am]
+BILLING CODE 4150-24-P
+
+
+</pre><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
+</html>

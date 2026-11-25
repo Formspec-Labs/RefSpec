@@ -1,0 +1,306 @@
+<html>
+<head>
+<title>Federal Register, Volume 90 Issue 80 (Monday, April 28, 2025)</title>
+</head>
+<body><pre>
+[Federal Register Volume 90, Number 80 (Monday, April 28, 2025)]
+[Notices]
+[Pages 17582-17585]
+From the Federal Register Online via the Government Publishing Office [<a href="http://www.gpo.gov">www.gpo.gov</a>]
+[FR Doc No: 2025-07258]
+
+
+-----------------------------------------------------------------------
+
+DEPARTMENT OF DEFENSE
+
+Office of the Secretary
+
+
+TRICARE: TRICARE Competitive Plans Demonstration (CPD)
+
+AGENCY: Office of the Secretary, Department of Defense (DoD).
+
+ACTION: Notice of demonstration.
+
+-----------------------------------------------------------------------
+
+SUMMARY: The Assistant Secretary of Defense for Health Affairs 
+(ASD(HA)) issues this notice announcing the creation of a demonstration 
+to offer additional opportunities for contractors of local, regional, 
+and national plans to compete with managed care support contractors 
+(MCSCs) under the TRICARE program and to evaluate impacts of 
+competition in these designated markets on costs, outcomes and 
+satisfaction. The Defense Health Agency (DHA) has awarded contracts to 
+CareSource Military & Veterans (CSMV)
+
+[[Page 17583]]
+
+in both the Atlanta, Georgia market and the Tampa, Florida market and 
+intends to evaluate the impact of having two MCSCs (the Competitive 
+Plans Demonstration (CPD) contractors and Humana Government Business 
+(HGB), the current East region MCSC) providing services in these 
+markets. Eligible beneficiaries will be provided with the opportunity 
+to enroll in TRICARE Prime with CSMV in these markets. This 
+demonstration will also help the DHA assess the efficacy of paying a 
+TRICARE MCSC using a risk-adjusted, population-based capitation 
+methodology for non-pharmacy health care and variable ongoing 
+administrative costs and the efficacy of separately contracting for 
+certain health care administrative tasks (e.g., eligibility, 
+enrollment, and encounter data management functions) rather than 
+including such requirements in the MCS contract.
+
+DATES: This demonstration project will commence January 1, 2026. This 
+demonstration authority will remain in effect until December 31, 2028, 
+unless terminated earlier or extended by the Director, DHA via a 
+subsequent Federal Register notice. CSMV may begin marketing and 
+beneficiary education activities on or after the date this notice is 
+published in the Federal Register.
+
+FOR FURTHER INFORMATION CONTACT: LTJG Brandon Andriot, Defense Health 
+Agency, (703) 275-6166, <a href="/cdn-cgi/l/email-protection#8eb2efaee6fcebe8b3" http: brandon.m.andriot.mil">brandon.m.andriot.mil</a>@health.mil"><a href="http://brandon.m.andriot.mil">brandon.m.andriot.mil</a>@health.mil</a>.
+
+SUPPLEMENTARY INFORMATION: This notice is to advise all parties of a 
+demonstration project under the authority of Title 10, United States 
+Code (U.S.C.), Section 1092, entitled the ``Competitive Plans 
+Demonstration.'' DHA has competitively awarded two contracts to CSMV 
+which will compete against the East region MCSC (HGB) in delivering 
+health, medical, and administrative support services to eligible 
+TRICARE beneficiaries in the Atlanta, GA and Tampa, FL markets. CSMV, 
+in conjunction with the DHA's eligibility, enrollment, and encounter 
+(EEE) pilot program contractor (MicroHealth), and Express Scripts 
+(current TRICARE pharmacy benefits manager) will administer the CPD 
+under the purview of the DHA. The CPD project will monitor whether 
+paying a MCSC using a risk adjusted, population-based capitated 
+methodology results in better beneficiary access to care, better 
+beneficiary health outcomes, and increased beneficiary satisfaction 
+without increasing the Department's health care costs. The DHA will 
+monitor several areas of the CPD including, but not limited to, the 
+following:
+    <bullet> The effects of competition among MCSCs operating in the 
+same geographic areas (overlapping networks).
+    <bullet> Beneficiary access to care and whether it is impacted by 
+paying a MCSC on a risk adjusted, population-based Per Member Per Month 
+(PMPM) basis.
+    <bullet> Quality of care (and health outcomes) and whether they are 
+impacted by paying a MCSC on a risk adjusted population-based PMPM 
+basis.
+    <bullet> Overall cost impact of paying a MCSC using a risk adjusted 
+population-based PMPM payment model (accounting for the costs incurred 
+under the separate EEE contract) as compared to paying the contractor 
+under the traditional TRICARE MCS model.
+    <bullet> Impact of dividing responsibility (and separately 
+contracting) for EEE data management administrative functions and 
+patient care functions.
+    <bullet> Beneficiary experience and whether it is impacted 
+(positively or negatively) by delivering care under a capitated payment 
+model. DHA will measure beneficiary experience through existing tools 
+(e.g., the Joint Outpatient Experience Survey) and re-enrollment rates.
+
+A. Background
+
+    Section 705(c) of the National Defense Authorization Act for Fiscal 
+Year 2017 (NDAA-2017), Public Law 114-238, December 23, 2016, directed 
+the Secretary of Defense to ``ensure that local, regional, and national 
+health plans have an opportunity to participate in the competition for 
+managed care support contracts under the TRICARE Program. NDAA-2017, 
+Section 705(c) also directed the Secretary to implement a strategy to 
+ensure that future MCS contracts under the TRICARE program incorporate 
+various elements related to improving health care delivery. In an 
+effort to mitigate rising health care costs and develop higher-quality 
+patient care, the DHA intends to conduct the CPD to determine if it can 
+achieve improved beneficiary satisfaction, better access to care, 
+better care outcomes, and cost containment, by employing ongoing 
+competition between MCSCs performing in the same markets and by using a 
+capitated payment model. To achieve this goal, the DHA will conduct a 
+three-year demonstration program that will address the NDAA-2017, 
+Section 705(c) requirements.
+    The DHA introduced the CPD concept in the request for proposals 
+(RFP) for the TRICARE Fifth generation (T-5) MCS contracts in April 
+2021. The T-5 RFP advised vendors competing for the T-5 requirement 
+that the DHA intended to carry out the CPD during the period of 
+performance of the resulting T-5 contracts--and that it would do so at 
+one or more of the 23 sites listed in the RFP. In 2023, the Director, 
+DHA determined that, based on various factors, the most suitable 
+initial sites for the CPD were Atlanta, GA and Tampa, FL. The threshold 
+analysis of these initial selected markets projected potential 
+enrollments of 3,000-5,000 members in each market. In July 2023, the 
+DHA solicited proposals for vendors to provide TRICARE MCS services 
+(but minus the eligibility, enrollment, and encounter functions) in 
+Atlanta, GA and Tampa, FL. After receiving and evaluating proposals, 
+the DHA awarded contracts for both markets to CSMV in November 2024.
+    CSMV will provide, among other things, accredited networks of 
+individual and institutional providers; customer service and 
+beneficiary education services; medical management, case management, 
+referral management, utilization management, population health, and 
+clinical quality management services; telehealth; and nurse advice line 
+services.
+
+B. Description of the Demonstration Project
+
+    TRICARE's three-year demonstration project will be voluntary for 
+most TRICARE-eligible active duty family members (ADFM), retirees, and 
+retiree family members who reside within specified ZIP Codes in the 
+metro Atlanta, GA and metro Tampa, FL areas, regardless of whether they 
+currently are enrolled in TRICARE Prime or TRICARE Select. Active duty 
+service members; beneficiaries participating in the TRICARE Reserve 
+Select, TRICARE Retired Reserve, and TRICARE Young Adult programs; and 
+beneficiaries with Medicare coverage are not eligible to participate in 
+the demonstration. In addition, beneficiaries receiving services under 
+the TRICARE Extended Care Health Option program, Autism Care 
+Demonstration, and Continued Health Care Benefit Program are not 
+eligible to participate in the demonstration. Qualifying beneficiaries 
+who reside within the specified ZIP Codes in the Atlanta, GA and Tampa, 
+FL areas will be invited to participate in any of the three years 
+during the demonstration period by enrolling in TRICARE Prime with 
+CSMV. From the demonstration-enrolled beneficiary's perspective, this 
+will be a TRICARE Prime option, with CSMV serving as the MCSC and 
+assigning beneficiaries primary care managers, supported by MicroHealth 
+providing EEE and associated customer service operational
+
+[[Page 17584]]
+
+support. Beneficiaries who are participating in the CPD will fill their 
+outpatient pharmacy prescriptions through the TRICARE Pharmacy Program 
+managed by the TRICARE Pharmacy (TPharm) contractor (ESI) or at 
+Military Medical Treatment Facility (MTF) pharmacies.
+    CSMV will provide enrollees access to all of its network primary 
+care and specialty care providers (both inpatient and outpatient) in 
+the Atlanta, GA and Tampa, FL markets as well as virtual and video 
+visits and consults. CSMV will be authorized to provide enrollees with 
+value added items and services and may offer a beneficiary access to a 
+program with rewards and incentives. CSMV will provide education to all 
+interested beneficiaries, at the time of enrollment, regarding any 
+differences between their plans and the traditional TRICARE Prime plan 
+provided by the regional MCSC (HGB). Under this demonstration, TRICARE 
+beneficiaries will be subject to current Open Season enrollment 
+requirements and the rules governing enrollments based on Qualifying 
+Life Events.
+    In providing the TRICARE Prime benefit, CSMV will apply standard 
+TRICARE Prime enrollment fees, copays, cost shares, deductibles, and 
+catastrophic caps--except that the applicable annual TRICARE enrollment 
+fee will be waived for TRICARE beneficiaries who elect to participate 
+in the demonstration, for the first year in which they enroll. Standard 
+preauthorization requirements will apply; however, the TRICARE Prime 
+referral requirements will not apply. The TRICARE point-of-service 
+(POS) option, with its associated cost-sharing requirements, will be 
+available to CPD-enrolled beneficiaries. CSMV will educate 
+beneficiaries on how they may access health care when traveling outside 
+of the CPD market areas. Demonstration enrollees will be locked out of 
+all MTFs for all routine and urgent care. Care at MTFs will be limited 
+to emergency services and pharmacy services only. If a CPD enrollee 
+accesses an MTF for emergency services, then CSMV will be responsible 
+for reimbursing the MTF. An enrollee's violation of the direct care 
+system/MTF lockouts could result in disenrollment of such enrollee.
+
+C. Communication
+
+    The DHA will proactively educate beneficiaries and other 
+stakeholders about the Demonstration through its Strategic 
+Communications Office and through marketing materials prepared by the 
+CPD contractors and the EEE Pilot contractor. Marketing materials will 
+explain the Demonstration benefit to eligible beneficiaries. This will 
+allow TRICARE sponsors and beneficiaries to make the best choice for 
+their families in a timely fashion in the selected markets. Marketing 
+efforts may begin after publication of this notice. CSMV will market 
+its plan for each market and inform beneficiaries of any benefit or 
+process differences from the traditional TRICARE Prime program.
+
+D. Evaluation
+
+    This demonstration project will assist the DHA in evaluating 
+whether delivery of the TRICARE Prime health care option under the 
+framework of the CPDs (as described above) will result in improvements 
+in health care quality for TRICARE Prime beneficiaries and/or a 
+reduction in health care spending for the DoD. This program is intended 
+to determine if the presence of local, regional or national level CPD-
+like health plans will generate beneficial competition between the CPD-
+like plans and the regional MCSCs for the enrollment of TRICARE 
+beneficiaries. In addition to expanding DHA's body of knowledge with 
+regard to beneficiary choice and competition in the TRICARE space, this 
+demonstration will observe the effects on patient satisfaction, 
+clinical outcome measures, overall cost (using risk-adjusted capitation 
+payment models and risk sharing), and data interactions among the 
+responsible contractors.
+    Regular evaluations of health care encounters, patient 
+satisfaction, and cost of care (for the CPD beneficiaries and a 
+comparison group) will provide data relating to the impact of health 
+care spending in order to ascertain whether care provided by the CPD 
+providers results in positive changes in cost trends and/or if there 
+has been an improvement in health care outcomes such as decreased 
+mortality rates and shorter lengths of stay. At the conclusion of each 
+demonstration year, DHA will analyze costs and performance and compare 
+it to costs and performance under previous years of the demonstration 
+(as applicable) as well as to care received across the TRICARE program 
+to determine whether CPD care options were effective in reducing health 
+care spending and/or improving quality of health care. The Department 
+reserves the right to terminate the demonstration early if the 
+participation, cost, or quality do not support the continuation of the 
+demonstration.
+
+E. Reimbursement
+
+    The DHA will pay CSMV a full-risk capitation rate (PMPM) for non-
+pharmacy health care and the variable portion of ongoing administrative 
+costs. The DHA will also pay CSMV's fixed administrative costs. The DHA 
+will establish the PMPM rates based on the projected average government 
+health care cost for TRICARE Prime beneficiaries enrolled to the East 
+region MCSC (i.e., ``network Prime'' enrollees) in the same market. 
+These costs will be derived from TRICARE Encounter Data records and 
+historical MTF-delivered care records, with the MTF-delivered care 
+valued at approximately private-sector-care rates.
+    DHA will develop separate rates for two broad beneficiary 
+categories: ADFM and others (referred to as ``non-ADFMs''). Certain 
+other differences among beneficiaries (e.g., age, gender, health risk) 
+will be accounted for using a risk adjustment methodology, described 
+hereafter. Beneficiaries with other health insurance (other than 
+Medicare) will be allowed to participate in the CPD if they otherwise 
+meet the CPD enrollment criteria.
+    As noted above, beneficiaries enrolled in the CPD who visit a 
+provider outside of the demonstration may be subject to POS charges 
+consistent with TRICARE claims processing rules. If a beneficiary 
+repeatedly seeks care outside of the demonstration and/or does not 
+follow CSMV processes, the DHA may remove the beneficiary from the 
+demonstration (or decline to re-enroll them) and require the 
+beneficiary to make a new plan election (e.g., TRICARE Prime or Select) 
+in accordance with TRICARE procedures.
+    This demonstration is intended to be patient-centered, and changes 
+in health plan enrollment are disruptive to beneficiaries. Therefore, 
+the DHA will remove a beneficiary from the demonstration only in the 
+most extraordinary of cases, with the Director, DHA (or designee) being 
+the decision authority in such cases. When CSMV believes there is cause 
+to remove a beneficiary from the demonstration, it will provide DHA 
+with a written justification addressing the beneficiary's unwillingness 
+to follow program rules that includes the following information: a 
+description of the specific efforts made by the contractor to engage 
+the beneficiary in care and care decisions; a description of 
+beneficiary and/or caregiver education efforts; data showing that the 
+beneficiary's failure to follow such rules has resulted in significant 
+impact to the beneficiary's health, quality of care, or total cost of 
+care to the Government or beneficiary. The Director, DHA, shall be the 
+final authority on beneficiary disenrollment, and decisions shall be 
+made on the basis of the best interest of the specific
+
+[[Page 17585]]
+
+beneficiary (health, quality of care, and cost to the Government/
+beneficiary), and not on a basis that disenrollment will be beneficial 
+to CSMV.
+
+F. Implementation
+
+    Care for CPD enrolled beneficiaries will begin effective January 1, 
+2026 and will continue for a period of three years unless terminated 
+early by the Director, DHA. CSMV and MicroHealth may begin patient 
+education efforts regarding this demonstration after publication of 
+this notice.
+
+    Dated: April 23, 2025.
+Aaron T. Siegel,
+Alternate OSD Federal Register Liaison Officer, Department of Defense.
+[FR Doc. 2025-07258 Filed 4-25-25; 8:45 am]
+BILLING CODE 6001-FR-P
+
+
+</pre><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
+</html>

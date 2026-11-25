@@ -1,0 +1,126 @@
+<html>
+<head>
+<title>Federal Register, Volume 81 Issue 242 (Friday, December 16, 2016)</title>
+</head>
+<body><pre>
+[Federal Register Volume 81, Number 242 (Friday, December 16, 2016)]
+[Notices]
+[Pages 91143-91144]
+From the Federal Register Online via the Government Publishing Office [<a href="http://www.gpo.gov">www.gpo.gov</a>]
+[FR Doc No: 2016-30271]
+
+
+-----------------------------------------------------------------------
+
+DEPARTMENT OF DEFENSE
+
+Office of the Secretary
+
+[Docket ID DOD-2016-OS-0117]
+
+
+Proposed Collection; Comment Request
+
+AGENCY: National Defense University, DoD.
+
+ACTION: Notice.
+
+-----------------------------------------------------------------------
+
+SUMMARY: In compliance with the Paperwork Reduction Act of 1995, and as 
+part of a Federal Government-wide effort to streamline the process to 
+seek feedback from the public on service delivery, the Center for the 
+Study of Weapons of Mass Destruction at the Institute for National 
+Strategic Studies announces a proposed generic information collection 
+and seeks public comment on the provisions thereof. Comments are 
+invited on: Whether the proposed collection of information is necessary 
+for the proper performance of the functions of the agency, including 
+whether the information shall have practical utility; the accuracy of 
+the agency's estimate of the burden of the proposed information 
+collection; ways to enhance the quality, utility, and clarity of the 
+information to be collected; and ways to minimize the burden of the 
+information collection on respondents, including through the use of 
+automated collection techniques or other forms of information 
+technology.
+
+DATES: Consideration will be given to all comments received by February 
+14, 2017.
+
+ADDRESSES: You may submit comments, identified by docket number and 
+title, by any of the following methods:
+    <bullet> Federal eRulemaking Portal: <a href="http://www.regulations.gov">http://www.regulations.gov</a>. 
+Follow the instructions for submitting comments.
+    <bullet> Mail: Department of Defense, Office of the Deputy Chief 
+Management Officer, Directorate for Oversight and Compliance, 4800 Mark 
+Center Drive, Mailbox #24, Alexandria, VA 22350-1700.
+    Instructions: All submissions received must include the agency 
+name, docket number and title for this Federal Register document. The 
+general policy for comments and other submissions from members of the 
+public is to make these submissions available for public viewing on the 
+Internet at <a href="http://www.regulations.gov">http://www.regulations.gov</a> as they are received without 
+change, including any personal identifiers or contact information.
+    Any associated form(s) for this collection may be located within 
+this same electronic docket and downloaded for review/testing. Follow 
+the instructions at <a href="http://www.regulations.gov">http://www.regulations.gov</a> for submitting comments. 
+Please submit comments on any given form identified by docket number, 
+form number, and title.
+
+FOR FURTHER INFORMATION CONTACT: To request more information on this 
+proposed information collection or to obtain a copy of the proposal and 
+associated collection instruments, please write to the Center for the 
+Study of Weapons of Mass Destruction, Institute for National Strategic 
+Studies, National Defense University, ATTN: Natasha E. Bajema, Ph.D., 
+Washington, DC 20319-5066, or call at 202-685-4234.
+
+SUPPLEMENTARY INFORMATION: 
+    Title; Associated Form; and OMB Number: Regular Generic Clearance 
+for the Collection of NDU Emergence and Convergence; OMB Control Number 
+0704-XXXX.
+    Needs and Uses: The information collection requirement is necessary 
+to assess the impact of emerging technologies (additive manufacturing, 
+advanced robotics, nanotechnology, nuclear energy and synthetic 
+biology) on the threat of weapons of mass destruction (WMD) and 
+governance, tools and measures designed to counter WMD as part of a 
+multi-year study entitled Emergence and Convergence. These surveys will 
+generate important new data on the risk of misuse and governability of 
+these technologies and support in-depth analysis of national security 
+risks.
+    Current Actions: Processing New as Generic.
+    Type of Review: New.
+    Affected Public: Business or other for profit; Not-for-profit 
+institutions.
+    Estimated Number of Annual Respondents: 65.
+    Average Expected Annual Number of Activities: 1.
+    Below we provide projected average estimates for the next three 
+years:
+    Average Number of Respondents per Activity: 65.
+    Responses per Respondent: 2.
+    Annual Responses: 130.
+    Average Burden per Response: 60 minutes.
+    Annual Burden Hours: 130.
+    Frequency: On occasion.
+    Respondents are subject matter experts including scientists, 
+engineers and technologists at academic institutions, non-for-profit 
+organizations and industry. Structured techniques for the elicitation 
+of expert judgment are key tools for national security risk 
+assessments. The Delphi method involves an iterative series of 
+questionnaires designed to build an expert consensus on a topic for 
+which there is little or no existing data. This survey offers 
+significant public benefit by producing a report that will support a 
+dialogue between policymakers and private sector stakeholders. The 
+report generated by this survey will help to educate the private sector 
+on the national security risks associated with emerging technologies.
+
+
+[[Page 91144]]
+
+
+    Dated: December 13, 2016.
+Aaron Siegel,
+Alternate OSD Federal Register, Liaison Officer, Department of Defense.
+[FR Doc. 2016-30271 Filed 12-15-16; 8:45 am]
+ BILLING CODE 5001-06-P
+
+
+</pre></body>
+</html>

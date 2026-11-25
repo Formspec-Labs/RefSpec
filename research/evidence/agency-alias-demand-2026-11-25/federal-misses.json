@@ -1,0 +1,1223 @@
+{
+  "schema_version": "refspec-agency-alias-demand/1",
+  "inputs": {
+    "corpus": "witnesses.parquet",
+    "corpus_sha256": "0e7084cde775d0064646c56b2200a14e1f13d8b512f1a61a6fe815d597faf4d3"
+  },
+  "thresholds": {
+    "min_federal_appearances": 1,
+    "min_all_appearances": 0
+  },
+  "federal": {
+    "appearances": 3563,
+    "null_organization": 249,
+    "batch_2_keys": 94
+  },
+  "demand": [
+    {
+      "key": "office of accountability and whistleblower protection",
+      "federal_appearances": 4,
+      "all_appearances": 12,
+      "spellings": [
+        [
+          "Office of Accountability and Whistleblower Protection",
+          13
+        ]
+      ]
+    },
+    {
+      "key": "national marine fisheries service",
+      "federal_appearances": 3,
+      "all_appearances": 116,
+      "spellings": [
+        [
+          "National Marine Fisheries Service",
+          130
+        ]
+      ]
+    },
+    {
+      "key": "southern command",
+      "federal_appearances": 2,
+      "all_appearances": 35,
+      "spellings": [
+        [
+          "U.S. Southern Command",
+          54
+        ],
+        [
+          "United States Southern Command",
+          6
+        ],
+        [
+          "US Southern Command",
+          2
+        ],
+        [
+          "Southern Command",
+          1
+        ]
+      ]
+    },
+    {
+      "key": "national institute on drug abuse",
+      "federal_appearances": 2,
+      "all_appearances": 31,
+      "spellings": [
+        [
+          "National Institute on Drug Abuse",
+          48
+        ]
+      ]
+    },
+    {
+      "key": "pacific command",
+      "federal_appearances": 2,
+      "all_appearances": 24,
+      "spellings": [
+        [
+          "U.S. Pacific Command",
+          36
+        ],
+        [
+          "United States Pacific Command",
+          6
+        ],
+        [
+          "US Pacific Command",
+          2
+        ]
+      ]
+    },
+    {
+      "key": "office of insular affairs",
+      "federal_appearances": 2,
+      "all_appearances": 23,
+      "spellings": [
+        [
+          "Office of Insular Affairs",
+          25
+        ]
+      ]
+    },
+    {
+      "key": "bureau for middle east",
+      "federal_appearances": 2,
+      "all_appearances": 20,
+      "spellings": [
+        [
+          "Bureau for the Middle East",
+          24
+        ],
+        [
+          "Bureau for The Middle East",
+          1
+        ]
+      ]
+    },
+    {
+      "key": "air national guard",
+      "federal_appearances": 2,
+      "all_appearances": 18,
+      "spellings": [
+        [
+          "Air National Guard",
+          25
+        ],
+        [
+          "U.S. Air National Guard",
+          8
+        ]
+      ]
+    },
+    {
+      "key": "army futures command",
+      "federal_appearances": 2,
+      "all_appearances": 16,
+      "spellings": [
+        [
+          "Army Futures Command",
+          18
+        ],
+        [
+          "United States Army Futures Command",
+          6
+        ],
+        [
+          "U.S. Army Futures Command",
+          6
+        ]
+      ]
+    },
+    {
+      "key": "strategic systems programs",
+      "federal_appearances": 2,
+      "all_appearances": 14,
+      "spellings": [
+        [
+          "Strategic Systems Programs",
+          19
+        ]
+      ]
+    },
+    {
+      "key": "army space and missile defense command",
+      "federal_appearances": 2,
+      "all_appearances": 13,
+      "spellings": [
+        [
+          "U.S. Army Space and Missile Defense Command",
+          19
+        ],
+        [
+          "United States Army Space and Missile Defense Command",
+          4
+        ]
+      ]
+    },
+    {
+      "key": "marketing and regulatory programs",
+      "federal_appearances": 2,
+      "all_appearances": 12,
+      "spellings": [
+        [
+          "Marketing and Regulatory Programs",
+          13
+        ]
+      ]
+    },
+    {
+      "key": "national heart lung and blood institute",
+      "federal_appearances": 2,
+      "all_appearances": 11,
+      "spellings": [
+        [
+          "National Heart, Lung, and Blood Institute",
+          8
+        ],
+        [
+          "National Heart, Lung and Blood Institute",
+          2
+        ],
+        [
+          "National Heart Lung and Blood Institute",
+          2
+        ]
+      ]
+    },
+    {
+      "key": "joint functional component command for integrated missile defense",
+      "federal_appearances": 2,
+      "all_appearances": 7,
+      "spellings": [
+        [
+          "Joint Functional Component Command for Integrated Missile Defense",
+          9
+        ]
+      ]
+    },
+    {
+      "key": "office of assistant secretary for indian affairs",
+      "federal_appearances": 2,
+      "all_appearances": 7,
+      "spellings": [
+        [
+          "Office of the Assistant Secretary for Indian Affairs",
+          9
+        ]
+      ]
+    },
+    {
+      "key": "government printing office",
+      "federal_appearances": 2,
+      "all_appearances": 5,
+      "spellings": [
+        [
+          "Government Printing Office",
+          5
+        ],
+        [
+          "U.S. Government Printing Office",
+          3
+        ]
+      ]
+    },
+    {
+      "key": "americorps",
+      "federal_appearances": 2,
+      "all_appearances": 4,
+      "spellings": [
+        [
+          "AmeriCorps",
+          6
+        ]
+      ]
+    },
+    {
+      "key": "army aviation center of excellence and fort novosel",
+      "federal_appearances": 2,
+      "all_appearances": 4,
+      "spellings": [
+        [
+          "U.S. Army Aviation Center of Excellence and Fort Novosel",
+          7
+        ]
+      ]
+    },
+    {
+      "key": "benghazi accountability review board",
+      "federal_appearances": 2,
+      "all_appearances": 4,
+      "spellings": [
+        [
+          "Benghazi Accountability Review Board",
+          8
+        ]
+      ]
+    },
+    {
+      "key": "office of under secretary of defense for intelligence and security",
+      "federal_appearances": 2,
+      "all_appearances": 4,
+      "spellings": [
+        [
+          "Office of the Under Secretary of Defense for Intelligence & Security",
+          8
+        ]
+      ]
+    },
+    {
+      "key": "commission on civil rights",
+      "federal_appearances": 1,
+      "all_appearances": 28,
+      "spellings": [
+        [
+          "U.S. Commission on Civil Rights",
+          36
+        ],
+        [
+          "Commission on Civil Rights",
+          4
+        ],
+        [
+          "United States Commission on Civil Rights",
+          1
+        ]
+      ]
+    },
+    {
+      "key": "science mission directorate",
+      "federal_appearances": 1,
+      "all_appearances": 27,
+      "spellings": [
+        [
+          "Science Mission Directorate",
+          29
+        ]
+      ]
+    },
+    {
+      "key": "army reserve",
+      "federal_appearances": 1,
+      "all_appearances": 26,
+      "spellings": [
+        [
+          "U.S. Army Reserve",
+          21
+        ],
+        [
+          "Army Reserve",
+          17
+        ],
+        [
+          "United States Army Reserve",
+          4
+        ],
+        [
+          "US Army Reserve",
+          1
+        ]
+      ]
+    },
+    {
+      "key": "army national guard",
+      "federal_appearances": 1,
+      "all_appearances": 25,
+      "spellings": [
+        [
+          "Army National Guard",
+          38
+        ],
+        [
+          "U.S. Army National Guard",
+          4
+        ]
+      ]
+    },
+    {
+      "key": "naval war college",
+      "federal_appearances": 1,
+      "all_appearances": 24,
+      "spellings": [
+        [
+          "U.S. Naval War College",
+          27
+        ],
+        [
+          "Naval War College",
+          7
+        ],
+        [
+          "United States Naval War College",
+          1
+        ]
+      ]
+    },
+    {
+      "key": "national cancer institute",
+      "federal_appearances": 1,
+      "all_appearances": 21,
+      "spellings": [
+        [
+          "National Cancer Institute",
+          36
+        ]
+      ]
+    },
+    {
+      "key": "national ocean service",
+      "federal_appearances": 1,
+      "all_appearances": 20,
+      "spellings": [
+        [
+          "National Ocean Service",
+          22
+        ]
+      ]
+    },
+    {
+      "key": "defense threat reduction agency",
+      "federal_appearances": 1,
+      "all_appearances": 19,
+      "spellings": [
+        [
+          "Defense Threat Reduction Agency",
+          29
+        ]
+      ]
+    },
+    {
+      "key": "indo pacific command",
+      "federal_appearances": 1,
+      "all_appearances": 17,
+      "spellings": [
+        [
+          "U.S. Indo-Pacific Command",
+          27
+        ],
+        [
+          "United States Indo-Pacific Command",
+          3
+        ],
+        [
+          "US Indo-Pacific Command",
+          2
+        ]
+      ]
+    },
+    {
+      "key": "national weather service",
+      "federal_appearances": 1,
+      "all_appearances": 17,
+      "spellings": [
+        [
+          "National Weather Service",
+          20
+        ],
+        [
+          "The National Weather Service",
+          1
+        ]
+      ]
+    },
+    {
+      "key": "air force reserve",
+      "federal_appearances": 1,
+      "all_appearances": 16,
+      "spellings": [
+        [
+          "U.S. Air Force Reserve",
+          15
+        ],
+        [
+          "Air Force Reserve",
+          13
+        ]
+      ]
+    },
+    {
+      "key": "environment and natural resources division",
+      "federal_appearances": 1,
+      "all_appearances": 16,
+      "spellings": [
+        [
+          "Environment and Natural Resources Division",
+          21
+        ]
+      ]
+    },
+    {
+      "key": "national center for injury prevention and control",
+      "federal_appearances": 1,
+      "all_appearances": 16,
+      "spellings": [
+        [
+          "National Center for Injury Prevention and Control",
+          16
+        ],
+        [
+          "National Center for Injury Prevention & Control",
+          3
+        ]
+      ]
+    },
+    {
+      "key": "chemical safety board",
+      "federal_appearances": 1,
+      "all_appearances": 15,
+      "spellings": [
+        [
+          "U.S. Chemical Safety Board",
+          30
+        ]
+      ]
+    },
+    {
+      "key": "northern command",
+      "federal_appearances": 1,
+      "all_appearances": 15,
+      "spellings": [
+        [
+          "U.S. Northern Command",
+          17
+        ],
+        [
+          "United States Northern Command",
+          7
+        ]
+      ]
+    },
+    {
+      "key": "federal reserve board",
+      "federal_appearances": 1,
+      "all_appearances": 14,
+      "spellings": [
+        [
+          "Federal Reserve Board",
+          19
+        ],
+        [
+          "United States Federal Reserve Board",
+          2
+        ],
+        [
+          "the Federal Reserve Board",
+          1
+        ]
+      ]
+    },
+    {
+      "key": "medicaid and chip payment and access commission",
+      "federal_appearances": 1,
+      "all_appearances": 14,
+      "spellings": [
+        [
+          "Medicaid and CHIP Payment and Access Commission",
+          25
+        ],
+        [
+          "Medicaid and Chip Payment and Access Commission",
+          2
+        ]
+      ]
+    },
+    {
+      "key": "white house office of science and technology policy",
+      "federal_appearances": 1,
+      "all_appearances": 14,
+      "spellings": [
+        [
+          "White House Office of Science and Technology Policy",
+          26
+        ],
+        [
+          "The White House Office of Science and Technology Policy",
+          1
+        ]
+      ]
+    },
+    {
+      "key": "office of under secretary of defense for intelligence",
+      "federal_appearances": 1,
+      "all_appearances": 13,
+      "spellings": [
+        [
+          "Office of the Under Secretary of Defense for Intelligence",
+          18
+        ],
+        [
+          "Office of Under Secretary of Defense for Intelligence",
+          2
+        ]
+      ]
+    },
+    {
+      "key": "trade representative",
+      "federal_appearances": 1,
+      "all_appearances": 13,
+      "spellings": [
+        [
+          "United States Trade Representative",
+          18
+        ],
+        [
+          "U.S. Trade Representative",
+          8
+        ]
+      ]
+    },
+    {
+      "key": "air force global strike command",
+      "federal_appearances": 1,
+      "all_appearances": 12,
+      "spellings": [
+        [
+          "Air Force Global Strike Command",
+          22
+        ]
+      ]
+    },
+    {
+      "key": "interagency council on homelessness",
+      "federal_appearances": 1,
+      "all_appearances": 12,
+      "spellings": [
+        [
+          "U.S. Interagency Council on Homelessness",
+          10
+        ],
+        [
+          "United States Interagency Council on Homelessness",
+          8
+        ],
+        [
+          "Interagency Council on Homelessness",
+          6
+        ]
+      ]
+    },
+    {
+      "key": "office of assistant secretary of defense for health affairs",
+      "federal_appearances": 1,
+      "all_appearances": 12,
+      "spellings": [
+        [
+          "Office of the Assistant Secretary of Defense for Health Affairs",
+          17
+        ]
+      ]
+    },
+    {
+      "key": "army materiel command",
+      "federal_appearances": 1,
+      "all_appearances": 11,
+      "spellings": [
+        [
+          "Army Materiel Command",
+          12
+        ],
+        [
+          "U.S. Army Materiel Command",
+          6
+        ]
+      ]
+    },
+    {
+      "key": "national institute of mental health",
+      "federal_appearances": 1,
+      "all_appearances": 10,
+      "spellings": [
+        [
+          "National Institute of Mental Health",
+          14
+        ]
+      ]
+    },
+    {
+      "key": "office of assistant secretary of army",
+      "federal_appearances": 1,
+      "all_appearances": 10,
+      "spellings": [
+        [
+          "Office of the Assistant Secretary of the Army",
+          20
+        ]
+      ]
+    },
+    {
+      "key": "federal reserve board of governors",
+      "federal_appearances": 1,
+      "all_appearances": 8,
+      "spellings": [
+        [
+          "Federal Reserve Board of Governors",
+          12
+        ],
+        [
+          "U.S. Federal Reserve Board of Governors",
+          2
+        ]
+      ]
+    },
+    {
+      "key": "federal reserve bank of richmond",
+      "federal_appearances": 1,
+      "all_appearances": 7,
+      "spellings": [
+        [
+          "Federal Reserve Bank of Richmond",
+          13
+        ]
+      ]
+    },
+    {
+      "key": "joint functional component command for space",
+      "federal_appearances": 1,
+      "all_appearances": 7,
+      "spellings": [
+        [
+          "Joint Functional Component Command for Space",
+          9
+        ]
+      ]
+    },
+    {
+      "key": "noaa fisheries",
+      "federal_appearances": 1,
+      "all_appearances": 6,
+      "spellings": [
+        [
+          "NOAA Fisheries",
+          10
+        ]
+      ]
+    },
+    {
+      "key": "open world leadership center",
+      "federal_appearances": 1,
+      "all_appearances": 6,
+      "spellings": [
+        [
+          "Open World Leadership Center",
+          12
+        ]
+      ]
+    },
+    {
+      "key": "army reserve command",
+      "federal_appearances": 1,
+      "all_appearances": 5,
+      "spellings": [
+        [
+          "U.S. Army Reserve Command",
+          9
+        ]
+      ]
+    },
+    {
+      "key": "defense security cooperation agency",
+      "federal_appearances": 1,
+      "all_appearances": 5,
+      "spellings": [
+        [
+          "Defense Security Cooperation Agency",
+          5
+        ],
+        [
+          "U.S. Defense Security Cooperation Agency",
+          4
+        ]
+      ]
+    },
+    {
+      "key": "installation management command",
+      "federal_appearances": 1,
+      "all_appearances": 5,
+      "spellings": [
+        [
+          "Installation Management Command",
+          8
+        ]
+      ]
+    },
+    {
+      "key": "national security commission on emerging biotechnology",
+      "federal_appearances": 1,
+      "all_appearances": 5,
+      "spellings": [
+        [
+          "National Security Commission on Emerging Biotechnology",
+          10
+        ]
+      ]
+    },
+    {
+      "key": "networking and information technology research and development program",
+      "federal_appearances": 1,
+      "all_appearances": 5,
+      "spellings": [
+        [
+          "The Networking and Information Technology Research and Development Program",
+          5
+        ],
+        [
+          "Networking and Information Technology Research and Development Program",
+          1
+        ],
+        [
+          "Networking and Information Technology Research and Development   Program",
+          1
+        ]
+      ]
+    },
+    {
+      "key": "director of national intelligence",
+      "federal_appearances": 1,
+      "all_appearances": 4,
+      "spellings": [
+        [
+          "Director of National Intelligence",
+          6
+        ]
+      ]
+    },
+    {
+      "key": "federal voting assistance program",
+      "federal_appearances": 1,
+      "all_appearances": 4,
+      "spellings": [
+        [
+          "Federal Voting Assistance Program",
+          6
+        ]
+      ]
+    },
+    {
+      "key": "national institute of neurological disorders and stroke",
+      "federal_appearances": 1,
+      "all_appearances": 4,
+      "spellings": [
+        [
+          "National Institute of Neurological Disorders and Stroke",
+          5
+        ]
+      ]
+    },
+    {
+      "key": "trustee program",
+      "federal_appearances": 1,
+      "all_appearances": 4,
+      "spellings": [
+        [
+          "U.S. Trustee Program",
+          8
+        ]
+      ]
+    },
+    {
+      "key": "army forces command",
+      "federal_appearances": 1,
+      "all_appearances": 3,
+      "spellings": [
+        [
+          "U.S. Army Forces Command",
+          3
+        ],
+        [
+          "United States Army Forces Command",
+          2
+        ]
+      ]
+    },
+    {
+      "key": "development finance corporation",
+      "federal_appearances": 1,
+      "all_appearances": 3,
+      "spellings": [
+        [
+          "Development Finance Corporation",
+          6
+        ]
+      ]
+    },
+    {
+      "key": "national aeronautics and space administration office of inspector general",
+      "federal_appearances": 1,
+      "all_appearances": 3,
+      "spellings": [
+        [
+          "National Aeronautics and Space Administration Office of Inspector General",
+          4
+        ],
+        [
+          "National Aeronautics and Space Administration  , Office of Inspector General",
+          1
+        ]
+      ]
+    },
+    {
+      "key": "test resource management center",
+      "federal_appearances": 1,
+      "all_appearances": 3,
+      "spellings": [
+        [
+          "Test Resource Management Center",
+          6
+        ]
+      ]
+    },
+    {
+      "key": "2nd marine division",
+      "federal_appearances": 1,
+      "all_appearances": 2,
+      "spellings": [
+        [
+          "2nd Marine Division",
+          3
+        ]
+      ]
+    },
+    {
+      "key": "department of interior s office of insular affairs",
+      "federal_appearances": 1,
+      "all_appearances": 2,
+      "spellings": [
+        [
+          "Department of the Interior's Office of Insular Affairs",
+          4
+        ]
+      ]
+    },
+    {
+      "key": "federal reserve bank of cleveland",
+      "federal_appearances": 1,
+      "all_appearances": 2,
+      "spellings": [
+        [
+          "Federal Reserve Bank of Cleveland",
+          3
+        ]
+      ]
+    },
+    {
+      "key": "geological survey water resources mission area",
+      "federal_appearances": 1,
+      "all_appearances": 2,
+      "spellings": [
+        [
+          "U.S. Geological Survey Water Resources Mission Area",
+          4
+        ]
+      ]
+    },
+    {
+      "key": "institute for national strategic studies",
+      "federal_appearances": 1,
+      "all_appearances": 2,
+      "spellings": [
+        [
+          "Institute for National Strategic Studies",
+          3
+        ]
+      ]
+    },
+    {
+      "key": "morris k and stewart l udall foundation",
+      "federal_appearances": 1,
+      "all_appearances": 2,
+      "spellings": [
+        [
+          "The Morris K. and Stewart L. Udall Foundation",
+          4
+        ]
+      ]
+    },
+    {
+      "key": "nasa aeronautics research institute",
+      "federal_appearances": 1,
+      "all_appearances": 2,
+      "spellings": [
+        [
+          "NASA Aeronautics Research Institute",
+          4
+        ]
+      ]
+    },
+    {
+      "key": "national institute of general medical sciences",
+      "federal_appearances": 1,
+      "all_appearances": 2,
+      "spellings": [
+        [
+          "National Institute of General Medical Sciences",
+          4
+        ]
+      ]
+    },
+    {
+      "key": "noaa pacific islands fisheries science center",
+      "federal_appearances": 1,
+      "all_appearances": 2,
+      "spellings": [
+        [
+          "NOAA Pacific Islands Fisheries Science Center",
+          4
+        ]
+      ]
+    },
+    {
+      "key": "noaa s national environmental satellite data and information service",
+      "federal_appearances": 1,
+      "all_appearances": 2,
+      "spellings": [
+        [
+          "NOAA's National Environmental Satellite, Data, and Information Service",
+          2
+        ]
+      ]
+    },
+    {
+      "key": "office of inspector general americorps",
+      "federal_appearances": 1,
+      "all_appearances": 2,
+      "spellings": [
+        [
+          "Office of the Inspector General, AmeriCorps",
+          2
+        ]
+      ]
+    },
+    {
+      "key": "office of inspector general for board of governors of federal reserve system and consumer financial protection bureau",
+      "federal_appearances": 1,
+      "all_appearances": 2,
+      "spellings": [
+        [
+          "Office of Inspector General for the Board of Governors of the Federal Reserve System and the Consumer Financial Protection Bureau",
+          2
+        ],
+        [
+          "Office of Inspector General for the Board of Governors of the Federal Reserve System   and the Consumer Financial Protection Bureau",
+          2
+        ]
+      ]
+    },
+    {
+      "key": "office of inspector general of intelligence community",
+      "federal_appearances": 1,
+      "all_appearances": 2,
+      "spellings": [
+        [
+          "Office of the Inspector General of the Intelligence Community",
+          4
+        ]
+      ]
+    },
+    {
+      "key": "smithsonian air and space museum",
+      "federal_appearances": 1,
+      "all_appearances": 2,
+      "spellings": [
+        [
+          "Smithsonian Air and Space Museum",
+          4
+        ]
+      ]
+    },
+    {
+      "key": "socom",
+      "federal_appearances": 1,
+      "all_appearances": 2,
+      "spellings": [
+        [
+          "SOCOM",
+          4
+        ]
+      ]
+    },
+    {
+      "key": "usaid bureau of conflict prevention and stabilization",
+      "federal_appearances": 1,
+      "all_appearances": 2,
+      "spellings": [
+        [
+          "USAID Bureau of Conflict Prevention and Stabilization",
+          4
+        ]
+      ]
+    },
+    {
+      "key": "assistant secretary for financial resources",
+      "federal_appearances": 1,
+      "all_appearances": 1,
+      "spellings": [
+        [
+          "Assistant Secretary for Financial Resources",
+          1
+        ]
+      ]
+    },
+    {
+      "key": "naval surface warfare center",
+      "federal_appearances": 1,
+      "all_appearances": 1,
+      "spellings": [
+        [
+          "Naval Surface Warfare Center",
+          2
+        ]
+      ]
+    },
+    {
+      "key": "navy energy installations and environment",
+      "federal_appearances": 1,
+      "all_appearances": 1,
+      "spellings": [
+        [
+          "Navy Energy Installations and Environment",
+          2
+        ]
+      ]
+    },
+    {
+      "key": "securities and exchange commission office of inspector general",
+      "federal_appearances": 1,
+      "all_appearances": 1,
+      "spellings": [
+        [
+          "U.S. Securities and Exchange Commission Office of Inspector General",
+          2
+        ]
+      ]
+    },
+    {
+      "key": "federal reserve bank of kansas city",
+      "federal_appearances": 0,
+      "all_appearances": 22,
+      "spellings": [
+        [
+          "Federal Reserve Bank of Kansas City",
+          36
+        ]
+      ]
+    },
+    {
+      "key": "federal reserve bank of new york",
+      "federal_appearances": 0,
+      "all_appearances": 17,
+      "spellings": [
+        [
+          "Federal Reserve Bank of New York",
+          32
+        ]
+      ]
+    },
+    {
+      "key": "federal reserve bank of boston",
+      "federal_appearances": 0,
+      "all_appearances": 9,
+      "spellings": [
+        [
+          "Federal Reserve Bank of Boston",
+          18
+        ]
+      ]
+    },
+    {
+      "key": "federal reserve bank of minneapolis",
+      "federal_appearances": 0,
+      "all_appearances": 8,
+      "spellings": [
+        [
+          "Federal Reserve Bank of Minneapolis",
+          13
+        ]
+      ]
+    },
+    {
+      "key": "federal reserve bank of chicago",
+      "federal_appearances": 0,
+      "all_appearances": 7,
+      "spellings": [
+        [
+          "Federal Reserve Bank of Chicago",
+          12
+        ]
+      ]
+    },
+    {
+      "key": "federal reserve bank of dallas",
+      "federal_appearances": 0,
+      "all_appearances": 6,
+      "spellings": [
+        [
+          "Federal Reserve Bank of Dallas",
+          10
+        ]
+      ]
+    },
+    {
+      "key": "federal reserve bank of atlanta",
+      "federal_appearances": 0,
+      "all_appearances": 3,
+      "spellings": [
+        [
+          "Federal Reserve Bank of Atlanta",
+          4
+        ],
+        [
+          "the Federal Reserve Bank of Atlanta",
+          1
+        ]
+      ]
+    },
+    {
+      "key": "federal reserve bank of st louis",
+      "federal_appearances": 0,
+      "all_appearances": 2,
+      "spellings": [
+        [
+          "Federal Reserve Bank of St. Louis",
+          4
+        ]
+      ]
+    },
+    {
+      "key": "federal reserve bank of san francisco",
+      "federal_appearances": 0,
+      "all_appearances": 1,
+      "spellings": [
+        [
+          "Federal Reserve Bank of San Francisco",
+          1
+        ]
+      ]
+    },
+    {
+      "key": "federal reserve bank of philadelphia",
+      "federal_appearances": 0,
+      "all_appearances": 0,
+      "spellings": []
+    }
+  ]
+}

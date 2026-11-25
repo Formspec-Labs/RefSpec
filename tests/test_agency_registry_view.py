@@ -83,12 +83,12 @@ def view(release: RegistryMappingRelease) -> agency_projection.AgencyRegistryVie
 
 
 def test_the_view_rows_are_exactly_the_release(view: agency_projection.AgencyRegistryView) -> None:
-    """Pin 13 bridges, one row per (event, result) -- 15 for 10 events -- and 4 non-emissions."""
+    """Pin 13 bridges, one row per (event, result) -- 15 for 10 events -- 11 non-emissions, and 157 aliases."""
 
     assert dict(view.coverage) == {
-        "aliasCount": 63,
+        "aliasCount": 157,
         "bridgeCount": 13,
-        "decidedItemCount": 97,
+        "decidedItemCount": 191,
         "eventCount": 10,
         "eventResultRowCount": 15,
         "nonEmissionCount": 11,
@@ -105,6 +105,7 @@ def test_the_view_rows_are_exactly_the_release(view: agency_projection.AgencyReg
         entity.AGENCY_REGISTRY_CANDIDATES_PATH: entity.AGENCY_REGISTRY_CANDIDATES_DIGEST,
         entity.AGENCY_REGISTRY_SUCCESSION_CANDIDATES_PATH: entity.AGENCY_REGISTRY_SUCCESSION_CANDIDATES_DIGEST,
         entity.AGENCY_REGISTRY_ALIAS_CANDIDATES_PATH: entity.AGENCY_REGISTRY_ALIAS_CANDIDATES_DIGEST,
+        entity.AGENCY_REGISTRY_ALIAS_BATCH_2_CANDIDATES_PATH: entity.AGENCY_REGISTRY_ALIAS_BATCH_2_CANDIDATES_DIGEST,
     }
     (fna,) = (row for row in view.events if row["event_id"] == "event:fr200")
     assert (fna["result"], fna["effective_date"], fna["decision"]["decided_on"]) == (_fr(625), "2026-06-24", "2026-10-03")
@@ -160,7 +161,7 @@ def test_the_sealed_view_is_schema_1_2_and_the_1_1_and_1_0_views_still_verify(
     """
 
     sealed = _seal(tmp_path / "view", release)
-    assert sealed["schemaVersion"] == "1.3"
+    assert sealed["schemaVersion"] == "1.4"
     assert batch_1_release.source_release_digest == (
         "sha256:69001a4381ddf35cdba6d44fa52f579d7dfa07627c4c74da3dde2b0d8a39f8f0"
     ) != release.source_release_digest
@@ -244,7 +245,7 @@ def test_the_sealed_view_is_deterministic_and_pinned(tmp_path: Path, release, vi
         "tables/agency-registry-events.parquet": 15,
         "tables/agency-registry-non-emissions.parquet": 11,
         "tables/agency-registry-current-successors.parquet": 15,
-        "tables/agency-registry-aliases.parquet": 63,
+        "tables/agency-registry-aliases.parquet": 157,
         "tables/agency-registry-organizations.parquet": 472,
         "tables/agency-projection.parquet": 321,
         "tables/agency-projection-unresolved.parquet": 10,

@@ -1,7 +1,6 @@
-"""Seal the agency registry view (REF-072, schema 1.3 by REF-075): the one agency pin SpicyRegs and congressional-tech read.
+"""Seal the agency registry view (REF-072, schema 1.4 by REF-077): the one agency pin SpicyRegs and congressional-tech read.
 
-Builds ``agency-registry-2026-09-26`` -- batch 1, the succession batch and the
-alias batch -- from the five pinned agency rosters and seals it with
+Builds ``agency-registry-2026-09-26`` -- batch 1, the succession batch, and alias batches 1 and 2 -- from the five pinned agency rosters and seals it with
 ``seal_agency_registry_view()``: the four asserted tables (bridges, events,
 non-emissions, aliases), the derived current successors and organizations (all
 472 pinned FR agencies), REF-038's projection and abstentions, and their
@@ -30,7 +29,7 @@ except ImportError:  # Direct execution places tools/ on sys.path.
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = ROOT / "output" / "agency-registry-view"
 # The sealed view the design note names (plans/agency-registry-design.md section 8).
-VIEW_MANIFEST_SHA256 = "sha256:7a806ea060c0c7a0ee37a991f443edc1a1f9ba74a1f5e1007db1e4e28cb23b7d"
+VIEW_MANIFEST_SHA256 = "sha256:c89935debe320e35aaf748ea0519457c1618b49e13d79ddb33cbc30051b5a118"
 
 
 def build_release(rosters: tuple[RegistryRelease, ...] | None = None) -> RegistryMappingRelease:

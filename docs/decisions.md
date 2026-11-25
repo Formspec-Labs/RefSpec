@@ -6450,3 +6450,34 @@ and refuses a planted wrong value in each table.
    integer, `span`, and `span=None` inputs, while deriving any roster ceiling
    strictly from `oracle.max_eo` and keeping dense-window `absent` vs sparse/post-capture
    `unknown` verdicts unchanged.
+
+### REF-077: Agency registry view schema 1.4 adds federal sub-unit alias batch 2
+
+- **Date:** 2026-11-25
+- **Status:** Accepted. Extends `agency-registry-2026-09-26` (REF-075) with a
+  fourth batch (`plans/agency-registry-alias-batch-2-candidates.json` and
+  `plans/agency-registry-alias-batch-2-decisions.json`, assembled by
+  `tools/assemble_agency_registry_alias_batch_2.py`), bumping
+  `AGENCY_REGISTRY_VIEW_SCHEMA_VERSION` from `"1.3"` to `"1.4"` while keeping
+  `"1.3"`, `"1.2"`, `"1.1"`, and `"1.0"` verifiable.
+
+1. **Citation & evidence discipline (REF-075 D4/D5).** Alias batch 2 resolves
+   94 verified federal organization and sub-unit keys (1 mechanical via REF-038
+   `reviewedIdentityPublisherName` and 93 judged from U.S. Code sections, public
+   laws, Federal Register documents, congressional hearings, and NASA/NSCEB
+   records retained under `research/evidence/agency-alias-records-2026-11-25/`),
+   covering NIH research institutes (42 U.S.C. 281), the Federal Reserve Board
+   and all 12 regional Federal Reserve Banks (12 U.S.C. 222, 241), NOAA line
+   offices, National Guard and Reserve components, DoD combatant commands and
+   defense agencies, DOJ/DOI/CDC/HHS/VA/USGS/NASA/USAID/USDA/Smithsonian
+   sub-units, OIGs, statutory name variants (GPO under Pub. L. 113-235
+   sec. 1301(a), U.S. Chemical Safety Board, U.S. Commission on Civil Rights,
+   AmeriCorps, USTR, ODNI, Udall Foundation), and non-FR statutory entities
+   held in OPM or Federal Hierarchy (USICH, MACPAC, Open World Leadership
+   Center, NSCEB). Misspellings, contractor-operated national laboratories,
+   state/local/tribal governments, and ambiguous portfolios remain excluded.
+2. **Sealed 1.4 view.** `tools/build_agency_registry_view.py` seals `157`
+   aliases (`63` batch 1 + `94` batch 2) and `191` total decided items under
+   view manifest pin `sha256:c89935de...`. `tools/atlas_independent_agency.py`
+   and `research/atlas-refresh-2026-09-27/independent/agency/` authenticate
+   both alias batches and their retained primary records.

@@ -1,0 +1,189 @@
+<html>
+<head>
+<title>Federal Register, Volume 90 Issue 133 (Tuesday, July 15, 2025)</title>
+</head>
+<body><pre>
+[Federal Register Volume 90, Number 133 (Tuesday, July 15, 2025)]
+[Notices]
+[Pages 31678-31679]
+From the Federal Register Online via the Government Publishing Office [<a href="http://www.gpo.gov">www.gpo.gov</a>]
+[FR Doc No: 2025-13203]
+
+
+-----------------------------------------------------------------------
+
+DEPARTMENT OF THE INTERIOR
+
+Geological Survey
+
+[Docket No. USGS-2025-0004; OMB Control Number 1028-NEW; 
+GX25DJ70GY100000;]
+
+
+Agency Information Collection Activities: USGS Generic Clearance 
+for Water Availability Information Collections
+
+AGENCY: U.S. Geological Survey, Interior.
+
+ACTION: Notice of information collection; request for comment.
+
+-----------------------------------------------------------------------
+
+SUMMARY: In accordance with the Paperwork Reduction Act (PRA) of 1995, 
+the U.S. Geological Survey (USGS, we) is proposing a new information 
+collection.
+
+DATES: Interested persons are invited to submit comments. To be 
+considered, your comments must be received on or before August 14, 
+2025.
+
+ADDRESSES: You may submit comments by one of the following methods:
+    [ssquf] Internet: <a href="https://www.regulations.gov">https://www.regulations.gov</a>. Search for and 
+submit comments on Docket No. USGS-2025-0004.
+    [ssquf] U.S. Mail: USGS, Information Collections Clearance Officer, 
+12201 Sunrise Valley Drive, MS 159, Reston, VA 20192.
+
+FOR FURTHER INFORMATION CONTACT: Katrina Alger by email at 
+<a href="/cdn-cgi/l/email-protection#2e454f42494b5c6e5b5d495d00494158"><span class="__cf_email__" data-cfemail="bcd7ddd0dbd9cefcc9cfdbcf92dbd3ca">[email&#160;protected]</span></a>, or by telephone at 608-828-9901. Individuals in the 
+United States who are deaf, deafblind, hard of hearing, or have a 
+speech disability may dial 711 (TTY, TDD, or TeleBraille) to access 
+telecommunications relay services. Individuals outside the United 
+States should use the relay services offered within their country to 
+make international calls to the point-of-contact in the United States.
+
+SUPPLEMENTARY INFORMATION: In accordance with the PRA (44 U.S.C. 3501 
+et seq.) and 5 CFR 1320.8(d)(1), we provide the general public and 
+other Federal agencies with an opportunity to comment on new, proposed, 
+revised, and continuing collections of information. This helps us 
+assess the impact of our information collection requirements and 
+minimize the public's reporting burden. It also helps the public 
+understand our information collection requirements and provide the 
+requested data in the desired format.
+    A Federal Register notice with a 60-day public comment period 
+soliciting comments on this collection of information was published on 
+November 7, 2024 (89 FR 88302). No comments were received.
+    As part of our continuing effort to reduce paperwork and respondent 
+burdens, we are again soliciting comments from the public and other 
+Federal agencies on the proposed ICR that is described below. We are 
+especially interested in public comment addressing the following:
+    (1) Whether or not the collection of information is necessary for 
+the proper performance of the functions of the agency, including 
+whether or not the information will have practical utility;
+    (2) The accuracy of our estimate of the burden for this collection 
+of information, including the validity of the methodology and 
+assumptions used;
+    (3) Ways to enhance the quality, utility, and clarity of the 
+information to be collected; and
+    (4) How the agency might minimize the burden of the collection of 
+information on those who are to respond, including through the use of 
+appropriate automated, electronic, mechanical, or other technological 
+collection techniques or other forms of information technology, e.g., 
+permitting electronic submission of response.
+    Comments that you submit in response to this notice are a matter of 
+public record. Before including your address, phone number, email 
+address, or other personally identifiable information (PII) in your 
+comment, you should be aware that your entire comment--including your 
+PII--may be made publicly available at any time. While you can ask us 
+in your comment to withhold your PII from public review, we cannot 
+guarantee that we will be able to do so.
+    Abstract: Water information is fundamental to national and local 
+economic well-being, protection of life and property, and the effective 
+management of the Nation's water resources. The USGS works with 
+partners to monitor, assess, conduct targeted research, and deliver 
+information on a wide range of water resources and conditions, as 
+mandated by the SECURE Water Act of 2009 (Public Law 111-11, title IX, 
+subtitle F of the Omnibus Public Land Management Act of 2009). This 
+legislation emphasizes the need for updated, reliable data to support 
+water resource planning and management, and specifically directs the 
+USGS to improve assessments and forecasts of water availability, 
+defined as ``the balance between water supply and demand, as determined 
+using a set of core components of water quality, quantity, and use.''
+    This generic information collection clearance will centralize 
+administration of USGS public data collections in the topic area of 
+water availability--encompassing both the supply and demand aspects, as 
+well as water quality, access, and usage patterns--and allow for more 
+systematic and timely collections that will benefit new and ongoing 
+research programs within the Water Resources Mission Area.
+    The USGS plans a variety of qualitative and quantitative data 
+collection methods under this clearance, which may include surveys, 
+interviews, and focus groups. The exact nature of the instruments and 
+samples is dependent on each individual project and details will be 
+provided for each individual information collection request submitted, 
+following OMB requirements. The bureau commits to ensuring that all 
+collections are voluntary, minimally burdensome, noncontroversial, and 
+only conducted with informed participant consent. All data collected 
+will protect respondent privacy to the extent permitted by law, with a 
+particular emphasis on protecting PII. Any information collected will 
+not be used to influence policy decisions directly and will only be 
+disseminated in aggregated or anonymized formats, adhering to strict 
+guidelines for scientific integrity and privacy. Respondents will be 
+informed of all planned data uses. Measures will be taken to minimize 
+public burden to the greatest extent possible, including review and 
+pre-testing of instruments to ensure clarity and relevance, and using
+
+[[Page 31679]]
+
+electronic collection means whenever possible.
+    The research anticipated under this request will be used to advance 
+both the scientific understanding of our socio-hydrological system and 
+bureau priorities to integrate social science, decision science, and 
+human-centered design more fully into Water Enterprise projects in a 
+strategic, rigorous, and consistent way. Collection of this information 
+supports the USGS by improving both national and regional assessments 
+of water quantity, quality, and use; advancing scientific understanding 
+related to the human drivers of water availability; informing product 
+development to maximize the utility and usability of USGS water data; 
+and framing future and ongoing research efforts within the bureau. 
+Outputs are likely to reduce costs and improve outcomes for both the 
+bureau and the public by ensuring our science is conducted efficiently, 
+effectively, and is serving its intended purpose.
+    Title of Collection: USGS Generic Clearance for Water Availability 
+Information Collections.
+    OMB Control Number: 1028-NEW.
+    Form Number: None.
+    Type of Review: New.
+    Respondents/Affected Public: State, local and Tribal government; 
+individuals or households; universities; businesses or other for-profit 
+organizations; not-for-profit institutions; Federal Government.
+    Total Estimated Number of Annual Respondents: 4,650.
+    Estimated Completion Time per Response: Varies from 15 minutes to 2 
+hours, depending on the activity.
+    Total Estimated Number of Annual Burden Hours: 3,500 (see chart 
+below).
+    Respondent's Obligation: Voluntary.
+    Frequency of Collection: As needed.
+    Total Estimated Annual Nonhour Burden Cost: $0.
+
+----------------------------------------------------------------------------------------------------------------
+                                    Number of
+                                  State, local,     Number of                                       Total hours
+       Type of collection           or tribal        public        Average burden per response    for instrument
+                                   respondents     respondents
+----------------------------------------------------------------------------------------------------------------
+Survey.........................           1,500           1,500  0.25 (15 minutes)..............             750
+Individual Interview, Long--                100             100  1.5 (90 minutes)...............             300
+ Structured or Semi-structured.
+Individual Interview, Short--               225             225  1 (60 minutes).................             450
+ Structured or Semi-structured.
+Focus Groups/Small Group                    500             500  2 (120 minutes)................           2,000
+ Discussion.
+                                --------------------------------------------------------------------------------
+    Total Responses by                    2,325           2,325  Total Burden Hours                        3,500
+     Participant Group.
+----------------------------------------------------------------------------------------------------------------
+
+    An agency may not conduct or sponsor, nor is a person is required 
+to respond to a collection of information unless it displays a 
+currently valid OMB control number.
+    The authority for this action is the PRA of 1995 (44 U.S.C. 3501 et 
+seq.).
+
+Emily Read,
+Acting Director, Integrated Information Dissemination Division, Water 
+Resources Mission Area.
+[FR Doc. 2025-13203 Filed 7-14-25; 8:45 am]
+BILLING CODE 4334-63-P
+
+
+</pre><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
+</html>

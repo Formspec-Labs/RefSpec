@@ -20527,6 +20527,22 @@ SOURCES = (
                 source_iri="urn:ref:source-artifact:c74edd516f4a0f8b89d6b809455f0dbf5741c42f9a1a1bc2f28b4c4ad2507e0d",
             ),
             SourcePin(
+                path="plans/agency-registry-alias-batch-2-candidates.json",
+                sha256="sha256:a431bdaed24652cb6519a3d41187b869467c0b9e6dc7c34e6d08b9efda1a30de",
+                byte_length=193712,
+                fmt="json",
+                role="aliasBatch2OwnerCandidates",
+                source_iri="urn:ref:source-artifact:a431bdaed24652cb6519a3d41187b869467c0b9e6dc7c34e6d08b9efda1a30de",
+            ),
+            SourcePin(
+                path="plans/agency-registry-alias-batch-2-decisions.json",
+                sha256="sha256:152d34006077ea717cb67720ea3a050438e9a0a0f1ce47e41255ba9179ee16d6",
+                byte_length=51917,
+                fmt="json",
+                role="aliasBatch2OwnerDecisions",
+                source_iri="urn:ref:source-artifact:152d34006077ea717cb67720ea3a050438e9a0a0f1ce47e41255ba9179ee16d6",
+            ),
+            SourcePin(
                 path="tests/fixtures/cfr_list_of_subjects/ecfr-agencies-2026-08-15.json",
                 sha256="sha256:766685f466d62fa558a504cdeac23eef1d41f3ea24a2f5a3f78b38f2bcd5365e",
                 byte_length=98197,
