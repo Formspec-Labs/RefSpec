@@ -495,6 +495,7 @@ def check_alias_records(repo, alias_batch, source_paths=None):
     source_paths = source_paths or {}
     c, _ = alias_batch
     pin = c["inputs"]["records_manifest"]
+    records_dir = str(Path(pin["path"]).parent) if pin.get("path") else ALIAS_RECORDS_DIR
     manifest_path = Path(source_paths.get(pin["path"], Path(repo) / pin["path"]))
     errors = differences(pin["sha256"], "sha256:" + sha(manifest_path), "alias-records/manifest")
     listed = {row["file"]: row for row in json.loads(manifest_path.read_text())}
@@ -502,16 +503,18 @@ def check_alias_records(repo, alias_batch, source_paths=None):
     for alias in c["aliases"]:
         for record in alias["records"]:
             name = record["file"]
+            rdir = str(record.get("records_dir") or records_dir)
             label = f"alias-records/{alias['alias_id']}/{name}"
-            if name not in texts:
-                path = child(Path(repo) / ALIAS_RECORDS_DIR, name)
-                path = Path(source_paths.get(f"{ALIAS_RECORDS_DIR}/{name}", path))
+            cache_key = (rdir, name)
+            if cache_key not in texts:
+                path = child(Path(repo) / rdir, name)
+                path = Path(source_paths.get(f"{rdir}/{name}", path))
                 if path.is_symlink() or not path.is_file():
-                    texts[name] = (None, None)
+                    texts[cache_key] = (None, None)
                 else:
                     raw = path.read_bytes()
-                    texts[name] = ("sha256:" + hashlib.sha256(raw).hexdigest(), retained_text(path, raw))
-            observed, text = texts[name]
+                    texts[cache_key] = ("sha256:" + hashlib.sha256(raw).hexdigest(), retained_text(path, raw))
+            observed, text = texts[cache_key]
             entry = listed.get(name, {})
             delta = differences(
                 {
@@ -1100,6 +1103,8 @@ OWNER_AGGREGATE = "sha256:7fe88a9167a9363f5c2bfdcd3911953b7323abe1564d40586991c9
 SUCCESSION_OWNER_AGGREGATE = "sha256:4d29ffd7c936159dbff13d9b228845e50d134a567a8ff6b60a3d9e2f7f7921cc"
 ALIAS_OWNER_AGGREGATE = "sha256:f27a8b66b414ed8c75153340997623b589c5fe1820d75e60ec73953d361c0b82"
 ALIAS_CANDIDATES = "plans/agency-registry-alias-batch-candidates.json"
+ALIAS_BATCH_2_OWNER_AGGREGATE = "sha256:0cb4bfbf239d4b2f8bb555f944484b4c47ad18d9df1dd6a1d505ff442953766d"
+ALIAS_BATCH_2_CANDIDATES = "plans/agency-registry-alias-batch-2-candidates.json"
 #: Each batch's candidates and decisions files, the aggregate the owner decided on, and what it covers, in release order.
 BATCHES = (
     (
@@ -1115,6 +1120,12 @@ BATCHES = (
         COVERED,
     ),
     (ALIAS_CANDIDATES, "plans/agency-registry-alias-batch-decisions.json", ALIAS_OWNER_AGGREGATE, ALIAS_COVERED),
+    (
+        ALIAS_BATCH_2_CANDIDATES,
+        "plans/agency-registry-alias-batch-2-decisions.json",
+        ALIAS_BATCH_2_OWNER_AGGREGATE,
+        ALIAS_COVERED,
+    ),
 )
 
 
@@ -1195,6 +1206,43 @@ def child(root, path):
     return result
 
 
+def _check_alias_review_section(errors, sources, review, alias_batch, expected_digest, section_label):
+    if review is None:
+        raise ValueError(f"the alias batch has no {section_label} in the pinned receipt")
+    ac, ad = alias_batch
+    errors.extend(differences(expected_digest, ac["candidates_digest"], f"review/{section_label}-aggregate"))
+    aliases = {a["alias_id"]: a for a in ac["aliases"] if a["alias_id"] in ad["decisions"]}
+    pop_path = "review/alias-population" if section_label == "aliasReview" else f"review/{section_label}-population"
+    errors.extend(differences(sorted(aliases), sorted(r["aliasId"] for r in review["aliases"]), pop_path))
+    for reviewed in review["aliases"]:
+        alias = aliases[reviewed["aliasId"]]
+        effect = alias["answer_effects"][ad["decisions"][alias["alias_id"]]["answer"]]
+        selected = {
+            "ownerDecision": ad["decisions"][alias["alias_id"]],
+            "nameKey": alias["name_key"],
+            "outcome": effect["outcome"],
+            "frRelation": effect.get("fr_relation"),
+            "fr": (alias["fr_record"] or {}).get("resource_iri"),
+            "target": (alias["target"] or {}).get("resource_iri"),
+        }
+        label = "review/" + alias["alias_id"]
+        errors.extend(differences(selected, {k: reviewed.get(k) for k in selected}, label))
+        evidence = [e for claim in reviewed["claims"] for e in claim["evidence"]]
+        errors.extend(
+            differences(
+                [[r["url"], r["sha256"], r["file"], r["passage"]] for r in alias["records"]],
+                [[e["sourceUrl"], "sha256:" + e["sourceSha256"], e["retainedPath"], e["passage"]] for e in evidence],
+                label + "/records",
+            )
+        )
+        for item in evidence:
+            source = sources.get(item["sourceUrl"])
+            if not source:
+                raise ValueError("reviewed alias record is not a pinned evidence member")
+            errors.extend(differences(source["sha256"], "sha256:" + item["sourceSha256"], label + "/source-hash"))
+            errors.extend(differences(source["retainedPath"], item["retainedPath"], label + "/source-path"))
+
+
 def authenticate_agency_evidence(
     root,
     manifest_path,
@@ -1205,8 +1253,9 @@ def authenticate_agency_evidence(
     decisions,
     source_paths=None,
     alias_batch=None,
+    alias_batch_2=None,
 ):
-    """Authenticate the pinned review: batch 1's events, and, given ``alias_batch``, every decided alias's records."""
+    """Authenticate the pinned review: batch 1's events, and, given ``alias_batch`` (and ``alias_batch_2``), every decided alias's records."""
     manifest = pinned_json(manifest_path, trusted_manifest_digest)
     receipt = pinned_json(receipt_path, trusted_receipt_digest)
     errors = differences(manifest["candidatesDigest"], candidates["candidates_digest"], "review/aggregate")
@@ -1264,41 +1313,16 @@ def authenticate_agency_evidence(
         if review is not None:
             raise ValueError("the receipt reviews aliases, but no alias batch was given to bind them to")
         return errors
-    if review is None:
-        raise ValueError("the alias batch has no review in the pinned receipt")
-    ac, ad = alias_batch
-    errors.extend(differences(manifest.get("aliasCandidatesDigest"), ac["candidates_digest"], "review/alias-aggregate"))
-    aliases = {a["alias_id"]: a for a in ac["aliases"] if a["alias_id"] in ad["decisions"]}
-    errors.extend(
-        differences(sorted(aliases), sorted(r["aliasId"] for r in review["aliases"]), "review/alias-population")
-    )
-    for reviewed in review["aliases"]:
-        alias = aliases[reviewed["aliasId"]]
-        effect = alias["answer_effects"][ad["decisions"][alias["alias_id"]]["answer"]]
-        selected = {
-            "ownerDecision": ad["decisions"][alias["alias_id"]],
-            "nameKey": alias["name_key"],
-            "outcome": effect["outcome"],
-            "frRelation": effect.get("fr_relation"),
-            "fr": (alias["fr_record"] or {}).get("resource_iri"),
-            "target": (alias["target"] or {}).get("resource_iri"),
-        }
-        label = "review/" + alias["alias_id"]
-        errors.extend(differences(selected, {k: reviewed.get(k) for k in selected}, label))
-        evidence = [e for claim in reviewed["claims"] for e in claim["evidence"]]
-        errors.extend(
-            differences(
-                [[r["url"], r["sha256"], r["file"], r["passage"]] for r in alias["records"]],
-                [[e["sourceUrl"], "sha256:" + e["sourceSha256"], e["retainedPath"], e["passage"]] for e in evidence],
-                label + "/records",
-            )
+    _check_alias_review_section(errors, sources, review, alias_batch, manifest.get("aliasCandidatesDigest"), "aliasReview")
+    if alias_batch_2 is not None:
+        _check_alias_review_section(
+            errors,
+            sources,
+            receipt.get("aliasBatch2Review"),
+            alias_batch_2,
+            manifest.get("aliasBatch2CandidatesDigest"),
+            "aliasBatch2Review",
         )
-        for item in evidence:
-            source = sources.get(item["sourceUrl"])
-            if not source:
-                raise ValueError("reviewed alias record is not a pinned evidence member")
-            errors.extend(differences(source["sha256"], "sha256:" + item["sourceSha256"], label + "/source-hash"))
-            errors.extend(differences(source["retainedPath"], item["retainedPath"], label + "/source-path"))
     return errors
 
 
@@ -1374,7 +1398,8 @@ def verify_agency_artifacts(
                 agency_review_receipt_sha256,
                 *batches[0],
                 source_paths=source_paths,
-                alias_batch=batches[-1],
+                alias_batch=batches[2],
+                alias_batch_2=batches[3],
             )
         )
         c, d = merged_plans(batches)
@@ -1414,11 +1439,13 @@ def verify_agency_artifacts(
             return {"status": "failed", "failures": errors, "trustedInputs": trusted_inputs}
         actual = {key: sorted_rows(pq.read_table(view / table_path(key)).to_pylist()) for key in expected}
         errors.extend(differences(expected, actual, "agency-view"))
-        record_errors, record_receipts = check_alias_records(root, batches[-1], source_paths)
-        errors.extend(record_errors)
-        errors.extend(
-            check_alias_rosters(batches[-1], rosters, read_opm_names(root, source_paths), expected["projection"])
-        )
+        opm_names = read_opm_names(root, source_paths)
+        record_receipts = []
+        for alias_b in batches[2:]:
+            record_errors, batch_receipts = check_alias_records(root, alias_b, source_paths)
+            errors.extend(record_errors)
+            record_receipts.extend(batch_receipts)
+            errors.extend(check_alias_rosters(alias_b, rosters, opm_names, expected["projection"]))
         endpoint_errors, endpoint_receipts, _ = check_raw_endpoints(root, c, source_paths, rosters)
         errors.extend(endpoint_errors)
         distribution_manifest = json.loads((dist / "atlas-manifest.json").read_text())

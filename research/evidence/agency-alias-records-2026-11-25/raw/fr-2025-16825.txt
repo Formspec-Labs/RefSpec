@@ -1,0 +1,145 @@
+<html>
+<head>
+<title>Federal Register, Volume 90 Issue 168 (Wednesday, September 3, 2025)</title>
+</head>
+<body><pre>
+[Federal Register Volume 90, Number 168 (Wednesday, September 3, 2025)]
+[Notices]
+[Pages 42571-42572]
+From the Federal Register Online via the Government Publishing Office [<a href="http://www.gpo.gov">www.gpo.gov</a>]
+[FR Doc No: 2025-16825]
+
+
+-----------------------------------------------------------------------
+
+DEPARTMENT OF COMMERCE
+
+National Oceanic and Atmospheric Administration
+
+[RTID 0648-XF132]
+
+
+NOAA Fisheries Virtual Peer Review Workshop for the Fishing 
+Effort Survey Calibration Model
+
+AGENCY: National Marine Fisheries Service (NMFS), National Oceanic and 
+Atmospheric Administration (NOAA), Commerce.
+
+ACTION: Notice of Peer Review Workshop for the NOAA Fisheries' Fishing 
+Effort Survey Calibration Model.
+
+-----------------------------------------------------------------------
+
+SUMMARY: NOAA Fisheries Office of Science and Technology will host a 
+two-day virtual workshop with the opportunity for partner and public 
+comment for the independent peer review of the proposed Fishing Effort 
+Survey (FES) calibration model methodology. The model is proposed for 
+use to update the historical recreational fishing estimates produced 
+using the FES to the scale of the improved FES anticipated for 
+implementation in January 2026. Pending peer review results and 
+associated next steps, calibrated estimates using the peer-reviewed 
+calibration model are anticipated to be available for use in subsequent 
+stock assessments and fisheries management decisions in spring 2026. 
+See SUPPLEMENTARY INFORMATION.
+
+DATES: The calibration peer review workshop will be held virtually 
+Sept. 23 and 24, 2025, from 9 a.m. to 3:30 p.m. EDT and from 9 a.m. to 
+3 p.m. EDT, respectively. The established times may be adjusted as 
+necessary to accommodate the timely completion of discussion relevant 
+to the peer review process. Such adjustments may result in the meeting 
+being extended from or completed prior to the times established by this 
+notice.
+
+ADDRESSES: This is a virtual meeting. The meeting will be live 
+streamed. Individuals may register to virtually attend the workshop by 
+going to the following links:
+    <bullet> Registration link, Day 1, Sept. 23: (<a href="https://noaanmfs-meets.webex.com/weblink/register/r4fe7a6bde76fd199c21f3cf0fa6e9d05">https://noaanmfs-meets.webex.com/weblink/register/r4fe7a6bde76fd199c21f3cf0fa6e9d05</a>)
+    <bullet> Registration link, Day 2, Sept. 24: (<a href="https://noaanmfs-meets.webex.com/weblink/register/r9e933f7718ec4d1776a9103c5e3c879a">https://noaanmfs-meets.webex.com/weblink/register/r9e933f7718ec4d1776a9103c5e3c879a</a>)
+    Registration is required. The web connection details will be 
+provided to the registrant upon registering. If you have issues with 
+registering, please contact Dr. Katherine Papacostas (see FOR FURTHER 
+INFORMATION CONTACT). The attendee cap for this meeting is 1,000 
+individuals.
+
+FOR FURTHER INFORMATION CONTACT: Dr. Katherine Papacostas, MRIP program 
+manager; 301-427-8210 or email: <a href="/cdn-cgi/l/email-protection#355e54415d50475c5b501b45544554565a46415446755b5a54541b525a43"><span class="__cf_email__" data-cfemail="bed5dfcad6dbccd7d0db90cedfcedfddd1cdcadfcdfed0d1dfdf90d9d1c8">[email&#160;protected]</span></a>.
+
+SUPPLEMENTARY INFORMATION: NOAA Fisheries' Office of Science and 
+Technology has commissioned an independent, expert peer review to 
+assess the quality and credibility of the proposed calibration model to 
+be used to update the historical recreational fishing estimates 
+produced using the current FES to the scale of the improved FES 
+anticipated for implementation in January 2026.
+
+Fishing Effort Survey Background
+
+    As part of the Agency's continuous evaluation and improvement 
+process, NOAA Fisheries has been researching improvements to the FES, 
+which is a key survey component of the Marine Recreational Information 
+Program (MRIP) that estimates recreational fishing effort--
+specifically, the number of fishing trips taken by shore and private 
+boat anglers from Maine to Mississippi and in Hawaii. The current FES 
+mail survey design was implemented in 2018 and replaced the legacy 
+Coastal Household Telephone Survey (CHTS) to address declining response 
+rates and coverage issues associated with landline telephone surveys.
+    Throughout 2024, NOAA Fisheries conducted a large-scale study 
+(<a href="https://www.fisheries.noaa.gov/recreational-fishing-data/fishing-effort-survey-research-and-improvements">https://www.fisheries.noaa.gov/recreational-fishing-data/fishing-effort-survey-research-and-improvements</a>) to test improvements to the 
+FES based on results of prior pilot studies. The tested design 
+increased the administration of the survey from every 2 months to 
+monthly and changed the order of two fishing effort questions to 
+improve respondent reporting. Based on the study findings and pending 
+peer review results of the study report and proposed design 
+(anticipated in late summer
+
+[[Page 42572]]
+
+2025), the Agency plans to implement an improved FES design.
+
+Calibration Model Background
+
+    To assure continuity and comparability of recreational fishing 
+effort estimates through survey design changes, NOAA Fisheries' team of 
+statistical consultants developed a calibration model. This model 
+updates historical estimates produced by the current FES to estimates 
+that would have been produced had the improved design been in place 
+prior to 2026. This updated calibration model incorporates and builds 
+upon the peer-reviewed model developed to calibrate the historical 
+estimate time series from the CHTS to the current FES.
+
+Peer Review and Workshop Objectives
+
+    The objective of this peer review is to evaluate the effectiveness 
+and suitability of the proposed calibration model for re-estimating 
+historical estimates of private boat and shore fishing effort. It is a 
+vital step in NOAA Fisheries' commitment to enhancing the quality and 
+reliability of recreational fishing data. Insights gained from the peer 
+review will inform the finalization of the calibration model and guide 
+its application in updating historical effort estimates, ensuring 
+fisheries stock assessment and management continue to be based on 
+statistically robust and consistent catch and effort data. The final 
+peer review report outlining findings and recommendations is 
+anticipated to be completed and submitted to NOAA Fisheries in late 
+fall 2025.
+    Day 1 of the workshop focuses on technical presentations and 
+discussion regarding objectives of the peer review; the 2024 FES study; 
+background on calibration purpose and needs; and a walkthrough of the 
+updated calibration model methodology, assumptions, and model outputs. 
+In addition, partners and the public will have the opportunity to raise 
+questions and concerns regarding the presented information. Day 2 of 
+the workshop includes a Q&A with the calibration model developer and 
+panel-only sessions for initial model assessment discussions and report 
+planning.
+    See attached agenda and peer review performance work statement for 
+further information.
+    Authority: 16 U.S.C. 1801 et seq.
+
+    Dated: August 27, 2025.
+Howard Townsend,
+Acting Director, Office of Science and Technology, National Marine 
+Fisheries Service.
+[FR Doc. 2025-16825 Filed 9-2-25; 8:45 am]
+BILLING CODE 3510-22-P
+
+
+</pre><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
+</html>

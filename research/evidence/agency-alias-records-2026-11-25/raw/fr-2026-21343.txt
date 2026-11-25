@@ -1,0 +1,163 @@
+<html>
+<head>
+<title>Federal Register, Volume 91 Issue 200 (Monday, October 19, 2026)</title>
+</head>
+<body><pre>
+[Federal Register Volume 91, Number 200 (Monday, October 19, 2026)]
+[Notices]
+[Pages 66115-66116]
+From the Federal Register Online via the Government Publishing Office [<a href="http://www.gpo.gov">www.gpo.gov</a>]
+[FR Doc No: 2026-21343]
+
+
+-----------------------------------------------------------------------
+
+DEPARTMENT OF DEFENSE
+
+Office of the Secretary
+
+[Transmittal No. 26-93]
+
+
+Arms Sales Notification
+
+AGENCY: Defense Security Cooperation Agency (DSCA), Department of 
+Defense (DoD).
+
+ACTION: Arms sales notice.
+
+-----------------------------------------------------------------------
+
+SUMMARY: The DoD (referred to herein as ``the Department,'' 
+``Department of War'' or ``DoW'') is publishing the unclassified text 
+of an arms sales notification.
+
+[[Page 66116]]
+
+
+FOR FURTHER INFORMATION CONTACT: Urooj Zahra at (703) 695-6233, 
+<a href="/cdn-cgi/l/email-protection#582d2a373732762239302a39763b312e183539313476353134"><span class="__cf_email__" data-cfemail="7d080f12121753071c150f1c531e140b3d101c141153101411">[email&#160;protected]</span></a>, or <a href="/cdn-cgi/l/email-protection#4e2a3d2d2f60202d3c603c3d3c2d2329233a6022273d3a602d203d63232c360e232f272260232722"><span class="__cf_email__" data-cfemail="4c283f2f2d62222f3e623e3f3e2f212b21386220253f38622f223f61212e340c212d252062212520">[email&#160;protected]</span></a>.
+
+SUPPLEMENTARY INFORMATION: This 36(b) arms sales notification is 
+published to fulfill the requirements of section 155 of Public Law 104-
+164 dated July 21, 1996. The following is a copy of the attached 
+Transmittal 26-93, Policy Justification, and Sensitivity of Technology.
+
+    Dated: October 15, 2026.
+Stephanie J. Bost,
+Alternate OSD Federal Register Liaison Officer, Department of Defense.
+Transmittal No. 26-93
+Notice of Proposed Issuance of Letter of Offer Pursuant to Section 
+36(b)(1) of the Arms Export Control Act, as amended
+    (i) Prospective Purchaser: Government of Spain
+    (ii) Total Estimated Value:
+
+Major Defense Equipment *................  $27 million
+Other....................................  $48 million
+                                          ------------------------------
+  TOTAL..................................  $75 million
+ 
+
+    (iii) Description and Quantity or Quantities of Articles or 
+Services under Consideration for Purchase:
+
+Major Defense Equipment (MDE):
+    Seven (7) Sonar, Mine Hunting, AN/SQQ-32(V)3+ upgrade kits
+Non-MDE:
+    The following non-MDE items will also be included: towed body 
+parts; support equipment; spare parts, consumables, and accessories; 
+unclassified operation and maintenance software; unclassified 
+publications, technical documentation; and studies and surveys; U.S. 
+government and contractor engineering, technical, and logistics support 
+services; and other related elements of logistics and program support.
+
+    (iv) Military Department: Navy (SP-P-LIM)
+    (v) Prior Related Cases, if any: None
+    (vi) Sales Commission, Fee, etc., Paid, Offered, or Agreed to be 
+Paid: None known at this time
+    (vii) Sensitivity of Technology Contained in the Defense Article or 
+Defense Services Proposed to be Sold: See Attached Annex
+    (viii) Date Report Delivered to Congress: September 16, 2026
+    * as defined in Section 47(6) of the Arms Export Control Act.
+
+POLICY JUSTIFICATION
+
+Spain--Sonar Upgrade Kits
+
+    The Government of Spain has requested to buy seven (7) Sonar, Mine 
+Hunting, AN/SQQ-32(V)3+ upgrade kits. The following non-MDE items will 
+also be included: towed body parts; support equipment; spare parts, 
+consumables, and accessories; unclassified operation and maintenance 
+software; unclassified publications, technical documentation; and 
+studies and surveys; U.S. Government and contractor engineering, 
+technical, and logistics support services; and other related elements 
+of logistics and program support. The estimated total cost is $75 
+million.
+    This proposed sale will support the foreign policy goals and 
+national security objectives of the United States by improving the 
+security of a NATO ally that is a force for political stability and 
+economic progress in Europe.
+    The proposed sale will improve Spain's capability to meet current 
+and future threats by providing an advanced and reliable sonar system, 
+enhancing its ability to detect, classify, and neutralize underwater 
+threats. This modernization prevents a capability gap in Spain's Mine 
+Countermeasure forces and ensures continued contribution to NATO 
+maritime security operations. Spain will have no difficulty absorbing 
+these articles and services into its armed forces.
+    The proposed sale of this equipment and support will not alter the 
+basic military balance in the region.
+    There is no principal contractor in connection with this sale. The 
+articles and support will be provided by the Naval Surface Warfare 
+Center, located in Panama City, FL. At this time, the U.S. Government 
+is not aware of any offset agreement proposed in connection with this 
+potential sale.
+    Implementation of this proposed sale will not require the 
+assignment of any additional U.S. Government or contractor 
+representatives to Spain.
+    There will be no adverse impact on U.S. defense readiness as a 
+result of this proposed sale.
+Transmittal No. 26-93
+Notice of Proposed Issuance of Letter of Offer Pursuant to Section 
+36(b)(1) of the Arms Export Control Act
+Annex
+Item No. vii
+    (vii) Sensitivity of Technology:
+    1. The AN/SQQ-32 sonar is a variable-depth mine-hunting sonar 
+system designed for detecting and classifying moored and bottom mines 
+in mine countermeasure operations. It includes two separate active 
+sonar systems to detect and classify mine-like objects on the surface 
+in the volume or on the bottom of the sea. The sonar systems are 
+packaged in a single towed body tethered to the ship through a cable 
+providing power and data transmission with the cable length variable 
+via an electric winch.
+    2. The detect and classify sonar subsystems are independently 
+monitored and controlled by two operators at independent panels working 
+together to find and characterize underwater objects as mine or non-
+mine like objects. The detection system is a low frequency, low 
+resolution, high range sonar designed to provide a general location of 
+possible mine-like objects. It provides much greater range than the 
+classify sonar system, but provides little resolution and detail of the 
+objects it detects. The classify sonar has a lower range, but higher 
+frequency and higher resolution, allowing the classification of a 
+target as mine-like or non-mine-like.
+    3. The highest level of classification of defense articles, 
+components, and services included in this potential sale is SECRET.
+    4. If a technologically advanced adversary were to obtain knowledge 
+of the specific hardware and software elements, the information could 
+be used to develop countermeasures that might reduce system 
+effectiveness or be used in the development of a system with similar or 
+advanced capabilities.
+    5. A determination has been made that Spain can provide 
+substantially the same degree of protection for the sensitive 
+technology being released as the U.S. Government. This proposed sale is 
+necessary in furtherance of the U.S. foreign policy and national 
+security objectives outlined in the Policy Justification.
+    6. All defense articles and services listed in this transmittal 
+have been authorized for release and export to the Government of Spain.
+
+[FR Doc. 2026-21343 Filed 10-16-26; 8:45 am]
+BILLING CODE 6001-FR-P
+
+
+</pre><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
+</html>

@@ -1,0 +1,92 @@
+<html>
+<head>
+<title>Federal Register, Volume 89 Issue 249 (Monday, December 30, 2024)</title>
+</head>
+<body><pre>
+[Federal Register Volume 89, Number 249 (Monday, December 30, 2024)]
+[Notices]
+[Pages 106608-106609]
+From the Federal Register Online via the Government Publishing Office [<a href="http://www.gpo.gov">www.gpo.gov</a>]
+[FR Doc No: 2024-31221]
+
+
+=======================================================================
+-----------------------------------------------------------------------
+
+NATIONAL SCIENCE FOUNDATION
+
+
+Notice of Open to the Public Meetings of the Networking and 
+Information Technology Research and Development (NITRD) Program
+
+AGENCY: Networking and Information Technology Research and Development 
+(NITRD) National Coordination Office (NCO), National Science 
+Foundation.
+
+ACTION: Notice of public meetings.
+
+-----------------------------------------------------------------------
+
+SUMMARY: The NITRD Joint Engineering Team (JET) and Middleware And Grid 
+Interagency Coordination (MAGIC) Communities of Practice (COPs) hold 
+meetings that are open to the public to attend. The JET and MAGIC COPs 
+provide an opportunity for the public to engage and participate in 
+information sharing with federal agencies. The JET and MAGIC COPs 
+report to the NITRD Large Scale Networking Interagency Working Group.
+
+DATES: January 2025-December 2025.
+
+FOR FURTHER INFORMATION CONTACT: Paul Love for the JET COP and Mallory 
+Hinks for the MAGIC COP at <a href="/cdn-cgi/l/email-protection#9af4f9f5daf4f3eee8feb4fdf5ec"><span class="__cf_email__" data-cfemail="5a3439351a34332e283e743d352c">[email&#160;protected]</span></a> or (202) 459-9674. Mail: Attn: 
+Paul Love or Mallory Hinks, 2415 Eisenhower Avenue, Alexandria, VA 
+22314, USA. Individuals who use a telecommunications device for the 
+deaf (TDD) may call the Federal Information Relay Service (FIRS) at 1-
+800-877-8339 between 8 a.m. and 8 p.m., Eastern time, Monday through 
+Friday, except for U.S. Federal Government holidays.
+
+SUPPLEMENTARY INFORMATION: The Joint Engineering Team (JET) COP, 
+established in 1997, provides an opportunity for information sharing 
+among Federal agencies and non-Federal participants who have an 
+interest in high-performance research and engineering or research and 
+education networking (REN) and networking to support science 
+applications.
+    The MAGIC COP, established in 2002, provides an opportunity for 
+information sharing among Federal agencies and non-Federal participants 
+involved in middleware, grid, and cloud research and infrastructure; 
+implementing or operating grids and clouds; or the use of grids, 
+clouds, and middleware.
+    The JET and MAGIC COPs' meetings are hosted by the NITRD NCO with 
+Zoom participation available for each meeting.
+    Public Meetings Website: The JET and MAGIC COPs' meetings are 
+scheduled 30 days in advance of the meeting date. Please reference the 
+NITRD Public Meetings web page (<a href="https://www.nitrd.gov/public-meetings/">https://www.nitrd.gov/public-meetings/</a>) 
+for each COP's upcoming meeting dates and times, in addition to the 
+agendas, minutes, and other meeting materials and information.
+    Public Meetings Mailing Lists: Members of the public may be added 
+to the mailing lists by sending their full name and email address to 
+<a href="/cdn-cgi/l/email-protection#137976673e607a747d6663537d7a6761773d747c65"><span class="__cf_email__" data-cfemail="3f555a4b124c5658514a4f7f51564b4d5b11585049">[email&#160;protected]</span></a> for JET and <a href="/cdn-cgi/l/email-protection#c1aca0a6a8a2ecb2a8a6afb4b181afa8b5b3a5efa6aeb7"><span class="__cf_email__" data-cfemail="0e636f69676d237d6769607b7e4e60677a7c6a20696178">[email&#160;protected]</span></a> for MAGIC, with 
+the subject line: ``Add to JET'' and/or ``Add to MAGIC'', respectively. 
+Meeting notifications and information are shared via the mailing lists.
+    Public Comments: The government seeks individual input; attendees/
+participants may provide individual advice only. Members of the public 
+are welcome to submit their comments for JET to <a href="/cdn-cgi/l/email-protection#caa0afbee7a9a5a7a7afa4beb98aa4a3beb8aee4ada5bc"><span class="__cf_email__" data-cfemail="c8a2adbce5aba7a5a5ada6bcbb88a6a1bcbaace6afa7be">[email&#160;protected]</span></a> 
+and for MAGIC to <a href="/cdn-cgi/l/email-protection#1875797f717b357b7775757d766c6b5876716c6a7c367f776e"><span class="__cf_email__" data-cfemail="d0bdb1b7b9b3fdb3bfbdbdb5bea4a390beb9a4a2b4feb7bfa6">[email&#160;protected]</span></a> . Please note that under the 
+provisions of the Federal Advisory Committee Act (FACA), all public 
+comments and/or presentations will be treated as public
+
+[[Page 106609]]
+
+documents and may be made available to the public via the JET (<a href="https://www.nitrd.gov/coordination-areas/lsn/jet/">https://www.nitrd.gov/coordination-areas/lsn/jet/</a>) and MAGIC (<a href="https://www.nitrd.gov/coordination-areas/lsn/magic/">https://www.nitrd.gov/coordination-areas/lsn/magic/</a>) web pages.
+    Reference Website: NITRD website at: <a href="https://www.nitrd.gov/">https://www.nitrd.gov/</a>.
+    Submitted by the National Science Foundation in support of the 
+Networking and Information Technology Research and Development National 
+Coordination Office on December 20, 2024.
+
+Suzanne H. Plimpton,
+Reports Clearance Officer, National Science Foundation.
+[FR Doc. 2024-31221 Filed 12-27-24; 8:45 am]
+BILLING CODE 7555-01-P
+
+
+</pre><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
+</html>

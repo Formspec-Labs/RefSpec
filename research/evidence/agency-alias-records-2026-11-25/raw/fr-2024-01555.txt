@@ -1,0 +1,498 @@
+<html>
+<head>
+<title>Federal Register, Volume 89 Issue 22 (Thursday, February 1, 2024)</title>
+</head>
+<body><pre>
+[Federal Register Volume 89, Number 22 (Thursday, February 1, 2024)]
+[Rules and Regulations]
+[Pages 6432-6435]
+From the Federal Register Online via the Government Publishing Office [<a href="http://www.gpo.gov">www.gpo.gov</a>]
+[FR Doc No: 2024-01555]
+
+
+=======================================================================
+-----------------------------------------------------------------------
+
+CORPORATION FOR NATIONAL AND COMMUNITY SERVICE
+
+45 CFR Part 2500
+
+RIN 3045-AA83
+
+
+AmeriCorps Statement of Organization
+
+AGENCY: Corporation for National and Community Service.
+
+ACTION: Final rule.
+
+-----------------------------------------------------------------------
+
+SUMMARY: The Corporation for National and Community Service (CNCS), 
+which operates as AmeriCorps, is finalizing a rule to provide general 
+information to the public about its structure and purpose, as required 
+by the Administrative Procedure Act. While AmeriCorps already provides 
+information about its organizational structure on its public-facing 
+website (<a href="http://americorps.gov">americorps.gov</a>), this rule would comply with the statutory 
+requirement that agencies publish in the Federal Register their 
+descriptions of organization. This rule will also increase transparency 
+regarding AmeriCorps' operations by mapping out its existing program 
+regulations, thereby providing an overview of the Agency's programs.
+
+DATES: This rule is effective March 4, 2024.
+
+FOR FURTHER INFORMATION CONTACT: Elizabeth Appel, Office of General 
+Counsel, at (202) 967-5070, or <a href="/cdn-cgi/l/email-protection#482d2938382d2408742968203a2d2e75" http: americorps.gov">americorps.gov</a>">eappel@<a href="http://americorps.gov">americorps.gov</a></a>.
+
+SUPPLEMENTARY INFORMATION: 
+
+I. Background
+
+    AmeriCorps, the operating name for the Corporation for National and 
+Community Service, is a Federal agency that engages millions of 
+Americans in service. AmeriCorps members and AmeriCorps Seniors 
+volunteers serve directly with nonprofit, tribal, faith-based, or 
+community organizations to tackle some of our nation's most pressing 
+challenges. Although AmeriCorps already provides information about its 
+organizational structure on its website, <a href="http://americorps.gov">americorps.gov</a>, this rule 
+complies with the statutory requirement that agencies ``publish in the 
+Federal Register'' their descriptions of organization. See 5 U.S.C. 
+552(a)(1)(A). This rule will also increase transparency regarding 
+AmeriCorps' operations by mapping out its existing program regulations, 
+thereby providing an overview of the Agency's programs.
+    This rule adds AmeriCorps' organizational information to Code of 
+Federal Regulations (CFR) part 2500. Part 2500 already includes 
+information about AmeriCorps being CNCS's operating name and 
+information about AmeriCorps' logos. This rule redesignates, without 
+substantive change, the operating name and logo sections to new 
+sections later in the CFR part and adds subpart designations. The 
+following is a breakdown of the new and redesignated sections:
+
+------------------------------------------------------------------------
+                                                       Description of
+   Current 45 CFR section      New 45 CFR section          change
+------------------------------------------------------------------------
+                              Subpart A--           New subpart
+                               Introduction.         designation.
+                              2500.1 Creation and   New section.
+                               authority.
+2500.1 Agency Operating Name  2500.2 Agency         Redesignated without
+                               operating name.       substantive change.
+                              2500.3 Purpose and    New section.
+                               mission.
+                              Subpart B--           New subpart
+                               Organization.         designation.
+                              2500.10 General.....  New section.
+                              2500.11 AmeriCorps    New section.
+                               headquarters.
+                              2500.12 Region        New section.
+                               offices.
+                              Subpart C--Programs.  New subpart
+                                                     designation.
+                              2500.20 Program       New section.
+                               descriptions.
+                              2500.21 Focus areas.  New section.
+                              Subpart D--Logos....  New subpart
+                                                     designation.
+2500.2 Description of Logos.  2500.30 Description   Redesignated without
+                               of logos.             substantive change.
+2500.3 Retirement of Logos..  2500.31 Retirement    Redesignated without
+                               of logos.             substantive change.
+2500.4 Authority to affix     2500.32 Authority to  Redesignated without
+ logos.                        affix logos.          substantive change.
+------------------------------------------------------------------------
+
+    The new sections describe AmeriCorps':
+    <bullet> Statutory basis and origination;
+    <bullet> Purpose, to administer the programs established under the 
+national service laws; and mission, to improve lives, strengthen 
+communities, and foster civic engagement through service and 
+volunteering;
+    <bullet> Organization, including the roles of the Chief Executive 
+Officer and the Board of Directors;
+    <bullet> Headquarters, including leadership positions; and region 
+offices, referring to AmeriCorps' website for details on contact 
+information;
+    <bullet> Four main national service programs: AmeriCorps NCCC, 
+AmeriCorps Seniors, AmeriCorps State and National, and AmeriCorps 
+VISTA; and
+    <bullet> Focus areas, which include, but are not limited to, 
+disaster services, economic opportunity, education, environmental 
+stewardship, healthy futures, and veterans and military families.
+    Edits to the sections addressing AmeriCorps' logos specify the 
+logos' fonts and the direction of the flag in the logos and make minor 
+grammatical changes.
+
+II. Responses to Comments on Proposed Rule and Changes to Proposed Rule
+
+    AmeriCorps published the proposed rule on May 2, 2023. See 88 FR 
+27423. AmeriCorps received three written comment submissions prior to 
+the July 3, 2023, deadline for public comments. All three comments 
+expressed opposition to AmeriCorps' regional structure under the Office 
+of Regional Operations and the logos and branding that resulted from 
+the ``Transformation and Sustainability Plan'' that AmeriCorps adopted 
+several years ago. Commenters recounted multiple challenges with the 
+regional structure that replaced the State Office structure. AmeriCorps 
+currently operates through the regional structure and strives to 
+address grantees' concerns or the difficulties they face within that 
+structure. However, because the rule merely describes the regional 
+structure under which AmeriCorps currently operates, AmeriCorps is not 
+reconsidering its structure at this time, and is proceeding with 
+finalization of the description contained in the rule. However, 
+AmeriCorps appreciates the
+
+[[Page 6433]]
+
+commenters' input on the structure and welcomes ongoing communications 
+to continually improve operations within the regional structure.
+    All three comments also expressed some opposition to the logos and 
+branding, stating--among other reasons--that the logo and branding 
+cause confusion. AmeriCorps appreciates the comments around the 
+potential brand confusion; however, because no substantive change was 
+proposed for the sections related to logos and branding (only a 
+redesignation of section numbers), AmeriCorps is maintaining the 
+current rule with finalization of the proposed section redesignations.
+    The only changes to the proposed rule that the final rule makes are 
+minor wording changes for clarity and additional explanation of 
+AmeriCorps NCCC. In Sec.  2500.10, regarding the general organization 
+of the Agency, the final rule clarifies that the Chief Executive 
+Officer is responsible for exercising powers and discharging duties set 
+out in the National and Community Service Act of 1990, as amended, 42 
+U.S.C. 12501 et seq. (NCSA), and that the Board is responsible for 
+discharging duties set out in the NCSA. In Sec. Sec.  2500.10(c) and 
+2500.12, the final rule clarifies that there are two separate sets of 
+regions under AmeriCorps' structure: one for AmeriCorps NCCC and one 
+for AmeriCorps' Office of Regional Operations. In Sec.  2500.20, the 
+final rule adds references to a newly operational sub-program, NCCC 
+Forest Corps, and the Agency's Disaster Services Unit.
+
+III. Regulatory Analyses
+
+A. Executive Orders 12866 and 13563
+
+    Executive Orders (E.O.) 12866 and 13563 direct agencies to assess 
+all costs and benefits of available regulatory alternatives and, if 
+regulation is necessary, to select regulatory approaches that maximize 
+net benefits (including potential economic, environmental, public 
+health and safety effects, distributive impacts, and equity). E.O. 
+13563 emphasizes the importance of quantifying both costs and benefits, 
+of reducing costs, of harmonizing rules, and of promoting flexibility. 
+The Office of Information and Regulatory Affairs in the Office of 
+Management and Budget has determined that this is not a significant 
+regulatory action.
+
+B. Congressional Review Act (Small Business Regulatory Enforcement 
+Fairness Act of 1996, Title II, Subtitle E)
+
+    As required by the Congressional Review Act (5 U.S.C. 801-808), 
+before an interim or final rule takes effect, AmeriCorps will submit an 
+interim or final rule report to the U.S. House of Representatives, U.S. 
+Senate, and to the Comptroller General of the U.S. A major rule cannot 
+take effect until 60 days after it is published in the Federal 
+Register. The Office of Information and Regulatory Affairs in the 
+Office of Management and Budget determined this is not a major rule 
+under 5 U.S.C. 804 because this rule will not result in (1) an annual 
+effect on the economy of $100 million or more; (2) a major increase in 
+costs or prices for consumers, individual industries, Federal, State, 
+or local Government agencies, or geographic regions; or (3) significant 
+adverse effects on competition, employment, investment, productivity, 
+innovation, or on the ability of U.S.-based enterprises to compete with 
+foreign-based enterprises in domestic and export markets.
+
+C. Regulatory Flexibility Act
+
+    As required by the Regulatory Flexibility Act of 1980 (5 U.S.C. 601 
+et seq.), AmeriCorps certifies that this rule, if adopted, will not 
+have a significant economic impact on a substantial number of small 
+entities. Therefore, AmeriCorps has not performed the initial 
+regulatory flexibility analysis that is required under the Regulatory 
+Flexibility Act (5 U.S.C. 601 et seq.) for rules that are expected to 
+have such results.
+
+D. Unfunded Mandates Reform Act of 1995
+
+    For purposes of Title II of the Unfunded Mandates Reform Act of 
+1995, 2 U.S.C. 1531-1538, as well as Executive Order 12875, this 
+regulatory action does not contain any Federal mandate that may result 
+in increased expenditures in either Federal, State, local, or Tribal 
+Governments in the aggregate, or impose an annual burden exceeding $100 
+million on the private sector.
+
+E. Paperwork Reduction Act
+
+    Under the Paperwork Reduction Act (PRA), an agency may not conduct 
+or sponsor a collection of information unless the collections of 
+information display valid control numbers. This rule does not include 
+any information collections requiring approval by the Office of 
+Management and Budget.
+
+F. Executive Order 13132, Federalism
+
+    Executive Order 13132, Federalism, prohibits an agency from 
+publishing any rule that has federalism implications if the rule 
+imposes substantial direct compliance costs on State and local 
+governments and is not required by statute, or the rule preempts State 
+law, unless the agency meets the consultation and funding requirements 
+of section 6 of the Executive order. This rulemaking does not have any 
+federalism implications, as described above.
+
+G. Takings (E.O. 12630)
+
+    This rule does not affect a taking of private property or otherwise 
+have taking implications under Executive Order 12630 because this rule 
+does not affect individual property rights protected by the Fifth 
+Amendment or involve a compensable ``taking.'' A takings implication 
+assessment is not required.
+
+H. Civil Justice Reform (E.O. 12988)
+
+    This rule complies with the requirements of Executive Order 12988. 
+Specifically, this rulemaking: (a) meets the criteria of section 3(a) 
+requiring that all regulations be reviewed to eliminate errors and 
+ambiguity and be written to minimize litigation; and (b) meets the 
+criteria of section 3(b)(2) requiring that all regulations be written 
+in clear language and contain clear legal standards.
+
+I. Consultation With Indian Tribes (E.O. 13175)
+
+    AmeriCorps recognizes the inherent sovereignty of Indian Tribes and 
+their right to self-governance. We have evaluated this rulemaking under 
+our consultation policy and the criteria in E.O. 13175 and determined 
+that this rule does not impose substantial direct effects on federally 
+recognized Tribes.
+
+List of Subjects in 45 CFR Part 2500
+
+    Organization and functions (Government agencies).
+
+
+0
+For the reasons discussed in the preamble, under the authority of 42 
+U.S.C. 12651c(c), the Corporation for National and Community Service 
+revises 45 CFR part 2500 to read as follows:
+
+PART 2500--AMERICORPS STATEMENT OF ORGANIZATION, AGENCY OPERATING 
+NAME, AND LOGOS
+
+Subpart A--Introduction
+Sec.
+2500.1 Creation and authority.
+2500.2 Agency operating name.
+
+[[Page 6434]]
+
+2500.3 Purpose and mission.
+Subpart B--Organization
+2500.10 General.
+2500.11 AmeriCorps leadership.
+2500.12 Region offices.
+Subpart C--Programs
+2500.20 Program descriptions.
+2500.21 Focus areas.
+Subpart D--Logos
+2500.30 Description of logos.
+2500.31 Retirement of logos.
+2500.32 Authority to affix logos.
+
+    Authority: 5 U.S.C. 552(a)(1); 42 U.S.C. 4950, et seq., as 
+amended; 42 U.S.C. 12501 et seq., as amended; section 203(c), Pub. 
+L. 103-82, 107 Stat. 892; Proc. 6662, 59 FR 16507, 3 CFR, 1994 
+Comp., p. 22).
+
+Subpart A--Introduction
+
+
+Sec.  2500.1  Creation and authority.
+
+    The National and Community Service Trust Act of 1993 established 
+the Corporation for National and Community Service (CNCS) as a Federal 
+agency, organized in the form of a Government corporation within the 
+Executive Branch, to administer the national service programs 
+authorized by the National and Community Service Act of 1990. CNCS also 
+administers the national service programs authorized by the Domestic 
+Volunteer Service Act of 1973, as amended, and previously administered 
+by the former Federal ACTION Agency.
+
+
+Sec.  2500.2  Agency operating name.
+
+    (a) The Corporation for National and Community Service has adopted 
+AmeriCorps as its official agency operating name.
+    (b) Use of AmeriCorps as the agency operating name incorporates the 
+Corporation for National and Community Service by reference.
+
+
+Sec.  2500.3  Purpose and mission.
+
+    AmeriCorps' purpose is to administer the programs established under 
+the national service laws. AmeriCorps' mission is to improve lives, 
+strengthen communities, and foster civic engagement through service and 
+volunteering.
+
+Subpart B--Organization
+
+
+Sec.  2500.10  General.
+
+    (a) The Chief Executive Officer (CEO) is the head of AmeriCorps. 
+The CEO has authority and control over AmeriCorps personnel, except 
+those in the Agency's Office of Inspector General, and is responsible 
+for exercising the powers and discharging the duties authorized by the 
+National and Community Service Act of 1990, as amended, that are not 
+otherwise reserved to the Board of Directors.
+    (b) The Board of Directors is responsible for discharging the 
+duties authorized to it by the National and Community Service Act of 
+1990, as amended.
+    (c) AmeriCorps consists of headquarters and two sets of regions: 
+Office of Regional Operations regions and AmeriCorps NCCC regions.
+
+
+Sec.  2500.11  AmeriCorps leadership.
+
+    (a) AmeriCorps' leadership conducts overall planning, coordination 
+of programs, and all supporting internal operations. AmeriCorps 
+leadership includes, but is not limited to, the following AmeriCorps 
+officials:
+    (1) CEO.
+    (2) Chief of Staff.
+    (3) General Counsel.
+    (4) Chief Operating Officer.
+    (5) Chief Financial Officer.
+    (6) Chief Program Officer.
+    (7) Chief Diversity and Inclusion Officer.
+    (8) Directors of AmeriCorps programs and offices.
+    (b) AmeriCorps' public website contains current information on 
+Agency leadership at <a href="http://www.americorps.gov/about/our-team/our-leadership">www.americorps.gov/about/our-team/our-leadership</a>.
+
+
+Sec.  2500.12  Region offices.
+
+    AmeriCorps' Office of Regional Operations and AmeriCorps NCCC each 
+have a regional structure.
+    (a) AmeriCorps' Region Offices, within the Office of Regional 
+Operations, serve assigned States and Territories across eight regions. 
+The AmeriCorps website contains contact information for each of these 
+Region Offices at <a href="http://www.americorps.gov/contact/region-offices">www.americorps.gov/contact/region-offices</a>.
+    (b) AmeriCorps National Civilian Community Corps (NCCC) has a 
+campus facility in each of its regions, which serve the States and 
+Territories. The AmeriCorps website contains contact information for 
+each of the NCCC regions at <a href="http://www.americorps.gov/contact/americorps-nccc-regions">www.americorps.gov/contact/americorps-nccc-regions</a>.
+
+Subpart C--Programs
+
+
+Sec.  2500.20  Program descriptions.
+
+    (a) AmeriCorps operates four main national service programs: 
+AmeriCorps NCCC, AmeriCorps Seniors, AmeriCorps State and National, and 
+AmeriCorps VISTA. Additional information on each of these programs and 
+additional AmeriCorps programs is available at <a href="http://www.americorps.gov">www.americorps.gov</a>.
+    (1) AmeriCorps NCCC is a full-time residential service program for 
+individuals aged 18 to 24 (unless otherwise authorized), as defined by 
+statute. Individuals serving in the NCCC program complete team-based 
+service projects that respond to priority national and community needs. 
+AmeriCorps NCCC program staff recruit, train, and manage volunteers 
+(called ``members'') and partner with organizations that serve as 
+project sponsors. FEMA Corps is a sub-program that AmeriCorps NCCC 
+manages in partnership with the Federal Emergency Management Agency. It 
+places members in service positions to perform disaster public 
+assistance, planning, preparedness, and recovery activities. The NCCC 
+Forest Corps is a sub-program that AmeriCorps NCCC manages in 
+partnership with the U.S. Forest Service. It places members in service 
+positions to perform wildfire mitigation, reforestation, and climate 
+resiliency activities. Finally, NCCC houses the agency's Disaster 
+Services Unit (DSU), the entity which coordinates with FEMA to secure 
+funding to mobilize AmeriCorps NCCC and AmeriCorps State and National 
+members under a federally declared disaster.
+    (2) AmeriCorps Seniors focuses on providing service opportunities 
+for individuals aged 55 years or older. It operates four national 
+service programs: the Foster Grandparent Program, Senior Companion 
+Program, RSVP, and the Senior Demonstration Program. Under each of 
+these programs, AmeriCorps Seniors provides grants to sponsoring 
+organizations to meet priority national and community needs. The 
+sponsoring organizations then recruit and enlist local volunteers, and 
+address performance measures as required by grant terms and conditions.
+    (3) AmeriCorps State and National provides grants to States, 
+Territories, Indian Tribes, public and private nonprofit organizations, 
+local governments, and institutions of higher education to carry out 
+national service programs, offering a wide range of service 
+opportunities. In addition to grant funds to support direct 
+programming, AmeriCorps State and National also provides general 
+operating funding for State service commissions.
+    (4) AmeriCorps VISTA is a program for individuals aged 18 and older 
+to participate in full-time service to strengthen and supplement 
+efforts to eliminate and alleviate poverty and poverty-related problems 
+in the United States. AmeriCorps VISTA partners with local 
+organizations to recruit, select, train, and assign volunteers 
+(``members'') to work on projects at a sponsoring organization or one 
+of its project sites.
+
+[[Page 6435]]
+
+    (b) In addition to its four main national service programs, 
+AmeriCorps also operates several additional programs and activities. 
+These include the Martin Luther King, Jr., Day of Service; the 
+September 11th Day of Service and Remembrance; the Volunteer Generation 
+Fund; and other national service programs that AmeriCorps establishes 
+through agreements with other Federal agencies.
+
+
+Sec.  2500.21  Focus areas.
+
+    Through its programs, AmeriCorps provides funding and volunteer 
+opportunities to address pressing unmet human, educational, 
+environmental, and public safety needs of the United States, without 
+displacing existing workers, and to meet the additional purposes set 
+out in the national service laws. AmeriCorps' focus areas include, but 
+are not limited to, disaster services, economic opportunity, education, 
+environmental stewardship, healthy futures, and veterans and military 
+families.
+
+Subpart D--Logos
+
+
+Sec.  2500.30  Description of logos.
+
+    (a) The AmeriCorps logo (Logo) is the key element in agency 
+identification. It provides a visual representation of the Agency's 
+role to unite America by bringing people together to serve communities. 
+It is symbolic of the way AmeriCorps members and volunteers lift and 
+improve communities through service and volunteering. This Logo links 
+the graphic communications of all Agency programs.
+    (b) The Logo is an image of a solid circle containing an A where 
+the right-hand pillar is a solid block line and the left-hand pillar is 
+represented by a flagpole with the flag in motion, appearing to fly 
+from the left to the right and forming the A as the flag intersects 
+with the other pillar. AmeriCorps appears in bold to the right of the 
+mark.
+[GRAPHIC] [TIFF OMITTED] TR01FE24.107
+
+    (c) The AmeriCorps Seniors logo (Seniors Logo) identifies the 
+highlighted AmeriCorps Seniors programs and represents the Agency's 
+commitment to programs and volunteer opportunities for older Americans.
+[GRAPHIC] [TIFF OMITTED] TR01FE24.108
+
+    (d) The Seniors Logo contains the word Seniors beneath AmeriCorps, 
+to the right of the circle containing the A.
+
+
+Sec.  2500.31  Retirement of logos.
+
+    The agency officially retired the day-to-day use of all pre-
+existing logos, emblems, and other insignia, except the Days of Service 
+logos, but does not relinquish the legal rights to any retired logos.
+
+
+Sec.  2500.32  Authority to affix logos.
+
+    Restrictions on the use of AmeriCorps logos are found in 45 CFR 
+2540.500 through 2540.560.
+
+Fernando Laguarda,
+General Counsel.
+[FR Doc. 2024-01555 Filed 1-31-24; 8:45 am]
+BILLING CODE 6050-28-P
+
+
+</pre><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
+</html>

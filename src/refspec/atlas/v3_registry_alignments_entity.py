@@ -1276,6 +1276,14 @@ _AGENCY_REGISTRY_ALIAS_CANDIDATES_SHA256 = "sha256:a29add9b4ef3047658099fdc983b5
 _AGENCY_REGISTRY_ALIAS_CANDIDATES_BYTE_LENGTH = 134_315
 _AGENCY_REGISTRY_ALIAS_DECISIONS_SHA256 = "sha256:c74edd516f4a0f8b89d6b809455f0dbf5741c42f9a1a1bc2f28b4c4ad2507e0d"
 _AGENCY_REGISTRY_ALIAS_DECISIONS_BYTE_LENGTH = 35_499
+# Alias batch 2 (REF-077, RefSpec 1.4): remaining verified federal sub-units, institutes, banks, and statutory name variants.
+AGENCY_REGISTRY_ALIAS_BATCH_2_CANDIDATES_DIGEST = "sha256:0cb4bfbf239d4b2f8bb555f944484b4c47ad18d9df1dd6a1d505ff442953766d"
+AGENCY_REGISTRY_ALIAS_BATCH_2_CANDIDATES_PATH = "plans/agency-registry-alias-batch-2-candidates.json"
+AGENCY_REGISTRY_ALIAS_BATCH_2_DECISIONS_PATH = "plans/agency-registry-alias-batch-2-decisions.json"
+_AGENCY_REGISTRY_ALIAS_BATCH_2_CANDIDATES_SHA256 = "sha256:a431bdaed24652cb6519a3d41187b869467c0b9e6dc7c34e6d08b9efda1a30de"
+_AGENCY_REGISTRY_ALIAS_BATCH_2_CANDIDATES_BYTE_LENGTH = 193_712
+_AGENCY_REGISTRY_ALIAS_BATCH_2_DECISIONS_SHA256 = "sha256:152d34006077ea717cb67720ea3a050438e9a0a0f1ce47e41255ba9179ee16d6"
+_AGENCY_REGISTRY_ALIAS_BATCH_2_DECISIONS_BYTE_LENGTH = 51_917
 # Where an alias's cited public records are retained, with the manifest that pins their bytes.
 AGENCY_ALIAS_RECORDS_DIR = "research/evidence/agency-alias-records-2026-11-08"
 # The adjudicable content; replay-derived counts sit outside it on purpose.
@@ -1428,8 +1436,15 @@ def record_text(data: bytes) -> str:
 def alias_record_is_read(record: Mapping[str, Any], root: Path = _REPOSITORY_ROOT) -> bool:
     """Whether a cited record is retained and read: its bytes still hash as recorded and hold the passage read."""
 
-    path = root / AGENCY_ALIAS_RECORDS_DIR / str(record.get("file", ""))
-    if not record.get("file") or not record.get("passage") or path.is_symlink() or not path.is_file():
+    records_dir = root / str(record.get("records_dir") or AGENCY_ALIAS_RECORDS_DIR)
+    path = records_dir / str(record.get("file", ""))
+    if (
+        not record.get("file")
+        or not record.get("passage")
+        or path.is_symlink()
+        or not path.is_file()
+        or not path.resolve().is_relative_to(records_dir.resolve())
+    ):
         return False
     data = path.read_bytes()
     return (
@@ -1494,6 +1509,18 @@ _AGENCY_REGISTRY_ALIAS_DECISIONS_PIN = _plan_pin(
     _AGENCY_REGISTRY_ALIAS_DECISIONS_BYTE_LENGTH,
     "aliasOwnerDecisions",
 )
+_AGENCY_REGISTRY_ALIAS_BATCH_2_CANDIDATES_PIN = _plan_pin(
+    AGENCY_REGISTRY_ALIAS_BATCH_2_CANDIDATES_PATH,
+    _AGENCY_REGISTRY_ALIAS_BATCH_2_CANDIDATES_SHA256,
+    _AGENCY_REGISTRY_ALIAS_BATCH_2_CANDIDATES_BYTE_LENGTH,
+    "aliasBatch2OwnerCandidates",
+)
+_AGENCY_REGISTRY_ALIAS_BATCH_2_DECISIONS_PIN = _plan_pin(
+    AGENCY_REGISTRY_ALIAS_BATCH_2_DECISIONS_PATH,
+    _AGENCY_REGISTRY_ALIAS_BATCH_2_DECISIONS_SHA256,
+    _AGENCY_REGISTRY_ALIAS_BATCH_2_DECISIONS_BYTE_LENGTH,
+    "aliasBatch2OwnerDecisions",
+)
 
 
 class AgencyRegistryBatch(NamedTuple):
@@ -1531,6 +1558,15 @@ def agency_registry_batches() -> tuple[AgencyRegistryBatch, ...]:
             AGENCY_REGISTRY_ALIAS_CANDIDATES_DIGEST,
             (0, 0, 7),
             aliases=63,
+            covers=ALIAS_CANDIDATES_DIGEST_COVERS,
+            partial=True,
+        ),
+        AgencyRegistryBatch(
+            _AGENCY_REGISTRY_ALIAS_BATCH_2_CANDIDATES_PIN,
+            _AGENCY_REGISTRY_ALIAS_BATCH_2_DECISIONS_PIN,
+            AGENCY_REGISTRY_ALIAS_BATCH_2_CANDIDATES_DIGEST,
+            (0, 0, 0),
+            aliases=94,
             covers=ALIAS_CANDIDATES_DIGEST_COVERS,
             partial=True,
         ),

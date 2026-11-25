@@ -1,0 +1,346 @@
+<html>
+<head>
+<title>Federal Register, Volume 90 Issue 171 (Monday, September 8, 2025)</title>
+</head>
+<body><pre>
+[Federal Register Volume 90, Number 171 (Monday, September 8, 2025)]
+[Rules and Regulations]
+[Pages 43147-43149]
+From the Federal Register Online via the Government Publishing Office [<a href="http://www.gpo.gov">www.gpo.gov</a>]
+[FR Doc No: 2025-17223]
+
+
+=======================================================================
+-----------------------------------------------------------------------
+
+DEPARTMENT OF TRANSPORTATION
+
+Federal Aviation Administration
+
+14 CFR Part 73
+
+[Docket No. FAA-2023-0504; Airspace Docket No. 21-ASO-25]
+RIN 2120-AA66
+
+
+Amendment of Restricted Areas R-3004A, R-3004B, and R-3004C; Fort 
+Gordon, GA
+
+AGENCY: Federal Aviation Administration (FAA), DOT.
+
+ACTION: Final rule.
+
+-----------------------------------------------------------------------
+
+SUMMARY: This action amends restricted areas R-3004A, R-3004B, and R-
+3004C at United States (U.S.) Army Installation Management Command 
+(IMCOM) Fort Gordon, GA. The amended airspace aligns the lateral 
+boundaries to encompass the majority of the training complex and amends 
+the vertical divisions for better management to activate only the 
+airspace required to support the Army's training. It also removes 
+restrictions on participating aircraft operations on weekends, flight 
+above 12,000 feet above ground level (AGL), and the requirement that 
+weather minima exceed standard Visual Flight Rules (VFR) criteria.
+
+DATES: Effective date 0901 UTC, November 27, 2025.
+
+ADDRESSES: A copy of the notice of proposed rulemaking (NPRM), all 
+comments received, this final rule, and all background material may be 
+viewed online at <a href="http://www.regulations.gov">www.regulations.gov</a> using the FAA Docket number. 
+Electronic retrieval help and guidelines are available on the website. 
+It is available 24 hours each day, 365 days each year.
+
+FOR FURTHER INFORMATION CONTACT: Brian Vidis, Rules and Regulations 
+Group, Policy Directorate, Federal Aviation Administration, 600 
+Independence Avenue SW, Washington, DC 20597; telephone: (202) 267-
+8783.
+
+SUPPLEMENTARY INFORMATION:
+
+Authority for This Rulemaking
+
+    The FAA's authority to issue rules regarding aviation safety is 
+found in Title 49 of the United States Code. Subtitle I, Section 106 
+describes the authority of the FAA Administrator. Subtitle VII, 
+Aviation Programs, describes in more detail the scope of the agency's 
+authority. This rulemaking is promulgated under the authority described 
+in Subtitle VII, Part A, Subpart I, Section 40103. Under that section, 
+the FAA is charged with prescribing regulations to assign the use of 
+the airspace necessary to ensure the safety of aircraft and the 
+efficient use of airspace. This regulation is within the scope of that 
+authority as it amends restricted areas R-3004A, R-3004B, and R-3004C 
+at Fort Gordon, GA, to enhance aviation safety and accommodate 
+essential U.S. Army training activities.
+
+History
+
+    The FAA published a NPRM for Docket No. FAA-2023-0504 in the 
+Federal Register (88 FR 21146; April 10, 2023), proposing to amend 
+restricted areas R-3004A, R-3004B, and R-3004C at Fort Gordon, GA. 
+Interested parties were invited to participate in this rulemaking 
+effort by submitting written
+
+[[Page 43148]]
+
+comments on the proposal to the FAA. Two comments were received.
+    Two commenters expressed concern that expanding the restricted area 
+airspace toward Daniel Field Airport, GA, would cause aircraft arriving 
+and departing runway 5 and runway 23 at Daniel Field Airport, to the 
+south, to be funneled into a small corridor between restricted areas R-
+3004A and R-3004B and the Augusta Regional at Bush Field Airport, GA, 
+Class D airspace which may lead to an increase in airspace incursions. 
+Prior to this final rule, the distance between restricted area R-3004A 
+and R-3004B and the western edge of the Augusta Regional at Bush Field 
+Airport Class D airspace was 6.8 nautical miles (NM). The FAA 
+recognizes that when these restricted areas are active, the distance 
+available for aircraft to maneuver between the eastern boundary of 
+restricted area R-3004A and R-3004B and the western edge of the Augusta 
+Regional at Bush Field Airport Class D airspace would be reduced to 3.6 
+NM. When the restricted areas are active, pilots are not required to 
+navigate between the restricted areas and the Augusta Regional at Bush 
+Field Airport Class D airspace. Pilots can remain further away from R-
+3004A and R-3004B by flying either above the Augusta Regional at Bush 
+Field Airport Class D airspace, maintain two-way communications with 
+the Augusta Airport Traffic Control Tower (ATCT) and fly though the 
+Augusta Regional at Bush Field Airport Class D airspace, fly above the 
+active portions of the restricted areas, or circumnavigate the 
+restricted areas to the north and west. Additionally, arrivals and 
+departures to the West, North, and East of Daniel Field Airport are 
+unaffected by the expansion of restricted areas R-3004A, R-3004B, and 
+R-3004C.
+    Two commenters expressed concern that the activation of restricted 
+areas R-3004A, R-3004B, and R-3004C would restrict the use of the Area 
+Navigation (RNAV) runway 5 approach at the Daniel Field Airport. In a 
+letter of agreement (LOA) between the Atlanta Air Route Traffic Control 
+Center (ARTCC), Augusta ATCT, and Fort Gordon, a recall area has been 
+agreed upon that would return a portion of R-3004 to air traffic 
+control (ATC) in order to facilitate arrival approaches on the RNAV 
+runway 5 approach to the Daniel Field Airport when it is needed.
+    One commenter said that this action would lower the floor of 
+restricted areas R-3004A and R-3004B to such a degree that many pilots 
+would no longer be able to fly under them. The commenter recommends 
+that the current floors of restricted areas R-3004A and R-3004B be 
+retained. The FAA does not agree with retaining the original floor 
+altitudes. Prior to this final rule, restricted area R-3004A extended 
+from the surface to but not including 3,500 feet mean sea level (MSL). 
+This final rule does not lower the floor of restricted area R-3004A as 
+the floor continues to be at the surface. When restricted area R-3004A 
+is active, aircraft are unable to fly under the restricted area. Prior 
+to this final rule restricted area R-3004B was designated from 3,500 
+feet MSL to but not including 7,000 feet MSL. Although this final rule 
+does lower the floor of restricted area R-3004B from 3,500 feet MSL to 
+2,500 feet MSL, due to the nature of the training being conducted, 
+restricted area R-3004B is normally only active simultaneously with the 
+activation of restricted area R-3004A, which would not allow aircraft 
+to fly under restricted area R-3004B, regardless of the floor altitude. 
+Additionally, since restricted area R-3004A would contain the majority 
+of day-to-day training requirements, restricted area R-3004B would be 
+activated less frequently. This would have the effect that when only 
+restricted area R-3004A is active, the airspace between 2,500 feet MSL 
+and 3,500 feet MSL would be returned to the National Airspace System 
+(NAS) and would be available for non-participating aircraft use.
+    One commenter expressed concern about the potential negative impact 
+on aircraft conducting civil air ambulance flights, identified by ATC 
+using the callsign ``MEDEVAC'', that frequently arrive and depart from 
+Daniel Field airport. In an LOA between the Atlanta ARTCC, Augusta 
+ATCT, and Fort Gordon, provisions are made to allow for ATC to 
+coordinate individual flights, such as civil air ambulance flights, to 
+transit the restricted areas when they are active. As such, the FAA 
+expects minimal impact to civil air ambulance flights.
+    One commenter expressed concern that activation of restricted areas 
+R-3004A, R-3004B, and R-3004C on Saturdays and Sundays would have a 
+magnified impact on general aviation and flight training users that 
+typically fly on the weekends. The commenter goes on to say that it is 
+critical that the proponent make every effort to release the airspace 
+promptly when it is no longer in use. In accordance with the FAA's 
+joint-use policy, restricted areas R-3004A, R-3004B, and R-3004C must 
+be returned to the controlling agency and become available for access 
+by nonparticipating aircraft during periods when the airspace is not 
+needed by the using agency for its designated purpose. Because of the 
+joint-use policy, the FAA expects that any unused parts of the 
+restricted areas will be deactivated and made available for use by non-
+participating aircraft, thus minimizing the impact on the NAS.
+    Subsequent to the FAA's 2023 NPRM publication, the U.S. Army 
+changed the installation name from Fort Gordon to Fort Eisenhower. When 
+the U.S. Army published their Final Environmental Assessment (EA) in 
+2024, which the FAA has since adopted, the installation name was Fort 
+Eisenhower. However, the U.S. Army has since changed the name from Fort 
+Eisenhower to Fort Gordon. Because the installation's current name is 
+as proposed in the NPRM, there are no installation name differences 
+between the NPRM and the final rule.
+
+The Rule
+
+    This action amends 14 CFR part 73 by amending restricted areas R-
+3004A, R-3004B, and R-3004C at Fort Gordon, GA. The three areas share 
+common lateral boundaries that overlay each other. R-3004A extends from 
+the surface to but not including 2,500 feet MSL. R-3004B extends from 
+2,500 feet MSL to but not including 10,000 feet MSL. R-3004C extends 
+from 10,000 feet MSL to 16,000 feet MSL. These internal altitude 
+subdivisions reduce the need to activate all three restricted areas to 
+accomplish daily training. This provides the flexibility to activate 
+only those restricted area segments required for the planned training 
+events, while leaving the unused segment(s) available for access by 
+other aviation users.
+    This action modifies the southwest boundary so that the boundary is 
+contained within installation property. Additionally, the proposal 
+would expand the lateral limits of restricted area R-3004A, R-3004B, 
+and R-3004C farther to the north and northeast to incorporate the 
+majority of Fort Gordon property. This expansion modifies the lateral 
+boundaries to be fully contained within the current boundaries of 
+federally owned land within the Fort Gordon range complex.
+    The Using agency for all three restricted areas is changed to the 
+U.S. Army, Commanding Officer, Fort Gordon, GA. Additionally, this 
+action removes restrictions on participating aircraft activities on 
+weekends; removes the restrictions on aircraft activities above 12,000 
+feet AGL; and removes restrictive weather minima. However, the 
+following limitation is retained: ``Aircraft activities must not be 
+conducted on national holidays, or from the Sunday prior to the Masters
+
+[[Page 43149]]
+
+Tournament through the Monday after (and subsequent weather days if 
+required).''
+
+Regulatory Notices and Analyses
+
+    The FAA has determined that this regulation only involves an 
+established body of technical regulations for which frequent and 
+routine amendments are necessary to keep them operationally current. 
+It, therefore: (1) is not a ``significant regulatory action'' under 
+Executive Order 12866; (2) is not a ``significant rule'' under 
+Department of Transportation (DOT) Regulatory Policies and Procedures 
+(44 FR 11034; February 26, 1979); and (3) does not warrant preparation 
+of a regulatory evaluation as the anticipated impact is so minimal. 
+Since this is a routine matter that only affects air traffic procedures 
+and air navigation, it is certified that this rule, when promulgated, 
+does not have a significant economic impact on a substantial number of 
+small entities under the criteria of the Regulatory Flexibility Act.
+
+Environmental Review
+
+    The FAA's modifications to R-3004A, R-3004B, and R-3004C as 
+described above, were evaluated and documented in accordance with the 
+National Environmental Policy Act (NEPA) (42 U.S.C. 4321 et seq.) in 
+the Army's ``Final Environmental Assessment (EA) for Airspace and 
+Ground-Based Changes at Fort Eisenhower, Georgia'' pursuant to Section 
+102 of NEPA and the FAA's procedural provisions of NEPA in FAA Orders 
+1050.1G, and JO 7400.2, Procedures for Handling Airspace Matters which 
+sets forth the FAA's procedures for evaluating and changing the NAS, 
+including SUA. Since the Army's publication of the Final EA, Fort 
+Eisenhower has been renamed Fort Gordon. The location analyzed as Fort 
+Eisenhower in the Army's EA is identical to the location identified as 
+Fort Gordon in this final rule. The FAA, in fulfilling its mandated 
+role as a NEPA Cooperating Agency for the Army's proposed actions in 
+the designated restricted areas, adopted the Army's final EA in a 
+separate FAA NEPA adoption document and Record of Decision (ROD) in 
+accordance with NEPA and the FAA's NEPA implementing Order 1050.1G, 
+``FAA National Environmental Policy Act Implementing Procedures.''
+
+Lists of Subjects in 14 CFR Part 73
+
+    Airspace, Prohibited areas, Restricted areas.
+
+The Amendment
+
+    In consideration of the foregoing, the Federal Aviation 
+Administration amends 14 CFR part 73 as follows:
+
+PART 73--SPECIAL USE AIRSPACE
+
+0
+1. The authority citation for part 73 continues to read as follows:
+
+    Authority: 49 U.S.C. 106(f), 106(g), 40103, 40113, 40120; E.O. 
+10854, 24 FR 9565, 3 CFR, 1959-1963 Comp., p.389
+
+
+Sec.  73.30   Georgia [Amended]
+
+0
+2. Section 73.30 is amended as follows:
+* * * * *
+
+R-3004A Fort Gordon, GA [Amended]
+
+    Boundaries. Beginning at lat. 33[deg]25'03'' N, long. 
+082[deg]12'15'' W; to lat. 33[deg]23'48'' N, long. 082[deg]08'56'' W; 
+to lat. 33[deg]22'20'' N, long. 082[deg]08'33'' W; to lat. 
+33[deg]21'33'' N, long. 082[deg]09'10'' W; to lat. 33[deg]20'15'' N, 
+long. 082[deg]10'57'' W; to lat. 33[deg]17'41'' N, long. 
+082[deg]16'11'' W; to lat. 33[deg]18'23'' N, long. 082[deg]16'17'' W; 
+to lat. 33[deg]18'22'' N, long. 082[deg]16'39'' W; to lat. 
+33[deg]17'29'' N, long. 082[deg]16'52'' W; to lat. 33[deg]16'57'' N, 
+long. 082[deg]17'39'' W; to lat. 33[deg]16'56'' N, long. 
+082[deg]18'50'' W; to lat. 33[deg]17'27'' N, long. 082[deg]21'19'' W; 
+to lat. 33[deg]17'41'' N, long. 082[deg]22'35'' W; to lat. 
+33[deg]19'26'' N, long. 082[deg]22'15'' W; to lat. 33[deg]22'37'' N, 
+long. 082[deg]16'58'' W; to lat. 33[deg]23'50'' N, long. 
+082[deg]14'03'' W; to the point of beginning.
+    Designated altitudes. Surface to but not including 2,500 feet MSL.
+    Time of designation. By NOTAM 24 hours in advance.
+    Controlling agency. FAA, Atlanta ARTCC.
+    Using agency. U.S. Army, Commanding Officer, Fort Gordon, GA.
+    Remarks. Aircraft activities must not be conducted on national 
+holidays or from the Sunday prior to the Masters Golf Tournament 
+through the Monday after (and subsequent weather days if required).
+
+R-3004B Fort Gordon, GA [Amended]
+
+    Boundaries. Beginning at lat. 33[deg]25'03'' N, long. 
+082[deg]12'15'' W; to lat. 33[deg]23'48'' N, long. 082[deg]08'56'' W; 
+to lat. 33[deg]22'20'' N, long. 082[deg]08'33'' W; to lat. 
+33[deg]21'33'' N, long. 082[deg]09'10'' W; to lat. 33[deg]20'15'' N, 
+long. 082[deg]10'57'' W; to lat. 33[deg]17'41'' N, long. 
+082[deg]16'11'' W; to lat. 33[deg]18'23'' N, long. 082[deg]16'17'' W; 
+to lat. 33[deg]18'22'' N, long. 082[deg]16'39'' W; to lat. 
+33[deg]17'29'' N, long. 082[deg]16'52'' W; to lat. 33[deg]16'57'' N, 
+long. 082[deg]17'39'' W; to lat. 33[deg]16'56'' N, long. 
+082[deg]18'50'' W; to lat. 33[deg]17'27'' N, long. 082[deg]21'19'' W; 
+to lat. 33[deg]17'41'' N, long. 082[deg]22'35'' W; to lat. 
+33[deg]19'26'' N, long. 082[deg]22'15'' W; to lat. 33[deg]22'37'' N, 
+long. 082[deg]16'58'' W; to lat. 33[deg]23'50'' N, long. 
+082[deg]14'03'' W; to the point of beginning.
+    Designated altitudes. 2,500 feet MSL to but not including 10,000 
+feet MSL.
+    Time of designation. By NOTAM 24 hours in advance.
+    Controlling agency. FAA, Atlanta ARTCC.
+    Using agency. U.S. Army, Commanding Officer, Fort Gordon, GA.
+    Remarks. Aircraft activities must not be conducted on national 
+holidays or from the Sunday prior to the Masters Golf Tournament 
+through the Monday after (and subsequent weather days if required).
+
+R-3004C Fort Gordon, GA [Amended]
+
+    Boundaries. Beginning at lat. 33[deg]25'03'' N, long. 
+082[deg]12'15'' W; to lat. 33[deg]23'48'' N, long. 082[deg]08'56'' W; 
+to lat. 33[deg]22'20'' N, long. 082[deg]08'33'' W; to lat. 
+33[deg]21'33'' N, long. 082[deg]09'10'' W; to lat. 33[deg]20'15'' N, 
+long. 082[deg]10'57'' W; to lat. 33[deg]17'41'' N, long. 
+082[deg]16'11'' W; to lat. 33[deg]18'23'' N, long. 082[deg]16'17'' W; 
+to lat. 33[deg]18'22'' N, long. 082[deg]16'39'' W; to lat. 
+33[deg]17'29'' N, long. 082[deg]16'52'' W; to lat. 33[deg]16'57'' N, 
+long. 082[deg]17'39'' W; to lat. 33[deg]16'56'' N, long. 
+082[deg]18'50'' W; to lat. 33[deg]17'27'' N, long. 082[deg]21'19'' W; 
+to lat. 33[deg]17'41'' N, long. 082[deg]22'35'' W; to lat. 
+33[deg]19'26'' N, long. 082[deg]22'15'' W; to lat. 33[deg]22'37'' N, 
+long. 082[deg]16'58'' W; to lat. 33[deg]23'50'' N, long. 
+082[deg]14'03'' W; to the point of beginning.
+    Designated altitudes. 10,000 feet MSL to 16,000 feet MSL.
+    Time of designation. By NOTAM 24 hours in advance.
+    Controlling agency. FAA, Atlanta ARTCC.
+    Using agency. U.S. Army, Commanding Officer, Fort Gordon, GA.
+    Remarks. Aircraft activities must not be conducted on national 
+holidays or from the Sunday prior to the Masters Golf Tournament 
+through the Monday after (and subsequent weather days if required).
+* * * * *
+
+    Issued in Washington, DC, on September 4, 2025.
+Brian Eric Konie,
+Acting Manager, Rules and Regulations Group.
+[FR Doc. 2025-17223 Filed 9-5-25; 8:45 am]
+BILLING CODE 4910-13-P
+
+
+</pre></body>
+</html>

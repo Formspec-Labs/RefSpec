@@ -1,0 +1,664 @@
+{
+  "schema_version": "refspec-agency-registry-batch-1-decisions/2",
+  "reviewer_iri": "urn:ref:reviewer:refspec-owner",
+  "decisions": {
+    "alias:office-of-accountability-and-whistleblower-protection": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:9713dc9a89ea31db3229a2ea4c40572a27917ba81fb817e40595d604d12f8c46",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 38 U.S.C. 323: \"There is established in the Department an office to be known as the \"Office of Accountability and Whistleblower Protection\"\"."
+    },
+    "alias:national-marine-fisheries-service": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:412478896ac58ced884eaaaf4cf356c309e941e35d48aff53d32243f05c7ad5a",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 72381 (2024-09-05), FR Doc 2024-19930, Department of Commerce / NOAA: \"National Marine Fisheries Service, NOAA\"."
+    },
+    "alias:southern-command": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:a8ba9dd3b2f0b2cdf5e5002981c0aa5bbccaf9615dd6ca08d30926235560c452",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 91 FR 67302 (2026-10-26), FR Doc 2026-21777, Department of Defense: \"United States Southern Command\"."
+    },
+    "alias:national-institute-on-drug-abuse": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:e96fa9f8b3c6beec7e38d99b00a6720210f9f02a4bdd2525a4c0c338971a205d",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 42 U.S.C. 281: \"The following agencies of the National Institutes of Health are national research institutes or national centers:\"; 42 U.S.C. 281: \"(13) The National Institute on Drug Abuse.\"."
+    },
+    "alias:pacific-command": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:9e22807f36534874bea032fbeb8501dc5d0a75db72dbf0958da7591f5ead273d",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR part 286: \"United States Africa Command, United States Central Command, United States European Command, United States Northern Command, United States Pacific Command, United States Special Operations Command, United States Strategic Command, and United States Transportation Command.\"; 10 U.S.C. 161: \"United States Pacific Command\"."
+    },
+    "alias:office-of-insular-affairs": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:e38ac4fc2e8051da0d6dbc243e9f5c8f2b0003845ce63863b45bd05998a64936",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 101040 (2024-12-13), FR Doc 2024-29437, Department of the Interior: \"DEPARTMENT OF THE INTERIOR Office of the Secretary\"; 89 FR 101040 (2024-12-13), FR Doc 2024-29437, Department of the Interior: \"Office of Insular Affairs\"."
+    },
+    "alias:bureau-for-middle-east": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:8f76b013e4a50f3429651ae9156f44fb0c5e870be1836747c66f70dc47a6f08e",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 85136 (2024-10-25), FR Doc 2024-24830, USAID: \"Bureau for the Middle East, U.S. Agency for International Development.\"."
+    },
+    "alias:air-national-guard": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:d5fdceb072d7c65f6cb2c722c970ee5ad139c5a8092a359a77e5f080e8f2d154",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 10111: \"The Air National Guard of the United States is the reserve component of the Air Force\"."
+    },
+    "alias:army-futures-command": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:93e173317468af3a420c37cfc609d876b0e06d7f41fe157265f3040e4ef09710",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 13548 (2024-02-22), FR Doc 2024-03586, Department of Defense / Army: \"Army Futures Command\"; 89 FR 13548 (2024-02-22), FR Doc 2024-03586, Department of Defense / Army: \"Department of the Army\"."
+    },
+    "alias:strategic-systems-programs": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:0fe6f2ab396f1aeffc934636acb0251e6598b7353f2aedf355bcaa2524cc141c",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 80 FR 66889 (2015-10-30), FR Doc 2015-27713, Department of the Navy: \"AGENCY: Department of the Navy, DoD.\"; 80 FR 66889 (2015-10-30), FR Doc 2015-27713, Department of the Navy: \"Director, Strategic Systems Programs HQ\"."
+    },
+    "alias:army-space-and-missile-defense-command": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:dd1de320af87c5e49c77aa5dae4022555d092938df1ba5db04bc3d9c5c3840e8",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 90 FR 56739 (2025-12-08), FR Doc 2025-22150, Department of the Army: \"U.S. Army Space and Missile Defense Command\"."
+    },
+    "alias:marketing-and-regulatory-programs": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:32ca89f31dd3bfeec915d0a48f620518d85fdc59606dcf7928bec193bc779ad7",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 91 FR 47212 (2026-07-28), FR Doc 2026-15156, USDA: \"The Marketing and Regulatory Programs (MRP) mission area of USDA\"."
+    },
+    "alias:national-heart-lung-and-blood-institute": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:134952fb5bc3b99ebb924ad19719bfd1acad282328bc0714dcf9e0f3ce29b27b",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 42 U.S.C. 281: \"The following agencies of the National Institutes of Health are national research institutes or national centers:\"; 42 U.S.C. 281: \"(2) The National Heart, Lung, and Blood Institute.\"."
+    },
+    "alias:joint-functional-component-command-for-integrated-missile-defense": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:81713df76ece62b749369330b8483af472a316121fe768a6a1a5434d9ab8d6dc",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 82 FR 5325 (2017-01-17), FR Doc 2017-01169, Executive Order 13760: \"United States Strategic Command (USSTRATCOM) and all components, centers, or sub-unified commands currently assigned to USSTRATCOM\"; 82 FR 5325 (2017-01-17), FR Doc 2017-01169, Executive Order 13760: \"Joint Functional Component Command--Integrated Missile Defense (JFCC IMD).\"."
+    },
+    "alias:office-of-assistant-secretary-for-indian-affairs": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:353c9d14c8d751938f1b35bdc1f10080c3584e5293235ec7d7b74e2eb6279074",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 90 FR 44216 (2025-09-12), FR Doc 2025-17697, Department of the Interior: \"DEPARTMENT OF THE INTERIOR\"; 90 FR 44216 (2025-09-12), FR Doc 2025-17697, Department of the Interior: \"The Assistant Secretary for Indian Affairs approves\"."
+    },
+    "alias:government-printing-office": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:4c77d9f8099ebaab05dbed84a6cdece54d5002c1a2b4360c300dc234f88dd9b9",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): Pub. L. 113-235, Div. H, sec. 1301(a), 128 Stat. 2537 (2014-12-16): \"The Government Printing Office is hereby redesignated the Government Publishing Office.\"."
+    },
+    "alias:americorps": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:1785d0cd1bbf3d579bbcb9b3bf41eb275a71d7b6bc7dfb1c94e7025643986000",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 6432 (2024-02-01), FR Doc 2024-01555, Corporation for National and Community Service, 45 CFR Part 2500: \"AmeriCorps Statement of Organization AGENCY: Corporation for National and Community Service.\"."
+    },
+    "alias:army-aviation-center-of-excellence-and-fort-novosel": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:c3ab368f29504f2d63f96d73e5bc34ba6a968774c599a1a2bf9c94008884663a",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): H.A.S.C. FY2024 Seapower and Tactical Air Forces Hearing (CHRG-118hhrg52384): \"Commanding General, U.S. Army Aviation Center of Excellence and Fort Novosel\"; 90 FR 21552 (2025-05-20), FR Doc 2025-08853, Department of Defense: \"ARMY AVIATION CENTER OF EXCELLENCE\"."
+    },
+    "alias:benghazi-accountability-review-board": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:7523ed5efaca65f1536103db15b2ff2ceeaaf90f0f1a9c2cc338b5b61c69a3b6",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 22 U.S.C. 4831: \"Secretary of State shall convene an Accountability Review Board\"; 77 FR 66909 (2012-11-07), FR Doc 2012-27189, Department of State: \"the Department of State announced the formation of the Benghazi Accountability Review Board (ARB)\"."
+    },
+    "alias:office-of-under-secretary-of-defense-for-intelligence-and-security": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:ba6109a2b2bd9d2d2eaed0f504076e20a8a755b13df00f8a5131a93175978d38",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 137: \"There is an Under Secretary of Defense for Intelligence and Security\"; 10 U.S.C. 137: \"Department of Defense\"."
+    },
+    "alias:commission-on-civil-rights": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:6afb848a860a2e3c5ce66455faf82f74bd34bcf67e5c6d271974bbc12f50094c",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 42 U.S.C. 1975: \"There is established the United States Commission on Civil Rights\"."
+    },
+    "alias:science-mission-directorate": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:391880ede38571009f9b1b3d0c0bdf3577deab0f2207b0d016922561ab9af5b4",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 70210 (2024-08-29), FR Doc 2024-19473, NASA: \"Science Mission Directorate, NASA Headquarters\"."
+    },
+    "alias:army-reserve": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:09de2da8ffbe610140a7ab0ed723f966f9d10eabe954c2cf0de695184d4758ee",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 10104: \"The Army Reserve includes all Reserves of the Army\"."
+    },
+    "alias:army-national-guard": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:ae841af9acefb745f379d26a46a34199f27e3f166306cec02331d098d75c7dbc",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 10105: \"The Army National Guard of the United States is the reserve component of the Army\"."
+    },
+    "alias:naval-war-college": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:a2b4292690018e589dbb51240ac2fd2bef7bcbf0021e51595cd678095b265b9d",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 8591: \"Naval War College\"; 91 FR 35969 (2026-06-15), FR Doc 2026-11925, Department of the Navy: \"Naval War College (NWC)\"."
+    },
+    "alias:national-cancer-institute": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:5a1f971f0ebc090b4bf916ff2209c12714e3536d350616b495e77cf371d85d45",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 42 U.S.C. 281: \"The following agencies of the National Institutes of Health are national research institutes or national centers:\"; 42 U.S.C. 281: \"(1) The National Cancer Institute.\"."
+    },
+    "alias:national-ocean-service": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:b17b1045fb1835cc4577d221436037303f37b72033fa6f83e0c60af577f2ac01",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 72381 (2024-09-05), FR Doc 2024-19930, Department of Commerce / NOAA: \"National Ocean Service, NOAA\"."
+    },
+    "alias:defense-threat-reduction-agency": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:729b31f2cca0497719e490fccd5925b19c92818c91bc335f18c32360efd84b31",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR 286.2: \"the Combatant Commands, the Office of the Inspector General of the Department of Defense, the Defense Agencies, the DoD Field Activities, and all other organizational entities within the DoD\"; 82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR part 286: \"Defense Threat Reduction Agency\"."
+    },
+    "alias:indo-pacific-command": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:d74c9506dd25b4ae8cfff4a2ac2bfba5c0ba34fd690c6e9cf1d94f95cd9a5619",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 10 U.S.C. 161: \"The combatant command known as the United States Pacific Command shall be known as the 'United States Indo-Pacific Command'.\"."
+    },
+    "alias:national-weather-service": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:e3083892c336564b78ffbb09860690ac5e99e639540a1fad9a7415d603a719c1",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 15 U.S.C. 313: \"CHAPTER 9 - NATIONAL WEATHER SERVICE\"; 89 FR 72381 (2024-09-05), FR Doc 2024-19930, Department of Commerce / NOAA: \"National Weather Service, NOAA\"."
+    },
+    "alias:air-force-reserve": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:76cc60a1f54a296d4cac600d8942d77de7faad34b14e590bf5fb00fa418931b0",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 10110: \"The Air Force Reserve is a reserve component of the Air Force\"."
+    },
+    "alias:environment-and-natural-resources-division": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:e3628887c39e3f29cf58ecb9b55794eefaa829af012f0cfc2e073e55c4416426",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 30392 (2024-04-23), FR Doc 2024-07613, Department of Justice: \"AGENCY: Environment and Natural Resources Division, United States Department of Justice.\"."
+    },
+    "alias:national-center-for-injury-prevention-and-control": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:71c350403224cd7a60ed7a5b3e6dd55d058b1b7a3aaf8359c42b27ae8d5d7da4",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 91 FR 10612 (2026-03-04), FR Doc 2026-04237, CDC / HHS: \"National Center for Injury Prevention and Control; Notice of Charter Renewal AGENCY: Centers for Disease Control and Prevention (CDC)\"."
+    },
+    "alias:chemical-safety-board": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:9afb7e6c3dcb96fb91192d5177c87a9650e17e812f49535d3bf22577c6dcb5f8",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 85 FR 4944 (2020-01-28), FR Doc 2020-01490, Chemical Safety and Hazard Investigation Board: \"PLACE: U.S. Chemical Safety Board, 1750 Pennsylvania Ave. NW, Suite 910, Washington, DC 20006. STATUS: Open to the public. MATTERS TO BE CONSIDERED: The Chemical Safety and Hazard Investigation Board\"."
+    },
+    "alias:northern-command": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:022de1b613a4a3b44c36fa3e23743caab746c4c95034b1f2e0cbad13857769a8",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR part 286: \"United States Africa Command, United States Central Command, United States European Command, United States Northern Command, United States Pacific Command, United States Special Operations Command, United States Strategic Command, and United States Transportation Command.\"; 82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR 286.2: \"the Combatant Commands, the Office of the Inspector General of the Department of Defense, the Defense Agencies, the DoD Field Activities, and all other organizational entities within the DoD\"."
+    },
+    "alias:federal-reserve-board": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:3fbd0ae416504a5870ad252f986c07d99c86c504d8c06085e868749498a40436",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 241: \"Federal Reserve Board\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"."
+    },
+    "alias:medicaid-and-chip-payment-and-access-commission": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:5380b910e63d122ad0c272ea104d2a38b9c04a8fbc8e771e28d759dd60c3daf8",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 42 U.S.C. 1396: \"There is hereby established the Medicaid and CHIP Payment and Access Commission (in this section referred to as \"MACPAC\").\"."
+    },
+    "alias:white-house-office-of-science-and-technology-policy": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:935d4084b0fde146acd9e695883ac0f7a9629ed74c90f912ebd9af8408481824",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 42 U.S.C. 6611: \"Office of Science and Technology Policy\"; 89 FR 48449 (2024-06-06), FR Doc 2024-12399, Office of Science and Technology Policy: \"The White House Office of Science and Technology Policy (OSTP)\"."
+    },
+    "alias:office-of-under-secretary-of-defense-for-intelligence": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:dae33c85259ac4d3e117153cbc880cb846d7d4fdc77e7118ca5330c1684318c4",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 137: \"Under Secretary of Defense for Intelligence and Security\"; 10 U.S.C. 137: \"Department of Defense\"."
+    },
+    "alias:trade-representative": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:38ede20af2ea450623ab5ad51a9d30764351d686080866a1373ead699863b04b",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 19 U.S.C. 2171: \"There is established within the Executive Office of the President the Office of the United States Trade Representative\"."
+    },
+    "alias:air-force-global-strike-command": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:f2311ceea1aab1a5517996a04bf1286406ec78d8b7c860b4d1fb3c053264f9f1",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 91 FR 64644 (2026-10-09), FR Doc 2026-20724, Department of the Air Force: \"Department of the Air Force\"; 91 FR 64644 (2026-10-09), FR Doc 2026-20724, Department of the Air Force: \"Air Force Global Strike Command\"."
+    },
+    "alias:interagency-council-on-homelessness": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:a6b75992dcea5cf0bc00a202c9ae6266d151a7b9a7dbd81f9b7fc5859fc314ee",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 42 U.S.C. 11311: \"United States Interagency Council on Homelessness\"."
+    },
+    "alias:office-of-assistant-secretary-of-defense-for-health-affairs": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:978792fa7bdeae37bb55c5df3f94f90a076e324c2eb7119a81ec0460f5af4f33",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 138: \"Assistant Secretary of Defense for Health Affairs\"; 90 FR 17582 (2025-04-28), FR Doc 2025-07258, Department of Defense: \"The Assistant Secretary of Defense for Health Affairs (ASD(HA))\"."
+    },
+    "alias:army-materiel-command": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:a919407d2c5b996ed3e8bfbf47d34e2c79f51e45676e0a0e8f794f0f54baf3d6",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 91 FR 67302 (2026-10-26), FR Doc 2026-21777, Department of Defense: \"U.S. Army Materiel Command.\"."
+    },
+    "alias:national-institute-of-mental-health": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:97b5bbbb3e645e073727ee9b07168dc71d28176e1cb69e0f29f79a3b87cf6407",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 42 U.S.C. 281: \"The following agencies of the National Institutes of Health are national research institutes or national centers:\"; 42 U.S.C. 281: \"(14) The National Institute of Mental Health.\"."
+    },
+    "alias:office-of-assistant-secretary-of-army": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:fb7f39462220486280b7302513f029438006620411cfefbcb41a0de14ac4b1ab",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 7016: \"Assistant Secretary of the Army for Manpower and Reserve Affairs\"."
+    },
+    "alias:federal-reserve-board-of-governors": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:0ec5ee134084d68a669bffd8e7600f7fa7ab7554639b4f5c015e9caa3e530651",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"."
+    },
+    "alias:federal-reserve-bank-of-richmond": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:5aa726caaef6ace5c41e85975f68356223067044c95cb7725e547572e593e5ef",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 72 FR 132 (2007-01-03), FR Doc E6-22472, Federal Reserve System: \"Federal Reserve Bank of Richmond (A. Linwood Gill, III, Vice President)\"."
+    },
+    "alias:joint-functional-component-command-for-space": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:ad2f0abba980d9042a3f9b51a7b14a5cf7a9ff2080b743dcba29b43933157c68",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 82 FR 5325 (2017-01-17), FR Doc 2017-01169, Executive Order 13760: \"United States Strategic Command (USSTRATCOM) and all components, centers, or sub-unified commands currently assigned to USSTRATCOM\"; 82 FR 5325 (2017-01-17), FR Doc 2017-01169, Executive Order 13760: \"Joint Functional Component Command--Space (JFCC Space).\"."
+    },
+    "alias:noaa-fisheries": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:1d16efdcdacf8900dd20e30e5cb27491af8f2a670327e9716135ebd62a395052",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 90 FR 42571 (2025-09-03), FR Doc 2025-16825, NOAA: \"NOAA Fisheries Virtual Peer Review Workshop for the Fishing Effort Survey Calibration Model AGENCY: National Marine Fisheries Service (NMFS), National Oceanic and Atmospheric Administration (NOAA)\"."
+    },
+    "alias:open-world-leadership-center": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:be2e5c952fae0729d543cee55daa0c810cfb797076e3742f4629f9c23e3156ea",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 2 U.S.C. 1151: \"Open World Leadership Center\"."
+    },
+    "alias:army-reserve-command": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:8acaa2af2fac5ae4cfb8fcc9755d274481ae996c0379a7fec41637231845466e",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 10171: \"The United States Army Reserve Command is a separate command of the Army commanded by the Chief of Army Reserve.\"."
+    },
+    "alias:defense-security-cooperation-agency": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:d55978fa5b09b86594c5be450d4304f7a399c9c6d7c7d8930a375fd236636982",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR 286.2: \"the Combatant Commands, the Office of the Inspector General of the Department of Defense, the Defense Agencies, the DoD Field Activities, and all other organizational entities within the DoD\"; 82 FR 1192 (2017-01-05), FR Doc 2016-31686, 32 CFR part 286: \"Defense Security Cooperation Agency\"."
+    },
+    "alias:installation-management-command": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:7a42ba4989e2bfc41f867b5cd465c981d0a9582824b7c9c8644f88faed82c981",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 90 FR 43147 (2025-09-08), FR Doc 2025-17223, FAA / DoD Army airspace: \"United States (U.S.) Army Installation Management Command (IMCOM)\"."
+    },
+    "alias:national-security-commission-on-emerging-biotechnology": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:bd310a60bb7661ec020310dd6ac7caf6a751fc11f539beece6ce632018b8f04a",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): National Security Commission on Emerging Biotechnology (biotech.senate.gov/about): \"National Security Commission on Emerging Biotechnology\"."
+    },
+    "alias:networking-and-information-technology-research-and-development-program": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:b0a9a640e55741007b2aebd20251b25fbd0e7ed35304c42684d838f45f64c816",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 15 U.S.C. 5511: \"Sec. 5511 - Networking and Information Technology Research and Development Program\"; 89 FR 106608 (2024-12-30), FR Doc 2024-31221, OSTP: \"Networking and Information Technology Research and Development (NITRD) Program\"."
+    },
+    "alias:director-of-national-intelligence": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:810413093ac3b756dc0b87f6a8f6bd3b38281e3bd1895b93abeec45d95605348",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 50 U.S.C. 3023: \"There is a Director of National Intelligence\"; 50 U.S.C. 3033: \"There is within the Office of the Director of National Intelligence\"."
+    },
+    "alias:federal-voting-assistance-program": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:074ffc538d3ae21004e958e3662d04534d7fb935589f3458a7d2db13897c163c",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 52 U.S.C. 20301: \"Department of Defense\"; 91 FR 60944 (2026-09-25), FR Doc 2026-19607, Department of Defense: \"Federal Voting Assistance Program, Defense Support Services Center/Personnel Readiness Management Agency\"."
+    },
+    "alias:national-institute-of-neurological-disorders-and-stroke": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:abed992730b11901eddd832ed3a92b289828121da420c853414af33b7a7617c8",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 42 U.S.C. 281: \"The following agencies of the National Institutes of Health are national research institutes or national centers:\"; 42 U.S.C. 281: \"(10) The National Institute of Neurological Disorders and Stroke.\"."
+    },
+    "alias:trustee-program": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:02451a29fdf6b260589b843863fe1b0fd3e1d96526412677b2cc71417b4a2b13",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 28 U.S.C. 581: \"The Attorney General shall appoint one United States trustee\"."
+    },
+    "alias:army-forces-command": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:bb18afbc9c0b894209a0f5cd0d4fcbe9c131b33dece13226dd6a3d9de27f8d57",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 92662 (2024-11-22), FR Doc 2024-27459, Department of the Army, DoD: \"AGENCY: Department of the Army, DoD.\"; 89 FR 92662 (2024-11-22), FR Doc 2024-27459, Department of the Army, DoD: \"U.S. Army Forces Command\"."
+    },
+    "alias:development-finance-corporation": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:dd5bd5eff724a64e2aec6789e21da87234c8c2be56243d7160c6a74932ee0b69",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): REF-038 reviewed identity publisher name."
+    },
+    "alias:national-aeronautics-and-space-administration-office-of-inspector-general": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:09fb310be9a2d1dc8820639c92ea386031fb4978fc88a80148253b01356da725",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 91 FR 45829 (2026-07-21), FR Doc 2026-14603, NASA: \"AGENCY: National Aeronautics and Space Administration (NASA).\"; 91 FR 45829 (2026-07-21), FR Doc 2026-14603, NASA: \"Office of Inspector General\"."
+    },
+    "alias:test-resource-management-center": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:eec7fb3a2bc3ce5c8141e768fe4f833feae81dd648e6280d02335416df9e3def",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 4173: \"Establishment as Department of Defense Field Activity\"."
+    },
+    "alias:2nd-marine-division": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:11b3604fcd9904835adddb52e932174fbe22a65412a398c18cf73eadfc64a02d",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): H.A.S.C. FY2016 Military Construction & Readiness Hearing (CHRG-114hhrg97822): \"Brian D. Beaudreault, USMC, Commanding General, 2nd Marine Division\"."
+    },
+    "alias:department-of-interior-s-office-of-insular-affairs": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:79f4e1d94bd255c08272ae96d5dca528279172b380197ffa951952c184a0b7a4",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 101040 (2024-12-13), FR Doc 2024-29437, Department of the Interior: \"DEPARTMENT OF THE INTERIOR Office of the Secretary\"; 89 FR 101040 (2024-12-13), FR Doc 2024-29437, Department of the Interior: \"Office of Insular Affairs\"."
+    },
+    "alias:federal-reserve-bank-of-cleveland": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:62cceca2dd22a347eccffb675bc93b7c4f27ac0ab30fd7a0d122b910b03d38f9",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 90 FR 50869 (2025-11-12), FR Doc 2025-19855, Federal Reserve System: \"Federal Reserve Bank of Cleveland (Jenni M. Frazer, Vice President)\"."
+    },
+    "alias:geological-survey-water-resources-mission-area": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:047251fe22eb5c730ed1e48de453f510031e4277eabdafaee932c762aef76408",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 90 FR 31678 (2025-07-15), FR Doc 2025-13203, U.S. Geological Survey, DOI: \"DEPARTMENT OF THE INTERIOR Geological Survey\"; 90 FR 31678 (2025-07-15), FR Doc 2025-13203, U.S. Geological Survey, DOI: \"Water Resources Mission Area\"."
+    },
+    "alias:institute-for-national-strategic-studies": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:2a5e07034274202272378085226fbf04274ceb4d38ee5bf1ca716f10041db506",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 81 FR 91143 (2016-12-16), FR Doc 2016-30271, National Defense University, DoD: \"AGENCY: National Defense University, DoD.\"; 81 FR 91143 (2016-12-16), FR Doc 2016-30271, National Defense University, DoD: \"Institute for National Strategic Studies\"."
+    },
+    "alias:morris-k-and-stewart-l-udall-foundation": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:ceadf1d5e232dde57069e42f5129f9c8774d3b12bcd166809918966efa1c9002",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 20 U.S.C. 5603: \"Establishment of Morris K. Udall and Stewart L. Udall Foundation\"; 89 FR 84400 (2024-10-22), FR Doc 2024-24461, Morris K. Udall and Stewart L. Udall Foundation: \"AGENCY: Morris K. Udall and Stewart L. Udall Foundation.\"."
+    },
+    "alias:nasa-aeronautics-research-institute": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:18ebb3ba290a14692a5becb76d2b8ab6723cf03f1aedad52616c51d0bc9976bf",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): NASA Aeronautics Research Institute (nari.arc.nasa.gov): \"NARI - NASA Aeronautics Research Institute\"."
+    },
+    "alias:national-institute-of-general-medical-sciences": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:ea6b8a3d9ffde99fbde5e75bd199b0b70b88e69806d6e3f49fa7d5287e068036",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 42 U.S.C. 281: \"The following agencies of the National Institutes of Health are national research institutes or national centers:\"; 42 U.S.C. 281: \"(15) The National Institute of General Medical Sciences.\"."
+    },
+    "alias:noaa-pacific-islands-fisheries-science-center": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:59322b67e8e5eec9721d94cde929b818f640862a809791d18e94806e9f9cbe97",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 90 FR 16113 (2025-04-17), FR Doc 2025-06579, NMFS/NOAA: \"permit has been issued to NMFS' Pacific Islands Fisheries Science Center\"; 90 FR 42571 (2025-09-03), FR Doc 2025-16825, NOAA: \"National Marine Fisheries Service (NMFS), National Oceanic and Atmospheric Administration (NOAA)\"."
+    },
+    "alias:noaa-s-national-environmental-satellite-data-and-information-service": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:7512c661aa82a1fb84ab1929b8f0b56e7af03df61bdb697105f73d04b9f11809",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 90 FR 55300 (2025-12-02), FR Doc 2025-21734, Department of Commerce: \"National Environmental Satellite Data and Information Service (NOAA)\"."
+    },
+    "alias:office-of-inspector-general-americorps": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:0fb8765df38690158aff4adac1ae0f58edffbf1b5b983687a95adab1607cd303",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 6432 (2024-02-01), FR Doc 2024-01555, Corporation for National and Community Service: \"AmeriCorps Statement of Organization AGENCY: Corporation for National and Community Service.\"; 89 FR 6432 (2024-02-01), FR Doc 2024-01555, Corporation for National and Community Service: \"Agency's Office of Inspector General\"."
+    },
+    "alias:office-of-inspector-general-for-board-of-governors-of-federal-reserve-system-and-consumer-financial-protection-bureau": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:28ce739e15864941daee5c473ce1c5f2fc73884ca92ee877932b559f3a92a7ae",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 90 FR 8124 (2025-01-24), FR Doc 2025-01685, Federal Reserve System: \"Office of Inspector General (OIG) in support of its inquiries, investigations, and reports relating to the programs and operations of the Board and the Consumer Financial Protection Bureau\"."
+    },
+    "alias:office-of-inspector-general-of-intelligence-community": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:e286653ba1d405a42782203ac13c3464f2abcbba33ee0c9bfa8e43f12d30ae7e",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 50 U.S.C. 3033: \"Office of the Director of National Intelligence an Office of the Inspector General of the Intelligence Community.\"."
+    },
+    "alias:smithsonian-air-and-space-museum": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:dce988578812fd858fd396072baabec74d66e68896789d2c2cfa61b1f508627c",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 20 U.S.C. 77: \"established under the Smithsonian Institution a bureau to be known as a National Air and Space Museum\"; 86 FR 72505 (2021-12-21), FR Doc 2021-27841, NASA: \"Smithsonian National Air and Space Museum\"."
+    },
+    "alias:socom": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:acf9c1ed26a391fef8174016ebe2e6d1d459bd40845a01a81e4db52511eace90",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 111: \"(9) The unified and specified combatant commands.\"; 10 U.S.C. 167: \"unified combatant command for special operations forces\"; 89 FR 90678 (2024-11-18), FR Doc 2024-26843, Department of Defense: \"U.S. Special Operations Command (SOCOM)\"."
+    },
+    "alias:usaid-bureau-of-conflict-prevention-and-stabilization": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:4ca554994c3ce95d4c1bdb0f9f4dd21430e512d0bccf7d3eabca0082402033d0",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 37948 (2024-05-06), FR Doc 2024-09373, USAID: \"Bureau for Conflict Prevention and Stabilization\"; H.F.A.C. Hearing on Stabilization & Conflict Prevention (CHRG-117hhrg45602): \"U.S. Agency for International Development, Bureau for Conflict Prevention and Stabilization\"."
+    },
+    "alias:assistant-secretary-for-financial-resources": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:3727038c670c21d0f8fdec00a8f056462205bed42bde9f2133d56a75999142b8",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 91 FR 12200 (2026-03-12), FR Doc 2026-04842, Department of Health and Human Services: \"AGENCY: Office of the Assistant Secretary for Financial Resources (ASFR), Department of Health and Human Services (HHS).\"."
+    },
+    "alias:naval-surface-warfare-center": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:86f8ab216b621df68f3c3a1be59d2a2e18a978193f8005c1866939872fe69e6f",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 74263 (2024-09-12), FR Doc 2024-20680, Department of the Navy: \"Naval Surface Warfare Center Carderock\"."
+    },
+    "alias:navy-energy-installations-and-environment": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:09d342cab90e205e41e5ff091abe864499f3ee7d5fd6e8c8cfcd93578d234c7f",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 10 U.S.C. 8016: \"Assistant Secretaries of the Navy\"; 90 FR 21552 (2025-05-20), FR Doc 2025-08853, Department of Defense: \"ASSISTANT SECRETARY OF THE NAVY (ENERGY, INSTALLATIONS AND ENVIRONMENT)\"."
+    },
+    "alias:securities-and-exchange-commission-office-of-inspector-general": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:1f5eaa5d313d0eac033ed71974abef0cbc940230ecc0831f1d61582c04994d9f",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 89 FR 73764 (2024-09-11), FR Doc 2024-19819, SEC: \"SEC Office of Inspector General\"."
+    },
+    "alias:federal-reserve-bank-of-kansas-city": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:9d97b41fe781506269922c048eecda5b7823dcf81907249c105f9dfcebafc2e2",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2: \"Federal Reserve Bank of Kansas City, 925 Grand Boulevard, Kansas City, MO 64198.\"."
+    },
+    "alias:federal-reserve-bank-of-new-york": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:7447c73ce647731feca3b8555f3024fead7db34d2744b75433f70a01b38b744e",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 90 FR 50869 (2025-11-12), FR Doc 2025-19855, Federal Reserve System: \"Federal Reserve Bank of New York (Keith Goodwin, Head of Bank Applications)\"."
+    },
+    "alias:federal-reserve-bank-of-boston": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:4aecf7f7cdefd213c07192069c1ec4a7f63dc65d098221ac0260f4d32158b070",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2: \"Federal Reserve Bank of Boston, 600 Atlantic Avenue, Boston, MA 02210.\"."
+    },
+    "alias:federal-reserve-bank-of-minneapolis": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:50048d62dc88238bc92cb70e301e72c423ee77d345d4a3440bfbaf7a91d336df",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2: \"Federal Reserve Bank of Minneapolis, 90 Hennepin Avenue, Minneapolis, MN 55401.\"."
+    },
+    "alias:federal-reserve-bank-of-chicago": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:88864bba373b835f9fd5ef0b359ec816434d524b1370f3823182c4f094195fba",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2: \"Federal Reserve Bank of Chicago, 230 South LaSalle Street, Chicago, IL 60604.\"."
+    },
+    "alias:federal-reserve-bank-of-dallas": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:0d6ebb6cb798af791ad2714e4f85a29048b43e81af7d8669111afe31ad37de78",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2: \"Federal Reserve Bank of Dallas, 2200 North Pearl Street, Dallas, TX 75201.\"."
+    },
+    "alias:federal-reserve-bank-of-atlanta": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:5d9884f9c198018d8592c43399cf239888b5597233633e466f30fb413c5202b5",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2: \"Federal Reserve Bank of Atlanta, 1000 Peachtree Street, NE., Atlanta, GA 30309.\"."
+    },
+    "alias:federal-reserve-bank-of-st-louis": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:3ef0ad839274c79d81b873ec995ff077bed74257cd51fa4a02dd4069e100fc36",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2: \"Federal Reserve Bank of St. Louis, P.O. Box 442, St. Louis, MO 63166-0442.\"."
+    },
+    "alias:federal-reserve-bank-of-san-francisco": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:3b8f8ccf58ebbd4c921b0ccfa52af490e1a87954c2b374115371d320e0efb969",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2: \"Federal Reserve Bank of San Francisco, 101 Market Street, San Francisco, CA 94105.\"."
+    },
+    "alias:federal-reserve-bank-of-philadelphia": {
+      "answer": "yes",
+      "decided_on": "2026-11-25",
+      "content_digest": "sha256:898c7e78a4bae286ef256025239c0d4c21e72b63852a6be05d2a38cc22fafeb7",
+      "channel": "decisionsFile",
+      "note": "REF-075 D4/D5 statutory and official record verification (2026-11-25, ct-aory): 12 U.S.C. 222: \"Sec. 222 - Federal reserve districts; membership of national banks\"; 12 U.S.C. 241: \"BOARD OF GOVERNORS OF THE FEDERAL RESERVE SYSTEM\"; 71 FR 11297 (2006-03-07), FR Doc 06-2124, Federal Reserve System, 12 CFR 227.2: \"Federal Reserve Bank of Philadelphia, 10 Independence Mall, Philadelphia, PA 19106.\"."
+    }
+  }
+}

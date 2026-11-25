@@ -1,0 +1,408 @@
+<html>
+<head>
+<title>Federal Register, Volume 91 Issue 138 (Tuesday, July 21, 2026)</title>
+</head>
+<body><pre>
+[Federal Register Volume 91, Number 138 (Tuesday, July 21, 2026)]
+[Notices]
+[Pages 45829-45832]
+From the Federal Register Online via the Government Publishing Office [<a href="http://www.gpo.gov">www.gpo.gov</a>]
+[FR Doc No: 2026-14603]
+
+
+-----------------------------------------------------------------------
+
+NATIONAL AERONAUTICS AND SPACE ADMINISTRATION
+
+[Notice: 26-040]
+
+
+Privacy Act of 1974; System of Records
+
+AGENCY: National Aeronautics and Space Administration (NASA).
+
+ACTION: Notice of a modified system of records.
+
+-----------------------------------------------------------------------
+
+SUMMARY: Pursuant to the provisions of the Privacy Act of 1974 (5 
+U.S.C. 552a), the National Aeronautics and Space Administration is 
+issuing public notice of its proposal to significantly alter a 
+previously noticed system of records: Special Personnel Records/NASA 
+10SPER. This notice incorporates locations and NASA standard routine 
+uses previously published separately from, and cited by reference in, 
+this and other NASA systems of records notices as Appendix A and B, 
+respectively. This notice updates physical safeguards, as set forth 
+below under the caption SUPPLEMENTARY INFORMATION. Finally, this notice 
+updates the name and contact information of the Chief Privacy Officer 
+and also the location of the Department of Interior data hosting 
+facility.
+
+DATES: Submit comments within 30 calendar days from the date of this
+
+[[Page 45830]]
+
+publication. The changes will take effect at the end of that period if 
+no adverse comments are received.
+
+ADDRESSES: Submit comments to Stayce Hoult, Chief Privacy Officer, 
+Office of the Chief Information Officer, Mary W. Jackson NASA 
+Headquarters, Washington, DC 20546-0001, 256-544-7705, or <a href="/cdn-cgi/l/email-protection#93ddd2c0d2bec3d2dcf5f5faf0f6e1d3fdf2e0f2bdf4fce5"><span class="__cf_email__" data-cfemail="4806091b09651809072e2e212b2d3a0826293b29662f273e">[email&#160;protected]</span></a>.
+
+FOR FURTHER INFORMATION CONTACT: NASA Chief Privacy Officer, Stayce 
+Hoult, 256-544-7705, or <a href="/cdn-cgi/l/email-protection#307e7163711d60717f565659535542705e5143511e575f46"><span class="__cf_email__" data-cfemail="99d7d8cad8b4c9d8d6fffff0fafcebd9f7f8eaf8b7fef6ef">[email&#160;protected]</span></a>.
+
+SUPPLEMENTARY INFORMATION: This system notice includes minor revisions 
+to NASA's existing system of records notice to bring its format into 
+compliance with OMB guidance. It incorporates in whole, as appropriate, 
+information formerly published separately in the Federal Register as 
+Appendix A, Location Numbers and Mailing Addresses of NASA 
+Installations at which Records are Located, and Appendix B, Standard 
+Routine Uses--NASA. This notice also updates PHYSICAL SAFEGUARDS to 
+reflect current information technology security protocols, and the 
+Chief Privacy Officer name and contact information. Finally, the name 
+and location of The Department of Interior data hosting center was 
+updated to reflect a Headquarters move from Denver, CO to a DOI hosting 
+facility in Albuquerque, NM.
+
+Stayce Hoult,
+NASA Chief Privacy Officer, National Aeronautics and Space 
+Administration.
+SYSTEM NAME AND NUMBER:
+    Special Personnel Records, NASA 10SPER.
+
+SECURITY CLASSIFICATION:
+    Unclassified.
+
+SYSTEM LOCATION:
+    Mary W. Jackson NASA Headquarters, Washington, DC 20546-0001.
+    Ames Research Center (NASA), Moffett Field, CA 94035-1000.
+    Armstrong Flight Research Center (NASA), PO Box 273, Edwards, CA 
+93523-0273.
+    John H. Glenn Research Center at Lewis Field (NASA), 21000 Brook 
+Park Road, Cleveland, OH 44135-3191.
+    Goddard Space Flight Center (NASA), Greenbelt, MD 20771-0001.
+    Lyndon B. Johnson Space Center (NASA), Houston, TX 77058-3696.
+    John F. Kennedy Space Center (NASA), Kennedy Space Center, FL 
+32899-0001.
+    Langley Research Center (NASA), Hampton, VA 23681-2199.
+    George C. Marshall Space Flight Center (NASA), Marshall Space 
+Flight Center, AL 35812-0001.
+    NASA Shared Services Center (NSSC), Building 5100, Stennis Space 
+Center, MS 39529-6000.
+    New Jersey Post of Duty, 402 East State Street, Trenton, NJ 08608.
+    Department of Interior OST Data Center, 1011 Indian School Rd. NW, 
+Albuquerque, NM 87104.
+
+SYSTEM MANAGER(S):
+    Associate Administrator for Human Capital Management, NASA 
+Headquarters (see System Location above for address).
+    Subsystem Managers:
+    Director, Personnel Division, Office of Inspector General and 
+Chief, Elementary and Secondary Programs Branch, Educational Division, 
+NASA Headquarters (see System Location above for address).
+    Director of Personnel:
+    NASA Headquarters (see System Location above for address).
+    NASA Armstrong Flight Research Center (see System Location above 
+for address).
+    NASA Glenn Research Center (see System Location above for address).
+    NASA Goddard Space Flight Center (see System Location above for 
+address).
+    NASA Kennedy Space Center (see System Location above for address).
+    Director of Human Resources:
+    NASA Ames Research Center (see System Location above for address).
+    NASA Johnson Space Center (see System Location above for address).
+    NASA Marshall Space Flight Center (see System Location above for 
+address).
+    Director, Office of Human Resources, NASA Langley Research Center 
+(see System Location above for address).
+    Human Resources Officer, NASA Stennis Space Center (see System 
+Location above for address).
+    Director, Human Resources Services Division, NASA Shared Services 
+Center (see System Location above for address).
+
+AUTHORITY FOR MAINTENANCE OF THE SYSTEM:
+    51 U.S.C. 20113 (a) and 44 U.S.C. 3101.
+
+PURPOSE(S) OF THE SYSTEM:
+    Records in this system enable NASA to manage personnel records used 
+to make personnel employment decisions and facilitate decisions 
+regarding the rights and benefits of employees and other special 
+personnel associated with NASA, as and listed in CATEGORIES OF 
+INDIVIDUALS of this system notice.
+
+CATEGORIES OF INDIVIDUALS COVERED BY THE SYSTEM:
+    This system maintains information on (1) candidates for and 
+recipients of awards or NASA training; (2) civilian and active duty 
+military detailees to NASA; (3) participants in enrollee programs; (4) 
+Faculty, Science, National Research Council and other Fellows, and 
+associates; (5) NASA contract and grant awardees and their associates 
+having access to NASA premises and records; (6) individuals with 
+interest in NASA matters including Advisory Committee Members; (6) NASA 
+employees and family members, prospective employees, and former 
+employees; (7) participants in former, existing, and future educational 
+programs who have served as part of the NASA workforce.; and (8) 
+members of the public as noted. While not considered `individuals' 
+under The Privacy Act, this system may also maintain records on 
+international individuals when appropriate.
+
+CATEGORIES OF RECORDS IN THE SYSTEM:
+    Special Program Files including: (1) Foreign National Scientist 
+files; (2) Applications for, and issuance of, passports and visas 
+together with other information for international government travel; 
+(3) Award files; (4) Counseling files, Life and Health Insurance, 
+Retirement, Upward Mobility, and Work Injury Counseling files; (5) 
+Military and Civilian detailee files; (6) Personnel Development files 
+such as nominations for and records of training or education, Upward 
+Mobility Program files, Intern Program files, Apprentice files, and 
+Enrollee Program files; (7) Special Employment files such as Federal 
+Junior Fellowship Program files, Pathways Program files, Summer 
+Employment files, Worker-Trainee Opportunity Program files, NASA 
+Executive Position files, Expert and Consultant files, and Cooperative 
+Education Program files; (8) Welfare to Work files; and (9) Supervisory 
+Appraisals under Competitive Placement Plan.
+    Correspondence and related information including: (1) Claims 
+correspondence and records about insurance such as life, health, and 
+travel; (2) Congressional and other Special Interest correspondence, 
+including employment inquiries; (3) Correspondence and records 
+concerning travel related to permanent change of address; (4) Debt 
+complaint correspondence; (5) Employment interview records; (6) 
+Information related to outside employment and activities of NASA 
+employees; (7) Placement follow-ups; (8) Preemployment inquiries and 
+reference checks; (9) Preliminary records related to possible adverse 
+actions; (10) Records related to reductions in force; (11)
+
+[[Page 45831]]
+
+Records under administrative as well as negotiated grievance 
+procedures; (12) Separation information including exit interview 
+records, death certificates and other information concerning death, 
+retirement records, and other information pertaining to separated 
+employees; (13) Special planning analysis and administrative 
+information; (14) Performance appraisal records; (15) Working papers 
+for prospective or pending retirements.
+    Special Records and Rosters including: (1) Locator files, (2) 
+Ranking lists of employees; (3) Promotion candidate lists; (4) Retired 
+military employee records; (5) Retiree records; (6) Follow-up records 
+for educational programs, such as the SHARP and other existing or 
+future programs.
+    Agency-wide and Center automated personnel information: Rosters, 
+applications, recommendations, assignment information, and evaluations 
+of Faculty, Science, National Research Council, and other Fellows, 
+associates, and guest workers including those at NASA Centers but not 
+on NASA rolls; also, information about NASA contract and grant awardees 
+and their associates having access to NASA premises and records.
+    Information about members of advisory committees and similar 
+organizations: All NASA-maintained information of the same types as, 
+but not limited to, that information required in systems of records for 
+which the Office of Personnel Management and other Federal personnel-
+related agencies publish Government-wide Privacy Act Notices in the 
+Federal Register.
+
+RECORD SOURCE CATEGORIES:
+    Individual on whom the record is maintained and Personnel 
+Office(s).
+
+ROUTINE USES OF RECORDS MAINTAINED IN THE SYSTEM, INCLUDING CATEGORIES 
+OF USERS AND PURPOSES OF SUCH USES:
+    Any disclosures of information will be compatible with the purpose 
+for which the Agency collected the information. Under the following 
+routine uses that are unique to this system of records, information in 
+this system may be disclosed:
+    (1) disclosures to organizations or individuals having contract, 
+legal, administrative or cooperative relationships with NASA, including 
+labor unions, academic organizations, governmental organizations, non-
+profit organizations, and contractors and to organizations or 
+individuals seeking or having available a service or other benefit or 
+advantage. The purpose of such disclosures is to satisfy a need or 
+needs, further cooperative relationships, offer information, or respond 
+to a request; (2) disclosures to Federal agencies developing 
+statistical or data presentations having need of information about 
+individuals in the records; and (3) responses to other Federal agencies 
+and other organizations having legal or administrative responsibilities 
+related to programs and individuals in the records.
+    In addition, the following Standard Routine Uses of information 
+contained in Systems of Records (SORs), subject to the Privacy Act of 
+1974, are standard for many NASA systems. Any disclosures of 
+information will be compatible with the purpose for which NASA 
+collected the information.
+    1. Law Enforcement--When a record on its face, or in conjunction 
+with other information, indicates a violation or potential violation of 
+law, whether civil, criminal or regulatory in nature, and whether 
+arising by general statute or particular program statute, or by 
+regulation, rule, or order, disclosure may be made to the appropriate 
+agency, whether Federal, foreign, State, local, or tribal, or other 
+public authority responsible for enforcing, investigating or 
+prosecuting such violation or charged with enforcing or implementing 
+the statute, or rule, regulation, or order, if NASA determines by 
+careful review that the records or information are both relevant and 
+necessary to any enforcement, regulatory, investigative or prosecutive 
+responsibility of the receiving entity.
+    2. Certain Disclosures to Other Agencies--A record from this SOR 
+may be disclosed to a Federal, State, or local agency maintaining 
+civil, criminal, or other relevant enforcement information or other 
+pertinent information, such as current licenses, if necessary, to 
+obtain information relevant to a NASA decision concerning the hiring or 
+retention of an employee, the issuance of a security clearance, the 
+letting of a contract, or the issuance of a license, grant, or other 
+benefit.
+    3. Certain Disclosures to Other Federal Agencies--A record from 
+this SOR may be disclosed to a Federal agency, in response to its 
+request, for a matter concerning the hiring or retention of an 
+employee, the issuance of a security clearance, the reporting of an 
+investigation of an employee, the letting of a contract, or the 
+issuance of a license, grant, or other benefit by the requesting 
+agency, to the extent that the information is relevant and necessary to 
+the requesting agency's decision on the matter.
+    4. Department of Justice--A record from this SOR may be disclosed 
+to the Department of Justice when a) NASA, or any component thereof; or 
+b) any employee of NASA in his or her official capacity; or c) any 
+employee of NASA in his or her individual capacity where the Department 
+of Justice has agreed to represent the employee; or d) the United 
+States, where NASA determines that litigation is likely to affect NASA 
+or any of its components, is a party to litigation or has an interest 
+in such litigation, and by careful review, the use of such records by 
+the Department of Justice is deemed by NASA to be relevant and 
+necessary to the litigation.
+    5. Courts--A record from this SOR may be disclosed in an 
+appropriate proceeding before a court, grand jury, or administrative or 
+adjudicative body, when NASA determines that the records are relevant 
+and necessary to the proceeding; or in an appropriate proceeding before 
+an administrative or adjudicative body when the adjudicator determines 
+the records to be relevant and necessary to the proceeding.
+    6. Response to an Actual or Suspected Compromise or Breach of 
+Personally Identifiable Information--A record from this SOR may be 
+disclosed to appropriate agencies, entities, and persons when (1) NASA 
+suspects or has confirmed that there has been a breach of the system of 
+records; (2) NASA has determined that as a result of the suspected or 
+confirmed breach there is a risk of harm to individuals, NASA 
+(including its information systems, programs, and operations), the 
+Federal Government, or national security; and (3) the disclosure made 
+to such agencies, entities, and persons is reasonably necessary to 
+assist in connection with NASA's efforts to respond to the suspected or 
+confirmed breach or to prevent, minimize, or remedy such harm.
+    7. Contractors--A record from this SOR may be disclosed to 
+contractors, grantees, experts, consultants, students, volunteers, and 
+others performing or working on a contract, service, grant, cooperative 
+agreement, or other assignment for the federal government, when 
+necessary to accomplish a NASA function related to this SOR. 
+Individuals provided information under this routine use are subject to 
+the same Privacy Act requirements and limitations on disclosure as are 
+applicable to NASA employees.
+    8. Members of Congress--A record from this SOR may be disclosed to 
+a Member of Congress or to a Congressional staff member in response to 
+an inquiry of the Congressional office made at the written request of 
+the constituent about whom the record is maintained.
+
+[[Page 45832]]
+
+    9. Disclosures to Other Federal Agencies in Response to an Actual 
+or Suspected Compromise or Breach of Personally Identifiable 
+Information--A record from this SOR may be disclosed to another Federal 
+agency or Federal entity, when NASA determines that information from 
+this system of records is reasonably necessary to assist the recipient 
+agency or entity in (1) responding to a suspected or confirmed breach 
+or (2) preventing, minimizing, or remedying the risk of harm to 
+individuals, the recipient agency or entity (including its information 
+systems, programs, and operations), the Federal Government, or national 
+security, resulting from a suspected or confirmed breach.
+    10. National Archives and Records Administration--A record from 
+this SOR may be disclosed as a routine use to the officers and 
+employees of the National Archives and Records Administration (NARA) 
+pursuant to records management inspections being conducted under the 
+authority of 44 U.S.C. 2904 and 2906.
+    11. Audit--A record from this SOR may be disclosed to another 
+agency, or organization for purpose of performing audit or oversight 
+operations as authorized by law, but only such information as is 
+necessary and relevant to such audit or oversight function.
+
+POLICIES AND PRACTICES FOR STORAGE OF RECORDS:
+    Records in this system are maintained as hard-copy documents and on 
+electronic media.
+
+POLICIES AND PRACTICES FOR RETRIEVAL OF RECORDS:
+    Records are retrieved from the system by any one or a combination 
+of name, birth date, Social Security Number, or NASA unique 
+identification number.
+
+POLICIES AND PRACTICES FOR RETENTION AND DISPOSAL OF RECORDS:
+    Records are maintained and dispositioned in accordance with NASA 
+Records Retention Schedules (NRRS) Schedule 3, Item 19.
+
+ADMINISTRATIVE, TECHNICAL, AND PHYSICAL SAFEGUARDS:
+    Electronic records are maintained on secure NASA servers and 
+protected in accordance with all Federal standards and those 
+established in NASA regulations at 14 CFR 1212.605. Additionally, NASA 
+server and data management environments employ infrastructure 
+encryption technologies both in data transmission and at rest on 
+servers. Electronic messages sent within and outside of the Agency that 
+convey sensitive data are encrypted and transmitted by staff via pre-
+approved electronic encryption systems as required by NASA policy. 
+Approved security plans are in place for information systems containing 
+the records in accordance with the Federal Information Security 
+Management Act of 2002 (FISMA) and OMB Circular A-130, Management of 
+Federal Information Resources. Only authorized personnel requiring 
+information in the official discharge of their duties are authorized 
+access to records through approved access or authentication methods. 
+Access to electronic records is achieved only from workstations within 
+the NASA Intranet or via a secure Virtual Private Network (VPN) 
+connection that requires two-factor hardware token authentication or 
+via employee PIV badge authentication from NASA-issued computers. The 
+Department of Interior (DOI) data hosting center in Albuquerque, New 
+Mexico is also compliant with the FISMA and OMB Circular A-130 security 
+standards and requirements.
+    Non-electronic records are secured in locked rooms or locked file 
+cabinets. For information systems maintained by NASA partners, who 
+collect, store, and process records on behalf of NASA, NASA requires 
+documentation and verification of commensurate safeguards in accordance 
+with FISMA, NASA Procedural Requirements (NPR) 2810.1A, and NASA ITS-
+HBK-2810.02-05.
+
+RECORD ACCESS PROCEDURES:
+    In accordance with 14 CFR part 1212, Privacy Act--NASA Regulations, 
+information may be obtained by contacting in person or in writing the 
+system or subsystem manager listed above at the location where the 
+records are created and/or maintained. Requests must contain the 
+identifying data concerning the requester (e.g., first, middle, and 
+last name; date of birth; description; and time periods of the records 
+desired). NASA Regulations also address contesting contents and 
+appealing initial determinations regarding records access.
+
+CONTESTING RECORD PROCEDURES:
+    In accordance with 14 CFR part 1212, Privacy Act--NASA Regulations, 
+information may be obtained by contacting in person or in writing the 
+system or subsystem manager listed above at the location where the 
+records are created and/or maintained. Requests must contain the 
+identifying data concerning the requester (e.g., first, middle, and 
+last name; date of birth; description; and time periods of the records 
+desired). NASA Regulations also address contesting contents and 
+appealing initial determinations regarding records access.
+
+NOTIFICATION PROCEDURES:
+    In accordance with 14 CFR part 1212, Privacy Act--NASA Regulations, 
+information may be obtained by contacting in person or in writing the 
+system or subsystem manager listed above at the location where the 
+records are created and/or maintained. Requests must contain the 
+identifying data concerning the requester (e.g., first, middle, and 
+last name; date of birth; description; and time periods of the records 
+desired). NASA Regulations also address contesting contents and 
+appealing initial determinations regarding records access.
+
+EXEMPTIONS PROMULGATED FOR THE SYSTEM:
+    None.
+
+HISTORY:
+    <bullet> 88 FR 30166.
+    <bullet> 81 FR 2244.
+    <bullet> 80 FR 72745.
+    <bullet> 76 FR 64115.
+    <bullet> 72 FR 55817.
+    <bullet> 64 FR 69556.
+    <bullet> 63 FR 4290.
+
+[FR Doc. 2026-14603 Filed 7-20-26; 8:45 am]
+BILLING CODE 7510-13-P
+
+
+</pre><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script></body>
+</html>

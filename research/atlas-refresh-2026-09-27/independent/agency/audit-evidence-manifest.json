@@ -2,7 +2,7 @@
   "schemaVersion": "1.0",
   "scope": "Offline authentication of retained primary sources and recorded review; construction inputs remain unchanged",
   "candidatesDigest": "sha256:7fe88a9167a9363f5c2bfdcd3911953b7323abe1564d40586991c9612f95f4bc",
-  "reviewReceiptSha256": "sha256:201b489c479ce7f5339079195310cb45fb6b0bd362ce7f7ac4d76de083c2576d",
+  "reviewReceiptSha256": "sha256:2e4259576758c94cd5820eab481c2d7b791bc80d121d020e6e17be8fc629ba59",
   "members": [
     {
       "path": "plans/agency-registry-batch-1-candidates.json",
@@ -495,7 +495,560 @@
       "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title6/html/USCODE-2024-title6-chap1-subchapXVIII-partA-sec652.htm",
       "sha256": "sha256:7805546da7b8bac4091a88a962c8e56b6138eade6203db25a54e44493f595283",
       "byteLength": 63429
+    },
+    {
+      "path": "plans/agency-registry-alias-batch-2-candidates.json",
+      "sha256": "sha256:a431bdaed24652cb6519a3d41187b869467c0b9e6dc7c34e6d08b9efda1a30de",
+      "byteLength": 193712
+    },
+    {
+      "path": "plans/agency-registry-alias-batch-2-decisions.json",
+      "sha256": "sha256:152d34006077ea717cb67720ea3a050438e9a0a0f1ce47e41255ba9179ee16d6",
+      "byteLength": 51917
+    },
+    {
+      "path": "research/evidence/agency-alias-demand-2026-11-25/federal-misses.json",
+      "sha256": "sha256:b28c375c93fe68e1f417f411cb6e4d694a08ea89715ace0918e4802486c05558",
+      "byteLength": 26398
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/manifest.json",
+      "sha256": "sha256:9c263f9ab80910efc1c8d479e9476f9a94d8b21a1391c81f9585a22c1758e50c",
+      "byteLength": 40997
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-38-323.htm",
+      "sha256": "sha256:2ccf1b891d6c8f381e2657d39b606eb075fa70bcba675713a273784f43c8dc5f",
+      "byteLength": 10341,
+      "retainedPath": "raw/usc-38-323.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title38/html/USCODE-2024-title38-partI-chap3-sec323.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2024-19930.txt",
+      "sha256": "sha256:623daa84df052ef2c87a26a199686e69d2f9d6d3558b38cc677bfe89334bd10b",
+      "byteLength": 4142,
+      "retainedPath": "raw/fr-2024-19930.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/09/05/2024-19930.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2026-21777.txt",
+      "sha256": "sha256:159c629c389de5b5d4ba42979d076442dee3c045caab17922ea0e8fd7e35dd6f",
+      "byteLength": 13399,
+      "retainedPath": "raw/fr-2026-21777.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2026/10/26/2026-21777.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2024-29437.txt",
+      "sha256": "sha256:be29d5b4cd2e8d5a8367df155d48d0396ea377731662f87d165e0136fe4f015c",
+      "byteLength": 20270,
+      "retainedPath": "raw/fr-2024-29437.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/12/13/2024-29437.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2024-24830.txt",
+      "sha256": "sha256:14c50b200715bf54e245777691eef41df1bee5f54e7b33629a3ffa1e1311fa09",
+      "byteLength": 8184,
+      "retainedPath": "raw/fr-2024-24830.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/10/25/2024-24830.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-10-10111.htm",
+      "sha256": "sha256:fd6875afaccd5fce52209ae25f93f52fb5b1f8c93fc5a653011f97b75f4a5369",
+      "byteLength": 2971,
+      "retainedPath": "raw/usc-10-10111.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleE-partI-chap1003-sec10111.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2024-03586.txt",
+      "sha256": "sha256:8679d8656552a0ec821d9a7f6378d17a68dea7c99e7b32c21f3300573637d33e",
+      "byteLength": 214269,
+      "retainedPath": "raw/fr-2024-03586.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/02/22/2024-03586.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2015-27713.txt",
+      "sha256": "sha256:8784cd7d68d06121ca957c36a3ed399b93c7024ff5c938d994cd1be7f0e666c7",
+      "byteLength": 10511,
+      "retainedPath": "raw/fr-2015-27713.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2015/10/30/2015-27713.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2025-22150.txt",
+      "sha256": "sha256:35a033362822b618adb496edb2bf6d7bddefe1a206b43c1ba691a37334fd0118",
+      "byteLength": 10783,
+      "retainedPath": "raw/fr-2025-22150.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/12/08/2025-22150.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2026-15156.txt",
+      "sha256": "sha256:969f0ceabe4bf3d435cd7716624218b863d8116135e858ae99f173f695767207",
+      "byteLength": 8281,
+      "retainedPath": "raw/fr-2026-15156.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2026/07/28/2026-15156.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2017-01169.txt",
+      "sha256": "sha256:79734337dcfb21740b621cac8bf22bf17e69fac2b500a41575114812449b9a2f",
+      "byteLength": 12811,
+      "retainedPath": "raw/fr-2017-01169.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2017/01/17/2017-01169.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2025-17697.txt",
+      "sha256": "sha256:44e44ce48cc4a8f99d90a2a3adc41217cfaf3786370d49381655395c6222bc68",
+      "byteLength": 2959,
+      "retainedPath": "raw/fr-2025-17697.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/09/12/2025-17697.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/plaw-113-235.htm",
+      "sha256": "sha256:96ab7ed1d845c8e5bedf6d2db62362589365e7989c11d81d5741118aa482fa15",
+      "byteLength": 2351942,
+      "retainedPath": "raw/plaw-113-235.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/PLAW-113publ235/html/PLAW-113publ235.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2024-01555.txt",
+      "sha256": "sha256:d5a540bfcb39a49e3c1acb6a79b533662030868bbd460795e05b497cf0371107",
+      "byteLength": 23820,
+      "retainedPath": "raw/fr-2024-01555.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/02/01/2024-01555.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/chrg-118hhrg52384.htm",
+      "sha256": "sha256:76d962ddcfa05877b6700411d0a271a5b9f7038e84fc50e907ec45f1386ddfb3",
+      "byteLength": 97240,
+      "retainedPath": "raw/chrg-118hhrg52384.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/CHRG-118hhrg52384/html/CHRG-118hhrg52384.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2025-08853.txt",
+      "sha256": "sha256:645991eb7145a146a78e8fb3c2130ee1c9c33fd2181e2a5a4f23a34ef121aec2",
+      "byteLength": 1479070,
+      "retainedPath": "raw/fr-2025-08853.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/05/20/2025-08853.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-22-4831.htm",
+      "sha256": "sha256:5bed4a9f61ba4d72472c58293e7a3874b82a7b0475ec6a8a837cae5b48c2fc12",
+      "byteLength": 19955,
+      "retainedPath": "raw/usc-22-4831.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title22/html/USCODE-2024-title22-chap58-subchapIII-sec4831.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2012-27189.txt",
+      "sha256": "sha256:9118eb0a3ca36dafeeff5c221f6311c8c1b60f8b6e5a494721cc4f1984d7444a",
+      "byteLength": 1190,
+      "retainedPath": "raw/fr-2012-27189.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2012/11/07/2012-27189.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-10-137.htm",
+      "sha256": "sha256:651120fe9e3073358ad9ca68ebfecbb4e94a4213b567eef942d2851475560696",
+      "byteLength": 15052,
+      "retainedPath": "raw/usc-10-137.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap4-sec137.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-42-1975.htm",
+      "sha256": "sha256:05b6579f26b60e1c3d5d57c2a21674fdad59b9bd8517189e8a2f22a3ccf28efb",
+      "byteLength": 19191,
+      "retainedPath": "raw/usc-42-1975.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap20A-sec1975.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2024-19473.txt",
+      "sha256": "sha256:2d1b93bb8468542205ee8aab322f7f51143f62967131a4939cacc7a59bac160b",
+      "byteLength": 3769,
+      "retainedPath": "raw/fr-2024-19473.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/08/29/2024-19473.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-10-10104.htm",
+      "sha256": "sha256:a38985bf842d342ce60417a5ffb8281f3dcb3c2d1d9e9b3ceadc5c8e1b669cf3",
+      "byteLength": 2701,
+      "retainedPath": "raw/usc-10-10104.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleE-partI-chap1003-sec10104.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-10-10105.htm",
+      "sha256": "sha256:f9ffca7cbb8b1cad0efb392ba5dfb5fc63421022f460cd8c0735b04bb48a7ee6",
+      "byteLength": 17515,
+      "retainedPath": "raw/usc-10-10105.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleE-partI-chap1003-sec10105.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-10-8591.htm",
+      "sha256": "sha256:caaff58606061be23d9e1cb257fb08a904e44edcaac8da8398116ca229effc57",
+      "byteLength": 6715,
+      "retainedPath": "raw/usc-10-8591.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleC-partIII-chap859-sec8591.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2026-11925.txt",
+      "sha256": "sha256:8e1f08792a08645f17b318a8e85c9c691cf5abe39872b8ca1278046b01f0cd41",
+      "byteLength": 23234,
+      "retainedPath": "raw/fr-2026-11925.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2026/06/15/2026-11925.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-15-313.htm",
+      "sha256": "sha256:af35aefac6fea35b6bc0f66a1f79f549d6d5b85f534471d8cdd5b706a8f0e845",
+      "byteLength": 45026,
+      "retainedPath": "raw/usc-15-313.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title15/html/USCODE-2024-title15-chap9-sec313.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-10-10110.htm",
+      "sha256": "sha256:cadb2808aa5d05ec5ea0fbe3f2f94ec0ee0e0dbacf7030ba60acc088badda991",
+      "byteLength": 2937,
+      "retainedPath": "raw/usc-10-10110.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleE-partI-chap1003-sec10110.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2024-07613.txt",
+      "sha256": "sha256:5fac243e28e7b62747f68001bb6d687d31e8ffaddc364c2e7de572cf9b110d02",
+      "byteLength": 31696,
+      "retainedPath": "raw/fr-2024-07613.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/04/23/2024-07613.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2026-04237.txt",
+      "sha256": "sha256:cf4169bd8830a66b1488034ccdd456ce428a7d62edcc1cc3179067029c5cc039",
+      "byteLength": 2869,
+      "retainedPath": "raw/fr-2026-04237.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2026/03/04/2026-04237.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2020-01490.txt",
+      "sha256": "sha256:620d529ed89bf101a484d9a253287e81dec8020dfa6689c30f075af3f4aa30ef",
+      "byteLength": 4044,
+      "retainedPath": "raw/fr-2020-01490.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2020/01/28/2020-01490.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-42-1396.htm",
+      "sha256": "sha256:fad2d8a9155ebe6275a9d554e84b60c9d4aef038b42a2aa5cec616b22e094af2",
+      "byteLength": 48143,
+      "retainedPath": "raw/usc-42-1396.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap7-subchapXIX-sec1396.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-42-6611.htm",
+      "sha256": "sha256:5bcb6571f45b808d3b86f6ac52bab80b097028068e1d5a398b246cab6e843b55",
+      "byteLength": 3576,
+      "retainedPath": "raw/usc-42-6611.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap79-subchapII-sec6611.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2024-12399.txt",
+      "sha256": "sha256:e57e5f393dc118ed3cd42ceeb3580acca75c9614ab80cf67d98a7504090ab0cd",
+      "byteLength": 2256,
+      "retainedPath": "raw/fr-2024-12399.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/06/06/2024-12399.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-19-2171.htm",
+      "sha256": "sha256:5385a977706c715da8591f06eae5dfac2163ab783b93c480eeff793eeb3264bc",
+      "byteLength": 112919,
+      "retainedPath": "raw/usc-19-2171.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title19/html/USCODE-2024-title19-chap12-subchapI-part4-sec2171.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2026-20724.txt",
+      "sha256": "sha256:8d5663aca1f2284cf44f8089d8752a3e05e74e150ed6d1ad8587c35a88b8b0b7",
+      "byteLength": 9798,
+      "retainedPath": "raw/fr-2026-20724.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2026/10/09/2026-20724.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-42-11311.htm",
+      "sha256": "sha256:6a97bfaa488fb8187216314798d098a4ba9760bbc452f6b5882dc747f886cd2a",
+      "byteLength": 3843,
+      "retainedPath": "raw/usc-42-11311.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title42/html/USCODE-2024-title42-chap119-subchapII-sec11311.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-10-138.htm",
+      "sha256": "sha256:74381f224403de2e25baa1b1d0a51db3688774af723f6da45ebe8b6934f823cb",
+      "byteLength": 69870,
+      "retainedPath": "raw/usc-10-138.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partI-chap4-sec138.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2025-07258.txt",
+      "sha256": "sha256:8c6355f865b5dacbc25d306637ae11c3a935f2187b9c811ae757c7c60bca07a7",
+      "byteLength": 17070,
+      "retainedPath": "raw/fr-2025-07258.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/04/28/2025-07258.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-10-7016.htm",
+      "sha256": "sha256:e966989a9d73674dbe29c38fda5a28a2dedbbd803d083a3af32d70109a1577d2",
+      "byteLength": 9245,
+      "retainedPath": "raw/usc-10-7016.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleB-partI-chap703-sec7016.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-12-222.htm",
+      "sha256": "sha256:176cccfe53a53b5d3ddf677d47d83d7c74a8ceb7ef5cc38fcae29aecb725c0ee",
+      "byteLength": 7990,
+      "retainedPath": "raw/usc-12-222.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title12/html/USCODE-2024-title12-chap3-subchapI-sec222.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-E6-22472.txt",
+      "sha256": "sha256:c44d853580715a82fc08cb584d2a6b39cb56f54edd22d25469a3fb37b3077a0f",
+      "byteLength": 3740,
+      "retainedPath": "raw/fr-E6-22472.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2007/01/03/E6-22472.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2025-16825.txt",
+      "sha256": "sha256:15eca69d6f773febf8c891340f89d9c5a464965cf614c7a57bf3d49a80dfed02",
+      "byteLength": 7564,
+      "retainedPath": "raw/fr-2025-16825.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/09/03/2025-16825.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-2-1151.htm",
+      "sha256": "sha256:14cba47fea067fa0a8d7d1686a1fd652f723b6def5f662bf79f6842ad69025a0",
+      "byteLength": 33611,
+      "retainedPath": "raw/usc-2-1151.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2025-title2/html/USCODE-2025-title2-chap22A-sec1151.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-10-10171.htm",
+      "sha256": "sha256:32d8addbf608d8ef0ac5fcee555b32f1ce90b1619a201dae03a5328a5f6cab90",
+      "byteLength": 4516,
+      "retainedPath": "raw/usc-10-10171.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleE-partI-chap1006-sec10171.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2025-17223.txt",
+      "sha256": "sha256:1b4fea8dba301a3f672e5a6700e8b2158fc73983d3113422cf88bf1a6b3f938f",
+      "byteLength": 17928,
+      "retainedPath": "raw/fr-2025-17223.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/09/08/2025-17223.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/nsceb-about.html",
+      "sha256": "sha256:fba34a74bdec34a1b4f1c372af2527b33e459b3a762a738e32967e8e1b9cf7cb",
+      "byteLength": 334118,
+      "retainedPath": "raw/nsceb-about.html",
+      "sourceUrl": "https://www.biotech.senate.gov/aboutus/"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-15-5511.htm",
+      "sha256": "sha256:c2d36ab26786bc5e6e5e8b838be207acc06ab5ea7c5aa58191da954ade32d9e2",
+      "byteLength": 38753,
+      "retainedPath": "raw/usc-15-5511.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title15/html/USCODE-2024-title15-chap81-subchapI-sec5511.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2024-31221.txt",
+      "sha256": "sha256:8856bdfbad73b4a692cbb3bf5b0c748259b37f6d0c62207177ef33024c7ebf27",
+      "byteLength": 5583,
+      "retainedPath": "raw/fr-2024-31221.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/12/30/2024-31221.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-50-3023.htm",
+      "sha256": "sha256:082392679344f3a5c057353bbcc7962f395428e54fc864f7b47c175121054a68",
+      "byteLength": 14208,
+      "retainedPath": "raw/usc-50-3023.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title50/html/USCODE-2024-title50-chap44-subchapI-sec3023.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-50-3033.htm",
+      "sha256": "sha256:2d9c8960551d0ef4fe272a9e9c8b2f6b7a27823f491d0b51e9a6caafbe18c929",
+      "byteLength": 64676,
+      "retainedPath": "raw/usc-50-3033.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title50/html/USCODE-2024-title50-chap44-subchapI-sec3033.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-52-20301.htm",
+      "sha256": "sha256:20996e8848408c94b1b384ad1decfdfd3822b943d0fce4979b95abe137370f62",
+      "byteLength": 17462,
+      "retainedPath": "raw/usc-52-20301.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title52/html/USCODE-2024-title52-subtitleII-chap203-sec20301.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2026-19607.txt",
+      "sha256": "sha256:1737a9dd284a20b9cf840d40c35328838b418abf1196f8be0462387909d1f159",
+      "byteLength": 5132,
+      "retainedPath": "raw/fr-2026-19607.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2026/09/25/2026-19607.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-28-581.htm",
+      "sha256": "sha256:4d0214e11c7d7c1e92223b140f6656003dc1a40e828dcaed8a1cd03a075846e1",
+      "byteLength": 46958,
+      "retainedPath": "raw/usc-28-581.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title28/html/USCODE-2024-title28-partII-chap39-sec581.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2024-27459.txt",
+      "sha256": "sha256:a303f7d3f14372b390663ed00e26e50a225287cfd882fc756ab9c14db8cb3f24",
+      "byteLength": 12905,
+      "retainedPath": "raw/fr-2024-27459.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/11/22/2024-27459.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2026-14603.txt",
+      "sha256": "sha256:e2569a13d4e1c65826a999a1a601c88242d4dba080c33470a5bf3896f6f37ec4",
+      "byteLength": 21966,
+      "retainedPath": "raw/fr-2026-14603.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2026/07/21/2026-14603.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-10-4173.htm",
+      "sha256": "sha256:ead58c89de3b182a2ad21f62656fd440f67873ef3ed20f0ad82dddad53c20e84",
+      "byteLength": 26539,
+      "retainedPath": "raw/usc-10-4173.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleA-partV-subpartE-chap307-sec4173.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/chrg-114hhrg97822.htm",
+      "sha256": "sha256:87abc659c7934f82c0109ed674cddf810a035e9716f8558e4f0dd3b2d26225bc",
+      "byteLength": 141948,
+      "retainedPath": "raw/chrg-114hhrg97822.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/CHRG-114hhrg97822/html/CHRG-114hhrg97822.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2025-19855.txt",
+      "sha256": "sha256:86e992fd5b58aaa811931d91eff1f62daf2187884c5be59af939dc607739f96e",
+      "byteLength": 9787,
+      "retainedPath": "raw/fr-2025-19855.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/11/12/2025-19855.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2025-13203.txt",
+      "sha256": "sha256:50bd6350523a185d50ad7fc491850597feeaa09e68ecab41a2a74c2e551173e4",
+      "byteLength": 10464,
+      "retainedPath": "raw/fr-2025-13203.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/07/15/2025-13203.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2016-30271.txt",
+      "sha256": "sha256:e644e525c2070b0a54b7399f169490cd04ce709d2aa14c2ec7f6678725c19806",
+      "byteLength": 5702,
+      "retainedPath": "raw/fr-2016-30271.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2016/12/16/2016-30271.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-20-5603.htm",
+      "sha256": "sha256:1fa213a0c7ae8d784bd9d34b3ba43c889f4f302e055fbb6fdc4496742f1fa990",
+      "byteLength": 9174,
+      "retainedPath": "raw/usc-20-5603.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title20/html/USCODE-2024-title20-chap66-sec5603.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2024-24461.txt",
+      "sha256": "sha256:d3a8afd10ad9a41e3cb58c67f2385fdc4f47cbc23c73569ba30f34506ad3b264",
+      "byteLength": 5097,
+      "retainedPath": "raw/fr-2024-24461.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/10/22/2024-24461.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/nasa-nari.html",
+      "sha256": "sha256:38fa73f9348fa660640e5a7e4533a9987948f5378665986ed5f4fdfc442463b5",
+      "byteLength": 110151,
+      "retainedPath": "raw/nasa-nari.html",
+      "sourceUrl": "https://nari.arc.nasa.gov/"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2025-06579.txt",
+      "sha256": "sha256:e21fbe3c3be1140f79fff72622b8a8334e51243a13631405accdb4f742a1e5c8",
+      "byteLength": 4353,
+      "retainedPath": "raw/fr-2025-06579.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/04/17/2025-06579.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2025-21734.txt",
+      "sha256": "sha256:15b6b31d80179b90e668d82d0886842d48096a8ddce395dd04ee2a4ed22ee6c2",
+      "byteLength": 5719,
+      "retainedPath": "raw/fr-2025-21734.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/12/02/2025-21734.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2025-01685.txt",
+      "sha256": "sha256:bcb67b8456119d7a194d39497f26e0dad3a6658aa1571f51d889de6d418f310c",
+      "byteLength": 19172,
+      "retainedPath": "raw/fr-2025-01685.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2025/01/24/2025-01685.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-20-77.htm",
+      "sha256": "sha256:84ade7e637884610b92860caee81163d55fcf48ac66fa1f983bdbdc852e22d34",
+      "byteLength": 10316,
+      "retainedPath": "raw/usc-20-77.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title20/html/USCODE-2024-title20-chap3-subchapVII-sec77.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2021-27841.txt",
+      "sha256": "sha256:e8210fa3f08d239fb9d3cf7120f9b3d80b95b9177346927027c88c361a338ec4",
+      "byteLength": 6435,
+      "retainedPath": "raw/fr-2021-27841.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2021/12/21/2021-27841.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2024-26843.txt",
+      "sha256": "sha256:453a3c770437b3f012662d43ef33aac42587c893add55a653a99b94c55b9ebfa",
+      "byteLength": 12569,
+      "retainedPath": "raw/fr-2024-26843.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/11/18/2024-26843.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2024-09373.txt",
+      "sha256": "sha256:8dfcf14933f36fdfd0e90745a983a62a62d3f47f860df34e225025733810b2bc",
+      "byteLength": 123507,
+      "retainedPath": "raw/fr-2024-09373.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/05/06/2024-09373.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/chrg-117hhrg45602.htm",
+      "sha256": "sha256:8bebad10036567666b7e008a83eaee683aa62384bd13e8e0ad712eeaf8083e7c",
+      "byteLength": 96085,
+      "retainedPath": "raw/chrg-117hhrg45602.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/CHRG-117hhrg45602/html/CHRG-117hhrg45602.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2026-04842.txt",
+      "sha256": "sha256:94f85e1a5d70b08248479cfd47fc5d5a7b022ddc9b1a5c779af5977c4c25cbe8",
+      "byteLength": 9351,
+      "retainedPath": "raw/fr-2026-04842.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2026/03/12/2026-04842.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2024-20680.txt",
+      "sha256": "sha256:29bc437f23afdf4ad611ee48c8fc3f02a002dc3108ca3ae55bffb8ea92feb402",
+      "byteLength": 5226,
+      "retainedPath": "raw/fr-2024-20680.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/09/12/2024-20680.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/usc-10-8016.htm",
+      "sha256": "sha256:8ff564bdb8496507b7f7f26eef2bdcbb4e0a22c77f195d8c088852ae27253dde",
+      "byteLength": 8712,
+      "retainedPath": "raw/usc-10-8016.htm",
+      "sourceUrl": "https://www.govinfo.gov/content/pkg/USCODE-2024-title10/html/USCODE-2024-title10-subtitleC-partI-chap803-sec8016.htm"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-2024-19819.txt",
+      "sha256": "sha256:3ba32e30351db07435cb68ab0a87867cba846aaa39a3e1d078b198fbdf26bcf2",
+      "byteLength": 320126,
+      "retainedPath": "raw/fr-2024-19819.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2024/09/11/2024-19819.txt"
+    },
+    {
+      "path": "research/evidence/agency-alias-records-2026-11-25/raw/fr-06-2124.txt",
+      "sha256": "sha256:d6ef6314aa6479e19ababc721c8abe1173dd14bc6dca90041055bac03f882a26",
+      "byteLength": 3861,
+      "retainedPath": "raw/fr-06-2124.txt",
+      "sourceUrl": "https://www.federalregister.gov/documents/full_text/text/2006/03/07/06-2124.txt"
     }
   ],
-  "aliasCandidatesDigest": "sha256:f27a8b66b414ed8c75153340997623b589c5fe1820d75e60ec73953d361c0b82"
+  "aliasCandidatesDigest": "sha256:f27a8b66b414ed8c75153340997623b589c5fe1820d75e60ec73953d361c0b82",
+  "aliasBatch2CandidatesDigest": "sha256:0cb4bfbf239d4b2f8bb555f944484b4c47ad18d9df1dd6a1d505ff442953766d"
 }

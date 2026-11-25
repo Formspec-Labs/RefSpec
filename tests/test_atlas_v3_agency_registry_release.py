@@ -99,10 +99,7 @@ def _decided(release: RegistryMappingRelease) -> dict[str, dict]:
 
 
 def test_the_release_emits_exactly_the_owners_decisions_with_parity(release: RegistryMappingRelease) -> None:
-    """Pin 97 decided items = 13 bridges + 10 events + 11 non-emissions + 63 aliases, each item once, over three batches.
-
-    Seven of the non-emissions are aliases the owner answered no; an undecided alias would be held.
-    """
+    """Pin 191 decided items = 13 bridges + 10 events + 11 non-emissions + 157 aliases over four batches."""
 
     decided = _decided(release)
     assert release.key == "agency-registry-2026-09-26"
@@ -113,8 +110,8 @@ def test_the_release_emits_exactly_the_owners_decisions_with_parity(release: Reg
     non_emissions = {key: row["reason"] for key, row in decided.items() if row["decision"] == "nonEmission"}
     assert {key: reason for key, reason in non_emissions.items() if not key.startswith("alias:")} == NON_EMISSIONS
     assert {key for key, reason in non_emissions.items() if reason == "aliasRejectedByOwner"} == ALIAS_REJECTIONS
-    assert sum(row["decision"] == "alias" for row in decided.values()) == release.metadata["aliasCount"] == 63
-    assert len(decided) == release.metadata["decidedItemCount"] == 97 == 13 + 10 + 11 + 63
+    assert sum(row["decision"] == "alias" for row in decided.values()) == release.metadata["aliasCount"] == 157
+    assert len(decided) == release.metadata["decidedItemCount"] == 191 == 13 + 10 + 11 + 157
     assert (release.metadata["bridgeCount"], release.metadata["eventCount"], release.metadata["nonEmissionCount"]) == (
         13,
         10,
@@ -124,6 +121,7 @@ def test_the_release_emits_exactly_the_owners_decisions_with_parity(release: Reg
         entity.AGENCY_REGISTRY_CANDIDATES_PATH: entity.AGENCY_REGISTRY_CANDIDATES_DIGEST,
         entity.AGENCY_REGISTRY_SUCCESSION_CANDIDATES_PATH: entity.AGENCY_REGISTRY_SUCCESSION_CANDIDATES_DIGEST,
         entity.AGENCY_REGISTRY_ALIAS_CANDIDATES_PATH: entity.AGENCY_REGISTRY_ALIAS_CANDIDATES_DIGEST,
+        entity.AGENCY_REGISTRY_ALIAS_BATCH_2_CANDIDATES_PATH: entity.AGENCY_REGISTRY_ALIAS_BATCH_2_CANDIDATES_DIGEST,
     }
     assert release.issued == "2026-09-26"
 
@@ -488,7 +486,7 @@ def test_the_succession_batch_rides_with_batch_1s_bridges_and_cites_its_own_file
         assert decision["decisionsFile"] == entity.AGENCY_REGISTRY_SUCCESSION_DECISIONS_PATH
         assert decision["contentDigest"] == event["content_digest"] == succession_plans[1]["decisions"]["event:fr200"]["content_digest"]
         assert (decision["answer"], decision["channel"], decision["decidedOn"]) == ("accept", "questionTool", "2026-10-03")
-    roles = release.source_release_input_roles[-6:]
+    roles = release.source_release_input_roles[-8:]
     assert roles == (
         "ownerCandidates",
         "ownerDecisions",
@@ -496,6 +494,8 @@ def test_the_succession_batch_rides_with_batch_1s_bridges_and_cites_its_own_file
         "successionOwnerDecisions",
         "aliasOwnerCandidates",
         "aliasOwnerDecisions",
+        "aliasBatch2OwnerCandidates",
+        "aliasBatch2OwnerDecisions",
     )
     batch_1 = entity.load_agency_registry_mapping_release(rosters, entity.agency_registry_batches()[:1])
     assert batch_1.source_release_digest == "sha256:69001a4381ddf35cdba6d44fa52f579d7dfa07627c4c74da3dde2b0d8a39f8f0"
@@ -508,7 +508,7 @@ def test_a_succession_batch_alone_or_decided_twice_is_refused(rosters: tuple[Reg
     A batch of events alone is no mapping release: the succession batch is released only beside batch 1's bridges.
     """
 
-    batch_1, succession, _aliases = entity.agency_registry_batches()
+    batch_1, succession, _aliases, _aliases_2 = entity.agency_registry_batches()
     with pytest.raises(ValueError, match="has no mappings"):
         entity.load_agency_registry_mapping_release(rosters, (succession,))
     with pytest.raises(ValueError, match="parity of plans/agency-registry-succession-batch-decisions.json"):
