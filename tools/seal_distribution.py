@@ -35,16 +35,24 @@ def _mint(args: argparse.Namespace, generation: AtlasGeneration) -> int:
         args.signer_identity,
         seal_path=generation.seal,
         parquet_view_path=generation.parquet_view,
+        vocabulary_pack=args.vocabulary_pack,
+        semantic_sidecar=args.semantic_sidecar,
     )
     payload = json.loads(seal_path.read_text())["payload"]
-    print(json.dumps({
+    summary = {
         "sealPath": str(seal_path),
+        "sealFormat": payload["sealFormat"],
         "distributionId": payload["distributionId"],
         "manifestSha256": payload["manifestSha256"],
         "acceptanceSha256": payload["acceptanceSha256"],
         "parquetViewManifestSha256": payload["parquetViewManifestSha256"],
         "signerIdentity": args.signer_identity,
-    }, sort_keys=True))
+    }
+    if "vocabularyPackSha256" in payload:
+        summary["vocabularyPackSha256"] = payload["vocabularyPackSha256"]
+    if "semanticSidecarSha256" in payload:
+        summary["semanticSidecarSha256"] = payload["semanticSidecarSha256"]
+    print(json.dumps(summary, sort_keys=True))
     return 0
 
 
@@ -55,6 +63,10 @@ def _verify(args: argparse.Namespace, generation: AtlasGeneration) -> int:
         generation.seal,
         args.allowed_signers,
         parquet_view_path=generation.parquet_view,
+        vocabulary_pack=args.vocabulary_pack,
+        semantic_sidecar=args.semantic_sidecar,
+        previous_created_at=args.previous_created_at,
+        reject_distribution_ids=args.reject_distribution_id,
     )
     print(json.dumps(asdict(result), sort_keys=True))
     return 0
@@ -68,11 +80,26 @@ def main() -> int:
     mint.add_argument("--selection", required=True)
     mint.add_argument("--private-key", required=True, help="path to the offline signing key")
     mint.add_argument("--signer-identity", required=True)
+    mint.add_argument("--vocabulary-pack", default=None, help="optional detached SQLite vocabulary pack for seal-3")
+    mint.add_argument("--semantic-sidecar", default=None, help="optional detached .vpack semantic sidecar for seal-3")
     mint.set_defaults(func=_mint)
 
     check = sub.add_parser("verify", help="verify a selected generation")
     check.add_argument("--selection", required=True)
     check.add_argument("--allowed-signers", default=str(DEFAULT_ALLOWED_SIGNERS))
+    check.add_argument("--vocabulary-pack", default=None, help="optional detached SQLite vocabulary pack for seal-3")
+    check.add_argument("--semantic-sidecar", default=None, help="optional detached .vpack semantic sidecar for seal-3")
+    check.add_argument(
+        "--previous-created-at",
+        default=None,
+        help="optional ISO-8601 minimum manifest createdAt anti-rollback timestamp",
+    )
+    check.add_argument(
+        "--reject-distribution-id",
+        action="append",
+        default=None,
+        help="optional revoked or disallowed distributionId to refuse (repeatable)",
+    )
     check.set_defaults(func=_verify)
 
     args = parser.parse_args()

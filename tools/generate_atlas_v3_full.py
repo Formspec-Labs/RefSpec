@@ -17,6 +17,7 @@ import argparse
 import ast
 import base64
 import dataclasses
+import errno
 import hashlib
 import heapq
 import importlib.util
@@ -25,6 +26,7 @@ import json
 import os
 import re
 import resource as process_resource
+import stat
 import sys
 import tempfile
 import time
@@ -2387,6 +2389,173 @@ def split_construction_unit_keys(
         | ENTITY_REGISTRY_MAPPING_RELEASE_KEYS
     )
     return frozenset(include_keys - mapping_keys), frozenset(mapping_keys)
+
+
+ATLAS_RELEASE_PROFILES_PATH = ROOT / "portfolio" / "atlas-release-profiles.json"
+ATLAS_RELEASE_PROFILE_NAMES = ("full", "core-regulatory", "bibliographic-crosswalk")
+DEFAULT_PARTITIONED_ACCOUNTING_DIR = "source-accounting-partitions"
+
+
+def _require_string_list(value: object, label: str) -> tuple[str, ...]:
+    if not isinstance(value, list) or not all(isinstance(item, str) and item for item in value):
+        raise ValueError(f"{label} must be a list of non-empty strings")
+    if len(value) != len(set(value)):
+        raise ValueError(f"{label} contains duplicate release keys")
+    return tuple(value)
+
+
+def _resolve_profile_spec(
+    profiles: Mapping[str, Any],
+    profile_name: str,
+    *,
+    _stack: tuple[str, ...] = (),
+) -> tuple[frozenset[str], frozenset[str]]:
+    if profile_name in _stack:
+        raise ValueError(f"Atlas release profile composition cycle: {' -> '.join((*_stack, profile_name))}")
+    spec = profiles.get(profile_name)
+    if not isinstance(spec, Mapping):
+        raise ValueError(f"unknown Atlas release profile: {profile_name!r}")
+
+    source_keys: set[str] = set()
+    mapping_keys: set[str] = set()
+
+    if "composeProfiles" in spec:
+        composed = _require_string_list(spec["composeProfiles"], f"profiles.{profile_name}.composeProfiles")
+        if not composed:
+            raise ValueError(f"profiles.{profile_name}.composeProfiles must not be empty")
+        for child_name in composed:
+            child_sources, child_mappings = _resolve_profile_spec(
+                profiles,
+                child_name,
+                _stack=(*_stack, profile_name),
+            )
+            source_keys.update(child_sources)
+            mapping_keys.update(child_mappings)
+        source_keys.update(
+            _require_string_list(
+                spec.get("additionalSourceKeys", []),
+                f"profiles.{profile_name}.additionalSourceKeys",
+            )
+        )
+        mapping_keys.update(
+            _require_string_list(
+                spec.get("additionalMappingKeys", []),
+                f"profiles.{profile_name}.additionalMappingKeys",
+            )
+        )
+    else:
+        source_keys.update(_require_string_list(spec.get("sourceKeys"), f"profiles.{profile_name}.sourceKeys"))
+        mapping_keys.update(_require_string_list(spec.get("mappingKeys"), f"profiles.{profile_name}.mappingKeys"))
+
+    overlap = sorted(source_keys & mapping_keys)
+    if overlap:
+        raise ValueError(f"Atlas release profile {profile_name!r} repeats keys across source and mapping sets: {overlap}")
+    return frozenset(source_keys), frozenset(mapping_keys)
+
+
+def load_atlas_release_profiles(
+    path: Path = ATLAS_RELEASE_PROFILES_PATH,
+) -> dict[str, Any]:
+    """Load and validate the declarative two-layer Atlas release profiles manifest (REF-078)."""
+
+    document = ATLAS_VALIDATE._load_json(path, require_canonical=False)
+    if not isinstance(document, dict):
+        raise ValueError(f"Atlas release profiles manifest must be a JSON object: {path}")
+    if document.get("type") != "AtlasReleaseProfiles" or document.get("version") != "1.0":
+        raise ValueError(f"unsupported Atlas release profiles manifest header: {path}")
+    if document.get("defaultProfile") != "full":
+        raise ValueError("Atlas release profiles manifest defaultProfile must be 'full'")
+
+    profiles = document.get("profiles")
+    if not isinstance(profiles, Mapping):
+        raise ValueError("Atlas release profiles manifest must declare a profiles object")
+    missing_profiles = sorted(set(ATLAS_RELEASE_PROFILE_NAMES) - set(profiles))
+    if missing_profiles:
+        raise ValueError(f"Atlas release profiles manifest misses required profiles: {missing_profiles}")
+
+    declared_keys = _declared_construction_unit_keys()
+    declared_sources, declared_mappings = split_construction_unit_keys(declared_keys)
+
+    raw_dependencies = document.get("mappingEndpointDependencies")
+    if not isinstance(raw_dependencies, Mapping):
+        raise ValueError("Atlas release profiles manifest must declare mappingEndpointDependencies")
+    if set(raw_dependencies) != set(declared_mappings):
+        missing_deps = sorted(declared_mappings - set(raw_dependencies))
+        extra_deps = sorted(set(raw_dependencies) - declared_mappings)
+        raise ValueError(
+            "mappingEndpointDependencies does not match declared mapping releases: "
+            f"missing={missing_deps}, extra={extra_deps}"
+        )
+    endpoint_dependencies: dict[str, frozenset[str]] = {}
+    for mapping_key, raw_sources in raw_dependencies.items():
+        dep_sources = frozenset(
+            _require_string_list(raw_sources, f"mappingEndpointDependencies.{mapping_key}")
+        )
+        unknown_deps = sorted(dep_sources - declared_sources)
+        if unknown_deps:
+            raise ValueError(
+                f"mappingEndpointDependencies.{mapping_key} references unknown source keys: {unknown_deps}"
+            )
+        endpoint_dependencies[mapping_key] = dep_sources
+
+    resolved_by_profile: dict[str, tuple[frozenset[str], frozenset[str]]] = {}
+    for profile_name in sorted(profiles):
+        source_keys, mapping_keys = _resolve_profile_spec(profiles, profile_name)
+        split_sources, split_mappings = split_construction_unit_keys(source_keys | mapping_keys)
+        if split_sources != source_keys or split_mappings != mapping_keys:
+            raise ValueError(
+                f"Atlas release profile {profile_name!r} misclassifies source vs mapping keys"
+            )
+        for mapping_key in sorted(mapping_keys):
+            missing_endpoints = sorted(endpoint_dependencies[mapping_key] - source_keys)
+            if missing_endpoints:
+                raise ValueError(
+                    f"Atlas release profile {profile_name!r} mapping {mapping_key!r} is not endpoint-closed; "
+                    f"missing source releases: {missing_endpoints}"
+                )
+        resolved_by_profile[profile_name] = (source_keys, mapping_keys)
+
+    full_sources, full_mappings = resolved_by_profile["full"]
+    if (full_sources | full_mappings) != declared_keys:
+        missing_full = sorted(declared_keys - (full_sources | full_mappings))
+        raise ValueError(f"Atlas 'full' profile does not cover all declared construction units: missing={missing_full}")
+
+    core_all = resolved_by_profile["core-regulatory"][0] | resolved_by_profile["core-regulatory"][1]
+    bib_all = resolved_by_profile["bibliographic-crosswalk"][0] | resolved_by_profile["bibliographic-crosswalk"][1]
+    layer_overlap = sorted(core_all & bib_all)
+    if layer_overlap:
+        raise ValueError(
+            f"'core-regulatory' and 'bibliographic-crosswalk' profiles must be disjoint: overlap={layer_overlap}"
+        )
+
+    return document
+
+
+def resolve_profile_key_split(
+    profile: str,
+    *,
+    path: Path = ATLAS_RELEASE_PROFILES_PATH,
+) -> tuple[frozenset[str], frozenset[str]]:
+    """Return ``(source_keys, mapping_keys)`` for one named Atlas release profile."""
+
+    document = load_atlas_release_profiles(path)
+    profiles = document["profiles"]
+    if profile not in profiles:
+        raise ValueError(
+            f"unknown Atlas release profile {profile!r}; expected one of {sorted(profiles)}"
+        )
+    return _resolve_profile_spec(profiles, profile)
+
+
+def resolve_profile_release_keys(
+    profile: str,
+    *,
+    path: Path = ATLAS_RELEASE_PROFILES_PATH,
+) -> frozenset[str]:
+    """Return the closed construction unit key set for one named Atlas release profile."""
+
+    source_keys, mapping_keys = resolve_profile_key_split(profile, path=path)
+    return frozenset(source_keys | mapping_keys)
 
 
 # Registrant populations live in the entity-registry object, never in the
@@ -9531,10 +9700,10 @@ def _write_streamed_candidate_distribution(
         streamed.accounting,
         next(row["inventoryDigest"] for row in graph_descriptors if row["role"] == "asserted"),
     )
-    accounting_path.write_bytes(ATLAS_VALIDATE.canonical_json_bytes(streamed.accounting))
+    source_accounting_digest = _write_canonical_source_accounting_stream(accounting_path, streamed.accounting)
     compiled_validation = {
         **streamed.compiled_validation,
-        "sourceAccountingDigest": _sha256_file(accounting_path),
+        "sourceAccountingDigest": source_accounting_digest,
     }
     binding_digests = ATLAS_VALIDATE._binding_digests()
     binding = {
@@ -9550,7 +9719,7 @@ def _write_streamed_candidate_distribution(
         plans=releases,
         record_counts=streamed.spool.record_counts,
         seeds=construction_seeds,
-        source_accounting_digest=_sha256_file(accounting_path),
+        source_accounting_digest=source_accounting_digest,
     )
     construction_summary_path.write_bytes(ATLAS_VALIDATE.canonical_json_bytes(construction_summary))
     producer_validation = _producer_validation_receipt(
@@ -9689,6 +9858,365 @@ def _write_streamed_candidate_distribution(
 # MEASURED_FILES names this file and compares it by JSON shape only (REF-071).
 GENERATION_MEASUREMENTS_FILE = "generation-measurements.json"
 
+_PARTITION_TOKEN_SAFE_RE = re.compile(r"[^A-Za-z0-9._-]+")
+
+
+def _write_canonical_source_accounting_stream(
+    path: Path,
+    accounting: Mapping[str, Any],
+) -> str:
+    """Stream canonical REF JSON for `atlas-source-accounting.json` release-by-release.
+
+    Produces bytes strictly identical to `ATLAS_VALIDATE.canonical_json_bytes(accounting)`
+    without allocating the full multi-hundred-megabyte serialized document in memory at once.
+    """
+
+    digest = hashlib.sha256()
+
+    def _emit(chunk: bytes, handle: io.BufferedWriter) -> None:
+        handle.write(chunk)
+        digest.update(chunk)
+
+    with path.open("wb") as handle:
+        _emit(b"{", handle)
+        keys = sorted(accounting.keys())
+        for index, key in enumerate(keys):
+            if index:
+                _emit(b",", handle)
+            _emit(ATLAS_VALIDATE.canonical_json_bytes(key, terminal_lf=False), handle)
+            _emit(b":", handle)
+            value = accounting[key]
+            if key == "inputs" and isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+                _emit(b"[", handle)
+                for row_index, row in enumerate(value):
+                    if row_index:
+                        _emit(b",", handle)
+                    _emit(ATLAS_VALIDATE.canonical_json_bytes(row, terminal_lf=False), handle)
+                _emit(b"]", handle)
+            else:
+                _emit(ATLAS_VALIDATE.canonical_json_bytes(value, terminal_lf=False), handle)
+        _emit(b"}\n", handle)
+    return "sha256:" + digest.hexdigest()
+
+
+def _accounting_input_counts(entry: Mapping[str, Any]) -> dict[str, int]:
+    dispositions = entry.get("dispositions", ())
+    represented = 0
+    excluded = 0
+    unresolved = 0
+    for row in dispositions:
+        status = row.get("status")
+        if status == "represented":
+            represented += 1
+        elif status == "excluded":
+            excluded += 1
+        elif status == "unresolved":
+            unresolved += 1
+        else:
+            raise ValueError(f"unsupported source accounting disposition status: {status!r}")
+    return {
+        "excluded": excluded,
+        "represented": represented,
+        "sourceRecords": len(dispositions),
+        "unresolved": unresolved,
+    }
+
+
+def _safe_partition_filename(release_label: str, source_release_iri: str, used_names: set[str]) -> str:
+    stem = _PARTITION_TOKEN_SAFE_RE.sub("-", release_label).strip("-.")
+    if not stem:
+        stem = "release"
+    candidate = f"{stem}.json"
+    if candidate in used_names:
+        suffix = hashlib.sha256(source_release_iri.encode("utf-8")).hexdigest()[:12]
+        candidate = f"{stem}-{suffix}.json"
+    used_names.add(candidate)
+    return candidate
+
+
+def write_partitioned_source_accounting(
+    accounting: Mapping[str, Any],
+    output_dir: Path,
+    *,
+    release_keys_by_source_iri: Mapping[str, str] | None = None,
+    monolithic_digest: str | None = None,
+) -> dict[str, Any]:
+    """Write per-release source-accounting JSON shards beside a distribution.
+
+    Keeps individual release ledgers small and inspectable (avoiding single-file
+    608 MiB JSON consumer blowups) while preserving exact reassembly into
+    `atlas-source-accounting.json` for `validate.py` compatibility.
+    """
+
+    output_dir = Path(output_dir)
+    if output_dir.is_symlink():
+        raise ValueError(f"partitioned source accounting output directory is a symlink: {output_dir}")
+    releases_dir = output_dir / "releases"
+    releases_dir.mkdir(parents=True, exist_ok=True)
+    if releases_dir.is_symlink():
+        raise ValueError(f"partitioned source accounting releases directory is a symlink: {releases_dir}")
+
+    key_map = release_keys_by_source_iri or {}
+    distribution_id = str(accounting["distributionId"])
+    asserted_inventory_digest = str(accounting["assertedInventoryDigest"])
+    inputs = accounting["inputs"]
+    if not isinstance(inputs, Sequence) or isinstance(inputs, (str, bytes, bytearray)):
+        raise ValueError("source accounting inputs must be a sequence")
+
+    partitions: list[dict[str, Any]] = []
+    used_names: set[str] = set()
+    for entry in inputs:
+        source_release = str(entry["sourceRelease"])
+        membership_mode = str(entry["membershipMode"])
+        release_key = key_map.get(source_release) or source_release.rsplit(":", 1)[-1]
+        counts = _accounting_input_counts(entry)
+        filename = _safe_partition_filename(release_key, source_release, used_names)
+        relative_path = f"releases/{filename}"
+        shard_path = output_dir / relative_path
+        shard_doc = {
+            "assertedInventoryDigest": asserted_inventory_digest,
+            "counts": counts,
+            "dispositions": entry["dispositions"],
+            "distributionId": distribution_id,
+            "membershipMode": membership_mode,
+            "releaseKey": release_key,
+            "sourceRelease": source_release,
+            "type": "AtlasSourceAccountingPartition",
+            "version": "3.1",
+        }
+        shard_bytes = ATLAS_VALIDATE.canonical_json_bytes(shard_doc)
+        shard_path.write_bytes(shard_bytes)
+        partitions.append(
+            {
+                "byteLength": len(shard_bytes),
+                "counts": counts,
+                "membershipMode": membership_mode,
+                "path": relative_path,
+                "releaseKey": release_key,
+                "sha256": "sha256:" + hashlib.sha256(shard_bytes).hexdigest(),
+                "sourceRelease": source_release,
+            }
+        )
+
+    manifest: dict[str, Any] = {
+        "assertedInventoryDigest": asserted_inventory_digest,
+        "distributionId": distribution_id,
+        "partitions": partitions,
+        "totals": dict(accounting["totals"]),
+        "type": "AtlasPartitionedSourceAccounting",
+        "version": "3.1",
+    }
+    if monolithic_digest is not None:
+        manifest["monolithicSourceAccountingDigest"] = monolithic_digest
+    manifest_path = output_dir / "accounting-manifest.json"
+    manifest_path.write_bytes(ATLAS_VALIDATE.canonical_json_bytes(manifest))
+    return manifest
+
+
+_PARTITION_DARWIN_SYSTEM_SYMLINKS: dict[str, str] = {
+    "/var": "private/var",
+    "/tmp": "private/tmp",
+    "/etc": "private/etc",
+}
+
+
+def _is_partition_darwin_system_symlink(parent: Path) -> bool:
+    if sys.platform != "darwin":
+        return False
+    expected_target = _PARTITION_DARWIN_SYSTEM_SYMLINKS.get(str(parent))
+    if expected_target is None:
+        return False
+    try:
+        actual_target = os.readlink(parent)
+    except OSError:
+        return False
+    return actual_target in {expected_target, "/" + expected_target}
+
+
+def _reject_partition_symlink_parents(path: Path, label: str) -> None:
+    """Refuse symlinked parent directories (ignoring macOS /var, /tmp, /etc system links)."""
+
+    for parent in path.parents:
+        if not parent.is_symlink():
+            continue
+        if _is_partition_darwin_system_symlink(parent):
+            continue
+        raise ValueError(f"{label} traverses a symlinked parent directory: {parent}")
+
+
+def _read_regular_file_bytes_nofollow(path: Path, label: str) -> bytes:
+    """Read one regular file via a single O_NOFOLLOW open and verify fstat invariance."""
+
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(path, flags)
+    except OSError as error:
+        if error.errno == errno.ELOOP:
+            raise ValueError(f"{label} is missing or unsafe: {path}") from error
+        raise ValueError(f"{label} is missing or unsafe: {path}") from error
+
+    try:
+        with os.fdopen(fd, "rb") as stream:
+            before = os.fstat(stream.fileno())
+            if not stat.S_ISREG(before.st_mode):
+                raise ValueError(f"{label} is missing or unsafe: {path}")
+            raw_bytes = stream.read()
+            after = os.fstat(stream.fileno())
+    except OSError as error:
+        raise ValueError(f"{label} is missing or unsafe: {path}") from error
+
+    before_snap = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
+    after_snap = (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
+    if before_snap != after_snap or len(raw_bytes) != before.st_size:
+        raise ValueError(f"{label} changed while it was read: {path}")
+    return raw_bytes
+
+
+def _parse_canonical_ref_json_bytes(raw_bytes: bytes, label: str) -> Any:
+    """Parse canonical REF JSON directly from an already-authenticated byte buffer."""
+
+    try:
+        text = raw_bytes.decode("utf-8")
+        value = json.loads(
+            text,
+            object_pairs_hook=ATLAS_VALIDATE._reject_duplicate_keys,
+            parse_float=ATLAS_VALIDATE._reject_float,
+            parse_int=ATLAS_VALIDATE._parse_int,
+            parse_constant=ATLAS_VALIDATE._reject_constant,
+        )
+    except UnicodeDecodeError as exc:
+        raise ValueError(f"{label} is not valid UTF-8 JSON: {exc}") from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{label} is not valid JSON: {exc}") from exc
+    ATLAS_VALIDATE._reject_nulls_and_numbers(value)
+    if raw_bytes != ATLAS_VALIDATE.canonical_json_bytes(value):
+        raise ValueError(f"{label} is not canonical REF JSON")
+    return value
+
+
+def reassemble_partitioned_source_accounting(partition_dir: Path) -> dict[str, Any]:
+    """Verify every release accounting shard and reassemble canonical `AtlasSourceAccounting`."""
+
+    partition_dir = Path(partition_dir)
+    _reject_partition_symlink_parents(partition_dir, "partitioned source accounting directory")
+    if partition_dir.is_symlink() or not partition_dir.is_dir():
+        raise ValueError(f"partitioned source accounting directory is missing or unsafe: {partition_dir}")
+    releases_dir = partition_dir / "releases"
+    if releases_dir.is_symlink() or not releases_dir.is_dir():
+        raise ValueError(f"partitioned source accounting releases directory is missing or unsafe: {releases_dir}")
+    manifest_path = partition_dir / "accounting-manifest.json"
+    manifest_bytes = _read_regular_file_bytes_nofollow(manifest_path, "partitioned source accounting manifest")
+    manifest = _parse_canonical_ref_json_bytes(manifest_bytes, f"partitioned source accounting manifest {manifest_path}")
+    if (
+        not isinstance(manifest, dict)
+        or manifest.get("type") != "AtlasPartitionedSourceAccounting"
+        or manifest.get("version") != "3.1"
+    ):
+        raise ValueError(f"unsupported partitioned source accounting manifest: {manifest_path}")
+
+    distribution_id = manifest["distributionId"]
+    asserted_inventory_digest = manifest["assertedInventoryDigest"]
+    partitions = manifest.get("partitions")
+    if not isinstance(partitions, list) or not partitions:
+        raise ValueError("partitioned source accounting manifest lists no partitions")
+
+    inputs: list[dict[str, Any]] = []
+    expected_shard_names: set[str] = set()
+    totals_represented = 0
+    totals_excluded = 0
+    totals_unresolved = 0
+    totals_records = 0
+
+    for row in partitions:
+        if not isinstance(row, dict):
+            raise ValueError("partitioned source accounting entry must be a JSON object")
+        relative = row.get("path")
+        if not isinstance(relative, str) or not relative.startswith("releases/"):
+            raise ValueError(f"unsafe partition path: {relative!r}")
+        rel_path = Path(relative)
+        if (
+            rel_path.is_absolute()
+            or ".." in rel_path.parts
+            or relative != rel_path.as_posix()
+            or len(rel_path.parts) != 2
+        ):
+            raise ValueError(f"unsafe partition path: {relative!r}")
+        shard_name = rel_path.parts[1]
+        if shard_name in expected_shard_names:
+            raise ValueError(f"duplicate partition path declared: {relative!r}")
+        expected_shard_names.add(shard_name)
+
+        shard_path = releases_dir / shard_name
+        raw_bytes = _read_regular_file_bytes_nofollow(shard_path, "accounting partition")
+        if len(raw_bytes) != row.get("byteLength"):
+            raise ValueError(f"accounting partition byteLength mismatch: {relative}")
+        actual_sha = "sha256:" + hashlib.sha256(raw_bytes).hexdigest()
+        if actual_sha != row.get("sha256"):
+            raise ValueError(f"accounting partition sha256 mismatch: {relative}")
+        shard = _parse_canonical_ref_json_bytes(raw_bytes, f"accounting partition {relative}")
+        if (
+            not isinstance(shard, dict)
+            or shard.get("type") != "AtlasSourceAccountingPartition"
+            or shard.get("version") != "3.1"
+            or shard.get("distributionId") != distribution_id
+            or shard.get("assertedInventoryDigest") != asserted_inventory_digest
+            or shard.get("sourceRelease") != row.get("sourceRelease")
+            or shard.get("membershipMode") != row.get("membershipMode")
+        ):
+            raise ValueError(f"accounting partition identity differs from manifest: {relative}")
+        counts = _accounting_input_counts(shard)
+        if counts != row.get("counts") or counts != shard.get("counts"):
+            raise ValueError(f"accounting partition counts mismatch: {relative}")
+        totals_records += counts["sourceRecords"]
+        totals_represented += counts["represented"]
+        totals_excluded += counts["excluded"]
+        totals_unresolved += counts["unresolved"]
+        inputs.append(
+            {
+                "dispositions": shard["dispositions"],
+                "membershipMode": shard["membershipMode"],
+                "sourceRelease": shard["sourceRelease"],
+            }
+        )
+
+    observed_shard_names: set[str] = set()
+    with os.scandir(releases_dir) as entries:
+        for entry in entries:
+            if entry.is_symlink() or not entry.is_file(follow_symlinks=False):
+                raise ValueError(f"unsafe or non-regular entry in releases/: {entry.name}")
+            observed_shard_names.add(entry.name)
+    unexpected_shards = sorted(observed_shard_names - expected_shard_names)
+    if unexpected_shards:
+        raise ValueError(f"unexpected unlisted file in releases/: {unexpected_shards[0]}")
+    missing_shards = sorted(expected_shard_names - observed_shard_names)
+    if missing_shards:
+        raise ValueError(f"declared accounting partition missing from releases/: {missing_shards[0]}")
+
+    expected_totals = {
+        "excluded": totals_excluded,
+        "represented": totals_represented,
+        "sourceRecords": totals_records,
+        "sourceReleases": len(inputs),
+        "unresolved": totals_unresolved,
+    }
+    if manifest.get("totals") != expected_totals:
+        raise ValueError("partitioned source accounting totals differ from shard sums")
+
+    reassembled = {
+        "assertedInventoryDigest": asserted_inventory_digest,
+        "distributionId": distribution_id,
+        "inputs": inputs,
+        "totals": expected_totals,
+        "type": "AtlasSourceAccounting",
+        "version": "3.1",
+    }
+    monolithic_digest = manifest.get("monolithicSourceAccountingDigest")
+    if monolithic_digest is not None:
+        actual_digest = "sha256:" + hashlib.sha256(ATLAS_VALIDATE.canonical_json_bytes(reassembled)).hexdigest()
+        if actual_digest != monolithic_digest:
+            raise ValueError("reassembled source accounting digest differs from monolithicSourceAccountingDigest")
+    return reassembled
+
 
 def _write_streamed_distribution(
     output: Path,
@@ -9700,6 +10228,7 @@ def _write_streamed_distribution(
     parquet_view: bool = False,
     agency_projection: AgencyProjection | None = None,
     agency_projection_missing_keys: Sequence[str] = (),
+    partitioned_accounting: bool = False,
 ) -> dict[str, Any]:
     """Finish sibling artifacts, retain them, then atomically select them once.
 
@@ -9750,8 +10279,24 @@ def _write_streamed_distribution(
                 ),
                 derived_relations=_derived_relation_view_metadata(streamed.derived_rows),
             )
+        partitioned_summary: dict[str, Any] | None = None
+        if partitioned_accounting:
+            _STATUS.phase("write-partitioned-source-accounting")
+            partition_dir = generation / DEFAULT_PARTITIONED_ACCOUNTING_DIR
+            release_keys_by_iri = {seed.source_release_iri: seed.key for seed in construction_seeds}
+            partition_manifest = write_partitioned_source_accounting(
+                streamed.accounting,
+                partition_dir,
+                release_keys_by_source_iri=release_keys_by_iri,
+                monolithic_digest=_sha256_file(candidate / "atlas-source-accounting.json"),
+            )
+            partitioned_summary = {
+                "manifestDigest": _sha256_file(partition_dir / "accounting-manifest.json"),
+                "partitionCount": len(partition_manifest["partitions"]),
+                "path": DEFAULT_PARTITIONED_ACCOUNTING_DIR,
+            }
         distribution_id = _distribution_id(streamed.accounting)
-        report = {
+        report: dict[str, Any] = {
             **_plain(generation_report),
             "distribution": {
                 "id": distribution_id,
@@ -9761,6 +10306,8 @@ def _write_streamed_distribution(
             "productionRelationScope": relation_scope,
             "validation": result,
         }
+        if partitioned_summary is not None:
+            report["partitionedSourceAccounting"] = partitioned_summary
         (generation / "generation-report.json").write_bytes(ATLAS_VALIDATE.canonical_json_bytes(report))
         if manifest["distributionId"] != distribution_id:
             raise ValueError("candidate manifest distribution identity differs")
@@ -10390,16 +10937,31 @@ def validate_prebuild_loaded_releases(
     )
 
 
+def _effective_include_keys(
+    *,
+    include_keys: frozenset[str] | None,
+    profile: str | None,
+) -> frozenset[str] | None:
+    if profile is not None and include_keys is not None:
+        raise ValueError("cannot combine an Atlas release profile with explicit include_keys")
+    if profile is None:
+        return include_keys
+    resolved = resolve_profile_release_keys(profile)
+    return None if profile == "full" else resolved
+
+
 def validate_prebuild(
     *,
     registry_claim_inputs: Mapping[str, AtlasRegistryClaimInput] | None = None,
     include_keys: frozenset[str] | None = None,
+    profile: str | None = None,
     deep: bool = False,
 ) -> ProducerPrebuildValidation:
     """Load the producer topology and validate it without writing a build."""
 
     claim_inputs = {} if registry_claim_inputs is None else registry_claim_inputs
-    source_keys, mapping_keys = (None, None) if include_keys is None else split_construction_unit_keys(include_keys)
+    effective_keys = _effective_include_keys(include_keys=include_keys, profile=profile)
+    source_keys, mapping_keys = (None, None) if effective_keys is None else split_construction_unit_keys(effective_keys)
     releases = load_releases(
         include_keys=source_keys,
         registry_claim_inputs=claim_inputs,
@@ -10420,20 +10982,24 @@ def build_distribution(
     *,
     registry_claim_inputs: Mapping[str, AtlasRegistryClaimInput] | None = None,
     include_keys: frozenset[str] | None = None,
+    profile: str | None = None,
     parquet_view: bool = True,
+    partitioned_accounting: bool = False,
 ) -> None:
     """Build, validate, and atomically select a complete retained Atlas 3 generation.
 
-    Every build is cold. ``include_keys`` bounds the build to a named set of
-    construction units. Every later step is already release-scoped -- input
-    verification, compiled producer validation, the source accounting, and the
-    content-derived distribution identity all read the loaded releases -- so
-    bounding the load bounds the distribution, including the scope segment its
-    identity carries.
+    Every build is cold. ``include_keys`` or ``profile`` bounds the build to a
+    named set of construction units. Every later step is already release-scoped
+    -- input verification, compiled producer validation, the source accounting,
+    and the content-derived distribution identity all read the loaded releases
+    -- so bounding the load bounds the distribution, including the scope segment
+    its identity carries.
 
     ``parquet_view`` emits the typed Parquet view beside the distribution inside
     the generation, from the same bounded release graphs that feed the canonical
-    RDF spools.
+    RDF spools. ``partitioned_accounting`` additionally emits per-release
+    source-accounting JSON shards beside the distribution for scalable
+    inspection while leaving ``atlas-source-accounting.json`` intact.
     """
 
     output = require_selection_output(output)
@@ -10441,7 +11007,8 @@ def build_distribution(
     claim_inputs = {} if registry_claim_inputs is None else registry_claim_inputs
     if claim_inputs and output.exists():
         raise ValueError("injected registry claim builds currently require a new output")
-    source_keys, mapping_keys = (None, None) if include_keys is None else split_construction_unit_keys(include_keys)
+    effective_keys = _effective_include_keys(include_keys=include_keys, profile=profile)
+    source_keys, mapping_keys = (None, None) if effective_keys is None else split_construction_unit_keys(effective_keys)
     _STATUS.phase("load-source-releases")
     releases = load_releases(
         include_keys=source_keys,
@@ -10490,6 +11057,7 @@ def build_distribution(
             parquet_view=parquet_view,
             agency_projection=agency_projection,
             agency_projection_missing_keys=agency_projection_missing_keys,
+            partitioned_accounting=partitioned_accounting,
         )
     print(json.dumps(result, indent=2, sort_keys=True))
 
@@ -10519,16 +11087,34 @@ def main() -> int:
         metavar=("RELEASE_KEY", "BUNDLE_PATH", "MANIFEST_SHA256"),
         help=("inject one verified registry claim bundle; repeat for additional release keys"),
     )
-    parser.add_argument(
+    scope_group = parser.add_mutually_exclusive_group()
+    scope_group.add_argument(
         "--only-release",
         action="append",
         metavar="RELEASE_KEY",
         help=("bound the build to this construction unit; repeat for additional keys"),
     )
+    scope_group.add_argument(
+        "--profile",
+        choices=ATLAS_RELEASE_PROFILE_NAMES,
+        default=None,
+        help=(
+            "declarative release profile from portfolio/atlas-release-profiles.json "
+            "(defaults to full when omitted)"
+        ),
+    )
     parser.add_argument(
         "--no-parquet-view",
         action="store_true",
         help=("skip the typed Parquet view emitted beside the distribution during the build's single graph walk"),
+    )
+    parser.add_argument(
+        "--partitioned-accounting",
+        action="store_true",
+        help=(
+            "also emit per-release source-accounting JSON shards beside the distribution "
+            "while preserving atlas-source-accounting.json for validate.py"
+        ),
     )
     args = parser.parse_args()
     registry_claim_inputs: dict[str, AtlasRegistryClaimInput] = {}
@@ -10540,10 +11126,20 @@ def main() -> int:
             expected_manifest_digest=digest,
         )
     include_keys: frozenset[str] | None = None
+    source_keys: frozenset[str] | None = None
+    mapping_keys: frozenset[str] | None = None
     if args.only_release is not None:
         include_keys = frozenset(args.only_release)
         try:
             source_keys, mapping_keys = split_construction_unit_keys(include_keys)
+        except ValueError as error:
+            parser.error(str(error))
+    elif args.profile is not None:
+        try:
+            resolved_keys = resolve_profile_release_keys(args.profile)
+            if args.profile != "full":
+                include_keys = resolved_keys
+                source_keys, mapping_keys = split_construction_unit_keys(include_keys)
         except ValueError as error:
             parser.error(str(error))
     _STATUS = _StatusReporter(enabled=not args.quiet)
@@ -10574,6 +11170,7 @@ def main() -> int:
             registry_claim_inputs=registry_claim_inputs,
             include_keys=include_keys,
             parquet_view=not args.no_parquet_view,
+            partitioned_accounting=args.partitioned_accounting,
         )
     except BaseException as error:
         _STATUS.phase("failed", current=type(error).__name__)

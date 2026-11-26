@@ -7941,146 +7941,265 @@ def _replay_fr_thesaurus_api_topic(
         )
 
 
-_DERIVED_RULE_ADMISSIONS: dict[tuple[URIRef, URIRef, str], _DerivedRuleAdmission] = {
-    (EXACT_MATCH_TRANSITIVITY_RULE, DERIVATION_ENGINE, DERIVATION_ENGINE_VERSION): _DerivedRuleAdmission(
-        rule=EXACT_MATCH_TRANSITIVITY_RULE,
-        engine=DERIVATION_ENGINE,
-        engine_version=DERIVATION_ENGINE_VERSION,
-        admitted_rings=frozenset({ATLAS.subject}),
-        admitted_predicates=frozenset({SKOS.exactMatch}),
-        subject_schemes=None,
-        object_schemes=None,
-        evidence_kind=_EVIDENCE_KIND_ASSERTION,
-        mirror_predicate=SKOS.exactMatch,
-        symmetric_collision_predicates=frozenset(),
-        direction_profile="canonical-iri-order",
-        row_shape_profile="exact-match-simple-path-v1",
-        replay_profile="exact-match-cited-path-owlrl-v1",
-        validate_row=_validate_exact_match_transitivity_row,
-        replay=_replay_exact_match_transitivity,
-    ),
-    (
-        MESH_TREE_NUMBER_BROADER_RULE,
-        MESH_TREE_NUMBER_ENGINE,
-        MESH_TREE_NUMBER_ENGINE_VERSION,
-    ): _DerivedRuleAdmission(
-        rule=MESH_TREE_NUMBER_BROADER_RULE,
-        engine=MESH_TREE_NUMBER_ENGINE,
-        engine_version=MESH_TREE_NUMBER_ENGINE_VERSION,
-        admitted_rings=frozenset({ATLAS.subject}),
-        admitted_predicates=frozenset({SKOS.broader}),
-        subject_schemes=frozenset({MESH_TREE_NUMBER_SCHEME}),
-        object_schemes=frozenset({MESH_TREE_NUMBER_SCHEME}),
-        evidence_kind=_EVIDENCE_KIND_SOURCE_RECORD,
-        mirror_predicate=SKOS.narrower,
-        symmetric_collision_predicates=frozenset(),
-        direction_profile="premise-child-to-parent",
-        row_shape_profile="mesh-tree-number-parent-v1",
-        replay_profile="complete-mesh-tree-number-edge-set-v1",
-        validate_row=_validate_mesh_tree_number_broader_row,
-        replay=_replay_mesh_tree_number_broader,
-    ),
-    (
-        GCMD_COLUMN_NESTING_RULE,
-        GCMD_COLUMN_NESTING_ENGINE,
-        GCMD_COLUMN_NESTING_ENGINE_VERSION,
-    ): _DerivedRuleAdmission(
-        rule=GCMD_COLUMN_NESTING_RULE,
-        engine=GCMD_COLUMN_NESTING_ENGINE,
-        engine_version=GCMD_COLUMN_NESTING_ENGINE_VERSION,
-        admitted_rings=frozenset({ATLAS.subject}),
-        admitted_predicates=frozenset({SKOS.broader}),
-        subject_schemes=frozenset({GCMD_COLUMN_NESTING_SCHEME}),
-        object_schemes=frozenset({GCMD_COLUMN_NESTING_SCHEME}),
-        evidence_kind=_EVIDENCE_KIND_SOURCE_RECORD,
-        mirror_predicate=SKOS.narrower,
-        symmetric_collision_predicates=frozenset(),
-        direction_profile="premise-child-to-parent",
-        row_shape_profile="gcmd-column-nesting-v1",
-        replay_profile="complete-gcmd-column-nesting-edge-set-v1",
-        validate_row=_validate_gcmd_column_nesting_row,
-        replay=_replay_gcmd_column_nesting,
-    ),
-    (
-        FR_COMPOUND_HEADING_BROADER_RULE,
-        FR_COMPOUND_HEADING_ENGINE,
-        FR_COMPOUND_HEADING_ENGINE_VERSION,
-    ): _DerivedRuleAdmission(
-        rule=FR_COMPOUND_HEADING_BROADER_RULE,
-        engine=FR_COMPOUND_HEADING_ENGINE,
-        engine_version=FR_COMPOUND_HEADING_ENGINE_VERSION,
-        admitted_rings=frozenset({ATLAS.subject}),
-        admitted_predicates=frozenset({SKOS.broader}),
-        subject_schemes=frozenset({FR_COMPOUND_HEADING_SCHEME}),
-        object_schemes=frozenset({FR_COMPOUND_HEADING_SCHEME}),
-        evidence_kind=_EVIDENCE_KIND_SOURCE_RECORD,
-        mirror_predicate=SKOS.narrower,
-        symmetric_collision_predicates=frozenset(),
-        direction_profile="premise-child-to-parent",
-        row_shape_profile="fr-compound-heading-label-head-v1",
-        replay_profile="complete-fr-compound-heading-edge-set-v1",
-        validate_row=_validate_fr_compound_heading_broader_row,
-        replay=_replay_fr_compound_heading_broader,
-    ),
-    (
-        EUROVOC_MICROTHESAURUS_DOMAIN_RULE,
-        EUROVOC_MICROTHESAURUS_DOMAIN_ENGINE,
-        EUROVOC_MICROTHESAURUS_DOMAIN_ENGINE_VERSION,
-    ): _DerivedRuleAdmission(
-        rule=EUROVOC_MICROTHESAURUS_DOMAIN_RULE,
-        engine=EUROVOC_MICROTHESAURUS_DOMAIN_ENGINE,
-        engine_version=EUROVOC_MICROTHESAURUS_DOMAIN_ENGINE_VERSION,
-        admitted_rings=frozenset({ATLAS.subject}),
-        admitted_predicates=frozenset({SKOS.broader}),
-        subject_schemes=frozenset({EUROVOC_MICROTHESAURI_SCHEME}),
-        object_schemes=frozenset({EUROVOC_DOMAINS_SCHEME}),
-        evidence_kind=_EVIDENCE_KIND_SOURCE_RECORD,
-        mirror_predicate=SKOS.narrower,
-        symmetric_collision_predicates=frozenset(),
-        direction_profile="premise-microthesaurus-to-domain",
-        row_shape_profile="eurovoc-microthesaurus-domain-prefix-v1",
-        replay_profile="complete-eurovoc-microthesaurus-domain-edge-set-v1",
-        validate_row=_validate_eurovoc_microthesaurus_domain_row,
-        replay=_replay_eurovoc_microthesaurus_domain,
-    ),
-    (
-        FR_THESAURUS_API_TOPIC_RULE,
-        FR_THESAURUS_API_TOPIC_ENGINE,
-        FR_THESAURUS_API_TOPIC_ENGINE_VERSION,
-    ): _DerivedRuleAdmission(
-        rule=FR_THESAURUS_API_TOPIC_RULE,
-        engine=FR_THESAURUS_API_TOPIC_ENGINE,
-        engine_version=FR_THESAURUS_API_TOPIC_ENGINE_VERSION,
-        admitted_rings=frozenset({ATLAS.subject}),
-        admitted_predicates=frozenset({SKOS.closeMatch}),
-        subject_schemes=frozenset({FR_COMPOUND_HEADING_SCHEME}),
-        object_schemes=frozenset({FR_API_TOPICS_SCHEME}),
-        evidence_kind=_EVIDENCE_KIND_SOURCE_RECORD,
-        # closeMatch is symmetric under SKOS S43, so the mirror of an
-        # admitted edge is the same predicate rather than an inverse one --
-        # unlike every prior rule here, whose broader mirrors to narrower.
-        mirror_predicate=SKOS.closeMatch,
-        # An asserted exactMatch is stronger than this derived closeMatch and
-        # makes the mechanical alignment redundant in either direction.
-        symmetric_collision_predicates=frozenset({SKOS.exactMatch}),
-        direction_profile="federal-register-thesaurus-to-api-topic",
-        row_shape_profile="fr-thesaurus-api-topic-folded-pref-label-v1",
-        replay_profile="complete-fr-thesaurus-api-topic-edge-set-v1",
-        validate_row=_validate_fr_thesaurus_api_topic_row,
-        replay=_replay_fr_thesaurus_api_topic,
-    ),
-}
+_DERIVED_RULE_HANDLERS: Mapping[
+    URIRef,
+    tuple[Callable[[_DerivedRowContext], None], Callable[..., None]],
+] = MappingProxyType(
+    {
+        EXACT_MATCH_TRANSITIVITY_RULE: (
+            _validate_exact_match_transitivity_row,
+            _replay_exact_match_transitivity,
+        ),
+        MESH_TREE_NUMBER_BROADER_RULE: (
+            _validate_mesh_tree_number_broader_row,
+            _replay_mesh_tree_number_broader,
+        ),
+        GCMD_COLUMN_NESTING_RULE: (
+            _validate_gcmd_column_nesting_row,
+            _replay_gcmd_column_nesting,
+        ),
+        FR_COMPOUND_HEADING_BROADER_RULE: (
+            _validate_fr_compound_heading_broader_row,
+            _replay_fr_compound_heading_broader,
+        ),
+        EUROVOC_MICROTHESAURUS_DOMAIN_RULE: (
+            _validate_eurovoc_microthesaurus_domain_row,
+            _replay_eurovoc_microthesaurus_domain,
+        ),
+        FR_THESAURUS_API_TOPIC_RULE: (
+            _validate_fr_thesaurus_api_topic_row,
+            _replay_fr_thesaurus_api_topic,
+        ),
+    }
+)
+
+_DERIVED_RULE_REQUIRED_KEYS = frozenset(
+    {
+        "admittedPredicates",
+        "admittedRings",
+        "directionProfile",
+        "engine",
+        "engineVersion",
+        "evidenceKind",
+        "replayProfile",
+        "rowShapeProfile",
+        "rule",
+        "symmetricCollisionPredicates",
+    }
+)
+_DERIVED_RULE_OPTIONAL_KEYS = frozenset(
+    {
+        "mirrorPredicate",
+        "objectSchemes",
+        "subjectSchemes",
+    }
+)
+_DERIVED_RULE_ALLOWED_EVIDENCE_KINDS = frozenset(
+    {
+        _EVIDENCE_KIND_ASSERTION,
+        _EVIDENCE_KIND_SOURCE_RECORD,
+    }
+)
+_DERIVED_MIRROR_PREDICATES: Mapping[URIRef, URIRef] = MappingProxyType(
+    {
+        SKOS.broader: SKOS.narrower,
+        SKOS.narrower: SKOS.broader,
+        SKOS.broadMatch: SKOS.narrowMatch,
+        SKOS.narrowMatch: SKOS.broadMatch,
+        SKOS.exactMatch: SKOS.exactMatch,
+        SKOS.closeMatch: SKOS.closeMatch,
+        SKOS.relatedMatch: SKOS.relatedMatch,
+        SKOS.related: SKOS.related,
+    }
+)
+
+
+def _require_registry_iri(value: object, label: str) -> URIRef:
+    if not isinstance(value, str) or not ABSOLUTE_IRI_RE.fullmatch(value):
+        _fail("binding.derived-rule-registry", f"{label} must be an absolute IRI: {value!r}")
+    return URIRef(value)
+
+
+def _require_registry_text(value: object, label: str) -> str:
+    if not isinstance(value, str) or not value or value != value.strip():
+        _fail("binding.derived-rule-registry", f"{label} must be non-empty trimmed text: {value!r}")
+    return value
+
+
+def _require_registry_iri_list(value: object, label: str, *, allow_empty: bool = False) -> frozenset[URIRef]:
+    if not isinstance(value, list):
+        _fail("binding.derived-rule-registry", f"{label} must be a list of absolute IRIs")
+    if not allow_empty and not value:
+        _fail("binding.derived-rule-registry", f"{label} must not be empty")
+    if not all(isinstance(item, str) and ABSOLUTE_IRI_RE.fullmatch(item) for item in value):
+        _fail("binding.derived-rule-registry", f"{label} must contain only absolute IRIs")
+    if value != sorted(value) or len(value) != len(set(value)):
+        _fail("binding.derived-rule-registry", f"{label} must be unique and canonically sorted")
+    return frozenset(URIRef(item) for item in value)
+
+
+def _parse_derived_rule_registry(
+    document: Any,
+) -> dict[tuple[URIRef, URIRef, str], _DerivedRuleAdmission]:
+    """Parse ``admitted-derived-rules.json`` through one closed typed loader.
+
+    The JSON file is the sole semantic roster for admitted rings, predicates,
+    endpoint schemes, evidence kinds, mirrors, collision policies, and profile
+    names; Python supplies only the executable ``(validate_row, replay)``
+    handlers dispatched by rule IRI.
+    """
+
+    if not isinstance(document, Mapping) or set(document) != {"rules", "type", "version"}:
+        _fail("binding.derived-rule-registry", "admitted-derived-rules.json must declare type, version, and rules")
+    if document["type"] != "AtlasAdmittedDerivedRuleRegistry" or document["version"] != "3.1":
+        _fail("binding.derived-rule-registry", "admitted-derived-rules.json has an unsupported type or version")
+    rows = document["rules"]
+    if not isinstance(rows, list) or not rows:
+        _fail("binding.derived-rule-registry", "admitted-derived-rules.json rules must be a non-empty list")
+
+    relation_policies = _relation_policies()
+    admissions: dict[tuple[URIRef, URIRef, str], _DerivedRuleAdmission] = {}
+    observed_sort_keys: list[tuple[str, str, str]] = []
+    observed_rules: set[URIRef] = set()
+
+    for position, row in enumerate(rows):
+        location = f"rules[{position}]"
+        if not isinstance(row, Mapping):
+            _fail("binding.derived-rule-registry", f"{location} must be an object")
+        row_keys = set(row)
+        missing_keys = sorted(_DERIVED_RULE_REQUIRED_KEYS - row_keys)
+        unexpected_keys = sorted(row_keys - (_DERIVED_RULE_REQUIRED_KEYS | _DERIVED_RULE_OPTIONAL_KEYS))
+        if missing_keys or unexpected_keys:
+            _fail(
+                "binding.derived-rule-registry",
+                f"{location} keys invalid: missing={missing_keys}, unexpected={unexpected_keys}",
+            )
+
+        rule = _require_registry_iri(row["rule"], f"{location}.rule")
+        engine = _require_registry_iri(row["engine"], f"{location}.engine")
+        engine_version = _require_registry_text(row["engineVersion"], f"{location}.engineVersion")
+        key = (rule, engine, engine_version)
+        if key in admissions:
+            _fail("binding.derived-rule-registry", f"{location} repeats derived rule key {key}")
+
+        handlers = _DERIVED_RULE_HANDLERS.get(rule)
+        if handlers is None:
+            _fail("binding.derived-rule-registry", f"{location} names an unimplemented derived rule: {rule}")
+        validate_row, replay = handlers
+
+        admitted_rings = _require_registry_iri_list(row["admittedRings"], f"{location}.admittedRings")
+        unknown_rings = sorted(str(ring) for ring in admitted_rings - set(relation_policies))
+        if unknown_rings:
+            _fail("binding.derived-rule-registry", f"{location}.admittedRings contains unknown rings: {unknown_rings}")
+
+        admitted_predicates = _require_registry_iri_list(
+            row["admittedPredicates"],
+            f"{location}.admittedPredicates",
+        )
+        for ring in admitted_rings:
+            ring_allowed = relation_policies[ring].get(ATLAS.MappingAssertion, frozenset()) | relation_policies[
+                ring
+            ].get(ATLAS.NativeRelationAssertion, frozenset())
+            disallowed = sorted(str(pred) for pred in admitted_predicates - ring_allowed)
+            if disallowed:
+                _fail(
+                    "binding.derived-rule-registry",
+                    f"{location}.admittedPredicates are not allowed in ring {ring}: {disallowed}",
+                )
+
+        symmetric_collision_predicates = _require_registry_iri_list(
+            row["symmetricCollisionPredicates"],
+            f"{location}.symmetricCollisionPredicates",
+            allow_empty=True,
+        )
+        if symmetric_collision_predicates & admitted_predicates:
+            _fail(
+                "binding.derived-rule-registry",
+                f"{location}.symmetricCollisionPredicates overlaps admittedPredicates",
+            )
+
+        subject_schemes = (
+            _require_registry_iri_list(row["subjectSchemes"], f"{location}.subjectSchemes")
+            if "subjectSchemes" in row
+            else None
+        )
+        object_schemes = (
+            _require_registry_iri_list(row["objectSchemes"], f"{location}.objectSchemes")
+            if "objectSchemes" in row
+            else None
+        )
+
+        mirror_predicate = (
+            _require_registry_iri(row["mirrorPredicate"], f"{location}.mirrorPredicate")
+            if "mirrorPredicate" in row
+            else None
+        )
+        if mirror_predicate is not None:
+            expected_mirrors = {_DERIVED_MIRROR_PREDICATES.get(pred) for pred in admitted_predicates}
+            if expected_mirrors != {mirror_predicate}:
+                _fail(
+                    "binding.derived-rule-registry",
+                    f"{location}.mirrorPredicate {mirror_predicate} does not match admittedPredicates",
+                )
+
+        evidence_kind = _require_registry_text(row["evidenceKind"], f"{location}.evidenceKind")
+        if evidence_kind not in _DERIVED_RULE_ALLOWED_EVIDENCE_KINDS:
+            _fail("binding.derived-rule-registry", f"{location}.evidenceKind is unsupported: {evidence_kind!r}")
+
+        direction_profile = _require_registry_text(row["directionProfile"], f"{location}.directionProfile")
+        row_shape_profile = _require_registry_text(row["rowShapeProfile"], f"{location}.rowShapeProfile")
+        replay_profile = _require_registry_text(row["replayProfile"], f"{location}.replayProfile")
+
+        observed_sort_keys.append((str(rule), str(engine), engine_version))
+        observed_rules.add(rule)
+        admissions[key] = _DerivedRuleAdmission(
+            rule=rule,
+            engine=engine,
+            engine_version=engine_version,
+            admitted_rings=admitted_rings,
+            admitted_predicates=admitted_predicates,
+            subject_schemes=subject_schemes,
+            object_schemes=object_schemes,
+            evidence_kind=evidence_kind,
+            mirror_predicate=mirror_predicate,
+            symmetric_collision_predicates=symmetric_collision_predicates,
+            direction_profile=direction_profile,
+            row_shape_profile=row_shape_profile,
+            replay_profile=replay_profile,
+            validate_row=validate_row,
+            replay=replay,
+        )
+
+    if observed_sort_keys != sorted(observed_sort_keys):
+        _fail(
+            "binding.derived-rule-registry",
+            "admitted-derived-rules.json rules must be sorted by (rule, engine, engineVersion)",
+        )
+    missing_handlers = sorted(str(rule) for rule in set(_DERIVED_RULE_HANDLERS) - observed_rules)
+    if missing_handlers:
+        _fail(
+            "binding.derived-rule-registry",
+            f"admitted-derived-rules.json omits executable derived-rule handlers: {missing_handlers}",
+        )
+    return admissions
+
+
+def _load_derived_rule_admissions(
+    path: Path = DERIVED_RULE_REGISTRY_PATH,
+) -> Mapping[tuple[URIRef, URIRef, str], _DerivedRuleAdmission]:
+    """Load the contract-covered derived-rule admission roster from disk."""
+
+    document = _load_json(path, require_canonical=True)
+    return MappingProxyType(_parse_derived_rule_registry(document))
+
+
+_DERIVED_RULE_ADMISSIONS: Mapping[tuple[URIRef, URIRef, str], _DerivedRuleAdmission] = (
+    _load_derived_rule_admissions()
+)
 
 
 def _derived_rule_registry_document() -> dict[str, Any]:
-    """Render the executable derived-rule admissions as contract data.
-
-    The JSON file is the semantic roster and therefore participates in
-    ``contractDigest``.  The Python entries supply the executable row and
-    replay functions.  Exact equality here prevents either representation
-    from silently admitting a rule, endpoint scope, predicate, evidence kind,
-    direction, or replay profile the other one does not name.
-    """
+    """Render the loaded derived-rule admissions as canonical contract data."""
 
     rows: list[dict[str, Any]] = []
     for admission in _DERIVED_RULE_ADMISSIONS.values():
@@ -8119,6 +8238,7 @@ def _check_derived_rule_registry(document: Any | None = None) -> dict[str, Any]:
         if document is None
         else document
     )
+    _parse_derived_rule_registry(actual)
     expected = _derived_rule_registry_document()
     if actual != expected:
         _fail(

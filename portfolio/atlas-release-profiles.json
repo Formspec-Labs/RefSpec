@@ -1,0 +1,278 @@
+{
+  "decision": "REF-078",
+  "defaultProfile": "full",
+  "mappingEndpointDependencies": {
+    "agency-registry-2026-09-26": [
+      "ecfr-agencies-roster-2026-08-15",
+      "federal-hierarchy-orgs-complete-2026-08-15",
+      "federal-register-agencies-roster-2026-08-15",
+      "opm-ehri-agency-subelement-2026-08-04",
+      "regulations-gov-agencies-roster-2026-08-16"
+    ],
+    "eurovoc-gemet-alignment-20201218": [
+      "eurovoc-4.24",
+      "gemet-4.2.3"
+    ],
+    "eurovoc-lcsh-alignment-20240711": [
+      "eurovoc-4.24",
+      "lcsh-subjects-consolidated-2026-08-06"
+    ],
+    "eurovoc-mesh-alignment-20171215": [
+      "eurovoc-4.24",
+      "mesh-descriptors-2026"
+    ],
+    "fast-bulk-external-links-delta-2026-07-27": [
+      "fast-topical-current",
+      "lcsh-subjects-consolidated-2026-08-06"
+    ],
+    "fast-lcsh-adopted-2026-08-15": [
+      "fast-topical-current",
+      "lcsh-subjects-consolidated-2026-08-06"
+    ],
+    "gemet-eurovoc-alignments-4.2.3": [
+      "eurovoc-4.24",
+      "gemet-4.2.3"
+    ],
+    "gemet-umthes-alignments-4.2.3": [
+      "gemet-4.2.3",
+      "umthes-gemet-endpoints-2026-08-15"
+    ],
+    "lcsh-external-links-mappings-2026-08-15": [
+      "fast-topical-current",
+      "lc-external-agrovoc-endpoints-2026-08-15",
+      "lc-external-bncf-endpoints-2026-08-15",
+      "lc-external-bne-endpoints-2026-08-15",
+      "lc-external-fast-endpoints-2026-08-15",
+      "lc-external-getty-aat-endpoints-2026-08-15",
+      "lc-external-getty-ulan-endpoints-2026-08-15",
+      "lc-external-gnd-endpoints-2026-08-15",
+      "lc-external-homosaurus-endpoints-2026-08-15",
+      "lc-external-nalt-endpoints-2026-08-15",
+      "lc-external-ndl-names-endpoints-2026-08-15",
+      "lc-external-ndl-subjects-endpoints-2026-08-15",
+      "lc-external-periodo-lcsh-periods-endpoints-2026-08-15",
+      "lc-external-rameau-endpoints-2026-08-15",
+      "lc-external-wikidata-endpoints-2026-08-15",
+      "lc-external-yso-endpoints-2026-08-15",
+      "lcsh-subjects-consolidated-2026-08-06"
+    ],
+    "mesh-lcsh-mapping-2021-03-31": [
+      "lcsh-subjects-consolidated-2026-08-06",
+      "mesh-descriptors-2026"
+    ],
+    "regulations-gov-agency-identity-2026-08-16": [
+      "ecfr-agencies-roster-2026-08-15",
+      "federal-hierarchy-orgs-complete-2026-08-15",
+      "federal-register-agencies-roster-2026-08-15",
+      "opm-ehri-agency-subelement-2026-08-04",
+      "regulations-gov-agencies-roster-2026-08-16"
+    ],
+    "unified-agenda-gao-cra-priority-2026-08-15": [
+      "gao-cra-priority-of-regulation",
+      "unified-agenda-priority-category"
+    ]
+  },
+  "profiles": {
+    "bibliographic-crosswalk": {
+      "crossLayerBridgeMappingKeys": [
+        "eurovoc-lcsh-alignment-20240711",
+        "mesh-lcsh-mapping-2021-03-31"
+      ],
+      "description": "Optional bibliographic authority and external-crosswalk layer: consolidated LCSH, OCLC FAST topical headings, LC external target endpoint stubs, FAST see-also endpoints, and their closed bibliographic mappings (including FAST-LCSH S27 reconciliation).",
+      "mappingKeys": [
+        "fast-bulk-external-links-delta-2026-07-27",
+        "fast-lcsh-adopted-2026-08-15",
+        "lcsh-external-links-mappings-2026-08-15"
+      ],
+      "rings": [
+        "subject"
+      ],
+      "sourceKeys": [
+        "fast-bulk-see-also-endpoints-2026-07-27",
+        "fast-topical-current",
+        "lc-external-agrovoc-endpoints-2026-08-15",
+        "lc-external-bncf-endpoints-2026-08-15",
+        "lc-external-bne-endpoints-2026-08-15",
+        "lc-external-fast-endpoints-2026-08-15",
+        "lc-external-getty-aat-endpoints-2026-08-15",
+        "lc-external-getty-ulan-endpoints-2026-08-15",
+        "lc-external-gnd-endpoints-2026-08-15",
+        "lc-external-homosaurus-endpoints-2026-08-15",
+        "lc-external-nalt-endpoints-2026-08-15",
+        "lc-external-ndl-names-endpoints-2026-08-15",
+        "lc-external-ndl-subjects-endpoints-2026-08-15",
+        "lc-external-periodo-lcsh-periods-endpoints-2026-08-15",
+        "lc-external-rameau-endpoints-2026-08-15",
+        "lc-external-wikidata-endpoints-2026-08-15",
+        "lc-external-yso-endpoints-2026-08-15",
+        "lcsh-subjects-consolidated-2026-08-06"
+      ]
+    },
+    "core-regulatory": {
+      "description": "Core curated regulatory, policy, and science Atlas layer across all four semantic rings (subject, value, entity, legalIdentity), including agency/court rosters, org:ChangeEvent successions, CFR structures, and closed curated-to-curated mappings while excluding bibliographic LCSH/FAST corpora and foreign alignment stubs.",
+      "excludedReleaseKeys": [
+        "eurovoc-lcsh-alignment-20240711",
+        "fast-bulk-external-links-delta-2026-07-27",
+        "fast-bulk-see-also-endpoints-2026-07-27",
+        "fast-lcsh-adopted-2026-08-15",
+        "fast-topical-current",
+        "lc-external-agrovoc-endpoints-2026-08-15",
+        "lc-external-bncf-endpoints-2026-08-15",
+        "lc-external-bne-endpoints-2026-08-15",
+        "lc-external-fast-endpoints-2026-08-15",
+        "lc-external-getty-aat-endpoints-2026-08-15",
+        "lc-external-getty-ulan-endpoints-2026-08-15",
+        "lc-external-gnd-endpoints-2026-08-15",
+        "lc-external-homosaurus-endpoints-2026-08-15",
+        "lc-external-nalt-endpoints-2026-08-15",
+        "lc-external-ndl-names-endpoints-2026-08-15",
+        "lc-external-ndl-subjects-endpoints-2026-08-15",
+        "lc-external-periodo-lcsh-periods-endpoints-2026-08-15",
+        "lc-external-rameau-endpoints-2026-08-15",
+        "lc-external-wikidata-endpoints-2026-08-15",
+        "lc-external-yso-endpoints-2026-08-15",
+        "lcsh-external-links-mappings-2026-08-15",
+        "lcsh-subjects-consolidated-2026-08-06",
+        "mesh-lcsh-mapping-2021-03-31"
+      ],
+      "mappingKeys": [
+        "agency-registry-2026-09-26",
+        "eurovoc-gemet-alignment-20201218",
+        "eurovoc-mesh-alignment-20171215",
+        "gemet-eurovoc-alignments-4.2.3",
+        "gemet-umthes-alignments-4.2.3",
+        "regulations-gov-agency-identity-2026-08-16",
+        "unified-agenda-gao-cra-priority-2026-08-15"
+      ],
+      "rings": [
+        "entity",
+        "legalIdentity",
+        "subject",
+        "value"
+      ],
+      "sourceKeys": [
+        "billstatus-action-codes",
+        "billstatus-bill-types",
+        "billstatus-summary-version-codes",
+        "census-data-flags",
+        "census-function-items",
+        "census-tiger-geoid-structure",
+        "cfr-subject-index-parts-2026-08-20",
+        "courtlistener-jurisdictions-2026-08-03",
+        "crs-legislative-entities",
+        "crs-legislative-subjects",
+        "crs-policy-areas",
+        "doe-osti-semantic-thesaurus-2020",
+        "ecfr-agencies-roster-2026-08-15",
+        "ecfr-cfr-titles",
+        "elsst-r6",
+        "eurovoc-4.24",
+        "eurovoc-domains-4.24",
+        "eurovoc-microthesauri-4.24",
+        "fac-api-field-dictionary-2026-08-03",
+        "fcc-bureaus-offices-roster-2026-08-15",
+        "fec-committee-designation",
+        "fec-committee-type",
+        "fec-filing-frequency",
+        "fec-organization-type",
+        "fec-party",
+        "federal-hierarchy-orgs-complete-2026-08-15",
+        "federal-register-agencies-roster-2026-08-15",
+        "federal-register-api-topics-2026-08-03",
+        "federal-register-documented-document-types-2026-08-15",
+        "federal-register-documented-presidential-document-types-2026-08-15",
+        "federal-register-thesaurus-2025",
+        "ferc-docket-prefixes",
+        "ferc-document-class-types",
+        "ferc-sectors",
+        "ferc-security-levels",
+        "gao-cra-priority-of-regulation",
+        "gao-cra-rule-types",
+        "gao-published-topics-capture-subset-2026-09-01",
+        "gcmd-science-keywords-24-4",
+        "gemet-4.2.3",
+        "govinfo-collections",
+        "grants-gov-eligibilities",
+        "grants-gov-funding-categories",
+        "gsdm-data-dictionary-domain-values-2026-08-03",
+        "gsdm-online-data-dictionary-2026-08-03",
+        "icpsr-subject-thesaurus",
+        "lda-filing-types",
+        "lda-general-issue-codes",
+        "mesh-descriptors-2026",
+        "naics-2022",
+        "nasa-technology-taxonomy-8817",
+        "nasa-thesaurus-skos",
+        "nppes-data-dissemination-layout-v2-2026-08-03",
+        "nrc-adams-documented-accession-number-2026-08-15",
+        "nrc-adams-documented-profile-properties-2026-08-15",
+        "oira-review-controls",
+        "omb-a11-apportionment-categories",
+        "omb-a11-functional-classification",
+        "omb-a11-object-classification",
+        "opm-ehri-agency-subelement-2026-08-04",
+        "opm-ehri-data-standards-2026-08-04",
+        "oversight-report-types",
+        "pra-icr-controls",
+        "psc-april-2025",
+        "regulations-gov-agencies-roster-2026-08-16",
+        "regulations-gov-docket-type",
+        "regulations-gov-document-type",
+        "regulations-gov-submitter-type",
+        "sam-assistance-assistance-types",
+        "sam-assistance-eligible-applicant-types",
+        "sam-assistance-eligible-beneficiary-types",
+        "sam-opportunities-notice-types",
+        "sam-opportunities-opportunity-statuses",
+        "sam-opportunities-set-aside-codes",
+        "treasury-fast-book-accounts-parts-ii-iii-2026-07",
+        "treasury-fast-book-fund-groups-2026-07",
+        "umthes-gemet-endpoints-2026-08-15",
+        "unified-agenda-agency-relation",
+        "unified-agenda-dline-action-stage",
+        "unified-agenda-dline-type",
+        "unified-agenda-energy-affected",
+        "unified-agenda-eo13771-designation",
+        "unified-agenda-federalism",
+        "unified-agenda-govt-level",
+        "unified-agenda-international-interest",
+        "unified-agenda-legal-authority-citation-types",
+        "unified-agenda-major",
+        "unified-agenda-print-paper",
+        "unified-agenda-priority-category",
+        "unified-agenda-rfa-required",
+        "unified-agenda-rfa-section610-review",
+        "unified-agenda-rin-relation",
+        "unified-agenda-rin-status",
+        "unified-agenda-rplan-entry",
+        "unified-agenda-rule-stage",
+        "unified-agenda-small-entity",
+        "unified-agenda-timetable-action",
+        "unified-agenda-unfunded-mandate",
+        "usaspending-award-types",
+        "uscourts-nature-of-suit",
+        "usgs-gnis-identifiers"
+      ]
+    },
+    "full": {
+      "additionalMappingKeys": [
+        "eurovoc-lcsh-alignment-20240711",
+        "mesh-lcsh-mapping-2021-03-31"
+      ],
+      "additionalSourceKeys": [],
+      "composeProfiles": [
+        "core-regulatory",
+        "bibliographic-crosswalk"
+      ],
+      "description": "Complete Atlas 3.1 release topology composing core-regulatory, bibliographic-crosswalk, and cross-layer EuroVoc/MeSH-to-LCSH bridge mappings (existing full-build behavior).",
+      "rings": [
+        "entity",
+        "legalIdentity",
+        "subject",
+        "value"
+      ]
+    }
+  },
+  "type": "AtlasReleaseProfiles",
+  "version": "1.0"
+}
