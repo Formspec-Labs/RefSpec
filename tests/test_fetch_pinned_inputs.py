@@ -199,3 +199,52 @@ def test_presence_is_size_only_and_refuses_a_symlink(tmp_path: Path) -> None:
     link = tmp_path / "link.json"
     link.symlink_to(target)
     assert not fetcher.is_present(link, entry)
+
+
+@pytest.mark.parametrize(
+    ("access_key", "secret_key", "expected_missing"),
+    [
+        (None, None, "REFSPEC_R2_ACCESS_KEY_ID, REFSPEC_R2_SECRET_ACCESS_KEY"),
+        ("", "", "REFSPEC_R2_ACCESS_KEY_ID, REFSPEC_R2_SECRET_ACCESS_KEY"),
+        ("   ", "secret", "REFSPEC_R2_ACCESS_KEY_ID"),
+        ("key", "  ", "REFSPEC_R2_SECRET_ACCESS_KEY"),
+    ],
+)
+def test_missing_or_empty_r2_credentials_fail_fast_before_network(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    access_key: str | None,
+    secret_key: str | None,
+    expected_missing: str,
+) -> None:
+    """Empty CI secrets (e.g. forks without R2 secrets) must fail fast instead of sending 400 HeadObject requests."""
+    if access_key is None:
+        monkeypatch.delenv("REFSPEC_R2_ACCESS_KEY_ID", raising=False)
+    else:
+        monkeypatch.setenv("REFSPEC_R2_ACCESS_KEY_ID", access_key)
+    if secret_key is None:
+        monkeypatch.delenv("REFSPEC_R2_SECRET_ACCESS_KEY", raising=False)
+    else:
+        monkeypatch.setenv("REFSPEC_R2_SECRET_ACCESS_KEY", secret_key)
+
+    manifest, _ = _two_inputs(tmp_path)
+    with pytest.raises(RuntimeError, match=re.escape(expected_missing)):
+        fetcher._client(manifest)
+
+
+def test_main_reports_missing_r2_credentials_cleanly_on_cold_store(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    manifest, _ = _two_inputs(tmp_path)
+    monkeypatch.setattr(fetcher, "ROOT", tmp_path)
+    monkeypatch.setattr(fetcher, "load_manifest", lambda path=fetcher.MANIFEST: manifest)
+    monkeypatch.setenv("REFSPEC_R2_ACCESS_KEY_ID", "")
+    monkeypatch.setenv("REFSPEC_R2_SECRET_ACCESS_KEY", "")
+    monkeypatch.setattr(sys, "argv", ["fetch_pinned_inputs.py", "--store", str(tmp_path / "store")])
+
+    assert fetcher.main() == 1
+    stderr = capsys.readouterr().err
+    assert "REFSPEC_R2_ACCESS_KEY_ID" in stderr
+    assert "REFSPEC_R2_SECRET_ACCESS_KEY" in stderr
