@@ -68,13 +68,30 @@ def is_current(path: Path, entry: dict) -> bool:
 
 
 def _client(manifest: dict):
+    access_key = os.environ.get("REFSPEC_R2_ACCESS_KEY_ID", "").strip()
+    secret_key = os.environ.get("REFSPEC_R2_SECRET_ACCESS_KEY", "").strip()
+    missing = [
+        name
+        for name, value in (
+            ("REFSPEC_R2_ACCESS_KEY_ID", access_key),
+            ("REFSPEC_R2_SECRET_ACCESS_KEY", secret_key),
+        )
+        if not value
+    ]
+    if missing:
+        raise RuntimeError(
+            f"missing or empty R2 credentials ({', '.join(missing)}); "
+            f"cannot download uncached pinned inputs from {manifest['bucket']} "
+            "(configure REFSPEC_R2_ACCESS_KEY_ID / REFSPEC_R2_SECRET_ACCESS_KEY, or warm output/.pinned-store)"
+        )
+
     import boto3  # locked through the dev group; only a download needs it
 
     return boto3.client(
         "s3",
         endpoint_url=os.environ.get("REFSPEC_R2_ENDPOINT", manifest["endpoint"]),
-        aws_access_key_id=os.environ["REFSPEC_R2_ACCESS_KEY_ID"],
-        aws_secret_access_key=os.environ["REFSPEC_R2_SECRET_ACCESS_KEY"],
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key,
         region_name="auto",
     )
 
@@ -189,7 +206,11 @@ def main() -> int:
         print(f"{len(entries)} pinned inputs present{'' if args.present else ' and verified'}")
         return 0
 
-    placed, downloaded = fetch(manifest, ROOT, args.store, workers=args.workers)
+    try:
+        placed, downloaded = fetch(manifest, ROOT, args.store, workers=args.workers)
+    except RuntimeError as exc:
+        print(exc, file=sys.stderr)
+        return 1
     print(
         f"placed {placed} of {len(entries)} pinned inputs ({downloaded} downloaded); {len(entries) - placed} were already current"
     )
