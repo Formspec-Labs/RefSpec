@@ -29,11 +29,13 @@ from refspec.registry.act_resolution import (
     _RKAF_USC_IRI,
     ALIAS_MAX_DEPTH,
     ANSWERING_SOURCES,
+    REVIEWED_ACT_ALIASES,
     SOURCE_CREDIT_STATUSES,
     UNRESOLVED_REASONS,
     ActIndex,
     ActResolution,
     Classification,
+    PopularNameRecord,
     SourceCreditAnswer,
     SourceCreditIndex,
     SourceCreditTarget,
@@ -46,7 +48,11 @@ from refspec.registry.act_resolution import (
     resolve_act_relative_citation,
     stated_name_chain,
 )
-from refspec.registry.citation_grammar import ActRelativeCitation, normalize_popular_name
+from refspec.registry.citation_grammar import (
+    ActRelativeCitation,
+    find_act_relative_occurrences,
+    normalize_popular_name,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 ACT_DIR = ROOT / "output" / "usc-act-index-2026-08-02"
@@ -1557,4 +1563,248 @@ def test_act_index_scan_text_extracts_enacted_short_titles_from_prose() -> None:
     ]
     assert [h.table3_key for h in hits] == ["93-406", "116-260"]
     assert FIXTURE_INDEX.find_statutory_short_titles(prose) == hits
+
+
+# --------------------------------------------------------------------------- #
+# Enclosing source identity (ss-njjd) & CERCLA / Civil Rights Act witnesses.
+
+
+def test_small_business_act_enclosing_section_witness_refuses_without_alignment(index, credits) -> None:
+    """``85-536 § 2[3]`` negative control: bare section 3 MUST refuse rather than return ``12-371``."""
+
+    bulk = ActIndex.from_artifact(BULK_ACT_DIR)
+    for active in (index, bulk):
+        for phrase in ("section 3 of the Small Business Act", "Small Business Act section 3"):
+            occs = find_act_relative_occurrences(phrase, act_names=active.act_names)
+            assert len(occs) == 1, phrase
+            resolution = resolve_act_relative_citation(occs[0].citation, index=active, source_credits=credits)
+            assert resolution.iri is None
+            assert resolution.unresolved_reason == "act_section_ambiguous"
+            assert resolution.source_credit_status == "not_consulted"
+            assert resolution.table3_key == "85-536"
+
+        # Section 4 also collides with outer Pub. L. 85-536 § 4 (15 U.S.C. nt. prec. 601).
+        sec4 = resolve_act_relative_citation(_citation("Small Business Act", "4"), index=active, source_credits=credits)
+        assert sec4.iri is None
+        assert sec4.unresolved_reason == "act_section_ambiguous"
+
+        # When the composite enclosing identity (85-536, None, "2") IS aligned, § 3 resolves to 15 U.S.C. 632.
+        aligned = resolve_act_relative_citation(
+            ActRelativeCitation("Small Business Act", "small business act", "3", enclosing_section="2"),
+            index=active,
+            source_credits=credits,
+        )
+        assert aligned.iri == "urn:rkaf:us:usc:15:632"
+        assert (aligned.usc_title, aligned.usc_section) == ("15", "632")
+        assert aligned.enclosing_section == "2"
+        assert aligned.answered_by == "table3"
+
+
+def test_enclosing_source_identity_joins_and_refuses_conflicts_across_table3_and_credits() -> None:
+    """Composite ``(law, division, enclosing_section)`` joins both sources and refuses mismatches."""
+
+    sba_index = ActIndex(
+        table3_key_by_name={"small business act": "85-536"},
+        enclosing_section_by_name={"small business act": "2"},
+        classifications={
+            "85-536": {
+                "2[2]": (Classification("15", "631", None, 384),),
+                "2[3]": (Classification("15", "632", None, 384),),
+                "3": (Classification("12", "371", None, 396),),
+            }
+        },
+    )
+    sba_credits = SourceCreditIndex.from_rows(
+        [
+            ("85-536", None, "2", "3", "15", "632", "72", "384"),
+            # A bare row without enclosing_section must never leak into an enclosed lookup.
+            ("85-536", "A", "3", "12", "371", "72", "396"),
+        ]
+    )
+    resolved = resolve_act_relative_citation(
+        _citation("Small Business Act", "3"), index=sba_index, source_credits=sba_credits
+    )
+    assert resolved.iri == "urn:rkaf:us:usc:15:632"
+    assert resolved.answered_by == "both"
+    assert resolved.enclosing_section == "2"
+    assert (resolved.statutes_at_large_volume, resolved.statutes_at_large_page) == ("72", "384")
+
+    # Conflicting citation enclosing section refuses without consulting credits.
+    conflict = resolve_act_relative_citation(
+        ActRelativeCitation("Small Business Act", "small business act", "3", enclosing_section="5"),
+        index=sba_index,
+        source_credits=sba_credits,
+    )
+    assert conflict.iri is None
+    assert conflict.unresolved_reason == "act_section_ambiguous"
+    assert conflict.source_credit_status == "not_consulted"
+
+    # Explicit bracketed enclosing section ("5[3]") conflicting with stated_enclosing ("2")
+    # must refuse immediately and NEVER fall through to source_credits with credit_enclosing="2".
+    explicit_conflict_stated = resolve_act_relative_citation(
+        _citation("Small Business Act", "5[3]"),
+        index=sba_index,
+        source_credits=sba_credits,
+    )
+    assert explicit_conflict_stated.iri is None
+    assert explicit_conflict_stated.unresolved_reason == "act_section_ambiguous"
+    assert explicit_conflict_stated.source_credit_status == "not_consulted"
+
+    # Explicit bracketed enclosing section ("5[3]") conflicting with citation.enclosing_section ("2")
+    # when the index states no enclosing section must also refuse immediately without consulting credits.
+    unenclosed_sba_index = ActIndex(
+        table3_key_by_name={"small business act": "85-536"},
+        classifications=sba_index.classifications,
+    )
+    explicit_conflict_cit = resolve_act_relative_citation(
+        ActRelativeCitation("Small Business Act", "small business act", "5[3]", enclosing_section="2"),
+        index=unenclosed_sba_index,
+        source_credits=sba_credits,
+    )
+    assert explicit_conflict_cit.iri is None
+    assert explicit_conflict_cit.unresolved_reason == "act_section_ambiguous"
+    assert explicit_conflict_cit.source_credit_status == "not_consulted"
+
+    # Matching explicit bracketed enclosing section ("2[3]") agrees across both sources.
+    explicit_match = resolve_act_relative_citation(
+        _citation("Small Business Act", "2[3]"),
+        index=sba_index,
+        source_credits=sba_credits,
+    )
+    assert explicit_match.iri == "urn:rkaf:us:usc:15:632"
+    assert explicit_match.answered_by == "both"
+    assert explicit_match.enclosing_section == "2"
+
+    # Candidate multiplicity preserves distinct enclosing sections and refuses until aligned.
+    multi = ActIndex(
+        table3_key_by_name={"example act": "85-536"},
+        name_candidates={
+            "example act": (
+                PopularNameRecord(name="Example Act", content_type="cite", table3_key="85-536", enclosing_section="2"),
+                PopularNameRecord(name="Example Act", content_type="cite", table3_key="85-536", enclosing_section="9"),
+            )
+        },
+        classifications=sba_index.classifications,
+    )
+    ambig = resolve_act_relative_citation(_citation("Example Act", "3"), index=multi, source_credits=sba_credits)
+    assert ambig.iri is None
+    assert ambig.unresolved_reason == "act_name_ambiguous"
+    assert len(ambig.candidate_resolutions) == 2
+
+    narrowed = resolve_act_relative_citation(
+        ActRelativeCitation("Example Act", "example act", "3", enclosing_section="2"),
+        index=multi,
+        source_credits=sba_credits,
+    )
+    assert narrowed.iri == "urn:rkaf:us:usc:15:632"
+    assert narrowed.enclosing_section == "2"
+
+    # Explicit bracketed section also narrows or refuses against candidate multiplicity.
+    explicit_multi_conflict = resolve_act_relative_citation(
+        _citation("Example Act", "5[3]"),
+        index=multi,
+        source_credits=sba_credits,
+    )
+    assert explicit_multi_conflict.iri is None
+    assert explicit_multi_conflict.unresolved_reason == "act_section_ambiguous"
+    assert explicit_multi_conflict.source_credit_status == "not_consulted"
+
+
+def test_source_credit_index_splits_bracketed_enclosing_section_on_8_tuples_and_legacy_parquet(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """8-tuples with enclosing_section=None and legacy Parquets lacking enclosing_section still split '2[3]'."""
+
+    import hashlib
+
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    from refspec.registry import act_resolution
+
+    # 1. Direct 8-tuple with enclosing_section=None and act_section="2[3]".
+    idx_8 = SourceCreditIndex.from_rows(
+        [("85-536", None, None, "2[3]", "15", "632", "72", "384")]
+    )
+    ans_8 = idx_8.lookup("85-536", None, "3", enclosing_section="2")
+    assert ans_8.status == "resolved"
+    assert (ans_8.usc_title, ans_8.usc_section) == ("15", "632")
+    assert (ans_8.statutes_at_large_volume, ans_8.statutes_at_large_page) == ("72", "384")
+    # Must NOT leak into unenclosed targets.
+    assert idx_8.targets == {}
+
+    # 2. Legacy Parquet artifact lacking an `enclosing_section` column altogether.
+    legacy_table = pa.table(
+        {
+            "public_law": pa.array(["85-536"], type=pa.string()),
+            "division": pa.array([None], type=pa.string()),
+            "act_section": pa.array(["2[3]"], type=pa.string()),
+            "usc_title": pa.array(["15"], type=pa.string()),
+            "usc_section": pa.array(["632"], type=pa.string()),
+            "statutes_at_large_volume": pa.array(["72"], type=pa.string()),
+            "statutes_at_large_page": pa.array(["384"], type=pa.string()),
+        }
+    )
+    parquet_path = tmp_path / "usc-source-credits.parquet"
+    pq.write_table(legacy_table, parquet_path)
+    (tmp_path / "receipt.json").write_text('{"schema": "legacy"}\n', encoding="utf-8")
+    digest = "sha256:" + hashlib.sha256(parquet_path.read_bytes()).hexdigest()
+    monkeypatch.setattr(
+        act_resolution,
+        "_ARTIFACT_PINS",
+        {"legacy-credits": {"usc-source-credits.parquet": digest}},
+    )
+
+    loaded = SourceCreditIndex.from_artifact(tmp_path)
+    ans_parquet = loaded.lookup("85-536", None, "3", enclosing_section="2")
+    assert ans_parquet.status == "resolved"
+    assert (ans_parquet.usc_title, ans_parquet.usc_section) == ("15", "632")
+    assert loaded.targets == {}
+
+
+def test_cercla_section_107a_resolves_to_42_9607(credits) -> None:
+    """``section 107(a) of CERCLA`` resolves to ``42-9607`` via grammar and direct citation."""
+
+    bulk = ActIndex.from_artifact(BULK_ACT_DIR)
+    occs = find_act_relative_occurrences("section 107(a) of CERCLA", act_names=bulk.act_names)
+    assert len(occs) == 1
+    assert occs[0].pinpoint == ("a",)
+
+    for cit in (occs[0].citation, _citation("CERCLA", "107(a)")):
+        res = resolve_act_relative_citation(cit, index=bulk, source_credits=credits)
+        assert res.iri == "urn:rkaf:us:usc:42:9607"
+        assert (res.usc_title, res.usc_section) == ("42", "9607")
+        assert res.table3_key == "96-510"
+        assert res.answered_by == "table3"
+
+    # Reviewed alias resolves even on an index without an explicit see-row alias, and refuses when target is absent.
+    assert "cercla" in REVIEWED_ACT_ALIASES
+    minimal = ActIndex(
+        table3_key_by_name={REVIEWED_ACT_ALIASES["cercla"]: "96-510"},
+        classifications={"96-510": {"107": (Classification("42", "9607", None, 2781),)}},
+    )
+    assert resolve_act_relative_citation(_citation("CERCLA", "107(a)"), index=minimal).iri == "urn:rkaf:us:usc:42:9607"
+    assert resolve_act_relative_citation(_citation("CERCLA", "107(a)"), index=ActIndex()).unresolved_reason == "act_not_in_index"
+
+
+def test_civil_rights_act_of_1964_section_706_resolves_and_bare_name_refuses(credits) -> None:
+    """``Civil Rights Act of 1964`` § 706 resolves to ``42-2000e-5``; bare ``Civil Rights Act`` stays refused."""
+
+    bulk = ActIndex.from_artifact(BULK_ACT_DIR)
+    for phrase in ("section 706 of the Civil Rights Act of 1964", "Civil Rights Act of 1964 section 706"):
+        occs = find_act_relative_occurrences(phrase, act_names=bulk.act_names)
+        assert len(occs) == 1, phrase
+        res = resolve_act_relative_citation(occs[0].citation, index=bulk, source_credits=credits)
+        assert res.iri == "urn:rkaf:us:usc:42:2000e-5"
+        assert (res.usc_title, res.usc_section) == ("42", "2000e-5")
+        assert res.table3_key == "88-352"
+        assert res.answered_by == "table3"
+
+    # Multiple Civil Rights Acts (1866, 1957, 1960, 1964, 1968, 1991) exist; bare name must never guess 1964.
+    assert find_act_relative_occurrences("Civil Rights Act section 706", act_names=bulk.act_names) == ()
+    bare = resolve_act_relative_citation(_citation("Civil Rights Act", "706"), index=bulk, source_credits=credits)
+    assert bare.iri is None
+    assert bare.unresolved_reason == "act_not_in_index"
+
 

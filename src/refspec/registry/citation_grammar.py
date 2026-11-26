@@ -4253,6 +4253,9 @@ class ActRelativeCitation:
     #: The division the citation itself names, when it names one. ``None``
     #: means the text stated none — never that it stated the whole law.
     division: str | None = None
+    #: The enclosing section of the public law in which an act was enacted
+    #: (for example, Pub. L. 85-536, § 2[3] has enclosing section ``"2"``).
+    enclosing_section: str | None = None
 
 
 @dataclass(frozen=True)
