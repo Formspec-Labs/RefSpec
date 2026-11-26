@@ -392,12 +392,14 @@ class ExactPinnedRRF:
         for rank, rid in enumerate(lexical_rids[: self.candidate_depth], start=1):
             rrf_scores[rid] += self.lexical_weight / (self.k + rank)
         dense_rank = 0
+        dense_map: dict[int, float] = {}
         for rid, cosine in dense_hits:
             if self.min_cosine is not None and cosine < self.min_cosine:
                 continue
             dense_rank += 1
             if dense_rank > self.candidate_depth:
                 break
+            dense_map[rid] = max(dense_map.get(rid, -math.inf), float(cosine))
             rrf_scores[rid] += self.dense_weight / (self.k + dense_rank)
 
         if len(unique_exact) >= limit:
@@ -414,7 +416,15 @@ class ExactPinnedRRF:
         n_exact = len(unique_exact)
         for idx, rid in enumerate(unique_exact):
             scores[rid] = 1000.0 + (n_exact - idx) * exact_step
-        ranked = sorted(scores.items(), key=lambda pair: (-pair[1], pair[0]))
+        ranked = sorted(
+            scores.items(),
+            key=lambda pair: (
+                -pair[1],
+                0 if pair[0] in dense_map else 1,
+                -dense_map.get(pair[0], -math.inf),
+                pair[0],
+            ),
+        )
         return [rid for rid, _ in ranked[:limit]]
 
 
@@ -486,6 +496,10 @@ class AuthorityReranker:
         if limit <= 0 or not candidates:
             return []
         q_norm = normalize_text(query.strip())
+        has_semantic_candidates = any(
+            (c.get("matchReason") or c.get("_matchReason")) == "semantic_hybrid" for c in candidates
+        )
+        is_single_token_query = len(q_norm.split()) == 1
 
         scored: list[tuple[bool, float, int, dict[str, Any]]] = []
         for idx, item in enumerate(candidates):
@@ -493,10 +507,13 @@ class AuthorityReranker:
             label = str(cand.get("label") or "")
             label_norm = normalize_text(label.strip())
             match_reason = cand.get("matchReason") or cand.get("_matchReason")
-            is_exact = match_reason in ("exact_preferred", "exact_alternate", "exact_hidden") or (
-                bool(q_norm) and label_norm == q_norm
+            is_single_token_hybrid_spelling = (
+                match_reason == "spelling_corrected" and has_semantic_candidates and is_single_token_query
             )
-            if not is_exact and q_norm:
+            is_exact = match_reason in ("exact_preferred", "exact_alternate", "exact_hidden") or (
+                not is_single_token_hybrid_spelling and bool(q_norm) and label_norm == q_norm
+            )
+            if not is_exact and q_norm and not is_single_token_hybrid_spelling:
                 labels = cand.get("labels")
                 if isinstance(labels, Sequence) and not isinstance(labels, (str, bytes)):
                     is_exact = any(
@@ -546,6 +563,16 @@ class LookupPolicy:
             raise VocabularyInputError(
                 "invalid_min_cosine",
                 f"min_cosine must be a finite number in [-1.0, 1.0] or None, got {self.min_cosine!r}",
+            )
+        if isinstance(self.nprobe, bool) or not isinstance(self.nprobe, int) or self.nprobe < 1:
+            raise VocabularyInputError(
+                "invalid_nprobe",
+                f"nprobe must be an integer >= 1, got {self.nprobe!r}",
+            )
+        if isinstance(self.label_limit, bool) or not isinstance(self.label_limit, int) or self.label_limit < 1:
+            raise VocabularyInputError(
+                "invalid_label_limit",
+                f"label_limit must be an integer >= 1, got {self.label_limit!r}",
             )
 
 

@@ -3568,12 +3568,13 @@ def test_hybrid_spelling_no_false_friend_override_authority_reranker_typo_and_em
     euro_rid_1 = int(con.execute("SELECT rid FROM resources WHERE id = 'http://eurovoc.europa.eu/1234'").fetchone()[0])
     max_rid = int(con.execute("SELECT max(rid) FROM resources").fetchone()[0])
 
-    # Add "Folder" (lower rid) and "Carpet" (df=3) to test Spanish "carpeta" -> "carpet" false friend!
-    folder_rid = max_rid + 1
-    carpet_rid = max_rid + 2
+    # Add "Carpet" (LOWER rid, df=3) and "Folder" (HIGHER rid) — true adversarial alphabetical order
+    # to test Spanish "carpeta" -> "carpet" false friend under BOTH ExactPinnedRRF AND AuthorityReranker!
+    carpet_rid = max_rid + 1
+    folder_rid = max_rid + 2
     for rid, res_id, pref, defn in [
-        (folder_rid, "urn:ref:fr:folder", "Folder", "File folder for organizing documents."),
         (carpet_rid, "urn:ref:fr:carpet", "Carpet", "Woven textile floor covering."),
+        (folder_rid, "urn:ref:fr:folder", "Folder", "File folder for organizing documents."),
     ]:
         norm = normalize_text(pref)
         con.execute(
@@ -3669,8 +3670,9 @@ def test_hybrid_spelling_no_false_friend_override_authority_reranker_typo_and_em
         rank_fusion=rec_fusion,
         verify_pack_digest=False,
     ) as pack:
-        # 1. Hybrid "carpeta": spelling hit "Carpet" MUST go into lexical_rids (NOT exact_rids!),
-        #    so dense "Folder" (lower rid) is NOT hijacked by a 100.0 hard override!
+        # 1. Hybrid "carpeta": spelling hit "Carpet" (LOWER rid!) MUST go into lexical_rids (NOT exact_rids!),
+        #    and dense "Folder" MUST win rank #1 under BOTH default ExactPinnedRRF AND AuthorityReranker!
+        assert carpet_rid < folder_rid
         es_meta = pack.lookup_with_meta_sync("carpeta", limit=5, include_context=True)
         last_exact, last_lex, last_dense = rec_fusion._recorded[-1]  # type: ignore[attr-defined]
         assert last_exact == []
@@ -3680,6 +3682,10 @@ def test_hybrid_spelling_no_false_friend_override_authority_reranker_typo_and_em
         carpet_card = next(c for c in es_meta["concepts"] if c["id"] == "urn:ref:fr:carpet")
         assert carpet_card["matchReason"] == "spelling_corrected"
 
+        rerank_pack = pack.with_dependencies(candidate_reranker=AuthorityReranker(), verify_pack_digest=False)
+        es_reranked = rerank_pack.lookup_with_meta_sync("carpeta", limit=5, include_context=True)
+        assert es_reranked["concepts"][0]["id"] == "urn:ref:fr:folder"
+
         # 2. Pure lexical (dense_hits empty) still pins exact spelling hit into exact_rids with matchReason="spelling_corrected".
         lex_only = pack.with_dependencies(semantic_index=None, query_encoder=None, verify_pack_digest=False)
         lex_carp = lex_only.lookup_with_meta_sync("carpeta", limit=5, include_context=True)
@@ -3687,14 +3693,18 @@ def test_hybrid_spelling_no_false_friend_override_authority_reranker_typo_and_em
         assert lex_carp["concepts"][0]["id"] == "urn:ref:fr:carpet"
         assert lex_carp["concepts"][0]["matchReason"] == "spelling_corrected"
 
-        # 3. F7: Hybrid typo "peromyscus maniculatuz" with AuthorityReranker MUST pass corrected_query
+        # 3. F7: Hybrid multi-token typo "peromyscus maniculatuz" with AuthorityReranker MUST pass corrected_query
         #    ("peromyscus maniculatus") to rerank() so "Peromyscus maniculatus" beats noisy lower-rid dense hit!
-        rerank_pack = pack.with_dependencies(candidate_reranker=AuthorityReranker(), verify_pack_digest=False)
         pero_meta = rerank_pack.lookup_with_meta_sync("peromyscus maniculatuz", limit=5)
         assert pero_meta["correctedQuery"] == "peromyscus maniculatus"
         assert pero_meta["concepts"][0]["id"] == "http://id.loc.gov/authorities/subjects/sh_overflow"
         assert pero_meta["concepts"][0]["label"] == "Peromyscus maniculatus"
         assert pero_rid > euro_rid_1
+
+        # 3b. LookupPolicy rejects invalid nprobe / label_limit with VocabularyInputError.
+        for bad_kwargs in ({"nprobe": 0}, {"nprobe": True}, {"label_limit": 0}, {"label_limit": False}):
+            with pytest.raises(VocabularyInputError):
+                LookupPolicy(**bad_kwargs)
 
         # 4. If RRF filters out all dense hits so final_rids is empty, winning_tier stays "empty" (NOT "semantic_hybrid")!
         strict_rrf_pack = pack.with_dependencies(
@@ -3769,9 +3779,12 @@ def test_narrower_cycle_quarantine_deterministic_related_order_and_scoped_member
         }
 
     # Put skos:related FIRST in Parquet before skos:broader to prove deterministic pre-populated pid ordering!
+    # Mix uncompressed stmt_pfx=0 ("urn:zzz:ord-brd-z") with compressed stmt_pfx=2 ("urn:ref:atlas-assertion:ord-brd")
+    # on the same predicate to verify related_sync(limit=1) == related_sync(limit=10)[0] across prefix classes!
     # Also add GEMET-style 2-node skos:narrower cycle (15046 <-> 15125) + acyclic narrower edge (root -> 15046).
     stm_rows = [
         _mk_stmt("urn:ref:atlas-assertion:ord-rel", "urn:ref:fr:rel-seed", SKOS + "related", "urn:ref:fr:rel-related"),
+        _mk_stmt("urn:zzz:ord-brd-z", "urn:ref:fr:rel-seed", SKOS + "broader", "urn:ref:fr:rel-related"),
         _mk_stmt("urn:ref:atlas-assertion:ord-brd", "urn:ref:fr:rel-seed", SKOS + "broader", "urn:ref:fr:rel-broader"),
         _mk_stmt("urn:ref:atlas-assertion:nar-cyc-1", "urn:ref:fr:nar-15046", SKOS + "narrower", "urn:ref:fr:nar-15125"),
         _mk_stmt("urn:ref:atlas-assertion:nar-cyc-2", "urn:ref:fr:nar-15125", SKOS + "narrower", "urn:ref:fr:nar-15046"),
@@ -3893,9 +3906,14 @@ def test_narrower_cycle_quarantine_deterministic_related_order_and_scoped_member
         seed_ref = {"id": "urn:ref:fr:rel-seed", "scheme": S_FR, "release": R_FR}
         top1 = pack.related_sync(seed_ref, limit=1)
         top10 = pack.related_sync(seed_ref, limit=10)
-        assert len(top1) == 1 and len(top10) == 2
+        assert len(top1) == 1 and len(top10) == 3
         assert top1[0] == top10[0]
         assert top1[0]["relation"]["type"] == SKOS + "broader"
+        assert [row["relation"]["id"] for row in top10] == [
+            "urn:ref:atlas-assertion:ord-brd",
+            "urn:zzz:ord-brd-z",
+            "urn:ref:atlas-assertion:ord-rel",
+        ]
 
     # Opt-out quarantine_broader_cycles=False keeps narrower cycle edges while still reporting narrower_cycle_count=1.
     pack_unq = tmp_path / "narrower_unq.sqlite"

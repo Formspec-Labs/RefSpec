@@ -1716,10 +1716,11 @@ class AtlasVocabularyPack:
 
             for pid, stmt_pfx, stmt_suf, dst_rid, is_def, rule_id in con.execute(
                 """
-                SELECT pid, stmt_pfx, stmt_suffix, dst_rid, ref035_default, rule_id
-                FROM edges
-                WHERE src_rid = ? AND stmt_kind = ?
-                ORDER BY pid, stmt_pfx, stmt_suffix, dst_rid
+                SELECT e.pid, e.stmt_pfx, e.stmt_suffix, e.dst_rid, e.ref035_default, e.rule_id
+                FROM edges e
+                LEFT JOIN uri_prefixes up ON up.pfx_id = e.stmt_pfx
+                WHERE e.src_rid = ? AND e.stmt_kind = ?
+                ORDER BY e.pid, (COALESCE(up.prefix, '') || e.stmt_suffix), e.dst_rid
                 LIMIT ?
                 """,
                 (src_rid, _STMT_KIND_NATIVE, limit),
@@ -1733,10 +1734,11 @@ class AtlasVocabularyPack:
                 if use_default_only:
                     fwd_rows = con.execute(
                         """
-                        SELECT pid, stmt_pfx, stmt_suffix, dst_rid, ref035_default
-                        FROM edges
-                        WHERE src_rid = ? AND stmt_kind = ? AND ref035_default = 1
-                        ORDER BY pid, stmt_pfx, stmt_suffix, dst_rid
+                        SELECT e.pid, e.stmt_pfx, e.stmt_suffix, e.dst_rid, e.ref035_default
+                        FROM edges e
+                        LEFT JOIN uri_prefixes up ON up.pfx_id = e.stmt_pfx
+                        WHERE e.src_rid = ? AND e.stmt_kind = ? AND e.ref035_default = 1
+                        ORDER BY e.pid, (COALESCE(up.prefix, '') || e.stmt_suffix), e.dst_rid
                         LIMIT ?
                         """,
                         (src_rid, _STMT_KIND_MAPPING, remaining),
@@ -1744,10 +1746,11 @@ class AtlasVocabularyPack:
                 else:
                     fwd_rows = con.execute(
                         """
-                        SELECT pid, stmt_pfx, stmt_suffix, dst_rid, ref035_default
-                        FROM edges
-                        WHERE src_rid = ? AND stmt_kind = ?
-                        ORDER BY ref035_default DESC, pid, stmt_pfx, stmt_suffix, dst_rid
+                        SELECT e.pid, e.stmt_pfx, e.stmt_suffix, e.dst_rid, e.ref035_default
+                        FROM edges e
+                        LEFT JOIN uri_prefixes up ON up.pfx_id = e.stmt_pfx
+                        WHERE e.src_rid = ? AND e.stmt_kind = ?
+                        ORDER BY e.ref035_default DESC, e.pid, (COALESCE(up.prefix, '') || e.stmt_suffix), e.dst_rid
                         LIMIT ?
                         """,
                         (src_rid, _STMT_KIND_MAPPING, remaining),
@@ -1764,10 +1767,11 @@ class AtlasVocabularyPack:
                     if use_default_only:
                         rev_rows = con.execute(
                             """
-                            SELECT pid, stmt_pfx, stmt_suffix, src_rid, ref035_default
-                            FROM edges_rev
-                            WHERE dst_rid = ? AND ref035_default = 1
-                            ORDER BY pid, stmt_pfx, stmt_suffix, src_rid
+                            SELECT e.pid, e.stmt_pfx, e.stmt_suffix, e.src_rid, e.ref035_default
+                            FROM edges_rev e
+                            LEFT JOIN uri_prefixes up ON up.pfx_id = e.stmt_pfx
+                            WHERE e.dst_rid = ? AND e.ref035_default = 1
+                            ORDER BY e.pid, (COALESCE(up.prefix, '') || e.stmt_suffix), e.src_rid
                             LIMIT ?
                             """,
                             (src_rid, rem2 * 2),
@@ -1775,10 +1779,11 @@ class AtlasVocabularyPack:
                     else:
                         rev_rows = con.execute(
                             """
-                            SELECT pid, stmt_pfx, stmt_suffix, src_rid, ref035_default
-                            FROM edges_rev
-                            WHERE dst_rid = ?
-                            ORDER BY ref035_default DESC, pid, stmt_pfx, stmt_suffix, src_rid
+                            SELECT e.pid, e.stmt_pfx, e.stmt_suffix, e.src_rid, e.ref035_default
+                            FROM edges_rev e
+                            LEFT JOIN uri_prefixes up ON up.pfx_id = e.stmt_pfx
+                            WHERE e.dst_rid = ?
+                            ORDER BY e.ref035_default DESC, e.pid, (COALESCE(up.prefix, '') || e.stmt_suffix), e.src_rid
                             LIMIT ?
                             """,
                             (src_rid, rem2 * 2),
@@ -1796,10 +1801,11 @@ class AtlasVocabularyPack:
                 rem3 = limit - len(raw_edges)
                 for pid, stmt_pfx, stmt_suf, dst_rid, is_def, rule_id in con.execute(
                     """
-                    SELECT pid, stmt_pfx, stmt_suffix, dst_rid, ref035_default, rule_id
-                    FROM edges
-                    WHERE src_rid = ? AND stmt_kind = ?
-                    ORDER BY pid, stmt_pfx, stmt_suffix, dst_rid
+                    SELECT e.pid, e.stmt_pfx, e.stmt_suffix, e.dst_rid, e.ref035_default, e.rule_id
+                    FROM edges e
+                    LEFT JOIN uri_prefixes up ON up.pfx_id = e.stmt_pfx
+                    WHERE e.src_rid = ? AND e.stmt_kind = ?
+                    ORDER BY e.pid, (COALESCE(up.prefix, '') || e.stmt_suffix), e.dst_rid
                     LIMIT ?
                     """,
                     (src_rid, _STMT_KIND_DERIVED, rem3),

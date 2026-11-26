@@ -1140,6 +1140,14 @@ def test_v3_seal_hardening_parent_symlinks_pack_meta_and_required_pack_id(
     with pytest.raises(SealError, match="unsupported pack_meta.schema_version"):
         create_seal(root, signing_key, SIGNER_IDENTITY, vocabulary_pack=bad_ver_pack)
 
+    missing_pack_id_pack = _write_test_vocabulary_pack(
+        tmp_path / "missing-pack-id.sqlite",
+        source_manifest_digest=manifest_digest,
+        pack_id="",
+    )
+    with pytest.raises(SealError, match="states no pack_meta.pack_id"):
+        create_seal(root, signing_key, SIGNER_IDENTITY, vocabulary_pack=missing_pack_id_pack)
+
     # Schema version "2" is accepted cleanly.
     v2_pack = _write_test_vocabulary_pack(
         tmp_path / "v2-pack.sqlite",

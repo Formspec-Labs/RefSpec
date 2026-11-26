@@ -577,7 +577,9 @@ def _verify_vocabulary_pack(
             f"{source_manifest_digest!r}"
         )
     pack_id = meta.get("pack_id")
-    return pack_sha256, source_manifest_digest, str(pack_id) if isinstance(pack_id, str) else "", byte_length
+    if not isinstance(pack_id, str) or not pack_id:
+        raise SealError(f"the vocabulary pack states no pack_meta.pack_id: {pack_path}")
+    return pack_sha256, source_manifest_digest, pack_id, byte_length
 
 
 def _verify_semantic_sidecar(
