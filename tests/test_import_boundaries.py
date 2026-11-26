@@ -67,11 +67,14 @@ def _requirement_dist_name(spec: str) -> str:
 
 
 def _declared_dependency_modules() -> frozenset[str]:
-    """Return the top-level import names of the project's declared dependencies."""
+    """Return the top-level import names of the project's declared dependencies (including extras)."""
 
     project = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
     names = set()
-    for spec in project["dependencies"]:
+    specs = list(project["dependencies"])
+    for extra_specs in project.get("optional-dependencies", {}).values():
+        specs.extend(extra_specs)
+    for spec in specs:
         dist = _requirement_dist_name(spec)
         names.add(_DIST_TO_MODULE.get(dist, dist.replace("-", "_")))
     return frozenset(names)

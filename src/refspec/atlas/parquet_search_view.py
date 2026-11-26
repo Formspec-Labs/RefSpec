@@ -12,7 +12,7 @@ import importlib.metadata
 import os
 import shutil
 import tempfile
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -499,8 +499,15 @@ def verify_atlas_parquet_search_view(
     directory: Path,
     *,
     expected_manifest_digest: str,
+    roles: Collection[str] | None = None,
 ) -> dict[str, Any]:
-    """Verify closed membership, schemas, counts, and exact compact-view bytes."""
+    """Verify closed membership, schemas, counts, and exact compact-view bytes.
+
+    When ``roles`` is supplied, the manifest digest, canonical payload digest,
+    status, symlink safety, and closed file-membership set are still verified,
+    while byte-hashing and Parquet schema/row-count inspection are scoped to
+    the requested member roles.
+    """
 
     if directory.is_symlink() or not directory.is_dir():
         raise AtlasParquetSearchViewError("compact Atlas view must be a regular directory")
@@ -538,8 +545,17 @@ def verify_atlas_parquet_search_view(
         "omittedFields": list(_OMITTED_FIELDS),
     }:
         raise AtlasParquetSearchViewError("compact view status is unsupported")
+    known_roles = {role.value for role in CompactRecordRole} | set(_VERBATIM_TABLE_SCHEMAS)
+    selected_roles: frozenset[str] | None = None
+    if roles is not None:
+        selected_roles = frozenset(roles)
+        unknown_roles = selected_roles - known_roles
+        if unknown_roles:
+            raise AtlasParquetSearchViewError(
+                f"compact view verification requested unsupported roles: {sorted(unknown_roles)}"
+            )
     expected_files = {MANIFEST_FILE}
-    counts = {}
+    counts: dict[str, int] = {}
     seen: set[CompactRecordRole] = set()
     seen_verbatim_roles: set[str] = set()
     for member in manifest["members"]:
@@ -552,16 +568,21 @@ def verify_atlas_parquet_search_view(
                 raise AtlasParquetSearchViewError("compact view repeats a table role")
             seen_verbatim_roles.add(member_role)
             schema = _VERBATIM_TABLE_SCHEMAS[member_role]
+            role_key = member_role
         else:
             role = CompactRecordRole(member_role)
             if role in seen:
                 raise AtlasParquetSearchViewError("compact view repeats a table role")
             seen.add(role)
             schema = _SCHEMAS[role]
+            role_key = role.value
         path = _safe_member_path(directory, member["path"])
         expected_files.add(member["path"])
         if path.is_symlink() or not path.is_file():
             raise AtlasParquetSearchViewError(f"compact view member is missing or unsafe: {member['path']}")
+        if selected_roles is not None and role_key not in selected_roles:
+            counts[role_key] = member["rowCount"]
+            continue
         if path.stat().st_size != member["byteLength"] or file_sha256(path) != member["sha256"]:
             raise AtlasParquetSearchViewError(f"compact view member bytes differ: {member['path']}")
         parquet = pq.ParquetFile(path)
@@ -571,7 +592,7 @@ def verify_atlas_parquet_search_view(
             raise AtlasParquetSearchViewError(f"compact view schema differs: {member['path']}")
         if parquet.metadata.num_rows != member["rowCount"]:
             raise AtlasParquetSearchViewError(f"compact view row count differs: {member['path']}")
-        counts[member_role if is_verbatim else role.value] = parquet.metadata.num_rows
+        counts[role_key] = parquet.metadata.num_rows
     if seen != set(CompactRecordRole) or counts != manifest["counts"]:
         raise AtlasParquetSearchViewError("compact view roles or aggregate counts differ")
     projection_seen = seen_verbatim_roles & PROJECTION_MEMBER_ROLES

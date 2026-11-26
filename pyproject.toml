@@ -26,10 +26,16 @@ dependencies = [
     "rulespec-artifacts==1.1.2",
 ]
 
+[project.optional-dependencies]
+vectors = [
+    "numpy>=1.26,<3",
+]
+
 [project.scripts]
 refspec-atlas-explorer = "refspec.atlas.explorer_cli:main"
 refspec-verify-atlas-parquet-view = "refspec.atlas.parquet_view_cli:main"
 refspec-build-atlas-search-view = "refspec.atlas.parquet_search_view_cli:main"
+refspec-build-vocabulary-pack = "refspec.atlas.vocabulary_pack_cli:main"
 refspec-validate-atlas-parquet = "refspec.atlas.parquet_preflight_cli:main"
 refspec-validate = "refspec.binding:main"
 refspec-release-graph-gate = "refspec.release_graph:main"
