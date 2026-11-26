@@ -1,7 +1,7 @@
 # RefSpec Product Boundary and API Disposition
 
 **Effective date:** 4 August 2026
-**Reviewed:** 8 August 2026
+**Reviewed:** 25 November 2026 (REF-078)
 **Status:** Current product boundary under Atlas 3.0
 
 The ownership boundary in this document remains current. Atlas 3.0 supersedes
@@ -28,8 +28,13 @@ validator resolves; nothing in RefSpec admits one as evidence directly.
 
 **What comes out:** digest-pinned source and managed concept releases, an
 Atlas 3.0 manifest with authoritative RDF packs and construction evidence,
-derived local views, publication decisions, and static publications.
-RefSpec does not publish a mutable query service or a physical search index.
+derived local views, immutable compiled read-only serving packs
+(`AtlasVocabularyPack` SQLite packs and optional `.vpack` vector sidecars,
+REF-078), publication decisions, and static publications.
+RefSpec does not publish a mutable query service, database-coupled query
+adapters (`native_vocabulary.py` is retired), or an operational search service;
+compiled serving packs are sealed, read-only, digest-pinned files with zero
+database coupling.
 
 **How consumers check it:** consumers verify the binding and manifest pins,
 member and pack bytes, exact release membership, record closure, graph roles
@@ -77,6 +82,8 @@ boundary and source of truth.
 | Document observations and capture records | Exclude | DocSpec owns document-body capture and processing; SpicyRegs owns source-native acquisition and publication; RefSpec accepts only published evidence files at this boundary |
 | Enrichment evaluation and deployment records | Move | Product-local evaluation workflow; RefSpec retains vocabulary release proof |
 | `authorize_accepted_assignment` | Move | Rulespec Extrapolator |
+| `AtlasVocabularyPack`, `AtlasSemanticSidecar`, `vocabulary_protocols`, and `refspec-build-vocabulary-pack` | Keep | Immutable compiled read-only serving packs and stdlib-only DI consumer contracts with zero database coupling (REF-078) |
+| `native_vocabulary.py` (`AtlasNativeVocabulary`) | Retired | Deleted under REF-078; replaced by immutable compiled read-only serving packs (zero mutable query service, zero DB coupling) |
 | `ReferenceRuntimeStore`, query products, ranking, and serving | Move | SpicySearch |
 
 New atlas types are not re-exported from the broad `refspec` package root. The

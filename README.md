@@ -62,6 +62,26 @@ output directories remain intact and require a fresh selection path for a new bu
 
 ## Who owns what
 
+The optional [`AtlasVocabularyPack`](docs/vocabulary-pack.md) compiles a
+verified Atlas 3.1 `parquet-view` (or legacy compact `parquet-search-view`)
+into a sealed, read-only SQLite FTS5 + graph `v3` pack (`WITHOUT ROWID`,
+precomputed neutral structural priors, `sid_by_rid_u16`, and optional
+`agency_change_events` / `agency_projections` tables) served through
+stdlib-only dependency-injection protocols
+([`refspec.atlas.vocabulary_protocols`](src/refspec/atlas/vocabulary_protocols.py),
+[REF-078](docs/decisions.md)).
+It provides sub-millisecond concept lookup (exact, field-weighted BM25,
+diacritic-symmetric normalization, gated zero-ML spelling recovery with
+abstention), exact label resolution preserving canonical `Label.id`
+([REF-025](docs/decisions.md)), native SKOS relations, opt-in
+[REF-035](docs/decisions.md) `MappingAssertion` crosswalks, opt-in derived
+relations, an optional memory-mapped `.vpack` Tier-1 semantic sidecar
+(`flat_f16` / `binary_i8` / `ivf_i8`, packaged behind the optional
+`refspec[vectors]` extra), cryptographic pack+sidecar sealing
+(`refspec-distribution-seal-3`), and declarative two-layer Atlas release
+profiles (`--profile core-regulatory` vs `--profile bibliographic-crosswalk`)
+— with zero vendor SQL DDL or database pool coupling.
+
 RefSpec owns vocabulary acquisition, release validation, crosswalk evidence,
 and Atlas publication. Publishers stay authoritative for their sources.
 Rulespec owns the shared semantic contract (the rkaf ontology and its

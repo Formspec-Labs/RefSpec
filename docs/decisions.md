@@ -6481,3 +6481,61 @@ and refuses a planted wrong value in each table.
    view manifest pin `sha256:c89935de...`. `tools/atlas_independent_agency.py`
    and `research/atlas-refresh-2026-09-27/independent/agency/` authenticate
    both alias batches and their retained primary records.
+
+### REF-078: Immutable compiled serving packs, optional vector sidecars, neutral structural priors, and two-layer Atlas release profiles
+
+- **Date:** 2026-11-25
+- **Status:** Accepted. Governs RefSpec's immutable read-only vocabulary
+  serving-pack contract (`AtlasVocabularyPack`, `AtlasSemanticSidecar`,
+  `refspec.atlas.vocabulary_protocols`), retires `native_vocabulary.py`, and
+  amends `docs/product-boundary-and-api-disposition.md`.
+
+1. **Immutable compiled serving pack (`AtlasVocabularyPack`) and optional `.vpack` sidecar.**
+   RefSpec compiles digest-pinned Atlas 3.1 compact Parquet search views into
+   single-file, immutable, read-only SQLite serving packs
+   (`refspec.atlas.vocabulary_pack`, `refspec-build-vocabulary-pack`) with an
+   optional memory-mapped Tier-1 semantic vector sidecar (`.vpack`,
+   `refspec.atlas.vocabulary_vectors`, supporting `flat_f16`, `ivf_i8`, and
+   portable `binary_i8`) cryptographically bound to the pack via `pack_id`,
+   `pack_sha256`, and `source_manifest_digest`. Serving stays strictly
+   read-only with zero mutable query service and zero database coupling
+   (`requires_sql_executor = False`), exposed through stdlib-only
+   dependency-injection protocols in `refspec.atlas.vocabulary_protocols`
+   (`VocabularyProvider`, `GraphExpander`, `SemanticIndex`, `QueryEncoder`,
+   `RankFusionPolicy`, `CandidateReranker`, `LookupPolicy`, `RelationPolicy`).
+2. **Retirement of `native_vocabulary.py`.**
+   `src/refspec/atlas/native_vocabulary.py` (`AtlasNativeVocabulary` and
+   vendor-specific SQL/DDL `prepare_indexes()` hooks), along with
+   `docs/native-vocabulary.md` and `tests/test_atlas_native_vocabulary.py`, is
+   retired and deleted. Consumers integrate against immutable sealed pack files
+   and structural protocols rather than passing live database executors into
+   RefSpec.
+3. **Optional `refspec[vectors]` extra.**
+   Tier-0 pack serving imports only Python's standard library (`sqlite3`).
+   Optional `.vpack` vector sidecar compilation and serving (which require
+   numerical array dependencies such as `numpy`) are separated behind an
+   optional `refspec[vectors]` extra so pack-only consumers avoid mandatory
+   vector/ML dependencies; external encoders and rerankers plug in strictly
+   through `QueryEncoder` and `CandidateReranker` DI protocols without adding
+   platform-specific accelerator dependencies to RefSpec.
+4. **Neutral default structural priors.**
+   Default pack lookup, fusion (`ExactPinnedRRF`), and concept extraction use
+   neutral structural priors rather than silently embedding domain-tuned scheme
+   boosts into universal defaults. Curated scheme weights and authority
+   reranking (`DEFAULT_CURATED_SCHEME_WEIGHTS`, `AuthorityReranker`,
+   `PriorGuidedSemanticIndex`) remain explicit opt-in DI policies chosen by
+   consumers according to their serving profile.
+5. **Two-layer Atlas release profiles: Core Curated Regulatory vs. Optional Bibliographic Crosswalk.**
+   Compiled Atlas vocabulary releases partition into two explicit profiles
+   rather than forcing every consumer onto a single monolithic multi-scheme
+   pack:
+   - **Core Curated Regulatory:** compact, curated regulatory and domain
+     thesauri (e.g., Federal Register Thesaurus, EuroVoc, MeSH, GEMET, UMTHES,
+     DOE OSTI, NASA, ICPSR) optimized for sharp regulatory lookup, verbatim
+     concept extraction, small memory footprint, and zero bibliographic
+     subdivision dilution.
+   - **Optional Bibliographic Crosswalk:** opt-in expansion layer carrying
+     large bibliographic authority corpora and subdivision hierarchies (such as
+     consolidated LCSH and FAST topical headings together with `REF-035`
+     evidence-backed cross-scheme crosswalks) for consumers that explicitly
+     request library-catalog coverage or cross-scheme bridging.
