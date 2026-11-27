@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import concurrent.futures
 import json
+import math
 import sqlite3
 import struct
 import threading
@@ -32,6 +33,7 @@ from refspec.atlas.vocabulary_vectors import (
     _hamming_distances_u8,
     build_semantic_sidecar,
     build_semantic_sidecar_from_arrays,
+    calibrate_semantic_sidecar,
 )
 
 
@@ -1611,5 +1613,227 @@ def test_concurrent_close_waits_for_inflight_queries_without_buffer_error_leak(
         assert sc._closed is True
         assert sc._mm.closed is True
         assert sc._file.closed is True
+
+
+@pytest.mark.parametrize("mode", ["flat_f16", "binary_i8", "ivf_i8"])
+def test_centered_covariance_calibration_parity_and_evt_ood_abstention_all_modes(tmp_path: Path, mode: str) -> None:
+    """Verify exact (v-mu)^T(q-mu)/(1-||mu||^2) parity, unsupervised EVT threshold, and subset scaling across all 3 modes."""
+    pack_path = _make_minimal_pack(tmp_path / f"cal_pack_{mode}.sqlite")
+    rng = np.random.default_rng(77)
+    n_vecs = 1_200
+    dim = 64
+
+    # Construct a realistic narrow-cone anisotropic corpus (||mu|| ~ 0.82, avg pairwise cosine ~ 0.67).
+    cone_axis = np.zeros(dim, dtype=np.float32)
+    cone_axis[0] = 1.0
+    perp = rng.normal(size=(n_vecs, dim)).astype(np.float32)
+    perp[:, 0] = 0.0
+    perp /= np.linalg.norm(perp, axis=1, keepdims=True)
+    vecs = 0.82 * cone_axis[None, :] + math.sqrt(1.0 - 0.82**2) * perp
+    vecs /= np.linalg.norm(vecs, axis=1, keepdims=True)
+    rids = [[i + 1] for i in range(n_vecs)]
+
+    # Build with calibration_mode="auto": N=1200 >= 1024 and ||mu||^2 ~ 0.67 >= 0.10 -> activates centered_covariance!
+    vpath = tmp_path / f"cal_{mode}.vpack"
+    man = build_semantic_sidecar_from_arrays(
+        pack_path,
+        vpath,
+        vectors_f16=vecs.astype(np.float16),
+        rids_per_vector=rids,
+        model_id="google/embeddinggemma-2-512d-mrl",
+        mode=mode,  # type: ignore[arg-type]
+        n_clusters=16,
+        ivf_iterations=6,
+        seed=42,
+        calibration_mode="auto",
+    )
+    assert man.calibration_mode == "centered_covariance"
+    assert man.corpus_mean_norm_sq is not None and 0.60 < man.corpus_mean_norm_sq < 0.75
+    assert man.corpus_pair_std is not None and man.corpus_pair_std > 0.0
+    assert man.recommended_min_cosine is not None and 0.25 <= man.recommended_min_cosine <= 0.95
+    assert man.to_dict()["calibrationMode"] == "centered_covariance"
+
+    # Compute exact reference corpus mean & centered-covariance scores.
+    vecs_f32 = vecs.astype(np.float16).astype(np.float32)
+    vecs_f32 /= np.linalg.norm(vecs_f32, axis=1, keepdims=True)
+    mu_ref = vecs_f32.astype(np.float64).mean(axis=0)
+    res_var_ref = 1.0 - float(np.dot(mu_ref, mu_ref))
+
+    # Positive query = perturbed target vector #5; OOD queries = fresh random vectors inside the same narrow cone!
+    q_pos = vecs_f32[5].copy()
+    ood_perp = rng.normal(size=(8, dim)).astype(np.float32)
+    ood_perp[:, 0] = 0.0
+    ood_perp /= np.linalg.norm(ood_perp, axis=1, keepdims=True)
+    q_oods = 0.82 * cone_axis[None, :] + math.sqrt(1.0 - 0.82**2) * ood_perp
+    q_oods /= np.linalg.norm(q_oods, axis=1, keepdims=True)
+
+    with (
+        AtlasSemanticSidecar.open(vpath) as sidecar,
+        AtlasSemanticSidecar.open(vpath, use_calibration=False) as raw_sidecar,
+    ):
+        assert sidecar.calibration_mode == "centered_covariance"
+        assert sidecar.calibration_active is True
+        assert raw_sidecar.calibration_active is False
+
+        # 1. Exact parity on positive self-retrieval: calibrated score matches (v-mu)^T(q-mu)/(1-||mu||^2).
+        hits_pos = sidecar.search_rids(q_pos, top_k=5, min_cosine=sidecar.recommended_min_cosine or 0.55, nprobe=16, rerank_top_r=256)
+        assert hits_pos and hits_pos[0][0] == 6
+        expected_self = float(np.dot(vecs_f32[5] - mu_ref, q_pos - mu_ref) / res_var_ref)
+        assert hits_pos[0][1] == pytest.approx(expected_self, abs=0.03)
+
+        # 2. Uncalibrated raw_sidecar leaks OOD false positives at min_cosine=0.55 (narrow cone!),
+        #    while calibrated sidecar abstains cleanly (0/8 OOD FP) using unsupervised recommended_min_cosine!
+        raw_fp = sum(1 for qo in q_oods if raw_sidecar.search_rids(qo, top_k=5, min_cosine=0.55, nprobe=16))
+        cal_fp = sum(
+            1
+            for qo in q_oods
+            if sidecar.search_rids(qo, top_k=5, min_cosine=sidecar.recommended_min_cosine or 0.55, nprobe=16)
+        )
+        assert raw_fp == 8
+        assert cal_fp == 0
+
+        # 3. Subset-size EVT scaling lowers effective threshold on tiny filtered subsets while clamping at N_floor=64.
+        # Build a query whose calibrated similarity to target rid=6 sits strictly between scaled_thr and full_thr.
+        full_thr = float(sidecar.recommended_min_cosine or 0.70)
+        evt_factor_64 = math.sqrt(math.log(64) / math.log(n_vecs))
+        target_score = 0.5 * (full_thr + full_thr * evt_factor_64)
+        # Construct synthetic query with exact dot_c / res_var == target_score to vecs_f32[5]
+        v5_sub = vecs_f32[5] - mu_ref.astype(np.float32)
+        v5_unit = v5_sub / np.linalg.norm(v5_sub)
+        orth = rng.normal(size=dim).astype(np.float32)
+        orth[0] = 0.0
+        orth -= float(np.dot(orth, v5_unit)) * v5_unit
+        orth /= np.linalg.norm(orth)
+        alpha = target_score * res_var_ref / float(np.linalg.norm(v5_sub))
+        beta = math.sqrt(max(1e-6, res_var_ref - alpha * alpha))
+        q_mid = mu_ref.astype(np.float32) + alpha * v5_unit + beta * orth
+        q_mid /= np.linalg.norm(q_mid)
+
+        # Filtered to 8 rids (<= 64 -> uses N_floor=64 EVT scaling): target rid=6 MUST pass!
+        small_subset = {6, 10, 20, 30, 40, 50, 60, 70}
+        filtered_hits = sidecar.search_rids(
+            q_mid, top_k=5, min_cosine=full_thr, nprobe=16, allowed_rids=small_subset
+        )
+        assert any(rid == 6 for rid, _ in filtered_hits)
+
+
+def test_calibrate_semantic_sidecar_upgrade_and_corrupt_header_rejection(tmp_path: Path) -> None:
+    """Verify zero-re-embedding calibrate_semantic_sidecar (separate & in-place) and fail-closed validation."""
+    pack_path = _make_minimal_pack(tmp_path / "cal_upgrade.sqlite")
+    rng = np.random.default_rng(19)
+    n_vecs = 128
+    dim = 32
+    axis = np.zeros(dim, dtype=np.float32)
+    axis[0] = 1.0
+    perp = rng.normal(size=(n_vecs, dim)).astype(np.float32)
+    perp[:, 0] = 0.0
+    perp /= np.linalg.norm(perp, axis=1, keepdims=True)
+    vecs = 0.80 * axis[None, :] + 0.60 * perp
+    vecs /= np.linalg.norm(vecs, axis=1, keepdims=True)
+    rids = [[i + 1] for i in range(n_vecs)]
+
+    # 1. Build uncalibrated sidecar, then upgrade via calibrate_semantic_sidecar.
+    raw_vpath = tmp_path / "raw_bin.vpack"
+    build_semantic_sidecar_from_arrays(
+        pack_path,
+        raw_vpath,
+        vectors_f16=vecs.astype(np.float16),
+        rids_per_vector=rids,
+        model_id="google/embeddinggemma-2-512d-mrl",
+        mode="binary_i8",
+        calibration_mode="none",
+    )
+    with AtlasSemanticSidecar.open(raw_vpath) as raw_sc:
+        assert raw_sc.calibration_mode == "none"
+        assert raw_sc.calibration_active is False
+
+    cal_vpath = tmp_path / "upgraded_bin.vpack"
+    man = calibrate_semantic_sidecar(raw_vpath, cal_vpath)
+    assert man.calibration_mode == "centered_covariance"
+    assert man.recommended_min_cosine is not None
+    assert man.corpus_mean_norm_sq is not None and man.corpus_pair_std is not None
+
+    # In-place recalibration must succeed cleanly via atomic mkstemp + os.replace.
+    man_inplace = calibrate_semantic_sidecar(cal_vpath, cal_vpath, recommended_min_cosine=0.72)
+    assert man_inplace.recommended_min_cosine == pytest.approx(0.72)
+
+    with AtlasSemanticSidecar.open(cal_vpath) as cal_sc:
+        assert cal_sc.calibration_active is True
+        assert cal_sc.recommended_min_cosine == pytest.approx(0.72)
+        hits = cal_sc.search_rids(vecs[3], top_k=3, min_cosine=0.5)
+        assert hits and hits[0][0] == 4
+
+    # 2. Input validation & degenerate corpus rejection.
+    with pytest.raises(VocabularyInputError) as exc_cm:
+        build_semantic_sidecar_from_arrays(
+            pack_path,
+            tmp_path / "bad_cm.vpack",
+            vectors_f16=vecs.astype(np.float16),
+            rids_per_vector=rids,
+            model_id="m",
+            calibration_mode="bogus",  # type: ignore[arg-type]
+        )
+    assert exc_cm.value.code == "invalid_calibration_mode"
+
+    for bad_sig in (0.0, -1.0, float("nan"), True):
+        with pytest.raises(VocabularyInputError) as exc_es:
+            calibrate_semantic_sidecar(raw_vpath, tmp_path / "bad_es.vpack", calibration_evt_sigma=bad_sig)  # type: ignore[arg-type]
+        assert exc_es.value.code == "invalid_calibration_evt_sigma"
+
+    identical = np.tile(axis, (16, 1)).astype(np.float16)
+    with pytest.raises(VocabularyInputError) as exc_deg:
+        build_semantic_sidecar_from_arrays(
+            pack_path,
+            tmp_path / "deg.vpack",
+            vectors_f16=identical,
+            rids_per_vector=[[i + 1] for i in range(16)],
+            model_id="m",
+            mode="flat_f16",
+            calibration_mode="centered_covariance",
+        )
+    assert exc_deg.value.code == "degenerate_corpus_moments"
+
+    # 3. Corrupt calibration headers / corpus_mean_f32 bytes fail closed on open.
+    base_hdr, _hend, base_raw = _read_vpack_header(cal_vpath)
+    min_sec = min(s["offset"] for s in base_hdr["sections"].values())
+    body = bytes(base_raw[min_sec:])
+
+    for idx, patch in enumerate(
+        (
+            {"calibrationMode": "unknown_mode"},
+            {"corpusMeanNormSq": 1.0},
+            {"corpusMeanNormSq": -0.1},
+            {"corpusMeanNormSq": True},
+            {"corpusPairStd": 0.0},
+            {"corpusPairStd": -0.5},
+        )
+    ):
+        hdr = json.loads(json.dumps(base_hdr))
+        hdr.update(patch)
+        p = tmp_path / f"corrupt_cal_{idx}.vpack"
+        _rewrite_vpack_with_header(p, hdr, body)
+        with pytest.raises(VocabularyPackError) as exc_c:
+            AtlasSemanticSidecar.open(p)
+        assert exc_c.value.code == "corrupt_sidecar"
+
+    # Missing corpus_mean_f32 section when calibrationMode=="centered_covariance" fails closed.
+    hdr_no_sec = json.loads(json.dumps(base_hdr))
+    del hdr_no_sec["sections"]["corpus_mean_f32"]
+    p_no_sec = tmp_path / "missing_mu_sec.vpack"
+    _rewrite_vpack_with_header(p_no_sec, hdr_no_sec, body)
+    with pytest.raises(VocabularyPackError) as exc_ms:
+        AtlasSemanticSidecar.open(p_no_sec)
+    assert exc_ms.value.code == "corrupt_sidecar"
+
+    # NaN injected into corpus_mean_f32 section fails closed.
+    nan_raw = bytearray(base_raw)
+    mu_off = base_hdr["sections"]["corpus_mean_f32"]["offset"]
+    nan_raw[mu_off : mu_off + 4] = struct.pack("<f", float("nan"))
+    p_nan = tmp_path / "nan_mu.vpack"
+    p_nan.write_bytes(nan_raw)
+    with pytest.raises(VocabularyPackError, match="non-finite") as exc_nan:
+        AtlasSemanticSidecar.open(p_nan)
+    assert exc_nan.value.code == "corrupt_sidecar"
+
 
 

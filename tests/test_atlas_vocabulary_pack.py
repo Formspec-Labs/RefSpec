@@ -4453,3 +4453,123 @@ def test_expand_sync_over_999_nodes_chunking_dangling_dst_rid_error_and_protocol
 
     with pytest.raises(SystemExit):
         parser.parse_args(["extract", "--pack", str(base_pack), "--text", "Medicare", "--no-authority-tiebreak"])
+
+
+def test_calibrated_sidecar_integration_and_strict_majority_soft_or_abstention(tmp_path: Path) -> None:
+    """Verify calibrated .vpack OOD abstention end-to-end and strict-majority (>50%) Tier-2 bm25_or coverage."""
+    import math
+
+    import numpy as np
+
+    from refspec.atlas.vocabulary_vectors import AtlasSemanticSidecar, build_semantic_sidecar_from_arrays
+
+    view_root, _digest = _write_compact_fixture(tmp_path / "view", include_derived=False)
+    res_path = view_root / "tables/resources.parquet"
+    lbl_path = view_root / "tables/labels.parquet"
+    res_rows = pq.read_table(res_path).to_pylist()
+    lbl_rows = pq.read_table(lbl_path).to_pylist()
+
+    # Add a concept containing "mining" and "permit" to test 2-of-4 sci-fi OOD abstention ("unobtainium dilithium mining permit").
+    res_rows.append(
+        {
+            "id": "urn:ref:fr:surface-mining-permit",
+            "release": R_FR,
+            "scheme": S_FR,
+            "semantic_ring": "subject",
+            "resource_profile": "Concept",
+            "source_record": "urn:ref:atlas-source-record:" + "e" * 64,
+            "definition": "Surface mining permit applications and environmental compliance requirements.",
+            "notes": [],
+            "notations": [],
+            "record_status": "active",
+        }
+    )
+    lbl_rows.append(
+        {
+            "id": "urn:ref:atlas-label:surface-mining-permit",
+            "resource": "urn:ref:fr:surface-mining-permit",
+            "label_role": "preferred",
+            "value": "Surface mining permit applications",
+            "language": "en",
+            "release": R_FR,
+            "source_record": "urn:ref:atlas-source-record:" + "e" * 64,
+        }
+    )
+    pq.write_table(pa.Table.from_pylist(res_rows, schema=_SCHEMAS[CompactRecordRole.RESOURCE]), res_path)
+    pq.write_table(pa.Table.from_pylist(lbl_rows, schema=_SCHEMAS[CompactRecordRole.LABEL]), lbl_path)
+
+    mpath = view_root / MANIFEST_FILE
+    manifest_doc = json.loads(mpath.read_text(encoding="utf-8"))
+    for member in manifest_doc["members"]:
+        mp = view_root / member["path"]
+        member["byteLength"] = mp.stat().st_size
+        member["sha256"] = file_sha256(mp)
+        if member["role"] == "Resource":
+            member["rowCount"] = len(res_rows)
+            manifest_doc["counts"]["Resource"] = len(res_rows)
+        elif member["role"] == "Label":
+            member["rowCount"] = len(lbl_rows)
+            manifest_doc["counts"]["Label"] = len(lbl_rows)
+    manifest_doc.pop("canonicalPayloadDigest", None)
+    manifest_doc["canonicalPayloadDigest"] = canonical_payload_sha256(manifest_doc)
+    mpath.write_bytes(canonical_json_bytes(manifest_doc))
+    manifest_digest = file_sha256(mpath)
+
+    pack_path = tmp_path / "cal_e2e.sqlite"
+    build_vocabulary_pack(view_root, pack_path, trusted_manifest_digest=manifest_digest, include_derived=False)
+
+    # 1. Pure lexical Tier-2 soft-OR must require strict majority (>50%): 2-of-4 OOD query abstains cleanly!
+    with AtlasVocabularyPack.open(pack_path, verify_pack_digest=False) as lex_pack:
+        assert lex_pack.lookup_sync("unobtainium dilithium mining permit", limit=5) == []
+        # 3-of-4 genuine tokens ("surface mining permit compliance") still recovers the concept!
+        hits_3of4 = lex_pack.lookup_sync("surface mining permit compliance", limit=5)
+        assert any(h["id"] == "urn:ref:fr:surface-mining-permit" for h in hits_3of4)
+
+    # 2. Wire a calibrated anisotropic sidecar + PriorGuidedSemanticIndex + LookupPolicy(min_cosine=None)
+    #    so recommended_min_cosine applies automatically.
+    con = sqlite3.connect(str(pack_path))
+    all_rids = [int(r[0]) for r in con.execute("SELECT rid FROM resources WHERE pref_label IS NOT NULL ORDER BY rid")]
+    con.close()
+
+    rng = np.random.default_rng(314)
+    dim = 32
+    axis = np.zeros(dim, dtype=np.float32)
+    axis[0] = 1.0
+    perp = rng.normal(size=(len(all_rids), dim)).astype(np.float32)
+    perp[:, 0] = 0.0
+    perp /= np.linalg.norm(perp, axis=1, keepdims=True)
+    vecs = 0.82 * axis[None, :] + math.sqrt(1.0 - 0.82**2) * perp
+    vecs /= np.linalg.norm(vecs, axis=1, keepdims=True)
+
+    vpath = tmp_path / "cal_e2e.vpack"
+    build_semantic_sidecar_from_arrays(
+        pack_path,
+        vpath,
+        vectors_f16=vecs.astype(np.float16),
+        rids_per_vector=[[r] for r in all_rids],
+        model_id="google/embeddinggemma-2-512d-mrl",
+        mode="flat_f16",
+        calibration_mode="centered_covariance",
+    )
+
+    q_ood_perp = rng.normal(size=dim).astype(np.float32)
+    q_ood_perp[0] = 0.0
+    q_ood_perp /= np.linalg.norm(q_ood_perp)
+    q_ood = 0.82 * axis + math.sqrt(1.0 - 0.82**2) * q_ood_perp
+    q_ood /= np.linalg.norm(q_ood)
+
+    with AtlasSemanticSidecar.open(vpath) as sidecar:
+        guided = PriorGuidedSemanticIndex.from_pack(pack_path, sidecar)
+        assert guided.calibration_mode == "centered_covariance"
+        with AtlasVocabularyPack.open(
+            pack_path,
+            verify_pack_digest=False,
+            semantic_index=guided,
+            lookup_policy=LookupPolicy(min_cosine=None),
+        ) as pack:
+            # OOD vector inside the anisotropic cone abstains cleanly with 0 hits!
+            assert pack.lookup_sync("zorbaxian flimflam", limit=5, query_vector=q_ood) == []
+            # True semantic match to concept 0 succeeds!
+            pos_hits = pack.lookup_sync("semantic paraphrase probe", limit=5, query_vector=vecs[0])
+            assert len(pos_hits) >= 1
+

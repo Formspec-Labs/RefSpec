@@ -20,6 +20,14 @@ from typing import Any, Protocol, runtime_checkable
 #: nor ``SemanticIndex.recommended_min_cosine`` specifies an abstention floor.
 DEFAULT_MIN_COSINE: float = 0.55
 
+#: Default Gaussian extreme-value multiplier ``c`` for unsupervised centered-covariance
+#: OOD calibration: ``tau(N) = c * sigma_pair * sqrt(2 * ln(max(N, 64)))``.
+DEFAULT_CALIBRATION_EVT_SIGMA: float = 1.5
+
+#: Minimum effective eligible-vector floor inside extreme-value subset scaling so tiny
+#: filtered schemes (``< 64`` concepts) retain a conservative abstention margin.
+DEFAULT_CALIBRATION_MIN_ELIGIBLE: int = 64
+
 #: Neutral default scheme weights (empty mapping: zero hardcoded scheme bias).
 #: Consumers seeking domain-specific scheme preferences may pass explicit
 #: ``scheme_weights`` (such as ``REGULATORY_BENCHMARK_SCHEME_PRESET``).
@@ -587,6 +595,8 @@ class RelationPolicy:
 
 
 __all__ = [
+    "DEFAULT_CALIBRATION_EVT_SIGMA",
+    "DEFAULT_CALIBRATION_MIN_ELIGIBLE",
     "DEFAULT_CURATED_SCHEME_WEIGHTS",
     "DEFAULT_EXTRACT_MAX_UNIGRAM_DOC_FREQ",
     "DEFAULT_MIN_COSINE",

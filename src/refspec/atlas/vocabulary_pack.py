@@ -1489,7 +1489,7 @@ class AtlasVocabularyPack:
                             (or_expr, or_sql_limit),
                         )
                     or_cands = [row[0] for row in or_rows if row[0] not in exact_set and row[0] not in bm25_set]
-                    min_match = max(2, math.ceil(len(or_tokens) / 2))
+                    min_match = max(2, len(or_tokens) // 2 + 1)
                     for rid in self._filter_min_token_coverage(or_cands, or_tokens, min_match, con=con):
                         bm25_set.add(rid)
                         bm25_rids.append(rid)
@@ -2927,6 +2927,10 @@ class PriorGuidedSemanticIndex:
     @property
     def recommended_min_cosine(self) -> float | None:
         return getattr(self._inner, "recommended_min_cosine", None)
+
+    @property
+    def calibration_mode(self) -> str:
+        return str(getattr(self._inner, "calibration_mode", "none"))
 
     def vector_for_rid(self, rid: int) -> Any | None:
         return self._inner.vector_for_rid(rid)

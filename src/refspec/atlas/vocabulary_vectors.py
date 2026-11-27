@@ -48,6 +48,8 @@ from urllib.parse import quote
 import numpy as np
 
 from refspec.atlas.vocabulary_protocols import (
+    DEFAULT_CALIBRATION_EVT_SIGMA,
+    DEFAULT_CALIBRATION_MIN_ELIGIBLE,
     VocabularyInputError,
     VocabularyPackError,
 )
@@ -71,6 +73,14 @@ _RERANK_CHUNK_ROWS = 256
 _MASK_CACHE_MAX_ENTRIES = 4
 _MASK_CACHE_MAX_BYTES = 16_777_216
 _MISSING_VIDX = 0xFFFFFFFF
+_CALIBRATION_MODES = frozenset({"auto", "none", "centered_covariance"})
+_HEADER_CALIBRATION_MODES = frozenset({"none", "centered_covariance"})
+_AUTO_CALIBRATION_MIN_VECS = 1_024
+_AUTO_CALIBRATION_MIN_MEAN_NORM_SQ = 0.10
+_CALIBRATION_MIN_RESIDUAL_VAR = 1e-4
+_CALIBRATION_EVT_N_FLOOR = DEFAULT_CALIBRATION_MIN_ELIGIBLE
+_AUTO_REC_MIN_COSINE_LO = 0.25
+_AUTO_REC_MIN_COSINE_HI = 0.95
 _POPCOUNT_LUT = np.array([i.bit_count() for i in range(256)], dtype=np.uint8)
 _U64_BYTE_OFFSETS = np.arange(8, dtype=np.intp)
 
@@ -93,6 +103,9 @@ class SemanticSidecarManifest:
     n_clusters: int
     built_at: str
     recommended_min_cosine: float | None = None
+    calibration_mode: str = "none"
+    corpus_mean_norm_sq: float | None = None
+    corpus_pair_std: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -112,6 +125,9 @@ class SemanticSidecarManifest:
             "nClusters": self.n_clusters,
             "builtAt": self.built_at,
             "recommendedMinCosine": self.recommended_min_cosine,
+            "calibrationMode": self.calibration_mode,
+            "corpusMeanNormSq": self.corpus_mean_norm_sq,
+            "corpusPairStd": self.corpus_pair_std,
         }
 
 
@@ -210,6 +226,107 @@ def _validate_positive_int(value: Any, *, code: str, name: str) -> int:
     if isinstance(value, bool) or not isinstance(value, int) or value < 1:
         raise VocabularyInputError(code, f"{name} must be a positive integer (>= 1), got {value!r}")
     return value
+
+
+def _validate_calibration_mode(
+    value: Any,
+    *,
+    for_input: bool,
+) -> str:
+    if value is None and not for_input:
+        return "none"
+    allowed = _CALIBRATION_MODES if for_input else _HEADER_CALIBRATION_MODES
+    if not isinstance(value, str) or value not in allowed:
+        if for_input:
+            raise VocabularyInputError(
+                "invalid_calibration_mode",
+                f"calibration_mode must be one of {sorted(allowed)}, got {value!r}",
+            )
+        raise VocabularyPackError(
+            "corrupt_sidecar",
+            f"calibrationMode header value must be one of {sorted(allowed)}, got {value!r}",
+        )
+    return value
+
+
+def _validate_calibration_evt_sigma(value: Any) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise VocabularyInputError(
+            "invalid_calibration_evt_sigma",
+            f"calibration_evt_sigma must be a finite positive number, got {value!r}",
+        )
+    fval = float(value)
+    if not math.isfinite(fval) or fval <= 0.0:
+        raise VocabularyInputError(
+            "invalid_calibration_evt_sigma",
+            f"calibration_evt_sigma must be a finite positive number, got {fval!r}",
+        )
+    return fval
+
+
+class _CorpusMomentAccumulator:
+    """Streaming float64 accumulator for exact corpus mean ``mu`` and ``Tr(Sigma^2)``."""
+
+    def __init__(self, dim: int) -> None:
+        self._dim = int(dim)
+        self._sum_v = np.zeros(self._dim, dtype=np.float64)
+        self._sum_vv = np.zeros((self._dim, self._dim), dtype=np.float64)
+        self._count = 0
+
+    def update(self, chunk_f32: np.ndarray) -> None:
+        if chunk_f32.size == 0:
+            return
+        blk64 = np.asarray(chunk_f32, dtype=np.float64)
+        self._sum_v += blk64.sum(axis=0)
+        self._sum_vv += blk64.T @ blk64
+        self._count += int(blk64.shape[0])
+
+    def finalize(
+        self,
+        *,
+        requested_mode: str,
+        evt_sigma: float,
+        explicit_recommended_min_cosine: float | None,
+    ) -> tuple[str, np.ndarray | None, float | None, float | None, float | None]:
+        """Resolve calibration mode and compute ``(mode, mu_f32, mu_norm_sq, pair_std, rec_min_cos)``."""
+
+        if requested_mode == "none" or self._count == 0:
+            return "none", None, None, None, explicit_recommended_min_cosine
+
+        mu_f64 = self._sum_v / float(self._count)
+        mu_norm_sq = float(np.dot(mu_f64, mu_f64))
+        res_var = 1.0 - mu_norm_sq
+
+        if requested_mode == "auto":
+            if (
+                self._count < _AUTO_CALIBRATION_MIN_VECS
+                or mu_norm_sq < _AUTO_CALIBRATION_MIN_MEAN_NORM_SQ
+                or res_var < _CALIBRATION_MIN_RESIDUAL_VAR
+            ):
+                return "none", None, None, None, explicit_recommended_min_cosine
+        elif res_var < _CALIBRATION_MIN_RESIDUAL_VAR:
+            raise VocabularyInputError(
+                "degenerate_corpus_moments",
+                f"cannot compute centered_covariance calibration: residual variance {res_var:.6g} "
+                f"is below {_CALIBRATION_MIN_RESIDUAL_VAR}",
+            )
+
+        sigma = (self._sum_vv / float(self._count)) - np.outer(mu_f64, mu_f64)
+        tr_sigma_sq = float(np.sum(sigma * sigma))
+        pair_std = math.sqrt(max(tr_sigma_sq, 0.0)) / res_var
+
+        rec_min = explicit_recommended_min_cosine
+        if rec_min is None and pair_std > 0.0 and math.isfinite(pair_std):
+            raw_evt = evt_sigma * pair_std * math.sqrt(2.0 * math.log(max(self._count, _CALIBRATION_EVT_N_FLOOR)))
+            rec_min = round(min(max(raw_evt, _AUTO_REC_MIN_COSINE_LO), _AUTO_REC_MIN_COSINE_HI), 6)
+
+        return (
+            "centered_covariance",
+            mu_f64.astype(np.float32),
+            round(mu_norm_sq, 8),
+            round(pair_std, 8),
+            rec_min,
+        )
 
 
 def _reject_symlink_path(
@@ -478,39 +595,48 @@ def _write_sidecar_sections(
     dim: int,
     n_vecs: int,
     actual_clusters: int,
-    ordered_rids: Sequence[Sequence[int]],
+    ordered_rids: Sequence[Sequence[int]] | None,
     vectors_payload: np.ndarray,
     scales_f16: np.ndarray | None,
     binary_u8: np.ndarray | None,
     centroids_f32: np.ndarray | None,
     cluster_offsets_u32: np.ndarray | None,
     recommended_min_cosine: float | None,
+    calibration_mode: str = "none",
+    corpus_mean_f32: np.ndarray | None = None,
+    corpus_mean_norm_sq: float | None = None,
+    corpus_pair_std: float | None = None,
+    prebuilt_csr: tuple[np.ndarray, np.ndarray, np.ndarray, int] | None = None,
 ) -> SemanticSidecarManifest:
-    # Flatten CSR mapping from stored vector_idx -> rid(s) in the SQLite pack.
-    rid_offsets = np.zeros(n_vecs + 1, dtype=np.uint32)
-    flat_rids_list: list[int] = []
-    max_rid = 0
-    for i, rids in enumerate(ordered_rids):
-        for r in rids:
-            rid_int = int(r)
-            if rid_int < 0 or rid_int >= _MISSING_VIDX:
-                raise VocabularyInputError(
-                    "invalid_vectors",
-                    f"rid must be in [0, {_MISSING_VIDX - 1}], got {rid_int}",
-                )
-            flat_rids_list.append(rid_int)
-            if rid_int > max_rid:
-                max_rid = rid_int
-        rid_offsets[i + 1] = len(flat_rids_list)
-    rids_u32 = np.asarray(flat_rids_list, dtype=np.uint32)
+    if prebuilt_csr is not None:
+        rid_offsets, rids_u32, rid_to_vidx_u32, max_rid = prebuilt_csr
+    else:
+        assert ordered_rids is not None
+        # Flatten CSR mapping from stored vector_idx -> rid(s) in the SQLite pack.
+        rid_offsets = np.zeros(n_vecs + 1, dtype=np.uint32)
+        flat_rids_list: list[int] = []
+        max_rid = 0
+        for i, rids in enumerate(ordered_rids):
+            for r in rids:
+                rid_int = int(r)
+                if rid_int < 0 or rid_int >= _MISSING_VIDX:
+                    raise VocabularyInputError(
+                        "invalid_vectors",
+                        f"rid must be in [0, {_MISSING_VIDX - 1}], got {rid_int}",
+                    )
+                flat_rids_list.append(rid_int)
+                if rid_int > max_rid:
+                    max_rid = rid_int
+            rid_offsets[i + 1] = len(flat_rids_list)
+        rids_u32 = np.asarray(flat_rids_list, dtype=np.uint32)
 
-    # Direct O(1) rid -> stored vidx lookup array (built after cluster sorting for ivf_i8!).
-    rid_to_vidx_u32 = np.full(max_rid + 1, _MISSING_VIDX, dtype=np.uint32)
-    for vidx, rids in enumerate(ordered_rids):
-        for r in rids:
-            rid_int = int(r)
-            if rid_to_vidx_u32[rid_int] == _MISSING_VIDX:
-                rid_to_vidx_u32[rid_int] = vidx
+        # Direct O(1) rid -> stored vidx lookup array (built after cluster sorting for ivf_i8!).
+        rid_to_vidx_u32 = np.full(max_rid + 1, _MISSING_VIDX, dtype=np.uint32)
+        for vidx, rids in enumerate(ordered_rids):
+            for r in rids:
+                rid_int = int(r)
+                if rid_to_vidx_u32[rid_int] == _MISSING_VIDX:
+                    rid_to_vidx_u32[rid_int] = vidx
 
     built_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
     sections: list[tuple[str, memoryview]] = []
@@ -525,6 +651,8 @@ def _write_sidecar_sections(
     sections.append(("rid_offsets_u32", _as_byte_view(rid_offsets)))
     sections.append(("rids_u32", _as_byte_view(rids_u32)))
     sections.append(("rid_to_vidx_u32", _as_byte_view(rid_to_vidx_u32)))
+    if calibration_mode == "centered_covariance" and corpus_mean_f32 is not None:
+        sections.append(("corpus_mean_f32", _as_byte_view(np.ascontiguousarray(corpus_mean_f32, dtype=np.float32))))
 
     # Compute deterministic 64-byte aligned offsets with fixed-point header pass.
     base_header: dict[str, Any] = {
@@ -545,6 +673,12 @@ def _write_sidecar_sections(
     }
     if recommended_min_cosine is not None:
         base_header["recommendedMinCosine"] = recommended_min_cosine
+    if calibration_mode == "centered_covariance" and corpus_mean_f32 is not None:
+        base_header["calibrationMode"] = calibration_mode
+        if corpus_mean_norm_sq is not None:
+            base_header["corpusMeanNormSq"] = float(corpus_mean_norm_sq)
+        if corpus_pair_std is not None:
+            base_header["corpusPairStd"] = float(corpus_pair_std)
 
     header_bytes = b""
     sec_meta: dict[str, dict[str, int]] = {}
@@ -602,6 +736,9 @@ def _write_sidecar_sections(
         n_clusters=actual_clusters,
         built_at=built_at,
         recommended_min_cosine=recommended_min_cosine,
+        calibration_mode=calibration_mode,
+        corpus_mean_norm_sq=corpus_mean_norm_sq,
+        corpus_pair_std=corpus_pair_std,
     )
 
 
@@ -617,6 +754,8 @@ def build_semantic_sidecar_from_arrays(
     ivf_iterations: int = 12,
     seed: int = 42,
     recommended_min_cosine: float | None = None,
+    calibration_mode: Literal["auto", "none", "centered_covariance"] = "none",
+    calibration_evt_sigma: float = DEFAULT_CALIBRATION_EVT_SIGMA,
 ) -> SemanticSidecarManifest:
     """Build a sealed ``.vpack`` sidecar directly from in-memory vectors and pack ``rid`` mappings.
 
@@ -633,6 +772,8 @@ def build_semantic_sidecar_from_arrays(
     )
     out_path = _validate_output_path(output_path)
     rec_min_cos = _validate_recommended_min_cosine(recommended_min_cosine, for_input=True)
+    req_cal_mode = _validate_calibration_mode(calibration_mode, for_input=True)
+    evt_sigma = _validate_calibration_evt_sigma(calibration_evt_sigma)
     n_clusters = _validate_positive_int(n_clusters, code="invalid_n_clusters", name="n_clusters")
     ivf_iterations = _validate_positive_int(ivf_iterations, code="invalid_ivf_iterations", name="ivf_iterations")
 
@@ -659,13 +800,29 @@ def build_semantic_sidecar_from_arrays(
     if not arr.flags.writeable:
         arr = arr.copy()
 
+    moment_acc = _CorpusMomentAccumulator(dim) if req_cal_mode != "none" else None
+
     # Normalize vectors in-place to unit L2 length in bounded chunks so dot product == exact cosine
     # without allocating a second full float16 matrix.
     for start in range(0, n_vecs, _CHUNK_ROWS):
         end = min(start + _CHUNK_ROWS, n_vecs)
         chunk_f32 = arr[start:end].astype(np.float32)
         _l2_normalize_rows_inplace(chunk_f32)
+        if moment_acc is not None:
+            moment_acc.update(chunk_f32)
         arr[start:end] = chunk_f32.astype(np.float16)
+
+    if moment_acc is not None:
+        resolved_cal_mode, corpus_mean_f32, corpus_mean_norm_sq, corpus_pair_std, rec_min_cos = moment_acc.finalize(
+            requested_mode=req_cal_mode,
+            evt_sigma=evt_sigma,
+            explicit_recommended_min_cosine=rec_min_cos,
+        )
+    else:
+        resolved_cal_mode = "none"
+        corpus_mean_f32 = None
+        corpus_mean_norm_sq = None
+        corpus_pair_std = None
 
     centroids_f32: np.ndarray | None = None
     cluster_offsets_u32: np.ndarray | None = None
@@ -737,6 +894,10 @@ def build_semantic_sidecar_from_arrays(
         centroids_f32=centroids_f32,
         cluster_offsets_u32=cluster_offsets_u32,
         recommended_min_cosine=rec_min_cos,
+        calibration_mode=resolved_cal_mode,
+        corpus_mean_f32=corpus_mean_f32,
+        corpus_mean_norm_sq=corpus_mean_norm_sq,
+        corpus_pair_std=corpus_pair_std,
     )
 
 
@@ -809,6 +970,8 @@ def build_semantic_sidecar(
     ivf_iterations: int = 12,
     seed: int = 42,
     recommended_min_cosine: float | None = None,
+    calibration_mode: Literal["auto", "none", "centered_covariance"] = "auto",
+    calibration_evt_sigma: float = DEFAULT_CALIBRATION_EVT_SIGMA,
 ) -> SemanticSidecarManifest:
     """Compile a Tier-1 ``.vpack`` sidecar from a compiled SQLite Pack and deduplicated BGE-M3 Parquet."""
 
@@ -819,6 +982,8 @@ def build_semantic_sidecar(
     if mode not in ("auto", "flat_f16", "ivf_i8", "binary_i8"):
         raise VocabularyInputError("invalid_mode", f"unsupported sidecar mode: {mode!r}")
     rec_min_cos = _validate_recommended_min_cosine(recommended_min_cosine, for_input=True)
+    req_cal_mode = _validate_calibration_mode(calibration_mode, for_input=True)
+    evt_sigma = _validate_calibration_evt_sigma(calibration_evt_sigma)
     n_clusters = _validate_positive_int(n_clusters, code="invalid_n_clusters", name="n_clusters")
     ivf_iterations = _validate_positive_int(ivf_iterations, code="invalid_ivf_iterations", name="ivf_iterations")
 
@@ -866,6 +1031,7 @@ def build_semantic_sidecar(
     filtered_rids: list[list[int]] = []
     write_pos = 0
     stream_binary_i8 = False
+    moment_acc: _CorpusMomentAccumulator | None = None
     try:
         # 1. Stream (resource_id, release, input_sha256) for schemes present in the pack.
         sha_to_rids: dict[str, list[int]] = defaultdict(list)
@@ -949,12 +1115,16 @@ def build_semantic_sidecar(
                     vectors_i8 = np.empty((max_vecs, dim), dtype=np.int8)
                     scales_f16 = np.empty(max_vecs, dtype=np.float16)
                     binary_u8 = np.empty((max_vecs, n_bytes_bin), dtype=np.uint8)
+                    if req_cal_mode != "none":
+                        moment_acc = _CorpusMomentAccumulator(dim)
                 elif dim != vectors_i8.shape[1]:
                     raise VocabularyPackError(
                         "corrupt_embeddings",
                         f"inconsistent embedding dimension: expected {vectors_i8.shape[1]}, got {dim}",
                     )
                 assert scales_f16 is not None and binary_u8 is not None
+                if moment_acc is not None:
+                    moment_acc.update(chunk_f32)
                 q_chunk, s_chunk = _quantize_symmetric_i8(chunk_f32)
                 vectors_i8[write_pos : write_pos + n_keep] = q_chunk
                 scales_f16[write_pos : write_pos + n_keep] = s_chunk
@@ -987,6 +1157,17 @@ def build_semantic_sidecar(
             vectors_i8 = vectors_i8[:write_pos]
             scales_f16 = scales_f16[:write_pos]
             binary_u8 = binary_u8[:write_pos]
+        if moment_acc is not None:
+            resolved_cal_mode, corpus_mean_f32, corpus_mean_norm_sq, corpus_pair_std, rec_min_cos = moment_acc.finalize(
+                requested_mode=req_cal_mode,
+                evt_sigma=evt_sigma,
+                explicit_recommended_min_cosine=rec_min_cos,
+            )
+        else:
+            resolved_cal_mode = "none"
+            corpus_mean_f32 = None
+            corpus_mean_norm_sq = None
+            corpus_pair_std = None
         pack_sha = _sha256_file(resolved_pack)
         return _write_sidecar_sections(
             out_path=out_path,
@@ -1005,6 +1186,10 @@ def build_semantic_sidecar(
             centroids_f32=None,
             cluster_offsets_u32=None,
             recommended_min_cosine=rec_min_cos,
+            calibration_mode=resolved_cal_mode,
+            corpus_mean_f32=corpus_mean_f32,
+            corpus_mean_norm_sq=corpus_mean_norm_sq,
+            corpus_pair_std=corpus_pair_std,
         )
 
     assert vectors_f16 is not None
@@ -1022,7 +1207,90 @@ def build_semantic_sidecar(
         ivf_iterations=ivf_iterations,
         seed=seed,
         recommended_min_cosine=rec_min_cos,
+        calibration_mode=calibration_mode,
+        calibration_evt_sigma=evt_sigma,
     )
+
+
+def calibrate_semantic_sidecar(
+    source_sidecar_path: Path | str,
+    output_path: Path | str,
+    *,
+    calibration_evt_sigma: float = DEFAULT_CALIBRATION_EVT_SIGMA,
+    recommended_min_cosine: float | None = None,
+) -> SemanticSidecarManifest:
+    """Attach exact centered-covariance corpus moments & EVT OOD threshold to an existing ``.vpack``.
+
+    Streams dequantized vectors from ``source_sidecar_path`` in bounded chunks with zero
+    re-embedding, computes exact corpus mean ``mu`` (``D * 4`` bytes) and analytical pair
+    std ``sigma_pair = sqrt(Tr(Sigma^2)) / (1 - ||mu||^2)``, and atomically writes a
+    calibrated ``.vpack`` preserving all existing vector, index, and ``rid`` sections.
+    """
+
+    evt_sigma = _validate_calibration_evt_sigma(calibration_evt_sigma)
+    explicit_rec = _validate_recommended_min_cosine(recommended_min_cosine, for_input=True)
+    out_path = _validate_output_path(output_path)
+
+    with AtlasSemanticSidecar.open(source_sidecar_path, use_calibration=False) as src:
+        n_vecs = src._n_vecs
+        dim = src._dim
+        if n_vecs <= 0:
+            raise VocabularyInputError("invalid_vectors", "cannot calibrate an empty semantic sidecar")
+
+        moment_acc = _CorpusMomentAccumulator(dim)
+        if src._mode == "flat_f16":
+            assert src._vectors_f16 is not None
+            for start in range(0, n_vecs, _CHUNK_ROWS):
+                end = min(start + _CHUNK_ROWS, n_vecs)
+                blk = src._vectors_f16[start:end].astype(np.float32)
+                _l2_normalize_rows_inplace(blk)
+                moment_acc.update(blk)
+            vectors_payload: np.ndarray = src._vectors_f16
+        else:
+            assert src._vectors_i8 is not None and src._scales_f16 is not None
+            for start in range(0, n_vecs, _CHUNK_ROWS):
+                end = min(start + _CHUNK_ROWS, n_vecs)
+                blk = src._vectors_i8[start:end].astype(np.float32) * src._scales_f16[start:end, None].astype(np.float32)
+                _l2_normalize_rows_inplace(blk)
+                moment_acc.update(blk)
+            vectors_payload = src._vectors_i8
+
+        resolved_cal_mode, corpus_mean_f32, corpus_mean_norm_sq, corpus_pair_std, final_rec = moment_acc.finalize(
+            requested_mode="centered_covariance",
+            evt_sigma=evt_sigma,
+            explicit_recommended_min_cosine=explicit_rec,
+        )
+        mode_lit: Literal["flat_f16", "ivf_i8", "binary_i8"]
+        if src._mode == "flat_f16":
+            mode_lit = "flat_f16"
+        elif src._mode == "ivf_i8":
+            mode_lit = "ivf_i8"
+        else:
+            mode_lit = "binary_i8"
+
+        return _write_sidecar_sections(
+            out_path=out_path,
+            pack_id=src._pack_id,
+            pack_sha=src._pack_sha256,
+            source_manifest_digest=src._source_manifest_digest,
+            model_id=src._model_id,
+            resolved_mode=mode_lit,
+            dim=dim,
+            n_vecs=n_vecs,
+            actual_clusters=src._n_clusters,
+            ordered_rids=None,
+            vectors_payload=vectors_payload,
+            scales_f16=src._scales_f16,
+            binary_u8=src._binary_u8,
+            centroids_f32=src._centroids_f32,
+            cluster_offsets_u32=src._cluster_offsets,
+            recommended_min_cosine=final_rec,
+            calibration_mode=resolved_cal_mode,
+            corpus_mean_f32=corpus_mean_f32,
+            corpus_mean_norm_sq=corpus_mean_norm_sq,
+            corpus_pair_std=corpus_pair_std,
+            prebuilt_csr=(src._rid_offsets, src._rids, src._rid_to_vidx, src._max_rid),
+        )
 
 
 def _extract_sparse_rids_u64(
@@ -1084,6 +1352,7 @@ class AtlasSemanticSidecar:
         header: dict[str, Any],
         rerank_top_r: int = _DEFAULT_RERANK_TOP_R,
         header_end: int = 0,
+        use_calibration: bool = True,
     ) -> None:
         if isinstance(rerank_top_r, bool) or not isinstance(rerank_top_r, int) or rerank_top_r < 1:
             raise VocabularyInputError("invalid_rerank_top_r", "rerank_top_r must be a positive integer")
@@ -1097,6 +1366,12 @@ class AtlasSemanticSidecar:
         self._closed = False
         self._header = header
         self._rerank_top_r = rerank_top_r
+        self._use_calibration = bool(use_calibration)
+        self._calibration_mode: str = "none"
+        self._corpus_mean_f32: np.ndarray | None = None
+        self._corpus_mean_norm_sq: float | None = None
+        self._corpus_pair_std: float | None = None
+        self._corpus_res_var: float = 1.0
         self._vectors_f16: np.ndarray | None = None
         self._vectors_i8: np.ndarray | None = None
         self._scales_f16: np.ndarray | None = None
@@ -1152,6 +1427,38 @@ class AtlasSemanticSidecar:
                 header.get("recommendedMinCosine"),
                 for_input=False,
             )
+            self._calibration_mode = _validate_calibration_mode(
+                header.get("calibrationMode"),
+                for_input=False,
+            )
+            raw_mean_norm_sq = header.get("corpusMeanNormSq")
+            if raw_mean_norm_sq is not None:
+                if isinstance(raw_mean_norm_sq, bool) or not isinstance(raw_mean_norm_sq, (int, float)):
+                    raise VocabularyPackError(
+                        "corrupt_sidecar",
+                        "corpusMeanNormSq header value must be a finite number",
+                    )
+                f_mnsq = float(raw_mean_norm_sq)
+                if not math.isfinite(f_mnsq) or f_mnsq < 0.0 or f_mnsq > 1.0 - _CALIBRATION_MIN_RESIDUAL_VAR:
+                    raise VocabularyPackError(
+                        "corrupt_sidecar",
+                        f"corpusMeanNormSq out of valid range [0.0, {1.0 - _CALIBRATION_MIN_RESIDUAL_VAR}]: {f_mnsq!r}",
+                    )
+                self._corpus_mean_norm_sq = f_mnsq
+            raw_pair_std = header.get("corpusPairStd")
+            if raw_pair_std is not None:
+                if isinstance(raw_pair_std, bool) or not isinstance(raw_pair_std, (int, float)):
+                    raise VocabularyPackError(
+                        "corrupt_sidecar",
+                        "corpusPairStd header value must be a finite positive number",
+                    )
+                f_pstd = float(raw_pair_std)
+                if not math.isfinite(f_pstd) or f_pstd <= 0.0:
+                    raise VocabularyPackError(
+                        "corrupt_sidecar",
+                        f"corpusPairStd must be finite and positive, got {f_pstd!r}",
+                    )
+                self._corpus_pair_std = f_pstd
             secs = header["sections"]
             if not isinstance(secs, dict):
                 raise TypeError("sections must be a mapping")
@@ -1203,6 +1510,10 @@ class AtlasSemanticSidecar:
                 off_vecs = _checked_offset("vectors", self._n_vecs * self._dim)
                 off_scales = _checked_offset("scales_f16", self._n_vecs * 2)
                 off_binary = _checked_offset("binary_u8", self._n_vecs * n_bytes_bin)
+
+            off_corpus_mean: int | None = None
+            if self._calibration_mode == "centered_covariance":
+                off_corpus_mean = _checked_offset("corpus_mean_f32", self._dim * 4)
         except VocabularyPackError:
             raise
         except (KeyError, TypeError, ValueError) as exc:
@@ -1280,6 +1591,29 @@ class AtlasSemanticSidecar:
                     offset=off_binary,
                 ).reshape(self._n_vecs, n_bytes_bin)
 
+            if off_corpus_mean is not None:
+                self._corpus_mean_f32 = np.frombuffer(
+                    mm,
+                    dtype=np.float32,
+                    count=self._dim,
+                    offset=off_corpus_mean,
+                )
+                if not bool(np.all(np.isfinite(self._corpus_mean_f32))):
+                    raise VocabularyPackError(
+                        "corrupt_sidecar",
+                        "corpus_mean_f32 contains non-finite coordinate values",
+                    )
+                mu64 = self._corpus_mean_f32.astype(np.float64)
+                actual_norm_sq = float(np.dot(mu64, mu64))
+                if not math.isfinite(actual_norm_sq) or actual_norm_sq > 1.0 - _CALIBRATION_MIN_RESIDUAL_VAR:
+                    raise VocabularyPackError(
+                        "corrupt_sidecar",
+                        f"corpus_mean_f32 squared norm {actual_norm_sq!r} leaves insufficient residual variance",
+                    )
+                if self._corpus_mean_norm_sq is None:
+                    self._corpus_mean_norm_sq = actual_norm_sq
+                self._corpus_res_var = float(1.0 - actual_norm_sq)
+
             # Strict open-time structural bounds validation (fail-closed before serving any query).
             if self._rid_offsets.size != self._n_vecs + 1:
                 raise VocabularyPackError("corrupt_sidecar", "rid_offsets length mismatch")
@@ -1353,6 +1687,7 @@ class AtlasSemanticSidecar:
         self._centroids_f32 = None
         self._cluster_offsets = None
         self._binary_u8 = None
+        self._corpus_mean_f32 = None
         self._rid_offsets = None  # type: ignore[assignment]
         self._rids = None  # type: ignore[assignment]
         self._rid_to_vidx = None  # type: ignore[assignment]
@@ -1367,6 +1702,7 @@ class AtlasSemanticSidecar:
         *,
         trusted_sidecar_digest: str | None = None,
         rerank_top_r: int = _DEFAULT_RERANK_TOP_R,
+        use_calibration: bool = True,
     ) -> AtlasSemanticSidecar:
         raw_path = Path(sidecar_path)
         _reject_symlink_path(raw_path, "semantic sidecar", error_code="invalid_sidecar")
@@ -1444,6 +1780,7 @@ class AtlasSemanticSidecar:
                 header=header,
                 rerank_top_r=rerank_top_r,
                 header_end=h_end,
+                use_calibration=use_calibration,
             )
         except BaseException:
             if mm is not None:
@@ -1483,6 +1820,26 @@ class AtlasSemanticSidecar:
     @property
     def recommended_min_cosine(self) -> float | None:
         return self._recommended_min_cosine
+
+    @property
+    def calibration_mode(self) -> str:
+        return self._calibration_mode
+
+    @property
+    def calibration_active(self) -> bool:
+        return (
+            self._use_calibration
+            and self._calibration_mode == "centered_covariance"
+            and self._corpus_mean_f32 is not None
+        )
+
+    @property
+    def corpus_mean_norm_sq(self) -> float | None:
+        return self._corpus_mean_norm_sq
+
+    @property
+    def corpus_pair_std(self) -> float | None:
+        return self._corpus_pair_std
 
     def _try_claim_finalize(self) -> bool:
         """Must be called while holding ``self._state_lock``."""
@@ -1825,6 +2182,7 @@ class AtlasSemanticSidecar:
         nprobe: int,
         allowed_vidx_mask: np.ndarray,
         n_eligible: int,
+        score_bias: float = 0.0,
     ) -> list[tuple[int, float]]:
         assert (
             self._centroids_f32 is not None
@@ -1874,6 +2232,8 @@ class AtlasSemanticSidecar:
         cand_vidx = collected_parts[0] if len(collected_parts) == 1 else np.concatenate(collected_parts)
         cand_vidx.sort()
         cand_scores = self._score_i8_candidates(cand_vidx, q)
+        if score_bias != 0.0:
+            cand_scores -= score_bias
         above = cand_scores >= min_cosine
         hit_vidx_parts: list[np.ndarray] = [cand_vidx[above]] if np.any(above) else []
         hit_score_parts: list[np.ndarray] = [cand_scores[above]] if np.any(above) else []
@@ -1895,6 +2255,8 @@ class AtlasSemanticSidecar:
                     continue
                 extra_vidx.sort()
                 extra_scores = self._score_i8_candidates(extra_vidx, q)
+                if score_bias != 0.0:
+                    extra_scores -= score_bias
                 extra_above = extra_scores >= min_cosine
                 if np.any(extra_above):
                     hit_vidx_parts.append(extra_vidx[extra_above])
@@ -1955,6 +2317,23 @@ class AtlasSemanticSidecar:
             return []
         q = q / norm
 
+        use_cal = (
+            self._use_calibration
+            and self._calibration_mode == "centered_covariance"
+            and self._corpus_mean_f32 is not None
+        )
+        if use_cal:
+            assert self._corpus_mean_f32 is not None
+            # Exact algebraic identity: (v - mu)^T (q - mu) / (1 - ||mu||^2) = v^T q_score - score_bias
+            q_sub = q - self._corpus_mean_f32
+            q_score = (q_sub / self._corpus_res_var).astype(np.float32, copy=False)
+            score_bias = float(np.dot(self._corpus_mean_f32, q_score))
+            q_for_bits = q_sub
+        else:
+            q_score = q
+            score_bias = 0.0
+            q_for_bits = q
+
         eligible_vidx: np.ndarray | None = None
         allowed_vidx_mask: np.ndarray | None = None
         allowed_rid_mask: np.ndarray | None = None
@@ -1972,38 +2351,55 @@ class AtlasSemanticSidecar:
             if n_eligible == 0:
                 return []
 
+        eff_min_cosine = float(min_cosine)
+        if (
+            use_cal
+            and eff_min_cosine > 0.0
+            and n_eligible < self._n_vecs
+            and self._n_vecs > _CALIBRATION_EVT_N_FLOOR
+        ):
+            eff_min_cosine *= math.sqrt(
+                math.log(max(n_eligible, _CALIBRATION_EVT_N_FLOOR)) / math.log(self._n_vecs)
+            )
+
         cand_pairs: list[tuple[int, float]]
         if eligible_vidx is not None:
             # Exact-scan fast path (<= 5,000 eligible vectors): 100% exact recall, sub-millisecond, zero starvation.
             if self._mode == "flat_f16":
-                cand_scores = self._score_f16_candidates(eligible_vidx, q)
+                cand_scores = self._score_f16_candidates(eligible_vidx, q_score)
             else:
-                cand_scores = self._score_i8_candidates(eligible_vidx, q)
+                cand_scores = self._score_i8_candidates(eligible_vidx, q_score)
+            if score_bias != 0.0:
+                cand_scores -= score_bias
             cand_pairs = self._top_k_from_scored(
                 eligible_vidx,
                 cand_scores,
                 top_k=top_k,
-                min_cosine=min_cosine,
+                min_cosine=eff_min_cosine,
             )
         elif self._mode == "flat_f16":
             assert self._vectors_f16 is not None
             if allowed_vidx_mask is not None and n_eligible <= self._n_vecs // 4:
                 sub_vidx = np.flatnonzero(allowed_vidx_mask).astype(np.int64, copy=False)
-                cand_scores = self._score_f16_candidates(sub_vidx, q)
+                cand_scores = self._score_f16_candidates(sub_vidx, q_score)
+                if score_bias != 0.0:
+                    cand_scores -= score_bias
                 cand_pairs = self._top_k_from_scored(
                     sub_vidx,
                     cand_scores,
                     top_k=top_k,
-                    min_cosine=min_cosine,
+                    min_cosine=eff_min_cosine,
                 )
             else:
                 if self._n_vecs <= _FLAT_QUERY_CHUNK:
-                    scores = self._vectors_f16.astype(np.float32) @ q
+                    scores = self._vectors_f16.astype(np.float32) @ q_score
                 else:
                     scores = np.empty(self._n_vecs, dtype=np.float32)
                     for start in range(0, self._n_vecs, _FLAT_QUERY_CHUNK):
                         end = min(start + _FLAT_QUERY_CHUNK, self._n_vecs)
-                        scores[start:end] = self._vectors_f16[start:end].astype(np.float32) @ q
+                        scores[start:end] = self._vectors_f16[start:end].astype(np.float32) @ q_score
+                if score_bias != 0.0:
+                    scores -= score_bias
                 if allowed_vidx_mask is not None:
                     cand_vidx = np.flatnonzero(allowed_vidx_mask).astype(np.int64, copy=False)
                     cand_scores = scores[cand_vidx]
@@ -2014,17 +2410,18 @@ class AtlasSemanticSidecar:
                     cand_vidx,
                     cand_scores,
                     top_k=top_k,
-                    min_cosine=min_cosine,
+                    min_cosine=eff_min_cosine,
                 )
         elif self._mode == "ivf_i8":
             if allowed_vidx_mask is not None:
                 cand_pairs = self._search_ivf_i8_filtered(
-                    q,
+                    q_score,
                     top_k=top_k,
-                    min_cosine=min_cosine,
+                    min_cosine=eff_min_cosine,
                     nprobe=nprobe,
                     allowed_vidx_mask=allowed_vidx_mask,
                     n_eligible=n_eligible,
+                    score_bias=score_bias,
                 )
             else:
                 assert (
@@ -2033,7 +2430,7 @@ class AtlasSemanticSidecar:
                     and self._vectors_i8 is not None
                     and self._scales_f16 is not None
                 )
-                coarse = self._centroids_f32 @ q
+                coarse = self._centroids_f32 @ q_score
                 probe = min(max(1, int(nprobe)), self._n_clusters)
                 if probe < self._n_clusters:
                     c_idx = np.argpartition(coarse, -probe)[-probe:]
@@ -2065,13 +2462,15 @@ class AtlasSemanticSidecar:
                     cand_vidx[pos : pos + n_rows] = np.arange(start, end, dtype=np.int64)
                     pos += n_rows
 
-                all_sc = cand_f32 @ q
+                all_sc = cand_f32 @ q_score
                 all_sc *= cand_scales
+                if score_bias != 0.0:
+                    all_sc -= score_bias
                 cand_pairs = self._top_k_from_scored(
                     cand_vidx,
                     all_sc,
                     top_k=top_k,
-                    min_cosine=min_cosine,
+                    min_cosine=eff_min_cosine,
                 )
         else:
             # binary_i8: chunked XOR + SIMD bitwise_count (or LUT fallback) Hamming scan, then exact int8 rerank.
@@ -2080,7 +2479,7 @@ class AtlasSemanticSidecar:
                 and self._vectors_i8 is not None
                 and self._scales_f16 is not None
             )
-            q_bits = np.packbits(q > 0)
+            q_bits = np.packbits(q_for_bits > 0)
             ham_dtype = np.uint16 if self._binary_u8.shape[1] * 8 < 65_535 else np.uint32
             k_eff = min(top_k, n_eligible)
             r_eff = self._effective_rerank_top_r(k_eff, n_eligible, rerank_top_r)
@@ -2104,12 +2503,14 @@ class AtlasSemanticSidecar:
 
             # Sort candidate vector indices for sequential mmap page-cache reads during chunked int8 rerank.
             cand_vidx.sort()
-            cand_scores = self._score_i8_candidates(cand_vidx, q)
+            cand_scores = self._score_i8_candidates(cand_vidx, q_score)
+            if score_bias != 0.0:
+                cand_scores -= score_bias
             cand_pairs = self._top_k_from_scored(
                 cand_vidx,
                 cand_scores,
                 top_k=top_k,
-                min_cosine=min_cosine,
+                min_cosine=eff_min_cosine,
             )
 
         # Expand deduplicated vector indices to SQLite pack resource IDs (preserving best cosine per rid,
@@ -2142,4 +2543,5 @@ __all__ = [
     "SemanticSidecarManifest",
     "build_semantic_sidecar",
     "build_semantic_sidecar_from_arrays",
+    "calibrate_semantic_sidecar",
 ]
