@@ -581,13 +581,17 @@ inverse pair (`dataset.change-event-inverse`), a cycle through events
 (`dataset.change-event-same-entity`) -- through identity's symmetric,
 transitive closure, so two records each bridged to a third are one entity
 too.
-Change events have no projection triple and no compact-record role, and the
-typed Parquet view omits them together with their evidence bindings: a served
-binding must bind a served statement, which the view verifier checks. The
-public records behind the events -- 22 in the agency-registry release -- stay
-in `source-records.parquet`, where no served binding points at them. The
-construction counts still count every binding, since they describe the RDF.
-The agency-registry release's own sealed view serves the events.
+Change events have no projection triple and no construction-summary compact-record
+count. Single-original change events project into the typed Parquet view's
+`lifecycle-events.parquet` table (with scalar `applies_to`, `effective_date`, and
+the event's evidence `source_records`; multi-original mergers fail closed until
+the table models multi-original events), while `evidence-bindings.parquet` still
+omits change-event bindings: a served binding must bind a served statement, which
+the view verifier checks. The public records behind the events -- 22 in the
+agency-registry release -- stay in `source-records.parquet`, where no served
+binding points at them. The construction counts still count every binding, since
+they describe the RDF. The agency-registry release's own sealed view also serves
+the events.
 
 ## Projection and inference
 

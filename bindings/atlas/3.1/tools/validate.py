@@ -9342,30 +9342,72 @@ def _construction_record_from_rdf(
             }
         )
     elif role == "LifecycleEvent":
-        source_records = sorted(
-            str(value) for value in graph.objects(subject, ATLAS.sourceRecord) if isinstance(value, URIRef)
-        )
-        if not source_records or len(source_records) != len(list(graph.objects(subject, ATLAS.sourceRecord))):
-            _fail("construction.sample", f"lifecycle event {subject} has invalid source records")
-        record.update(
-            {
-                "appliesTo": str(_construction_rdf_one(graph, subject, RKAF.appliesTo, term_type=URIRef)),
-                "lifecycleEventKind": str(
-                    _construction_rdf_one(graph, subject, RKAF.lifecycleEventKind, term_type=URIRef)
-                ),
-                "effectiveDate": str(_construction_rdf_one(graph, subject, RKAF.effectiveDate, term_type=Literal)),
-                "sourceRecords": source_records,
-            }
-        )
-        for field, predicate in (
-            ("fromRelease", ATLAS.fromRelease),
-            ("toRelease", ATLAS.toRelease),
-        ):
-            values = list(graph.objects(subject, predicate))
-            if len(values) > 1 or (values and not isinstance(values[0], URIRef)):
-                _fail("construction.sample", f"lifecycle event {subject} has invalid {field}")
-            if values:
-                record[field] = str(values[0])
+        is_change_event = (subject, RDF.type, ATLAS.OrganizationChangeEvent) in graph
+        if is_change_event:
+            conflicting_role = _construction_record_role_or_none(graph, subject)
+            if conflicting_role is not None:
+                _fail(
+                    "construction.sample",
+                    f"subject {subject} cannot be both {conflicting_role} and OrganizationChangeEvent",
+                )
+            raw_originals = list(graph.objects(subject, ATLAS.originalOrganization))
+            originals = sorted(str(value) for value in raw_originals if isinstance(value, URIRef))
+            if not originals or len(originals) != len(raw_originals):
+                _fail("construction.sample", f"organization change event {subject} has invalid original organizations")
+            if len(originals) != 1:
+                # lifecycle-events.parquet models scalar applies_to (single-original
+                # succession); fail closed on multi-original mergers rather than
+                # silently discarding originals[1:].
+                _fail(
+                    "construction.parquet",
+                    f"organization change event {subject} has {len(originals)} original organizations; "
+                    "lifecycle-events.parquet currently models single-original events only",
+                )
+            raw_results = list(graph.objects(subject, ATLAS.resultingOrganization))
+            if not raw_results or any(not isinstance(value, URIRef) for value in raw_results):
+                _fail("construction.sample", f"organization change event {subject} has invalid resulting organizations")
+            bindings = list(graph.subjects(RKAF.bindsAssertion, subject))
+            if not bindings or any(not isinstance(binding, URIRef) for binding in bindings):
+                _fail("construction.sample", f"organization change event {subject} has no RDF evidence bindings")
+            source_records = sorted(
+                {
+                    str(_construction_rdf_one(graph, binding, ATLAS.evidenceSourceRecord, term_type=URIRef))
+                    for binding in bindings
+                }
+            )
+            record.update(
+                {
+                    "appliesTo": originals[0],
+                    "lifecycleEventKind": str(ATLAS.OrganizationChangeEvent),
+                    "effectiveDate": str(_construction_rdf_one(graph, subject, RKAF.effectiveDate, term_type=Literal)),
+                    "sourceRecords": source_records,
+                }
+            )
+        else:
+            source_records = sorted(
+                str(value) for value in graph.objects(subject, ATLAS.sourceRecord) if isinstance(value, URIRef)
+            )
+            if not source_records or len(source_records) != len(list(graph.objects(subject, ATLAS.sourceRecord))):
+                _fail("construction.sample", f"lifecycle event {subject} has invalid source records")
+            record.update(
+                {
+                    "appliesTo": str(_construction_rdf_one(graph, subject, RKAF.appliesTo, term_type=URIRef)),
+                    "lifecycleEventKind": str(
+                        _construction_rdf_one(graph, subject, RKAF.lifecycleEventKind, term_type=URIRef)
+                    ),
+                    "effectiveDate": str(_construction_rdf_one(graph, subject, RKAF.effectiveDate, term_type=Literal)),
+                    "sourceRecords": source_records,
+                }
+            )
+            for field, predicate in (
+                ("fromRelease", ATLAS.fromRelease),
+                ("toRelease", ATLAS.toRelease),
+            ):
+                values = list(graph.objects(subject, predicate))
+                if len(values) > 1 or (values and not isinstance(values[0], URIRef)):
+                    _fail("construction.sample", f"lifecycle event {subject} has invalid {field}")
+                if values:
+                    record[field] = str(values[0])
     else:
         _fail("construction.sample", f"unsupported RDF sample role {role}")
     return _normalize_compact_record(role, record, path=f"rdf:{subject}")
@@ -9773,18 +9815,23 @@ def binds_change_event(graph: Graph, binding: URIRef) -> bool:
 
 
 def _served_record_ids_by_role(asserted: Graph) -> dict[str, set[str]]:
-    """The logical records the Atlas Parquet view serves: every asserted record but a change event's bindings.
+    """The logical records the Atlas Parquet view serves.
 
-    A change event has no compact-record role, so the view omits it, and with
-    it the evidence bindings that support it -- a served binding must bind a
-    served statement. The agency-registry release's own sealed view serves the
-    events instead (REF-072). The construction counts still count every
-    binding: they describe the RDF, not the view.
+    ``EvidenceBinding`` omits bindings that support an organization change
+    event -- a served binding must bind a served statement in
+    ``statements.parquet``. ``LifecycleEvent`` serves both
+    ``rkaf:LifecycleEvent`` records and projected ``atlas:OrganizationChangeEvent``
+    records (REF-072), so downstream Parquet views and compiled vocabulary
+    packs expose dated agency succession events while ``atlas-construction-summary.json``
+    counts keep describing the RDF compact-record roles unchanged.
     """
 
     ids = _rdf_record_ids_by_role(asserted)
     ids["EvidenceBinding"] = {
         binding for binding in ids["EvidenceBinding"] if not binds_change_event(asserted, URIRef(binding))
+    }
+    ids["LifecycleEvent"] = ids["LifecycleEvent"] | {
+        str(value) for value in asserted.subjects(RDF.type, ATLAS.OrganizationChangeEvent)
     }
     return ids
 

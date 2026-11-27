@@ -819,7 +819,7 @@ ATLAS_VALIDATE = _load_validator()
 ATLAS = ATLAS_VALIDATE.ATLAS
 RKAF = ATLAS_VALIDATE.RKAF
 # The one other line the served identity reads: a binding naming a change event
-# (REF-072), which the Atlas Parquet view omits.
+# (REF-072), which the Atlas Parquet evidence-bindings table omits.
 _CHANGE_EVENT_BINDING_BYTES = f" <{RKAF.bindsAssertion}> <{ATLAS_VALIDATE.CHANGE_EVENT_IRI_PREFIX}"
 SKOSXL = ATLAS_VALIDATE.SKOSXL
 _RING_RELATION_POLICIES = ATLAS_VALIDATE._relation_policies()
@@ -6500,11 +6500,36 @@ class _StreamingGraphSpool:
                         self.dependencies[key].add(target)
 
                 if ATLAS.OrganizationChangeEvent in types:
+                    _reject_dual_typed_change_event(subject, types)
                     # REF-072: an event is its mapping release's own claim, so
-                    # its facts ride in the release's pack (which already
-                    # depends on the rosters it names), but it has no
-                    # compact-record role; its bindings and records carry the
-                    # release's counts.
+                    # its facts ride in the release's pack and it carries no
+                    # compact-record count in atlas-construction-summary.json;
+                    # project single-original events into the served
+                    # lifecycle-events.parquet table so downstream Parquet views
+                    # and compiled vocabulary packs serve dated agency
+                    # succession events.
+                    record = normalize_compact_record(
+                        CompactRecordRole.LIFECYCLE_EVENT,
+                        _compact_record_from_graph(graph, subject, CompactRecordRole.LIFECYCLE_EVENT),
+                    )
+                    compact_stream = compact_streams.get(CompactRecordRole.LIFECYCLE_EVENT)
+                    if compact_stream is None:
+                        compact_stream = stack.enter_context(
+                            self.compact_paths[CompactRecordRole.LIFECYCLE_EVENT].open(
+                                "a",
+                                encoding="utf-8",
+                                newline="",
+                            )
+                        )
+                        compact_streams[CompactRecordRole.LIFECYCLE_EVENT] = compact_stream
+                    payload = json.dumps(
+                        {"record": record},
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                        sort_keys=True,
+                    )
+                    compact_stream.write(f"{subject}\t{payload}\n")
+                    self.role_counts[CompactRecordRole.LIFECYCLE_EVENT] += 1
                     continue
                 role = _compact_record_role(graph, subject)
                 independent_role = ATLAS_VALIDATE._construction_record_role(graph, subject)
@@ -6514,8 +6539,9 @@ class _StreamingGraphSpool:
                         f"{role.value}, {independent_role}"
                     )
                 if role is CompactRecordRole.EVIDENCE_BINDING and ATLAS_VALIDATE.binds_change_event(graph, subject):
-                    # Counted, never served: the Atlas view omits change events
-                    # and their bindings (REF-072).
+                    # Counted, never served: evidence-bindings.parquet omits
+                    # change-event bindings while lifecycle-events.parquet
+                    # serves the events themselves (REF-072).
                     self._increment_counts(graph, subject, role, plan.key, served=False)
                     continue
                 record = normalize_compact_record(
@@ -6711,31 +6737,61 @@ class _StreamingGraphSpool:
             }
             bracketed = re.compile(r"<[^<>]*>")
             has_effective_period_iri = f"<{RKAF.hasEffectivePeriod}>"
+            binds_assertion_iri = f"<{RKAF.bindsAssertion}>"
+            evidence_source_record_iri = f"<{ATLAS.evidenceSourceRecord}>"
             period_targets: dict[str, set[str]] = defaultdict(set)
+            change_event_needles = {
+                f"<{subject_id}>"
+                for subject_id, role in subjects
+                if role is CompactRecordRole.LIFECYCLE_EVENT
+                and subject_id.startswith(ATLAS_VALIDATE.CHANGE_EVENT_IRI_PREFIX)
+            }
+            binding_to_events: dict[str, set[str]] = defaultdict(set)
             for path in self.sorted_rdf_paths.values():
                 with path.open("r", encoding="utf-8", newline="") as rdf:
                     for line in rdf:
                         found = bracketed.findall(line)
-                        for needle in samples.keys() & set(found):
+                        matched = samples.keys() & set(found)
+                        if not matched:
+                            continue
+                        tokens = line.split(" ", 3)
+                        has_triple_tokens = len(tokens) >= 3
+                        for needle in matched:
                             samples[needle].write(line)
-                            tokens = line.split(" ", 3)
+                            if not has_triple_tokens:
+                                continue
                             if (
-                                len(tokens) >= 3
-                                and tokens[0] == needle
+                                tokens[0] == needle
                                 and tokens[1] == has_effective_period_iri
                                 and tokens[2].startswith("<")
                                 and tokens[2].endswith(">")
                             ):
                                 period_targets[tokens[2]].add(needle)
-            if period_targets:
+                            elif (
+                                needle in change_event_needles
+                                and tokens[0].startswith("<")
+                                and tokens[0].endswith(">")
+                                and tokens[1] == binds_assertion_iri
+                                and tokens[2] == needle
+                            ):
+                                binding_to_events[tokens[0]].add(needle)
+            if period_targets or binding_to_events:
                 for path in self.sorted_rdf_paths.values():
                     with path.open("r", encoding="utf-8", newline="") as rdf:
                         for line in rdf:
-                            subject_token = line.partition(" ")[0]
+                            tokens = line.split(" ", 3)
+                            if len(tokens) < 3:
+                                continue
+                            subject_token = tokens[0]
                             targets = period_targets.get(subject_token)
                             if targets is not None:
                                 for needle in targets:
                                     samples[needle].write(line)
+                            if tokens[1] == evidence_source_record_iri:
+                                event_targets = binding_to_events.get(subject_token)
+                                if event_targets is not None:
+                                    for event_needle in event_targets:
+                                        samples[event_needle].write(line)
             for subject_id, role in subjects:
                 sample = samples[f"<{subject_id}>"]
                 if not sample.tell():
@@ -7983,24 +8039,36 @@ def _rkaf_local_name(value: Any, *, context: str) -> str:
     return iri[len(namespace) :]
 
 
+_COMPACT_CARRIER_ROLE_MARKERS: tuple[tuple[CompactRecordRole, URIRef], ...] = (
+    (CompactRecordRole.RESOURCE, ATLAS.AtlasResource),
+    (CompactRecordRole.LABEL, SKOSXL.Label),
+    (CompactRecordRole.STATEMENT, ATLAS.RelationAssertion),
+    (CompactRecordRole.EVIDENCE_BINDING, RKAF.EvidenceBinding),
+    (CompactRecordRole.SOURCE_RECORD, ATLAS.SourceRecord),
+    (CompactRecordRole.RELEASE, ATLAS.AtlasRelease),
+    (CompactRecordRole.RELEASE, ATLAS.SourceRelease),
+    (CompactRecordRole.IDENTIFIER, ATLAS.Identifier),
+    (CompactRecordRole.LIFECYCLE_EVENT, RKAF.LifecycleEvent),
+)
+
+
+def _reject_dual_typed_change_event(subject: URIRef, types: set[Any]) -> None:
+    """Fail closed when an OrganizationChangeEvent also carries a compact carrier type."""
+
+    conflicting = sorted(
+        str(marker) for _role, marker in _COMPACT_CARRIER_ROLE_MARKERS if marker in types
+    )
+    if conflicting:
+        raise ValueError(
+            f"organization change event {subject} cannot also carry compact carrier type(s): "
+            f"{', '.join(conflicting)}"
+        )
+
+
 def _compact_record_role(graph: Graph, subject: URIRef) -> CompactRecordRole:
     """Map one release-owned subject to its single compact role, refusing zero or ambiguous matches."""
     types = set(graph.objects(subject, RDF.type))
-    candidates = {
-        role
-        for role, marker in (
-            (CompactRecordRole.RESOURCE, ATLAS.AtlasResource),
-            (CompactRecordRole.LABEL, SKOSXL.Label),
-            (CompactRecordRole.STATEMENT, ATLAS.RelationAssertion),
-            (CompactRecordRole.EVIDENCE_BINDING, RKAF.EvidenceBinding),
-            (CompactRecordRole.SOURCE_RECORD, ATLAS.SourceRecord),
-            (CompactRecordRole.RELEASE, ATLAS.AtlasRelease),
-            (CompactRecordRole.RELEASE, ATLAS.SourceRelease),
-            (CompactRecordRole.IDENTIFIER, ATLAS.Identifier),
-            (CompactRecordRole.LIFECYCLE_EVENT, RKAF.LifecycleEvent),
-        )
-        if marker in types
-    }
+    candidates = {role for role, marker in _COMPACT_CARRIER_ROLE_MARKERS if marker in types}
     if len(candidates) != 1:
         raise ValueError(
             f"release-owned subject {subject} does not map to one compact role: {sorted(str(value) for value in types)}"
@@ -8517,6 +8585,58 @@ def _compact_record_from_graph(
         )
         return record
     if role == CompactRecordRole.LIFECYCLE_EVENT:
+        types = set(graph.objects(subject, RDF.type))
+        is_change_event = ATLAS.OrganizationChangeEvent in types
+        if is_change_event:
+            _reject_dual_typed_change_event(subject, types)
+            raw_originals = list(graph.objects(subject, ATLAS.originalOrganization))
+            originals = sorted(str(value) for value in raw_originals if isinstance(value, URIRef))
+            if not originals or len(originals) != len(raw_originals):
+                raise ValueError(f"organization change event {subject} has invalid original organizations")
+            if len(originals) != 1:
+                # lifecycle-events.parquet models scalar applies_to (single-original
+                # succession); fail closed on multi-original mergers rather than
+                # silently discarding originals[1:]. All committed agency events
+                # have a single original organization.
+                raise ValueError(
+                    f"organization change event {subject} has {len(originals)} original organizations; "
+                    "lifecycle-events.parquet currently models single-original events only"
+                )
+            raw_results = list(graph.objects(subject, ATLAS.resultingOrganization))
+            if not raw_results or any(not isinstance(value, URIRef) for value in raw_results):
+                raise ValueError(f"organization change event {subject} has invalid resulting organizations")
+            bindings = list(graph.subjects(RKAF.bindsAssertion, subject))
+            if not bindings or any(not isinstance(binding, URIRef) for binding in bindings):
+                raise ValueError(f"organization change event {subject} has no evidence bindings")
+            source_records = sorted(
+                {
+                    str(
+                        _one_graph_object(
+                            graph,
+                            binding,
+                            ATLAS.evidenceSourceRecord,
+                            expected_type=URIRef,
+                        )
+                    )
+                    for binding in bindings
+                }
+            )
+            record.update(
+                {
+                    "appliesTo": originals[0],
+                    "lifecycleEventKind": str(ATLAS.OrganizationChangeEvent),
+                    "effectiveDate": str(
+                        _one_graph_object(
+                            graph,
+                            subject,
+                            RKAF.effectiveDate,
+                            expected_type=Literal,
+                        )
+                    ),
+                    "sourceRecords": source_records,
+                }
+            )
+            return record
         source_records = sorted(
             str(value) for value in graph.objects(subject, ATLAS.sourceRecord) if isinstance(value, URIRef)
         )
@@ -8600,9 +8720,12 @@ def _project_logical_records(
 
     unit_key_by_token = {token: release.key for token, release in releases_by_key.items()}
     subjects_by_role: dict[CompactRecordRole, list[tuple[URIRef, str]]] = {role: [] for role in CompactRecordRole}
+    served_change_events: list[URIRef] = []
     for subject, (token, _) in pack_owners.items():
         if (subject, RDF.type, ATLAS.OrganizationChangeEvent) in asserted:
-            continue  # owned by its release's pack, but no compact-record role (REF-072)
+            _reject_dual_typed_change_event(subject, set(asserted.objects(subject, RDF.type)))
+            served_change_events.append(subject)
+            continue  # owned by its release's pack, no construction-summary record count (REF-072)
         subjects_by_role[_compact_record_role(asserted, subject)].append((subject, unit_key_by_token[token]))
     record_counts: dict[str, dict[str, int]] = {
         unit_key_by_token[token]: dict.fromkeys(_COMPACT_ROLE_COUNT_FIELDS.values(), 0)
@@ -8612,10 +8735,31 @@ def _project_logical_records(
         rows = subjects_by_role[role]
         rows.sort(key=lambda row: str(row[0]))
         count_field = _COMPACT_ROLE_COUNT_FIELDS[role.value]
+        if role is CompactRecordRole.LIFECYCLE_EVENT and served_change_events:
+            for _subject, owner in rows:
+                record_counts[owner][count_field] += 1
+            if parquet is None:
+                continue
+            served_subjects = sorted(
+                (*(subject for subject, _owner in rows), *served_change_events),
+                key=str,
+            )
+            for subject in served_subjects:
+                parquet.add(
+                    role,
+                    normalize_compact_record(
+                        role,
+                        _compact_record_from_graph(asserted, subject, role),
+                    ),
+                )
+            continue
         for subject, owner in rows:
             record_counts[owner][count_field] += 1
             if role is CompactRecordRole.EVIDENCE_BINDING and ATLAS_VALIDATE.binds_change_event(asserted, subject):
-                continue  # counted, never served: the Atlas view omits change events (REF-072)
+                # Counted, never served: evidence-bindings.parquet omits
+                # change-event bindings while lifecycle-events.parquet serves
+                # the events themselves (REF-072).
+                continue
             if parquet is None:
                 # `--no-parquet-view`: the counts are a construction fact and
                 # are still owed, but projecting each record would be work
