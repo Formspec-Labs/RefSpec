@@ -13,6 +13,7 @@ from refspec.registry.infrastructure.controlled_identifier import ControlledIden
 FIXTURES = Path(__file__).parent / "fixtures"
 ISSUES_FIXTURE = FIXTURES / "lda-general-issue-codes-2026-07-30.json"
 TYPES_FIXTURE = FIXTURES / "lda-filing-types-2026-07-30.json"
+ENTITIES_FIXTURE = FIXTURES / "lda-government-entities-2026-11-27.json"
 
 
 def _acquire(
@@ -380,3 +381,100 @@ def test_parser_retains_multiple_source_identifiers_as_structured_records(
             source_digest=pin.expected_sha256,
         ),
     )
+
+
+def test_government_entities_pin_and_parse_exact_official_bytes(tmp_path: Path) -> None:
+    """Pins the 2026-11-27 governmententities capture (257 entries, integer id + name)."""
+
+    raw = ENTITIES_FIXTURE.read_bytes()
+    assert len(raw) == 13_891
+    assert lda.sha256_digest(raw) == "sha256:044ed01ef94d79b0f71751c0cbc543bd61256b7668603e8a602d345af7a1d9f0"
+
+    resource = lda.parse_lda_constants(_acquire(tmp_path, lda.LDA_GOVERNMENT_ENTITIES_2026_11_27, ENTITIES_FIXTURE))
+    assert len(resource.codes) == 257
+    by_id = resource.by_code()
+    assert by_id["1"].publisher_label == "SENATE"
+    assert by_id["2"].publisher_label == "HOUSE OF REPRESENTATIVES"
+    assert by_id["211"].publisher_label == "Access Board"
+    assert by_id["194"].publisher_label == "PLEASE DO NOT USE THIS ONE"
+    assert by_id["195"].publisher_label == "NONE"
+    assert by_id["211"].identifiers == (
+        ControlledIdentifier(
+            value="211",
+            kind="governmentEntityId",
+            authority_uri=lda.LDA_IDENTIFIER_AUTHORITY_URI,
+            source_uri=lda.LDA_GOVERNMENT_ENTITIES.source_url,
+            observed_at="2026-11-27T14:02:59Z",
+            effective_at=None,
+            source_digest=lda.LDA_GOVERNMENT_ENTITIES_2026_11_27.expected_sha256,
+        ),
+    )
+    assert all(code.use == "sourceAssignedEvidence" and not code.is_general_subject_concept for code in resource.codes)
+
+
+def test_government_entities_validate_on_filings_and_refuse_unknown_or_drifted_shapes(tmp_path: Path) -> None:
+    """Pins filing-level government_entities validation and fail-closed shape refusal."""
+
+    issues = lda.parse_lda_constants(_acquire(tmp_path, lda.LDA_GENERAL_ISSUE_CODES_2026_07_30, ISSUES_FIXTURE))
+    types = lda.parse_lda_constants(_acquire(tmp_path, lda.LDA_FILING_TYPES_2026_07_30, TYPES_FIXTURE))
+    entities = lda.parse_lda_constants(_acquire(tmp_path, lda.LDA_GOVERNMENT_ENTITIES_2026_11_27, ENTITIES_FIXTURE))
+    portfolio = lda.assemble_lda_control_portfolio((issues, types, entities))
+
+    validated = lda.validate_lobbying_filing_codes(
+        {
+            "filing_type": "Q1",
+            "filing_period": "first_quarter",
+            "lobbying_activities": [
+                {
+                    "general_issue_code": "TEC",
+                    "general_issue_code_display": "Telecommunications",
+                    "government_entities": [
+                        {"id": 1, "name": "SENATE"},
+                        {"id": "211", "name": "Access Board"},
+                    ],
+                }
+            ],
+        },
+        portfolio,
+    )
+    assert [e.identifiers[0].value for e in validated.government_entities] == ["1", "211"]
+    assert [e.publisher_label for e in validated.government_entities] == ["SENATE", "Access Board"]
+
+    with pytest.raises(lda.LDAAssignmentError, match="unknown government_entity id"):
+        lda.validate_lobbying_filing_codes(
+            {
+                "filing_type": "Q1",
+                "lobbying_activities": [{"general_issue_code": "TEC", "government_entities": [{"id": 9999}]}],
+            },
+            portfolio,
+        )
+    with pytest.raises(lda.LDAAssignmentError, match="government_entity name mismatch"):
+        lda.validate_lobbying_filing_codes(
+            {
+                "filing_type": "Q1",
+                "lobbying_activities": [
+                    {"general_issue_code": "TEC", "government_entities": [{"id": 1, "name": "Wrong"}]}
+                ],
+            },
+            portfolio,
+        )
+
+    for bad_payload in (
+        b'[{"value":"1","name":"SENATE"}]',
+        b'[{"id":"1","name":"SENATE"}]',
+        b'[{"id":true,"name":"SENATE"}]',
+        b'[{"id":0,"name":"SENATE"}]',
+        b'[{"id":1,"name":"SENATE","extra":"x"}]',
+    ):
+        mini_source = replace(lda.LDA_GOVERNMENT_ENTITIES, expected_count=1)
+        mini_pin = lda.LDASnapshotPin(
+            source=mini_source,
+            retrieved_at="2026-11-27T14:02:59Z",
+            expected_sha256=lda.sha256_digest(bad_payload),
+            expected_byte_length=len(bad_payload),
+        )
+        p = tmp_path / f"bad-{lda.sha256_digest(bad_payload).split(':')[1][:8]}.json"
+        p.write_bytes(bad_payload)
+        acquired = lda.acquire_lda_constants(mini_pin, tmp_path / "bad-store", source_path=p)
+        with pytest.raises(lda.LDASourceDriftError):
+            lda.parse_lda_constants(acquired)

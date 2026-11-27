@@ -54,12 +54,17 @@ LDA_FILING_PERIOD_VALUES = (
     "year_end",
 )
 
-ResourceName = Literal["generalIssueCodes", "filingTypes"]
+ResourceName = Literal["generalIssueCodes", "filingTypes", "governmentEntities"]
 ResourceUse = Literal["sourceAssignedEvidence", "deterministicMetadata"]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 _GENERAL_ISSUE_CODE = re.compile(r"^[A-Z]{3}$")
 _FILING_TYPE_CODE = re.compile(r"^[A-Z0-9@]{1,3}$")
+_CODE_KIND_BY_RESOURCE: dict[ResourceName, str] = {
+    "generalIssueCodes": "generalIssueCode",
+    "filingTypes": "filingTypeCode",
+    "governmentEntities": "governmentEntityId",
+}
 _ADDITIONAL_IDENTIFIER_KINDS = {
     "id": "publisherRecordId",
     "identifier": "publisherIdentifier",
@@ -122,6 +127,13 @@ LDA_FILING_TYPES = LDAConstantSource(
     filename="filing-types.json",
     expected_count=50,
 )
+LDA_GOVERNMENT_ENTITIES = LDAConstantSource(
+    resource_name="governmentEntities",
+    use="sourceAssignedEvidence",
+    source_url=f"{LDA_API_BASE}/constants/filing/governmententities/",
+    filename="government-entities.json",
+    expected_count=257,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -157,6 +169,15 @@ LDA_FILING_TYPES_2026_07_30 = LDASnapshotPin(
     retrieved_at="2026-07-30T12:45:14Z",
     expected_sha256="sha256:49fbd39383b0be63fb474878aa229d4e397880a30c2e0dac1a0905bc660a3149",
     expected_byte_length=2_803,
+)
+# Exact governmententities JSON captured on 2026-11-27 (257 entries, integer id + name;
+# 255 observed in live LDA filings, plus publisher placeholders 194 'PLEASE DO NOT USE THIS ONE'
+# and 195 'NONE').
+LDA_GOVERNMENT_ENTITIES_2026_11_27 = LDASnapshotPin(
+    source=LDA_GOVERNMENT_ENTITIES,
+    retrieved_at="2026-11-27T14:02:59Z",
+    expected_sha256="sha256:044ed01ef94d79b0f71751c0cbc543bd61256b7668603e8a602d345af7a1d9f0",
+    expected_byte_length=13_891,
 )
 
 
@@ -219,9 +240,9 @@ class ParsedLDAResource:
     gaps: tuple[str, ...]
 
     def by_code(self) -> dict[str, LDACode]:
-        """Index the endpoint's ``value`` code while retaining all other IDs."""
+        """Index the endpoint's primary code (``value`` or stringified ``id``) while retaining all other IDs."""
 
-        code_kind = "generalIssueCode" if self.source.resource_name == "generalIssueCodes" else "filingTypeCode"
+        code_kind = _CODE_KIND_BY_RESOURCE[self.source.resource_name]
         result: dict[str, LDACode] = {}
         for entry in self.codes:
             matches = [identifier for identifier in entry.identifiers if identifier.kind == code_kind]
@@ -233,12 +254,13 @@ class ParsedLDAResource:
 
 @dataclass(frozen=True, slots=True)
 class LDAControlPortfolio:
-    """The two imported resources and known unsupported controls."""
+    """The imported LDA controlled-code resources and known unsupported controls."""
 
     general_issue_codes: ParsedLDAResource
     filing_types: ParsedLDAResource
     filing_period_values: tuple[str, ...]
     gaps: tuple[str, ...]
+    government_entities: ParsedLDAResource | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -261,6 +283,7 @@ class ValidatedLDAFilingCodes:
     general_issues: tuple[LDAFilingCodeAssignment, ...]
     filing_status: None
     gaps: tuple[str, ...]
+    government_entities: tuple[LDAFilingCodeAssignment, ...] = ()
 
 
 LDA_PORTFOLIO_GAPS = (
@@ -443,7 +466,7 @@ def acquire_lda_constants(
 
 
 def parse_lda_constants(acquired: AcquiredLDASource) -> ParsedLDAResource:
-    """Parse exact ``value``/``name`` records without converting them to concepts."""
+    """Parse exact ``value``/``name`` or ``id``/``name`` records without converting them to concepts."""
 
     payload = acquired.path.read_bytes()
     _verify_payload(payload, acquired.pin, location="parsed LDA source")
@@ -459,54 +482,74 @@ def parse_lda_constants(acquired: AcquiredLDASource) -> ParsedLDAResource:
             f"{acquired.pin.source.expected_count}, parsed {len(root)}"
         )
 
-    code_pattern = (
-        _GENERAL_ISSUE_CODE if acquired.pin.source.resource_name == "generalIssueCodes" else _FILING_TYPE_CODE
-    )
+    resource_name = acquired.pin.source.resource_name
+    code_kind = _CODE_KIND_BY_RESOURCE[resource_name]
     parsed: list[LDACode] = []
     for ordinal, record in enumerate(root, start=1):
         if not isinstance(record, Mapping):
             raise LDASourceDriftError(f"LDA constants record {ordinal} must be an object")
-        allowed_fields = {"value", "name", *_ADDITIONAL_IDENTIFIER_KINDS}
-        if not {"value", "name"}.issubset(record) or not set(record).issubset(allowed_fields):
-            raise LDASourceDriftError(f"LDA constants record {ordinal} fields drifted: {sorted(record)}")
-        code = record["value"]
-        label = record["name"]
-        if not isinstance(code, str) or code_pattern.fullmatch(code) is None:
-            raise LDASourceDriftError(f"LDA constants record {ordinal} has malformed publisher code")
-        if not isinstance(label, str) or not label.strip() or label != label.strip():
-            raise LDASourceDriftError(f"LDA constants record {ordinal} has malformed publisher label")
-        code_kind = "generalIssueCode" if acquired.pin.source.resource_name == "generalIssueCodes" else "filingTypeCode"
-        identifiers = [
-            ControlledIdentifier(
-                value=code,
-                kind=code_kind,
-                authority_uri=LDA_IDENTIFIER_AUTHORITY_URI,
-                source_uri=acquired.pin.source.source_url,
-                observed_at=acquired.pin.retrieved_at,
-                effective_at=None,
-                source_digest=acquired.sha256,
-            )
-        ]
-        for field_name, identifier_kind in _ADDITIONAL_IDENTIFIER_KINDS.items():
-            raw_identifier = record.get(field_name)
-            if raw_identifier is None:
-                continue
-            if not isinstance(raw_identifier, (str, int)) or not str(raw_identifier).strip():
-                raise LDASourceDriftError(f"LDA constants record {ordinal} has malformed {field_name} identifier")
-            identifiers.append(
+        if resource_name == "governmentEntities":
+            if set(record) != {"id", "name"}:
+                raise LDASourceDriftError(f"LDA constants record {ordinal} fields drifted: {sorted(record)}")
+            raw_id = record["id"]
+            label = record["name"]
+            if not isinstance(raw_id, int) or isinstance(raw_id, bool) or raw_id <= 0:
+                raise LDASourceDriftError(f"LDA constants record {ordinal} has malformed publisher id")
+            if not isinstance(label, str) or not label.strip() or label != label.strip():
+                raise LDASourceDriftError(f"LDA constants record {ordinal} has malformed publisher label")
+            identifiers = [
                 ControlledIdentifier(
-                    value=str(raw_identifier).strip(),
-                    kind=identifier_kind,
+                    value=str(raw_id),
+                    kind=code_kind,
                     authority_uri=LDA_IDENTIFIER_AUTHORITY_URI,
                     source_uri=acquired.pin.source.source_url,
                     observed_at=acquired.pin.retrieved_at,
                     effective_at=None,
                     source_digest=acquired.sha256,
                 )
-            )
+            ]
+        else:
+            code_pattern = _GENERAL_ISSUE_CODE if resource_name == "generalIssueCodes" else _FILING_TYPE_CODE
+            allowed_fields = {"value", "name", *_ADDITIONAL_IDENTIFIER_KINDS}
+            if not {"value", "name"}.issubset(record) or not set(record).issubset(allowed_fields):
+                raise LDASourceDriftError(f"LDA constants record {ordinal} fields drifted: {sorted(record)}")
+            code = record["value"]
+            label = record["name"]
+            if not isinstance(code, str) or code_pattern.fullmatch(code) is None:
+                raise LDASourceDriftError(f"LDA constants record {ordinal} has malformed publisher code")
+            if not isinstance(label, str) or not label.strip() or label != label.strip():
+                raise LDASourceDriftError(f"LDA constants record {ordinal} has malformed publisher label")
+            identifiers = [
+                ControlledIdentifier(
+                    value=code,
+                    kind=code_kind,
+                    authority_uri=LDA_IDENTIFIER_AUTHORITY_URI,
+                    source_uri=acquired.pin.source.source_url,
+                    observed_at=acquired.pin.retrieved_at,
+                    effective_at=None,
+                    source_digest=acquired.sha256,
+                )
+            ]
+            for field_name, identifier_kind in _ADDITIONAL_IDENTIFIER_KINDS.items():
+                raw_identifier = record.get(field_name)
+                if raw_identifier is None:
+                    continue
+                if not isinstance(raw_identifier, (str, int)) or not str(raw_identifier).strip():
+                    raise LDASourceDriftError(f"LDA constants record {ordinal} has malformed {field_name} identifier")
+                identifiers.append(
+                    ControlledIdentifier(
+                        value=str(raw_identifier).strip(),
+                        kind=identifier_kind,
+                        authority_uri=LDA_IDENTIFIER_AUTHORITY_URI,
+                        source_uri=acquired.pin.source.source_url,
+                        observed_at=acquired.pin.retrieved_at,
+                        effective_at=None,
+                        source_digest=acquired.sha256,
+                    )
+                )
         parsed.append(
             LDACode(
-                resource_name=acquired.pin.source.resource_name,
+                resource_name=resource_name,
                 use=acquired.pin.source.use,
                 publisher_label=label,
                 source_url=acquired.pin.source.source_url,
@@ -517,7 +560,7 @@ def parse_lda_constants(acquired: AcquiredLDASource) -> ParsedLDAResource:
         identifier.value
         for entry in parsed
         for identifier in entry.identifiers
-        if identifier.kind == ("generalIssueCode" if entry.resource_name == "generalIssueCodes" else "filingTypeCode")
+        if identifier.kind == code_kind
     }
     if len(code_values) != len(parsed):
         raise LDASourceDriftError("LDA constants contain duplicate publisher codes")
@@ -539,18 +582,24 @@ def parse_lda_constants(acquired: AcquiredLDASource) -> ParsedLDAResource:
 def assemble_lda_control_portfolio(
     resources: Sequence[ParsedLDAResource],
 ) -> LDAControlPortfolio:
-    """Require both distinct resources and retain unsupported-control gaps."""
+    """Require General Issue Codes and Filing Types (plus optional Government Entities) and retain gaps."""
 
     by_name = {resource.source.resource_name: resource for resource in resources}
-    if len(resources) != 2 or set(by_name) != {"generalIssueCodes", "filingTypes"}:
+    valid_sets = (
+        {"generalIssueCodes", "filingTypes"},
+        {"generalIssueCodes", "filingTypes", "governmentEntities"},
+    )
+    if len(by_name) != len(resources) or set(by_name) not in valid_sets:
         raise LDASourceDriftError(
-            "LDA control portfolio requires exactly one General Issue Code and one Filing Type resource"
+            "LDA control portfolio requires exactly one General Issue Code and one Filing Type resource "
+            "(with optional Government Entities resource)"
         )
     return LDAControlPortfolio(
         general_issue_codes=by_name["generalIssueCodes"],
         filing_types=by_name["filingTypes"],
         filing_period_values=LDA_FILING_PERIOD_VALUES,
         gaps=LDA_PORTFOLIO_GAPS,
+        government_entities=by_name.get("governmentEntities"),
     )
 
 
@@ -590,7 +639,9 @@ def validate_lobbying_filing_codes(
     if not isinstance(raw_activities, list):
         raise LDAAssignmentError("lobbying_activities must be an array")
     issue_lookup = portfolio.general_issue_codes.by_code()
+    entity_lookup = portfolio.government_entities.by_code() if portfolio.government_entities is not None else None
     issues: list[LDAFilingCodeAssignment] = []
+    entities: list[LDAFilingCodeAssignment] = []
     for ordinal, raw_activity in enumerate(raw_activities, start=1):
         if not isinstance(raw_activity, Mapping):
             raise LDAAssignmentError(f"lobbying activity {ordinal} must be an object")
@@ -612,6 +663,49 @@ def validate_lobbying_filing_codes(
                 f"lobbying_activities[{ordinal - 1}].general_issue_code",
             )
         )
+        if entity_lookup is not None and "government_entities" in raw_activity:
+            raw_entities = raw_activity.get("government_entities")
+            if raw_entities is None:
+                raw_entities = []
+            if not isinstance(raw_entities, list):
+                raise LDAAssignmentError(f"lobbying activity {ordinal} government_entities must be an array")
+            for entity_index, raw_entity in enumerate(raw_entities):
+                if not isinstance(raw_entity, Mapping):
+                    raise LDAAssignmentError(
+                        f"lobbying activity {ordinal} government_entities[{entity_index}] must be an object"
+                    )
+                raw_entity_id = raw_entity.get("id")
+                if isinstance(raw_entity_id, int) and not isinstance(raw_entity_id, bool) and raw_entity_id > 0:
+                    entity_key = str(raw_entity_id)
+                elif (
+                    isinstance(raw_entity_id, str)
+                    and raw_entity_id.isascii()
+                    and raw_entity_id.isdecimal()
+                    and int(raw_entity_id) > 0
+                    and str(int(raw_entity_id)) == raw_entity_id
+                ):
+                    entity_key = raw_entity_id
+                else:
+                    raise LDAAssignmentError(
+                        f"lobbying activity {ordinal} government_entities[{entity_index}] has malformed id {raw_entity_id!r}"
+                    )
+                entity_code = entity_lookup.get(entity_key)
+                if entity_code is None:
+                    raise LDAAssignmentError(
+                        f"lobbying activity {ordinal} has unknown government_entity id {entity_key!r}"
+                    )
+                raw_entity_name = raw_entity.get("name")
+                if raw_entity_name is not None and raw_entity_name != entity_code.publisher_label:
+                    raise LDAAssignmentError(
+                        f"lobbying activity {ordinal} government_entity name mismatch for {entity_key}: "
+                        f"expected {entity_code.publisher_label!r}, got {raw_entity_name!r}"
+                    )
+                entities.append(
+                    _assignment(
+                        entity_code,
+                        f"lobbying_activities[{ordinal - 1}].government_entities[{entity_index}].id",
+                    )
+                )
 
     return ValidatedLDAFilingCodes(
         filing_type=_assignment(filing_type, "filing_type"),
@@ -619,4 +713,5 @@ def validate_lobbying_filing_codes(
         general_issues=tuple(issues),
         filing_status=None,
         gaps=LDA_PORTFOLIO_GAPS,
+        government_entities=tuple(entities),
     )
