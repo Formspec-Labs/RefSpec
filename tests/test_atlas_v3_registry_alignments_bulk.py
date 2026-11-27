@@ -272,18 +272,21 @@ def test_eurovoc_warrants_are_verbatim_publisher_assertions(releases) -> None:
         (evidence,) = row.evidence
         claim = evidence.native_payload["publisherClaim"]
         assert evidence.review_warrant == "publisherAssertion"
+        assert evidence.reviewer_iri == adapters.EUROVOC_PUBLISHER_ATTESTOR_IRI
         assert (claim["subjectIri"], claim["predicateIri"], claim["objectIri"]) == (
             row.subject,
             row.predicate,
             row.object,
         )
         assert "operatorAdoption" not in evidence.native_payload
+        assert "endpointResolution" not in evidence.native_payload
 
     for row in mesh.mappings:
         (evidence,) = row.evidence
         claim = evidence.native_payload["publisherClaim"]
         resolution = evidence.native_payload["endpointResolution"]
         assert evidence.review_warrant == "publisherAssertion"
+        assert evidence.reviewer_iri == adapters.EUROVOC_PUBLISHER_ATTESTOR_IRI
         assert claim["subjectIri"] == row.subject
         assert claim["predicateIri"] == row.predicate
         assert claim["objectIri"].startswith(adapters.MESH_HTTP_IRI_PREFIX)
@@ -402,3 +405,23 @@ def test_group_loader_refuses_unknown_keys_without_opening_sources() -> None:
             ROOT,
             only_keys={"not-a-bulk-mapping-release"},
         )
+
+
+def test_eurovoc_publisher_attestor_matches_eurovoc_source_descriptor() -> None:
+    """Pin REF-035 standing: EuroVoc alignment publisher assertions attest with EuroVoc's scheme descriptor."""
+
+    from rdflib import Dataset, Namespace, URIRef
+
+    assert adapters.EUROVOC_PUBLISHER_ATTESTOR_IRI == "urn:ref:atlas-source-descriptor:eurovoc"
+    assert adapters.EUROVOC_GEMET_MAPPING_REVIEWER_IRI == adapters.EUROVOC_PUBLISHER_ATTESTOR_IRI
+    assert adapters.EUROVOC_MESH_MAPPING_REVIEWER_IRI == adapters.EUROVOC_PUBLISHER_ATTESTOR_IRI
+
+    atlas = Namespace("https://refspec.org/ns/atlas/v3#")
+    dataset = Dataset()
+    dataset.parse(
+        ROOT / "bindings" / "atlas" / "3.1" / "tests" / "registry-descriptors.nq",
+        format="nquads",
+    )
+    graph = dataset.graph(URIRef("urn:ref:atlas-v3:registry-descriptors"))
+    source_descriptor = graph.value(URIRef("urn:ref:atlas-resource-scheme:eurovoc"), atlas.sourceDescriptor)
+    assert str(source_descriptor) == adapters.EUROVOC_PUBLISHER_ATTESTOR_IRI

@@ -6312,6 +6312,10 @@ and `make generate`, which moved only that module and the index.
 - The owner attesting an event under publisherAssertion, the negative only
   the owner review's four fixed values refuse (a new case in
   `fixtures/corpus.json`): `1c14dc75…` / `e6c5d30b…`.
+- Mapping `endpointResolution` conformance cases -- one valid
+  (`mapping-endpoint-resolution`) and three negatives (silent rewrite,
+  spurious resolution, mismatched rewrite) in `fixtures/corpus.json`:
+  `c6d5b20e…` / `28dca18b…`.
 
 ### REF-074: Dated assertion validation follows the producer's effective-period identity
 

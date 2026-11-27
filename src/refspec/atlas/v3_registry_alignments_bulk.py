@@ -136,8 +136,11 @@ FAST_BULK_DELTA_CLAIMS = frozenset(
     }
 )
 
-EUROVOC_GEMET_MAPPING_REVIEWER_IRI = "urn:ref:atlas-source-descriptor:eurovoc-alignment-gemet"
-EUROVOC_MESH_MAPPING_REVIEWER_IRI = "urn:ref:atlas-source-descriptor:eurovoc-alignment-mesh"
+# REF-035: a publisherAssertion must be attested by an endpoint scheme's
+# atlas:sourceDescriptor (EuroVoc owns the subject endpoint for both alignments).
+EUROVOC_PUBLISHER_ATTESTOR_IRI = "urn:ref:atlas-source-descriptor:eurovoc"
+EUROVOC_GEMET_MAPPING_REVIEWER_IRI = EUROVOC_PUBLISHER_ATTESTOR_IRI
+EUROVOC_MESH_MAPPING_REVIEWER_IRI = EUROVOC_PUBLISHER_ATTESTOR_IRI
 MESH_HTTP_IRI_PREFIX = "http://id.nlm.nih.gov/mesh/"
 MESH_HTTPS_IRI_PREFIX = "https://id.nlm.nih.gov/mesh/"
 GEMET_ATLAS_RELEASE_IRI = "urn:ref:atlas-release:3:gemet:4.2.3"
@@ -1149,6 +1152,7 @@ __all__ = [
     "EUROVOC_DOMAINS_ATLAS_RELEASE_IRI",
     "EUROVOC_GEMET_MAPPING_REVIEWER_IRI",
     "EUROVOC_MESH_MAPPING_REVIEWER_IRI",
+    "EUROVOC_PUBLISHER_ATTESTOR_IRI",
     "FAST_BULK_DELTA_CLAIMS",
     "FAST_BULK_EXPECTED_CURRENT_COUNT",
     "FAST_BULK_EXPECTED_CURRENT_ONLY_COUNT",

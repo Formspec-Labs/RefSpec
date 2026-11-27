@@ -376,7 +376,10 @@ def _install_synthetic_release_schemes(monkeypatch: pytest.MonkeyPatch) -> None:
     """Declare both synthetic schemes as subject-ring concept schemes on the registry graph."""
 
     descriptors: Graph = generator._registry_asserted_graph()
-    for scheme in ("urn:test:scheme:first", "urn:test:scheme:second"):
+    for scheme, source_descriptor in (
+        ("urn:test:scheme:first", "urn:test:publisher"),
+        ("urn:test:scheme:second", "urn:test:publisher-second"),
+    ):
         node = URIRef(scheme)
         descriptors.add((node, RDF.type, generator.ATLAS.ResourceScheme))
         descriptors.add((node, RDF.type, SKOS.ConceptScheme))
@@ -392,6 +395,13 @@ def _install_synthetic_release_schemes(monkeypatch: pytest.MonkeyPatch) -> None:
                 node,
                 generator.ATLAS.supportedRing,
                 generator.ATLAS.subject,
+            )
+        )
+        descriptors.add(
+            (
+                node,
+                generator.ATLAS.sourceDescriptor,
+                URIRef(source_descriptor),
             )
         )
     monkeypatch.setattr(generator, "_registry_asserted_graph", lambda: descriptors)
@@ -608,6 +618,155 @@ def test_prebuild_refuses_unpinned_mapping_evidence_in_seconds(
 
     with pytest.raises(ValueError, match="must identify exactly one pinned input"):
         generator.validate_prebuild_loaded_releases(releases, (dirty,))
+
+
+def test_prebuild_refuses_mapping_publisher_assertion_without_endpoint_standing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _install_synthetic_release_schemes(monkeypatch)
+    releases = _synthetic_releases(tmp_path)
+    mapping_release = _synthetic_mapping_release(tmp_path, releases)
+    mapping = mapping_release.mappings[0]
+    dirty = dataclasses.replace(
+        mapping_release,
+        mappings=(
+            dataclasses.replace(
+                mapping,
+                evidence=(
+                    dataclasses.replace(
+                        mapping.evidence[0],
+                        reviewer_iri="urn:test:non-endpoint-descriptor",
+                    ),
+                ),
+            ),
+        ),
+    )
+
+    with pytest.raises(ValueError, match="owns neither mapping endpoint"):
+        generator.validate_prebuild_loaded_releases(releases, (dirty,))
+
+
+def test_prebuild_refuses_publisher_assertion_when_either_endpoint_lacks_source_descriptor(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _install_synthetic_release_schemes(monkeypatch)
+    descriptors: Graph = generator._registry_asserted_graph()
+    # Drop atlas:sourceDescriptor from the second (object) endpoint scheme even
+    # though the first (subject) endpoint matches reviewer_iri="urn:test:publisher".
+    descriptors.remove((URIRef("urn:test:scheme:second"), generator.ATLAS.sourceDescriptor, None))
+    monkeypatch.setattr(generator, "_registry_asserted_graph", lambda: descriptors)
+    releases = _synthetic_releases(tmp_path)
+    mapping_release = _synthetic_mapping_release(tmp_path, releases)
+
+    with pytest.raises(ValueError, match="lack a unique atlas:sourceDescriptor"):
+        generator.validate_prebuild_loaded_releases(releases, (mapping_release,))
+
+    # Ambiguous multiple sourceDescriptors on either endpoint must fail closed too.
+    descriptors.add(
+        (URIRef("urn:test:scheme:second"), generator.ATLAS.sourceDescriptor, URIRef("urn:test:publisher-second-a"))
+    )
+    descriptors.add(
+        (URIRef("urn:test:scheme:second"), generator.ATLAS.sourceDescriptor, URIRef("urn:test:publisher-second-b"))
+    )
+    with pytest.raises(ValueError, match="lack a unique atlas:sourceDescriptor"):
+        generator.validate_prebuild_loaded_releases(releases, (mapping_release,))
+
+
+def test_prebuild_validates_mapping_endpoint_resolution(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _install_synthetic_release_schemes(monkeypatch)
+    releases = _synthetic_releases(tmp_path)
+    mapping_release = _synthetic_mapping_release(tmp_path, releases)
+    mapping = mapping_release.mappings[0]
+    base_payload = dict(mapping.evidence[0].native_payload)
+    legacy_object = "http://legacy.example.test/second"
+
+    valid_resolved = dataclasses.replace(
+        mapping_release,
+        mappings=(
+            dataclasses.replace(
+                mapping,
+                evidence=(
+                    dataclasses.replace(
+                        mapping.evidence[0],
+                        native_payload={
+                            **base_payload,
+                            "endpointResolution": {
+                                "fromObjectIri": legacy_object,
+                                "method": "publisherNamespaceMigrationByStableLocalIdentifier",
+                                "predicateChanged": False,
+                                "toObjectIri": mapping.object,
+                            },
+                            "publisherClaim": {
+                                "objectIri": legacy_object,
+                                "predicateIri": mapping.predicate,
+                                "subjectIri": mapping.subject,
+                            },
+                        },
+                    ),
+                ),
+            ),
+        ),
+    )
+    generator.validate_prebuild_loaded_releases(releases, (valid_resolved,))
+
+    silent_rewrite = dataclasses.replace(
+        mapping_release,
+        mappings=(
+            dataclasses.replace(
+                mapping,
+                evidence=(
+                    dataclasses.replace(
+                        mapping.evidence[0],
+                        native_payload={
+                            **base_payload,
+                            "publisherClaim": {
+                                "objectIri": legacy_object,
+                                "predicateIri": mapping.predicate,
+                                "subjectIri": mapping.subject,
+                            },
+                        },
+                    ),
+                ),
+            ),
+        ),
+    )
+    with pytest.raises(ValueError, match="publisherClaim endpoints differ"):
+        generator.validate_prebuild_loaded_releases(releases, (silent_rewrite,))
+
+    spurious = dataclasses.replace(
+        mapping_release,
+        mappings=(
+            dataclasses.replace(
+                mapping,
+                evidence=(
+                    dataclasses.replace(
+                        mapping.evidence[0],
+                        native_payload={
+                            **base_payload,
+                            "endpointResolution": {
+                                "fromObjectIri": mapping.object,
+                                "method": "publisherIdentifierHttpToHttpsRedirect",
+                                "predicateChanged": False,
+                                "toObjectIri": mapping.object,
+                            },
+                            "publisherClaim": {
+                                "objectIri": mapping.object,
+                                "predicateIri": mapping.predicate,
+                                "subjectIri": mapping.subject,
+                            },
+                        },
+                    ),
+                ),
+            ),
+        ),
+    )
+    with pytest.raises(ValueError, match="endpoint resolution where none occurred"):
+        generator.validate_prebuild_loaded_releases(releases, (spurious,))
 
 
 def test_fast_lcsh_s27_reconciliation_uses_the_real_hierarchy_check(

@@ -4723,6 +4723,7 @@ def _validate_compiled_producer_rows(
             raise ValueError("release identity overlaps a registry catalog carrier")
 
         resource_index: dict[str, tuple[str, URIRef, URIRef]] = {}
+        release_source_descriptor_by_key: dict[str, URIRef] = {}
 
         def resource_facts(resource_iri: str) -> tuple[str, URIRef, URIRef] | None:
             return resource_index.get(resource_iri)
@@ -4780,6 +4781,9 @@ def _validate_compiled_producer_rows(
                 raise ValueError(f"{release.spec.key} release ownership differs from its scheme")
             if ring == ATLAS.subject and (scheme, RDF.type, SKOS.ConceptScheme) not in descriptor_graph:
                 raise ValueError(f"{release.spec.key} subject scheme is not a SKOS ConceptScheme")
+            scheme_sources = list(descriptor_graph.objects(scheme, ATLAS.sourceDescriptor))
+            if len(scheme_sources) == 1 and isinstance(scheme_sources[0], URIRef):
+                release_source_descriptor_by_key[release.spec.key] = scheme_sources[0]
 
             for resource in release.resources:
                 resource_iri = _require_absolute_iri(
@@ -5063,6 +5067,35 @@ def _validate_compiled_producer_rows(
                         mapping_release,
                         mapping,
                         evidence,
+                    )
+                    if evidence.review_warrant == "publisherAssertion":
+                        subject_descriptor = release_source_descriptor_by_key.get(source[0])
+                        target_descriptor = release_source_descriptor_by_key.get(target[0])
+                        if subject_descriptor is None or target_descriptor is None:
+                            missing_keys = [
+                                key
+                                for key, descriptor in (
+                                    (source[0], subject_descriptor),
+                                    (target[0], target_descriptor),
+                                )
+                                if descriptor is None
+                            ]
+                            raise ValueError(
+                                f"{mapping_release.key} mapping publisherAssertion endpoint scheme(s) "
+                                f"lack a unique atlas:sourceDescriptor: {missing_keys}"
+                            )
+                        if URIRef(evidence.reviewer_iri) not in {subject_descriptor, target_descriptor}:
+                            raise ValueError(
+                                f"{mapping_release.key} mapping publisherAssertion attestor "
+                                f"{evidence.reviewer_iri} owns neither mapping endpoint"
+                            )
+                    ATLAS_VALIDATE._validate_mapping_claim_payload(
+                        payload,
+                        source_record=locator,
+                        mapping_subject=mapping.subject,
+                        mapping_predicate=mapping.predicate,
+                        mapping_object=mapping.object,
+                        attestor=evidence.reviewer_iri,
                     )
                     evidence_record, _ = _source_record_constructor(
                         source_release=URIRef(mapping_release.source_release_iri),

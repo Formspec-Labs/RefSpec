@@ -189,6 +189,12 @@ ADMITTED_MAPPING_PREDICATE_TRANSLATIONS = frozenset(
         ("https://www.loc.gov/marc/authority/ad750.html", str(SKOS.relatedMatch)),
     }
 )
+ADMITTED_MAPPING_ENDPOINT_RESOLUTION_METHODS = frozenset(
+    {
+        "publisherIdentifierHttpToHttpsRedirect",
+        "publisherNamespaceMigrationByStableLocalIdentifier",
+    }
+)
 DERIVATION_ENGINE = URIRef("https://pypi.org/project/owlrl/7.1.4/")
 DERIVATION_ENGINE_VERSION = "7.1.4"
 # The second entry in `_DERIVED_RULE_ADMISSIONS` (see REF-042 in
@@ -1031,6 +1037,8 @@ REQUIRED_CORPUS_CASES = frozenset(
         "label-extra-skos-type",
         "manifest-count-mismatch",
         "manifest-unknown-field",
+        "mapping-endpoint-resolution",
+        "mapping-mismatched-endpoint-resolution",
         "mapping-missing-evidence",
         "mapping-entity-inverse-assertion",
         "mapping-period-end-before-start",
@@ -1038,7 +1046,9 @@ REQUIRED_CORPUS_CASES = frozenset(
         "mapping-period-start-not-datetime",
         "mapping-period-start-not-utc-midnight",
         "mapping-publisher-without-standing",
+        "mapping-silent-endpoint-rewrite",
         "mapping-silent-predicate-rewrite",
+        "mapping-spurious-endpoint-resolution",
         "mapping-subject-ring-dated",
         "mapping-entity-identity-dated",
         # REF-072: organization change events, one valid pair of events and a
@@ -5029,6 +5039,157 @@ def _validate_assertions(
     }
 
 
+def _validate_mapping_claim_payload(
+    payload: Any,
+    *,
+    source_record: Any,
+    mapping_subject: URIRef | str,
+    mapping_predicate: URIRef | str,
+    mapping_object: URIRef | str,
+    attestor: URIRef | str,
+) -> None:
+    """Validate publisherClaim, endpointResolution, and operatorAdoption consistency.
+
+    Fails closed on non-object nativePayload, JSON null values on claim or
+    rewrite keys, orphan endpointResolution/operatorAdoption without a
+    publisherClaim, silent endpoint or predicate rewrites, spurious rewrite
+    metadata where no rewrite occurred, or incomplete/mismatched/unadmitted
+    rewrite payloads.
+    """
+
+    if not isinstance(payload, Mapping):
+        _fail(
+            "dataset.mapping-predicate-translation",
+            f"{source_record} nativePayload is not an object",
+        )
+    has_publisher_claim = "publisherClaim" in payload
+    has_endpoint_resolution = "endpointResolution" in payload
+    has_operator_adoption = "operatorAdoption" in payload
+    if not has_publisher_claim:
+        if has_endpoint_resolution:
+            _fail(
+                "dataset.mapping-predicate-translation",
+                f"{source_record} records an endpoint resolution without a publisherClaim",
+            )
+        if has_operator_adoption:
+            _fail(
+                "dataset.mapping-predicate-translation",
+                f"{source_record} records operatorAdoption without a publisherClaim",
+            )
+        return
+    publisher_claim = payload["publisherClaim"]
+    if not isinstance(publisher_claim, Mapping):
+        _fail(
+            "dataset.mapping-predicate-translation",
+            f"{source_record} publisherClaim is not an object",
+        )
+    claim_subject = publisher_claim.get("subjectIri")
+    publisher_predicate = publisher_claim.get("predicateIri")
+    claim_object = publisher_claim.get("objectIri")
+    subject_text = str(mapping_subject)
+    predicate_text = str(mapping_predicate)
+    object_text = str(mapping_object)
+    subject_changed = claim_subject != subject_text
+    object_changed = claim_object != object_text
+    if not subject_changed and not object_changed:
+        if has_endpoint_resolution:
+            _fail(
+                "dataset.mapping-predicate-translation",
+                f"{source_record} records an endpoint resolution where none occurred",
+            )
+    else:
+        if (
+            not isinstance(claim_subject, str)
+            or ABSOLUTE_IRI_RE.fullmatch(claim_subject) is None
+            or not isinstance(claim_object, str)
+            or ABSOLUTE_IRI_RE.fullmatch(claim_object) is None
+        ):
+            _fail(
+                "dataset.mapping-predicate-translation",
+                f"{source_record} publisherClaim endpoints must be absolute IRIs",
+            )
+        endpoint_resolution = payload.get("endpointResolution")
+        if not has_endpoint_resolution or not isinstance(endpoint_resolution, Mapping):
+            _fail(
+                "dataset.mapping-predicate-translation",
+                f"{source_record} publisherClaim endpoints differ from the mapping",
+            )
+        expected_keys = {"method", "predicateChanged"}
+        if subject_changed:
+            expected_keys |= {"fromSubjectIri", "toSubjectIri"}
+        if object_changed:
+            expected_keys |= {"fromObjectIri", "toObjectIri"}
+        if set(endpoint_resolution) != expected_keys:
+            _fail(
+                "dataset.mapping-predicate-translation",
+                f"{source_record} endpointResolution fields do not match the resolved endpoints",
+            )
+        method = endpoint_resolution.get("method")
+        if not isinstance(method, str) or method not in ADMITTED_MAPPING_ENDPOINT_RESOLUTION_METHODS:
+            _fail(
+                "dataset.mapping-predicate-translation",
+                f"{source_record} endpointResolution method is not an admitted endpoint resolution",
+            )
+        predicate_changed = endpoint_resolution.get("predicateChanged")
+        if not isinstance(predicate_changed, bool) or predicate_changed != (publisher_predicate != predicate_text):
+            _fail(
+                "dataset.mapping-predicate-translation",
+                f"{source_record} endpointResolution predicateChanged disagrees with the mapping predicate",
+            )
+        if subject_changed:
+            from_subject = endpoint_resolution.get("fromSubjectIri")
+            to_subject = endpoint_resolution.get("toSubjectIri")
+            if (
+                not isinstance(from_subject, str)
+                or not isinstance(to_subject, str)
+                or from_subject != claim_subject
+                or to_subject != subject_text
+            ):
+                _fail(
+                    "dataset.mapping-predicate-translation",
+                    f"{source_record} endpointResolution subject IRIs differ from publisherClaim and mapping",
+                )
+        if object_changed:
+            from_object = endpoint_resolution.get("fromObjectIri")
+            to_object = endpoint_resolution.get("toObjectIri")
+            if (
+                not isinstance(from_object, str)
+                or not isinstance(to_object, str)
+                or from_object != claim_object
+                or to_object != object_text
+            ):
+                _fail(
+                    "dataset.mapping-predicate-translation",
+                    f"{source_record} endpointResolution object IRIs differ from publisherClaim and mapping",
+                )
+    if publisher_predicate == predicate_text:
+        if has_operator_adoption:
+            _fail(
+                "dataset.mapping-predicate-translation",
+                f"{source_record} records a predicate translation where none occurred",
+            )
+    else:
+        adoption = payload.get("operatorAdoption")
+        if not isinstance(publisher_predicate, str) or not has_operator_adoption or not isinstance(adoption, Mapping):
+            _fail(
+                "dataset.mapping-predicate-translation",
+                f"{source_record} silently rewrites the publisher predicate",
+            )
+        translation = (
+            adoption.get("fromPredicateIri"),
+            adoption.get("toPredicateIri"),
+        )
+        if (
+            translation not in ADMITTED_MAPPING_PREDICATE_TRANSLATIONS
+            or translation != (publisher_predicate, predicate_text)
+            or adoption.get("adoptedBy") != str(attestor)
+        ):
+            _fail(
+                "dataset.mapping-predicate-translation",
+                f"{source_record} predicate translation is not an admitted attestor-owned adoption",
+            )
+
+
 def _check_evidence_bindings(
     asserted: Graph,
     inventory: SemanticInventory | None = None,
@@ -5222,50 +5383,14 @@ def _check_evidence_bindings(
                 parse_int=_parse_int,
                 parse_constant=_reject_constant,
             )
-            publisher_claim = payload.get("publisherClaim")
-            if publisher_claim is not None:
-                if not isinstance(publisher_claim, Mapping):
-                    _fail(
-                        "dataset.mapping-predicate-translation",
-                        f"{source_record} publisherClaim is not an object",
-                    )
-                claim_basis = (
-                    publisher_claim.get("subjectIri"),
-                    publisher_claim.get("predicateIri"),
-                    publisher_claim.get("objectIri"),
-                )
-                if claim_basis[0] != str(mapping_subject) or claim_basis[2] != str(mapping_object):
-                    _fail(
-                        "dataset.mapping-predicate-translation",
-                        f"{source_record} publisherClaim endpoints differ from the mapping",
-                    )
-                publisher_predicate = claim_basis[1]
-                adoption = payload.get("operatorAdoption")
-                if publisher_predicate == str(mapping_predicate):
-                    if adoption is not None:
-                        _fail(
-                            "dataset.mapping-predicate-translation",
-                            f"{source_record} records a predicate translation where none occurred",
-                        )
-                else:
-                    if not isinstance(publisher_predicate, str) or not isinstance(adoption, Mapping):
-                        _fail(
-                            "dataset.mapping-predicate-translation",
-                            f"{source_record} silently rewrites the publisher predicate",
-                        )
-                    translation = (
-                        adoption.get("fromPredicateIri"),
-                        adoption.get("toPredicateIri"),
-                    )
-                    if (
-                        translation not in ADMITTED_MAPPING_PREDICATE_TRANSLATIONS
-                        or translation != (publisher_predicate, str(mapping_predicate))
-                        or adoption.get("adoptedBy") != str(attestor)
-                    ):
-                        _fail(
-                            "dataset.mapping-predicate-translation",
-                            f"{source_record} predicate translation is not an admitted attestor-owned adoption",
-                        )
+            _validate_mapping_claim_payload(
+                payload,
+                source_record=source_record,
+                mapping_subject=mapping_subject,
+                mapping_predicate=mapping_predicate,
+                mapping_object=mapping_object,
+                attestor=attestor,
+            )
         if facts.one(binding, RKAF.evidentiaryFunction, code="dataset.evidence") not in EVIDENTIARY_FUNCTIONS:
             _fail("dataset.evidence", f"{binding} uses an unsupported evidentiary function")
         _date_time(

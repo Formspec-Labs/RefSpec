@@ -3769,6 +3769,89 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             },
         )
 
+    def _replace_publisher_mapping_claim(
+        fixture: Fixture,
+        *,
+        claim_object: str | None = None,
+        endpoint_resolution: Mapping[str, Any] | None = None,
+    ) -> None:
+        assertion, evidence = publisher_mapping_evidence(fixture)
+        source_record = next(fixture.asserted.objects(evidence, ATLAS.evidenceSourceRecord))
+        subject = next(fixture.asserted.objects(assertion, RDF.subject))
+        predicate = next(fixture.asserted.objects(assertion, RDF.predicate))
+        obj = next(fixture.asserted.objects(assertion, RDF.object))
+        payload: dict[str, Any] = {
+            "mappingTripleDigest": atlas_validate.canonical_sha256(
+                {
+                    "object": str(obj),
+                    "predicate": str(predicate),
+                    "subject": str(subject),
+                },
+                terminal_lf=False,
+            ),
+            "objectIri": str(obj),
+            "predicateIri": str(predicate),
+            "publisherClaim": {
+                "objectIri": str(obj) if claim_object is None else claim_object,
+                "predicateIri": str(predicate),
+                "sourceEncoding": "syntheticFixture",
+                "subjectIri": str(subject),
+            },
+            "subjectIri": str(subject),
+        }
+        if endpoint_resolution is not None:
+            payload["endpointResolution"] = dict(endpoint_resolution)
+        replace_native_payload(fixture, source_record, payload)
+
+    def mapping_endpoint_resolution(fixture: Fixture) -> None:
+        assertion, _evidence = publisher_mapping_evidence(fixture)
+        obj = str(next(fixture.asserted.objects(assertion, RDF.object)))
+        legacy_obj = "http://legacy.example.test/resolved-object"
+        _replace_publisher_mapping_claim(
+            fixture,
+            claim_object=legacy_obj,
+            endpoint_resolution={
+                "fromObjectIri": legacy_obj,
+                "method": "publisherNamespaceMigrationByStableLocalIdentifier",
+                "predicateChanged": False,
+                "toObjectIri": obj,
+            },
+        )
+
+    def mapping_silent_endpoint_rewrite(fixture: Fixture) -> None:
+        _replace_publisher_mapping_claim(
+            fixture,
+            claim_object="http://legacy.example.test/silent-rewrite-object",
+        )
+
+    def mapping_spurious_endpoint_resolution(fixture: Fixture) -> None:
+        assertion, _evidence = publisher_mapping_evidence(fixture)
+        obj = str(next(fixture.asserted.objects(assertion, RDF.object)))
+        _replace_publisher_mapping_claim(
+            fixture,
+            claim_object=obj,
+            endpoint_resolution={
+                "fromObjectIri": obj,
+                "method": "publisherIdentifierHttpToHttpsRedirect",
+                "predicateChanged": False,
+                "toObjectIri": obj,
+            },
+        )
+
+    def mapping_mismatched_endpoint_resolution(fixture: Fixture) -> None:
+        assertion, _evidence = publisher_mapping_evidence(fixture)
+        obj = str(next(fixture.asserted.objects(assertion, RDF.object)))
+        _replace_publisher_mapping_claim(
+            fixture,
+            claim_object="http://legacy.example.test/actual-claim-object",
+            endpoint_resolution={
+                "fromObjectIri": "http://legacy.example.test/different-from-object",
+                "method": "publisherNamespaceMigrationByStableLocalIdentifier",
+                "predicateChanged": False,
+                "toObjectIri": obj,
+            },
+        )
+
     def derived_extra_branch(fixture: Fixture) -> None:
         node = next(fixture.derived.subjects(RDF.type, ATLAS.DerivedRelation))
         subject = URIRef("urn:ref:atlas-fixture:resource:subject-a-child")
@@ -5759,6 +5842,12 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
         ("evidence-function-unknown", ["shacl", "dataset"], "shacl.data", evidence_function_unknown),
         ("evidence-warrant-unsanctioned", ["shacl", "dataset"], "shacl.data", evidence_warrant_unsanctioned),
         (
+            "mapping-endpoint-resolution",
+            ["dataset"],
+            "valid",
+            mapping_endpoint_resolution,
+        ),
+        (
             "mapping-publisher-without-standing",
             ["dataset"],
             "dataset.mapping-standing",
@@ -5769,6 +5858,24 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             ["dataset"],
             "dataset.mapping-predicate-translation",
             mapping_silent_predicate_rewrite,
+        ),
+        (
+            "mapping-silent-endpoint-rewrite",
+            ["dataset"],
+            "dataset.mapping-predicate-translation",
+            mapping_silent_endpoint_rewrite,
+        ),
+        (
+            "mapping-spurious-endpoint-resolution",
+            ["dataset"],
+            "dataset.mapping-predicate-translation",
+            mapping_spurious_endpoint_resolution,
+        ),
+        (
+            "mapping-mismatched-endpoint-resolution",
+            ["dataset"],
+            "dataset.mapping-predicate-translation",
+            mapping_mismatched_endpoint_resolution,
         ),
         ("assertion-asserted-at-not-datetime", ["shacl", "dataset"], "shacl.data", assertion_asserted_at_not_datetime),
         ("release-membership-mode-unknown", ["shacl", "dataset"], "shacl.data", release_membership_mode_unknown),

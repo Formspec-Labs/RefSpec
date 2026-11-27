@@ -50,6 +50,601 @@ def test_mapping_predicate_translation_table_admits_only_live_source_translation
     }
 
 
+def test_mapping_endpoint_resolution_table_admits_only_live_methods() -> None:
+    """Pin the admitted endpoint-resolution method set to the two live publisher rewrites."""
+
+    assert atlas_validate.ADMITTED_MAPPING_ENDPOINT_RESOLUTION_METHODS == {
+        "publisherIdentifierHttpToHttpsRedirect",
+        "publisherNamespaceMigrationByStableLocalIdentifier",
+    }
+
+
+def test_mapping_endpoint_resolution_validation_enforces_exact_rewrite_accounting() -> None:
+    """Verify valid endpointResolution passes and silent, spurious, or mismatched rewrites fail closed."""
+
+    subject = "http://eurovoc.europa.eu/100"
+    predicate = str(SKOS.exactMatch)
+    obj = "https://id.nlm.nih.gov/mesh/D008134"
+    legacy_obj = "http://id.nlm.nih.gov/mesh/D008134"
+    legacy_subj = "http://legacy.example.test/eurovoc/100"
+    attestor = "urn:ref:atlas-source-descriptor:eurovoc"
+    record = "urn:ref:source-record:test-mapping"
+
+    def check(
+        payload: object,
+        *,
+        mapping_subject: str = subject,
+        mapping_predicate: str = predicate,
+        mapping_object: str = obj,
+        binding_attestor: str = attestor,
+    ) -> None:
+        atlas_validate._validate_mapping_claim_payload(
+            payload,
+            source_record=record,
+            mapping_subject=mapping_subject,
+            mapping_predicate=mapping_predicate,
+            mapping_object=mapping_object,
+            attestor=binding_attestor,
+        )
+
+    # 1. Valid verbatim claim without endpointResolution
+    check(
+        {
+            "publisherClaim": {
+                "objectIri": obj,
+                "predicateIri": predicate,
+                "subjectIri": subject,
+            }
+        }
+    )
+
+    # 2. Valid object endpointResolution under both admitted methods
+    for method in (
+        "publisherIdentifierHttpToHttpsRedirect",
+        "publisherNamespaceMigrationByStableLocalIdentifier",
+    ):
+        check(
+            {
+                "endpointResolution": {
+                    "fromObjectIri": legacy_obj,
+                    "method": method,
+                    "predicateChanged": False,
+                    "toObjectIri": obj,
+                },
+                "publisherClaim": {
+                    "objectIri": legacy_obj,
+                    "predicateIri": predicate,
+                    "subjectIri": subject,
+                },
+            }
+        )
+
+    # 3. Valid subject endpointResolution
+    check(
+        {
+            "endpointResolution": {
+                "fromSubjectIri": legacy_subj,
+                "method": "publisherNamespaceMigrationByStableLocalIdentifier",
+                "predicateChanged": False,
+                "toSubjectIri": subject,
+            },
+            "publisherClaim": {
+                "objectIri": obj,
+                "predicateIri": predicate,
+                "subjectIri": legacy_subj,
+            },
+        }
+    )
+
+    # 3b. Valid simultaneous subject + object endpointResolution (all 6 keys)
+    check(
+        {
+            "endpointResolution": {
+                "fromObjectIri": legacy_obj,
+                "fromSubjectIri": legacy_subj,
+                "method": "publisherNamespaceMigrationByStableLocalIdentifier",
+                "predicateChanged": False,
+                "toObjectIri": obj,
+                "toSubjectIri": subject,
+            },
+            "publisherClaim": {
+                "objectIri": legacy_obj,
+                "predicateIri": predicate,
+                "subjectIri": legacy_subj,
+            },
+        }
+    )
+
+    # 4. Valid object endpointResolution paired with admitted predicate translation (predicateChanged=True)
+    check(
+        {
+            "endpointResolution": {
+                "fromObjectIri": legacy_obj,
+                "method": "publisherIdentifierHttpToHttpsRedirect",
+                "predicateChanged": True,
+                "toObjectIri": obj,
+            },
+            "operatorAdoption": {
+                "adoptedBy": "urn:ref:actor:test-adoption",
+                "fromPredicateIri": "http://schema.org/sameAs",
+                "toPredicateIri": predicate,
+            },
+            "publisherClaim": {
+                "objectIri": legacy_obj,
+                "predicateIri": "http://schema.org/sameAs",
+                "subjectIri": subject,
+            },
+        },
+        binding_attestor="urn:ref:actor:test-adoption",
+    )
+
+    # 5. All invalid shapes must refuse with dataset.mapping-predicate-translation
+    invalid_payloads: list[tuple[str, object, str]] = [
+        ("non-object nativePayload (list)", [], attestor),
+        ("explicit JSON null publisherClaim", {"publisherClaim": None}, attestor),
+        ("explicit JSON null endpointResolution without publisherClaim", {"endpointResolution": None}, attestor),
+        (
+            "explicit JSON null endpointResolution when endpoints match",
+            {
+                "endpointResolution": None,
+                "publisherClaim": {
+                    "objectIri": obj,
+                    "predicateIri": predicate,
+                    "subjectIri": subject,
+                },
+            },
+            attestor,
+        ),
+        (
+            "explicit JSON null operatorAdoption without publisherClaim",
+            {"operatorAdoption": None},
+            attestor,
+        ),
+        (
+            "orphan operatorAdoption without publisherClaim",
+            {
+                "operatorAdoption": {
+                    "adoptedBy": "urn:ref:actor:test-adoption",
+                    "fromPredicateIri": "http://schema.org/sameAs",
+                    "toPredicateIri": predicate,
+                }
+            },
+            "urn:ref:actor:test-adoption",
+        ),
+        (
+            "explicit JSON null operatorAdoption when predicate matches",
+            {
+                "operatorAdoption": None,
+                "publisherClaim": {
+                    "objectIri": obj,
+                    "predicateIri": predicate,
+                    "subjectIri": subject,
+                },
+            },
+            attestor,
+        ),
+        (
+            "silent object rewrite without endpointResolution",
+            {
+                "publisherClaim": {
+                    "objectIri": legacy_obj,
+                    "predicateIri": predicate,
+                    "subjectIri": subject,
+                }
+            },
+            attestor,
+        ),
+        (
+            "silent subject rewrite without endpointResolution",
+            {
+                "publisherClaim": {
+                    "objectIri": obj,
+                    "predicateIri": predicate,
+                    "subjectIri": legacy_subj,
+                }
+            },
+            attestor,
+        ),
+        (
+            "both endpoints changed but only object keys supplied",
+            {
+                "endpointResolution": {
+                    "fromObjectIri": legacy_obj,
+                    "method": "publisherNamespaceMigrationByStableLocalIdentifier",
+                    "predicateChanged": False,
+                    "toObjectIri": obj,
+                },
+                "publisherClaim": {
+                    "objectIri": legacy_obj,
+                    "predicateIri": predicate,
+                    "subjectIri": legacy_subj,
+                },
+            },
+            attestor,
+        ),
+        (
+            "spurious endpointResolution when endpoints match",
+            {
+                "endpointResolution": {
+                    "fromObjectIri": obj,
+                    "method": "publisherIdentifierHttpToHttpsRedirect",
+                    "predicateChanged": False,
+                    "toObjectIri": obj,
+                },
+                "publisherClaim": {
+                    "objectIri": obj,
+                    "predicateIri": predicate,
+                    "subjectIri": subject,
+                },
+            },
+            attestor,
+        ),
+        (
+            "endpointResolution without publisherClaim",
+            {
+                "endpointResolution": {
+                    "fromObjectIri": legacy_obj,
+                    "method": "publisherIdentifierHttpToHttpsRedirect",
+                    "predicateChanged": False,
+                    "toObjectIri": obj,
+                }
+            },
+            attestor,
+        ),
+        (
+            "mismatched fromObjectIri",
+            {
+                "endpointResolution": {
+                    "fromObjectIri": "http://id.nlm.nih.gov/mesh/D999999",
+                    "method": "publisherIdentifierHttpToHttpsRedirect",
+                    "predicateChanged": False,
+                    "toObjectIri": obj,
+                },
+                "publisherClaim": {
+                    "objectIri": legacy_obj,
+                    "predicateIri": predicate,
+                    "subjectIri": subject,
+                },
+            },
+            attestor,
+        ),
+        (
+            "mismatched toObjectIri",
+            {
+                "endpointResolution": {
+                    "fromObjectIri": legacy_obj,
+                    "method": "publisherIdentifierHttpToHttpsRedirect",
+                    "predicateChanged": False,
+                    "toObjectIri": "https://id.nlm.nih.gov/mesh/D999999",
+                },
+                "publisherClaim": {
+                    "objectIri": legacy_obj,
+                    "predicateIri": predicate,
+                    "subjectIri": subject,
+                },
+            },
+            attestor,
+        ),
+        (
+            "non-string fromSubjectIri",
+            {
+                "endpointResolution": {
+                    "fromSubjectIri": 123,
+                    "method": "publisherNamespaceMigrationByStableLocalIdentifier",
+                    "predicateChanged": False,
+                    "toSubjectIri": subject,
+                },
+                "publisherClaim": {
+                    "objectIri": obj,
+                    "predicateIri": predicate,
+                    "subjectIri": legacy_subj,
+                },
+            },
+            attestor,
+        ),
+        (
+            "mismatched fromSubjectIri",
+            {
+                "endpointResolution": {
+                    "fromSubjectIri": "http://legacy.example.test/eurovoc/999",
+                    "method": "publisherNamespaceMigrationByStableLocalIdentifier",
+                    "predicateChanged": False,
+                    "toSubjectIri": subject,
+                },
+                "publisherClaim": {
+                    "objectIri": obj,
+                    "predicateIri": predicate,
+                    "subjectIri": legacy_subj,
+                },
+            },
+            attestor,
+        ),
+        (
+            "mismatched toSubjectIri",
+            {
+                "endpointResolution": {
+                    "fromSubjectIri": legacy_subj,
+                    "method": "publisherNamespaceMigrationByStableLocalIdentifier",
+                    "predicateChanged": False,
+                    "toSubjectIri": "http://eurovoc.europa.eu/999",
+                },
+                "publisherClaim": {
+                    "objectIri": obj,
+                    "predicateIri": predicate,
+                    "subjectIri": legacy_subj,
+                },
+            },
+            attestor,
+        ),
+        (
+            "unadmitted endpointResolution method",
+            {
+                "endpointResolution": {
+                    "fromObjectIri": legacy_obj,
+                    "method": "adHocRewrite",
+                    "predicateChanged": False,
+                    "toObjectIri": obj,
+                },
+                "publisherClaim": {
+                    "objectIri": legacy_obj,
+                    "predicateIri": predicate,
+                    "subjectIri": subject,
+                },
+            },
+            attestor,
+        ),
+        (
+            "empty endpointResolution method",
+            {
+                "endpointResolution": {
+                    "fromObjectIri": legacy_obj,
+                    "method": "",
+                    "predicateChanged": False,
+                    "toObjectIri": obj,
+                },
+                "publisherClaim": {
+                    "objectIri": legacy_obj,
+                    "predicateIri": predicate,
+                    "subjectIri": subject,
+                },
+            },
+            attestor,
+        ),
+        (
+            "non-string endpointResolution method",
+            {
+                "endpointResolution": {
+                    "fromObjectIri": legacy_obj,
+                    "method": 123,
+                    "predicateChanged": False,
+                    "toObjectIri": obj,
+                },
+                "publisherClaim": {
+                    "objectIri": legacy_obj,
+                    "predicateIri": predicate,
+                    "subjectIri": subject,
+                },
+            },
+            attestor,
+        ),
+        (
+            "predicateChanged disagrees with predicate equality (True when unchanged)",
+            {
+                "endpointResolution": {
+                    "fromObjectIri": legacy_obj,
+                    "method": "publisherIdentifierHttpToHttpsRedirect",
+                    "predicateChanged": True,
+                    "toObjectIri": obj,
+                },
+                "publisherClaim": {
+                    "objectIri": legacy_obj,
+                    "predicateIri": predicate,
+                    "subjectIri": subject,
+                },
+            },
+            attestor,
+        ),
+        (
+            "predicateChanged False when predicate changed with valid operatorAdoption",
+            {
+                "endpointResolution": {
+                    "fromObjectIri": legacy_obj,
+                    "method": "publisherIdentifierHttpToHttpsRedirect",
+                    "predicateChanged": False,
+                    "toObjectIri": obj,
+                },
+                "operatorAdoption": {
+                    "adoptedBy": "urn:ref:actor:test-adoption",
+                    "fromPredicateIri": "http://schema.org/sameAs",
+                    "toPredicateIri": predicate,
+                },
+                "publisherClaim": {
+                    "objectIri": legacy_obj,
+                    "predicateIri": "http://schema.org/sameAs",
+                    "subjectIri": subject,
+                },
+            },
+            "urn:ref:actor:test-adoption",
+        ),
+        (
+            "predicateChanged as int 0 instead of bool",
+            {
+                "endpointResolution": {
+                    "fromObjectIri": legacy_obj,
+                    "method": "publisherIdentifierHttpToHttpsRedirect",
+                    "predicateChanged": 0,
+                    "toObjectIri": obj,
+                },
+                "publisherClaim": {
+                    "objectIri": legacy_obj,
+                    "predicateIri": predicate,
+                    "subjectIri": subject,
+                },
+            },
+            attestor,
+        ),
+        (
+            "predicateChanged as int 1 instead of bool",
+            {
+                "endpointResolution": {
+                    "fromObjectIri": legacy_obj,
+                    "method": "publisherIdentifierHttpToHttpsRedirect",
+                    "predicateChanged": 1,
+                    "toObjectIri": obj,
+                },
+                "operatorAdoption": {
+                    "adoptedBy": "urn:ref:actor:test-adoption",
+                    "fromPredicateIri": "http://schema.org/sameAs",
+                    "toPredicateIri": predicate,
+                },
+                "publisherClaim": {
+                    "objectIri": legacy_obj,
+                    "predicateIri": "http://schema.org/sameAs",
+                    "subjectIri": subject,
+                },
+            },
+            "urn:ref:actor:test-adoption",
+        ),
+        (
+            "missing predicateChanged field",
+            {
+                "endpointResolution": {
+                    "fromObjectIri": legacy_obj,
+                    "method": "publisherIdentifierHttpToHttpsRedirect",
+                    "toObjectIri": obj,
+                },
+                "publisherClaim": {
+                    "objectIri": legacy_obj,
+                    "predicateIri": predicate,
+                    "subjectIri": subject,
+                },
+            },
+            attestor,
+        ),
+        (
+            "unexpected extra field in endpointResolution",
+            {
+                "endpointResolution": {
+                    "extra": "disallowed",
+                    "fromObjectIri": legacy_obj,
+                    "method": "publisherIdentifierHttpToHttpsRedirect",
+                    "predicateChanged": False,
+                    "toObjectIri": obj,
+                },
+                "publisherClaim": {
+                    "objectIri": legacy_obj,
+                    "predicateIri": predicate,
+                    "subjectIri": subject,
+                },
+            },
+            attestor,
+        ),
+        (
+            "object rewrite claims subject keys instead",
+            {
+                "endpointResolution": {
+                    "fromSubjectIri": legacy_obj,
+                    "method": "publisherIdentifierHttpToHttpsRedirect",
+                    "predicateChanged": False,
+                    "toSubjectIri": obj,
+                },
+                "publisherClaim": {
+                    "objectIri": legacy_obj,
+                    "predicateIri": predicate,
+                    "subjectIri": subject,
+                },
+            },
+            attestor,
+        ),
+        (
+            "non-object endpointResolution",
+            {
+                "endpointResolution": "publisherIdentifierHttpToHttpsRedirect",
+                "publisherClaim": {
+                    "objectIri": legacy_obj,
+                    "predicateIri": predicate,
+                    "subjectIri": subject,
+                },
+            },
+            attestor,
+        ),
+        (
+            "empty publisherClaim objectIri",
+            {
+                "endpointResolution": {
+                    "fromObjectIri": "",
+                    "method": "publisherIdentifierHttpToHttpsRedirect",
+                    "predicateChanged": False,
+                    "toObjectIri": obj,
+                },
+                "publisherClaim": {
+                    "objectIri": "",
+                    "predicateIri": predicate,
+                    "subjectIri": subject,
+                },
+            },
+            attestor,
+        ),
+        (
+            "whitespace-padded publisherClaim objectIri",
+            {
+                "endpointResolution": {
+                    "fromObjectIri": f" {legacy_obj} ",
+                    "method": "publisherIdentifierHttpToHttpsRedirect",
+                    "predicateChanged": False,
+                    "toObjectIri": obj,
+                },
+                "publisherClaim": {
+                    "objectIri": f" {legacy_obj} ",
+                    "predicateIri": predicate,
+                    "subjectIri": subject,
+                },
+            },
+            attestor,
+        ),
+        (
+            "non-IRI publisherClaim objectIri",
+            {
+                "endpointResolution": {
+                    "fromObjectIri": "not an iri",
+                    "method": "publisherIdentifierHttpToHttpsRedirect",
+                    "predicateChanged": False,
+                    "toObjectIri": obj,
+                },
+                "publisherClaim": {
+                    "objectIri": "not an iri",
+                    "predicateIri": predicate,
+                    "subjectIri": subject,
+                },
+            },
+            attestor,
+        ),
+    ]
+    for description, payload, binding_attestor in invalid_payloads:
+        with pytest.raises(atlas_validate.AtlasValidationError, match="dataset.mapping-predicate-translation") as exc:
+            check(payload, binding_attestor=binding_attestor)
+        assert exc.value.code == "dataset.mapping-predicate-translation", description
+
+
+def test_mapping_standing_and_endpoint_resolution_fixture_verdicts() -> None:
+    """Verify the sealed valid and invalid standing/endpointResolution cases directly."""
+
+    valid_case = BINDING_ROOT / "fixtures" / "valid" / "mapping-endpoint-resolution"
+    assert atlas_validate.validate_distribution(valid_case)["counts"]["mappingAssertions"] == 5
+
+    expected_refusals = {
+        "mapping-publisher-without-standing": "dataset.mapping-standing",
+        "mapping-silent-endpoint-rewrite": "dataset.mapping-predicate-translation",
+        "mapping-spurious-endpoint-resolution": "dataset.mapping-predicate-translation",
+        "mapping-mismatched-endpoint-resolution": "dataset.mapping-predicate-translation",
+    }
+    for case_name, expected_code in expected_refusals.items():
+        case_dir = BINDING_ROOT / "fixtures" / "invalid" / case_name
+        with pytest.raises(atlas_validate.AtlasValidationError) as exc:
+            atlas_validate.validate_distribution(case_dir)
+        assert exc.value.code == expected_code, case_name
+
+
 def _load_distribution(
     distribution: Path = VALID_DISTRIBUTION,
 ) -> tuple[Dataset, dict[str, Graph], dict[str, object]]:
@@ -114,8 +709,8 @@ def test_atlas_v3_binding_and_sealed_corpus_pass() -> None:
     completed = _standalone()
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
-        "caseCount": 198,
-        "invalidCount": 173,
+        "caseCount": 202,
+        "invalidCount": 176,
         "registryDescriptorCount": 106,
         "registryDescriptorQuadCount": 1257,
         "schemaCount": 10,
@@ -131,8 +726,8 @@ def test_memory_fallback_matches_the_sealed_corpus() -> None:
     )
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
-        "caseCount": 198,
-        "invalidCount": 173,
+        "caseCount": 202,
+        "invalidCount": 176,
         "registryDescriptorCount": 106,
         "registryDescriptorQuadCount": 1257,
         "schemaCount": 10,
