@@ -1224,6 +1224,9 @@ def test_the_receipt_names_the_code_that_wrote_it() -> None:
         # The EO roster module pins its derived roster and refuses on drift;
         # hashing it makes that new build input visible in the receipt.
         "eo_roster",
+        "spicy_docs.interpretation.citation_grammar",
+        "spicy_docs.interpretation.identifier_shapes",
+        "spicy_docs.sources.unified_agenda.projection",
         "spicy_docs.sources.unified_agenda.records",
         "spicy_docs.reading.xml_observations",
         "spicy_docs.reading.xml",

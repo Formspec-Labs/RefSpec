@@ -621,12 +621,14 @@ def parse_ecfr_cfr_titles(acquired: AcquiredGovInfoSource) -> ParsedECFRTitles:
             f"eCFR Titles count drift: expected {EXPECTED_CFR_TITLES_COUNT}, parsed {len(ecfr.titles)}"
         )
 
+    raw_rows = json.loads(payload)["titles"]
     parsed: list[ECFRCFRTitle] = []
-    for ordinal, entry in enumerate(ecfr.titles, start=1):
-        if entry.processing_in_progress is not None:
+    for ordinal, (entry, raw_row) in enumerate(zip(ecfr.titles, raw_rows, strict=True), start=1):
+        if "processing_in_progress" in raw_row or entry.processing_in_progress is not None:
             raise GovInfoSourceDriftError(
                 f"eCFR Titles record {ordinal} carries unexpected field 'processing_in_progress'"
             )
+        name = _require_text(entry.name, f"eCFR Titles record {ordinal} name")
         identifier = _make_identifier(
             value=str(entry.number),
             kind="ecfrCfrTitleNumber",
@@ -638,7 +640,7 @@ def parse_ecfr_cfr_titles(acquired: AcquiredGovInfoSource) -> ParsedECFRTitles:
         parsed.append(
             ECFRCFRTitle(
                 title_number=entry.number,
-                name=entry.name,
+                name=name,
                 latest_amended_on=entry.latest_amended_on,
                 latest_issue_date=entry.latest_issue_date,
                 up_to_date_as_of=entry.up_to_date_as_of,

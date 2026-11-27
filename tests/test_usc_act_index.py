@@ -206,6 +206,38 @@ def test_a_table3_key_is_the_stated_search_key_with_the_date_narrowed() -> None:
         table3_key_from_search_key("chapter:758")
 
 
+def test_producer_modules_track_installed_spicy_docs_table3_and_xml_readers(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Table III receipts hash the executing spicy-docs table3/xml modules and flag drift when they move."""
+
+    from importlib import import_module
+
+    from refspec.registry import usc_act_index as mod
+    from refspec.registry.infrastructure.artifact_serialization import file_sha256
+
+    expected = {"usc_act_index", "act_resolution", "spicy_docs.sources.uscode.table3", "spicy_docs.reading.xml"}
+    assert set(mod.PRODUCER_MODULES) == expected
+
+    producers: dict[str, str] = {}
+    for name in mod.PRODUCER_MODULES:
+        path = mod._producer_module_path(name)
+        assert path.is_file(), name
+        if name.startswith("spicy_docs."):
+            assert path == Path(import_module(name).__file__).resolve()
+        producers[name] = file_sha256(path)
+
+    artifact_dir = tmp_path / "artifact"
+    artifact_dir.mkdir()
+    (artifact_dir / "receipt.json").write_text(json.dumps({"producers": producers}), encoding="utf-8")
+    assert mod.stale_producers(artifact_dir) == []
+
+    replacement = tmp_path / "changed_table3.py"
+    replacement.write_text("# drifted table3 reader\n", encoding="utf-8")
+    monkeypatch.setattr(import_module("spicy_docs.sources.uscode.table3"), "__file__", str(replacement))
+    assert mod.stale_producers(artifact_dir) == ["spicy_docs.sources.uscode.table3"]
+
+
 # --------------------------------------------------------------------------- #
 # Artifact cases — the real 126 MB member and the real sealed tables.
 

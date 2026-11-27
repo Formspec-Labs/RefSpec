@@ -60,7 +60,12 @@ from refspec.registry.act_resolution import (
 from refspec.registry.act_resolution import (
     find_statutory_short_titles as find_statutory_short_titles,
 )
-from refspec.registry.infrastructure.artifact_serialization import file_sha256, scan_for_secrets, scan_text_for_secrets
+from refspec.registry.infrastructure.artifact_serialization import (
+    file_sha256,
+    producer_module_source,
+    scan_for_secrets,
+    scan_text_for_secrets,
+)
 from refspec.storage import canonical_json
 
 
@@ -699,18 +704,29 @@ BULK_SOURCE_AVAILABILITY = "publisher no longer serves release point 119-73 at a
 BULK_SOURCE_RETAINED_AT = "corpora/supply-2026-09-02/blobs/sha256/<bulk_source_digest>"
 
 
-PRODUCER_MODULES: tuple[str, ...] = ("usc_act_index", "act_resolution")
+PRODUCER_MODULES: tuple[str, ...] = (
+    "usc_act_index",
+    "act_resolution",
+    "spicy_docs.sources.uscode.table3",
+    "spicy_docs.reading.xml",
+)
 
 
 def _producer_module_path(name: str) -> Path:
-    """The source file a producer module must have here, refused by name if absent.
+    """The source file a producer module must have here (or in the installed wheel), refused by name if absent.
 
-    Absence means the checkout is missing code this build depends on, not that
-    there was nothing to hash — writing NULL provenance would be
-    indistinguishable from "nothing to record". The same argument as the
-    Unified Agenda's `_producer_module_source`, and the same refusal.
+    Absence means the checkout or installed dependency is missing code this
+    build depends on, not that there was nothing to hash — writing NULL
+    provenance would be indistinguishable from "nothing to record". The same
+    argument as the Unified Agenda's `_producer_module_source`, and the same
+    refusal.
     """
 
+    if name.startswith("spicy_docs."):
+        try:
+            return producer_module_source(name)
+        except ValueError as error:
+            raise SystemExit(f"refusing to seal: {error}") from error
     path = Path(__file__).resolve().parent / f"{name}.py"
     if not path.is_file():
         raise SystemExit(f"refusing to seal: producer module {name} is not in this checkout ({path})")

@@ -160,7 +160,7 @@ def parse_popular_names(document: str) -> PopularNameScan:
     """
 
     raw = document.encode("utf-8")
-    payload = raw if b"</html>" in raw[-4096:] else b"<html><body>" + raw + b"</body></html>"
+    payload = b"<html><body>" + raw + b"</body></html>" if b"<html" not in raw[:4096].lower() else raw
     try:
         parsed = _sd_parse_popular_names(
             payload,

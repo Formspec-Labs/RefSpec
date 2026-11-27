@@ -484,3 +484,13 @@ def test_ecfr_titles_refuses_extra_field_reserved_dates_and_missing_active_dates
     as_of_mismatch["titles"][0]["up_to_date_as_of"] = "2026-07-29"
     with pytest.raises(gc.GovInfoSourceDriftError, match="does not match meta.date"):
         _parse_mutated("as-of-mismatch", as_of_mismatch)
+
+    null_processing = json.loads(json.dumps(base))
+    null_processing["titles"][0]["processing_in_progress"] = None
+    with pytest.raises(gc.GovInfoSourceDriftError, match="unexpected field 'processing_in_progress'"):
+        _parse_mutated("null-processing", null_processing)
+
+    untrimmed_name = json.loads(json.dumps(base))
+    untrimmed_name["titles"][0]["name"] = " Title 1 "
+    with pytest.raises(gc.GovInfoSourceDriftError, match="must be non-empty, untrimmed text"):
+        _parse_mutated("untrimmed-name", untrimmed_name)

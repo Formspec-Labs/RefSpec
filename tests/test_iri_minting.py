@@ -1244,3 +1244,83 @@ def test_spicy_docs_collision_verdicts_match_refspec_table() -> None:
 
     expected = {row.source_value: row.disposition for row in hvi._FR_COLLISION_TABLE}
     assert dict(sd_iri._FR_COLLISION_VERDICTS) == expected
+
+
+def test_spicy_docs_facades_preserve_namespace_hygiene_patching_delattr_and_alias_sync() -> None:
+    """Facade modules do not leak internal imports, sync monkeypatch/patch.object + delattr/undo, and keep aliases synced."""
+
+    from unittest.mock import patch
+
+    from spicy_docs.interpretation import citation_grammar as sd_cg
+    from spicy_docs.interpretation import identifier_shapes as sd_is
+    from spicy_docs.interpretation import iri_minting as sd_iri
+
+    from refspec.registry import citation_grammar as cg
+    from refspec.registry import identifier_shapes as ishapes
+    from refspec.registry import iri_minting as imint
+
+    # 1. No leaked internal imports in vars() or dir().
+    for facade in (cg, ishapes, imint):
+        assert "sys" not in vars(facade) and "ModuleType" not in vars(facade)
+        assert "sys" not in dir(facade) and "ModuleType" not in dir(facade)
+
+    # 2. unittest.mock.patch.object on existing delegated attr + create=True on a brand-new attr.
+    orig_title_count = sd_cg.USC_TITLE_COUNT
+    with patch.object(cg, "USC_TITLE_COUNT", 999):
+        assert cg.USC_TITLE_COUNT == 999 and sd_cg.USC_TITLE_COUNT == 999
+    assert cg.USC_TITLE_COUNT == orig_title_count and sd_cg.USC_TITLE_COUNT == orig_title_count
+
+    with patch.object(ishapes, "_test_only_synthetic_attr", "sentinel", create=True):
+        assert ishapes._test_only_synthetic_attr == "sentinel"
+        assert not hasattr(sd_is, "_test_only_synthetic_attr")
+    assert not hasattr(ishapes, "_test_only_synthetic_attr")
+    assert not hasattr(sd_is, "_test_only_synthetic_attr")
+
+    # 3. monkeypatch.setattr and monkeypatch.delattr + undo() preserve _impl cleanly.
+    mp = pytest.MonkeyPatch()
+    orig_partner = sd_iri.PARTNER_NAMESPACE
+    mp.setattr(imint, "PARTNER_NAMESPACE", "patched")
+    assert imint.PARTNER_NAMESPACE == "patched" and sd_iri.PARTNER_NAMESPACE == "patched"
+    mp.undo()
+    assert imint.PARTNER_NAMESPACE == orig_partner and sd_iri.PARTNER_NAMESPACE == orig_partner
+
+    mp2 = pytest.MonkeyPatch()
+    mp2.delattr(cg, "USC_TITLE_COUNT")
+    assert not hasattr(cg, "USC_TITLE_COUNT") and not hasattr(sd_cg, "USC_TITLE_COUNT")
+    mp2.undo()
+    assert cg.USC_TITLE_COUNT == orig_title_count and sd_cg.USC_TITLE_COUNT == orig_title_count
+
+    # 4. Bidirectional _usc_section_key <-> _usc_section_order sync on patch and delattr+undo.
+    orig_order = sd_cg._usc_section_order
+    sentinel_a = lambda s: (0, "", 0)  # noqa: E731
+    sentinel_b = lambda s: (1, "", 1)  # noqa: E731
+
+    mp3 = pytest.MonkeyPatch()
+    mp3.setattr(cg, "_usc_section_key", sentinel_a)
+    assert cg._usc_section_key is sentinel_a
+    assert cg._usc_section_order is sentinel_a
+    assert sd_cg._usc_section_order is sentinel_a
+    mp3.undo()
+    assert cg._usc_section_key is orig_order
+    assert cg._usc_section_order is orig_order
+    assert sd_cg._usc_section_order is orig_order
+
+    mp4 = pytest.MonkeyPatch()
+    mp4.setattr(cg, "_usc_section_order", sentinel_b)
+    assert cg._usc_section_key is sentinel_b
+    assert cg._usc_section_order is sentinel_b
+    assert sd_cg._usc_section_order is sentinel_b
+    mp4.undo()
+    assert cg._usc_section_key is orig_order
+    assert cg._usc_section_order is orig_order
+    assert sd_cg._usc_section_order is orig_order
+
+    mp5 = pytest.MonkeyPatch()
+    mp5.delattr(cg, "_usc_section_key")
+    assert not hasattr(cg, "_usc_section_key")
+    assert not hasattr(cg, "_usc_section_order")
+    assert not hasattr(sd_cg, "_usc_section_order")
+    mp5.undo()
+    assert cg._usc_section_key is orig_order
+    assert cg._usc_section_order is orig_order
+    assert sd_cg._usc_section_order is orig_order

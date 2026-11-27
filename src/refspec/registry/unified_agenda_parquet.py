@@ -1418,8 +1418,12 @@ _PRODUCER_MODULES: tuple[str, ...] = (
     #: "oracles" below as well, because that one IS the publisher-derived
     #: bytes, the same argument as cfr_authority_notes.
     "eo_roster",
-    # The source reader moved to the wheel; its executing code still belongs
-    # in each new build receipt, including its shared XML dependencies.
+    # The source readers, continuation projection, citation grammar, and
+    # identifier shapes moved to the wheel; their executing code still belongs
+    # in each new build receipt, including the shared XML dependencies.
+    "spicy_docs.interpretation.citation_grammar",
+    "spicy_docs.interpretation.identifier_shapes",
+    "spicy_docs.sources.unified_agenda.projection",
     "spicy_docs.sources.unified_agenda.records",
     "spicy_docs.reading.xml_observations",
     "spicy_docs.reading.xml",

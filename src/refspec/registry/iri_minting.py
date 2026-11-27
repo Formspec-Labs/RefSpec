@@ -3,7 +3,7 @@
 The canonical ``urn:rkaf`` identifier minters moved to ``spicy-docs`` under
 REF-024 (amended 2026-09-24). This module preserves the historical
 ``refspec.registry.iri_minting`` import path and synchronizes attribute patches
-(both ``monkeypatch.setattr`` and ``unittest.mock.patch.object``) to
+and deletions (both ``monkeypatch`` and ``unittest.mock.patch.object``) to
 ``spicy_docs.interpretation.iri_minting``; RefSpec continues to hold
 ``IDENTIFIER_SPACES`` to the vendored ``rulespec-conformance`` contract and
 ``_FR_COLLISION_VERDICTS`` to ``hand_validated_interpretations._FR_COLLISION_TABLE``.
@@ -11,14 +11,26 @@ REF-024 (amended 2026-09-24). This module preserves the historical
 
 from __future__ import annotations
 
-import sys
-from types import ModuleType
+import sys as _sys
+from types import ModuleType as _ModuleType
 
 from spicy_docs.interpretation import iri_minting as _impl
 
 __all__ = list(_impl.__all__)
 
-_LOCAL_ATTRS = frozenset(
+_DELEGATED_ATTRS = frozenset(name for name in vars(_impl) if not (name.startswith("__") and name.endswith("__")))
+_FACADE_INTERNALS = frozenset(
+    {
+        "_DELEGATED_ATTRS",
+        "_FACADE_INTERNALS",
+        "_FacadeModule",
+        "_LOCAL_ATTRS",
+        "_ModuleType",
+        "_impl",
+        "_sys",
+    }
+)
+_LOCAL_ATTRS = _FACADE_INTERNALS | frozenset(
     {
         "__all__",
         "__annotations__",
@@ -30,18 +42,13 @@ _LOCAL_ATTRS = frozenset(
         "__name__",
         "__package__",
         "__spec__",
-        "_LOCAL_ATTRS",
-        "_FacadeModule",
-        "_impl",
     }
 )
 
-globals().update(
-    {name: value for name, value in vars(_impl).items() if not (name.startswith("__") and name.endswith("__"))}
-)
+globals().update({name: getattr(_impl, name) for name in _DELEGATED_ATTRS})
 
 
-class _FacadeModule(ModuleType):
+class _FacadeModule(_ModuleType):
     def __getattr__(self, name: str) -> object:
         try:
             return getattr(_impl, name)
@@ -52,7 +59,7 @@ class _FacadeModule(ModuleType):
         super().__setattr__(name, value)
         if name in _LOCAL_ATTRS or (name.startswith("__") and name.endswith("__")):
             return
-        if hasattr(_impl, name):
+        if name in _DELEGATED_ATTRS or hasattr(_impl, name):
             setattr(_impl, name, value)
 
     def __delattr__(self, name: str) -> None:
@@ -63,7 +70,7 @@ class _FacadeModule(ModuleType):
             delattr(_impl, name)
 
     def __dir__(self) -> list[str]:
-        return sorted(set(super().__dir__()) | set(dir(_impl)))
+        return sorted((set(super().__dir__()) - _FACADE_INTERNALS) | set(dir(_impl)))
 
 
-sys.modules[__name__].__class__ = _FacadeModule
+_sys.modules[__name__].__class__ = _FacadeModule

@@ -11,6 +11,9 @@ import pytest
 from refspec.registry import unified_agenda_parquet as builder
 
 DEPENDENCIES = {
+    "spicy_docs.interpretation.citation_grammar",
+    "spicy_docs.interpretation.identifier_shapes",
+    "spicy_docs.sources.unified_agenda.projection",
     "spicy_docs.sources.unified_agenda.records",
     "spicy_docs.reading.xml_observations",
     "spicy_docs.reading.xml",

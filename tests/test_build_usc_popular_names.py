@@ -397,3 +397,17 @@ def test_the_receipt_survives_a_repo_relative_output(tmp_path: Path, monkeypatch
         "sealed-relative/usc-popular-names.parquet",
         "sealed-relative/quarantine.parquet",
     }
+
+
+def test_truncated_full_html_document_fails_closed_while_bare_entry_fragment_still_parses() -> None:
+    """A full HTML document missing ``</html>`` must fail closed rather than being synthetically wrapped."""
+
+    from spicy_docs.sources.uscode.core import UsCodeSourceError
+
+    fragment = ENTRIES["statviewer_and_stated_citation_agree"]
+    assert len(builder.parse_popular_names(fragment).records) == 1
+
+    for prefix in ("<html><body>", "<!DOCTYPE html><HTML lang='en'><body>"):
+        truncated = prefix + fragment
+        with pytest.raises(UsCodeSourceError, match="not closed by </html>"):
+            builder.parse_popular_names(truncated)
