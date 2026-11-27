@@ -2,11 +2,11 @@
 
 The canonical ``urn:rkaf`` identifier minters moved to ``spicy-docs`` under
 REF-024 (amended 2026-09-24). This module preserves the historical
-``refspec.registry.iri_minting`` import path and proxies reads and test-time
-attribute patches to ``spicy_docs.interpretation.iri_minting``; RefSpec
-continues to hold ``IDENTIFIER_SPACES`` to the vendored ``rulespec-conformance``
-contract and ``_FR_COLLISION_VERDICTS`` to
-``hand_validated_interpretations._FR_COLLISION_TABLE``.
+``refspec.registry.iri_minting`` import path and synchronizes attribute patches
+(both ``monkeypatch.setattr`` and ``unittest.mock.patch.object``) to
+``spicy_docs.interpretation.iri_minting``; RefSpec continues to hold
+``IDENTIFIER_SPACES`` to the vendored ``rulespec-conformance`` contract and
+``_FR_COLLISION_VERDICTS`` to ``hand_validated_interpretations._FR_COLLISION_TABLE``.
 """
 
 from __future__ import annotations
@@ -36,6 +36,10 @@ _LOCAL_ATTRS = frozenset(
     }
 )
 
+globals().update(
+    {name: value for name, value in vars(_impl).items() if not (name.startswith("__") and name.endswith("__"))}
+)
+
 
 class _FacadeModule(ModuleType):
     def __getattr__(self, name: str) -> object:
@@ -45,22 +49,18 @@ class _FacadeModule(ModuleType):
             raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from None
 
     def __setattr__(self, name: str, value: object) -> None:
+        super().__setattr__(name, value)
         if name in _LOCAL_ATTRS or (name.startswith("__") and name.endswith("__")):
-            super().__setattr__(name, value)
             return
         if hasattr(_impl, name):
             setattr(_impl, name, value)
-        else:
-            super().__setattr__(name, value)
 
     def __delattr__(self, name: str) -> None:
+        super().__delattr__(name)
         if name in _LOCAL_ATTRS or (name.startswith("__") and name.endswith("__")):
-            super().__delattr__(name)
             return
         if hasattr(_impl, name):
             delattr(_impl, name)
-        else:
-            super().__delattr__(name)
 
     def __dir__(self) -> list[str]:
         return sorted(set(super().__dir__()) | set(dir(_impl)))
