@@ -91,7 +91,6 @@ def test_mixed_compound_list_contains_a_range_without_expanding_it():
     ('40 CFR 60-63', 'ambiguous_hyphen'),
     ('32 CFR 1-403', 'ambiguous_hyphen'),
     ('17 CFR 15c3-3', 'unread_coordinate'),
-    ('41 CFR 60- 1', 'unread_coordinate'),
     ('40 CFR parts 60 through', 'range_end_unread'),
     ('40 CFR parts 60 through unknown', 'range_end_unread'),
     ('40 CFR parts 60 through 61.2', 'mixed_range_units'),
@@ -108,6 +107,13 @@ def test_unknown_tails_stay_observable_and_do_not_escape_as_single_identities(te
     assert isinstance(safe, CfrCitation) and safe.cfr_part is None
     authority, = parse_authority_citation(text)
     assert authority.cfr_refusal == refusal
+
+
+def test_single_space_after_inner_hyphen_in_title_41_reads_as_hyphenated_part():
+    """SpicyDocs admits a single space after an inner hyphen in Title 41 (e.g. '41 CFR 60- 1' -> '60-1')."""
+    row, = find_cfr_citations('41 CFR 60- 1')
+    assert row.text == '41 CFR 60- 1' and row.refusal is None
+    assert row.citation == coordinate(41, '60-1')
 
 
 @pytest.mark.parametrize('text', [

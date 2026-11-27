@@ -1233,3 +1233,14 @@ def test_minting_an_ordinary_number_touches_no_witness_no_census_and_no_git(
     assert mint_federal_register_document_iri("2024-00366") is not None
     assert mint_federal_register_document_iri("E8-24348") is not None
     assert mint_federal_register_document_iri("93-54", column_licensed=True) is not None
+
+
+def test_spicy_docs_collision_verdicts_match_refspec_table() -> None:
+    """REF-024: hold spicy-docs' ``_FR_COLLISION_VERDICTS`` equal to RefSpec's ``_FR_COLLISION_TABLE``."""
+
+    from spicy_docs.interpretation import iri_minting as sd_iri
+
+    from refspec.registry import hand_validated_interpretations as hvi
+
+    expected = {row.source_value: row.disposition for row in hvi._FR_COLLISION_TABLE}
+    assert dict(sd_iri._FR_COLLISION_VERDICTS) == expected

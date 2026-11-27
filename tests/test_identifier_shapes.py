@@ -356,13 +356,17 @@ def test_docket_stripping_never_mutilates_a_numbered_label() -> None:
 
 
 def test_a_docket_must_end_on_the_sequence_it_is_keyed_by() -> None:
-    """The suffixed spellings keep refusing: the shape must end on digits.
+    """Non-rule-family alphabetic tails keep refusing; the five measured -RULE tokens are accepted.
 
     "Internal Agency Docket No. FEMA-1971-DR" (2,918 distinct references) is
-    refused for the same reason, not for the two words in front of its label.
+    refused because ``DR`` is not a measured Regulations.gov segment token.
+    ``GIPSA-2008-FGIS-0002-NONRULEMAKING`` uses one of the five measured
+    ``-RULE``-family tokens (NONRULEMAKING/RULEMAKING/NONRULE/RULE/DRAFT)
+    that spicy-docs admits in both prose and column readers.
     """
 
-    assert normalize_docket_reference("GIPSA-2008-FGIS-0002-NONRULEMAKING") is None
+    assert normalize_docket_reference("GIPSA-2008-FGIS-0002-NONRULEMAKING") == "GIPSA-2008-FGIS-0002-NONRULEMAKING"
+    assert normalize_docket_reference("GIPSA-2008-FGIS-0002-UNKNOWN") is None
     assert normalize_docket_reference("Internal Agency Docket No. FEMA-1971-DR") is None
 
 
