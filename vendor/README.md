@@ -1,18 +1,18 @@
 # Vendored dependencies
 
-`spicy_docs-0.54.0-py3-none-any.whl` supplies shared source readers and
-bounded U.S. Code acquisition with validated archive member delivery.
-SHA-256: `c17f7b36b6a6756e7475e6b50d21e172b1ab69ef21fd2255ed4a2c3539f27bae`.
-Provider source: SpicyDocs `ae2c71ee55388d4218a5cd8c14c695f7f174067a`, the
-0.54.0 release commit, with Rulespec Artifacts 1.1.2; two builds from a clean
-archive of that commit reproduce these bytes.
+`spicy_docs-0.85.0+readers.20261127.1-py3-none-any.whl` supplies shared source readers,
+shared citation grammar / identifier shapes / URN minting, and bounded U.S. Code
+acquisition with validated archive member delivery.
+SHA-256: `e9b90612537f0bf9c2277c1d6c5656e063d1609df1ea9c6153de319ae8ee737c`.
+Provider source: SpicyDocs `32941222503d5e46a50433656276967369ed8802` (on top of
+`adce9334`, `3f1547a0`, `60179be2`), with Rulespec Artifacts 1.1.2.
 RefSpec 0.1.0.dev10 retains snapshot acceptance, normalization and interpretation.
 Its title cache records original HTTP facts; its corpus and annual tools process
 validated members without reopening ZIPs. See [U.S. Code inputs](../docs/uscode-acquisition.md).
 
 Python 3.12, PyArrow 25.0.1 and DuckDB 1.5.5 or later remain unchanged. Existing
 sealed artifacts are unchanged; comparing a new writer to older Parquet bytes
-requires a row comparison. RefSpec 0.1.0.dev25 selects SpicyDocs 0.54.0
+requires a row comparison. RefSpec selects SpicyDocs 0.85.0+readers.20261127.1
 and Rulespec Artifacts 1.1.2. Sibling pins move on their own schedule, so read
 each repository's `pyproject.toml` rather than a list here; SpicySearch vendors
 RefSpec in optional groups only, and its runtime does not depend on RefSpec.
@@ -248,3 +248,15 @@ body-text derivation version), the annual CFR granule ids,
 `sources.uscode.classification` (a row's page cell). Their source hashes move,
 so new capture receipts record the new implementation. Existing sealed data
 and binding versions stay unchanged.
+
+**What 0.85.0+readers.20261127.1 changes for RefSpec.** Built from SpicyDocs
+`32941222503d5e46a50433656276967369ed8802` (adding `is_proposed_usc_section` and
+`ActRelativeCitation.enclosing_section` in `spicy_docs.interpretation.citation_grammar`,
+plus RefSpec refusal-parity hardening in `sources.cfr.ecfr`, `sources.cbo`,
+`sources.source_domains`, and `sources.uscode.{table3,popular_names}`). Enables
+RefSpec to cut over its duplicated `citation_grammar`, `identifier_shapes`,
+`iri_minting`, eCFR titles, CBO cost estimates, XSD/OpenAPI source-domain, and
+OLRC Table III / Popular Names raw parsers onto `spicy_docs` while retaining
+RefSpec's authoritative domain ownership and error contracts. In `Requires-Dist`,
+the `acquisition` extra adds `warcio==1.7.5` (published on PyPI); core
+dependencies (`rulespec-artifacts==1.1.2`, `jsonschema>=4.23`) are unchanged.
