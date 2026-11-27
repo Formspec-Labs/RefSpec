@@ -11,11 +11,11 @@ its CONTINUATION header.
 `main` at `755673a1` (plus Wave 1) ships **RefSpec `0.1.0.dev26`** (`b382ca63`)
 with vendored **SpicyDocs `0.85.0+readers.20261127.1`** (`9111932a`):
 
-- **SpicyDocs shared-reader cutover (`8b78c620`..`e672e3b6`):** delegated
-  `citation_grammar`, `identifier_shapes`, `iri_minting`, eCFR titles, CBO
-  feed, XSD/OpenAPI enums, OLRC Table III, Popular Names, and Unified Agenda
-  continuations to `spicy-docs` (`-6,715` net lines across 28 files,
-  `+927 / -7,642`), completing REF-024 parity.
+- **SpicyDocs shared-reader cutover (`b382ca63`..`e672e3b6`, including
+  `9111932a`):** delegated `citation_grammar`, `identifier_shapes`,
+  `iri_minting`, eCFR titles, CBO feed, XSD/OpenAPI enums, OLRC Table III,
+  Popular Names, and Unified Agenda continuations to `spicy-docs` (`-6,715`
+  net lines across 28 files, `+927 / -7,642`), completing REF-024 parity.
 - **Atlas Vocabulary Pack v3, `seal-3`, and OOD calibration (`10115786`,
   `2dfcf27e`, `91b5a8bb`, `4e4e85e1`, `12435bd2`, `724e9580`):** shipped the
   hardened read-only SQLite `AtlasVocabularyPack` v3 (zero-dep Tier-0 core;

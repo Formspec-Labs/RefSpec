@@ -69,12 +69,7 @@ from refspec.registry.ferc_elibrary_codes import (
     FercPublishedDocketPrefixRow,
     load_packaged_ferc_docket_prefixes,
 )
-from refspec.registry.identifier_shapes import (
-    _DASHES,
-    _FERC_DOCKET_PREFIXES,
-    IdentifierKind,
-    detect_identifier_shapes,
-)
+from refspec.registry.identifier_shapes import IdentifierKind, detect_identifier_shapes
 
 __all__ = [
     "EXPLANATION_KINDS",
@@ -316,27 +311,34 @@ def _docket_agency(organization: str) -> str | None:
     return entry.agency_code if entry is not None and entry.tier == "confident" else None
 
 
-#: Active Table 1 prefixes that ``identifier_shapes`` already recognises in
-#: two-segment form (``EL23-45``) without a three-digit sub-docket. Discontinued
-#: prefixes (such as ``DA``/``ST``, which collide with FCC ``DA16-1282`` and
-#: USDA ``ST08-01``) and ``PT`` (which also appears in the agency crosswalk)
-#: require either a three-digit sub-docket (``-000``) or an explicit ``FERC``
-#: qualifier, measured across 1,004,233 Federal Register documents.
-_FERC_UNQUALIFIED_TWO_SEGMENT_PREFIXES = frozenset(_FERC_DOCKET_PREFIXES)
+#: Unicode dash variants folded to ASCII ``-`` before FERC shape matching.
+_FERC_DASHES = str.maketrans(dict.fromkeys("‐‑‒–—―−", "-"))
+#: Active 2-letter prefixes excluded from unqualified two-segment matching
+#: (``<PREFIX><YY>-<SEQ>`` without a three-digit sub-docket or explicit
+#: ``FERC`` qualifier): ``HB``, ``IC``, and ``ID`` live in Table 2
+#: (non-standard formats) and ``PT`` overlaps a Regulations.gov agency code.
+#: All other active 2-letter prefixes are Table 1 standard prefixes; Table 3
+#: discontinued prefixes (such as ``DA``/``ST``, which collide with FCC
+#: ``DA16-1282`` and USDA ``ST08-01``) likewise require a three-digit
+#: sub-docket (``-000``) or an explicit ``FERC`` qualifier, measured across
+#: 1,004,233 Federal Register documents.
+_FERC_TWO_SEGMENT_EXCLUDED_ACTIVE_PREFIXES = frozenset({"HB", "IC", "ID", "PT"})
 _FERC_COUNTER_WORD = r"(?:nos?(?:\.|\b)|numbers?\b|ids?\b)"
+#: Possessive quantifiers (Python 3.11+) keep non-matching multi-word strings
+#: with long whitespace or punctuation runs strictly O(n).
 _FERC_TERM = re.compile(
-    rf"^(?P<ferc>ferc\s+)?"
-    rf"(?:(?P<label_noun>dockets?|projects?)\b\.?\s*(?:{_FERC_COUNTER_WORD}\s*)?[:#\-]*\s*)?"
-    rf"(?P<body>\S+)$",
-    re.IGNORECASE,
+    rf"^(?P<ferc>ferc\s++)?"
+    rf"(?:(?P<label_noun>dockets?|projects?)\b\.?\s*+(?:{_FERC_COUNTER_WORD}\s*+)?[:#\-]*+\s*+)?"
+    rf"(?P<body>\S++)$",
+    re.IGNORECASE | re.ASCII,
 )
-_FERC_STANDARD_BODY = re.compile(r"^(?P<prefix>[A-Z]{2})(?P<year>\d{2})-(?P<seq>\d+)(?:-(?P<sub>\d{3}))?$")
-_FERC_HYDRO_BODY = re.compile(r"^P-(?P<seq>\d+)(?:-(?P<sub>\d{3}))?$")
-_FERC_HB_BODY = re.compile(r"^HB\d{2}-\d+(?:-\d+-\d{2}|-\d{3})$")
-_FERC_HB_EXPLICIT_BODY = re.compile(r"^HB(?:\d{2}-)?\d+(?:-\d+)*$")
-_FERC_ID_BODY = re.compile(r"^ID-\d+(?:-\d{3})?$")
-_FERC_HYPHEN_DISCONTINUED_BODY = re.compile(r"^(?P<prefix>[EGR]-)\d+(?:-\d{3})?$")
-_FERC_EXPLICIT_HYPHEN_BODY = re.compile(r"^[A-Z]{1,3}-\d+(?:-\d{3})?$")
+_FERC_STANDARD_BODY = re.compile(r"^(?P<prefix>[A-Z]{2})(?P<year>\d{2})-(?P<seq>\d+)(?:-(?P<sub>\d{3}))?$", re.ASCII)
+_FERC_HYDRO_BODY = re.compile(r"^P-(?P<seq>\d+)(?:-(?P<sub>\d{3}))?$", re.ASCII)
+_FERC_HB_BODY = re.compile(r"^HB\d{2}-\d+(?:-\d+-\d{2}|-\d{3})$", re.ASCII)
+_FERC_HB_EXPLICIT_BODY = re.compile(r"^HB\d{2}-\d+(?:-\d+)*$", re.ASCII)
+_FERC_ID_BODY = re.compile(r"^ID-\d+(?:-\d{3})?$", re.ASCII)
+_FERC_HYPHEN_DISCONTINUED_BODY = re.compile(r"^(?P<prefix>[EGR]-)\d+(?:-\d{3})?$", re.ASCII)
+_FERC_EXPLICIT_HYPHEN_BODY = re.compile(r"^(?P<code>[A-Z]{1,3})-\d+(?:-\d{3})?$", re.ASCII)
 
 
 def _ferc_prefix_answer(
@@ -371,7 +373,7 @@ def _ferc_prefix_answer(
 
 def _explain_ferc_docket(
     text: str,
-    directory: FercPublishedDocketPrefixCapture,
+    directory: FercPublishedDocketPrefixCapture | None,
     *,
     require_explicit_ferc: bool,
 ) -> TermExplanation | None:
@@ -383,7 +385,7 @@ def _explain_ferc_docket(
     SEC ``Rel. No. IC-24979``, FAA ``AD 2000-01-01``) are never claimed.
     """
 
-    folded = text.translate(_DASHES).strip()
+    folded = text.translate(_FERC_DASHES).strip()
     match = _FERC_TERM.fullmatch(folded)
     if match is None:
         return None
@@ -393,7 +395,20 @@ def _explain_ferc_docket(
     label_noun = (match.group("label_noun") or "").lower()
     is_project_label = label_noun.startswith("project")
     body = match.group("body").upper()
-    by_prefix = directory.by_prefix()
+
+    def _refuse_wrong_shape() -> TermExplanation | None:
+        # When the input explicitly carries a leading "FERC " qualifier and a
+        # single docket-shaped token, refuse directly as unrecognised_shape so
+        # malformed FERC forms (e.g. "FERC Docket No. ER-1234-000" or
+        # "FERC Docket No. PT-2026-001") cannot fall through to the prose
+        # Regulations.gov detector.
+        if explicit_ferc:
+            return TermExplanation(text=text, unexplained_reason="unrecognised_shape")
+        return None
+
+    def _lookup() -> tuple[FercPublishedDocketPrefixCapture, dict[str, FercPublishedDocketPrefixRow]]:
+        resolved = directory if directory is not None else load_packaged_ferc_docket_prefixes()
+        return resolved, resolved.by_prefix()
 
     # Table 2 Hydropower Projects: P-<seq>-<sub> (220/220 FERC in the FR corpus;
     # two-part P-<seq> collides with FEMA/MARAD unless explicitly FERC-labeled).
@@ -401,45 +416,50 @@ def _explain_ferc_docket(
     if hydro is not None:
         if hydro.group("sub") is None and not explicit_ferc:
             return None
+        resolved, by_prefix = _lookup()
         row = by_prefix.get("P")
         if row is None:
             return TermExplanation(
                 text=text, kind="ferc_docket", subject=body, unexplained_reason="ferc_docket_prefix_unknown"
             )
-        return _ferc_prefix_answer(text, body, row, directory)
+        return _ferc_prefix_answer(text, body, row, resolved)
 
     # A "Project No." label only licenses P- hydropower projects, never general dockets.
     if is_project_label:
-        return None
+        return _refuse_wrong_shape()
 
-    # Table 2 Headwater Benefits: HB<yy>-<seq>-<n>-<nn> or HB<yy>-<seq>-<sub>.
+    # Table 2 Headwater Benefits: HB<yy>-<seq>-<n>-<nn>, HB<yy>-<seq>-<sub>, or
+    # explicitly FERC-qualified HB<yy>-<seq>... (always requires at least one hyphen).
     if _FERC_HB_BODY.fullmatch(body) or (explicit_ferc and _FERC_HB_EXPLICIT_BODY.fullmatch(body)):
+        resolved, by_prefix = _lookup()
         row = by_prefix.get("HB")
         if row is None:
             return TermExplanation(
                 text=text, kind="ferc_docket", subject=body, unexplained_reason="ferc_docket_prefix_unknown"
             )
-        return _ferc_prefix_answer(text, body, row, directory)
+        return _ferc_prefix_answer(text, body, row, resolved)
 
     # Table 2 Interlocking Directorates (ID-<seq>-<sub>) and Table 3 discontinued
     # hyphenated prefixes (E-, G-, R-) collide with EPA Idaho / Regulations.gov /
     # Federal Reserve (1,434 R-nnnn dockets) without an explicit FERC qualifier.
     if explicit_ferc:
         if _FERC_ID_BODY.fullmatch(body):
+            resolved, by_prefix = _lookup()
             row = by_prefix.get("ID")
             if row is None:
                 return TermExplanation(
                     text=text, kind="ferc_docket", subject=body, unexplained_reason="ferc_docket_prefix_unknown"
                 )
-            return _ferc_prefix_answer(text, body, row, directory)
+            return _ferc_prefix_answer(text, body, row, resolved)
         hyph = _FERC_HYPHEN_DISCONTINUED_BODY.fullmatch(body)
         if hyph is not None:
+            resolved, by_prefix = _lookup()
             row = by_prefix.get(hyph.group("prefix"))
             if row is None:
                 return TermExplanation(
                     text=text, kind="ferc_docket", subject=body, unexplained_reason="ferc_docket_prefix_unknown"
                 )
-            return _ferc_prefix_answer(text, body, row, directory)
+            return _ferc_prefix_answer(text, body, row, resolved)
 
     # Standard 2-letter + 2-digit year + sequence + optional 3-digit sub-docket:
     # covers all 73 Table 1 active prefixes, Table 2 IC, and all 15 two-letter
@@ -448,10 +468,17 @@ def _explain_ferc_docket(
     if std is not None:
         prefix = std.group("prefix")
         has_sub = std.group("sub") is not None
+        resolved, by_prefix = _lookup()
         row = by_prefix.get(prefix)
-        if row is not None and prefix != "ID":
-            if has_sub or explicit_ferc or (row.status == "active" and prefix in _FERC_UNQUALIFIED_TWO_SEGMENT_PREFIXES):
-                return _ferc_prefix_answer(text, body, row, directory)
+        if row is not None:
+            if prefix == "ID":
+                return _refuse_wrong_shape()
+            if (
+                has_sub
+                or explicit_ferc
+                or (row.status == "active" and prefix not in _FERC_TWO_SEGMENT_EXCLUDED_ACTIVE_PREFIXES)
+            ):
+                return _ferc_prefix_answer(text, body, row, resolved)
             return None
         if has_sub or explicit_ferc:
             return TermExplanation(
@@ -459,10 +486,16 @@ def _explain_ferc_docket(
             )
         return None
 
-    if explicit_ferc and _FERC_EXPLICIT_HYPHEN_BODY.fullmatch(body):
-        return TermExplanation(
-            text=text, kind="ferc_docket", subject=body, unexplained_reason="ferc_docket_prefix_unknown"
-        )
+    if explicit_ferc:
+        explicit_hyph = _FERC_EXPLICIT_HYPHEN_BODY.fullmatch(body)
+        if explicit_hyph is not None:
+            _, by_prefix = _lookup()
+            code = explicit_hyph.group("code")
+            if code not in by_prefix and f"{code}-" not in by_prefix:
+                return TermExplanation(
+                    text=text, kind="ferc_docket", subject=body, unexplained_reason="ferc_docket_prefix_unknown"
+                )
+        return TermExplanation(text=text, unexplained_reason="unrecognised_shape")
     return None
 
 
@@ -604,12 +637,7 @@ def explain_term(
         found = reader(text, index, notes)
         if found is not None:
             return found
-    directory = (
-        ferc_docket_prefixes
-        if ferc_docket_prefixes is not None
-        else load_packaged_ferc_docket_prefixes()
-    )
-    explicit_ferc = _explain_ferc_docket(text, directory, require_explicit_ferc=True)
+    explicit_ferc = _explain_ferc_docket(text, ferc_docket_prefixes, require_explicit_ferc=True)
     if explicit_ferc is not None:
         return explicit_ferc
     for candidate in detect_identifier_shapes(text):
@@ -647,7 +675,7 @@ def explain_term(
                              f"{len(found)} documents.")
             return TermExplanation(text=text, kind="docket", subject=candidate.value,
                                    statement=statement, documents=found)
-    ferc = _explain_ferc_docket(text, directory, require_explicit_ferc=False)
+    ferc = _explain_ferc_docket(text, ferc_docket_prefixes, require_explicit_ferc=False)
     if ferc is not None:
         return ferc
     return TermExplanation(text=text, unexplained_reason="unrecognised_shape")

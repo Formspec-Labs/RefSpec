@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import random
 import re
+import time
 from pathlib import Path
 
 import pytest
@@ -385,6 +386,13 @@ def test_ferc_standard_dockets_route_labeled_and_bare_to_authoritative_directory
             "Headwater Benefits Related to Hydroelectric Projects",
         ),
         (
+            "FERC Docket No. HB26-1-000",
+            "HB26-1-000",
+            "HB",
+            "active",
+            "Headwater Benefits Related to Hydroelectric Projects",
+        ),
+        (
             "FERC Docket No. ID-8705-002",
             "ID-8705-002",
             "ID",
@@ -578,6 +586,19 @@ def test_regulations_gov_dockets_stay_in_their_own_family() -> None:
         "Docket No. CP",
         "Docket No.",
         "FERC",
+        "FERC Docket No. HB26",
+        "FERC HB1",
+        # Known FERC prefixes in wrong format must refuse as unrecognised_shape,
+        # never misreporting them as unknown prefixes or Regulations.gov dockets
+        "ID23-7003-000",
+        "FERC Docket No. ID23-7003",
+        "FERC Docket No. CP-1234",
+        "FERC Docket No. ER-1234-000",
+        "FERC Docket No. HB-123",
+        "FERC Docket No. PT-2026-001",
+        # Non-ASCII Unicode digits rejected by re.ASCII
+        "CP\u0662\u0666-\u0662\u0660-\u0660\u0660\u0660",
+        "P-\u0661\u0662\u0663\u0664-\u0660\u0660\u0660",
         # Ambiguous / compound / malformed inputs
         "CP26-20-000 and ER24-1234-000",
         "Docket Nos. CP26-20-000, ER24-1234-000",
@@ -595,3 +616,39 @@ def test_non_ferc_collisions_bare_prefixes_and_ambiguous_inputs_refuse(term: str
     answer = explain_term(term)
     assert answer.unexplained_reason == "unrecognised_shape", (term, answer)
     assert answer.ferc_docket_prefix is None
+
+
+@pytest.mark.parametrize(
+    ("label", "adversarial"),
+    [
+        ("docket_10k_spaces", "Docket" + " " * 10_000 + "a b"),
+        ("docket_3k_colons", "Docket No." + ":" * 3_000 + "a b"),
+        ("ferc_10k_spaces", "FERC" + " " * 10_000 + "a b"),
+    ],
+    ids=lambda item: item if isinstance(item, str) and len(item) < 30 else "",
+)
+def test_ferc_label_regex_is_linear_on_adversarial_runs(label: str, adversarial: str) -> None:
+    """Possessive quantifiers prevent quadratic ReDoS on long non-matching runs."""
+
+    from refspec.registry import term_explanation as mod
+
+    start = time.perf_counter()
+    assert mod._explain_ferc_docket(adversarial, None, require_explicit_ferc=False) is None
+    assert mod._explain_ferc_docket(adversarial, None, require_explicit_ferc=True) is None
+    elapsed = time.perf_counter() - start
+    assert elapsed < 0.05, f"_explain_ferc_docket took {elapsed:.3f}s on {label}"
+    assert explain_term("Docket No." + ":" * 3_000 + "a b").unexplained_reason == "unrecognised_shape"
+
+
+def test_unrelated_inputs_do_not_load_ferc_directory(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Non-FERC inputs defer directory loading and by_prefix() indexing."""
+
+    from refspec.registry import term_explanation as mod
+
+    def _boom() -> FercPublishedDocketPrefixCapture:
+        raise AssertionError("FERC prefix directory must not be loaded for unrelated inputs")
+
+    monkeypatch.setattr(mod, "load_packaged_ferc_docket_prefixes", _boom)
+    assert explain_term("haddock").unexplained_reason == "unrecognised_shape"
+    assert explain_term("RIN 2060-AV12").unexplained_reason == "rin_subject_not_owned_here"
+    assert explain_term("EPA-HQ-OAR-2021-0317").unexplained_reason == "docket_documents_not_supplied"
