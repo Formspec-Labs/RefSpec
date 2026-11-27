@@ -20,11 +20,20 @@ import pytest
 
 from refspec.registry.act_resolution import ActIndex
 from refspec.registry.cfr_authority_notes import CFR_AUTHORITY_NOTES_ARTIFACT, CfrAuthorityNotes
+from refspec.registry.ferc_elibrary_codes import (
+    FERC_DOCKET_PREFIX_PDF_EDITION,
+    FERC_DOCKET_PREFIX_PDF_SHA256,
+    FERC_DOCKET_PREFIX_PDF_URL,
+    FERC_PUBLISHER,
+    FercPublishedDocketPrefixCapture,
+    load_packaged_ferc_docket_prefixes,
+)
 from refspec.registry.term_explanation import (
     EXPLANATION_KINDS,
     RIN_CONTAINER_THRESHOLD,
     UNEXPLAINED_REASONS,
     DocketDocument,
+    FercDocketPrefixExplanation,
     RinSubject,
     TermExplanation,
     acts_classifying,
@@ -270,5 +279,319 @@ def test_what_the_router_refuses(index, notes) -> None:
 def test_the_declared_vocabularies_are_closed() -> None:
     """Every declared reason and kind is reachable, or it is decoration."""
 
-    assert set(EXPLANATION_KINDS) == {"act_section", "cfr_part", "docket", "rin"}
+    assert set(EXPLANATION_KINDS) == {"act_section", "cfr_part", "docket", "ferc_docket", "rin"}
+    assert "ferc_docket_prefix_unknown" in UNEXPLAINED_REASONS
     assert len(set(UNEXPLAINED_REASONS)) == len(UNEXPLAINED_REASONS)
+
+
+@pytest.mark.parametrize(
+    ("term", "expected_subject", "expected_prefix", "expected_library", "expected_definition"),
+    [
+        (
+            "Docket No. CP26-20-000",
+            "CP26-20-000",
+            "CP",
+            "G",
+            "Certificates for Interstate Natural Gas Pipeline Companies",
+        ),
+        (
+            "CP26-20-000",
+            "CP26-20-000",
+            "CP",
+            "G",
+            "Certificates for Interstate Natural Gas Pipeline Companies",
+        ),
+        (
+            "docket no. cp26\u201320\u2013000",
+            "CP26-20-000",
+            "CP",
+            "G",
+            "Certificates for Interstate Natural Gas Pipeline Companies",
+        ),
+        ("ER24-1234-000", "ER24-1234-000", "ER", "E", "Electric Rate Filings"),
+        ("EL23-45", "EL23-45", "EL", "E", "Miscellaneous Formal Filings Related to Electric Power"),
+        (
+            "Docket No.EL02-65-005",
+            "EL02-65-005",
+            "EL",
+            "E",
+            "Miscellaneous Formal Filings Related to Electric Power",
+        ),
+        ("RM22-10-000", "RM22-10-000", "RM", "Gen, RM", "Rulemaking Proceedings"),
+        ("RP24-500-000", "RP24-500-000", "RP", "G", "Rates for Interstate Natural Gas Pipeline Companies"),
+        ("AD10-12-017", "AD10-12-017", "AD", "Gen", "Administrative"),
+        (
+            "ZZ26-20-000",
+            "ZZ26-20-000",
+            "ZZ",
+            "E, G, H, O",
+            "Tracking Docket for Certain Non-Docketed Submissions",
+        ),
+    ],
+)
+def test_ferc_standard_dockets_route_labeled_and_bare_to_authoritative_directory(
+    term: str,
+    expected_subject: str,
+    expected_prefix: str,
+    expected_library: str,
+    expected_definition: str,
+) -> None:
+    """REF-070 unblocked: FERC dockets route offline to the pinned 95-row directory."""
+
+    answer = explain_term(term)
+    assert answer.kind == "ferc_docket"
+    assert answer.subject == expected_subject
+    assert answer.unexplained_reason is None
+    assert answer.ferc_docket_prefix == FercDocketPrefixExplanation(
+        prefix=expected_prefix,
+        status="active",
+        library=expected_library,
+        definition=expected_definition,
+        publisher=FERC_PUBLISHER,
+        source_edition=FERC_DOCKET_PREFIX_PDF_EDITION,
+        source_url=FERC_DOCKET_PREFIX_PDF_URL,
+        source_sha256=FERC_DOCKET_PREFIX_PDF_SHA256,
+    )
+    assert answer.statement is not None
+    assert expected_subject in answer.statement
+    assert f"active prefix {expected_prefix}" in answer.statement
+    assert expected_definition in answer.statement
+    assert f"library {expected_library}" in answer.statement
+    assert FERC_DOCKET_PREFIX_PDF_EDITION in answer.statement
+
+
+@pytest.mark.parametrize(
+    ("term", "expected_subject", "expected_prefix", "expected_status", "expected_definition"),
+    [
+        ("P-1234-000", "P-1234-000", "P", "active", "Hydropower Projects"),
+        ("Docket No. P-1234-000", "P-1234-000", "P", "active", "Hydropower Projects"),
+        ("Project No. P-2725-076", "P-2725-076", "P", "active", "Hydropower Projects"),
+        ("FERC Project No. P-1234", "P-1234", "P", "active", "Hydropower Projects"),
+        (
+            "Docket No. IC26-25-000",
+            "IC26-25-000",
+            "IC",
+            "active",
+            (
+                "Information Collections – Public Involvement on the Development of the "
+                "Commission's Information Collection Requirements Prior to OMB Approval"
+            ),
+        ),
+        (
+            "HB26-01-0-00",
+            "HB26-01-0-00",
+            "HB",
+            "active",
+            "Headwater Benefits Related to Hydroelectric Projects",
+        ),
+        (
+            "FERC Docket No. ID-8705-002",
+            "ID-8705-002",
+            "ID",
+            "active",
+            "Interlocking Directorates for Electric Utilities",
+        ),
+        (
+            "PT26-20-000",
+            "PT26-20-000",
+            "PT",
+            "active",
+            (
+                "Prefilling Activity for a Permit to Site New Electric Transmission Facilities "
+                "or Modify Existing Facilities"
+            ),
+        ),
+        (
+            "TA90-1-000",
+            "TA90-1-000",
+            "TA",
+            "discontinued",
+            "Annual Tracking Filings of Interstate Natural Gas Pipelines",
+        ),
+        (
+            "Docket No. CI80-123-000",
+            "CI80-123-000",
+            "CI",
+            "discontinued",
+            "Certificates for Small Independent Natural Gas Producers & Marketers",
+        ),
+        (
+            "FERC Docket No. E-7890",
+            "E-7890",
+            "E-",
+            "discontinued",
+            "All Electric Cases (Replaced by ER, ES, EL, etc. prefixes)",
+        ),
+        (
+            "FERC Docket No. G-1234",
+            "G-1234",
+            "G-",
+            "discontinued",
+            "Gas Cases – Used Prior to 1960",
+        ),
+        (
+            "FERC Docket No. R-456",
+            "R-456",
+            "R-",
+            "discontinued",
+            "Rulemakings (Prior to Formation of RM Prefix – Fiscal Year 1974)",
+        ),
+    ],
+)
+def test_ferc_nonstandard_and_discontinued_prefixes_route_cleanly(
+    term: str,
+    expected_subject: str,
+    expected_prefix: str,
+    expected_status: str,
+    expected_definition: str,
+) -> None:
+    """Table 2 non-standard and Table 3 discontinued prefixes resolve with exact status."""
+
+    answer = explain_term(term)
+    assert answer.kind == "ferc_docket"
+    assert answer.subject == expected_subject
+    assert answer.ferc_docket_prefix is not None
+    assert answer.ferc_docket_prefix.prefix == expected_prefix
+    assert answer.ferc_docket_prefix.status == expected_status
+    assert answer.ferc_docket_prefix.definition == expected_definition
+    assert answer.statement is not None
+    assert f"{expected_status} prefix {expected_prefix}" in answer.statement
+
+
+def test_every_one_of_the_95_ferc_prefixes_routes_verbatim() -> None:
+    """All 95 captured prefixes (77 active, 18 discontinued) are routable without omission."""
+
+    directory = load_packaged_ferc_docket_prefixes()
+    assert len(directory.rows) == 95
+    for row in directory.rows:
+        if row.prefix == "P":
+            sample = "P-1234-000"
+        elif row.prefix == "HB":
+            sample = "HB26-01-0-00"
+        elif row.prefix == "ID":
+            sample = "FERC Docket No. ID-8705-002"
+        elif row.prefix.endswith("-"):
+            sample = f"FERC Docket No. {row.prefix}1234"
+        else:
+            sample = f"Docket No. {row.prefix}26-20-000"
+        answer = explain_term(sample, ferc_docket_prefixes=directory)
+        assert answer.kind == "ferc_docket", row.prefix
+        assert answer.ferc_docket_prefix is not None, row.prefix
+        assert answer.ferc_docket_prefix.prefix == row.prefix
+        assert answer.ferc_docket_prefix.status == row.status
+        assert answer.ferc_docket_prefix.library == row.library
+        assert answer.ferc_docket_prefix.definition == row.definition
+        assert answer.ferc_docket_prefix.source_url == FERC_DOCKET_PREFIX_PDF_URL
+        assert answer.ferc_docket_prefix.source_sha256 == FERC_DOCKET_PREFIX_PDF_SHA256
+
+
+@pytest.mark.parametrize(
+    ("term", "expected_subject"),
+    [
+        ("QQ26-20-000", "QQ26-20-000"),
+        ("Docket No. QQ26-20-000", "QQ26-20-000"),
+        ("XZ26-20-000", "XZ26-20-000"),
+        ("FERC Docket No. QQ26-20", "QQ26-20"),
+        ("FERC Docket No. Q-1234-000", "Q-1234-000"),
+    ],
+)
+def test_unknown_ferc_prefixes_refuse_explicitly(term: str, expected_subject: str) -> None:
+    """A FERC-shaped docket whose prefix is absent from the 95-row directory refuses."""
+
+    answer = explain_term(term)
+    assert answer.kind == "ferc_docket"
+    assert answer.subject == expected_subject
+    assert answer.statement is None
+    assert answer.ferc_docket_prefix is None
+    assert answer.unexplained_reason == "ferc_docket_prefix_unknown"
+
+
+def test_ferc_routing_reads_supplied_directory_rather_than_hardcoded_definitions() -> None:
+    """Omitting a prefix from an injected directory refuses it rather than inventing an answer."""
+
+    full = load_packaged_ferc_docket_prefixes()
+    without_cp = FercPublishedDocketPrefixCapture(
+        source_url=full.source_url,
+        source_sha256=full.source_sha256,
+        source_byte_length=full.source_byte_length,
+        page_count=full.page_count,
+        rows=tuple(row for row in full.rows if row.prefix != "CP"),
+    )
+    answer = explain_term("Docket No. CP26-20-000", ferc_docket_prefixes=without_cp)
+    assert answer.kind == "ferc_docket"
+    assert answer.unexplained_reason == "ferc_docket_prefix_unknown"
+
+
+def test_regulations_gov_dockets_stay_in_their_own_family() -> None:
+    """Regulations.gov dockets (including PT-, FS-, FERC-, ID-) must never route to FERC."""
+
+    for term, expected_subject in (
+        ("EPA-HQ-OAR-2021-0317", "EPA-HQ-OAR-2021-0317"),
+        ("Docket No. EPA-HQ-OAR-2021-0317", "EPA-HQ-OAR-2021-0317"),
+        ("PT-2026-0001", "PT-2026-0001"),
+        ("FS-2024-0001", "FS-2024-0001"),
+        ("FERC-2026-0001", "FERC-2026-0001"),
+        ("ID-2024-0001", "ID-2024-0001"),
+        ("Docket # ID-03-003", "ID-03-003"),
+    ):
+        answer = explain_term(term)
+        assert answer.kind == "docket", term
+        assert answer.subject == expected_subject, term
+        assert answer.unexplained_reason == "docket_documents_not_supplied", term
+        assert answer.ferc_docket_prefix is None
+
+
+@pytest.mark.parametrize(
+    "term",
+    [
+        # Federal Reserve Board (1,434 R-nnnn dockets in the Federal Register)
+        "Docket No. R-1835",
+        "R-1835",
+        "Docket No. E-7890",
+        "Docket No. G-1234",
+        # FCC Delegated Authority and media/wireline dockets
+        "DA16-1282",
+        "MM Docket No. 98-213",
+        "WC Docket No. 17-108",
+        "FCC 24-100",
+        # USDA AMS & EPA Idaho & FEMA/MARAD two-segment collisions
+        "ST08-01",
+        "ID-03-003",
+        "ID23-7003",
+        "P-1234",
+        "Docket No. P-7915",
+        "Docket No. P-009",
+        # FAA Airworthiness Directive & SEC releases/filings
+        "AD 2000-01-01",
+        "Rel. No. IC-24979",
+        "Release No. 33-8176",
+        "File No. SR-NYSE-2024-01",
+        # Wrong agency or label noun
+        "EPA Docket No. CP26-20-000",
+        "Project No. CP26-20-000",
+        # Bare prefixes and incomplete fragments without a docket shape
+        "CP",
+        "ER",
+        "EL",
+        "P",
+        "CP26",
+        "Docket No. CP",
+        "Docket No.",
+        "FERC",
+        # Ambiguous / compound / malformed inputs
+        "CP26-20-000 and ER24-1234-000",
+        "Docket Nos. CP26-20-000, ER24-1234-000",
+        "CP26-20-000 extra",
+        "CP26-20-00",
+        "CP26-20-0000",
+        "CP2-20-000",
+        "PT26-20",
+        "QQ26-20",
+    ],
+)
+def test_non_ferc_collisions_bare_prefixes_and_ambiguous_inputs_refuse(term: str) -> None:
+    """Anti-false-positive fence measured over 1,004,233 Federal Register documents."""
+
+    answer = explain_term(term)
+    assert answer.unexplained_reason == "unrecognised_shape", (term, answer)
+    assert answer.ferc_docket_prefix is None

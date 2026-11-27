@@ -91,6 +91,51 @@ def test_full_official_docket_prefix_pdf_shape_count_and_samples() -> None:
     )
     assert capture.rows[-1].prefix == "TA"
     assert capture.rows[-1].definition == "Annual Tracking Filings of Interstate Natural Gas Pipelines"
+    assert ferc.load_packaged_ferc_docket_prefixes() == capture
+    assert ferc.sha256_digest(ferc.ferc_docket_prefix_extract_bytes(capture)) == (
+        ferc.FERC_DOCKET_PREFIX_EXTRACT_SHA256
+    )
+
+
+def test_packaged_ferc_docket_prefixes_load_offline_with_full_95_rows_and_provenance() -> None:
+    capture = ferc.load_packaged_ferc_docket_prefixes()
+
+    assert capture.source_url == ferc.FERC_DOCKET_PREFIX_PDF_URL
+    assert capture.source_sha256 == ferc.FERC_DOCKET_PREFIX_PDF_SHA256
+    assert capture.source_byte_length == ferc.FERC_DOCKET_PREFIX_PDF_BYTE_LENGTH
+    assert capture.page_count == ferc.FERC_DOCKET_PREFIX_PDF_PAGE_COUNT
+    assert len(capture.rows) == 95
+    assert sum(row.status == "active" for row in capture.rows) == 77
+    assert sum(row.status == "discontinued" for row in capture.rows) == 18
+
+    by_prefix = capture.by_prefix()
+    assert len(by_prefix) == 95
+    assert by_prefix["CP"] == ferc.FercPublishedDocketPrefixRow(
+        status="active",
+        prefix="CP",
+        library="G",
+        definition="Certificates for Interstate Natural Gas Pipeline Companies",
+    )
+    assert by_prefix["P"].definition == "Hydropower Projects"
+    assert by_prefix["ZZ"].status == "active"
+    assert by_prefix["ZZ"].definition == "Tracking Docket for Certain Non-Docketed Submissions"
+    assert {"E-", "G-", "R-"} <= {row.prefix for row in capture.rows if row.status == "discontinued"}
+
+    extract = ferc.ferc_docket_prefix_extract_bytes(capture)
+    assert len(extract) == ferc.FERC_DOCKET_PREFIX_EXTRACT_BYTE_LENGTH
+    assert ferc.sha256_digest(extract) == ferc.FERC_DOCKET_PREFIX_EXTRACT_SHA256
+    assert ferc.load_ferc_docket_prefix_extract(extract) == capture
+
+
+def test_packaged_ferc_docket_prefix_extract_fails_closed_on_tampering() -> None:
+    extract = ferc.ferc_docket_prefix_extract_bytes(ferc.load_packaged_ferc_docket_prefixes())
+    tampered = extract.replace(b"Rulemaking Proceedings", b"Rulemaking Proceedinxs")
+    assert len(tampered) == len(extract)
+
+    with pytest.raises(ferc.FercSourceDriftError, match="exact byte pin"):
+        ferc.load_ferc_docket_prefix_extract(tampered)
+    with pytest.raises(ferc.FercSourceDriftError, match="non-empty bytes"):
+        ferc.load_ferc_docket_prefix_extract(b"")
 
 
 def test_official_search_help_sector_security_shape_and_samples() -> None:

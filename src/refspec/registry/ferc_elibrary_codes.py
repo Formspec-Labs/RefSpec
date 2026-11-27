@@ -26,11 +26,14 @@ from __future__ import annotations
 
 import hashlib
 import html
+import importlib.resources
+import json
 import os
 import re
 import tempfile
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Literal, Protocol, cast
 from urllib.parse import urlsplit
@@ -40,6 +43,7 @@ from spicy_docs.extraction.pypdf import PdfReadError
 from refspec.pdf_text import fold_pdf_text, pdf_page_texts
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
+from refspec.storage import canonical_json
 
 FERC_PUBLISHER = "Federal Energy Regulatory Commission"
 FERC_IDENTIFIER_AUTHORITY_URI = "https://www.ferc.gov/"
@@ -54,6 +58,13 @@ FERC_CLASS_TYPE_PDF_ROW_COUNT = 235
 FERC_DOCKET_PREFIX_PDF_URL = "https://elibrary.ferc.gov/eLibrary/assets/docket-prefix.pdf"
 FERC_DOCKET_PREFIX_PDF_SHA256 = "sha256:c32efae9f51a70b6f955821d2fb3d3025995ef0e17e57bf2d32dfa16c2508dcb"
 FERC_DOCKET_PREFIX_PDF_BYTE_LENGTH = 282_729
+FERC_DOCKET_PREFIX_PDF_EDITION = "June 2025"
+FERC_DOCKET_PREFIX_PDF_PAGE_COUNT = 6
+FERC_DOCKET_PREFIX_PDF_ROW_COUNT = 95
+FERC_DOCKET_PREFIX_PDF_ACTIVE_COUNT = 77
+FERC_DOCKET_PREFIX_PDF_DISCONTINUED_COUNT = 18
+FERC_DOCKET_PREFIX_EXTRACT_SHA256 = "sha256:2ff50ddcb588b8f4f36ae921d5f765d1df2463c66023b24f135fb40208a30f36"
+FERC_DOCKET_PREFIX_EXTRACT_BYTE_LENGTH = 11_898
 FERC_GENERAL_SEARCH_HELP_URL = "https://elibrary.ferc.gov/eLibraryhelp/General_Search.htm"
 FERC_GENERAL_SEARCH_HELP_SHA256 = "sha256:1f4b2883879602530c59095cc3d33fedbbf50a2d630e7bdf0226785259dd2b45"
 FERC_GENERAL_SEARCH_HELP_BYTE_LENGTH = 7_447
@@ -179,6 +190,16 @@ class FercPublishedDocketPrefixCapture:
     source_byte_length: int
     page_count: int
     rows: tuple[FercPublishedDocketPrefixRow, ...]
+
+    def by_prefix(self) -> dict[str, FercPublishedDocketPrefixRow]:
+        """Index every row by its exact published prefix code (for example ``'CP'``, ``'P'``, ``'E-'``)."""
+
+        result: dict[str, FercPublishedDocketPrefixRow] = {}
+        for row in self.rows:
+            if row.prefix in result:
+                raise FercSourceDriftError(f"FERC docket-prefix capture contains duplicate prefix {row.prefix!r}")
+            result[row.prefix] = row
+        return result
 
 
 @dataclass(frozen=True, slots=True)
@@ -369,7 +390,7 @@ def parse_ferc_docket_prefix_pdf(payload: bytes) -> FercPublishedDocketPrefixCap
                     library=previous.library,
                     definition=f"{previous.definition} {line}",
                 )
-    if len(pages) != 6 or len(rows) != 95:
+    if len(pages) != FERC_DOCKET_PREFIX_PDF_PAGE_COUNT or len(rows) != FERC_DOCKET_PREFIX_PDF_ROW_COUNT:
         raise FercSourceDriftError(f"FERC docket-prefix PDF shape drifted: pages={len(pages)}, rows={len(rows)}")
     return FercPublishedDocketPrefixCapture(
         source_url=FERC_DOCKET_PREFIX_PDF_URL,
@@ -378,6 +399,134 @@ def parse_ferc_docket_prefix_pdf(payload: bytes) -> FercPublishedDocketPrefixCap
         page_count=len(pages),
         rows=tuple(rows),
     )
+
+
+def ferc_docket_prefix_extract_bytes(capture: FercPublishedDocketPrefixCapture) -> bytes:
+    """Serialize one verified June 2025 docket-prefix capture into canonical packaged JSON bytes."""
+
+    active_count = sum(row.status == "active" for row in capture.rows)
+    discontinued_count = sum(row.status == "discontinued" for row in capture.rows)
+    if (
+        capture.source_url != FERC_DOCKET_PREFIX_PDF_URL
+        or capture.source_sha256 != FERC_DOCKET_PREFIX_PDF_SHA256
+        or capture.source_byte_length != FERC_DOCKET_PREFIX_PDF_BYTE_LENGTH
+        or capture.page_count != FERC_DOCKET_PREFIX_PDF_PAGE_COUNT
+        or len(capture.rows) != FERC_DOCKET_PREFIX_PDF_ROW_COUNT
+        or active_count != FERC_DOCKET_PREFIX_PDF_ACTIVE_COUNT
+        or discontinued_count != FERC_DOCKET_PREFIX_PDF_DISCONTINUED_COUNT
+    ):
+        raise FercSourceDriftError("FERC docket-prefix capture does not match the pinned June 2025 directory shape")
+    capture.by_prefix()
+    payload_obj = {
+        "activeCount": active_count,
+        "discontinuedCount": discontinued_count,
+        "edition": FERC_DOCKET_PREFIX_PDF_EDITION,
+        "pageCount": capture.page_count,
+        "publisher": FERC_PUBLISHER,
+        "rowCount": len(capture.rows),
+        "rows": [
+            {
+                "definition": row.definition,
+                "library": row.library,
+                "prefix": row.prefix,
+                "status": row.status,
+            }
+            for row in capture.rows
+        ],
+        "sourceByteLength": capture.source_byte_length,
+        "sourceSha256": capture.source_sha256,
+        "sourceUrl": capture.source_url,
+    }
+    return (canonical_json(payload_obj) + "\n").encode("utf-8")
+
+
+def load_ferc_docket_prefix_extract(payload: bytes) -> FercPublishedDocketPrefixCapture:
+    """Load and pin-verify the packaged June 2025 FERC docket-prefix JSON extract."""
+
+    if not isinstance(payload, bytes) or not payload:
+        raise FercSourceDriftError("FERC docket-prefix extract must be non-empty bytes")
+    if (
+        len(payload) != FERC_DOCKET_PREFIX_EXTRACT_BYTE_LENGTH
+        or sha256_digest(payload) != FERC_DOCKET_PREFIX_EXTRACT_SHA256
+    ):
+        raise FercSourceDriftError("FERC docket-prefix extract failed its exact byte pin")
+    try:
+        raw = json.loads(payload.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise FercSourceDriftError("FERC docket-prefix extract is not valid UTF-8 JSON") from error
+    if not isinstance(raw, dict):
+        raise FercSourceDriftError("FERC docket-prefix extract must be a JSON object")
+    if (
+        raw.get("publisher") != FERC_PUBLISHER
+        or raw.get("edition") != FERC_DOCKET_PREFIX_PDF_EDITION
+        or raw.get("sourceUrl") != FERC_DOCKET_PREFIX_PDF_URL
+        or raw.get("sourceSha256") != FERC_DOCKET_PREFIX_PDF_SHA256
+        or raw.get("sourceByteLength") != FERC_DOCKET_PREFIX_PDF_BYTE_LENGTH
+        or raw.get("pageCount") != FERC_DOCKET_PREFIX_PDF_PAGE_COUNT
+        or raw.get("rowCount") != FERC_DOCKET_PREFIX_PDF_ROW_COUNT
+        or raw.get("activeCount") != FERC_DOCKET_PREFIX_PDF_ACTIVE_COUNT
+        or raw.get("discontinuedCount") != FERC_DOCKET_PREFIX_PDF_DISCONTINUED_COUNT
+    ):
+        raise FercSourceDriftError("FERC docket-prefix extract provenance metadata drifted")
+    raw_rows = raw.get("rows")
+    if not isinstance(raw_rows, list) or len(raw_rows) != FERC_DOCKET_PREFIX_PDF_ROW_COUNT:
+        raise FercSourceDriftError("FERC docket-prefix extract row list drifted")
+    rows: list[FercPublishedDocketPrefixRow] = []
+    for item in raw_rows:
+        if not isinstance(item, dict):
+            raise FercSourceDriftError("FERC docket-prefix extract row must be an object")
+        status = item.get("status")
+        prefix = item.get("prefix")
+        library = item.get("library")
+        definition = item.get("definition")
+        if (
+            status not in {"active", "discontinued"}
+            or not isinstance(prefix, str)
+            or not prefix
+            or not isinstance(library, str)
+            or not library
+            or not isinstance(definition, str)
+            or not definition
+        ):
+            raise FercSourceDriftError(f"FERC docket-prefix extract row is malformed: {item!r}")
+        rows.append(
+            FercPublishedDocketPrefixRow(
+                status=cast(Literal["active", "discontinued"], status),
+                prefix=prefix,
+                library=library,
+                definition=definition,
+            )
+        )
+    active_count = sum(row.status == "active" for row in rows)
+    discontinued_count = sum(row.status == "discontinued" for row in rows)
+    if (
+        active_count != FERC_DOCKET_PREFIX_PDF_ACTIVE_COUNT
+        or discontinued_count != FERC_DOCKET_PREFIX_PDF_DISCONTINUED_COUNT
+    ):
+        raise FercSourceDriftError("FERC docket-prefix extract active/discontinued counts drifted")
+    capture = FercPublishedDocketPrefixCapture(
+        source_url=FERC_DOCKET_PREFIX_PDF_URL,
+        source_sha256=FERC_DOCKET_PREFIX_PDF_SHA256,
+        source_byte_length=FERC_DOCKET_PREFIX_PDF_BYTE_LENGTH,
+        page_count=FERC_DOCKET_PREFIX_PDF_PAGE_COUNT,
+        rows=tuple(rows),
+    )
+    capture.by_prefix()
+    return capture
+
+
+@lru_cache(maxsize=1)
+def load_packaged_ferc_docket_prefixes() -> FercPublishedDocketPrefixCapture:
+    """Load the packaged, digest-verified 95-row June 2025 FERC docket-prefix directory offline."""
+
+    resource = (
+        importlib.resources.files("refspec")
+        .joinpath("resources")
+        .joinpath("ferc_docket_prefixes")
+        .joinpath("2025-06")
+        .joinpath("docket-prefixes.json")
+    )
+    return load_ferc_docket_prefix_extract(resource.read_bytes())
 
 
 def _list_values_after_heading(source: str, heading: str) -> tuple[str, ...]:

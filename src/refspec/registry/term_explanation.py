@@ -24,19 +24,28 @@ all of them and the explainer refuses with ``act_attribution_ambiguous``
 rather than choosing, because a refusal a reader can act on beats a name they
 will quote.
 
-**Do not extend this to a fifth shape without an acquired instance directory.**
-A family is answerable only if we hold a directory of instances; a closed type
-vocabulary cannot answer "what is THIS one". The four shapes here are four of
-four: every family with a directory is already routed, and every top
-unanswered family is blocked on acquisition, upstream of anything routing can
-fix (REF-070). Coverage is not the claim — this route wins on answer quality,
-not on documents found.
+**Do not extend this to an uncaptured family without an acquired directory.**
+A family is answerable only if we hold a directory that answers it; a closed
+type vocabulary cannot answer "what is THIS one" (REF-070). Four shapes
+shipped initially (act section, CFR part, Regulations.gov docket, RIN). FERC
+docket identifiers joined as the fifth once FERC's June 2025 Docket Prefix
+List — 95 rows (77 active, 18 discontinued), digest-pinned and visually
+attested in :mod:`refspec.registry.ferc_elibrary_codes` — was captured and
+packaged for offline lookup; routing states only the authoritative prefix
+code, status, eLibrary library, definition, and source provenance from that
+directory, never facts about an individual proceeding beyond its prefix. The
+remaining top unanswered families from REF-070 (EPA FRL, SEC release, FAA
+airworthiness, SEC rule filing, OMB control) stay blocked on acquisition and
+unrouted. Coverage is not the claim — this route wins on answer quality, not
+on documents found.
 """
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from typing import Literal
 
 from refspec.registry.act_resolution import (
     ActIndex,
@@ -53,13 +62,26 @@ from refspec.registry.citation_grammar import (
     stated_act_name,
     stated_section,
 )
-from refspec.registry.identifier_shapes import IdentifierKind, detect_identifier_shapes
+from refspec.registry.ferc_elibrary_codes import (
+    FERC_DOCKET_PREFIX_PDF_EDITION,
+    FERC_PUBLISHER,
+    FercPublishedDocketPrefixCapture,
+    FercPublishedDocketPrefixRow,
+    load_packaged_ferc_docket_prefixes,
+)
+from refspec.registry.identifier_shapes import (
+    _DASHES,
+    _FERC_DOCKET_PREFIXES,
+    IdentifierKind,
+    detect_identifier_shapes,
+)
 
 __all__ = [
     "EXPLANATION_KINDS",
     "RIN_CONTAINER_THRESHOLD",
     "UNEXPLAINED_REASONS",
     "DocketDocument",
+    "FercDocketPrefixExplanation",
     "RinSubject",
     "TermExplanation",
     "acts_classifying",
@@ -67,13 +89,14 @@ __all__ = [
     "parts_naming",
 ]
 
-#: The four shapes a non-expert is handed. Measured 2026-09-06: all four are
-#: RECOGNISED today by grammars this repository already ships. Only the
-#: resolution differed, which is why this is a router and not a parser.
-EXPLANATION_KINDS = ("act_section", "cfr_part", "docket", "rin")
+#: The five shapes a non-expert is handed. The first four were already
+#: recognised on 2026-09-06; ``ferc_docket`` joined once FERC's 95-row June
+#: 2025 Docket Prefix List was captured, visually attested, and packaged for
+#: offline lookup (REF-070).
+EXPLANATION_KINDS = ("act_section", "cfr_part", "docket", "ferc_docket", "rin")
 
 UNEXPLAINED_REASONS = (
-    #: Nothing in the four grammars read this string at all.
+    #: Nothing in the routed grammars read this string at all.
     "unrecognised_shape",
     #: An act-relative citation whose act the Popular Name Tool cannot answer.
     #: The specific absence is act_resolution's three-way code, carried through
@@ -106,6 +129,8 @@ UNEXPLAINED_REASONS = (
 
     #: A docket parsed, and no document lookup was supplied to answer it.
     "docket_documents_not_supplied",
+    #: A FERC-shaped docket whose prefix is absent from FERC's 95-row directory.
+    "ferc_docket_prefix_unknown",
 )
 
 
@@ -163,6 +188,26 @@ class DocketDocument:
 
 
 @dataclass(frozen=True)
+class FercDocketPrefixExplanation:
+    """Authoritative FERC eLibrary docket-prefix record and source provenance.
+
+    Carries only what FERC's pinned Docket Prefix List publishes: prefix code,
+    active/discontinued status, eLibrary library code, exact publisher
+    definition, and source provenance. Nothing is inferred about an individual
+    proceeding beyond its prefix.
+    """
+
+    prefix: str
+    status: Literal["active", "discontinued"]
+    library: str
+    definition: str
+    publisher: str
+    source_edition: str
+    source_url: str
+    source_sha256: str
+
+
+@dataclass(frozen=True)
 class TermExplanation:
     """What a handed term is, or exactly why this cannot say.
 
@@ -185,6 +230,9 @@ class TermExplanation:
     #: Rule one's evidence: every act that classifies to the section. One is an
     #: answer; more than one is a refusal that shows its working.
     candidate_acts: tuple[str, ...] = ()
+    #: For a FERC docket: the authoritative prefix row and provenance from
+    #: FERC's pinned June 2025 Docket Prefix List.
+    ferc_docket_prefix: FercDocketPrefixExplanation | None = None
     unexplained_reason: str | None = None
 
     def __post_init__(self) -> None:
@@ -268,12 +316,168 @@ def _docket_agency(organization: str) -> str | None:
     return entry.agency_code if entry is not None and entry.tier == "confident" else None
 
 
-def _explain_act_section(text: str, index: ActIndex, notes: CfrAuthorityNotes) -> TermExplanation | None:
+#: Active Table 1 prefixes that ``identifier_shapes`` already recognises in
+#: two-segment form (``EL23-45``) without a three-digit sub-docket. Discontinued
+#: prefixes (such as ``DA``/``ST``, which collide with FCC ``DA16-1282`` and
+#: USDA ``ST08-01``) and ``PT`` (which also appears in the agency crosswalk)
+#: require either a three-digit sub-docket (``-000``) or an explicit ``FERC``
+#: qualifier, measured across 1,004,233 Federal Register documents.
+_FERC_UNQUALIFIED_TWO_SEGMENT_PREFIXES = frozenset(_FERC_DOCKET_PREFIXES)
+_FERC_COUNTER_WORD = r"(?:nos?(?:\.|\b)|numbers?\b|ids?\b)"
+_FERC_TERM = re.compile(
+    rf"^(?P<ferc>ferc\s+)?"
+    rf"(?:(?P<label_noun>dockets?|projects?)\b\.?\s*(?:{_FERC_COUNTER_WORD}\s*)?[:#\-]*\s*)?"
+    rf"(?P<body>\S+)$",
+    re.IGNORECASE,
+)
+_FERC_STANDARD_BODY = re.compile(r"^(?P<prefix>[A-Z]{2})(?P<year>\d{2})-(?P<seq>\d+)(?:-(?P<sub>\d{3}))?$")
+_FERC_HYDRO_BODY = re.compile(r"^P-(?P<seq>\d+)(?:-(?P<sub>\d{3}))?$")
+_FERC_HB_BODY = re.compile(r"^HB\d{2}-\d+(?:-\d+-\d{2}|-\d{3})$")
+_FERC_HB_EXPLICIT_BODY = re.compile(r"^HB(?:\d{2}-)?\d+(?:-\d+)*$")
+_FERC_ID_BODY = re.compile(r"^ID-\d+(?:-\d{3})?$")
+_FERC_HYPHEN_DISCONTINUED_BODY = re.compile(r"^(?P<prefix>[EGR]-)\d+(?:-\d{3})?$")
+_FERC_EXPLICIT_HYPHEN_BODY = re.compile(r"^[A-Z]{1,3}-\d+(?:-\d{3})?$")
+
+
+def _ferc_prefix_answer(
+    text: str,
+    subject: str,
+    row: FercPublishedDocketPrefixRow,
+    directory: FercPublishedDocketPrefixCapture,
+) -> TermExplanation:
+    info = FercDocketPrefixExplanation(
+        prefix=row.prefix,
+        status=row.status,
+        library=row.library,
+        definition=row.definition,
+        publisher=FERC_PUBLISHER,
+        source_edition=FERC_DOCKET_PREFIX_PDF_EDITION,
+        source_url=directory.source_url,
+        source_sha256=directory.source_sha256,
+    )
+    statement = (
+        f"{subject} is a FERC docket with {row.status} prefix {row.prefix} "
+        f"(\u201c{row.definition}\u201d, library {row.library}), "
+        f"per the {FERC_PUBLISHER} Docket Prefix List ({FERC_DOCKET_PREFIX_PDF_EDITION})."
+    )
+    return TermExplanation(
+        text=text,
+        kind="ferc_docket",
+        subject=subject,
+        statement=statement,
+        ferc_docket_prefix=info,
+    )
+
+
+def _explain_ferc_docket(
+    text: str,
+    directory: FercPublishedDocketPrefixCapture,
+    *,
+    require_explicit_ferc: bool,
+) -> TermExplanation | None:
+    """Route one whole FERC docket identifier against the pinned 95-row directory.
+
+    Whole-string match only: running prose, multi-docket lists, bare prefixes
+    (``"CP"``, ``"P"``), and non-FERC agency dockets (Regulations.gov, Federal
+    Reserve ``Docket No. R-1835``, FCC ``DA16-1282``, FEMA ``Docket No. P-7915``,
+    SEC ``Rel. No. IC-24979``, FAA ``AD 2000-01-01``) are never claimed.
+    """
+
+    folded = text.translate(_DASHES).strip()
+    match = _FERC_TERM.fullmatch(folded)
+    if match is None:
+        return None
+    explicit_ferc = match.group("ferc") is not None
+    if require_explicit_ferc and not explicit_ferc:
+        return None
+    label_noun = (match.group("label_noun") or "").lower()
+    is_project_label = label_noun.startswith("project")
+    body = match.group("body").upper()
+    by_prefix = directory.by_prefix()
+
+    # Table 2 Hydropower Projects: P-<seq>-<sub> (220/220 FERC in the FR corpus;
+    # two-part P-<seq> collides with FEMA/MARAD unless explicitly FERC-labeled).
+    hydro = _FERC_HYDRO_BODY.fullmatch(body)
+    if hydro is not None:
+        if hydro.group("sub") is None and not explicit_ferc:
+            return None
+        row = by_prefix.get("P")
+        if row is None:
+            return TermExplanation(
+                text=text, kind="ferc_docket", subject=body, unexplained_reason="ferc_docket_prefix_unknown"
+            )
+        return _ferc_prefix_answer(text, body, row, directory)
+
+    # A "Project No." label only licenses P- hydropower projects, never general dockets.
+    if is_project_label:
+        return None
+
+    # Table 2 Headwater Benefits: HB<yy>-<seq>-<n>-<nn> or HB<yy>-<seq>-<sub>.
+    if _FERC_HB_BODY.fullmatch(body) or (explicit_ferc and _FERC_HB_EXPLICIT_BODY.fullmatch(body)):
+        row = by_prefix.get("HB")
+        if row is None:
+            return TermExplanation(
+                text=text, kind="ferc_docket", subject=body, unexplained_reason="ferc_docket_prefix_unknown"
+            )
+        return _ferc_prefix_answer(text, body, row, directory)
+
+    # Table 2 Interlocking Directorates (ID-<seq>-<sub>) and Table 3 discontinued
+    # hyphenated prefixes (E-, G-, R-) collide with EPA Idaho / Regulations.gov /
+    # Federal Reserve (1,434 R-nnnn dockets) without an explicit FERC qualifier.
+    if explicit_ferc:
+        if _FERC_ID_BODY.fullmatch(body):
+            row = by_prefix.get("ID")
+            if row is None:
+                return TermExplanation(
+                    text=text, kind="ferc_docket", subject=body, unexplained_reason="ferc_docket_prefix_unknown"
+                )
+            return _ferc_prefix_answer(text, body, row, directory)
+        hyph = _FERC_HYPHEN_DISCONTINUED_BODY.fullmatch(body)
+        if hyph is not None:
+            row = by_prefix.get(hyph.group("prefix"))
+            if row is None:
+                return TermExplanation(
+                    text=text, kind="ferc_docket", subject=body, unexplained_reason="ferc_docket_prefix_unknown"
+                )
+            return _ferc_prefix_answer(text, body, row, directory)
+
+    # Standard 2-letter + 2-digit year + sequence + optional 3-digit sub-docket:
+    # covers all 73 Table 1 active prefixes, Table 2 IC, and all 15 two-letter
+    # Table 3 discontinued prefixes.
+    std = _FERC_STANDARD_BODY.fullmatch(body)
+    if std is not None:
+        prefix = std.group("prefix")
+        has_sub = std.group("sub") is not None
+        row = by_prefix.get(prefix)
+        if row is not None and prefix != "ID":
+            if has_sub or explicit_ferc or (row.status == "active" and prefix in _FERC_UNQUALIFIED_TWO_SEGMENT_PREFIXES):
+                return _ferc_prefix_answer(text, body, row, directory)
+            return None
+        if has_sub or explicit_ferc:
+            return TermExplanation(
+                text=text, kind="ferc_docket", subject=body, unexplained_reason="ferc_docket_prefix_unknown"
+            )
+        return None
+
+    if explicit_ferc and _FERC_EXPLICIT_HYPHEN_BODY.fullmatch(body):
+        return TermExplanation(
+            text=text, kind="ferc_docket", subject=body, unexplained_reason="ferc_docket_prefix_unknown"
+        )
+    return None
+
+
+def _explain_act_section(
+    text: str,
+    index: ActIndex | None,
+    notes: CfrAuthorityNotes | None,
+) -> TermExplanation | None:
     from refspec.registry.act_resolution import resolve_act_relative_citation
 
     name, section = stated_act_name(text), stated_section(text)
     if not name or not section:
         return None
+    if index is None or notes is None:
+        raise ValueError("index and notes are required to explain an act-relative citation")
     key = normalize_popular_name(name)
     if resolve_act_name(key, index) is None:
         return TermExplanation(text=text, kind="act_section", unexplained_reason="act_unresolved",
@@ -308,13 +512,19 @@ def _explain_act_section(text: str, index: ActIndex, notes: CfrAuthorityNotes) -
     )
 
 
-def _explain_cfr_part(text: str, index: ActIndex, notes: CfrAuthorityNotes) -> TermExplanation | None:
+def _explain_cfr_part(
+    text: str,
+    index: ActIndex | None,
+    notes: CfrAuthorityNotes | None,
+) -> TermExplanation | None:
     citations = find_cfr_citations(text, expand_qualifiers=False)
     if not citations:
         return None
     if (len(citations) != 1 or isinstance(citations[0].citation, CfrCitationRange)
             or citations[0].refusal or citations[0].qualifier_status):
         return TermExplanation(text=text, kind="cfr_part", unexplained_reason="cfr_scope_not_one_part")
+    if notes is None:
+        raise ValueError("notes is required to explain a CFR part citation")
     first = citations[0].citation
     note = notes.note(first.cfr_title, first.cfr_part)
     if note is None:
@@ -331,6 +541,8 @@ def _explain_cfr_part(text: str, index: ActIndex, notes: CfrAuthorityNotes) -> T
     for citation in note.citations:
         if citation.family != "usc":
             continue
+        if index is None:
+            raise ValueError("index is required to attribute U.S.C. authorities on a CFR part")
         title, _, section = citation.identity.partition(":")
         acts.update(acts_classifying(title, section, index))
     statement = f"{first.cfr_title} CFR {first.cfr_part} is {head}. Its authority note reads: {note.authority_note.strip()}"
@@ -358,22 +570,31 @@ def _and_list(items: Sequence[str]) -> str:
 def explain_term(
     text: str,
     *,
-    index: ActIndex,
-    notes: CfrAuthorityNotes,
+    index: ActIndex | None = None,
+    notes: CfrAuthorityNotes | None = None,
     docket_documents: Callable[[str], Sequence[DocketDocument]] | None = None,
     rin_subject: Callable[[str], RinSubject | None] | None = None,
+    ferc_docket_prefixes: FercPublishedDocketPrefixCapture | None = None,
 ) -> TermExplanation:
     """Route one handed term to the authority that owns it.
 
-    Order is act-relative, then CFR citation, then identifier shape, because
-    the first two are the most specific readings and an act-relative citation
-    contains words a looser grammar would claim.
+    Order is act-relative, then CFR citation, then explicit ``FERC``-labeled
+    docket, then ``identifier_shapes`` (RIN and Regulations.gov docket), then
+    unqualified FERC docket. Act-relative and CFR citations are the most
+    specific readings, explicit ``FERC`` labels prevent ``FERC Docket No.
+    ID-...`` from falling into the Regulations.gov docket grammar, and running
+    Regulations.gov before unqualified FERC keeps agency-hyphenated dockets
+    (such as ``PT-2026-0001`` or ``EPA-HQ-OAR-2021-0317``) in their own family.
 
     ``docket_documents`` is a callable rather than a corpus because the subject
-    of a docket is NOT this repository's to answer: recognition and the agency
-    name are the atlas's, and the subject comes from the search corpus joining
-    its own docket ids to titles it already serves. Passing it in keeps that
-    boundary visible instead of importing across it.
+    of a Regulations.gov docket is NOT this repository's to answer: recognition
+    and the agency name are the atlas's, and the subject comes from the search
+    corpus joining its own docket ids to titles it already serves. Passing it in
+    keeps that boundary visible instead of importing across it.
+
+    ``ferc_docket_prefixes`` defaults to the packaged, digest-verified 95-row
+    June 2025 FERC Docket Prefix List (:func:`load_packaged_ferc_docket_prefixes`),
+    so FERC docket routing runs fully offline with zero network calls.
     """
 
     text = str(text or "").strip()
@@ -383,6 +604,14 @@ def explain_term(
         found = reader(text, index, notes)
         if found is not None:
             return found
+    directory = (
+        ferc_docket_prefixes
+        if ferc_docket_prefixes is not None
+        else load_packaged_ferc_docket_prefixes()
+    )
+    explicit_ferc = _explain_ferc_docket(text, directory, require_explicit_ferc=True)
+    if explicit_ferc is not None:
+        return explicit_ferc
     for candidate in detect_identifier_shapes(text):
         if candidate.kind is IdentifierKind.RIN:
             if rin_subject is None:
@@ -418,4 +647,7 @@ def explain_term(
                              f"{len(found)} documents.")
             return TermExplanation(text=text, kind="docket", subject=candidate.value,
                                    statement=statement, documents=found)
+    ferc = _explain_ferc_docket(text, directory, require_explicit_ferc=False)
+    if ferc is not None:
+        return ferc
     return TermExplanation(text=text, unexplained_reason="unrecognised_shape")

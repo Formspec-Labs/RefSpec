@@ -6,6 +6,44 @@ Longer-running plan detail is in [plans/](plans/) — start with
 [validation-cost-reset-plan.md](plans/validation-cost-reset-plan.md) and read
 its CONTINUATION header.
 
+## Current state (2026-11-27)
+
+`main` at `755673a1` (plus Wave 1) ships **RefSpec `0.1.0.dev26`** (`b382ca63`)
+with vendored **SpicyDocs `0.85.0+readers.20261127.1`** (`9111932a`):
+
+- **SpicyDocs shared-reader cutover (`8b78c620`..`e672e3b6`):** delegated
+  `citation_grammar`, `identifier_shapes`, `iri_minting`, eCFR titles, CBO
+  feed, XSD/OpenAPI enums, OLRC Table III, Popular Names, and Unified Agenda
+  continuations to `spicy-docs` (`-6,715` net lines across 28 files,
+  `+927 / -7,642`), completing REF-024 parity.
+- **Atlas Vocabulary Pack v3, `seal-3`, and OOD calibration (`10115786`,
+  `2dfcf27e`, `91b5a8bb`, `4e4e85e1`, `12435bd2`, `724e9580`):** shipped the
+  hardened read-only SQLite `AtlasVocabularyPack` v3 (zero-dep Tier-0 core;
+  optional `[vectors]` extra for `.vpack` sidecars), `seal-3` pack signing
+  requiring `pack_id`, the REF-078 serving pack boundary, and unsupervised
+  centered-covariance EVT OOD calibration with strict-majority soft-OR
+  abstention (`0/18` false positives on OOD probes).
+- **Core Regulatory Atlas 3.1 profile validated end-to-end (`755673a1`):**
+  fixed EuroVoc `publisherAssertion` standing (`dataset.mapping-standing`) and
+  closed-world `endpointResolution` payload validation
+  (`dataset.mapping-predicate-translation`) with producer prebuild parity and
+  four new sealed conformance corpus cases; standalone
+  `bindings/atlas/3.1/tools/validate.py` exits `0`.
+- **FERC docket-prefix routing (Wave 1, `feat/ferc-term-explanation-and-plan-sync`):**
+  packaged the captured, visually attested 95-row June 2025 FERC Docket Prefix
+  List (`c32efae9…`, 77 active / 18 discontinued) offline under
+  `src/refspec/resources/ferc_docket_prefixes/2025-06/docket-prefixes.json` and
+  routed FERC docket identifiers in `refspec.registry.term_explanation`
+  (`kind="ferc_docket"`) with strict refusal on unknown prefixes, bare
+  prefixes, ambiguous/compound inputs, and non-FERC agency collisions.
+- **Parked / open:** `test_registry_audit_snapshot_is_current_and_honest_about_open_gaps`
+  remains a parked strict xfail pending an owner-authorized
+  `make audit-registry-real-data` run (details preserved below). The remaining
+  REF-070 unanswered identifier families (EPA FRL, SEC release, FAA
+  airworthiness, SEC rule filing, OMB control) stay blocked on acquisition and
+  unrouted. Push discipline is unchanged: commits stay local until explicit
+  owner instruction.
+
 ## Atlas refresh (2026-09-27, fixed 2026-09-28)
 
 `lane/atlas-refresh-fixed` carries the refresh as reviewed, rewritten commits
