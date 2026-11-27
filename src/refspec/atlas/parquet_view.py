@@ -82,6 +82,7 @@ from refspec.atlas.parquet_tables import (
     LEGACY_1_0_AGENCY_REGISTRY_TABLE_SCHEMAS,
     LEGACY_1_1_AGENCY_REGISTRY_TABLE_SCHEMAS,
     LEGACY_1_2_AGENCY_REGISTRY_TABLE_SCHEMAS,
+    LEGACY_3_2_TABLE_SCHEMAS,
     PARQUET_VERSION,
     ROW_GROUP_SIZE,
     TABLE_MEDIA_TYPE,
@@ -111,13 +112,18 @@ from refspec.registry.infrastructure.semantic_foundation import SEMANTIC_RINGS
 # a distribution that declares derived content MUST carry the table, which
 # is what closes the gap the first content-bearing derived graph shipped
 # with -- 42,519 derived relations sealed in the packs, zero reachable from
-# the view.
-VIEW_SCHEMA_VERSION = "3.2"
+# the view. 3.3 (ss-2zlv) adds nullable ``effective_period_start`` and
+# ``effective_period_end`` columns on ``statements.parquet`` so dated
+# ``rkaf:EffectivePeriod`` assertions survive into the served view without
+# inventing absent dates; 3.2, 3.1, and 3.0 views stay verifiable via
+# ``LEGACY_3_2_TABLE_SCHEMAS``.
+VIEW_SCHEMA_VERSION = "3.3"
+LEGACY_VIEW_SCHEMA_VERSION_3_2 = "3.2"
 LEGACY_VIEW_SCHEMA_VERSION = "3.1"
 LEGACY_VIEW_SCHEMA_VERSION_3_0 = "3.0"
 VIEW_RECORD_TYPE = "AtlasParquetViewManifest"
 VIEW_IMPLEMENTATION = "refspec.atlas.parquet_view"
-VIEW_IMPLEMENTATION_VERSION = "3.2"
+VIEW_IMPLEMENTATION_VERSION = "3.3"
 VIEW_ID_PREFIX = "urn:ref:atlas-parquet-view:"
 MANIFEST_FILE = "view-manifest.json"
 
@@ -984,10 +990,16 @@ def verify_atlas_parquet_view(
     schema_version = manifest.get("schemaVersion")
     if schema_version == VIEW_SCHEMA_VERSION:
         expected_manifest_fields = _VIEW_MANIFEST_FIELDS
+        core_schemas = TABLE_SCHEMAS
+    elif schema_version == LEGACY_VIEW_SCHEMA_VERSION_3_2:
+        expected_manifest_fields = _VIEW_MANIFEST_FIELDS
+        core_schemas = LEGACY_3_2_TABLE_SCHEMAS
     elif schema_version == LEGACY_VIEW_SCHEMA_VERSION:
         expected_manifest_fields = _LEGACY_3_1_VIEW_MANIFEST_FIELDS
+        core_schemas = LEGACY_3_2_TABLE_SCHEMAS
     elif schema_version == LEGACY_VIEW_SCHEMA_VERSION_3_0:
         expected_manifest_fields = _LEGACY_3_0_VIEW_MANIFEST_FIELDS
+        core_schemas = LEGACY_3_2_TABLE_SCHEMAS
     else:
         raise AtlasParquetViewError("Atlas Parquet view type or version is unsupported")
     if set(manifest) != expected_manifest_fields:
@@ -1012,16 +1024,25 @@ def verify_atlas_parquet_view(
         raise AtlasParquetViewError("Atlas Parquet view status is unsupported")
     expected_files = {MANIFEST_FILE}
     counts: dict[str, int] = {}
+    has_agency_projection_block = schema_version in (
+        VIEW_SCHEMA_VERSION,
+        LEGACY_VIEW_SCHEMA_VERSION_3_2,
+        LEGACY_VIEW_SCHEMA_VERSION,
+    )
+    has_derived_relations_block = schema_version in (
+        VIEW_SCHEMA_VERSION,
+        LEGACY_VIEW_SCHEMA_VERSION_3_2,
+    )
     schema_by_role = {
-        role.value: TABLE_SCHEMAS[role] for role in CompactRecordRole
+        role.value: core_schemas[role] for role in CompactRecordRole
     }
     if (
-        schema_version in (VIEW_SCHEMA_VERSION, LEGACY_VIEW_SCHEMA_VERSION)
+        has_agency_projection_block
         and manifest["agencyProjection"]["status"] == "emitted"
     ):
         schema_by_role.update(AGENCY_PROJECTION_TABLE_SCHEMAS)
     if (
-        schema_version == VIEW_SCHEMA_VERSION
+        has_derived_relations_block
         and manifest["derivedRelations"]["status"] == "emitted"
     ):
         schema_by_role[DERIVED_RELATION_ROLE] = DERIVED_RELATION_TABLE_SCHEMA
@@ -1057,13 +1078,13 @@ def verify_atlas_parquet_view(
     if observed_roles != expected_roles or counts != manifest["counts"]:
         raise AtlasParquetViewError("Atlas Parquet roles or aggregate counts differ")
     _verify_evidence_binds_served_statements(directory)
-    if schema_version in (VIEW_SCHEMA_VERSION, LEGACY_VIEW_SCHEMA_VERSION):
+    if has_agency_projection_block:
         _validated_agency_projection_metadata(
             manifest["agencyProjection"],
             counts,
         )
         _verify_agency_projection_content(directory, manifest)
-    if schema_version == VIEW_SCHEMA_VERSION:
+    if has_derived_relations_block:
         _validated_derived_relation_metadata(
             manifest["derivedRelations"],
             counts,

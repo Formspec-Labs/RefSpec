@@ -44,6 +44,15 @@ def _relations_filter(query: dict[str, list[str]]) -> str:
     return query.get("relations", [_DEFAULT_RELATIONS_FILTER])[0]
 
 
+def _as_of_filter(query: dict[str, list[str]]) -> str | None:
+    """Read the optional ``?as_of=`` historical effective-period query instant."""
+
+    raw = query.get("as_of")
+    if not raw or not raw[0]:
+        return None
+    return raw[0]
+
+
 def _handler(view: AtlasExplorerData) -> type[BaseHTTPRequestHandler]:
     class AtlasExplorerHandler(BaseHTTPRequestHandler):
         def _send(self, status: int, content_type: str, payload: bytes) -> None:
@@ -86,18 +95,24 @@ def _handler(view: AtlasExplorerData) -> type[BaseHTTPRequestHandler]:
                         render_atlas_agency_projection_frontend().encode(),
                     )
                 elif parsed.path == "/api/overview":
+                    as_of = _as_of_filter(query)
+                    kwargs = {"as_of": as_of} if as_of is not None else {}
                     self._json(
                         view.overview(
                             status=_status_filter(query),
                             relations=_relations_filter(query),
+                            **kwargs,
                         )
                     )
                 elif parsed.path == "/api/release-graph":
+                    as_of = _as_of_filter(query)
+                    kwargs = {"as_of": as_of} if as_of is not None else {}
                     self._json(
                         view.release_graph(
                             query.get("id", [""])[0],
                             status=_status_filter(query),
                             relations=_relations_filter(query),
+                            **kwargs,
                         )
                     )
                 elif parsed.path == "/api/search":
@@ -112,11 +127,14 @@ def _handler(view: AtlasExplorerData) -> type[BaseHTTPRequestHandler]:
                         )
                     )
                 elif parsed.path == "/api/resource":
+                    as_of = _as_of_filter(query)
+                    kwargs = {"as_of": as_of} if as_of is not None else {}
                     self._json(
                         view.resource(
                             query.get("id", [""])[0],
                             status=_status_filter(query),
                             relations=_relations_filter(query),
+                            **kwargs,
                         )
                     )
                 elif parsed.path == "/api/agency-projection":

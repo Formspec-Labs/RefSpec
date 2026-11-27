@@ -6,6 +6,7 @@ import json
 import tempfile
 from collections import Counter, defaultdict
 from collections.abc import Iterator, Mapping, Sequence
+from datetime import date, datetime
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -15,6 +16,7 @@ import pyarrow.parquet as pq
 
 from refspec.atlas.compact_pack import CompactRecordRole
 from refspec.atlas.duckdb_view import AtlasDuckDBView, AtlasDuckDBViewError
+from refspec.atlas.effective_period import EffectivePeriodError, is_effective_as_of, parse_as_of
 from refspec.atlas.explorer_frontend import (
     render_atlas_explorer_frontend,
     render_atlas_release_frontend,
@@ -155,10 +157,17 @@ def search_atlas_parquet(
     )
 
 
-def atlas_parquet_resource(view: AtlasParquetExplorer, resource_id: str) -> dict[str, Any]:
+def atlas_parquet_resource(
+    view: AtlasParquetExplorer,
+    resource_id: str,
+    *,
+    status: str = "active",
+    relations: str = "asserted",
+    as_of: date | datetime | str | None = None,
+) -> dict[str, Any]:
     """Return one resource neighborhood through the reusable query view."""
 
-    return view.resource(resource_id)
+    return view.resource(resource_id, status=status, relations=relations, as_of=as_of)
 
 
 
@@ -216,6 +225,10 @@ def _statement_record(row: Mapping[str, Any]) -> dict[str, Any]:
         )
     if row.get("supersedes_assertion"):
         facts.append(_fact(f"{_RKAF}supersedesAssertion", row["supersedes_assertion"]))
+    if row.get("effective_period_start"):
+        facts.append(_fact(f"{_RKAF}effectivePeriodStart", row["effective_period_start"], iri=False))
+    if row.get("effective_period_end"):
+        facts.append(_fact(f"{_RKAF}effectivePeriodEnd", row["effective_period_end"], iri=False))
     return {"facts": facts, "id": row["id"]}
 
 
@@ -542,12 +555,35 @@ def build_atlas_explorer_model(
     full_corpus: Mapping[str, Any] | None = None,
     max_resources: int = _DEFAULT_RESOURCE_LIMIT,
     max_assertions: int = _DEFAULT_RELATION_LIMIT,
+    as_of: date | datetime | str | None = None,
 ) -> dict[str, Any]:
-    """Build the small initial browser model; full search stays in static shards."""
+    """Build the small initial browser model; full search stays in static shards.
+
+    When ``as_of`` is supplied, asserted relations are filtered by their
+    ``rkaf:EffectivePeriod`` bounds under closed inclusive UTC semantics without
+    altering lifecycle ``status`` (``current``/``superseded``/``rescinded``) or
+    assertion identities.
+    """
 
     if not isinstance(view, AtlasParquetExplorer):
         raise AtlasParquetExplorerError("Atlas explorer requires an opened Parquet view")
-    statement_rows = _first_rows(view.tables[CompactRecordRole.STATEMENT], max_assertions)
+    if as_of is not None:
+        try:
+            parse_as_of(as_of)
+        except EffectivePeriodError as error:
+            raise AtlasParquetExplorerError(str(error)) from error
+        statement_rows: list[dict[str, Any]] = []
+        for row in _iter_rows(view.tables[CompactRecordRole.STATEMENT]):
+            if is_effective_as_of(
+                row.get("effective_period_start"),
+                row.get("effective_period_end"),
+                as_of,
+            ):
+                statement_rows.append(row)
+                if len(statement_rows) >= max_assertions:
+                    break
+    else:
+        statement_rows = _first_rows(view.tables[CompactRecordRole.STATEMENT], max_assertions)
     endpoint_ids = {row[field] for row in statement_rows for field in ("subject", "object")}
     resource_rows = _table_rows_for_values(view.tables[CompactRecordRole.RESOURCE], "id", endpoint_ids)
     selected = {row["id"]: row for row in resource_rows}
@@ -652,6 +688,10 @@ def build_atlas_explorer_model(
                 targetRing=row["target_ring"],
                 semanticRings=[row["source_ring"], row["target_ring"]],
             )
+        if row.get("effective_period_start"):
+            relation["effectivePeriodStart"] = row["effective_period_start"]
+        if row.get("effective_period_end"):
+            relation["effectivePeriodEnd"] = row["effective_period_end"]
         relations.append(relation)
 
     atlas_releases = [row for row in releases if row["release_type"] == "AtlasRelease"]

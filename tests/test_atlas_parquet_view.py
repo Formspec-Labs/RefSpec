@@ -758,7 +758,7 @@ def test_warrant_columns_carry_every_axis_and_the_optional_referent(
     assert row["evidence_role"] == "urn:test:role"
     assert row["evidentiary_function"] == "urn:test:function"
     assert row["based_on_attestation"] is None
-    assert manifest["schemaVersion"] == VIEW_SCHEMA_VERSION == "3.2"
+    assert manifest["schemaVersion"] == VIEW_SCHEMA_VERSION == "3.3"
 
 
 def test_logical_records_preserved_is_computed_from_the_record_contract() -> None:
@@ -880,7 +880,7 @@ def test_compact_search_view_preserves_graph_and_omits_native_payload(tmp_path: 
     source_schema = pq.read_schema(compact / "tables/source-records.parquet")
     assert "native_payload" not in source_schema.names
     # REF-025: the canonical Label.id is on the wire, not omitted and not reminted.
-    assert manifest["schemaVersion"] == SEARCH_VIEW_SCHEMA_VERSION == "1.1"
+    assert manifest["schemaVersion"] == SEARCH_VIEW_SCHEMA_VERSION == "1.2"
     assert "Label.id" not in manifest["status"]["omittedFields"]
     label_row = pq.read_table(compact / "tables/labels.parquet").to_pylist()[0]
     assert label_row["id"] == "urn:ref:atlas-label:" + "7" * 64

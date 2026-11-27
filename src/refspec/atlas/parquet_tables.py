@@ -130,6 +130,8 @@ TABLE_SCHEMAS: Mapping[CompactRecordRole, pa.Schema] = {
             pa.field("source_ring", pa.string()),
             pa.field("target_ring", pa.string()),
             pa.field("supersedes_assertion", pa.string()),
+            pa.field("effective_period_start", pa.string()),
+            pa.field("effective_period_end", pa.string()),
             _binary_digest_field("content_digest"),
         ]
     ),
@@ -197,6 +199,20 @@ TABLE_SCHEMAS: Mapping[CompactRecordRole, pa.Schema] = {
             pa.field("from_release", pa.string()),
             pa.field("to_release", pa.string()),
             _binary_digest_field("content_digest"),
+        ]
+    ),
+}
+
+#: Schema 3.0–3.2 statements lacked the nullable ``effective_period_start`` and
+#: ``effective_period_end`` columns added in 3.3 (ss-2zlv); already-sealed views
+#: stay verifiable against this contract without rebuilding.
+LEGACY_3_2_TABLE_SCHEMAS: Mapping[CompactRecordRole, pa.Schema] = {
+    **TABLE_SCHEMAS,
+    CompactRecordRole.STATEMENT: pa.schema(
+        [
+            field
+            for field in TABLE_SCHEMAS[CompactRecordRole.STATEMENT]
+            if field.name not in {"effective_period_start", "effective_period_end"}
         ]
     ),
 }
@@ -841,6 +857,8 @@ def parquet_row(role: CompactRecordRole, row: Mapping[str, Any]) -> dict[str, An
             "source_ring": row.get("sourceRing"),
             "target_ring": row.get("targetRing"),
             "supersedes_assertion": row.get("supersedesAssertion"),
+            "effective_period_start": row.get("effectivePeriodStart"),
+            "effective_period_end": row.get("effectivePeriodEnd"),
         }
     if role is CompactRecordRole.EVIDENCE_BINDING:
         return {
@@ -1045,6 +1063,7 @@ __all__ = [
     "LEGACY_1_0_AGENCY_REGISTRY_TABLE_SCHEMAS",
     "LEGACY_1_1_AGENCY_REGISTRY_TABLE_SCHEMAS",
     "LEGACY_1_2_AGENCY_REGISTRY_TABLE_SCHEMAS",
+    "LEGACY_3_2_TABLE_SCHEMAS",
     "PARQUET_VERSION",
     "ROW_GROUP_SIZE",
     "TABLE_MEDIA_TYPE",

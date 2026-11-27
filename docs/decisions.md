@@ -6543,3 +6543,68 @@ and refuses a planted wrong value in each table.
      consolidated LCSH and FAST topical headings together with `REF-035`
      evidence-backed cross-scheme crosswalks) for consumers that explicitly
      request library-catalog coverage or cross-scheme bridging.
+
+### REF-079: Effective-period propagation through Atlas logical records, Parquet views, and served `as_of` queries
+
+- **Date:** 2026-11-27
+- **Status:** Accepted (ticket `ss-2zlv`; builds on `REF-074` / `ss-no7p`).
+
+1. **Carry `rkaf:EffectivePeriod` bounds without fabricating absent dates.**
+   Atlas 3.1 already records temporal scope on dated assertions (`value` and
+   `legalIdentity` mappings) as `rkaf:hasEffectivePeriod` -> `rkaf:EffectivePeriod`
+   carrying required `rkaf:effectivePeriodStart` (`<YYYY-MM-DD>T00:00:00+00:00`)
+   and optional `rkaf:effectivePeriodEnd` (`<YYYY-MM-DD>T23:59:59+00:00`).
+   `StatementRecord` (`src/refspec/atlas/compact_pack.py`), the producer
+   (`tools/generate_atlas_v3_full.py`), the independent validator's Parquet
+   parity comparand (`bindings/atlas/3.1/tools/validate.py`), the Parquet full
+   and compact search views (`parquet_tables.py`, `parquet_view.py`,
+   `parquet_search_view.py`, `parquet_preflight.py`), and compiled SQLite
+   Vocabulary Packs (`vocabulary_pack_build.py`, `vocabulary_pack.py`) now
+   preserve `effectivePeriodStart` / `effectivePeriodEnd` (columns
+   `effective_period_start` / `effective_period_end`) as nullable fields,
+   omitting keys / storing `NULL` whenever the RDF assertion carries no period
+   or omits an end bound.
+2. **Separate `as_of` applicability from lifecycle status.**
+   `refspec.atlas.effective_period` (stdlib-only, re-exported from
+   `refspec.atlas.compact_pack` and `refspec.atlas`) defines one canonical
+   evaluator (`parse_as_of`, `effective_as_of_disposition`, `is_effective_as_of`)
+   shared across DuckDB (`AtlasDuckDBView.overview`, `release_graph`,
+   `resource`), the explorer (`build_atlas_explorer_model`, `explorer_cli`
+   `?as_of=`), and `AtlasVocabularyPack` (`related_sync`/`related`,
+   `expand_sync`/`expand`, `RelationPolicy.as_of`):
+   - **Closed inclusive UTC interval:** `[effectivePeriodStart, effectivePeriodEnd]`,
+     matching `atlas:EffectivePeriodShape` (`shapes/atlas.shacl.ttl`).
+   - **Date and timezone precision:** canonical ISO-8601 `YYYY-MM-DD` (or
+     `datetime.date`) maps to UTC midnight `T00:00:00+00:00`; timezone-aware
+     `datetime` or ISO-8601 strings with explicit `Z` or `±HH:MM` offset are
+     normalized to UTC and compared at exact instant precision; naive datetimes
+     and malformed strings are refused.
+   - **Distinct open vs. undated dispositions:** `effective` (bounded and in
+     range), `effective_open_ended` (`start <= as_of` with omitted end), and
+     `undated` (neither bound present; timeless/date-unknown assertions remain
+     eligible for any `as_of` without inventing bounds) are evaluated
+     orthogonally from lifecycle status (`current` / `superseded` /
+     `rescinded`) and never rewrite lifecycle status or historical assertion
+     identities (`assertionIdentityDigest`, `id`). `future_effective`
+     (`as_of < start`) and `expired` (`as_of > end`) are excluded when `as_of`
+     is supplied.
+3. **Compatibility impact for existing sealed Atlas artifacts (no binding bump).**
+   - **Atlas 3.1 binding and sealed RDF distributions:** unchanged. No binding
+     version bump (`3.1`), no ontology/SHACL change, no `contractDigest` move,
+     no `ATLAS_FR_RELEASE_MANIFEST_SHA256` move, and no historical assertion
+     identity change. `bindings/atlas/3.1/fixtures-receipt.json` updates only its
+     `validate.py` tool-input hash while `fixturesDigest` stays unchanged.
+   - **Parquet full view (`3.2` -> `3.3`) and compact search view (`1.1` -> `1.2`):**
+     additive nullable columns on `statements.parquet`. `LEGACY_3_2_TABLE_SCHEMAS`
+     keeps already-sealed `3.0`–`3.2` full views verifiable (and compactable into
+     `1.2` with `NULL` period columns), and `_LEGACY_1_1_SCHEMAS` keeps
+     already-sealed `1.1` search views verifiable and readable by
+     `AtlasDuckDBView` / explorer / `build_vocabulary_pack` without rebuilding.
+     Freshly sealed `3.3` views (including `Makefile`'s
+     `ATLAS_FR_RELEASE_VIEW_SHA256` on rebuild) receive a new view manifest
+     digest reflecting the updated `statements.parquet` schema.
+   - **SQLite Vocabulary Packs (schema `3`):** additive nullable columns on
+     `edges` and `edges_rev`, detected dynamically via `PRAGMA table_info` so
+     already-sealed `v2`/`v3` packs open and serve cleanly (treating legacy
+     edges as undated while still validating `as_of`).
+

@@ -13,6 +13,7 @@ import threading
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from datetime import date, datetime
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Self, cast
@@ -21,6 +22,7 @@ import duckdb
 import pyarrow as pa
 
 from refspec.atlas.compact_pack import CompactRecordRole
+from refspec.atlas.effective_period import EffectivePeriodError, normalize_as_of_utc
 from refspec.atlas.parquet_artifact import normalize_sha256_prefix
 from refspec.atlas.parquet_search_view import (
     AtlasParquetSearchViewError,
@@ -155,6 +157,7 @@ class AtlasDuckDBView:
         self._agency_projection_ready = False
         self._derived_relations_ready = False
         self._derived_relations_columns: _DerivedRelationsColumns | None = None
+        self._statements_has_effective_period: bool | None = None
         self._closed = False
 
     @classmethod
@@ -333,7 +336,13 @@ class AtlasDuckDBView:
             "start": start_rows[0]["id"] if start_rows else "",
         }
 
-    def overview(self, *, status: str = "active", relations: str = "asserted") -> dict[str, Any]:
+    def overview(
+        self,
+        *,
+        status: str = "active",
+        relations: str = "asserted",
+        as_of: date | datetime | str | None = None,
+    ) -> dict[str, Any]:
         """Return the whole-atlas map: every vocabulary and the relation volume between them.
 
         Deprecated-status resources (any ``record_status`` containing
@@ -356,10 +365,24 @@ class AtlasDuckDBView:
         aggregated exactly like an asserted pair and tagged
         ``statement_type`` == ``"DerivedRelation"`` so the frontend can draw
         it apart from asserted volume.
+
+        Pass ``as_of`` (an ISO-8601 ``YYYY-MM-DD`` date, ``datetime.date``, or
+        timezone-aware ``datetime``/ISO-8601 timestamp) to restrict asserted
+        statements to those effective at that UTC instant under Atlas 3.1's
+        closed inclusive ``[effective_period_start, effective_period_end]``
+        semantics. Temporal applicability is evaluated separately from
+        lifecycle status; undated assertions (and legacy 1.1 views lacking
+        effective-period columns) remain eligible.
         """
 
         _validate_status(status)
         _validate_relations(relations)
+        as_of_utc = _validate_as_of(as_of)
+        as_of_clause, as_of_params = _effective_as_of_predicate(
+            "statement",
+            as_of_utc,
+            has_columns=self._has_statement_effective_period_columns(),
+        )
         nodes = self.query_rows(
             f"""
             WITH classification AS (
@@ -404,10 +427,11 @@ class AtlasDuckDBView:
             JOIN atlas_resources AS object_resource ON object_resource.id = statement.object
             WHERE {_status_predicate("subject_resource.record_status")}
               AND {_status_predicate("object_resource.record_status")}
+              AND {as_of_clause}
             GROUP BY 1, 2, statement.statement_type
             ORDER BY 1, 2, statement.statement_type
             """,
-            (status, status),
+            (status, status, *as_of_params),
         )
         if relations == "all":
             # Derived pairs are shaped like the asserted rows above and merged
@@ -430,7 +454,12 @@ class AtlasDuckDBView:
         return {"edges": edges, "nodes": nodes}
 
     def release_graph(
-        self, release_id: str, *, status: str = "active", relations: str = "asserted"
+        self,
+        release_id: str,
+        *,
+        status: str = "active",
+        relations: str = "asserted",
+        as_of: date | datetime | str | None = None,
     ) -> dict[str, Any]:
         """Return one vocabulary's full graph: every resource and internal relation.
 
@@ -449,10 +478,19 @@ class AtlasDuckDBView:
         derived-relations table is not known to carry its own
         source/target-release columns, so membership is decided the same
         way node membership already is, from this release's own resources.
+
+        Pass ``as_of`` to filter asserted statements by effective period
+        separately from lifecycle status.
         """
 
         _validate_status(status)
         _validate_relations(relations)
+        as_of_utc = _validate_as_of(as_of)
+        as_of_clause, as_of_params = _effective_as_of_predicate(
+            "",
+            as_of_utc,
+            has_columns=self._has_statement_effective_period_columns(),
+        )
         release_rows = self.query_rows(
             """
             SELECT id, identifier, semantic_ring AS ring
@@ -500,13 +538,14 @@ class AtlasDuckDBView:
             (release_id, status),
         )
         edge_rows = self.query_rows(
-            """
+            f"""
             SELECT subject, predicate, object, statement_type
             FROM atlas_statements
             WHERE source_release = ? AND target_release = ?
+              AND {as_of_clause}
             ORDER BY id
             """,
-            (release_id, release_id),
+            (release_id, release_id, *as_of_params),
         )
         if relations == "all":
             edge_rows = [
@@ -622,7 +661,12 @@ class AtlasDuckDBView:
         )
 
     def resource(
-        self, resource_id: str, *, status: str = "active", relations: str = "asserted"
+        self,
+        resource_id: str,
+        *,
+        status: str = "active",
+        relations: str = "asserted",
+        as_of: date | datetime | str | None = None,
     ) -> dict[str, Any]:
         """Return one resource, its immediate relations, and their evidence.
 
@@ -640,10 +684,22 @@ class AtlasDuckDBView:
         ``derived-relations.parquet`` carries them, ``derivation_rule`` and
         ``derived_from_assertions`` fields naming the rule that produced the
         edge and the asserted assertions it was produced from.
+
+        Pass ``as_of`` (an ISO-8601 ``YYYY-MM-DD`` date, ``datetime.date``, or
+        timezone-aware ``datetime``/ISO-8601 timestamp) to restrict asserted
+        relations to those effective at that UTC instant under closed inclusive
+        ``[effective_period_start, effective_period_end]`` semantics without
+        altering lifecycle status or assertion identities.
         """
 
         _validate_status(status)
         _validate_relations(relations)
+        as_of_utc = _validate_as_of(as_of)
+        as_of_clause, as_of_params = _effective_as_of_predicate(
+            "statement",
+            as_of_utc,
+            has_columns=self._has_statement_effective_period_columns(),
+        )
         resource_rows = self.query_rows(
             "SELECT * FROM atlas_resources WHERE id = ?",
             (resource_id,),
@@ -688,9 +744,10 @@ class AtlasDuckDBView:
             WHERE (statement.subject = ? OR statement.object = ?)
               AND (statement.subject = ? OR {_status_predicate("subject_resource.record_status")})
               AND (statement.object = ? OR {_status_predicate("object_resource.record_status")})
+              AND {as_of_clause}
             ORDER BY statement.id
             """,
-            (resource_id, resource_id, resource_id, status, resource_id, status),
+            (resource_id, resource_id, resource_id, status, resource_id, status, *as_of_params),
         )
         relation_ids = [relation["id"] for relation in asserted_relations]
         evidence_rows = self.query_rows(
@@ -1188,6 +1245,18 @@ class AtlasDuckDBView:
             return 0
         return self.query_rows(f"SELECT count(*) AS count FROM {_DERIVED_RELATIONS_VIEW}")[0]["count"]
 
+    def _has_statement_effective_period_columns(self) -> bool:
+        with self._lock:
+            self._require_open()
+            if self._statements_has_effective_period is None:
+                described = self._connection.execute("DESCRIBE atlas_statements").fetchall()
+                columns = {row[0] for row in described}
+                self._statements_has_effective_period = {
+                    "effective_period_start",
+                    "effective_period_end",
+                } <= columns
+            return self._statements_has_effective_period
+
     def _table_exists(self, table: str) -> bool:
         return bool(
             self._connection.execute(
@@ -1230,6 +1299,40 @@ def _validate_relations(relations: str) -> None:
         raise AtlasDuckDBViewError(
             f"relations filter must be one of {sorted(_RELATIONS_FILTERS)}, got {relations!r}"
         )
+
+
+def _validate_as_of(as_of: date | datetime | str | None) -> str | None:
+    if as_of is None:
+        return None
+    try:
+        return normalize_as_of_utc(as_of)
+    except EffectivePeriodError as error:
+        raise AtlasDuckDBViewError(str(error)) from error
+
+
+def _effective_as_of_predicate(
+    alias: str,
+    as_of_utc: str | None,
+    *,
+    has_columns: bool,
+) -> tuple[str, tuple[object, ...]]:
+    """Return a parameterized SQL predicate evaluating closed inclusive ``[start, end]`` in UTC.
+
+    Undated rows (both bounds null) and legacy 1.1 views lacking the two
+    columns stay eligible for any ``as_of`` without inventing dates.
+    """
+
+    if as_of_utc is None or not has_columns:
+        return "TRUE", ()
+    prefix = f"{alias}." if alias else ""
+    clause = (
+        f"(({prefix}effective_period_start IS NULL AND {prefix}effective_period_end IS NULL) "
+        f"OR ({prefix}effective_period_start IS NOT NULL "
+        f"AND CAST({prefix}effective_period_start AS TIMESTAMPTZ) <= CAST(? AS TIMESTAMPTZ) "
+        f"AND ({prefix}effective_period_end IS NULL "
+        f"OR CAST(? AS TIMESTAMPTZ) <= CAST({prefix}effective_period_end AS TIMESTAMPTZ))))"
+    )
+    return clause, (as_of_utc, as_of_utc)
 
 
 def _pick_column(available: set[str], candidates: Sequence[str]) -> str | None:

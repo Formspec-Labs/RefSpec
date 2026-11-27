@@ -13,8 +13,11 @@ import unicodedata
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
+from datetime import date, datetime
 from types import MappingProxyType
 from typing import Any, Protocol, runtime_checkable
+
+from refspec.atlas.effective_period import EffectivePeriodError, parse_as_of
 
 #: Fallback minimum cosine similarity when neither ``LookupPolicy.min_cosine``
 #: nor ``SemanticIndex.recommended_min_cosine`` specifies an abstention floor.
@@ -211,6 +214,7 @@ class GraphExpander(Protocol):
         include_mappings: bool | None = None,
         include_symmetric_inverse: bool | None = None,
         include_derived: bool | None = None,
+        as_of: date | datetime | str | None = None,
     ) -> list[dict[str, Any]]: ...
 
     async def expand(
@@ -224,6 +228,7 @@ class GraphExpander(Protocol):
         include_mappings: bool | None = None,
         include_symmetric_inverse: bool | None = None,
         include_derived: bool | None = None,
+        as_of: date | datetime | str | None = None,
     ) -> list[dict[str, Any]]: ...
 
 
@@ -296,6 +301,7 @@ class VocabularyProvider(Protocol):
         default_mappings_only: bool | None = None,
         include_symmetric_inverse: bool | None = None,
         include_derived: bool | None = None,
+        as_of: date | datetime | str | None = None,
     ) -> list[dict[str, Any]]: ...
 
     def similar_sync(
@@ -348,6 +354,7 @@ class VocabularyProvider(Protocol):
         default_mappings_only: bool | None = None,
         include_symmetric_inverse: bool | None = None,
         include_derived: bool | None = None,
+        as_of: date | datetime | str | None = None,
     ) -> list[dict[str, Any]]: ...
 
     async def similar(
@@ -598,6 +605,14 @@ class RelationPolicy:
     default_mappings_only: bool = True
     include_symmetric_inverse: bool = True
     include_derived: bool = False
+    as_of: date | datetime | str | None = None
+
+    def __post_init__(self) -> None:
+        if self.as_of is not None:
+            try:
+                parse_as_of(self.as_of)
+            except EffectivePeriodError as exc:
+                raise VocabularyInputError("invalid_as_of", str(exc)) from exc
 
 
 __all__ = [

@@ -31,10 +31,12 @@ from array import array
 from collections import defaultdict, deque
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
+from refspec.atlas.effective_period import EffectivePeriodError, normalize_as_of_utc
 from refspec.atlas.vocabulary_pack_build import (
     _BROADER_URI,
     _STMT_KIND_DERIVED,
@@ -224,6 +226,30 @@ def _normalize_limit(limit: int, *, maximum: int, name: str) -> int:
     if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= maximum:
         raise VocabularyInputError("invalid_limit", f"{name} must be an integer between 1 and {maximum}")
     return limit
+
+
+def _normalize_pack_as_of(as_of: date | datetime | str | None) -> str | None:
+    if as_of is None:
+        return None
+    try:
+        return normalize_as_of_utc(as_of)
+    except EffectivePeriodError as exc:
+        raise VocabularyInputError("invalid_as_of", str(exc)) from exc
+
+
+def _edge_as_of_clause(alias: str, as_of_utc: str | None, *, has_columns: bool) -> tuple[str, tuple[object, ...]]:
+    """Return a SQLite ``AND ...`` fragment enforcing closed inclusive UTC ``[start, end]`` bounds."""
+
+    if as_of_utc is None or not has_columns:
+        return "", ()
+    prefix = f"{alias}." if alias else ""
+    clause = (
+        f" AND (({prefix}effective_period_start IS NULL AND {prefix}effective_period_end IS NULL) "
+        f"OR ({prefix}effective_period_start IS NOT NULL "
+        f"AND {prefix}effective_period_start <= ? "
+        f"AND ({prefix}effective_period_end IS NULL OR ? <= {prefix}effective_period_end)))"
+    )
+    return clause, (as_of_utc, as_of_utc)
 
 
 def _from_little_endian_array(typecode: str, payload: bytes) -> array:
@@ -513,6 +539,7 @@ class AtlasVocabularyPack:
             int,
             bool,
             bool,
+            bool,
         ]
         | None = None,
     ) -> None:
@@ -557,6 +584,7 @@ class AtlasVocabularyPack:
                 self._max_rid,
                 self._has_agency_change_events,
                 self._has_agency_projections,
+                self._has_edge_effective_period,
             ) = lookups_cache
         else:
             with self._pool.borrow() as con:
@@ -601,6 +629,12 @@ class AtlasVocabularyPack:
                 }
                 self._has_agency_change_events = "agency_change_events" in optional_tables
                 self._has_agency_projections = "agency_projections" in optional_tables
+                edge_cols = {str(row[1]) for row in con.execute("PRAGMA table_info(edges)").fetchall()}
+                edge_rev_cols = {str(row[1]) for row in con.execute("PRAGMA table_info(edges_rev)").fetchall()}
+                self._has_edge_effective_period = (
+                    {"effective_period_start", "effective_period_end"} <= edge_cols
+                    and {"effective_period_start", "effective_period_end"} <= edge_rev_cols
+                )
 
     @classmethod
     def open(
@@ -776,6 +810,7 @@ class AtlasVocabularyPack:
                 self._max_rid,
                 self._has_agency_change_events,
                 self._has_agency_projections,
+                self._has_edge_effective_period,
             ),
         )
 
@@ -1714,6 +1749,7 @@ class AtlasVocabularyPack:
         default_mappings_only: bool | None = None,
         include_symmetric_inverse: bool | None = None,
         include_derived: bool | None = None,
+        as_of: date | datetime | str | None = None,
     ) -> list[dict[str, Any]]:
         """Return bounded related concepts with exact assertion & REF-035/derived provenance."""
 
@@ -1724,92 +1760,102 @@ class AtlasVocabularyPack:
         use_default_only = rp.default_mappings_only if default_mappings_only is None else default_mappings_only
         use_sym_inv = rp.include_symmetric_inverse if include_symmetric_inverse is None else include_symmetric_inverse
         use_derived = rp.include_derived if include_derived is None else include_derived
+        effective_as_of = rp.as_of if as_of is None else as_of
+        as_of_utc = _normalize_pack_as_of(effective_as_of)
 
-        raw_edges: list[tuple[int, str, int, int, str, int, int]] = []
+        has_eff = self._has_edge_effective_period
+        eff_cols = (
+            ", e.effective_period_start, e.effective_period_end"
+            if has_eff
+            else ", NULL, NULL"
+        )
+        as_of_sql, as_of_params = _edge_as_of_clause("e", as_of_utc, has_columns=has_eff)
+
+        raw_edges: list[tuple[int, str, int, int, str, int, int, str | None, str | None]] = []
 
         with self._pool.borrow() as con:
             ref, src_rid = self._resolve_seed_rid(reference, con=con)
 
-            for pid, stmt_pfx, stmt_suf, dst_rid, is_def, rule_id in con.execute(
-                """
-                SELECT e.pid, e.stmt_pfx, e.stmt_suffix, e.dst_rid, e.ref035_default, e.rule_id
+            for pid, stmt_pfx, stmt_suf, dst_rid, is_def, rule_id, eff_start, eff_end in con.execute(
+                f"""
+                SELECT e.pid, e.stmt_pfx, e.stmt_suffix, e.dst_rid, e.ref035_default, e.rule_id{eff_cols}
                 FROM edges e
                 LEFT JOIN uri_prefixes up ON up.pfx_id = e.stmt_pfx
-                WHERE e.src_rid = ? AND e.stmt_kind = ?
+                WHERE e.src_rid = ? AND e.stmt_kind = ?{as_of_sql}
                 ORDER BY e.pid, (COALESCE(up.prefix, '') || e.stmt_suffix), e.dst_rid
                 LIMIT ?
                 """,
-                (src_rid, _STMT_KIND_NATIVE, limit),
+                (src_rid, _STMT_KIND_NATIVE, *as_of_params, limit),
             ):
                 pred_uri, _st, _sym = self._pred_by_pid[pid]
                 stmt_id = self._expand_uri(stmt_pfx, stmt_suf)
-                raw_edges.append((0, pred_uri, dst_rid, pid, stmt_id, is_def, rule_id))
+                raw_edges.append((0, pred_uri, dst_rid, pid, stmt_id, is_def, rule_id, eff_start, eff_end))
 
             if use_mappings and len(raw_edges) < limit:
                 remaining = limit - len(raw_edges)
                 if use_default_only:
                     fwd_rows = con.execute(
-                        """
-                        SELECT e.pid, e.stmt_pfx, e.stmt_suffix, e.dst_rid, e.ref035_default
+                        f"""
+                        SELECT e.pid, e.stmt_pfx, e.stmt_suffix, e.dst_rid, e.ref035_default{eff_cols}
                         FROM edges e
                         LEFT JOIN uri_prefixes up ON up.pfx_id = e.stmt_pfx
-                        WHERE e.src_rid = ? AND e.stmt_kind = ? AND e.ref035_default = 1
+                        WHERE e.src_rid = ? AND e.stmt_kind = ? AND e.ref035_default = 1{as_of_sql}
                         ORDER BY e.pid, (COALESCE(up.prefix, '') || e.stmt_suffix), e.dst_rid
                         LIMIT ?
                         """,
-                        (src_rid, _STMT_KIND_MAPPING, remaining),
+                        (src_rid, _STMT_KIND_MAPPING, *as_of_params, remaining),
                     ).fetchall()
                 else:
                     fwd_rows = con.execute(
-                        """
-                        SELECT e.pid, e.stmt_pfx, e.stmt_suffix, e.dst_rid, e.ref035_default
+                        f"""
+                        SELECT e.pid, e.stmt_pfx, e.stmt_suffix, e.dst_rid, e.ref035_default{eff_cols}
                         FROM edges e
                         LEFT JOIN uri_prefixes up ON up.pfx_id = e.stmt_pfx
-                        WHERE e.src_rid = ? AND e.stmt_kind = ?
+                        WHERE e.src_rid = ? AND e.stmt_kind = ?{as_of_sql}
                         ORDER BY e.ref035_default DESC, e.pid, (COALESCE(up.prefix, '') || e.stmt_suffix), e.dst_rid
                         LIMIT ?
                         """,
-                        (src_rid, _STMT_KIND_MAPPING, remaining),
+                        (src_rid, _STMT_KIND_MAPPING, *as_of_params, remaining),
                     ).fetchall()
                 seen_stmt_dst: set[tuple[str, int]] = set()
-                for pid, stmt_pfx, stmt_suf, dst_rid, is_def in fwd_rows:
+                for pid, stmt_pfx, stmt_suf, dst_rid, is_def, eff_start, eff_end in fwd_rows:
                     pred_uri, _st, _sym = self._pred_by_pid[pid]
                     stmt_id = self._expand_uri(stmt_pfx, stmt_suf)
                     seen_stmt_dst.add((stmt_id, dst_rid))
-                    raw_edges.append((1, pred_uri, dst_rid, pid, stmt_id, is_def, 0))
+                    raw_edges.append((1, pred_uri, dst_rid, pid, stmt_id, is_def, 0, eff_start, eff_end))
 
                 if use_sym_inv and len(raw_edges) < limit:
                     rem2 = limit - len(raw_edges)
                     if use_default_only:
                         rev_rows = con.execute(
-                            """
-                            SELECT e.pid, e.stmt_pfx, e.stmt_suffix, e.src_rid, e.ref035_default
+                            f"""
+                            SELECT e.pid, e.stmt_pfx, e.stmt_suffix, e.src_rid, e.ref035_default{eff_cols}
                             FROM edges_rev e
                             LEFT JOIN uri_prefixes up ON up.pfx_id = e.stmt_pfx
-                            WHERE e.dst_rid = ? AND e.ref035_default = 1
+                            WHERE e.dst_rid = ? AND e.ref035_default = 1{as_of_sql}
                             ORDER BY e.pid, (COALESCE(up.prefix, '') || e.stmt_suffix), e.src_rid
                             LIMIT ?
                             """,
-                            (src_rid, rem2 * 2),
+                            (src_rid, *as_of_params, rem2 * 2),
                         ).fetchall()
                     else:
                         rev_rows = con.execute(
-                            """
-                            SELECT e.pid, e.stmt_pfx, e.stmt_suffix, e.src_rid, e.ref035_default
+                            f"""
+                            SELECT e.pid, e.stmt_pfx, e.stmt_suffix, e.src_rid, e.ref035_default{eff_cols}
                             FROM edges_rev e
                             LEFT JOIN uri_prefixes up ON up.pfx_id = e.stmt_pfx
-                            WHERE e.dst_rid = ?
+                            WHERE e.dst_rid = ?{as_of_sql}
                             ORDER BY e.ref035_default DESC, e.pid, (COALESCE(up.prefix, '') || e.stmt_suffix), e.src_rid
                             LIMIT ?
                             """,
-                            (src_rid, rem2 * 2),
+                            (src_rid, *as_of_params, rem2 * 2),
                         ).fetchall()
-                    for pid, stmt_pfx, stmt_suf, other_rid, is_def in rev_rows:
+                    for pid, stmt_pfx, stmt_suf, other_rid, is_def, eff_start, eff_end in rev_rows:
                         stmt_id = self._expand_uri(stmt_pfx, stmt_suf)
                         if (stmt_id, other_rid) in seen_stmt_dst:
                             continue
                         pred_uri, _st, _sym = self._pred_by_pid[pid]
-                        raw_edges.append((2, pred_uri, other_rid, pid, stmt_id, is_def, -1))
+                        raw_edges.append((2, pred_uri, other_rid, pid, stmt_id, is_def, -1, eff_start, eff_end))
                         if len(raw_edges) >= limit:
                             break
 
@@ -1828,7 +1874,7 @@ class AtlasVocabularyPack:
                 ):
                     pred_uri, _st, _sym = self._pred_by_pid[pid]
                     stmt_id = self._expand_uri(stmt_pfx, stmt_suf)
-                    raw_edges.append((3, pred_uri, dst_rid, pid, stmt_id, is_def, rule_id))
+                    raw_edges.append((3, pred_uri, dst_rid, pid, stmt_id, is_def, rule_id, None, None))
 
             if not raw_edges:
                 return []
@@ -1853,7 +1899,7 @@ class AtlasVocabularyPack:
         )
 
         results: list[dict[str, Any]] = []
-        for priority, pred_uri, dst_rid, pid, stmt_id, is_def, rule_or_flag in raw_edges[:limit]:
+        for priority, pred_uri, dst_rid, pid, stmt_id, is_def, rule_or_flag, eff_start, eff_end in raw_edges[:limit]:
             target_concept = hydrated_by_rid[dst_rid]
             target_ref = {
                 "id": target_concept["id"],
@@ -1883,6 +1929,10 @@ class AtlasVocabularyPack:
                 rule_uri = self._rule_by_id.get(rule_or_flag, "")
                 if rule_uri:
                     relation["derivationRule"] = rule_uri
+            if eff_start is not None:
+                relation["effectivePeriodStart"] = eff_start
+            if eff_end is not None:
+                relation["effectivePeriodEnd"] = eff_end
 
             results.append({"concept": target_concept, "relation": relation})
         return results
@@ -2325,6 +2375,7 @@ class AtlasVocabularyPack:
         include_mappings: bool | None = None,
         include_symmetric_inverse: bool | None = None,
         include_derived: bool | None = None,
+        as_of: date | datetime | str | None = None,
     ) -> list[dict[str, Any]]:
         """Return a bounded, cycle-safe k-hop closure starting from ``reference`` (BFS by min depth)."""
 
@@ -2335,6 +2386,13 @@ class AtlasVocabularyPack:
         use_mappings = rp.include_mappings if include_mappings is None else include_mappings
         use_sym_inv = rp.include_symmetric_inverse if include_symmetric_inverse is None else include_symmetric_inverse
         use_derived = rp.include_derived if include_derived is None else include_derived
+        effective_as_of = rp.as_of if as_of is None else as_of
+        as_of_utc = _normalize_pack_as_of(effective_as_of)
+        as_of_sql, as_of_params = _edge_as_of_clause(
+            "",
+            as_of_utc,
+            has_columns=self._has_edge_effective_period,
+        )
 
         pred_filter: set[str] | None = None
         if predicates is not None:
@@ -2376,7 +2434,7 @@ class AtlasVocabularyPack:
                 for start in range(0, len(frontier), 200):
                     batch = frontier[start : start + 200]
                     src_ph = ",".join("?" for _ in batch)
-                    params: list[Any] = [*batch, *allowed_kinds, *allowed_pids, def_only_flag]
+                    params: list[Any] = [*batch, *allowed_kinds, *allowed_pids, def_only_flag, *as_of_params]
                     rows = con.execute(
                         f"""
                         SELECT dst_rid, pid, stmt_pfx, stmt_suffix
@@ -2384,7 +2442,7 @@ class AtlasVocabularyPack:
                         WHERE src_rid IN ({src_ph})
                           AND stmt_kind IN ({kinds_ph})
                           AND pid IN ({pids_ph})
-                          AND (stmt_kind != {_STMT_KIND_MAPPING} OR ref035_default = 1 OR ? = 0)
+                          AND (stmt_kind != {_STMT_KIND_MAPPING} OR ref035_default = 1 OR ? = 0){as_of_sql}
                         ORDER BY src_rid, stmt_kind, pid, stmt_pfx, stmt_suffix, dst_rid
                         """,
                         params,
@@ -2396,10 +2454,10 @@ class AtlasVocabularyPack:
                             FROM edges_rev
                             WHERE dst_rid IN ({src_ph})
                               AND pid IN ({pids_ph})
-                              AND (ref035_default = 1 OR ? = 0)
+                              AND (ref035_default = 1 OR ? = 0){as_of_sql}
                             ORDER BY dst_rid, pid, stmt_pfx, stmt_suffix, src_rid
                             """,
-                            [*batch, *allowed_pids, def_only_flag],
+                            [*batch, *allowed_pids, def_only_flag, *as_of_params],
                         ).fetchall()
                         rows.extend(rev_rows)
                     for dst_rid, pid, stmt_pfx, stmt_suf in rows:
@@ -2640,6 +2698,7 @@ class AtlasVocabularyPack:
         default_mappings_only: bool | None = None,
         include_symmetric_inverse: bool | None = None,
         include_derived: bool | None = None,
+        as_of: date | datetime | str | None = None,
     ) -> list[dict[str, Any]]:
         _ = run
         if reference is None:
@@ -2651,6 +2710,7 @@ class AtlasVocabularyPack:
             default_mappings_only=default_mappings_only,
             include_symmetric_inverse=include_symmetric_inverse,
             include_derived=include_derived,
+            as_of=as_of,
         )
 
     async def similar(
@@ -2719,6 +2779,7 @@ class AtlasVocabularyPack:
         include_mappings: bool | None = None,
         include_symmetric_inverse: bool | None = None,
         include_derived: bool | None = None,
+        as_of: date | datetime | str | None = None,
     ) -> list[dict[str, Any]]:
         _ = run
         if reference is None:
@@ -2731,6 +2792,7 @@ class AtlasVocabularyPack:
             include_mappings=include_mappings,
             include_symmetric_inverse=include_symmetric_inverse,
             include_derived=include_derived,
+            as_of=as_of,
         )
 
 

@@ -392,7 +392,16 @@ COMPACT_RECORD_FIELDS: dict[str, tuple[frozenset[str], frozenset[str]]] = {
                 "assertionIdentityDigest",
             }
         ),
-        frozenset({"semanticRing", "sourceRing", "targetRing", "supersedesAssertion"}),
+        frozenset(
+            {
+                "semanticRing",
+                "sourceRing",
+                "targetRing",
+                "supersedesAssertion",
+                "effectivePeriodStart",
+                "effectivePeriodEnd",
+            }
+        ),
     ),
     "EvidenceBinding": (
         frozenset(
@@ -2577,6 +2586,11 @@ def _normalize_compact_record(
             value["supersedesAssertion"] = _compact_iri(
                 value["supersedesAssertion"],
                 f"{path}.supersedesAssertion",
+            )
+        if "effectivePeriodEnd" in value and "effectivePeriodStart" not in value:
+            _fail(
+                "construction.compact",
+                f"{path}: effectivePeriodEnd requires effectivePeriodStart",
             )
         if value["statementType"] == "CrossRingRelationAssertion":
             if "semanticRing" in value or not {"sourceRing", "targetRing"} <= value.keys():
@@ -9010,6 +9024,8 @@ def _construction_record_from_rdf(
     graph: Graph,
     subject: URIRef,
     role: str,
+    *,
+    strict_period: bool = False,
 ) -> dict[str, Any]:
     """Independently encode the RDF facts represented by one compact row."""
 
@@ -9146,6 +9162,62 @@ def _construction_record_from_rdf(
             _fail("construction.sample", f"statement {subject} has invalid supersession")
         if supersedes:
             record["supersedesAssertion"] = str(supersedes[0])
+        periods = list(graph.objects(subject, RKAF.hasEffectivePeriod))
+        if len(periods) > 1 or (periods and not isinstance(periods[0], URIRef)):
+            _fail("construction.sample", f"statement {subject} has invalid effective period")
+        if periods:
+            period = periods[0]
+            period_starts = [value for value in graph.objects(period, RKAF.effectivePeriodStart) if isinstance(value, Literal)]
+            period_ends = [value for value in graph.objects(period, RKAF.effectivePeriodEnd) if isinstance(value, Literal)]
+            if strict_period:
+                start_text = str(
+                    _construction_rdf_one(
+                        graph,
+                        period,
+                        RKAF.effectivePeriodStart,
+                        term_type=Literal,
+                    )
+                )
+                if re.fullmatch(r"\d{4}-\d{2}-\d{2}T00:00:00\+00:00", start_text) is None:
+                    _fail(
+                        "construction.sample",
+                        f"statement {subject} effectivePeriodStart is not a canonical UTC day start",
+                    )
+                try:
+                    start_dt = datetime.fromisoformat(start_text)
+                except ValueError:
+                    _fail(
+                        "construction.sample",
+                        f"statement {subject} effectivePeriodStart is not a valid calendar date-time",
+                    )
+                record["effectivePeriodStart"] = start_text
+                all_ends = list(graph.objects(period, RKAF.effectivePeriodEnd))
+                if len(all_ends) > 1 or (all_ends and not isinstance(all_ends[0], Literal)):
+                    _fail("construction.sample", f"statement {subject} has invalid effective period end")
+                if all_ends:
+                    end_text = str(all_ends[0])
+                    if re.fullmatch(r"\d{4}-\d{2}-\d{2}T23:59:59\+00:00", end_text) is None:
+                        _fail(
+                            "construction.sample",
+                            f"statement {subject} effectivePeriodEnd is not a canonical UTC day end",
+                        )
+                    try:
+                        end_dt = datetime.fromisoformat(end_text)
+                    except ValueError:
+                        _fail(
+                            "construction.sample",
+                            f"statement {subject} effectivePeriodEnd is not a valid calendar date-time",
+                        )
+                    if end_dt < start_dt:
+                        _fail(
+                            "construction.sample",
+                            f"statement {subject} effectivePeriodEnd precedes effectivePeriodStart",
+                        )
+                    record["effectivePeriodEnd"] = end_text
+            elif period_starts:
+                record["effectivePeriodStart"] = min(str(value) for value in period_starts)
+                if period_ends:
+                    record["effectivePeriodEnd"] = min(str(value) for value in period_ends)
     elif role == "EvidenceBinding":
         record.update(
             {
@@ -9350,6 +9422,8 @@ PARQUET_VIEW_COLUMNS: Mapping[str, tuple[str, ...]] = {
         "source_ring",
         "target_ring",
         "supersedes_assertion",
+        "effective_period_start",
+        "effective_period_end",
         "content_digest",
     ),
     "EvidenceBinding": (
@@ -9446,7 +9520,7 @@ def parquet_row_from_rdf(
     columns = PARQUET_VIEW_COLUMNS.get(role)
     if columns is None:
         _fail("construction.parquet", f"unsupported Parquet view role {role!r}")
-    record = _construction_record_from_rdf(graph, subject, role)
+    record = _construction_record_from_rdf(graph, subject, role, strict_period=True)
     row: dict[str, Any] = dict.fromkeys(columns)
     for field, value in record.items():
         if field == "canonicalPayloadDigest":

@@ -296,6 +296,45 @@ def _validate_relations(
     bad("superseding", "id = supersedes_assertion", "supersession", "supersedes itself")
     unique("superseding", "supersedes_assertion", "supersession")
 
+    statement_columns = {row[0] for row in db.execute('DESCRIBE "Statement"').fetchall()}
+    has_start = "effective_period_start" in statement_columns
+    has_end = "effective_period_end" in statement_columns
+    if has_start != has_end:
+        _fail(
+            "preflight.effective-period",
+            "Statement table must declare both effective_period_start and effective_period_end or neither",
+        )
+    if has_start and has_end:
+        bad(
+            "Statement",
+            "effective_period_end IS NOT NULL AND effective_period_start IS NULL",
+            "effective-period",
+            "effective_period_end without effective_period_start",
+        )
+        bad(
+            "Statement",
+            "effective_period_start IS NOT NULL AND ("
+            "NOT regexp_matches(effective_period_start, '^[0-9]{4}-[0-9]{2}-[0-9]{2}T00:00:00\\+00:00$') "
+            "OR try_cast(effective_period_start AS TIMESTAMPTZ) IS NULL)",
+            "effective-period",
+            "malformed effective_period_start",
+        )
+        bad(
+            "Statement",
+            "effective_period_end IS NOT NULL AND ("
+            "NOT regexp_matches(effective_period_end, '^[0-9]{4}-[0-9]{2}-[0-9]{2}T23:59:59\\+00:00$') "
+            "OR try_cast(effective_period_end AS TIMESTAMPTZ) IS NULL)",
+            "effective-period",
+            "malformed effective_period_end",
+        )
+        bad(
+            "Statement",
+            "effective_period_start IS NOT NULL AND effective_period_end IS NOT NULL "
+            "AND effective_period_end < effective_period_start",
+            "effective-period",
+            "effective_period_end precedes effective_period_start",
+        )
+
     foreign("EvidenceBinding", "statement", "Statement", "evidence-statement")
     foreign("EvidenceBinding", "source_record", "SourceRecord", "evidence-source-record")
     equal(

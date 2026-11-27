@@ -4387,7 +4387,11 @@ def test_expand_sync_over_999_nodes_chunking_dangling_dst_rid_error_and_protocol
         edge_rows.append((rid, 0, brd_pid, 0, f"urn:ref:atlas-assertion:bulk-brd-{k:04d}", med_rid, 1, 0))
     con.executemany("INSERT INTO resources VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", res_rows)
     con.executemany("INSERT INTO labels VALUES (?, ?, ?, ?, ?, ?, ?, ?)", lbl_rows)
-    con.executemany("INSERT INTO edges VALUES (?, ?, ?, ?, ?, ?, ?, ?)", edge_rows)
+    con.executemany(
+        "INSERT INTO edges (src_rid, stmt_kind, pid, stmt_pfx, stmt_suffix, dst_rid, ref035_default, rule_id) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        edge_rows,
+    )
     _refresh_pack_blobs(con)
     con.commit()
     con.close()
@@ -4421,7 +4425,8 @@ def test_expand_sync_over_999_nodes_chunking_dangling_dst_rid_error_and_protocol
     dangling_pack.write_bytes(base_pack.read_bytes())
     con2 = sqlite3.connect(str(dangling_pack))
     con2.execute(
-        "INSERT INTO edges VALUES (?, 0, ?, 0, 'urn:ref:atlas-assertion:dangling', 999999, 1, 0)",
+        "INSERT INTO edges (src_rid, stmt_kind, pid, stmt_pfx, stmt_suffix, dst_rid, ref035_default, rule_id) "
+        "VALUES (?, 0, ?, 0, 'urn:ref:atlas-assertion:dangling', 999999, 1, 0)",
         (med_rid, rel_pid),
     )
     con2.commit()

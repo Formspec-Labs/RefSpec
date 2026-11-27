@@ -18,6 +18,15 @@ from typing import Any, NotRequired
 
 from typing_extensions import TypedDict
 
+from refspec.atlas.effective_period import (
+    EffectiveAsOfDisposition,
+    EffectivePeriodError,
+    effective_as_of_disposition,
+    is_effective_as_of,
+    normalize_as_of_utc,
+    parse_as_of,
+    validate_effective_period_bounds,
+)
 from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
     sha256_digest,
@@ -100,6 +109,8 @@ class StatementRecord(TypedDict):
     sourceRing: NotRequired[str]
     targetRing: NotRequired[str]
     supersedesAssertion: NotRequired[str]
+    effectivePeriodStart: NotRequired[str]
+    effectivePeriodEnd: NotRequired[str]
     contentDigest: NotRequired[str]
     canonicalPayloadDigest: NotRequired[str]
 
@@ -204,7 +215,16 @@ _RECORD_SCHEMAS = {
                 "assertionIdentityDigest",
             }
         ),
-        optional=frozenset({"semanticRing", "sourceRing", "targetRing", "supersedesAssertion"}),
+        optional=frozenset(
+            {
+                "semanticRing",
+                "sourceRing",
+                "targetRing",
+                "supersedesAssertion",
+                "effectivePeriodStart",
+                "effectivePeriodEnd",
+            }
+        ),
     ),
     CompactRecordRole.EVIDENCE_BINDING: _RecordSchema(
         required=frozenset(
@@ -436,6 +456,7 @@ def _normalize_role_fields(
             f"{path}.assertionIdentityDigest",
         )
         _normalize_statement_rings(record, path)
+        _normalize_statement_effective_period(record, path)
     elif role == CompactRecordRole.EVIDENCE_BINDING:
         record["evidenceSourceDigest"] = _digest(
             record["evidenceSourceDigest"],
@@ -474,6 +495,19 @@ def _normalize_statement_rings(record: dict[str, Any], path: str) -> None:
     if "semanticRing" not in record or {"sourceRing", "targetRing"} & record.keys():
         raise CompactPackError(f"{path}: same-ring statements require semanticRing only")
     _closed_token(record["semanticRing"], _SEMANTIC_RINGS, f"{path}.semanticRing")
+
+
+def _normalize_statement_effective_period(record: dict[str, Any], path: str) -> None:
+    if "effectivePeriodStart" not in record and "effectivePeriodEnd" not in record:
+        return
+    try:
+        validate_effective_period_bounds(
+            record.get("effectivePeriodStart"),
+            record.get("effectivePeriodEnd"),
+            path=path,
+        )
+    except EffectivePeriodError as error:
+        raise CompactPackError(str(error)) from error
 
 
 def _normalize_release_fields(record: dict[str, Any], path: str) -> None:
@@ -637,6 +671,8 @@ __all__ = [
     "COMPACT_RECORD_TRANSPORT_FIELDS",
     "CompactPackError",
     "CompactRecordRole",
+    "EffectiveAsOfDisposition",
+    "EffectivePeriodError",
     "EvidenceBindingRecord",
     "IdentifierRecord",
     "LabelRecord",
@@ -646,5 +682,10 @@ __all__ = [
     "SourceRecordRecord",
     "StatementRecord",
     "compact_record_fields",
+    "effective_as_of_disposition",
+    "is_effective_as_of",
+    "normalize_as_of_utc",
     "normalize_compact_record",
+    "parse_as_of",
+    "validate_effective_period_bounds",
 ]

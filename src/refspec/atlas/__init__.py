@@ -42,6 +42,18 @@ _DUCKDB_VIEW_EXPORTS = frozenset(
         "open_atlas_duckdb_view",
     }
 )
+_EFFECTIVE_PERIOD_EXPORTS = frozenset(
+    {
+        "EffectiveAsOfDisposition",
+        "EffectivePeriodError",
+        "effective_as_of_disposition",
+        "format_utc_instant",
+        "is_effective_as_of",
+        "normalize_as_of_utc",
+        "parse_as_of",
+        "validate_effective_period_bounds",
+    }
+)
 _MODEL_EXPORTS = frozenset(
     {
         "ATLAS",
@@ -99,6 +111,8 @@ for _name in _CONCEPT_RELEASE_EXPORTS:
     _LAZY_MODULE_BY_NAME[_name] = "refspec.atlas.concept_release"
 for _name in _DUCKDB_VIEW_EXPORTS:
     _LAZY_MODULE_BY_NAME[_name] = "refspec.atlas.duckdb_view"
+for _name in _EFFECTIVE_PERIOD_EXPORTS:
+    _LAZY_MODULE_BY_NAME[_name] = "refspec.atlas.effective_period"
 for _name in _MODEL_EXPORTS:
     _LAZY_MODULE_BY_NAME[_name] = "refspec.atlas.model"
 for _name in _VOCABULARY_PACK_EXPORTS:
@@ -132,6 +146,8 @@ __all__ = [
     "CandidateReranker",
     "ConceptReleaseError",
     "ConceptReleaseSource",
+    "EffectiveAsOfDisposition",
+    "EffectivePeriodError",
     "ExactPinnedRRF",
     "GraphExpander",
     "LookupPolicy",
@@ -158,13 +174,19 @@ __all__ = [
     "calibrate_semantic_sidecar",
     "concept_release_member_ids",
     "concept_release_pin",
+    "effective_as_of_disposition",
+    "format_utc_instant",
     "group_by_identical_label",
+    "is_effective_as_of",
+    "normalize_as_of_utc",
     "normalize_concept_release_pin",
     "normalize_text",
     "open_atlas_duckdb_view",
+    "parse_as_of",
     "require_admissible_subject_concept",
     "require_subject_concept_release",
     "subject_release_rights_metadata",
+    "validate_effective_period_bounds",
     "verified_concept_release_facts",
 ]
 

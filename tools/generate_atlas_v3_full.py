@@ -6710,11 +6710,29 @@ class _StreamingGraphSpool:
                 for index, subject_id in enumerate(dict.fromkeys(subject_id for subject_id, _role in subjects))
             }
             bracketed = re.compile(r"<[^<>]*>")
+            has_effective_period_iri = f"<{RKAF.hasEffectivePeriod}>"
+            period_targets: dict[str, set[str]] = defaultdict(set)
             for path in self.sorted_rdf_paths.values():
                 with path.open("r", encoding="utf-8", newline="") as rdf:
                     for line in rdf:
-                        for needle in samples.keys() & set(bracketed.findall(line)):
+                        found = bracketed.findall(line)
+                        for needle in samples.keys() & set(found):
                             samples[needle].write(line)
+                            if (
+                                len(found) >= 3
+                                and found[0] == needle
+                                and found[1] == has_effective_period_iri
+                            ):
+                                period_targets[found[2]].add(needle)
+            if period_targets:
+                for path in self.sorted_rdf_paths.values():
+                    with path.open("r", encoding="utf-8", newline="") as rdf:
+                        for line in rdf:
+                            subject_token = line.partition(" ")[0]
+                            targets = period_targets.get(subject_token)
+                            if targets is not None:
+                                for needle in targets:
+                                    samples[needle].write(line)
             for subject_id, role in subjects:
                 sample = samples[f"<{subject_id}>"]
                 if not sample.tell():
@@ -8220,6 +8238,24 @@ def _compact_record_from_graph(
             if not isinstance(supersedes[0], URIRef):
                 raise TypeError(f"statement {subject} has a non-IRI supersession")
             record["supersedesAssertion"] = str(supersedes[0])
+        periods = list(graph.objects(subject, RKAF.hasEffectivePeriod))
+        if len(periods) > 1 or (periods and not isinstance(periods[0], URIRef)):
+            raise ValueError(f"statement {subject} has invalid effective period")
+        if periods:
+            period = periods[0]
+            record["effectivePeriodStart"] = str(
+                _one_graph_object(
+                    graph,
+                    period,
+                    RKAF.effectivePeriodStart,
+                    expected_type=Literal,
+                )
+            )
+            period_ends = list(graph.objects(period, RKAF.effectivePeriodEnd))
+            if len(period_ends) > 1 or (period_ends and not isinstance(period_ends[0], Literal)):
+                raise ValueError(f"statement {subject} has invalid effective period end")
+            if period_ends:
+                record["effectivePeriodEnd"] = str(period_ends[0])
         return record
 
     if role == CompactRecordRole.EVIDENCE_BINDING:

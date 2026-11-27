@@ -41,10 +41,14 @@ from refspec.atlas.parquet_view import verify_atlas_parquet_view
 from refspec.registry.infrastructure.artifact_serialization import canonical_json_bytes
 
 SEARCH_VIEW_RECORD_TYPE = "AtlasParquetSearchViewManifest"
-SEARCH_VIEW_SCHEMA_VERSION = "1.1"
+# 1.2 (ss-2zlv) adds nullable ``effective_period_start`` and
+# ``effective_period_end`` columns on ``statements.parquet``; 1.1 views remain
+# verifiable via ``_LEGACY_1_1_SCHEMAS`` so already-sealed views stay readable.
+SEARCH_VIEW_SCHEMA_VERSION = "1.2"
+LEGACY_SEARCH_VIEW_SCHEMA_VERSION = "1.1"
 SEARCH_VIEW_ID_PREFIX = "urn:ref:atlas-parquet-search-view:"
 SEARCH_VIEW_IMPLEMENTATION = "refspec.atlas.parquet_search_view"
-SEARCH_VIEW_IMPLEMENTATION_VERSION = "1.3"
+SEARCH_VIEW_IMPLEMENTATION_VERSION = "1.4"
 MANIFEST_FILE = "search-view-manifest.json"
 ROW_GROUP_SIZE = 50_000
 COMPRESSION_LEVEL = 19
@@ -187,6 +191,8 @@ _SCHEMAS: Mapping[CompactRecordRole, pa.Schema] = {
             pa.field("source_ring", pa.string()),
             pa.field("target_ring", pa.string()),
             pa.field("supersedes_assertion", pa.string()),
+            pa.field("effective_period_start", pa.string()),
+            pa.field("effective_period_end", pa.string()),
         ]
     ),
     CompactRecordRole.EVIDENCE_BINDING: pa.schema(
@@ -246,6 +252,17 @@ _SCHEMAS: Mapping[CompactRecordRole, pa.Schema] = {
     ),
 }
 
+_LEGACY_1_1_SCHEMAS: Mapping[CompactRecordRole, pa.Schema] = {
+    **_SCHEMAS,
+    CompactRecordRole.STATEMENT: pa.schema(
+        [
+            field
+            for field in _SCHEMAS[CompactRecordRole.STATEMENT]
+            if field.name not in {"effective_period_start", "effective_period_end"}
+        ]
+    ),
+}
+
 _DICTIONARIES = {
     CompactRecordRole.RESOURCE: ["scheme", "semantic_ring", "resource_profile", "record_status"],
     CompactRecordRole.LABEL: ["label_role", "language"],
@@ -255,6 +272,8 @@ _DICTIONARIES = {
         "semantic_ring",
         "source_ring",
         "target_ring",
+        "effective_period_start",
+        "effective_period_end",
     ],
     CompactRecordRole.EVIDENCE_BINDING: [
         "attestor",
@@ -290,7 +309,14 @@ def _transform(role: CompactRecordRole, row: Mapping[str, Any]) -> dict[str, Any
     if role is CompactRecordRole.STATEMENT:
         if _suffix(row["id"], "assertion") != row["assertion_identity_digest"]:
             raise AtlasParquetSearchViewError("statement identifier differs from assertionIdentityDigest")
-        return {key: value for key, value in row.items() if key not in {"assertion_identity_digest", "content_digest"}}
+        projected = {
+            key: value
+            for key, value in row.items()
+            if key not in {"assertion_identity_digest", "content_digest"}
+        }
+        projected.setdefault("effective_period_start", None)
+        projected.setdefault("effective_period_end", None)
+        return projected
     if role is CompactRecordRole.EVIDENCE_BINDING:
         evidence_id = _suffix(row["id"], "evidence")
         if evidence_id != row["content_digest"]:
@@ -328,12 +354,22 @@ def _write_role(source: Path, target: Path, role: CompactRecordRole) -> int:
     # Decode only output columns and the fields needed by _transform's identity
     # checks. Authentication still hashes every input file byte before this
     # projection; native payloads need not become Python objects a second time.
-    columns = list(schema.names)
+    available_columns = set(parquet.schema_arrow.names)
     if role is CompactRecordRole.STATEMENT:
+        # Legacy 3.0-3.2 full views omit effective_period_start/end; read them
+        # when present and fill None otherwise without fabricating dates.
+        columns = [
+            col
+            for col in schema.names
+            if col in available_columns or col not in {"effective_period_start", "effective_period_end"}
+        ]
         columns.append("assertion_identity_digest")
     elif role is CompactRecordRole.EVIDENCE_BINDING:
+        columns = list(schema.names)
         columns.remove("evidence_id")
         columns.extend(("id", "content_digest"))
+    else:
+        columns = list(schema.names)
     writer = pq.ParquetWriter(
         target,
         schema,
@@ -529,10 +565,16 @@ def verify_atlas_parquet_search_view(
     actual_digest = payload.pop("canonicalPayloadDigest", None)
     if actual_digest != canonical_payload_sha256(payload):
         raise AtlasParquetSearchViewError("compact view manifest payload digest differs")
-    if (
-        manifest.get("recordType") != SEARCH_VIEW_RECORD_TYPE
-        or manifest.get("schemaVersion") != SEARCH_VIEW_SCHEMA_VERSION
-    ):
+    schema_version = manifest.get("schemaVersion")
+    if schema_version == SEARCH_VIEW_SCHEMA_VERSION:
+        role_schemas = _SCHEMAS
+    elif schema_version == LEGACY_SEARCH_VIEW_SCHEMA_VERSION:
+        role_schemas = _LEGACY_1_1_SCHEMAS
+    else:
+        raise AtlasParquetSearchViewError(
+            f"compact view type or version is unsupported: expected schema version {SEARCH_VIEW_SCHEMA_VERSION}"
+        )
+    if manifest.get("recordType") != SEARCH_VIEW_RECORD_TYPE:
         raise AtlasParquetSearchViewError(
             f"compact view type or version is unsupported: expected schema version {SEARCH_VIEW_SCHEMA_VERSION}"
         )
@@ -574,7 +616,7 @@ def verify_atlas_parquet_search_view(
             if role in seen:
                 raise AtlasParquetSearchViewError("compact view repeats a table role")
             seen.add(role)
-            schema = _SCHEMAS[role]
+            schema = role_schemas[role]
             role_key = role.value
         path = _safe_member_path(directory, member["path"])
         expected_files.add(member["path"])
@@ -606,7 +648,9 @@ def verify_atlas_parquet_search_view(
 
 
 __all__ = [
+    "LEGACY_SEARCH_VIEW_SCHEMA_VERSION",
     "PROJECTION_MEMBER_ROLES",
+    "SEARCH_VIEW_SCHEMA_VERSION",
     "AtlasParquetSearchViewError",
     "build_atlas_parquet_search_view",
     "verify_atlas_parquet_search_view",

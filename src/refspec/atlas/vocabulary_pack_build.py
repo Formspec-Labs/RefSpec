@@ -24,6 +24,7 @@ from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from refspec.atlas.effective_period import EffectivePeriodError, normalize_as_of_utc, parse_as_of
 from refspec.atlas.vocabulary_protocols import (
     VocabularyInputError,
     VocabularyPackError,
@@ -40,6 +41,7 @@ DEFAULT_STRUCTURAL_LONG_LABEL_PENALTY: float = 0.04
 DEFAULT_STRUCTURAL_LONG_LABEL_CHARS: int = 80
 
 _SKOS = "http://www.w3.org/2004/02/skos/core#"
+_ATLAS = "https://refspec.org/ns/atlas/v3#"
 _BROADER_URI = _SKOS + "broader"
 _NARROWER_URI = _SKOS + "narrower"
 NATIVE_RELATION_PREDICATES: tuple[str, ...] = (
@@ -53,12 +55,16 @@ MAPPING_RELATION_PREDICATES: tuple[str, ...] = (
     _SKOS + "broadMatch",
     _SKOS + "narrowMatch",
     _SKOS + "relatedMatch",
+    _ATLAS + "equivalentValue",
+    _ATLAS + "sameLegalIdentityAs",
 )
 SYMMETRIC_MAPPING_PREDICATES: frozenset[str] = frozenset(
     {
         _SKOS + "exactMatch",
         _SKOS + "closeMatch",
         _SKOS + "relatedMatch",
+        _ATLAS + "equivalentValue",
+        _ATLAS + "sameLegalIdentityAs",
     }
 )
 DERIVED_RELATION_PREDICATES: tuple[str, ...] = (
@@ -456,6 +462,8 @@ def _build_schema(con: sqlite3.Connection) -> None:
             dst_rid INTEGER NOT NULL,
             ref035_default INTEGER NOT NULL,
             rule_id INTEGER NOT NULL,
+            effective_period_start TEXT,
+            effective_period_end TEXT,
             PRIMARY KEY (src_rid, stmt_kind, pid, stmt_pfx, stmt_suffix, dst_rid)
         ) WITHOUT ROWID;
 
@@ -466,6 +474,8 @@ def _build_schema(con: sqlite3.Connection) -> None:
             stmt_suffix TEXT NOT NULL,
             src_rid INTEGER NOT NULL,
             ref035_default INTEGER NOT NULL,
+            effective_period_start TEXT,
+            effective_period_end TEXT,
             PRIMARY KEY (dst_rid, pid, stmt_pfx, stmt_suffix, src_rid)
         ) WITHOUT ROWID;
 
@@ -524,6 +534,40 @@ def _build_schema(con: sqlite3.Connection) -> None:
             ON agency_projections (org, source_value_kind, source_value);
         """
     )
+
+
+def _normalize_edge_effective_period(
+    effective_start: object,
+    effective_end: object,
+    *,
+    stmt_id: str,
+) -> tuple[str | None, str | None]:
+    """Validate and UTC-normalize one statement's effective bounds without inventing absent dates."""
+
+    if effective_start is None and effective_end is None:
+        return None, None
+    if effective_start is None:
+        raise VocabularyPackError(
+            "invalid_view",
+            f"statement {stmt_id} carries effective_period_end without effective_period_start",
+        )
+    try:
+        start_dt = parse_as_of(str(effective_start))
+        norm_start = normalize_as_of_utc(start_dt)
+        if effective_end is None:
+            return norm_start, None
+        end_dt = parse_as_of(str(effective_end))
+        if end_dt < start_dt:
+            raise VocabularyPackError(
+                "invalid_view",
+                f"statement {stmt_id} effective_period_end precedes effective_period_start",
+            )
+        return norm_start, normalize_as_of_utc(end_dt)
+    except EffectivePeriodError as exc:
+        raise VocabularyPackError(
+            "invalid_view",
+            f"statement {stmt_id} has invalid effective period: {exc}",
+        ) from exc
 
 
 def _safe_view_member_path(resolved_view: Path, relative: object) -> Path:
@@ -961,10 +1005,22 @@ def build_vocabulary_pack(
                 rule_map[rule_uri] = rid_rule
             return rid_rule
 
+        stm_columns = {
+            str(row[0])
+            for row in con_duck.execute(f"DESCRIBE SELECT * FROM read_parquet({stm_pq})").fetchall()
+        }
+        has_stm_effective_period = {"effective_period_start", "effective_period_end"} <= stm_columns
+        eff_select_sql = (
+            "s.effective_period_start, s.effective_period_end"
+            if has_stm_effective_period
+            else "NULL AS effective_period_start, NULL AS effective_period_end"
+        )
+
         native_preds_sql = ", ".join(_sql_quote(p) for p in NATIVE_RELATION_PREDICATES)
         nat_cur = con_duck.execute(
             f"""
-            SELECT s.subject, s.source_release, s.object, s.target_release, s.id, s.predicate
+            SELECT s.subject, s.source_release, s.object, s.target_release, s.id, s.predicate,
+                   {eff_select_sql}
             FROM read_parquet({stm_pq}) s
             WHERE s.statement_type = 'NativeRelationAssertion'
               AND s.predicate IN ({native_preds_sql})
@@ -974,8 +1030,8 @@ def build_vocabulary_pack(
             batch = nat_cur.fetchmany(_STREAM_BATCH_SIZE)
             if not batch:
                 break
-            edge_batch: list[tuple[int, int, int, int, str, int, int, int]] = []
-            for subj, srel, obj, trel, stmt_id, pred in batch:
+            edge_batch: list[tuple[int, int, int, int, str, int, int, int, str | None, str | None]] = []
+            for subj, srel, obj, trel, stmt_id, pred, eff_start, eff_end in batch:
                 s_rid = rid_by_id_rel.get((subj, srel))
                 d_rid = rid_by_id_rel.get((obj, trel))
                 if (
@@ -986,11 +1042,15 @@ def build_vocabulary_pack(
                     or d_rid not in pref_by_rid
                 ):
                     continue
+                norm_start, norm_end = _normalize_edge_effective_period(eff_start, eff_end, stmt_id=str(stmt_id))
                 pid = get_pid(pred, "NativeRelationAssertion")
                 spfx, ssuf = _split_uri_prefix(stmt_id, prefix_to_id)
-                edge_batch.append((s_rid, _STMT_KIND_NATIVE, pid, spfx, ssuf, d_rid, 1, 0))
+                edge_batch.append((s_rid, _STMT_KIND_NATIVE, pid, spfx, ssuf, d_rid, 1, 0, norm_start, norm_end))
             if edge_batch:
-                con_sql.executemany("INSERT OR IGNORE INTO edges VALUES (?, ?, ?, ?, ?, ?, ?, ?)", edge_batch)
+                con_sql.executemany(
+                    "INSERT OR IGNORE INTO edges VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    edge_batch,
+                )
 
         if include_mappings:
             map_preds_sql = ", ".join(_sql_quote(p) for p in MAPPING_RELATION_PREDICATES)
@@ -1006,7 +1066,8 @@ def build_vocabulary_pack(
                         GROUP BY statement
                     )
                     SELECT s.subject, s.source_release, s.object, s.target_release,
-                           s.id, s.predicate, coalesce(ev.is_default, 0) AS ref035_default
+                           s.id, s.predicate, coalesce(ev.is_default, 0) AS ref035_default,
+                           {eff_select_sql}
                     FROM read_parquet({stm_pq}) s
                     LEFT JOIN ev ON ev.statement = s.id
                     WHERE s.statement_type = 'MappingAssertion'
@@ -1015,7 +1076,8 @@ def build_vocabulary_pack(
             else:
                 map_sql = f"""
                     SELECT s.subject, s.source_release, s.object, s.target_release,
-                           s.id, s.predicate, 0 AS ref035_default
+                           s.id, s.predicate, 0 AS ref035_default,
+                           {eff_select_sql}
                     FROM read_parquet({stm_pq}) s
                     WHERE s.statement_type = 'MappingAssertion'
                       AND s.predicate IN ({map_preds_sql})
@@ -1026,8 +1088,8 @@ def build_vocabulary_pack(
                 if not batch:
                     break
                 edge_batch = []
-                rev_batch: list[tuple[int, int, int, str, int, int]] = []
-                for subj, srel, obj, trel, stmt_id, pred, is_default in batch:
+                rev_batch: list[tuple[int, int, int, str, int, int, str | None, str | None]] = []
+                for subj, srel, obj, trel, stmt_id, pred, is_default, eff_start, eff_end in batch:
                     s_rid = rid_by_id_rel.get((subj, srel))
                     d_rid = rid_by_id_rel.get((obj, trel))
                     if (
@@ -1038,16 +1100,27 @@ def build_vocabulary_pack(
                         or d_rid not in pref_by_rid
                     ):
                         continue
+                    norm_start, norm_end = _normalize_edge_effective_period(
+                        eff_start, eff_end, stmt_id=str(stmt_id)
+                    )
                     pid = get_pid(pred, "MappingAssertion")
                     spfx, ssuf = _split_uri_prefix(stmt_id, prefix_to_id)
                     default_flag = int(bool(is_default))
-                    edge_batch.append((s_rid, _STMT_KIND_MAPPING, pid, spfx, ssuf, d_rid, default_flag, 0))
+                    edge_batch.append(
+                        (s_rid, _STMT_KIND_MAPPING, pid, spfx, ssuf, d_rid, default_flag, 0, norm_start, norm_end)
+                    )
                     if pred in SYMMETRIC_MAPPING_PREDICATES:
-                        rev_batch.append((d_rid, pid, spfx, ssuf, s_rid, default_flag))
+                        rev_batch.append((d_rid, pid, spfx, ssuf, s_rid, default_flag, norm_start, norm_end))
                 if edge_batch:
-                    con_sql.executemany("INSERT OR IGNORE INTO edges VALUES (?, ?, ?, ?, ?, ?, ?, ?)", edge_batch)
+                    con_sql.executemany(
+                        "INSERT OR IGNORE INTO edges VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        edge_batch,
+                    )
                 if rev_batch:
-                    con_sql.executemany("INSERT OR IGNORE INTO edges_rev VALUES (?, ?, ?, ?, ?, ?)", rev_batch)
+                    con_sql.executemany(
+                        "INSERT OR IGNORE INTO edges_rev VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                        rev_batch,
+                    )
 
         if include_derived and drv_pq is not None:
             drv_preds_sql = ", ".join(_sql_quote(p) for p in DERIVED_RELATION_PREDICATES)
@@ -1078,9 +1151,12 @@ def build_vocabulary_pack(
                         for d_rid in d_rids:
                             if d_rid not in pref_by_rid or s_rid == d_rid:
                                 continue
-                            edge_batch.append((s_rid, _STMT_KIND_DERIVED, pid, spfx, ssuf, d_rid, 0, r_id))
+                            edge_batch.append((s_rid, _STMT_KIND_DERIVED, pid, spfx, ssuf, d_rid, 0, r_id, None, None))
                 if edge_batch:
-                    con_sql.executemany("INSERT OR IGNORE INTO edges VALUES (?, ?, ?, ?, ?, ?, ?, ?)", edge_batch)
+                    con_sql.executemany(
+                        "INSERT OR IGNORE INTO edges VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        edge_batch,
+                    )
 
         con_sql.executemany(
             "INSERT INTO predicates (pid, uri, stmt_type, symmetric) VALUES (?, ?, ?, ?)",
