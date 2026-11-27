@@ -134,11 +134,20 @@ def test_a_cite_stating_neither_place_mints_no_volume() -> None:
 def test_a_table3_link_is_not_mistaken_for_a_statviewer_link() -> None:
     """Only a statviewer query states a place; the entry's /table3/ link never matches."""
 
-    # The same entry also links "/table3/116_286.htm". Only the statviewer link
-    # states a place, and only its query is read.
+    # The same entry also links "/table3/116_286.htm". Removing both the
+    # statviewer query and prose citation while leaving the /table3/ link
+    # intact must yield no volume or page.
     entry = ENTRIES["statviewer_and_stated_citation_agree"]
     assert "/table3/116_286.htm" in entry
-    assert builder.STATVIEWER.search('<a href="/table3/116_286.htm">116-286</a>') is None
+    table3_only = entry.replace("statviewer.htm?volume=134&amp;page=4879", "table3/116_286.htm").replace(
+        "134 Stat. 4879", ""
+    )
+    (cite,) = [r for r in builder.parse_popular_names(table3_only).records if r.content_type == "cite"]
+    assert (cite.statutes_at_large_volume, cite.statutes_at_large_page, cite.statutes_at_large_witness) == (
+        None,
+        None,
+        None,
+    )
 
 
 # --- the record kinds -------------------------------------------------------

@@ -128,22 +128,21 @@ def test_the_reader_refuses_a_shape_it_has_not_proved() -> None:
 
     import io
 
-    with pytest.raises(BulkFormatError, match="bytes between two <act> elements"):
+    with pytest.raises(BulkFormatError, match="bytes between two act elements"):
         list(iter_act_fragments(io.BytesIO(EXCERPT.replace(b"</act><act ", b"</act>JUNK<act "))))
-    with pytest.raises(BulkFormatError, match="bytes after the last </act>"):
+    with pytest.raises(BulkFormatError, match="bytes after the last act element"):
         list(iter_act_fragments(io.BytesIO(EXCERPT + b"<trailing/>")))
-    with pytest.raises(BulkFormatError, match="a </act> with no <act> opening it"):
+    with pytest.raises(BulkFormatError, match="closes an act it never opened"):
         list(iter_act_fragments(io.BytesIO(b"</act>")))
-    with pytest.raises(BulkFormatError, match="not an <act>"):
+    with pytest.raises(BulkFormatError, match="not an act element"):
         parse_act(b"<record id='r'/>")
 
 
 def test_the_junk_refusals_name_a_specimen() -> None:
     """A refusal that only counts bytes has proved half a refusal.
 
-    ``BulkFormatError`` used to say "N bytes between two <act> elements" and
-    stop — a count with nowhere to go look. It now appends the junk itself,
-    bounded to 60 bytes, so the message is a specimen and not just a number.
+    ``BulkFormatError`` appends the junk itself, bounded to 60 bytes, so the
+    message is a specimen and not just a number.
     """
 
     import io
@@ -151,11 +150,11 @@ def test_the_junk_refusals_name_a_specimen() -> None:
     junk = b"THIS PROSE SITS BETWEEN TWO <act> ELEMENTS AND IS SEVENTY BYTES LONG"
     assert len(junk) > 60, "the fixture must exceed the specimen bound to prove truncation"
 
-    with pytest.raises(BulkFormatError, match=r"bytes between two <act> elements") as between:
+    with pytest.raises(BulkFormatError, match=r"bytes between two act elements") as between:
         list(iter_act_fragments(io.BytesIO(EXCERPT.replace(b"</act><act ", b"</act>" + junk + b"<act "))))
     assert repr(junk[:60]) in str(between.value)
 
-    with pytest.raises(BulkFormatError, match=r"bytes after the last </act>") as after:
+    with pytest.raises(BulkFormatError, match=r"bytes after the last act element") as after:
         list(iter_act_fragments(io.BytesIO(EXCERPT + junk)))
     assert repr(junk[:60]) in str(after.value)
 
@@ -177,7 +176,7 @@ def test_parse_act_refuses_a_missing_attribute_by_name() -> None:
     ):
         assert stated in first_act, attribute
         broken = first_act.replace(stated, b"")
-        with pytest.raises(BulkFormatError, match=rf"no {attribute!r} attribute") as excinfo:
+        with pytest.raises(BulkFormatError, match=rf"lacks the {attribute} attribute") as excinfo:
             parse_act(broken)
         assert repr(broken.decode("utf-8")[:60]) in str(excinfo.value)
 

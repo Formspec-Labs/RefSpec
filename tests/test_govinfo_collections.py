@@ -441,3 +441,46 @@ def test_collection_codes_bundle_builds_a_deterministic_closed_package(
 
     assert reopened.logical_digest == bundle_one.logical_digest
     assert len(reopened.observations) == 42
+
+
+def test_ecfr_titles_refuses_extra_field_reserved_dates_and_missing_active_dates(tmp_path: Path) -> None:
+    """Delegated eCFR titles parsing preserves strict RefSpec refusals via spicy-docs opt-in flags."""
+
+    import json
+
+    base = json.loads(TITLES_FIXTURE.read_text(encoding="utf-8"))
+
+    def _parse_mutated(label: str, payload_obj: dict[str, object]) -> gc.ParsedECFRTitles:
+        raw = json.dumps(payload_obj).encode("utf-8")
+        pin = gc.GovInfoSnapshotPin(
+            source=replace(gc.ECFR_CFR_TITLES, filename=f"{label}.json"),
+            retrieved_at="2026-08-03T19:15:00Z",
+            expected_sha256=gc.sha256_digest(raw),
+            expected_byte_length=len(raw),
+        )
+        p = tmp_path / f"{label}.json"
+        p.write_bytes(raw)
+        acquired = gc.acquire_govinfo_source(pin, tmp_path / label, source_path=p)
+        return gc.parse_ecfr_cfr_titles(acquired)
+
+    extra_top = {**base, "extra": True}
+    with pytest.raises(gc.GovInfoSourceDriftError, match="top-level fields drifted"):
+        _parse_mutated("extra-top", extra_top)
+
+    reserved_dated = json.loads(json.dumps(base))
+    for row in reserved_dated["titles"]:
+        if row["reserved"]:
+            row["latest_amended_on"] = "2026-07-30"
+            break
+    with pytest.raises(gc.GovInfoSourceDriftError, match="reserved but carries version dates"):
+        _parse_mutated("reserved-dated", reserved_dated)
+
+    active_missing = json.loads(json.dumps(base))
+    active_missing["titles"][0]["latest_amended_on"] = None
+    with pytest.raises(gc.GovInfoSourceDriftError, match="missing a version date"):
+        _parse_mutated("active-missing", active_missing)
+
+    as_of_mismatch = json.loads(json.dumps(base))
+    as_of_mismatch["titles"][0]["up_to_date_as_of"] = "2026-07-29"
+    with pytest.raises(gc.GovInfoSourceDriftError, match="does not match meta.date"):
+        _parse_mutated("as-of-mismatch", as_of_mismatch)

@@ -320,7 +320,7 @@ def test_missing_enum_block_fails_closed(tmp_path: Path) -> None:
     mini_path.write_bytes(mini_payload)
     acquired = rgov.acquire_regulations_gov_openapi(mini_pin, tmp_path / "store", source_path=mini_path)
 
-    with pytest.raises(rgov.RegulationsGovSourceDriftError, match="enum block .* was not found"):
+    with pytest.raises(rgov.RegulationsGovSourceDriftError, match="enum block .* declares schema 'DocketType' 0 times"):
         rgov.parse_regulations_gov_resource(acquired, "docketType")
 
 

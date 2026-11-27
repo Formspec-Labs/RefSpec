@@ -37,15 +37,17 @@ import hashlib
 import os
 import re
 import tempfile
-import xml.etree.ElementTree as ET
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
 from typing import Literal, Protocol, cast
 from urllib.parse import urlsplit
+from xml.etree.ElementTree import Element
 
 from spicy_docs.extraction.pypdf import PdfReadError
+from spicy_docs.reading.xml import parse_xml
+from spicy_docs.sources.source_domains import SourceDomainError, xsd_documented_options
 
 from refspec.pdf_text import pdf_page_texts
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
@@ -84,12 +86,9 @@ UAControlledFieldName = Literal[
 ]
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
-_OPTION_LIST = re.compile(
-    r"^(?P<prefix>.*?)One of the following(?: options)?:\s*(?P<body>.+)$",
-    re.DOTALL,
-)
-_QUOTED_OPTION = re.compile(r'"([^"]+)"')
 _XS_NS = "{http://www.w3.org/2001/XMLSchema}"
+_MAX_XSD_BYTES = 4 * 1024 * 1024
+_MAX_XSD_DEPTH = 64
 
 # The pinned schema documents exactly this many "One of the following" option
 # lists. The parse below covers all of them, so this census is what makes the
@@ -586,7 +585,7 @@ def acquire_unified_agenda_document(
     )
 
 
-def _find_documentation(root: ET.Element, container_type: str, element_name: str) -> str:
+def _find_documentation(root: Element, container_type: str, element_name: str) -> str:
     """Read one element's ``xs:documentation`` text, refusing a missing type or element."""
 
     complex_type = root.find(f"./{_XS_NS}complexType[@name='{container_type}']")
@@ -601,32 +600,11 @@ def _find_documentation(root: ET.Element, container_type: str, element_name: str
     return documentation.text
 
 
-def _parse_documented_options(text: str, *, quoted: bool, field_name: str) -> tuple[str, ...]:
-    """Parse one 'One of the following' option list, refusing documentation that no longer states it."""
-
-    match = _OPTION_LIST.match(text.strip())
-    if match is None:
-        raise UnifiedAgendaSourceDriftError(
-            f"reginfo schema {field_name} documentation no longer states 'One of the following'"
-        )
-    prefix = match.group("prefix").strip()
-    expected_prefix = UA_DOCUMENTED_PREFIXES.get(field_name, "")
-    if prefix != expected_prefix:
-        raise UnifiedAgendaSourceDriftError(
-            f"reginfo schema {field_name} documentation prefix drifted: "
-            f"expected {expected_prefix!r}, got {prefix!r}"
-        )
-    body = match.group("body").strip().rstrip(".").strip()
-    raw = _QUOTED_OPTION.findall(body) if quoted else [part.strip() for part in body.split(",") if part.strip()]
-    if not raw:
-        raise UnifiedAgendaSourceDriftError(f"reginfo schema {field_name} documentation produced no option values")
-    return tuple(raw)
-
-
 def _controlled_field(
     field_name: UAControlledFieldName,
-    raw_values: Sequence[str],
+    distinct_values: Sequence[str],
     *,
+    raw_observed_count: int,
     identifier_kind: str,
     source_url: str,
     retrieved_at: str,
@@ -636,9 +614,7 @@ def _controlled_field(
 ) -> UAControlledFieldValues:
     """Build one field's distinct documented values and identifiers."""
 
-    # Fold literal duplicates (a documented publisher typo, see UA_PORTFOLIO_GAPS)
-    # into one value while preserving first-seen order and the raw count.
-    distinct = tuple(dict.fromkeys(raw_values))
+    distinct = tuple(distinct_values)
     identifiers = tuple(
         ControlledIdentifier(
             value=value,
@@ -654,7 +630,7 @@ def _controlled_field(
     return UAControlledFieldValues(
         field_name=field_name,
         values=distinct,
-        raw_observed_count=len(raw_values),
+        raw_observed_count=raw_observed_count,
         identifiers=identifiers,
         documentation=documentation,
         source_element_name=source_element_name,
@@ -745,7 +721,7 @@ _SCHEMA_FIELDS: tuple[tuple[UAControlledFieldName, str, str, bool, str, int, int
 )
 
 
-def _census_documented_option_lists(root: ET.Element) -> int:
+def _census_documented_option_lists(root: Element) -> int:
     """Count every ``xs:documentation`` block that states an option list."""
 
     return sum(
@@ -769,10 +745,14 @@ def parse_reginfo_schema(acquired: AcquiredUADocument) -> ParsedReginfoSchema:
         raise UnifiedAgendaResourceError("parse_reginfo_schema requires a reginfoSchema acquisition")
     payload = acquired.path.read_bytes()
     _verify_payload(payload, acquired.pin, location="parsed reginfo schema")
-    try:
-        root = ET.fromstring(payload)
-    except ET.ParseError as error:
-        raise UnifiedAgendaSourceDriftError("reginfo schema payload is not valid XML") from error
+    root = parse_xml(
+        payload,
+        max_bytes=_MAX_XSD_BYTES,
+        error_type=UnifiedAgendaSourceDriftError,
+        label="reginfo schema",
+        allow_external_doctype=False,
+        max_depth=_MAX_XSD_DEPTH,
+    )
 
     census = _census_documented_option_lists(root)
     if census != UA_DOCUMENTED_OPTION_LIST_COUNT or census != len(_SCHEMA_FIELDS):
@@ -794,10 +774,20 @@ def parse_reginfo_schema(acquired: AcquiredUADocument) -> ParsedReginfoSchema:
         expected_raw,
     ) in _SCHEMA_FIELDS:
         documentation = _find_documentation(root, container_type, element_name)
-        raw_values = _parse_documented_options(documentation, quoted=quoted, field_name=element_name)
+        try:
+            distinct_values, raw_count = xsd_documented_options(
+                payload,
+                element_name,
+                container_type=container_type,
+                expected_prefix=UA_DOCUMENTED_PREFIXES.get(element_name, ""),
+                quoted=quoted,
+            )
+        except SourceDomainError as error:
+            raise UnifiedAgendaSourceDriftError(str(error)) from error
         field_values = _controlled_field(
             field_name,
-            raw_values,
+            distinct_values,
+            raw_observed_count=raw_count,
             identifier_kind=identifier_kind,
             source_url=acquired.pin.document.source_url,
             retrieved_at=acquired.pin.retrieved_at,

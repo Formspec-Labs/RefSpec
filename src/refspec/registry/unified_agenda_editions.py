@@ -42,6 +42,12 @@ import hashlib
 import re
 from dataclasses import dataclass
 
+from spicy_docs.sources.unified_agenda.projection import (
+    CONTINUATION_LABEL_FAMILIES as CONTINUATION_LABEL_FAMILIES,
+)
+from spicy_docs.sources.unified_agenda.projection import (
+    legal_authority_continuations as _sd_legal_authority_continuations,
+)
 from spicy_docs.sources.unified_agenda.records import (
     UnifiedAgendaField,
     UnifiedAgendaRecordObservation,
@@ -184,8 +190,8 @@ class UnifiedAgendaRecord:
 #:   filer's question, not this reader's.
 #:
 #: Both are recorded here rather than left to be rediscovered; reading either
-#: is its own unit with its own measurement.
-CONTINUATION_LABEL_FAMILIES = ("legal-authority-cont", "additional-legal-authority")
+#: is its own unit with its own measurement. Imported from
+#: :mod:`spicy_docs.sources.unified_agenda.projection` to stay single-sourced.
 
 
 UNIFIED_AGENDA_EDITION_PINS: tuple[UnifiedAgendaEditionPin, ...] = (
@@ -688,101 +694,17 @@ def _children(field: UnifiedAgendaField | None) -> tuple[UnifiedAgendaField, ...
     return () if field is None else field.children
 
 
-#: The labels a filer writes above a continued legal-authority list, each
-#: paired with the family it belongs to. Every spelling below is one the 60
-#: pinned editions actually contain; the patterns are no wider than the corpus.
-#:
-#: The first swallows the optional "LEGAL", both singular and plural, the
-#: parenthesised form, every truncation of "CONTINUED" the filers type, and the
-#: run of dots or colons behind it ("Legal Authority Continue........."). The
-#: second is the "Additional Legal Authority" family, whose one outlier spells
-#: the label "Additional legal authority information:". The third is the single
-#: "Continue from #8 Legal Authority..........." in RIN 3235-AE11, Spring 1997.
-_CONTINUATION_MARKERS: tuple[tuple[str, re.Pattern[str]], ...] = (
-    (
-        "legal-authority-cont",
-        re.compile(r"(?:LEGAL\s+)?AUTHORIT(?:Y|IES)\s*\(?\s*CONT(?:INUED|INUES|INUE)?\)?\s*[.:]*", re.IGNORECASE),
-    ),
-    (
-        "additional-legal-authority",
-        re.compile(r"ADDITIONAL\s+LEGAL\s+AUTHORIT(?:Y|IES)(?:\s+INFORMATION)?\s*[.:]*", re.IGNORECASE),
-    ),
-    (
-        "additional-legal-authority",
-        re.compile(r"CONTINUE[DS]?\s+FROM\s*#?\s*\d+\s*LEGAL\s+AUTHORIT(?:Y|IES)\s*[.:]*", re.IGNORECASE),
-    ),
-)
-
-#: Where a continuation ENDS. Two shapes carry the whole corpus: the
-#: publisher's own paragraph mark, a literal "^" (it is written "^P" and starts
-#: the next field or paragraph -- "^PRFA: N", "^PANALYSIS: Regulatory
-#: Evaluation"), and a blank line, which is how the same boundary is written in
-#: the editions that carry real newlines.
-_CONTINUATION_BOUNDARY = re.compile(r"\^|\n[ \t]*\n")
-
-#: And the third boundary, which FIRES ON NOTHING in the pinned corpus: another
-#: of the form's fields continuing under its own label. Measured over all 98
-#: continuations, no extraction cut by the two boundaries above contains one --
-#: every "CFR CITATIONS CONT:" and "STATUTORY DEADLINE CONT:" in the series is
-#: already behind a paragraph mark or a blank line. It is kept because a
-#: regression there is silent by construction: a filer who separates two field
-#: continuations with a semicolon instead would otherwise hand the CFR list to
-#: the authority parser, and a rule measuring zero is the only thing that can
-#: say it did not happen. A label ends in a colon; the word "continued" inside
-#: prose does not, which is what keeps this from cutting a citation list in
-#: half.
-_ANOTHER_FIELD_CONTINUES = re.compile(
-    r"[A-Za-z][A-Za-z ']*\s*\(?\s*CONT(?:INUED|INUES|INUE)?\)?\s*:", re.IGNORECASE
-)
-
-
 def legal_authority_continuations(additional_info: str) -> tuple[AuthorityContinuation, ...]:
     """Every continued legal-authority list inside one ``ADDITIONAL_INFO``.
 
-    The Agenda's form gives a filer a fixed number of legal-authority boxes.
-    Filers who need more type the rest into ``ADDITIONAL_INFO`` under a label,
-    and 98 records of the 241,726 in the 60 pinned editions do -- 1,325
-    citations that the ``LEGAL_AUTHORITY_LIST`` element does not contain.
-
-    A continuation runs from its label's END to the first boundary: the
-    publisher's "^" paragraph mark, a blank line, or another of the form's
-    fields continuing under its own label (see
-    :data:`_ANOTHER_FIELD_CONTINUES`, which fires on nothing here). What comes
-    back is whitespace-collapsed like a citation
-    box, because it is the same kind of string and a caller must not have to
-    know which of the two it holds.
-
-    The whole string is returned, never pre-split on its separators. That is
-    not a nicety: RIN 1115-AE47's Spring 1997 continuation is a bare comma list
-    under one title ("8 USC 1186b, 1187, 1201, ... 1447; 28 USC 509, 510,
-    1746; ..."), which the citation grammar reads to 41 citations whole and to
-    7 if a caller splits it first.
+    Delegates to :func:`spicy_docs.sources.unified_agenda.projection.legal_authority_continuations`
+    and wraps each result as RefSpec's :class:`AuthorityContinuation`.
     """
 
-    found: list[AuthorityContinuation] = []
-    marks = sorted(
-        (match.start(), match.end(), family, match.group(0))
-        for family, pattern in _CONTINUATION_MARKERS
-        for match in pattern.finditer(additional_info)
+    return tuple(
+        AuthorityContinuation(label_family=item.label_family, marker=item.marker, text=item.text)
+        for item in _sd_legal_authority_continuations(additional_info)
     )
-    # Two patterns can only overlap by matching the same label two ways; the
-    # first one wins, so a label is never read twice.
-    consumed = 0
-    for start, end, family, marker in marks:
-        if start < consumed:
-            continue
-        consumed = end
-        rest = additional_info[end:]
-        stop = min(
-            (match.start() for match in (
-                _CONTINUATION_BOUNDARY.search(rest), _ANOTHER_FIELD_CONTINUES.search(rest)
-            ) if match is not None),
-            default=len(rest),
-        )
-        text = " ".join(rest[:stop].split())
-        if text:
-            found.append(AuthorityContinuation(label_family=family, marker=marker.strip(), text=text))
-    return tuple(found)
 
 
 def parse_unified_agenda_edition(

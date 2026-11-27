@@ -28,12 +28,13 @@ import re
 import sys
 from collections import Counter, defaultdict
 from dataclasses import dataclass
-from html import unescape
 from pathlib import Path
 from typing import Any
 
 import pyarrow as pa
 import pyarrow.parquet as pq
+from spicy_docs.sources.uscode.core import DEFAULT_MAX_ENTRIES_PER_PAGE, DEFAULT_MAX_PAGE_BYTES, UsCodeSourceError
+from spicy_docs.sources.uscode.popular_names import parse_popular_names as _sd_parse_popular_names
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT / "src") not in sys.path:
@@ -116,55 +117,12 @@ POPULAR_NAME_COLUMNS = (
 )
 QUARANTINE_COLUMNS = ("source", "reason", "name", "raw_value")
 
-#: One entry: the anchor, the release point the page was generated at, and the
-#: paragraphs. ``release-point`` is optional in the expression because a
-#: generator that stopped emitting it must produce records with a null release
-#: point rather than no records at all.
-ENTRY = re.compile(
-    r"<div id='(?P<anchor>[^']*)' class='popular-name-table-entry'"
-    r"(?:[^>]*?release-point='(?P<release_point>[^']*)')?[^>]*>"
-    r"(?P<body>.*?)</div>",
-    re.DOTALL,
-)
-NAME = re.compile(r"<p class='popular-name'>(?P<name>.*?)</p>", re.DOTALL)
-INFORMATION = re.compile(
-    r"<p class='popular-name-information'(?P<attributes>[^>]*)>(?P<text>.*?)</p>",
-    re.DOTALL,
-)
-ATTRIBUTE = re.compile(r"(?P<name>[a-z0-9_-]+)='(?P<value>[^']*)'")
-
 #: "See Federal Water Pollution Control Act", "Renamed Internal Revenue Code of
 #: 1939". Anchored at the start: the construction is how the tool spells a
 #: redirect, and text that merely mentions an act is not one.
 SEE_TARGET = re.compile(r"^\s*(?:see|renamed(?:\s+as)?)\s+(?P<target>.+?)\s*$", re.IGNORECASE)
 
-#: A ``usckey`` is ``title:section``. The section may carry a suffix the U.S.C.
-#: identifier grammar excludes ("18:App.)"), which is the source speaking and is
-#: kept; a title that is not a number ("18A") is an appendix and is refused.
-USC_ANCHOR = re.compile(r"^(?P<title>[1-9]\d*):(?P<section>[^\s:]+)$")
-
-#: The Statutes at Large place as the page's own link states it. The volume is a
-#: query parameter, so it survives even where the link text omits it -- which is
-#: the whole reason to read the query rather than the words.
-STATVIEWER = re.compile(r"statviewer\.htm\?volume=(?P<volume>\d+)&(?:amp;)?page=(?P<page>\d+)")
-
-#: The same place as prose. Read only where no link states it.
-STATED_CITATION = re.compile(r"\b(?P<volume>\d+)\s+Stat\.\s+(?P<page>\d+)")
-
-#: "Pub. L. 116-260, div. EE, ..." -- one public law may enact dozens of acts,
-#: each in its own division, and this is the only thing that tells them apart.
-DIVISION = re.compile(r"\bdiv\.\s*(?P<division>[A-Z]{1,3})\b")
-
-TAG = re.compile(r"<[^>]*>")
-
-#: Attributes the page states on an entry or a paragraph that the sealed schema
-#: has no column for. Counted in the receipt rather than dropped in silence.
-_CARRIED_ATTRIBUTES = frozenset({"content-type", "t3searchkey", "usckey"})
-
-
-def visible_text(fragment: str) -> str:
-    """The visible text of an HTML fragment, whitespace collapsed."""
-    return re.sub(r"\s+", " ", unescape(TAG.sub("", fragment))).strip()
+_DEFECT_REASON_MAP = {"usc_key_unparsable": "usc_anchor_unparsable"}
 
 
 @dataclass(frozen=True)
@@ -191,93 +149,67 @@ class PopularNameScan:
     stated_but_not_carried: dict[str, int] | None = None
 
 
-def statutes_at_large(paragraph: str, stated: str) -> tuple[str | None, str | None, str | None]:
-    """The Statutes at Large volume and page, and which statement supplied it.
+def parse_popular_names(document: str) -> PopularNameScan:
+    """Read the Popular Name Tool page via :mod:`spicy_docs.sources.uscode.popular_names`.
 
-    Implements :data:`STATUTES_AT_LARGE_RULE`. The link's query is preferred
-    because it is machine-stated; the prose is the fallback and, where both are
-    present, the cross-check. A disagreement is reported rather than resolved --
-    on release point 119-102 there are none, and one appearing later is a fact
-    about the page that must not arrive as a silently-changed value.
+    Raw HTML parsing (entries, information paragraphs, ``statviewer.htm``/prose
+    Statutes at Large witnesses, divisions, and ``usckey`` anchors) delegates to
+    ``spicy-docs``; RefSpec applies its ``see_also`` redirect policy
+    (:data:`SEE_TARGET`), quarantine reason spelling, and sealed-schema
+    uncarried-attribute accounting (including ``datekey``).
     """
 
-    link = STATVIEWER.search(paragraph)
-    prose = STATED_CITATION.search(stated)
-    linked = (link.group("volume"), link.group("page")) if link else None
-    spoken = (prose.group("volume"), prose.group("page")) if prose else None
-    if linked is None and spoken is None:
-        return None, None, None
-    if linked is None:
-        return spoken[0], spoken[1], "stated"
-    if spoken is None:
-        return linked[0], linked[1], "statviewer"
-    if linked == spoken:
-        return linked[0], linked[1], "both"
-    return linked[0], linked[1], "disagreement"
-
-
-def parse_popular_names(document: str) -> PopularNameScan:
-    """Read the Popular Name Tool page into one record per stated fact."""
+    raw = document.encode("utf-8")
+    payload = raw if b"</html>" in raw[-4096:] else b"<html><body>" + raw + b"</body></html>"
+    try:
+        parsed = _sd_parse_popular_names(
+            payload,
+            max_bytes=max(len(payload), DEFAULT_MAX_PAGE_BYTES),
+            max_entries=DEFAULT_MAX_ENTRIES_PER_PAGE,
+        )
+    except UsCodeSourceError as error:
+        if "states no entry" in str(error):
+            return PopularNameScan(records=(), defects=(), entries=0, stated_but_not_carried={})
+        raise
 
     records: list[PopularNameRecord] = []
-    defects: list[EntryDefect] = []
-    uncarried: Counter[str] = Counter()
-    entries = 0
-
-    for entry in ENTRY.finditer(document):
-        entries += 1
-        body = entry.group("body")
-        heading = NAME.search(body)
-        name = visible_text(heading.group("name")) if heading is not None else ""
-        if not name:
-            defects.append(EntryDefect(reason="entry_without_a_name", name="", raw_value=entry.group("anchor") or None))
-            continue
-        release_point = entry.group("release_point")
-        for information in INFORMATION.finditer(body):
-            attributes = dict(ATTRIBUTE.findall(information.group("attributes")))
-            uncarried.update(key for key in attributes if key not in _CARRIED_ATTRIBUTES)
-            content_type = attributes.get("content-type")
-            if not content_type:
-                defects.append(
-                    EntryDefect(
-                        reason="information_without_a_content_type",
-                        name=name,
-                        raw_value=visible_text(information.group("text")) or None,
-                    )
-                )
-                continue
-            stated = visible_text(information.group("text"))
-            anchor = attributes.get("usckey")
-            match = USC_ANCHOR.fullmatch(anchor) if anchor else None
-            refused = anchor if anchor and match is None else None
-            if refused is not None:
-                defects.append(EntryDefect(reason="usc_anchor_unparsable", name=name, raw_value=refused))
-            is_cite = content_type == "cite"
-            division = DIVISION.search(stated) if is_cite else None
-            volume, page, witness = (
-                statutes_at_large(information.group("text"), stated) if is_cite else (None, None, None)
+    datekey_count = 0
+    for rec in parsed.records:
+        if rec.date_key is not None:
+            datekey_count += 1
+        alias = SEE_TARGET.match(rec.stated) if rec.content_type in {"see", "renamed"} else None
+        refused = rec.usc_key if (rec.usc_key and rec.usc_title is None) else None
+        records.append(
+            PopularNameRecord(
+                name=rec.name,
+                content_type=rec.content_type,
+                table3_key=rec.table3_key,
+                usc_title=rec.usc_title,
+                usc_section=rec.usc_section,
+                see_also=alias.group("target") if alias else None,
+                release_point=rec.release_point,
+                division=rec.division,
+                statutes_at_large_volume=rec.statutes_at_large_volume,
+                statutes_at_large_page=rec.statutes_at_large_page,
+                statutes_at_large_witness=rec.statutes_at_large_witness,
+                refused_usc_anchor=refused,
             )
-            alias = SEE_TARGET.match(stated) if content_type in {"see", "renamed"} else None
-            records.append(
-                PopularNameRecord(
-                    name=name,
-                    content_type=content_type,
-                    table3_key=attributes.get("t3searchkey") or None,
-                    usc_title=match.group("title") if match else None,
-                    usc_section=match.group("section") if match else None,
-                    see_also=alias.group("target") if alias else None,
-                    release_point=release_point,
-                    division=division.group("division") if division else None,
-                    statutes_at_large_volume=volume,
-                    statutes_at_large_page=page,
-                    statutes_at_large_witness=witness,
-                    refused_usc_anchor=refused,
-                )
-            )
+        )
+    defects = tuple(
+        EntryDefect(
+            reason=_DEFECT_REASON_MAP.get(defect.reason, defect.reason),
+            name=defect.name,
+            raw_value=defect.raw_value,
+        )
+        for defect in parsed.defects
+    )
+    uncarried = dict(parsed.stated_but_not_carried)
+    if datekey_count:
+        uncarried["datekey"] = uncarried.get("datekey", 0) + datekey_count
     return PopularNameScan(
         records=tuple(records),
-        defects=tuple(defects),
-        entries=entries,
+        defects=defects,
+        entries=parsed.entries,
         stated_but_not_carried=dict(sorted(uncarried.items())),
     )
 

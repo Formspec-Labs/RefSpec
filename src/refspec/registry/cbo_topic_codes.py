@@ -81,6 +81,9 @@ from types import MappingProxyType
 from typing import Literal, Protocol
 from urllib.parse import urlsplit
 
+from spicy_docs.sources.cbo import CboSourceError
+from spicy_docs.sources.cbo import parse_cbo_cost_estimates_feed as _parse_spicy_cbo_feed
+
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 from refspec.registry.infrastructure.source_controlled_resource import (
@@ -113,8 +116,6 @@ CBO_119TH_CONGRESS_REAL_CAPTURE_2026_08_04_RETRIEVED_AT = "2026-08-04T00:50:00Z"
 
 _DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 _PER_CONGRESS_PATH_PATTERN = re.compile(r"^/rss/(\d+)congress-cost-estimates\.xml$")
-_PER_CONGRESS_LINK_PATTERN = re.compile(r"^https://www\.cbo\.gov/publication/\d+$")
-_PER_CONGRESS_ITEM_CHILD_TAGS = ("Title", "Date", "Link", "Description", "Bill_Number")
 # Observed verbatim from the real cbo.gov response captured while this module
 # was implemented (a DataDome edge challenge), plus the generic markers other
 # RefSpec adapters check for so a future vendor change still fails closed.
@@ -1033,72 +1034,29 @@ def parse_cbo_per_congress_feed(feed: AcquiredCBOPerCongressFeed) -> ParsedCBOPe
 
     payload = _read_acquired_per_congress_payload(feed)
     try:
-        root = ET.fromstring(payload)
-    except ET.ParseError as error:
-        raise CBOSourceDriftError("per-Congress cost estimates feed payload is not valid XML") from error
+        parsed_feed = _parse_spicy_cbo_feed(payload, require_description=True, require_items=True)
+    except CboSourceError as error:
+        raise CBOSourceDriftError(str(error)) from error
 
-    if root.tag != "response":
-        raise CBOSourceDriftError(f"per-Congress cost estimates feed root is no longer <response>, got <{root.tag}>")
-
-    children = list(root)
-    if not children:
-        raise CBOSourceDriftError("per-Congress cost estimates feed has no items")
-
-    records: list[CBOPerCongressCostEstimateRecord] = []
-    for ordinal, item in enumerate(children):
-        if item.tag != "item":
-            raise CBOSourceDriftError(
-                f"per-Congress cost estimates feed root child {ordinal} is not <item>, got <{item.tag}>"
-            )
-
-        child_tags = tuple(child.tag for child in item)
-        if child_tags != _PER_CONGRESS_ITEM_CHILD_TAGS:
-            raise CBOSourceDriftError(
-                f"per-Congress feed item {ordinal} does not carry exactly "
-                f"Title/Date/Link/Description/Bill_Number, got {list(child_tags)}"
-            )
-
-        key = item.attrib.get("key")
-        if not key or not key.strip():
-            raise CBOSourceDriftError(f"per-Congress feed item {ordinal} is missing its key attribute")
-
-        title = (item.findtext("Title") or "").strip()
-        if not title:
-            raise CBOSourceDriftError(f"per-Congress feed item {ordinal} is missing its Title")
-        date = (item.findtext("Date") or "").strip()
-        if not date:
-            raise CBOSourceDriftError(f"per-Congress feed item {ordinal} is missing its Date")
-        link = (item.findtext("Link") or "").strip()
-        if not link:
-            raise CBOSourceDriftError(f"per-Congress feed item {ordinal} is missing its Link")
-        if _PER_CONGRESS_LINK_PATTERN.fullmatch(link) is None:
-            raise CBOSourceDriftError(
-                f"per-Congress feed item {ordinal} link does not match "
-                f"https://www.cbo.gov/publication/<digits>: {link!r}"
-            )
-        description = (item.findtext("Description") or "").strip()
-        if not description:
-            raise CBOSourceDriftError(f"per-Congress feed item {ordinal} is missing its Description")
-        bill_number = _optional_text(item.findtext("Bill_Number"))
-
-        records.append(
-            CBOPerCongressCostEstimateRecord(
-                item_ordinal=ordinal,
-                key=key,
-                title=title,
-                date=date,
-                link=link,
-                description=description,
-                bill_number=bill_number,
-            )
+    records = tuple(
+        CBOPerCongressCostEstimateRecord(
+            item_ordinal=item.index,
+            key=str(item.index),
+            title=item.title,
+            date=item.date,
+            link=item.link,
+            description=item.description or "",
+            bill_number=item.bill_number,
         )
+        for item in parsed_feed.items
+    )
 
     return ParsedCBOPerCongressFeed(
         source_url=feed.pin.source_url,
         source_sha256=feed.sha256,
         source_byte_length=feed.byte_length,
         retrieved_at=feed.pin.retrieved_at,
-        records=tuple(records),
+        records=records,
         gaps=CBO_PER_CONGRESS_PORTFOLIO_GAPS,
     )
 

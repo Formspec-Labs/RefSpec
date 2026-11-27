@@ -593,7 +593,7 @@ def test_real_feed_non_response_root_fails_closed(tmp_path: Path) -> None:
     mutated = payload.replace(b"<response>", b"<responses>", 1).replace(b"</response>\n", b"</responses>\n", 1)
     acquired = _acquire_mutated_per_congress(tmp_path, mutated)
 
-    with pytest.raises(cbo.CBOSourceDriftError, match="root is no longer <response>"):
+    with pytest.raises(cbo.CBOSourceDriftError, match="not <response>"):
         cbo.parse_cbo_per_congress_feed(acquired)
 
 
@@ -615,7 +615,7 @@ def test_real_feed_item_with_unexpected_child_element_fails_closed(tmp_path: Pat
     )
     acquired = _acquire_mutated_per_congress(tmp_path, mutated)
 
-    with pytest.raises(cbo.CBOSourceDriftError, match="does not carry exactly"):
+    with pytest.raises(cbo.CBOSourceDriftError, match="unknown field Extra"):
         cbo.parse_cbo_per_congress_feed(acquired)
 
 
@@ -629,7 +629,7 @@ def test_real_feed_item_missing_a_required_child_fails_closed(tmp_path: Path) ->
     )
     acquired = _acquire_mutated_per_congress(tmp_path, mutated)
 
-    with pytest.raises(cbo.CBOSourceDriftError, match="does not carry exactly"):
+    with pytest.raises(cbo.CBOSourceDriftError, match="Title, Date, Link, Description, Bill_Number in order"):
         cbo.parse_cbo_per_congress_feed(acquired)
 
 
@@ -638,7 +638,7 @@ def test_real_feed_item_missing_its_key_attribute_fails_closed(tmp_path: Path) -
     mutated = payload.replace(b'<item key="0">', b"<item>", 1)
     acquired = _acquire_mutated_per_congress(tmp_path, mutated)
 
-    with pytest.raises(cbo.CBOSourceDriftError, match="missing its key attribute"):
+    with pytest.raises(cbo.CBOSourceDriftError, match="key attribute"):
         cbo.parse_cbo_per_congress_feed(acquired)
 
 
@@ -651,7 +651,7 @@ def test_real_feed_item_link_not_matching_publication_pattern_fails_closed(tmp_p
     )
     acquired = _acquire_mutated_per_congress(tmp_path, mutated)
 
-    with pytest.raises(cbo.CBOSourceDriftError, match="does not match"):
+    with pytest.raises(cbo.CBOSourceDriftError, match="Link does not name a publication"):
         cbo.parse_cbo_per_congress_feed(acquired)
 
 
@@ -660,5 +660,5 @@ def test_real_feed_malformed_xml_fails_as_source_drift(tmp_path: Path) -> None:
     mutated = payload.replace(b"</response>\n", b"")
     acquired = _acquire_mutated_per_congress(tmp_path, mutated)
 
-    with pytest.raises(cbo.CBOSourceDriftError, match="not valid XML"):
+    with pytest.raises(cbo.CBOSourceDriftError, match="malformed"):
         cbo.parse_cbo_per_congress_feed(acquired)

@@ -32,6 +32,8 @@ from urllib.parse import urlsplit
 
 from spicy_docs.reading.xml import scan_xml
 from spicy_docs.reading.xml_tree import XmlTreeElement
+from spicy_docs.sources.cfr.ecfr import parse_ecfr_titles
+from spicy_docs.sources.cfr.models import CfrSourceError
 from spicy_docs.sources.govinfo.premis import PREMIS_NAMESPACE, GovInfoPremisError, read_govinfo_premis
 
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier, validate_identifier_date
@@ -609,70 +611,24 @@ def parse_ecfr_cfr_titles(acquired: AcquiredGovInfoSource) -> ParsedECFRTitles:
 
     payload = acquired.path.read_bytes()
     _verify_payload(payload, acquired.pin, location="parsed eCFR Titles source")
-    root = json.loads(payload)
-    if not isinstance(root, Mapping) or set(root) != {"titles", "meta"}:
-        raise GovInfoSourceDriftError("eCFR Titles payload fields drifted from {'titles', 'meta'}")
-    meta = root["meta"]
-    if not isinstance(meta, Mapping) or set(meta) != {"date", "import_in_progress"}:
-        raise GovInfoSourceDriftError("eCFR Titles meta fields drifted from {'date', 'import_in_progress'}")
-    as_of_date = _optional_iso_date(meta["date"], "eCFR Titles meta.date")
-    if as_of_date is None:
-        raise GovInfoSourceDriftError("eCFR Titles meta.date must not be null")
-    import_in_progress = meta["import_in_progress"]
-    if not isinstance(import_in_progress, bool):
-        raise GovInfoSourceDriftError("eCFR Titles meta.import_in_progress must be a boolean")
+    try:
+        ecfr = parse_ecfr_titles(payload, require_active_dates=True, require_as_of_match=True)
+    except CfrSourceError as error:
+        raise GovInfoSourceDriftError(str(error)) from error
 
-    rows = root["titles"]
-    if not isinstance(rows, list):
-        raise GovInfoSourceDriftError("eCFR Titles payload must contain a titles array")
-    if len(rows) != EXPECTED_CFR_TITLES_COUNT:
+    if len(ecfr.titles) != EXPECTED_CFR_TITLES_COUNT:
         raise GovInfoSourceDriftError(
-            f"eCFR Titles count drift: expected {EXPECTED_CFR_TITLES_COUNT}, parsed {len(rows)}"
+            f"eCFR Titles count drift: expected {EXPECTED_CFR_TITLES_COUNT}, parsed {len(ecfr.titles)}"
         )
 
-    allowed_fields = {
-        "number",
-        "name",
-        "latest_amended_on",
-        "latest_issue_date",
-        "up_to_date_as_of",
-        "reserved",
-    }
     parsed: list[ECFRCFRTitle] = []
-    for ordinal, record in enumerate(rows, start=1):
-        if not isinstance(record, Mapping) or set(record) != allowed_fields:
-            raise GovInfoSourceDriftError(f"eCFR Titles record {ordinal} fields drifted: {sorted(record)}")
-        number = record["number"]
-        reserved = record["reserved"]
-        if not isinstance(number, int) or isinstance(number, bool) or number < 1:
-            raise GovInfoSourceDriftError(f"eCFR Titles record {ordinal} number must be a positive integer")
-        if not isinstance(reserved, bool):
-            raise GovInfoSourceDriftError(f"eCFR Titles record {ordinal} reserved must be a boolean")
-        name = _require_text(record["name"], f"eCFR Titles record {ordinal} name")
-        latest_amended_on = _optional_iso_date(
-            record["latest_amended_on"],
-            f"eCFR Titles record {ordinal} latest_amended_on",
-        )
-        latest_issue_date = _optional_iso_date(
-            record["latest_issue_date"],
-            f"eCFR Titles record {ordinal} latest_issue_date",
-        )
-        up_to_date_as_of = _optional_iso_date(
-            record["up_to_date_as_of"],
-            f"eCFR Titles record {ordinal} up_to_date_as_of",
-        )
-        if reserved:
-            if latest_amended_on is not None or latest_issue_date is not None or up_to_date_as_of is not None:
-                raise GovInfoSourceDriftError(f"eCFR Titles record {ordinal} is reserved but carries version dates")
-        else:
-            if latest_amended_on is None or latest_issue_date is None or up_to_date_as_of is None:
-                raise GovInfoSourceDriftError(f"eCFR Titles record {ordinal} is active but is missing a version date")
-            if up_to_date_as_of != as_of_date:
-                raise GovInfoSourceDriftError(
-                    f"eCFR Titles record {ordinal} up_to_date_as_of does not match the response's meta.date"
-                )
+    for ordinal, entry in enumerate(ecfr.titles, start=1):
+        if entry.processing_in_progress is not None:
+            raise GovInfoSourceDriftError(
+                f"eCFR Titles record {ordinal} carries unexpected field 'processing_in_progress'"
+            )
         identifier = _make_identifier(
-            value=str(number),
+            value=str(entry.number),
             kind="ecfrCfrTitleNumber",
             authority_uri=ECFR_IDENTIFIER_AUTHORITY_URI,
             source_uri=acquired.pin.source.source_url,
@@ -681,25 +637,22 @@ def parse_ecfr_cfr_titles(acquired: AcquiredGovInfoSource) -> ParsedECFRTitles:
         )
         parsed.append(
             ECFRCFRTitle(
-                title_number=number,
-                name=name,
-                latest_amended_on=latest_amended_on,
-                latest_issue_date=latest_issue_date,
-                up_to_date_as_of=up_to_date_as_of,
-                reserved=reserved,
+                title_number=entry.number,
+                name=entry.name,
+                latest_amended_on=entry.latest_amended_on,
+                latest_issue_date=entry.latest_issue_date,
+                up_to_date_as_of=entry.up_to_date_as_of,
+                reserved=entry.reserved,
                 identifiers=(identifier,),
             )
         )
-    numbers = {entry.title_number for entry in parsed}
-    if len(numbers) != len(parsed):
-        raise GovInfoSourceDriftError("eCFR Titles payload contains duplicate title numbers")
 
     return ParsedECFRTitles(
         retrieved_at=acquired.pin.retrieved_at,
         source_sha256=acquired.sha256,
         source_byte_length=acquired.byte_length,
-        as_of_date=as_of_date,
-        import_in_progress=import_in_progress,
+        as_of_date=ecfr.date,
+        import_in_progress=ecfr.import_in_progress,
         titles=tuple(parsed),
     )
 

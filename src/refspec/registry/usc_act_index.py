@@ -30,13 +30,20 @@ from __future__ import annotations
 import json
 import re
 import shutil
-import xml.etree.ElementTree as ET
 import zipfile
 from collections import Counter
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, BinaryIO
+
+from spicy_docs.sources.uscode.core import UsCodeSourceError
+from spicy_docs.sources.uscode.table3 import (
+    iter_act_fragments as _sd_iter_act_fragments,
+)
+from spicy_docs.sources.uscode.table3 import (
+    parse_act_fragment as _sd_parse_act_fragment,
+)
 
 from refspec.registry.act_resolution import (
     GENERIC_ACT_STEM_STOPLIST as GENERIC_ACT_STEM_STOPLIST,
@@ -146,9 +153,6 @@ _TABLE3_KEY_SHAPE = re.compile(r"^(?:[1-9]\d{0,2}-[1-9]\d*|(?:1[789]|20)\d{2}:[1
 #: classification begins on whether the text names one page or a span.
 _FIRST_PAGE = re.compile(r"^\s*(\d+)")
 
-_ACT_OPEN = b"<act "
-_ACT_CLOSE = b"</act>"
-
 #: A build must not seal a secret. The scan is over what is written, not what
 #: was read, so a credential in an environment variable cannot reach the file.
 
@@ -220,73 +224,47 @@ def table3_key_from_search_key(search_key: str) -> str:
 def iter_act_fragments(stream: BinaryIO, *, block_size: int = 1 << 22) -> Iterator[bytes]:
     """Every ``<act>`` element of the bulk member, one at a time.
 
-    The member has no root element (:data:`BULK_WELL_FORMEDNESS_DEFECT`), so it
-    is split on ``</act>`` rather than parsed. The split is *checked*: bytes
-    before an ``<act`` or after the last ``</act>`` that are not whitespace
-    raise, so a shape this reader has not proved cannot be read as if it had.
+    Delegates raw fragment splitting and junk refusal to
+    :func:`spicy_docs.sources.uscode.table3.iter_act_fragments`, reading
+    ``stream`` in ``block_size`` chunks so block boundaries never affect the
+    result.
     """
 
-    pending = b""
-    for block in iter(lambda: stream.read(block_size), b""):
-        pending += block
-        while (cut := pending.find(_ACT_CLOSE)) >= 0:
-            fragment, pending = pending[: cut + len(_ACT_CLOSE)], pending[cut + len(_ACT_CLOSE) :]
-            start = fragment.find(_ACT_OPEN)
-            if start < 0:
-                raise BulkFormatError("a </act> with no <act> opening it")
-            junk = fragment[:start].strip()
-            if junk:
-                raise BulkFormatError(f"{len(junk)} bytes between two <act> elements: {junk[:60]!r}")
-            yield fragment[start:]
-    junk = pending.strip()
-    if junk:
-        raise BulkFormatError(f"{len(junk)} bytes after the last </act>: {junk[:60]!r}")
+    member = b"".join(iter(lambda: stream.read(block_size), b""))
+    try:
+        yield from _sd_iter_act_fragments(member)
+    except UsCodeSourceError as error:
+        raise BulkFormatError(str(error)) from error
 
 
 def parse_act(fragment: bytes | str) -> BulkAct:
-    """One ``<act>`` fragment, as the file states it."""
+    """One ``<act>`` fragment, as the file states it, with RefSpec's ``table3_key`` rule."""
 
+    raw = fragment.encode("utf-8") if isinstance(fragment, str) else fragment
     text = fragment.decode("utf-8") if isinstance(fragment, bytes) else fragment
-    element = ET.fromstring(text)
-    if element.tag != "act":
-        raise BulkFormatError(f"fragment is not an <act>: {element.tag!r}")
+    try:
+        parsed = _sd_parse_act_fragment(raw, max_bytes=max(len(raw), 4 * 1024 * 1024))
+    except UsCodeSourceError as error:
+        raise BulkFormatError(f"{error}: {text[:60]!r}") from error
 
-    def required(attribute: str) -> str:
-        # A bare KeyError says nothing about WHICH attribute or WHICH
-        # fragment; this names both, the way every other refusal here does.
-        try:
-            return element.attrib[attribute]
-        except KeyError:
-            raise BulkFormatError(f"<act> has no {attribute!r} attribute: {text[:60]!r}") from None
-
-    search_key = required("search-key")
     return BulkAct(
-        table3_key=table3_key_from_search_key(search_key),
-        search_key=search_key,
-        congress=required("congress"),
-        date=required("date"),
-        num=(element.findtext("num") or "").strip(),
-        statutes_at_large_volume=required("statutes-at-large-volume"),
+        table3_key=table3_key_from_search_key(parsed.search_key),
+        search_key=parsed.search_key,
+        congress=parsed.congress,
+        date=parsed.date,
+        num=parsed.num,
+        statutes_at_large_volume=parsed.statutes_at_large_volume,
         records=tuple(
             BulkRecord(
-                act_section=_stated(record, "act-section"),
-                statutes_at_large_page=_stated(record, "statutes-at-large-page"),
-                usc_title=_stated(record, "united-states-code-title"),
-                usc_section=_stated(record, "united-states-code-section"),
-                status=_stated(record, "united-states-code-status"),
+                act_section=record.act_section,
+                statutes_at_large_page=record.statutes_at_large_page,
+                usc_title=record.usc_title,
+                usc_section=record.usc_section,
+                status=record.usc_status,
             )
-            for record in element.findall("record")
+            for record in parsed.records
         ),
     )
-
-
-def _stated(element: ET.Element, tag: str) -> str | None:
-    """The text of a child element, or ``None`` when the file states none."""
-
-    child = element.find(tag)
-    if child is None:
-        return None
-    return (child.text or "").strip() or None
 
 
 def _is_stated_span(page: str) -> bool:

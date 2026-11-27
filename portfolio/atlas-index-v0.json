@@ -1,5 +1,5 @@
 {
-  "evidenceDigest": "sha256:728ff9caab382532e5eb69e9e63527b65132c0bbbf3b7c0b5e8039c59462740d",
+  "evidenceDigest": "sha256:49c7d1193d6186cf1183e14d34c70f86e4b033682f1793d8a5bd51badec97a81",
   "experimental": true,
   "format": "refspec-atlas-index/experimental-v0",
   "implementationModules": [
@@ -96,12 +96,12 @@
         {
           "kind": "parserTest",
           "path": "tests/test_cbo_topic_codes.py",
-          "sha256": "sha256:15892dd08804957d34f70da1912642883e18ff23b2fb2bbaebd507bdbec8ca44"
+          "sha256": "sha256:3851ce6220449ba9086963640e0c459973a3725f3dc0be89a213181497042077"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/cbo_topic_codes.py",
-          "sha256": "sha256:3b93768823b44302e6b3b6c85b7097ac0513a3e7a9a0d200d67ffd3ef282286a"
+          "sha256": "sha256:f23873c5a545beef68f6a96a0080adf9c68aa01d689f2282060559bcbd54e2af"
         }
       ],
       "release": null,
@@ -124,12 +124,12 @@
         {
           "kind": "parserTest",
           "path": "tests/test_cbo_topic_codes.py",
-          "sha256": "sha256:15892dd08804957d34f70da1912642883e18ff23b2fb2bbaebd507bdbec8ca44"
+          "sha256": "sha256:3851ce6220449ba9086963640e0c459973a3725f3dc0be89a213181497042077"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/cbo_topic_codes.py",
-          "sha256": "sha256:3b93768823b44302e6b3b6c85b7097ac0513a3e7a9a0d200d67ffd3ef282286a"
+          "sha256": "sha256:f23873c5a545beef68f6a96a0080adf9c68aa01d689f2282060559bcbd54e2af"
         }
       ],
       "release": null,
@@ -152,12 +152,12 @@
         {
           "kind": "parserTest",
           "path": "tests/test_cbo_topic_codes.py",
-          "sha256": "sha256:15892dd08804957d34f70da1912642883e18ff23b2fb2bbaebd507bdbec8ca44"
+          "sha256": "sha256:3851ce6220449ba9086963640e0c459973a3725f3dc0be89a213181497042077"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/cbo_topic_codes.py",
-          "sha256": "sha256:3b93768823b44302e6b3b6c85b7097ac0513a3e7a9a0d200d67ffd3ef282286a"
+          "sha256": "sha256:f23873c5a545beef68f6a96a0080adf9c68aa01d689f2282060559bcbd54e2af"
         }
       ],
       "release": null,
@@ -1638,12 +1638,12 @@
         {
           "kind": "parserTest",
           "path": "tests/test_govinfo_collections.py",
-          "sha256": "sha256:39c1b068d21128b82a819a373d6951acacaf903e2f5bbb8c9c09eb3d3a87413f"
+          "sha256": "sha256:dd373aba2cc6f33a8554f4d4036318db0ae60d007f165e6f88bc7f63343acc41"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/govinfo_collections.py",
-          "sha256": "sha256:2bdd0b4e8b310aac52ae8fbcecb4a0513925ede6e8e7bfad2435fe28212386f2"
+          "sha256": "sha256:74cc273397a7dd22341962da595f63d33bddd740be57a2952a2cb7da1fabe219"
         }
       ],
       "release": null,
@@ -1666,12 +1666,12 @@
         {
           "kind": "parserTest",
           "path": "tests/test_govinfo_collections.py",
-          "sha256": "sha256:39c1b068d21128b82a819a373d6951acacaf903e2f5bbb8c9c09eb3d3a87413f"
+          "sha256": "sha256:dd373aba2cc6f33a8554f4d4036318db0ae60d007f165e6f88bc7f63343acc41"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/govinfo_collections.py",
-          "sha256": "sha256:2bdd0b4e8b310aac52ae8fbcecb4a0513925ede6e8e7bfad2435fe28212386f2"
+          "sha256": "sha256:74cc273397a7dd22341962da595f63d33bddd740be57a2952a2cb7da1fabe219"
         }
       ],
       "release": null,
@@ -1694,12 +1694,12 @@
         {
           "kind": "parserTest",
           "path": "tests/test_govinfo_collections.py",
-          "sha256": "sha256:39c1b068d21128b82a819a373d6951acacaf903e2f5bbb8c9c09eb3d3a87413f"
+          "sha256": "sha256:dd373aba2cc6f33a8554f4d4036318db0ae60d007f165e6f88bc7f63343acc41"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/govinfo_collections.py",
-          "sha256": "sha256:2bdd0b4e8b310aac52ae8fbcecb4a0513925ede6e8e7bfad2435fe28212386f2"
+          "sha256": "sha256:74cc273397a7dd22341962da595f63d33bddd740be57a2952a2cb7da1fabe219"
         }
       ],
       "release": null,
@@ -3223,12 +3223,12 @@
         {
           "kind": "parserTest",
           "path": "tests/test_regulations_gov_codes.py",
-          "sha256": "sha256:05c48ab648b5c77054d03f754b0e9208128a916f78d978259322ff661adbade5"
+          "sha256": "sha256:8beea024d6708daef17d31631a4f4bf2f5af8c698a857a529e7beedb68e63b90"
         },
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/regulations_gov_codes.py",
-          "sha256": "sha256:89bcd3cf713827bc342540ef6345a62e3687f841c2572dfd8baf6e786ef59ee5"
+          "sha256": "sha256:91d769b3ba6b23f21d574d2d0ac9a9586524b53ba1189f1464dc092bb95528ca"
         }
       ],
       "release": null,
@@ -3536,7 +3536,7 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/unified_agenda_codes.py",
-          "sha256": "sha256:11e1c0ee80e4edfeb613e5bedc854dc9c438454eb33e2e28acd5bf3c6c822214"
+          "sha256": "sha256:4424b2a2bf64b0fe71d0ca8aeb650d15da14a619eb1b7dd645e24b1425a005d5"
         }
       ],
       "release": null,
@@ -3564,7 +3564,7 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/unified_agenda_codes.py",
-          "sha256": "sha256:11e1c0ee80e4edfeb613e5bedc854dc9c438454eb33e2e28acd5bf3c6c822214"
+          "sha256": "sha256:4424b2a2bf64b0fe71d0ca8aeb650d15da14a619eb1b7dd645e24b1425a005d5"
         }
       ],
       "release": null,
@@ -3592,7 +3592,7 @@
         {
           "kind": "sourceImplementation",
           "path": "src/refspec/registry/unified_agenda_codes.py",
-          "sha256": "sha256:11e1c0ee80e4edfeb613e5bedc854dc9c438454eb33e2e28acd5bf3c6c822214"
+          "sha256": "sha256:4424b2a2bf64b0fe71d0ca8aeb650d15da14a619eb1b7dd645e24b1425a005d5"
         }
       ],
       "release": null,

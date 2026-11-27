@@ -38,6 +38,8 @@ from pathlib import Path
 from typing import Literal, Protocol, cast
 from urllib.parse import urlsplit
 
+from spicy_docs.sources.source_domains import SourceDomainError, openapi_schema_enum
+
 from refspec.registry.infrastructure.controlled_identifier import ControlledIdentifier
 from refspec.registry.infrastructure.pinned_acquisition import FetcherAcquisitionMode as AcquisitionMode
 
@@ -85,25 +87,6 @@ _SCHEMA_BY_RESOURCE: dict[ResourceName, tuple[str, str, int]] = {
     "docketType": ("DocketType", "docketTypeCode", 2),
     "submitterType": ("SubmitterType", "submitterTypeCode", 3),
 }
-
-
-def _enum_block_pattern(schema_name: str) -> re.Pattern[str]:
-    """Match one ``<schema_name>: {type: string, description, enum: [...]}`` block.
-
-    The indentation is exact (4/6/8 spaces) because it is the real structure
-    observed in the pinned specification; any drift in shape fails to match
-    and is reported as source drift rather than silently accepted.
-    """
-
-    return re.compile(
-        r"\n {4}"
-        + re.escape(schema_name)
-        + r":\n"
-        r" {6}type: string\n"
-        r" {6}description: [^\n]+\n"
-        r" {6}enum:\n"
-        r"(?P<items>(?: {8}- [^\n]*\n)+)"
-    )
 
 
 class RegulationsGovResourceError(ValueError):
@@ -469,31 +452,19 @@ def parse_regulations_gov_resource(
 
     payload = acquired.path.read_bytes()
     _verify_payload(payload, acquired.pin, location="parsed Regulations.gov source")
-    text = payload.decode("utf-8")
 
     schema_name, identifier_kind, expected_count = _SCHEMA_BY_RESOURCE[resource_name]
-    match = _enum_block_pattern(schema_name).search(text)
-    if match is None:
+    try:
+        values = openapi_schema_enum(payload, schema_name, require_description=True)
+    except SourceDomainError as error:
         raise RegulationsGovSourceDriftError(
-            f"{resource_name} enum block for schema `{schema_name}` was not found in the expected shape"
-        )
-
-    values: list[str] = []
-    for line in match.group("items").splitlines():
-        # Each line is exactly `        - <value>`; a plain YAML scalar's
-        # trailing whitespace (observed once, on `Nonrulemaking `) folds away
-        # and is not part of the value.
-        raw = line[len("        - ") :].rstrip()
-        if not raw:
-            raise RegulationsGovSourceDriftError(f"{resource_name} enum contains a blank member")
-        values.append(raw)
+            f"{resource_name} enum block for schema `{schema_name}`: {error}"
+        ) from error
 
     if len(values) != expected_count:
         raise RegulationsGovSourceDriftError(
             f"{resource_name} count drift: expected {expected_count}, parsed {len(values)}"
         )
-    if len(set(values)) != len(values):
-        raise RegulationsGovSourceDriftError(f"{resource_name} enum contains duplicate publisher labels")
 
     codes = tuple(
         RGovCode(
