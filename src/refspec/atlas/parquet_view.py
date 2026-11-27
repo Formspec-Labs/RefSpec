@@ -1112,6 +1112,10 @@ AGENCY_REGISTRY_VIEW_RECORD_TYPE = "AgencyRegistryViewManifest"
 # spicy-regs vendors now, stays verifiable against the release without the
 # alias batch.
 AGENCY_REGISTRY_VIEW_SCHEMA_VERSION = "1.4"
+# Decoupled from AtlasParquetViewManifest's VIEW_IMPLEMENTATION_VERSION so Atlas
+# statements.parquet schema bumps (e.g. 3.3 effective periods) do not churn the
+# sealed AgencyRegistryViewManifest 1.4 pin when agency-registry tables did not change.
+AGENCY_REGISTRY_VIEW_IMPLEMENTATION_VERSION = "3.2"
 LEGACY_AGENCY_REGISTRY_VIEW_SCHEMA_VERSION = "1.0"
 _AGENCY_REGISTRY_SCHEMAS_BY_VERSION: Mapping[str, Mapping[str, pa.Schema]] = {
     AGENCY_REGISTRY_VIEW_SCHEMA_VERSION: AGENCY_REGISTRY_TABLE_SCHEMAS,
@@ -1213,7 +1217,7 @@ def seal_agency_registry_view(
         "compression": COMPRESSION,
         "compressionLevel": COMPRESSION_LEVEL,
         "implementation": VIEW_IMPLEMENTATION,
-        "implementationVersion": VIEW_IMPLEMENTATION_VERSION,
+        "implementationVersion": AGENCY_REGISTRY_VIEW_IMPLEMENTATION_VERSION,
         "parquetVersion": PARQUET_VERSION,
         "pyarrowVersion": importlib.metadata.version("pyarrow"),
         "rowGroupSize": ROW_GROUP_SIZE,
