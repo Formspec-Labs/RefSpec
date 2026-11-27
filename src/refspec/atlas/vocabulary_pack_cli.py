@@ -11,6 +11,7 @@ from typing import Any
 from refspec.atlas.vocabulary_pack import AtlasVocabularyPack
 from refspec.atlas.vocabulary_pack_build import build_vocabulary_pack
 from refspec.atlas.vocabulary_protocols import (
+    DEFAULT_CALIBRATION_EVT_SIGMA,
     DEFAULT_CURATED_SCHEME_WEIGHTS,
     REGULATORY_BENCHMARK_SCHEME_PRESET,
     AuthorityReranker,
@@ -49,6 +50,37 @@ def _build_parser() -> argparse.ArgumentParser:
         type=float,
         default=None,
         help="Optional calibrated cosine abstention floor persisted in the .vpack header",
+    )
+    p_vec.add_argument(
+        "--calibration-mode",
+        choices=("auto", "none", "centered_covariance"),
+        default="auto",
+        help="OOD calibration mode for the compiled sidecar (default: auto)",
+    )
+    p_vec.add_argument(
+        "--calibration-evt-sigma",
+        type=float,
+        default=DEFAULT_CALIBRATION_EVT_SIGMA,
+        help="Extreme-value sigma multiplier for unsupervised recommendedMinCosine calibration",
+    )
+
+    p_cal = sub.add_parser(
+        "calibrate-vectors",
+        help="Attach unsupervised centered-covariance EVT OOD calibration to an existing .vpack sidecar",
+    )
+    p_cal.add_argument("--sidecar", type=Path, required=True)
+    p_cal.add_argument("--output", type=Path, required=True)
+    p_cal.add_argument(
+        "--calibration-evt-sigma",
+        type=float,
+        default=DEFAULT_CALIBRATION_EVT_SIGMA,
+        help="Extreme-value sigma multiplier for unsupervised recommendedMinCosine calibration",
+    )
+    p_cal.add_argument(
+        "--recommended-min-cosine",
+        type=float,
+        default=None,
+        help="Optional explicit abstention floor override persisted in the calibrated .vpack header",
     )
 
     p_verify = sub.add_parser("verify", help="Verify a compiled pack (and optional sidecar) and print stats")
@@ -115,6 +147,20 @@ def main(argv: list[str] | None = None) -> int:
             model_id=args.model_id,
             mode=args.mode,
             n_clusters=args.clusters,
+            recommended_min_cosine=args.recommended_min_cosine,
+            calibration_mode=args.calibration_mode,
+            calibration_evt_sigma=args.calibration_evt_sigma,
+        )
+        print(json.dumps(vmanifest.to_dict(), indent=2))
+        return 0
+
+    if args.command == "calibrate-vectors":
+        from refspec.atlas.vocabulary_vectors import calibrate_semantic_sidecar
+
+        vmanifest = calibrate_semantic_sidecar(
+            args.sidecar,
+            args.output,
+            calibration_evt_sigma=args.calibration_evt_sigma,
             recommended_min_cosine=args.recommended_min_cosine,
         )
         print(json.dumps(vmanifest.to_dict(), indent=2))

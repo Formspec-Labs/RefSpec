@@ -285,21 +285,23 @@ class _SearchRidsCapabilities:
     supports_nprobe: bool
     supports_allowed_rids: bool
     supports_rerank_top_r: bool
+    supports_scale_threshold_for_subset: bool = False
 
 
 def _inspect_search_rids_capabilities(index: SemanticIndex | None) -> _SearchRidsCapabilities:
     if index is None:
-        return _SearchRidsCapabilities(False, False, False, False)
+        return _SearchRidsCapabilities(False, False, False, False, False)
     try:
         params = inspect.signature(index.search_rids).parameters
     except (TypeError, ValueError):
-        return _SearchRidsCapabilities(False, False, False, False)
+        return _SearchRidsCapabilities(False, False, False, False, False)
     has_var_kw = any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values())
     return _SearchRidsCapabilities(
         supports_min_cosine=has_var_kw or "min_cosine" in params,
         supports_nprobe=has_var_kw or "nprobe" in params,
         supports_allowed_rids=has_var_kw or "allowed_rids" in params,
         supports_rerank_top_r=has_var_kw or "rerank_top_r" in params,
+        supports_scale_threshold_for_subset=has_var_kw or "scale_threshold_for_subset" in params,
     )
 
 
@@ -894,7 +896,14 @@ class AtlasVocabularyPack:
             self._allowed_mask_cache[key] = mask
         return mask
 
-    def _effective_min_cosine(self, min_cosine: float | None) -> float:
+    def _effective_min_cosine_with_source(self, min_cosine: float | None) -> tuple[float, bool]:
+        """Return ``(threshold, from_recommended)``.
+
+        ``from_recommended`` is ``True`` only when neither the per-call ``min_cosine``
+        nor ``LookupPolicy.min_cosine`` specified an explicit floor and the threshold
+        comes from ``SemanticIndex.recommended_min_cosine`` (allowing EVT subset scaling).
+        """
+
         if min_cosine is not None:
             if (
                 isinstance(min_cosine, bool)
@@ -906,9 +915,9 @@ class AtlasVocabularyPack:
                     "invalid_min_cosine",
                     f"min_cosine must be a finite number in [-1.0, 1.0], got {min_cosine!r}",
                 )
-            return float(min_cosine)
+            return float(min_cosine), False
         if self._lookup_policy.min_cosine is not None:
-            return float(self._lookup_policy.min_cosine)
+            return float(self._lookup_policy.min_cosine), False
         if self._semantic_index is not None:
             rec = getattr(self._semantic_index, "recommended_min_cosine", None)
             if (
@@ -917,8 +926,11 @@ class AtlasVocabularyPack:
                 and isinstance(rec, (int, float))
                 and math.isfinite(float(rec))
             ):
-                return float(rec)
-        return DEFAULT_MIN_COSINE
+                return float(rec), True
+        return DEFAULT_MIN_COSINE, False
+
+    def _effective_min_cosine(self, min_cosine: float | None) -> float:
+        return self._effective_min_cosine_with_source(min_cosine)[0]
 
     def _call_semantic_search(
         self,
@@ -928,6 +940,7 @@ class AtlasVocabularyPack:
         min_cosine: float,
         nprobe: int,
         allowed_rids: Any = None,
+        scale_threshold_for_subset: bool = False,
     ) -> list[tuple[int, float]]:
         assert self._semantic_index is not None
         caps = self._sem_caps
@@ -938,6 +951,8 @@ class AtlasVocabularyPack:
             kwargs["nprobe"] = nprobe
         if allowed_rids is not None and caps.supports_allowed_rids:
             kwargs["allowed_rids"] = allowed_rids
+        if scale_threshold_for_subset and caps.supports_scale_threshold_for_subset:
+            kwargs["scale_threshold_for_subset"] = True
         raw = self._semantic_index.search_rids(query_vector, **kwargs)
         if not caps.supports_min_cosine:
             raw = [(rid, sc) for rid, sc in raw if sc >= min_cosine]
@@ -1260,7 +1275,7 @@ class AtlasVocabularyPack:
         lp = self._lookup_policy
         use_grouping = lp.group_identical_labels if group_identical_labels is None else group_identical_labels
         use_context = lp.include_context if include_context is None else include_context
-        eff_min_cosine = self._effective_min_cosine(min_cosine)
+        eff_min_cosine, using_recommended_min = self._effective_min_cosine_with_source(min_cosine)
         eff_nprobe = lp.nprobe if nprobe is None else nprobe
 
         self._pool.check_open()
@@ -1515,6 +1530,7 @@ class AtlasVocabularyPack:
                 min_cosine=eff_min_cosine,
                 nprobe=eff_nprobe,
                 allowed_rids=allowed_mask,
+                scale_threshold_for_subset=using_recommended_min,
             )
             if allowed_sids is not None:
                 dense_hits = [(rid, sc) for rid, sc in dense_raw if self._rid_matches_sids(rid, allowed_sids)]
@@ -1887,6 +1903,12 @@ class AtlasVocabularyPack:
         Pushes scheme / ``exclude_same_scheme`` constraints as an ``allowed_rids``
         mask directly into ``SemanticIndex.search_rids`` (with O(1) in-memory
         ``sid_by_rid`` verification and zero N+1 SQL).
+
+        When the attached sidecar uses ``calibration_mode == "centered_covariance"``,
+        each returned ``semanticSimilarity`` value is the scaled centered-covariance
+        similarity ``(q - mu)^T (v - mu) / (1 - ||mu||^2)`` (mean ``0.0`` for random
+        corpus pairs, expected ``1.0`` for self-matches), whose range can exceed
+        ``1.0`` or fall below ``-1.0``.
         """
 
         if self._semantic_index is None:
@@ -1895,7 +1917,7 @@ class AtlasVocabularyPack:
                 "similar() requires an injected SemanticIndex sidecar",
             )
         limit = _normalize_limit(limit, maximum=_MAX_LOOKUP_LIMIT, name="limit")
-        eff_min_cos = self._effective_min_cosine(min_cosine)
+        eff_min_cos, using_recommended_min = self._effective_min_cosine_with_source(min_cosine)
         eff_nprobe = self._lookup_policy.nprobe if nprobe is None else nprobe
 
         allowed_sids: set[int] | None = None
@@ -1929,6 +1951,7 @@ class AtlasVocabularyPack:
             min_cosine=eff_min_cos,
             nprobe=eff_nprobe,
             allowed_rids=allowed_mask,
+            scale_threshold_for_subset=using_recommended_min,
         )
         filtered_rids: list[int] = []
         score_by_rid: dict[int, float] = {}
@@ -2642,6 +2665,13 @@ class AtlasVocabularyPack:
         nprobe: int | None = None,
         include_context: bool = False,
     ) -> list[dict[str, Any]]:
+        """Async wrapper for ``similar_sync``.
+
+        When the attached sidecar uses ``calibration_mode == "centered_covariance"``,
+        ``semanticSimilarity`` is the scaled centered-covariance similarity
+        ``(q - mu)^T (v - mu) / (1 - ||mu||^2)`` (mean ``0.0`` for random corpus pairs,
+        expected ``1.0`` for self-matches) whose range can exceed ``1.0`` or fall below ``-1.0``.
+        """
         _ = run
         if reference is None:
             raise VocabularyInputError("invalid_reference", "concept reference is required")
@@ -2940,10 +2970,11 @@ class PriorGuidedSemanticIndex:
         query_vector: Sequence[float],
         *,
         top_k: int = 40,
-        min_cosine: float = DEFAULT_MIN_COSINE,
+        min_cosine: float | None = DEFAULT_MIN_COSINE,
         nprobe: int = 24,
         allowed_rids: Any = None,
         rerank_top_r: int | None = None,
+        scale_threshold_for_subset: bool = False,
     ) -> list[tuple[int, float]]:
         if top_k <= 0:
             return []
@@ -2951,19 +2982,31 @@ class PriorGuidedSemanticIndex:
         caps = self._inner_caps
         kwargs: dict[str, Any] = {"top_k": req_k}
         if caps.supports_min_cosine:
-            kwargs["min_cosine"] = min_cosine
+            if min_cosine is None and not caps.supports_scale_threshold_for_subset:
+                rec = self.recommended_min_cosine
+                kwargs["min_cosine"] = float(rec) if rec is not None else DEFAULT_MIN_COSINE
+            else:
+                kwargs["min_cosine"] = min_cosine
         if caps.supports_nprobe:
             kwargs["nprobe"] = nprobe
         if allowed_rids is not None and caps.supports_allowed_rids:
             kwargs["allowed_rids"] = allowed_rids
         if caps.supports_rerank_top_r:
             kwargs["rerank_top_r"] = max(req_k * 2, 1024) if rerank_top_r is None else int(rerank_top_r)
+        if scale_threshold_for_subset and caps.supports_scale_threshold_for_subset:
+            kwargs["scale_threshold_for_subset"] = True
 
         raw = self._inner.search_rids(query_vector, **kwargs)
         if not raw:
             return []
         if not caps.supports_min_cosine:
-            raw = [(rid, sc) for rid, sc in raw if sc >= min_cosine]
+            rec = self.recommended_min_cosine
+            eff_floor = (
+                float(min_cosine)
+                if min_cosine is not None
+                else (float(rec) if rec is not None else DEFAULT_MIN_COSINE)
+            )
+            raw = [(rid, sc) for rid, sc in raw if sc >= eff_floor]
         if allowed_rids is not None and not caps.supports_allowed_rids:
             checker = _prepare_allowed_checker(allowed_rids)
             if checker is not None:

@@ -4573,3 +4573,27 @@ def test_calibrated_sidecar_integration_and_strict_majority_soft_or_abstention(t
             pos_hits = pack.lookup_sync("semantic paraphrase probe", limit=5, query_vector=vecs[0])
             assert len(pos_hits) >= 1
 
+            # Explicit caller min_cosine=0.95 under scheme filter is NEVER silently lowered by EVT scaling!
+            # Construct a query with calibrated similarity ~0.70 to vecs[0] (strictly below 0.95).
+            mu_est = vecs.astype(np.float64).mean(axis=0)
+            res_var = 1.0 - float(np.dot(mu_est, mu_est))
+            v0_sub = vecs[0] - mu_est.astype(np.float32)
+            v0_u = v0_sub / np.linalg.norm(v0_sub)
+            orth = rng.normal(size=dim).astype(np.float32)
+            orth[0] = 0.0
+            orth -= float(np.dot(orth, v0_u)) * v0_u
+            orth /= np.linalg.norm(orth)
+            a = 0.70 * res_var / float(np.linalg.norm(v0_sub))
+            b = math.sqrt(max(1e-6, res_var - a * a))
+            q_70 = mu_est.astype(np.float32) + a * v0_u + b * orth
+            q_70 /= np.linalg.norm(q_70)
+
+            assert (
+                pack.lookup_sync("semantic paraphrase probe", limit=5, schemes=[S_FR], query_vector=q_70, min_cosine=0.95)
+                == []
+            )
+            assert guided.search_rids(q_70, top_k=5, min_cosine=0.95, allowed_rids={all_rids[0]}) == []
+            # Auto-EVT (min_cosine=None) on PriorGuidedSemanticIndex preserves subset scaling semantics.
+            guided_auto = guided.search_rids(q_70, top_k=5, min_cosine=None, allowed_rids={all_rids[0]})
+            assert all(isinstance(r, int) and isinstance(s, float) for r, s in guided_auto)
+

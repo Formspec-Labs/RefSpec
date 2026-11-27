@@ -1692,8 +1692,8 @@ def test_centered_covariance_calibration_parity_and_evt_ood_abstention_all_modes
         assert raw_fp == 8
         assert cal_fp == 0
 
-        # 3. Subset-size EVT scaling lowers effective threshold on tiny filtered subsets while clamping at N_floor=64.
-        # Build a query whose calibrated similarity to target rid=6 sits strictly between scaled_thr and full_thr.
+        # 3. Subset-size EVT scaling MUST NOT silently lower an explicit caller min_cosine,
+        #    and MUST apply when min_cosine=None (auto-EVT) or scale_threshold_for_subset=True!
         full_thr = float(sidecar.recommended_min_cosine or 0.70)
         evt_factor_64 = math.sqrt(math.log(64) / math.log(n_vecs))
         target_score = 0.5 * (full_thr + full_thr * evt_factor_64)
@@ -1709,12 +1709,35 @@ def test_centered_covariance_calibration_parity_and_evt_ood_abstention_all_modes
         q_mid = mu_ref.astype(np.float32) + alpha * v5_unit + beta * orth
         q_mid /= np.linalg.norm(q_mid)
 
-        # Filtered to 8 rids (<= 64 -> uses N_floor=64 EVT scaling): target rid=6 MUST pass!
         small_subset = {6, 10, 20, 30, 40, 50, 60, 70}
-        filtered_hits = sidecar.search_rids(
+        # Explicit min_cosine=full_thr or min_cosine=0.95 is a strict floor (never lowered!).
+        strict_hits_full = sidecar.search_rids(
             q_mid, top_k=5, min_cosine=full_thr, nprobe=16, allowed_rids=small_subset
         )
-        assert any(rid == 6 for rid, _ in filtered_hits)
+        assert all(sc >= full_thr for _, sc in strict_hits_full)
+        assert not any(rid == 6 for rid, _ in strict_hits_full)
+
+        strict_hits_095 = sidecar.search_rids(
+            q_mid, top_k=5, min_cosine=0.95, nprobe=16, allowed_rids=small_subset
+        )
+        assert all(sc >= 0.95 for _, sc in strict_hits_095)
+        assert strict_hits_095 == []
+
+        # min_cosine=None (auto-EVT) and explicit scale_threshold_for_subset=True DO scale for subset!
+        auto_evt_hits = sidecar.search_rids(
+            q_mid, top_k=5, min_cosine=None, nprobe=16, allowed_rids=small_subset
+        )
+        assert any(rid == 6 for rid, _ in auto_evt_hits)
+
+        optin_evt_hits = sidecar.search_rids(
+            q_mid,
+            top_k=5,
+            min_cosine=full_thr,
+            nprobe=16,
+            allowed_rids=small_subset,
+            scale_threshold_for_subset=True,
+        )
+        assert optin_evt_hits == auto_evt_hits
 
 
 def test_calibrate_semantic_sidecar_upgrade_and_corrupt_header_rejection(tmp_path: Path) -> None:
@@ -1834,6 +1857,151 @@ def test_calibrate_semantic_sidecar_upgrade_and_corrupt_header_rejection(tmp_pat
     with pytest.raises(VocabularyPackError, match="non-finite") as exc_nan:
         AtlasSemanticSidecar.open(p_nan)
     assert exc_nan.value.code == "corrupt_sidecar"
+
+
+def test_degenerate_nan_inf_and_zero_corpora_calibration_safety(tmp_path: Path) -> None:
+    """P1 A-1: NaN, Inf, and all-zero corpora fail closed in centered_covariance and fall back cleanly in auto."""
+    pack_path = _make_minimal_pack(tmp_path / "deg_safety.sqlite")
+    dim = 16
+
+    # 1. Explicit centered_covariance rejects all-zero (N=1 and N=16), NaN, +Inf, and -Inf corpora cleanly.
+    all_zero_single = np.zeros((1, dim), dtype=np.float16)
+    all_zero_batch = np.zeros((16, dim), dtype=np.float16)
+
+    nan_vecs = np.eye(16, dim, dtype=np.float16)
+    nan_vecs[0, 0] = np.float16("nan")
+
+    pos_inf_vecs = np.eye(16, dim, dtype=np.float16)
+    pos_inf_vecs[0, 0] = np.float16("inf")
+
+    neg_inf_vecs = np.eye(16, dim, dtype=np.float16)
+    neg_inf_vecs[0, 0] = np.float16("-inf")
+
+    for label, bad_mat in (
+        ("zero_n1", all_zero_single),
+        ("zero_n16", all_zero_batch),
+        ("nan", nan_vecs),
+        ("pos_inf", pos_inf_vecs),
+        ("neg_inf", neg_inf_vecs),
+    ):
+        with pytest.raises(VocabularyInputError) as exc_deg:
+            build_semantic_sidecar_from_arrays(
+                pack_path,
+                tmp_path / f"explicit_{label}.vpack",
+                vectors_f16=bad_mat.copy(),
+                rids_per_vector=[[i + 1] for i in range(bad_mat.shape[0])],
+                model_id="m",
+                mode="flat_f16",
+                calibration_mode="centered_covariance",
+            )
+        assert exc_deg.value.code == "degenerate_corpus_moments", label
+
+    # 2. Auto mode on N=1,100 (>= 1024) with NaN / Inf / all-zero falls back gracefully to "none" and opens cleanly!
+    rng = np.random.default_rng(55)
+    n_big = 1_100
+    axis = np.zeros(dim, dtype=np.float32)
+    axis[0] = 1.0
+    perp = rng.normal(size=(n_big, dim)).astype(np.float32)
+    perp[:, 0] = 0.0
+    perp /= np.linalg.norm(perp, axis=1, keepdims=True)
+    aniso = (0.82 * axis[None, :] + 0.57 * perp).astype(np.float16)
+    big_rids = [[i + 1] for i in range(n_big)]
+
+    aniso_nan = aniso.copy()
+    aniso_nan[10, 0] = np.float16("nan")
+    aniso_inf = aniso.copy()
+    aniso_inf[10, 0] = np.float16("inf")
+    zeros_big = np.zeros((n_big, dim), dtype=np.float16)
+
+    for label, mat in (("auto_nan", aniso_nan), ("auto_inf", aniso_inf), ("auto_zeros", zeros_big)):
+        out_p = tmp_path / f"{label}.vpack"
+        man = build_semantic_sidecar_from_arrays(
+            pack_path,
+            out_p,
+            vectors_f16=mat,
+            rids_per_vector=big_rids,
+            model_id="m",
+            mode="flat_f16",
+            calibration_mode="auto",
+        )
+        assert man.calibration_mode == "none", label
+        assert man.corpus_mean_norm_sq is None
+        assert man.corpus_pair_std is None
+        with AtlasSemanticSidecar.open(out_p) as sc:
+            assert sc.calibration_mode == "none"
+            assert sc.calibration_active is False
+
+
+def test_atlas_calibration_reexports_and_cli_subcommands(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """P2 A-4: Verify refspec.atlas lazy re-exports and CLI build-vectors / calibrate-vectors subcommands."""
+    import refspec.atlas as atlas_pkg
+    from refspec.atlas.vocabulary_pack_cli import _build_parser
+    from refspec.atlas.vocabulary_pack_cli import main as cli_main
+
+    for sym in ("calibrate_semantic_sidecar", "DEFAULT_CALIBRATION_EVT_SIGMA", "DEFAULT_CALIBRATION_MIN_ELIGIBLE"):
+        assert sym in atlas_pkg.__all__
+        assert getattr(atlas_pkg, sym) is not None
+
+    parser = _build_parser()
+    parsed_vec = parser.parse_args(
+        [
+            "build-vectors",
+            "--pack",
+            str(tmp_path / "p.sqlite"),
+            "--embeddings-dir",
+            str(tmp_path / "emb"),
+            "--output",
+            str(tmp_path / "out.vpack"),
+            "--calibration-mode",
+            "centered_covariance",
+            "--calibration-evt-sigma",
+            "1.75",
+        ]
+    )
+    assert parsed_vec.calibration_mode == "centered_covariance"
+    assert parsed_vec.calibration_evt_sigma == pytest.approx(1.75)
+
+    # End-to-end CLI calibrate-vectors execution on a real .vpack file.
+    pack_path = _make_minimal_pack(tmp_path / "cli_cal.sqlite")
+    rng = np.random.default_rng(7)
+    dim = 32
+    axis = np.zeros(dim, dtype=np.float32)
+    axis[0] = 1.0
+    perp = rng.normal(size=(64, dim)).astype(np.float32)
+    perp[:, 0] = 0.0
+    perp /= np.linalg.norm(perp, axis=1, keepdims=True)
+    vecs = (0.80 * axis[None, :] + 0.60 * perp).astype(np.float16)
+
+    raw_vpack = tmp_path / "cli_raw.vpack"
+    build_semantic_sidecar_from_arrays(
+        pack_path,
+        raw_vpack,
+        vectors_f16=vecs,
+        rids_per_vector=[[i + 1] for i in range(64)],
+        model_id="google/embeddinggemma-2-512d-mrl",
+        mode="flat_f16",
+        calibration_mode="none",
+    )
+    cal_vpack = tmp_path / "cli_cal.vpack"
+    rc = cli_main(
+        [
+            "calibrate-vectors",
+            "--sidecar",
+            str(raw_vpack),
+            "--output",
+            str(cal_vpack),
+            "--calibration-evt-sigma",
+            "1.6",
+        ]
+    )
+    assert rc == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["calibrationMode"] == "centered_covariance"
+    assert payload["recommendedMinCosine"] is not None
+    with AtlasSemanticSidecar.open(cal_vpack) as sc:
+        assert sc.calibration_active is True
+        assert sc.recommended_min_cosine == pytest.approx(payload["recommendedMinCosine"])
+
 
 
 

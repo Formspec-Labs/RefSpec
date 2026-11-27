@@ -121,7 +121,13 @@ class SemanticIndex(Protocol):
         allowed_rids: Any = None,
         rerank_top_r: int | None = None,
     ) -> list[tuple[int, float]]:
-        """Return ``(rid, cosine_score)`` pairs sorted descending by cosine similarity.
+        """Return ``(rid, score)`` pairs sorted descending by similarity.
+
+        For uncalibrated indexes, scores are raw cosine similarities in ``[-1.0, 1.0]``.
+        When an index uses ``calibration_mode == "centered_covariance"``, scores are
+        scaled centered-covariance similarities ``(q - mu)^T (v - mu) / (1 - ||mu||^2)``
+        (mean ``0.0`` for random corpus pairs, expected ``1.0`` for self-matches),
+        whose values can exceed ``1.0`` or fall below ``-1.0``.
 
         ``allowed_rids`` accepts ``None`` (unfiltered), a dense 0/1 byte mask
         (``bytes | bytearray | memoryview`` of length ``max_rid + 1``), or a

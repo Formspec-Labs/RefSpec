@@ -50,6 +50,7 @@ import numpy as np
 from refspec.atlas.vocabulary_protocols import (
     DEFAULT_CALIBRATION_EVT_SIGMA,
     DEFAULT_CALIBRATION_MIN_ELIGIBLE,
+    DEFAULT_MIN_COSINE,
     VocabularyInputError,
     VocabularyPackError,
 )
@@ -177,7 +178,7 @@ def _l2_normalize_rows(mat: np.ndarray) -> np.ndarray:
 
 def _l2_normalize_rows_inplace(mat_f32: np.ndarray) -> np.ndarray:
     norms = np.linalg.norm(mat_f32, axis=1, keepdims=True)
-    norms = np.where(norms > 1e-12, norms, 1.0)
+    norms = np.where(np.isfinite(norms) & (norms > 1e-12), norms, 1.0)
     mat_f32 /= norms
     return mat_f32
 
@@ -294,37 +295,72 @@ class _CorpusMomentAccumulator:
             return "none", None, None, None, explicit_recommended_min_cosine
 
         mu_f64 = self._sum_v / float(self._count)
-        mu_norm_sq = float(np.dot(mu_f64, mu_f64))
-        res_var = 1.0 - mu_norm_sq
+        raw_finite = bool(np.all(np.isfinite(mu_f64))) and bool(np.all(np.isfinite(self._sum_vv)))
+        if raw_finite:
+            mu_norm_sq = float(np.dot(mu_f64, mu_f64))
+            res_var = 1.0 - mu_norm_sq
+            sigma = (self._sum_vv / float(self._count)) - np.outer(mu_f64, mu_f64)
+            tr_sigma_sq = float(np.sum(sigma * sigma))
+        else:
+            mu_norm_sq = float("nan")
+            res_var = float("nan")
+            tr_sigma_sq = float("nan")
+
+        moments_finite = (
+            raw_finite
+            and math.isfinite(mu_norm_sq)
+            and math.isfinite(res_var)
+            and math.isfinite(tr_sigma_sq)
+        )
+        pair_std = (
+            math.sqrt(max(tr_sigma_sq, 0.0)) / res_var
+            if (moments_finite and res_var >= _CALIBRATION_MIN_RESIDUAL_VAR)
+            else float("nan")
+        )
+        mu_f32 = mu_f64.astype(np.float32)
+        mu_f32_norm_sq = (
+            float(np.dot(mu_f32.astype(np.float64), mu_f32.astype(np.float64)))
+            if bool(np.all(np.isfinite(mu_f32)))
+            else float("nan")
+        )
+        moments_valid = (
+            moments_finite
+            and bool(np.all(np.isfinite(mu_f32)))
+            and math.isfinite(mu_f32_norm_sq)
+            and 0.0 <= mu_norm_sq <= 1.0 - _CALIBRATION_MIN_RESIDUAL_VAR
+            and 0.0 <= mu_f32_norm_sq <= 1.0 - _CALIBRATION_MIN_RESIDUAL_VAR
+            and res_var >= _CALIBRATION_MIN_RESIDUAL_VAR
+            and math.isfinite(pair_std)
+            and pair_std > 0.0
+        )
 
         if requested_mode == "auto":
             if (
                 self._count < _AUTO_CALIBRATION_MIN_VECS
+                or not moments_valid
                 or mu_norm_sq < _AUTO_CALIBRATION_MIN_MEAN_NORM_SQ
-                or res_var < _CALIBRATION_MIN_RESIDUAL_VAR
             ):
                 return "none", None, None, None, explicit_recommended_min_cosine
-        elif res_var < _CALIBRATION_MIN_RESIDUAL_VAR:
+        elif not moments_valid:
             raise VocabularyInputError(
                 "degenerate_corpus_moments",
-                f"cannot compute centered_covariance calibration: residual variance {res_var:.6g} "
-                f"is below {_CALIBRATION_MIN_RESIDUAL_VAR}",
+                f"cannot compute centered_covariance calibration: corpus moments are non-finite or degenerate "
+                f"(res_var={res_var!r}, pair_std={pair_std!r})",
             )
 
-        sigma = (self._sum_vv / float(self._count)) - np.outer(mu_f64, mu_f64)
-        tr_sigma_sq = float(np.sum(sigma * sigma))
-        pair_std = math.sqrt(max(tr_sigma_sq, 0.0)) / res_var
-
         rec_min = explicit_recommended_min_cosine
-        if rec_min is None and pair_std > 0.0 and math.isfinite(pair_std):
+        if rec_min is None:
             raw_evt = evt_sigma * pair_std * math.sqrt(2.0 * math.log(max(self._count, _CALIBRATION_EVT_N_FLOOR)))
             rec_min = round(min(max(raw_evt, _AUTO_REC_MIN_COSINE_LO), _AUTO_REC_MIN_COSINE_HI), 6)
 
+        rounded_pair_std = round(pair_std, 8)
+        stored_pair_std = rounded_pair_std if rounded_pair_std > 0.0 else float(pair_std)
+
         return (
             "centered_covariance",
-            mu_f64.astype(np.float32),
+            mu_f32,
             round(mu_norm_sq, 8),
-            round(pair_std, 8),
+            stored_pair_std,
             rec_min,
         )
 
@@ -684,7 +720,7 @@ def _write_sidecar_sections(
     sec_meta: dict[str, dict[str, int]] = {}
     for _ in range(6):
         candidate = dict(base_header, sections=sec_meta)
-        header_bytes = json.dumps(candidate, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        header_bytes = json.dumps(candidate, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
         cursor = _align(len(SIDECAR_MAGIC) + 8 + len(header_bytes))
         new_meta: dict[str, dict[str, int]] = {}
         for name, buf in sections:
@@ -700,11 +736,15 @@ def _write_sidecar_sections(
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     tmp_fd, tmp_name = tempfile.mkstemp(prefix=f".{out_path.name}.", suffix=".tmp", dir=str(out_path.parent))
-    os.close(tmp_fd)
     tmp_path = Path(tmp_name)
 
     try:
-        with tmp_path.open("wb") as handle:
+        try:
+            handle = os.fdopen(tmp_fd, "wb")
+        except BaseException:
+            os.close(tmp_fd)
+            raise
+        with handle:
             handle.write(SIDECAR_MAGIC)
             handle.write(struct.pack("<Q", len(header_bytes)))
             handle.write(header_bytes)
@@ -2274,12 +2314,26 @@ class AtlasSemanticSidecar:
         query_vector: Sequence[float],
         *,
         top_k: int = 40,
-        min_cosine: float = 0.55,
+        min_cosine: float | None = DEFAULT_MIN_COSINE,
         nprobe: int = 24,
         allowed_rids: Any = None,
         rerank_top_r: int | None = None,
+        scale_threshold_for_subset: bool = False,
     ) -> list[tuple[int, float]]:
-        """Return up to ``top_k`` ``(rid, cosine_score)`` pairs meeting ``min_cosine``."""
+        """Return up to ``top_k`` ``(rid, score)`` pairs meeting the similarity floor.
+
+        For uncalibrated sidecars, scores are raw cosine similarities in ``[-1.0, 1.0]``.
+        When ``calibration_active`` is ``True`` (``calibration_mode == "centered_covariance"``),
+        scores are scaled centered-covariance similarities
+        ``(q - mu)^T (v - mu) / (1 - ||mu||^2)`` (mean ``0.0`` for random corpus pairs,
+        expected ``1.0`` for self-matches) whose range can exceed ``1.0`` or fall below ``-1.0``.
+
+        An explicit numeric ``min_cosine`` is enforced as a strict floor even when
+        ``allowed_rids`` restricts the candidate subset unless ``scale_threshold_for_subset=True``
+        is passed explicitly. Pass ``min_cosine=None`` to use the sidecar's unsupervised
+        ``recommended_min_cosine`` with automatic Gaussian EVT subset scaling
+        ``sqrt(ln(max(n_eligible, 64)) / ln(n_total))`` when ``allowed_rids`` narrows the corpus.
+        """
 
         self._begin_query()
         try:
@@ -2290,6 +2344,7 @@ class AtlasSemanticSidecar:
                 nprobe=nprobe,
                 allowed_rids=allowed_rids,
                 rerank_top_r=rerank_top_r,
+                scale_threshold_for_subset=scale_threshold_for_subset,
             )
         finally:
             self._end_query()
@@ -2299,10 +2354,11 @@ class AtlasSemanticSidecar:
         query_vector: Sequence[float],
         *,
         top_k: int = 40,
-        min_cosine: float = 0.55,
+        min_cosine: float | None = DEFAULT_MIN_COSINE,
         nprobe: int = 24,
         allowed_rids: Any = None,
         rerank_top_r: int | None = None,
+        scale_threshold_for_subset: bool = False,
     ) -> list[tuple[int, float]]:
         q = np.asarray(query_vector, dtype=np.float32)
         if q.ndim != 1 or q.shape[0] != self._dim:
@@ -2351,9 +2407,18 @@ class AtlasSemanticSidecar:
             if n_eligible == 0:
                 return []
 
-        eff_min_cosine = float(min_cosine)
+        auto_recommended_threshold = min_cosine is None and self._recommended_min_cosine is not None
+        if min_cosine is None:
+            eff_min_cosine = (
+                float(self._recommended_min_cosine)
+                if self._recommended_min_cosine is not None
+                else DEFAULT_MIN_COSINE
+            )
+        else:
+            eff_min_cosine = float(min_cosine)
         if (
             use_cal
+            and (auto_recommended_threshold or scale_threshold_for_subset)
             and eff_min_cosine > 0.0
             and n_eligible < self._n_vecs
             and self._n_vecs > _CALIBRATION_EVT_N_FLOOR

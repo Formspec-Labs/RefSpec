@@ -63,6 +63,8 @@ _VOCABULARY_PACK_EXPORTS = frozenset(
 )
 _VOCABULARY_PROTOCOL_EXPORTS = frozenset(
     {
+        "DEFAULT_CALIBRATION_EVT_SIGMA",
+        "DEFAULT_CALIBRATION_MIN_ELIGIBLE",
         "DEFAULT_CURATED_SCHEME_WEIGHTS",
         "DEFAULT_EXTRACT_MAX_UNIGRAM_DOC_FREQ",
         "REGULATORY_BENCHMARK_SCHEME_PRESET",
@@ -88,6 +90,7 @@ _VOCABULARY_VECTOR_EXPORTS = frozenset(
         "SemanticSidecarManifest",
         "build_semantic_sidecar",
         "build_semantic_sidecar_from_arrays",
+        "calibrate_semantic_sidecar",
     }
 )
 
@@ -110,6 +113,8 @@ __all__ = [
     "ATLAS",
     "ATLAS_DUCKDB_TABLES",
     "ATLAS_SEARCH_DOCUMENTS_TABLE",
+    "DEFAULT_CALIBRATION_EVT_SIGMA",
+    "DEFAULT_CALIBRATION_MIN_ELIGIBLE",
     "DEFAULT_CURATED_SCHEME_WEIGHTS",
     "DEFAULT_EXTRACT_MAX_UNIGRAM_DOC_FREQ",
     "MANAGED_RELEASE_RING_ASSIGNMENT_VERSION",
@@ -150,6 +155,7 @@ __all__ = [
     "build_semantic_sidecar",
     "build_semantic_sidecar_from_arrays",
     "build_vocabulary_pack",
+    "calibrate_semantic_sidecar",
     "concept_release_member_ids",
     "concept_release_pin",
     "group_by_identical_label",
