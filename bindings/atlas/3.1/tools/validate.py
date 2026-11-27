@@ -938,6 +938,10 @@ ATLAS_LANGUAGE_SCOPE = {
 REQUIRED_CORPUS_CASES = frozenset(
     {
         "acceptance-missing-gate",
+        "acceptance-validator-contradictory-evidence",
+        "acceptance-validator-incomplete-runtime",
+        "acceptance-validator-missing-identity",
+        "acceptance-validator-partial-identity",
         "adjudication-artifact-scheme-unknown",
         "adjudication-comparison-incomplete",
         "adjudication-comparison-retargeted",
@@ -2313,7 +2317,105 @@ def binding_runtime() -> dict[str, str]:
     return runtime
 
 
-def _check_binding_pins(manifest: Mapping[str, Any], acceptance: Mapping[str, Any]) -> None:
+_PYTHON_MINOR_RE = re.compile(r"^[0-9]+\.[0-9]+$")
+
+
+def validator_identity() -> dict[str, Any]:
+    """Return the exact portable executable and runtime identity of this validator.
+
+    Reuses ``_binding_tool_digest()`` and ``binding_runtime()`` -- the single
+    identity owner already used by the local validation cache -- without
+    building a parallel hasher. Implementation identity lives in portable
+    ``AtlasAcceptance.validator`` and stays strictly separate from
+    ``binding.contractDigest`` and distribution content digests.
+    """
+
+    return {
+        "name": VALIDATOR_ID,
+        "runtime": binding_runtime(),
+        "toolsDigest": _binding_tool_digest(),
+        "version": VALIDATOR_VERSION,
+    }
+
+
+def _check_validator_identity(
+    acceptance: Mapping[str, Any],
+    *,
+    require_current: bool = False,
+    allow_legacy: bool = False,
+) -> str:
+    """Validate portable ``AtlasAcceptance.validator`` executable and runtime identity.
+
+    Returns ``"current"`` when ``toolsDigest`` and ``runtime`` match the running
+    validator exactly, ``"recorded-different"`` when a well-formed non-current
+    executable/runtime identity is recorded and ``require_current`` is False, or
+    ``"legacy-unpinned"`` only when ``allow_legacy`` is explicitly enabled and
+    ``require_current`` is False for a pre-ss-b5n6 ``{name, version}`` receipt.
+    Missing, partial, malformed, or contradictory identities fail closed.
+    """
+
+    validator = acceptance.get("validator")
+    if not isinstance(validator, Mapping):
+        _fail("binding.validator", "acceptance validator identity must be a JSON object")
+    if validator.get("name") != VALIDATOR_ID or validator.get("version") != VALIDATOR_VERSION:
+        _fail("binding.validator", "acceptance validator identity does not match this validator")
+    allowed_keys = {"name", "version", "toolsDigest", "runtime"}
+    unexpected = sorted(set(validator) - allowed_keys)
+    if unexpected:
+        _fail("binding.validator", f"acceptance validator carries unsupported fields: {unexpected}")
+    has_tools = "toolsDigest" in validator
+    has_runtime = "runtime" in validator
+    if has_tools != has_runtime:
+        _fail("binding.validator", "acceptance validator must record both toolsDigest and runtime together")
+    if not has_tools:
+        if allow_legacy and not require_current:
+            return "legacy-unpinned"
+        _fail("binding.validator", "acceptance validator is missing executable toolsDigest and runtime identity")
+
+    tools_digest = validator["toolsDigest"]
+    if not isinstance(tools_digest, str) or DIGEST_RE.fullmatch(tools_digest) is None:
+        _fail("binding.validator", "acceptance validator toolsDigest is not a lowercase sha256 digest")
+    runtime = validator["runtime"]
+    if not isinstance(runtime, Mapping):
+        _fail("binding.validator", "acceptance validator runtime must be a JSON object")
+    expected_runtime_keys = {"python", *_binding_runtime_distributions()}
+    if set(runtime) != expected_runtime_keys:
+        _fail(
+            "binding.validator",
+            "acceptance validator runtime keys differ; "
+            f"expected={sorted(expected_runtime_keys)}, observed={sorted(runtime)}",
+        )
+    if any(not isinstance(value, str) or not value for value in runtime.values()):
+        _fail("binding.validator", "acceptance validator runtime values must be non-empty strings")
+    if _PYTHON_MINOR_RE.fullmatch(runtime["python"]) is None:
+        _fail("binding.validator", f"acceptance validator python runtime is malformed: {runtime['python']!r}")
+
+    current_tools = _binding_tool_digest()
+    current_runtime = binding_runtime()
+    if tools_digest == current_tools and dict(runtime) == current_runtime:
+        return "current"
+    if require_current:
+        if tools_digest != current_tools:
+            _fail(
+                "acceptance.validator-tools",
+                "acceptance validator toolsDigest does not match running validator; "
+                f"recorded={tools_digest}, current={current_tools}",
+            )
+        _fail(
+            "acceptance.validator-runtime",
+            "acceptance validator runtime does not match running validator; "
+            f"recorded={dict(runtime)}, current={current_runtime}",
+        )
+    return "recorded-different"
+
+
+def _check_binding_pins(
+    manifest: Mapping[str, Any],
+    acceptance: Mapping[str, Any],
+    *,
+    require_current_validator: bool = False,
+    allow_legacy_validator: bool = False,
+) -> str:
     _check_derived_rule_registry()
     expected = _binding_digests()
     manifest_binding = manifest["binding"]
@@ -2324,8 +2426,11 @@ def _check_binding_pins(manifest: Mapping[str, Any], acceptance: Mapping[str, An
             _fail("binding.digest", f"acceptance inputs.{field} does not match the binding asset")
     if manifest_binding["validatorVersion"] != VALIDATOR_VERSION:
         _fail("binding.validator", "manifest validatorVersion does not match this validator")
-    if acceptance["validator"] != {"name": VALIDATOR_ID, "version": VALIDATOR_VERSION}:
-        _fail("binding.validator", "acceptance validator identity does not match this validator")
+    return _check_validator_identity(
+        acceptance,
+        require_current=require_current_validator,
+        allow_legacy=allow_legacy_validator,
+    )
 
 
 def _check_manifest_digest(manifest: Mapping[str, Any]) -> None:
@@ -10401,6 +10506,8 @@ def validate_preparsed_distribution(
     member_digests: Mapping[str, str],
     producer_validation: Mapping[str, Any],
     construction_summary: Mapping[str, Any],
+    require_current_validator: bool = False,
+    allow_legacy_validator: bool = False,
 ) -> dict[str, Any]:
     """Validate exact graphs retained by a trusted Atlas pack writer.
 
@@ -10429,7 +10536,12 @@ def validate_preparsed_distribution(
     )
     _check_manifest_digest(manifest)
     _check_pack_manifest(manifest)
-    _check_binding_pins(manifest, acceptance)
+    _check_binding_pins(
+        manifest,
+        acceptance,
+        require_current_validator=require_current_validator,
+        allow_legacy_validator=allow_legacy_validator,
+    )
     _check_construction_summary_identity(
         manifest,
         producer_validation,
@@ -10496,12 +10608,16 @@ def validate_distribution(
     root: Path,
     *,
     cache_dir: Path | None = None,
+    require_current_validator: bool = False,
+    allow_legacy_validator: bool = False,
 ) -> dict[str, Any]:
     """Validate one closed Atlas 3.1 distribution and return proof counts.
 
     An optional private cache can reuse a complete semantic result only when
     the canonical manifest, binding, validator, JSON members, and exact stored
-    pack bytes are unchanged.
+    pack bytes are unchanged. Pass ``require_current_validator=True`` to refuse
+    any portable acceptance receipt minted by a different validator executable
+    or runtime.
     """
 
     _STATUS.phase("load-manifest")
@@ -10556,7 +10672,12 @@ def validate_distribution(
         registry=registry,
         label="producer validation",
     )
-    _check_binding_pins(manifest, acceptance)
+    _check_binding_pins(
+        manifest,
+        acceptance,
+        require_current_validator=require_current_validator,
+        allow_legacy_validator=allow_legacy_validator,
+    )
     _check_construction_summary_identity(
         manifest,
         producer_validation,
@@ -10711,7 +10832,110 @@ def _smoke_sample_packs(manifest: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     return [pack for pack in manifest["packs"] if pack["packId"] in sampled]
 
 
-def smoke_check(root: Path) -> dict[str, Any]:
+def verify_portable_acceptance(
+    root: Path,
+    *,
+    require_current_validator: bool = True,
+    allow_legacy_validator: bool = False,
+) -> dict[str, Any]:
+    """Verify a distribution's portable ``atlas-acceptance.json`` receipt fail-closed.
+
+    Unlike full ``validate_distribution``, this checks the portable acceptance
+    envelope without reparsing RDF packs: closed schema conformance, manifest
+    and member digests, binding contract pins, exact running validator
+    executable (``toolsDigest``) and ``runtime`` identity (when
+    ``require_current_validator=True``, the default), required gate set, and
+    cryptographic gate ``evidenceDigest`` bindings. Changed validator tools,
+    stale runtimes, and missing or contradictory validator identities are
+    refused. Pass ``require_current_validator=False, allow_legacy_validator=True``
+    only when explicitly auditing historical pre-ss-b5n6 receipts.
+    """
+
+    if root.is_symlink() or not root.is_dir():
+        _fail("distribution.path", f"distribution is not a regular directory: {root}")
+    schemas, registry = _schema_registry()
+    manifest_path = root / MANIFEST_FILE
+    if not manifest_path.is_file() or manifest_path.is_symlink():
+        _fail("distribution.file", "atlas-manifest.json is missing or unsafe")
+    manifest = _load_json(manifest_path, require_canonical=True)
+    _validate_json_schema(manifest, "manifest", schemas=schemas, registry=registry, label="manifest")
+    _check_manifest_digest(manifest)
+    _check_pack_manifest(manifest)
+
+    members_by_role = {member["role"]: member for member in manifest["members"]}
+    member_digests = {member["path"]: member["digest"] for member in manifest["members"]}
+    acceptance_member = members_by_role["acceptance"]
+    acceptance_path = _safe_distribution_path(root, acceptance_member["path"])
+    if not acceptance_path.is_file() or acceptance_path.is_symlink():
+        _fail("distribution.file", f"{acceptance_member['path']} is missing or unsafe")
+    if acceptance_path.stat().st_size != acceptance_member["byteLength"]:
+        _fail("distribution.length", f"{acceptance_member['path']} byte length differs")
+    acceptance = _load_json(
+        acceptance_path,
+        require_canonical=True,
+        expected_digest=acceptance_member["digest"],
+    )
+    _validate_json_schema(acceptance, "acceptance", schemas=schemas, registry=registry, label="acceptance")
+
+    accounting_member = members_by_role["sourceAccounting"]
+    accounting_path = _safe_distribution_path(root, accounting_member["path"])
+    if not accounting_path.is_file() or accounting_path.is_symlink():
+        _fail("distribution.file", f"{accounting_member['path']} is missing or unsafe")
+    if accounting_path.stat().st_size != accounting_member["byteLength"]:
+        _fail("distribution.length", f"{accounting_member['path']} byte length differs")
+    if file_sha256(accounting_path) != accounting_member["digest"]:
+        _fail("distribution.digest", f"{accounting_member['path']} digest differs")
+
+    producer_members = [member for member in manifest["members"] if member["role"] == "producerValidation"]
+    producer_input_digest = acceptance["inputs"].get("producerValidationDigest")
+    if bool(producer_members) != (producer_input_digest is not None):
+        _fail(
+            "producer.validation",
+            "producer validation member and acceptance input presence differ",
+        )
+    if not producer_members:
+        _fail("producer.validation", "producer validation proof is required")
+    if len(producer_members) != 1:
+        _fail("producer.validation", "producer validation member is not unique")
+    producer_member = producer_members[0]
+    if producer_member["path"] != PRODUCER_VALIDATION_FILE:
+        _fail("producer.validation", "producer validation digest differs from the declared member")
+    producer_path = _safe_distribution_path(root, producer_member["path"])
+    if not producer_path.is_file() or producer_path.is_symlink():
+        _fail("distribution.file", f"{producer_member['path']} is missing or unsafe")
+    if producer_path.stat().st_size != producer_member["byteLength"]:
+        _fail("distribution.length", f"{producer_member['path']} byte length differs")
+    if file_sha256(producer_path) != producer_member["digest"]:
+        _fail("distribution.digest", f"{producer_member['path']} digest differs")
+    if member_digests.get(PRODUCER_VALIDATION_FILE) != producer_input_digest:
+        _fail(
+            "producer.validation",
+            "producer validation digest differs from the declared member",
+        )
+
+    identity_status = _check_binding_pins(
+        manifest,
+        acceptance,
+        require_current_validator=require_current_validator,
+        allow_legacy_validator=allow_legacy_validator,
+    )
+    _check_acceptance_metadata(manifest, acceptance, member_digests)
+    return {
+        "corpusDigest": acceptance["corpusDigest"],
+        "distributionId": manifest["distributionId"],
+        "gateCount": len(acceptance["gates"]),
+        "validator": dict(acceptance["validator"]),
+        "validatorIdentityStatus": identity_status,
+        "verdict": acceptance["verdict"],
+    }
+
+
+def smoke_check(
+    root: Path,
+    *,
+    require_current_validator: bool = False,
+    allow_legacy_validator: bool = False,
+) -> dict[str, Any]:
     """Sample one distribution in seconds. This is NOT acceptance.
 
     A smoke run answers one question -- "is this build obviously broken?" --
@@ -10750,7 +10974,12 @@ def smoke_check(root: Path) -> dict[str, Any]:
         require_canonical=True,
     )
     _validate_json_schema(acceptance, "acceptance", schemas=schemas, registry=registry, label="acceptance")
-    _check_binding_pins(manifest, acceptance)
+    _check_binding_pins(
+        manifest,
+        acceptance,
+        require_current_validator=require_current_validator,
+        allow_legacy_validator=allow_legacy_validator,
+    )
 
     graph_ids = {row["role"]: URIRef(row["id"]) for row in manifest["graphs"]}
     sample = _smoke_sample_packs(manifest)
@@ -11381,6 +11610,22 @@ def _parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--verify-acceptance",
+        type=Path,
+        help=(
+            "verify one distribution's portable atlas-acceptance.json receipt against "
+            "the running validator's exact toolsDigest, runtime, and binding pins"
+        ),
+    )
+    parser.add_argument(
+        "--require-current-validator",
+        action="store_true",
+        help=(
+            "refuse portable acceptance receipts whose recorded toolsDigest or runtime "
+            "differs from the running validator"
+        ),
+    )
+    parser.add_argument(
         "--cache-dir",
         type=Path,
         help="private local receipt cache for repeated --distribution validation",
@@ -11398,25 +11643,55 @@ def main(argv: Iterable[str] | None = None) -> int:
 
     args = _parser().parse_args(list(argv) if argv is not None else None)
     _STATUS = _StatusReporter(
-        enabled=not args.quiet and (args.distribution is not None or args.smoke is not None),
+        enabled=not args.quiet
+        and (
+            args.distribution is not None
+            or args.smoke is not None
+            or args.verify_acceptance is not None
+        ),
     )
     if args.distribution is not None:
         _STATUS.phase("validate-distribution")
     elif args.smoke is not None:
         _STATUS.phase("smoke-check")
+    elif args.verify_acceptance is not None:
+        _STATUS.phase("verify-acceptance")
     try:
-        if args.smoke is not None and args.distribution is not None:
-            _fail("smoke.mode", "--smoke and --distribution answer different questions; pass one")
+        modes = sum(
+            mode is not None for mode in (args.distribution, args.smoke, args.verify_acceptance)
+        )
+        if modes > 1:
+            _fail(
+                "smoke.mode",
+                "--smoke, --distribution, and --verify-acceptance answer different questions; pass one",
+            )
         # A smoke result is a sample, never a verdict, so it must never be
         # able to reach the receipt cache -- neither to read one nor to leave
         # one that a later acceptance run could be answered from.
         if args.cache_dir is not None and args.distribution is None:
             _fail("cache.path", "--cache-dir requires --distribution")
+        if args.require_current_validator and modes == 0:
+            _fail(
+                "binding.validator",
+                "--require-current-validator requires --distribution, --smoke, or --verify-acceptance",
+            )
         result = (
-            validate_distribution(args.distribution, cache_dir=args.cache_dir)
+            validate_distribution(
+                args.distribution,
+                cache_dir=args.cache_dir,
+                require_current_validator=args.require_current_validator,
+            )
             if args.distribution
-            else smoke_check(args.smoke)
+            else smoke_check(
+                args.smoke,
+                require_current_validator=args.require_current_validator,
+            )
             if args.smoke
+            else verify_portable_acceptance(
+                args.verify_acceptance,
+                require_current_validator=True,
+            )
+            if args.verify_acceptance
             else validate_binding()
         )
     except AtlasValidationError as exc:

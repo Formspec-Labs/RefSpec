@@ -85,9 +85,35 @@
     },
     "validator": {
       "additionalProperties": false,
+      "dependentRequired": {
+        "runtime": [
+          "toolsDigest"
+        ],
+        "toolsDigest": [
+          "runtime"
+        ]
+      },
       "properties": {
         "name": {
           "const": "refspec-atlas-conformance"
+        },
+        "runtime": {
+          "additionalProperties": {
+            "$ref": "common.schema.json#/$defs/nonEmptyString"
+          },
+          "minProperties": 1,
+          "properties": {
+            "python": {
+              "$ref": "common.schema.json#/$defs/nonEmptyString"
+            }
+          },
+          "required": [
+            "python"
+          ],
+          "type": "object"
+        },
+        "toolsDigest": {
+          "$ref": "common.schema.json#/$defs/digest"
         },
         "version": {
           "const": "3.1"

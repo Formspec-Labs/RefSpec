@@ -2293,7 +2293,7 @@ def _write_case(
         "producerValidationDigest": producer_digest,
         "sourceAccountingDigest": accounting_digest,
     }
-    validator_identity = {"name": "refspec-atlas-conformance", "version": "3.1"}
+    validator_identity = atlas_validate.validator_identity()
     acceptance = {
         "corpusDigest": corpus_digest,
         "distributionId": distribution_id,
@@ -4857,6 +4857,31 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
     def wrong_validator_identity(fixture: Fixture) -> None:
         fixture.acceptance["validator"] = {"name": "other-validator", "version": "99"}
 
+    def acceptance_validator_missing_identity(fixture: Fixture) -> None:
+        fixture.acceptance["validator"] = {
+            "name": atlas_validate.VALIDATOR_ID,
+            "version": atlas_validate.VALIDATOR_VERSION,
+        }
+
+    def acceptance_validator_partial_identity(fixture: Fixture) -> None:
+        fixture.acceptance["validator"] = {
+            "name": atlas_validate.VALIDATOR_ID,
+            "toolsDigest": atlas_validate._binding_tool_digest(),
+            "version": atlas_validate.VALIDATOR_VERSION,
+        }
+
+    def acceptance_validator_incomplete_runtime(fixture: Fixture) -> None:
+        fixture.acceptance["validator"] = {
+            **atlas_validate.validator_identity(),
+            "runtime": {"python": atlas_validate.binding_runtime()["python"]},
+        }
+
+    def acceptance_validator_contradictory_evidence(fixture: Fixture) -> None:
+        fixture.acceptance["validator"] = {
+            **atlas_validate.validator_identity(),
+            "toolsDigest": "sha256:" + "0" * 64,
+        }
+
     def subject_scheme_disagreement(fixture: Fixture) -> None:
         resource = next(fixture.asserted.subjects(RDF.type, ATLAS.SubjectConcept))
         wrong_scheme = next(
@@ -6392,6 +6417,30 @@ def _mutations() -> list[tuple[str, list[str], str, Callable[[Fixture], None]]]:
             ["dataset", "reasoning"],
             "reasoning.authority",
             fr_thesaurus_api_topic_replay_gap,
+        ),
+        (
+            "acceptance-validator-missing-identity",
+            ["json", "dataset"],
+            "binding.validator",
+            acceptance_validator_missing_identity,
+        ),
+        (
+            "acceptance-validator-partial-identity",
+            ["json"],
+            "json.schema",
+            acceptance_validator_partial_identity,
+        ),
+        (
+            "acceptance-validator-incomplete-runtime",
+            ["json", "dataset"],
+            "binding.validator",
+            acceptance_validator_incomplete_runtime,
+        ),
+        (
+            "acceptance-validator-contradictory-evidence",
+            ["json", "dataset"],
+            "acceptance.evidence",
+            acceptance_validator_contradictory_evidence,
         ),
     ]
 

@@ -6316,6 +6316,11 @@ and `make generate`, which moved only that module and the index.
   (`mapping-endpoint-resolution`) and three negatives (silent rewrite,
   spurious resolution, mismatched rewrite) in `fixtures/corpus.json`:
   `c6d5b20e…` / `28dca18b…`.
+- Portable `AtlasAcceptance` validator executable and runtime identity
+  (`ss-b5n6` / REF-080: `atlas-acceptance.schema.json`, `validator.toolsDigest`
+  and `validator.runtime`, plus four negative cases in `fixtures/corpus.json`;
+  incorporating `REF-079` `statements.parquet` effective-period columns):
+  `1f43609e…` / `8fc89dd5…`.
 
 ### REF-074: Dated assertion validation follows the producer's effective-period identity
 
@@ -6607,4 +6612,82 @@ and refuses a planted wrong value in each table.
      `edges` and `edges_rev`, detected dynamically via `PRAGMA table_info` so
      already-sealed `v2`/`v3` packs open and serve cleanly (treating legacy
      edges as undated while still validating `as_of`).
+
+### REF-080: Record exact validator executable and runtime identity in portable `AtlasAcceptance` receipts (`ss-b5n6`)
+
+- **Date:** 2026-11-27
+- **Status:** Accepted and executed. Amends `bindings/atlas/3.1/schemas/atlas-acceptance.schema.json`
+  and `bindings/atlas/3.1/tools/validate.py` without bumping binding version
+  `"3.1"` or folding implementation identity into `binding.contractDigest`.
+
+1. **Consumer and accepted-artifact inventory.**
+   - **External / sibling consumers** (`spicy-regs`, `spicysearch`, `BillTrax`,
+     `DocSpec`, `rulespec`, `spicy-docs`, `spicyengine`, `spicygov`,
+     `spicyregs-web`, `scripts`): zero direct readers of `atlas-acceptance.json`
+     (downstream products consume sealed Parquet views, compiled vocabulary
+     packs, and the agency registry view).
+   - **RefSpec producers:** `tools/generate_atlas_v3_full.py`
+     (`_write_candidate_distribution`, `_write_streamed_candidate_distribution`)
+     and `bindings/atlas/3.1/tools/build_fixtures.py` (`_write_case`).
+   - **RefSpec verifiers and seal custody:**
+     `bindings/atlas/3.1/schemas/atlas-acceptance.schema.json`,
+     `bindings/atlas/3.1/tools/validate.py` (`_check_binding_pins`,
+     `_check_acceptance_metadata`, `validate_distribution`,
+     `validate_preparsed_distribution`, `smoke_check`, and new
+     `verify_portable_acceptance`), and `src/refspec/seal.py` (`create_seal`
+     verifies `distributionId` and `verdict == "passed"` and pins raw
+     `acceptanceSha256`; `verify_seal` re-authenticates `acceptanceSha256`
+     without duplicating conformance logic).
+   - **Accepted artifacts:** the regenerated 206-case conformance corpus pinned
+     by `bindings/atlas/3.1/fixtures/corpus.json` and
+     `bindings/atlas/3.1/fixtures-receipt.json`, plus historical gitignored
+     distributions under `output/` sealed prior to this change (which carry
+     legacy `validator: {"name": "refspec-atlas-conformance", "version": "3.1"}`
+     and the prior `acceptanceSchemaDigest`).
+2. **Single identity owner and separation of concerns.**
+   `validate.py:validator_identity()` reuses the existing local validation cache
+   identity owner (`_binding_tool_digest()` over `BINDING_TOOL_PATHS` and
+   `binding_runtime()` over Python `major.minor` + `requirements.txt`
+   distributions) with no parallel hasher. Every producer writes
+   `validator: {"name", "version", "toolsDigest", "runtime"}` into
+   `atlas-acceptance.json`, and `acceptance_gate_evidence_digest()` hashes the
+   full `validator` object so every gate receipt commits cryptographically to
+   the exact validator executable and runtime. `manifest.binding`,
+   `acceptance.inputs`, `contractDigest`, `distributionId`, and pack/asserted
+   content digests remain strictly free of `toolsDigest` and `runtime`.
+3. **Closed-schema compatibility and historical-verdict handling.**
+   `atlas-acceptance.schema.json` keeps `additionalProperties: false` on
+   `validator`, preserves `version: "3.1"`, and pairs `toolsDigest` and
+   `runtime` via Draft 2020-12 `dependentRequired` (rejecting partial identity
+   at the JSON Schema layer while keeping pre-`ss-b5n6` `{name, version}`
+   receipts syntactically parseable for explicit legacy audit):
+   - **Missing identity (`{name, version}` only):** refused fail-closed
+     (`binding.validator`) by default across `verify_portable_acceptance`,
+     `validate_distribution`, `validate_preparsed_distribution`, and
+     `smoke_check`. Only an explicit non-current historical audit
+     (`require_current_validator=False, allow_legacy_validator=True`) classifies
+     such a receipt as `validatorIdentityStatus: "legacy-unpinned"` rather than
+     `"current"`.
+   - **Partial, malformed, or contradictory identity** (paired key missing,
+     extra property, incomplete/extra `runtime` keys, malformed `python` or
+     `toolsDigest`, or gate `evidenceDigest` disagreement): always refused
+     fail-closed (`json.schema`, `binding.validator`, or `acceptance.evidence`).
+   - **Changed validator tools or stale runtime:** refused fail-closed by
+     `verify_portable_acceptance` / CLI `--verify-acceptance`, producer
+     self-checks, and `--require-current-validator` (`acceptance.validator-tools`
+     / `acceptance.validator-runtime`), and invalidates local cache receipts in
+     `validate_distribution(..., cache_dir=...)` so full re-validation runs from
+     scratch (also allowing cross-runtime re-validation between project `.venv`
+     and standalone `requirements.txt` without breaking existing workflows).
+4. **Schema and pin impact.**
+   Editing `atlas-acceptance.schema.json` moves `acceptanceSchemaDigest`
+   (`sha256:8f78aaec…` → `sha256:c0423f5c…`) and `contractDigest`
+   (`sha256:9681967a…`). Four negative conformance cases
+   (`acceptance-validator-missing-identity`,
+   `acceptance-validator-partial-identity`,
+   `acceptance-validator-incomplete-runtime`,
+   `acceptance-validator-contradictory-evidence`) extend `fixtures/corpus.json`
+   from 202 to 206 cases (176 → 180 invalid). `Makefile` FR thesaurus pins
+   update in lockstep (`1f43609e…` / `8fc89dd5…`) and are recorded in the
+   REF-073 ledger.
 

@@ -709,8 +709,8 @@ def test_atlas_v3_binding_and_sealed_corpus_pass() -> None:
     completed = _standalone()
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
-        "caseCount": 202,
-        "invalidCount": 176,
+        "caseCount": 206,
+        "invalidCount": 180,
         "registryDescriptorCount": 106,
         "registryDescriptorQuadCount": 1257,
         "schemaCount": 10,
@@ -726,8 +726,8 @@ def test_memory_fallback_matches_the_sealed_corpus() -> None:
     )
     assert completed.returncode == 0, completed.stderr
     assert json.loads(completed.stdout) == {
-        "caseCount": 202,
-        "invalidCount": 176,
+        "caseCount": 206,
+        "invalidCount": 180,
         "registryDescriptorCount": 106,
         "registryDescriptorQuadCount": 1257,
         "schemaCount": 10,
@@ -1273,6 +1273,9 @@ def _sandboxed_repository(tmp_path: Path) -> Path:
     adapter = root / "src" / "refspec" / "atlas" / "v3_source_data.py"
     adapter.parent.mkdir(parents=True)
     shutil.copy2(ROOT / "src" / "refspec" / "atlas" / "v3_source_data.py", adapter)
+    python_version = ROOT / ".python-version"
+    if python_version.is_file():
+        shutil.copy2(python_version, root / ".python-version")
     return root
 
 
@@ -1687,12 +1690,19 @@ def test_growing_the_conformance_corpus_leaves_the_contract_where_it_was() -> No
         (VALID_DISTRIBUTION / "atlas-manifest.json").read_text(encoding="utf-8")
     )
     assert acceptance["corpusDigest"] == atlas_validate.corpus_digest()
-    assert acceptance["validator"] == {
-        "name": atlas_validate.VALIDATOR_ID,
-        "version": atlas_validate.VALIDATOR_VERSION,
+    assert acceptance["validator"]["name"] == atlas_validate.VALIDATOR_ID
+    assert acceptance["validator"]["version"] == atlas_validate.VALIDATOR_VERSION
+    assert acceptance["validator"]["toolsDigest"] == atlas_validate._binding_tool_digest()
+    assert set(acceptance["validator"]["runtime"]) == {
+        "python",
+        *atlas_validate._binding_runtime_distributions(),
     }
     assert "corpusDigest" not in manifest["binding"]
     assert "corpusDigest" not in acceptance["inputs"]
+    assert "toolsDigest" not in manifest["binding"]
+    assert "runtime" not in manifest["binding"]
+    assert "toolsDigest" not in acceptance["inputs"]
+    assert "runtime" not in acceptance["inputs"]
 
 
 def test_the_hoisted_longest_test_still_exists() -> None:

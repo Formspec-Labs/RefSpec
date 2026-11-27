@@ -9699,7 +9699,7 @@ def _write_candidate_distribution(
         "producerValidationDigest": _sha256_file(producer_validation_path),
         "sourceAccountingDigest": _sha256_file(accounting_path),
     }
-    validator_identity = {"name": "refspec-atlas-conformance", "version": "3.1"}
+    validator_identity = ATLAS_VALIDATE.validator_identity()
     distribution_id = _distribution_id(graphs.accounting)
     acceptance = {
         # Proof identity, recorded beside the validator identity it qualifies:
@@ -9783,7 +9783,7 @@ def _write_candidate_distribution(
         )
     ATLAS_VALIDATE._check_manifest_digest(manifest)
     ATLAS_VALIDATE._check_pack_manifest(manifest)
-    ATLAS_VALIDATE._check_binding_pins(manifest, acceptance)
+    ATLAS_VALIDATE._check_binding_pins(manifest, acceptance, require_current_validator=True)
     member_digests = {member["path"]: member["digest"] for member in manifest["members"]}
     ATLAS_VALIDATE._check_construction_summary_identity(
         manifest,
@@ -9954,7 +9954,7 @@ def _write_streamed_candidate_distribution(
         "producerValidationDigest": _sha256_file(producer_validation_path),
         "sourceAccountingDigest": _sha256_file(accounting_path),
     }
-    validator_identity = {"name": "refspec-atlas-conformance", "version": "3.1"}
+    validator_identity = ATLAS_VALIDATE.validator_identity()
     distribution_id = _distribution_id(streamed.accounting)
     acceptance = {
         "corpusDigest": ATLAS_VALIDATE.corpus_digest(),
@@ -10028,7 +10028,7 @@ def _write_streamed_candidate_distribution(
         )
     ATLAS_VALIDATE._check_manifest_digest(manifest)
     ATLAS_VALIDATE._check_pack_manifest(manifest)
-    ATLAS_VALIDATE._check_binding_pins(manifest, acceptance)
+    ATLAS_VALIDATE._check_binding_pins(manifest, acceptance, require_current_validator=True)
     member_digests = {member["path"]: member["digest"] for member in manifest["members"]}
     ATLAS_VALIDATE._check_construction_summary_identity(
         manifest,
