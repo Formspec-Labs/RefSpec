@@ -44,7 +44,8 @@ from refspec.atlas.compact_pack import (
     parse_as_of,
     validate_effective_period_bounds,
 )
-from refspec.atlas.duckdb_view import AtlasDuckDBView, AtlasDuckDBViewError
+from refspec.atlas.duckdb_view import AtlasDuckDBView, AtlasDuckDBViewError, _normalize_derived_row
+from refspec.atlas.effective_period import format_utc_instant
 from refspec.atlas.explorer import (
     _statement_record,
     atlas_parquet_resource,
@@ -58,6 +59,7 @@ from refspec.atlas.parquet_artifact import (
 )
 from refspec.atlas.parquet_preflight import (
     APPROVED,
+    PREFLIGHT_CHECKS,
     REVIEW_METHODS,
     AtlasParquetPreflightError,
     validate_atlas_parquet_tables,
@@ -90,7 +92,7 @@ from refspec.atlas.v3_registry_alignments import (
     load_unified_agenda_gao_cra_priority_mapping_release,
 )
 from refspec.atlas.vocabulary_pack import AtlasVocabularyPack, build_vocabulary_pack
-from refspec.atlas.vocabulary_protocols import RelationPolicy, VocabularyInputError
+from refspec.atlas.vocabulary_protocols import RelationPolicy, VocabularyInputError, VocabularyPackError
 from refspec.registry.infrastructure.artifact_serialization import (
     canonical_json_bytes,
     sha256_digest,
@@ -200,9 +202,14 @@ def test_as_of_precision_timezone_inclusive_bounds_and_dispositions() -> None:
     assert normalize_as_of_utc("2026-08-14T20:00:00-04:00") == "2026-08-15T00:00:00+00:00"
     assert parse_as_of(date(2026, 8, 15)) == datetime(2026, 8, 15, 0, 0, 0, tzinfo=UTC)
 
-    # Ambiguous naive datetimes and malformed strings are refused.
+    # Ambiguous naive datetimes, extreme-year UTC overflows, non-ASCII digits, and malformed strings are refused.
     for bad in (
         datetime(2026, 8, 15, 12, 0, 0),  # noqa: DTZ001
+        datetime(1, 1, 1, 0, 0, 0, tzinfo=timezone(timedelta(hours=2))),
+        datetime(9999, 12, 31, 23, 59, 59, tzinfo=timezone(timedelta(hours=-2))),
+        "0001-01-01T00:00:00+02:00",
+        "9999-12-31T23:59:59-02:00",
+        "٢٠٢٦-٠٨-١٥",
         "2026-08-15T12:00:00",
         "2026-8-15",
         "2026-08-15 00:00:00+00:00",
@@ -215,6 +222,12 @@ def test_as_of_precision_timezone_inclusive_bounds_and_dispositions() -> None:
     ):
         with pytest.raises(EffectivePeriodError):
             parse_as_of(bad)  # type: ignore[arg-type]
+    for overflow_dt in (
+        datetime(1, 1, 1, 0, 0, 0, tzinfo=timezone(timedelta(hours=2))),
+        datetime(9999, 12, 31, 23, 59, 59, tzinfo=timezone(timedelta(hours=-2))),
+    ):
+        with pytest.raises(EffectivePeriodError, match="overflows UTC"):
+            format_utc_instant(overflow_dt)
 
 
 def test_compact_statement_record_carries_and_validates_effective_periods() -> None:
@@ -737,6 +750,8 @@ def test_end_to_end_before_start_end_after_undated_and_lifecycle_separation(
         distribution_counts=corpus["dist_manifest"]["counts"],
     )
     assert preflight["status"] == "passed"
+    assert "effective-period" in PREFLIGHT_CHECKS
+    assert "effective-period" in preflight["checks"]
 
     # 3. DuckDB view & explorer: before / start / end / after / undated / timezone controls!
     view = open_atlas_explorer(corpus["search_view"], trusted_manifest_digest=corpus["search_pin"])
@@ -844,7 +859,16 @@ def test_end_to_end_before_start_end_after_undated_and_lifecycle_separation(
         undated_shard = _statement_record(by_id[ids["undated"]])
         assert not any("effectivePeriod" in fact[0] for fact in undated_shard["facts"])
 
-        # 5. Explorer HTTP server routes ?as_of= to /api/resource and /api/overview, and returns 400 on bad as_of!
+        # max_assertions <= 0 short-circuits cleanly while still validating as_of; derived rows carry symmetrical keys.
+        assert build_atlas_explorer_model(view, max_assertions=0, as_of="2026-08-15")["assertedRelations"] == []
+        derived_norm = _normalize_derived_row(
+            {"subject": ids["val_seed"], "predicate": _EQUIVALENT_VALUE, "object": ids["val_bounded"]}
+        )
+        assert derived_norm["effective_period_start"] is None
+        assert derived_norm["effective_period_end"] is None
+
+        # 5. Explorer HTTP server routes ?as_of= to /api/resource, /api/overview, and /api/release-graph,
+        #    handles URL-encoded %2B offsets, and returns HTTP 400 on malformed or extreme-year overflow inputs!
         server = ThreadingHTTPServer(("127.0.0.1", 0), explorer_cli._handler(view))
         thread = threading.Thread(target=server.serve_forever)
         thread.start()
@@ -858,9 +882,48 @@ def test_end_to_end_before_start_end_after_undated_and_lifecycle_separation(
                 payload_after = json.loads(resp.read())
             assert ids["bounded"] not in {r["id"] for r in payload_after["relations"]}
 
-            with pytest.raises(HTTPError) as http_err:
-                urlopen(f"{base_url}/api/resource?id={ids['val_seed']}&as_of=not-a-date", timeout=5)
-            assert http_err.value.code == 400
+            # URL-encoded %2B timezone offsets: 2026-08-15T01:00:00+02:00 == 2026-08-14T23:00:00Z (before start),
+            # whereas 2026-08-15T02:00:00+02:00 == 2026-08-15T00:00:00Z (exact inclusive start).
+            with urlopen(
+                f"{base_url}/api/resource?id={ids['val_seed']}&as_of=2026-08-15T01:00:00%2B02:00",
+                timeout=5,
+            ) as resp:
+                payload_tz_before = json.loads(resp.read())
+            assert ids["bounded"] not in {r["id"] for r in payload_tz_before["relations"]}
+
+            with urlopen(
+                f"{base_url}/api/resource?id={ids['val_seed']}&as_of=2026-08-15T02:00:00%2B02:00",
+                timeout=5,
+            ) as resp:
+                payload_tz_start = json.loads(resp.read())
+            assert ids["bounded"] in {r["id"] for r in payload_tz_start["relations"]}
+
+            # /api/overview?as_of= and /api/release-graph?as_of=
+            with urlopen(f"{base_url}/api/overview?as_of=2025-06-01", timeout=5) as resp:
+                ov_http_2025 = json.loads(resp.read())
+            assert [(e["source"], e["target"], e["count"]) for e in ov_http_2025["edges"]] == [
+                (ids["rel_a"], ids["rel_b"], 1)
+            ]
+            with urlopen(f"{base_url}/api/overview?as_of=2026-08-15", timeout=5) as resp:
+                ov_http_start = json.loads(resp.read())
+            assert [(e["source"], e["target"], e["count"]) for e in ov_http_start["edges"]] == [
+                (ids["rel_a"], ids["rel_b"], 3)
+            ]
+            with urlopen(f"{base_url}/api/release-graph?id={ids['rel_sub']}&as_of=2024-01-01", timeout=5) as resp:
+                rg_http = json.loads(resp.read())
+            assert rg_http["counts"]["relations"] == 1
+
+            # Malformed and extreme-year UTC-overflow as_of inputs return clean HTTP 400 (never 500 / disconnect).
+            for bad_url in (
+                f"{base_url}/api/resource?id={ids['val_seed']}&as_of=not-a-date",
+                f"{base_url}/api/resource?id={ids['val_seed']}&as_of=0001-01-01T00:00:00%2B02:00",
+                f"{base_url}/api/resource?id={ids['val_seed']}&as_of=9999-12-31T23:59:59-02:00",
+                f"{base_url}/api/overview?as_of=0001-01-01T00:00:00%2B02:00",
+                f"{base_url}/api/release-graph?id={ids['rel_sub']}&as_of=9999-12-31T23:59:59-02:00",
+            ):
+                with pytest.raises(HTTPError) as http_err:
+                    urlopen(bad_url, timeout=5)
+                assert http_err.value.code == 400
         finally:
             server.shutdown()
             server.server_close()
@@ -930,10 +993,25 @@ def test_end_to_end_before_start_end_after_undated_and_lifecycle_separation(
         scoped_exp = asyncio.run(scoped.expand(reference=seed_ref))
         assert [r["concept"]["id"] for r in scoped_exp] == [ids["val_expired"]]
 
-        # Invalid as_of raises VocabularyInputError("invalid_as_of")!
-        with pytest.raises(VocabularyInputError) as exc_info:
-            pack.related_sync(seed_ref, include_mappings=True, as_of="2026-08-15T00:00:00")
-        assert exc_info.value.code == "invalid_as_of"
+        # WHERE precedes LIMIT: limit=1 still returns the single effective edge even when earlier edges are filtered out!
+        lim_expired = pack.related_sync(seed_ref, include_mappings=True, limit=1, as_of="2025-06-01")
+        assert [r["relation"]["id"] for r in lim_expired] == [ids["expired"]]
+        lim_future = pack.related_sync(seed_ref, include_mappings=True, limit=1, as_of="2027-01-01")
+        assert [r["relation"]["id"] for r in lim_future] == [ids["future"]]
+
+        # Fractional-second as_of precision in SQLite (ASCII '.' > '+' matches exact instant order).
+        frac_in = pack.related_sync(seed_ref, include_mappings=True, as_of="2026-08-15T00:00:00.000001+00:00")
+        assert ids["bounded"] in {r["relation"]["id"] for r in frac_in}
+        frac_end_exact = pack.related_sync(seed_ref, include_mappings=True, as_of="2026-08-31T23:59:59+00:00")
+        assert ids["bounded"] in {r["relation"]["id"] for r in frac_end_exact}
+        frac_after_end = pack.related_sync(seed_ref, include_mappings=True, as_of="2026-08-31T23:59:59.000001+00:00")
+        assert ids["bounded"] not in {r["relation"]["id"] for r in frac_after_end}
+
+        # Invalid & extreme-year overflow as_of raise VocabularyInputError("invalid_as_of")!
+        for bad_as_of in ("2026-08-15T00:00:00", "0001-01-01T00:00:00+02:00", "9999-12-31T23:59:59-02:00"):
+            with pytest.raises(VocabularyInputError) as exc_info:
+                pack.related_sync(seed_ref, include_mappings=True, as_of=bad_as_of)
+            assert exc_info.value.code == "invalid_as_of"
 
 
 # ---------------------------------------------------------------------------
@@ -947,6 +1025,8 @@ def test_end_to_end_before_start_end_after_undated_and_lifecycle_separation(
         (None, "2026-08-31T23:59:59+00:00"),
         ("2026-08-15", None),
         ("2026-08-15T00:00:00Z", None),
+        ("0000-01-01T00:00:00+00:00", None),
+        ("2026-08-15T00:00:00+00:00", "0000-12-31T23:59:59+00:00"),
         ("2026-08-15T00:00:00+00:00", "2026-08-14T23:59:59+00:00"),
         ("2026-08-15T00:00:00+00:00", "2026-08-31T00:00:00+00:00"),
     ],
@@ -1218,3 +1298,72 @@ def test_legacy_3_2_full_view_and_1_1_search_view_and_legacy_sqlite_pack_stay_re
         with pytest.raises(VocabularyInputError) as exc_info:
             legacy_pack.related_sync(seed_ref, include_mappings=True, as_of="2026-8-15")
         assert exc_info.value.code == "invalid_as_of"
+
+
+@pytest.mark.parametrize(
+    "bad_start,bad_end",
+    [
+        ("2026-08-15T00:00:00+00:00", "2026-08-31"),
+        ("2026-08-15", "2026-08-31T23:59:59+00:00"),
+        ("2026-08-15", None),
+        (None, "2026-08-31T23:59:59+00:00"),
+        ("2026-08-15T00:00:00+00:00", "2026-08-14T23:59:59+00:00"),
+        ("2026-08-15T00:00:00+00:00", "2026-08-31T00:00:00+00:00"),
+    ],
+)
+def test_vocabulary_pack_build_refuses_bare_date_or_malformed_effective_period_in_parquet(
+    tmp_path: Path,
+    bad_start: str | None,
+    bad_end: str | None,
+) -> None:
+    """build_vocabulary_pack refuses bare calendar dates and malformed effective bounds instead of truncating them."""
+
+    corpus = _build_end_to_end_dated_corpus(tmp_path)
+    ids = corpus["ids"]
+
+    tampered_search = tmp_path / "tampered-search"
+    (tampered_search / "tables").mkdir(parents=True)
+    tampered_members: list[dict[str, Any]] = []
+    for member in corpus["search_manifest"]["members"]:
+        role = CompactRecordRole(member["role"])
+        src_path = corpus["search_view"] / member["path"]
+        dst_path = tampered_search / member["path"]
+        if role is CompactRecordRole.STATEMENT:
+            rows = pq.read_table(src_path).to_pylist()
+            for row in rows:
+                if row["id"] == ids["bounded"]:
+                    row["effective_period_start"] = bad_start
+                    row["effective_period_end"] = bad_end
+            schema = pq.ParquetFile(src_path).schema_arrow
+            tbl = pa.Table.from_pylist(rows, schema=schema)
+            pq.write_table(tbl, dst_path, compression="zstd", version="2.6", data_page_version="2.0")
+            stored_schema = pq.ParquetFile(dst_path).schema_arrow
+            tampered_members.append(
+                {
+                    **member,
+                    "byteLength": dst_path.stat().st_size,
+                    "schemaDigest": arrow_schema_sha256(stored_schema),
+                    "sha256": file_sha256(dst_path),
+                }
+            )
+        else:
+            dst_path.write_bytes(src_path.read_bytes())
+            tampered_members.append(dict(member))
+
+    tampered_manifest = {**corpus["search_manifest"], "members": tampered_members}
+    tampered_manifest.pop("canonicalPayloadDigest")
+    tampered_manifest["canonicalPayloadDigest"] = canonical_payload_sha256(tampered_manifest)
+    (tampered_search / "search-view-manifest.json").write_bytes(canonical_json_bytes(tampered_manifest))
+    tampered_pin = sha256_digest((tampered_search / "search-view-manifest.json").read_bytes())
+
+    with pytest.raises(VocabularyPackError) as exc_info:
+        build_vocabulary_pack(
+            tampered_search,
+            tmp_path / "refused.sqlite",
+            trusted_manifest_digest=tampered_pin,
+            schemes=(ids["scheme_a"], ids["scheme_b"], ids["scheme_sub"]),
+            languages=("en",),
+            include_mappings=True,
+            include_derived=False,
+        )
+    assert exc_info.value.code == "invalid_view"

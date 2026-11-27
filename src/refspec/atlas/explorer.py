@@ -569,19 +569,24 @@ def build_atlas_explorer_model(
         raise AtlasParquetExplorerError("Atlas explorer requires an opened Parquet view")
     if as_of is not None:
         try:
-            parse_as_of(as_of)
+            as_of_dt = parse_as_of(as_of)
         except EffectivePeriodError as error:
             raise AtlasParquetExplorerError(str(error)) from error
         statement_rows: list[dict[str, Any]] = []
-        for row in _iter_rows(view.tables[CompactRecordRole.STATEMENT]):
-            if is_effective_as_of(
-                row.get("effective_period_start"),
-                row.get("effective_period_end"),
-                as_of,
-            ):
-                statement_rows.append(row)
-                if len(statement_rows) >= max_assertions:
-                    break
+        if max_assertions > 0:
+            for row in _iter_rows(view.tables[CompactRecordRole.STATEMENT]):
+                try:
+                    keep = is_effective_as_of(
+                        row.get("effective_period_start"),
+                        row.get("effective_period_end"),
+                        as_of_dt,
+                    )
+                except EffectivePeriodError as error:
+                    raise AtlasParquetExplorerError(str(error)) from error
+                if keep:
+                    statement_rows.append(row)
+                    if len(statement_rows) >= max_assertions:
+                        break
     else:
         statement_rows = _first_rows(view.tables[CompactRecordRole.STATEMENT], max_assertions)
     endpoint_ids = {row[field] for row in statement_rows for field in ("subject", "object")}

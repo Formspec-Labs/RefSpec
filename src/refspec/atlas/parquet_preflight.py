@@ -59,6 +59,7 @@ PREFLIGHT_CHECKS = (
     "label-provenance-and-uniqueness",
     "identifier-authority-uniqueness",
     "statement-endpoints-releases-and-rings",
+    "effective-period",
     "immutable-evidence-coverage",
 )
 
@@ -315,6 +316,7 @@ def _validate_relations(
             "Statement",
             "effective_period_start IS NOT NULL AND ("
             "NOT regexp_matches(effective_period_start, '^[0-9]{4}-[0-9]{2}-[0-9]{2}T00:00:00\\+00:00$') "
+            "OR substr(effective_period_start, 1, 4) = '0000' "
             "OR try_cast(effective_period_start AS TIMESTAMPTZ) IS NULL)",
             "effective-period",
             "malformed effective_period_start",
@@ -323,6 +325,7 @@ def _validate_relations(
             "Statement",
             "effective_period_end IS NOT NULL AND ("
             "NOT regexp_matches(effective_period_end, '^[0-9]{4}-[0-9]{2}-[0-9]{2}T23:59:59\\+00:00$') "
+            "OR substr(effective_period_end, 1, 4) = '0000' "
             "OR try_cast(effective_period_end AS TIMESTAMPTZ) IS NULL)",
             "effective-period",
             "malformed effective_period_end",
@@ -359,8 +362,13 @@ def _validate_relations(
         "evidence-method",
         "uses an unsupported review method",
     )
+    executed_checks = (
+        list(PREFLIGHT_CHECKS)
+        if has_start and has_end
+        else [name for name in PREFLIGHT_CHECKS if name != "effective-period"]
+    )
     return {
-        "checks": list(PREFLIGHT_CHECKS),
+        "checks": executed_checks,
         "counts": dict(view_counts),
         "mode": "authenticatedColumnarPreflight",
         "releaseOnlyChecks": list(RELEASE_ONLY_CHECKS),

@@ -51,11 +51,12 @@ from datetime import UTC, date, datetime
 from enum import StrEnum
 from typing import Any
 
-_PERIOD_START_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T00:00:00\+00:00$")
-_PERIOD_END_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T23:59:59\+00:00$")
-_ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_PERIOD_START_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T00:00:00\+00:00$", re.ASCII)
+_PERIOD_END_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T23:59:59\+00:00$", re.ASCII)
+_ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$", re.ASCII)
 _ISO_AWARE_DATETIME_RE = re.compile(
-    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$"
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$",
+    re.ASCII,
 )
 
 
@@ -96,7 +97,10 @@ def _parse_iso_aware_datetime(value: Any, *, label: str) -> datetime:
         raise EffectivePeriodError(f"{label} is not a valid calendar date-time: {value!r}") from error
     if parsed.tzinfo is None or parsed.utcoffset() is None:
         raise EffectivePeriodError(f"{label} must include an explicit timezone: {value!r}")
-    return parsed.astimezone(UTC)
+    try:
+        return parsed.astimezone(UTC)
+    except OverflowError as error:
+        raise EffectivePeriodError(f"{label} overflows UTC calendar range: {value!r}") from error
 
 
 def validate_effective_period_bounds(
@@ -146,7 +150,10 @@ def parse_as_of(as_of: date | datetime | str) -> datetime:
     if isinstance(as_of, datetime):
         if as_of.tzinfo is None or as_of.utcoffset() is None:
             raise EffectivePeriodError("as_of datetime must include an explicit timezone")
-        return as_of.astimezone(UTC)
+        try:
+            return as_of.astimezone(UTC)
+        except OverflowError as error:
+            raise EffectivePeriodError("as_of overflows UTC calendar range") from error
     if isinstance(as_of, date):
         return datetime(as_of.year, as_of.month, as_of.day, 0, 0, 0, tzinfo=UTC)
     if isinstance(as_of, str):
@@ -177,7 +184,10 @@ def format_utc_instant(value: datetime) -> str:
 
     if value.tzinfo is None or value.utcoffset() is None:
         raise EffectivePeriodError("instant must include an explicit timezone")
-    utc = value.astimezone(UTC)
+    try:
+        utc = value.astimezone(UTC)
+    except OverflowError as error:
+        raise EffectivePeriodError("instant overflows UTC calendar range") from error
     base = f"{utc.year:04d}-{utc.month:02d}-{utc.day:02d}T{utc.hour:02d}:{utc.minute:02d}:{utc.second:02d}"
     if utc.microsecond:
         return f"{base}.{utc.microsecond:06d}+00:00"

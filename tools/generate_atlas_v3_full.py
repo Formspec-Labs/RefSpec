@@ -6718,12 +6718,15 @@ class _StreamingGraphSpool:
                         found = bracketed.findall(line)
                         for needle in samples.keys() & set(found):
                             samples[needle].write(line)
+                            tokens = line.split(" ", 3)
                             if (
-                                len(found) >= 3
-                                and found[0] == needle
-                                and found[1] == has_effective_period_iri
+                                len(tokens) >= 3
+                                and tokens[0] == needle
+                                and tokens[1] == has_effective_period_iri
+                                and tokens[2].startswith("<")
+                                and tokens[2].endswith(">")
                             ):
-                                period_targets[found[2]].add(needle)
+                                period_targets[tokens[2]].add(needle)
             if period_targets:
                 for path in self.sorted_rdf_paths.values():
                     with path.open("r", encoding="utf-8", newline="") as rdf:

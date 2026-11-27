@@ -1361,6 +1361,8 @@ def _normalize_derived_row(row: dict[str, Any]) -> dict[str, Any]:
     row.setdefault("source_ring", None)
     row.setdefault("target_ring", None)
     row.setdefault("supersedes_assertion", None)
+    row.setdefault("effective_period_start", None)
+    row.setdefault("effective_period_end", None)
     digest = row.get("content_digest")
     if isinstance(digest, (bytes, bytearray)):
         row["content_digest"] = f"sha256:{digest.hex()}"

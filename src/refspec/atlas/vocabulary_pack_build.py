@@ -24,7 +24,7 @@ from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from refspec.atlas.effective_period import EffectivePeriodError, normalize_as_of_utc, parse_as_of
+from refspec.atlas.effective_period import EffectivePeriodError, validate_effective_period_bounds
 from refspec.atlas.vocabulary_protocols import (
     VocabularyInputError,
     VocabularyPackError,
@@ -542,27 +542,14 @@ def _normalize_edge_effective_period(
     *,
     stmt_id: str,
 ) -> tuple[str | None, str | None]:
-    """Validate and UTC-normalize one statement's effective bounds without inventing absent dates."""
+    """Validate and preserve one statement's canonical UTC effective bounds without inventing absent dates."""
 
-    if effective_start is None and effective_end is None:
-        return None, None
-    if effective_start is None:
-        raise VocabularyPackError(
-            "invalid_view",
-            f"statement {stmt_id} carries effective_period_end without effective_period_start",
-        )
     try:
-        start_dt = parse_as_of(str(effective_start))
-        norm_start = normalize_as_of_utc(start_dt)
-        if effective_end is None:
-            return norm_start, None
-        end_dt = parse_as_of(str(effective_end))
-        if end_dt < start_dt:
-            raise VocabularyPackError(
-                "invalid_view",
-                f"statement {stmt_id} effective_period_end precedes effective_period_start",
-            )
-        return norm_start, normalize_as_of_utc(end_dt)
+        return validate_effective_period_bounds(
+            effective_start,
+            effective_end,
+            path=f"statement {stmt_id}",
+        )
     except EffectivePeriodError as exc:
         raise VocabularyPackError(
             "invalid_view",
